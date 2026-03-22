@@ -651,9 +651,9 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
-  // ── 3. Medidor / Injeção (registro 103) ──
+  // ── 4. Medidor / Injeção (registro 103) ──
 
-  let medidorInjecaoCodigo: string | null = null;
+
   let leituraAnterior103: number | null = null;
   let leituraAtual103: number | null = null;
   let energiaInjetada: number | null = null;
