@@ -82,7 +82,9 @@ export function PricingMethodTab({ versionId, isReadOnly }: Props) {
       const { data: ins, error } = await supabase.from("pricing_methods").insert(payload as any).select("id").single();
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
       else {
-        setData((prev) => prev ? { ...prev, id: (ins as any).id } : null);
+        const newData = { ...data, id: (ins as any).id };
+        setData(newData);
+        setBaseline(newData);
         toast({ title: "Método configurado" });
       }
     }
