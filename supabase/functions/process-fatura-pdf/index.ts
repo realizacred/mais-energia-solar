@@ -2,6 +2,7 @@
 // process-fatura-pdf — Orchestrator: parse PDF → store → update UC → notify WA
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
+import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -126,7 +127,7 @@ async function processInvoice(
     normalizedPdfBase64 = pdf_base64!;
   }
 
-  const pdfText = extractTextFromPdfBytes(pdfBytes);
+  const pdfText = await extractTextFromPdfBytesAsync(pdfBytes);
 
   // ── 2. Call parse-conta-energia (deterministic parser — NO AI) ──
   let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
@@ -497,7 +498,7 @@ async function reprocessInvoice(
       .download(path);
     if (!dlErr && dlData) {
       const bytes = new Uint8Array(await dlData.arrayBuffer());
-      pdfText = extractTextFromPdfBytes(bytes);
+      pdfText = await extractTextFromPdfBytesAsync(bytes);
       pdfFound = true;
       console.log(`[process-fatura-pdf] Reprocess: PDF found at ${path}`);
       break;
@@ -649,7 +650,24 @@ async function callParseContaEnergia(
 
 // ── Helpers ──
 
-function extractTextFromPdfBytes(bytes: Uint8Array): string {
+async function extractTextFromPdfBytesAsync(bytes: Uint8Array): Promise<string> {
+  const MAX_OUTPUT_CHARS = 30_000;
+  try {
+    const doc = await getDocumentProxy(new Uint8Array(bytes));
+    const { text } = await extractText(doc, { mergePages: true });
+    if (text && text.trim().length > 10) {
+      console.log(`[process-fatura-pdf] unpdf extracted ${text.length} chars`);
+      return text.slice(0, MAX_OUTPUT_CHARS);
+    }
+  } catch (err) {
+    console.warn("[process-fatura-pdf] unpdf extraction failed, using fallback:", err);
+  }
+
+  // Fallback: rudimentary extraction for edge cases
+  return extractTextFromPdfBytesFallback(bytes);
+}
+
+function extractTextFromPdfBytesFallback(bytes: Uint8Array): string {
   const MAX_DECODE_BYTES = 1_000_000;
   const MAX_OUTPUT_CHARS = 10_000;
   const MAX_STREAMS = 40;
@@ -661,7 +679,6 @@ function extractTextFromPdfBytes(bytes: Uint8Array): string {
   let collectedChars = 0;
   let match: RegExpExecArray | null;
 
-  // PDFs grandes ou escaneados tendem a estourar CPU sem trazer texto útil.
   const shouldInspectStreams = sample.byteLength <= 750_000;
 
   if (shouldInspectStreams) {
