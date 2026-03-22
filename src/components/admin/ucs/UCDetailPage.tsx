@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, ArrowLeft, Zap, FileText, Settings, Edit, Trash2, Plus,
-  Calendar, MoreHorizontal, Activity, BarChart3, TrendingUp, DollarSign, Gauge
+  Calendar, MoreHorizontal, Activity, BarChart3, TrendingUp, DollarSign, Gauge, Sun
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -39,6 +39,7 @@ import { UCOverviewTab } from "./UCOverviewTab";
 import { UCComparativoTab } from "./UCComparativoTab";
 import { UCHistoricoTab } from "./UCHistoricoTab";
 import { UCEconomyReportTab } from "./UCEconomyReportTab";
+import { UCGdTab } from "./UCGdTab";
 import { formatDateTime } from "@/lib/dateUtils";
 
 const UC_TYPE_LABELS: Record<string, string> = {
@@ -229,6 +230,7 @@ export default function UCDetailPage() {
             <TabsTrigger value="historico" className="gap-1"><Calendar className="w-3.5 h-3.5" /> Histórico</TabsTrigger>
             <TabsTrigger value="comparativo" className="gap-1"><TrendingUp className="w-3.5 h-3.5" /> Comparativo</TabsTrigger>
             <TabsTrigger value="economia" className="gap-1"><DollarSign className="w-3.5 h-3.5" /> Economia</TabsTrigger>
+            <TabsTrigger value="gd" className="gap-1"><Sun className="w-3.5 h-3.5" /> GD</TabsTrigger>
             <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
           </TabsList>
 
@@ -282,6 +284,11 @@ export default function UCDetailPage() {
           {/* === ECONOMIA === */}
           <TabsContent value="economia" className="space-y-6">
             <UCEconomyReportTab unitId={uc.id} />
+          </TabsContent>
+
+          {/* === GD === */}
+          <TabsContent value="gd" className="space-y-6">
+            <UCGdTab uc={uc} />
           </TabsContent>
 
           {/* === CONFIGURAÇÕES TAB === */}
