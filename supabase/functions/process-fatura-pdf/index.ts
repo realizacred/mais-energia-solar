@@ -580,16 +580,18 @@ async function reprocessInvoice(
     updated_at: new Date().toISOString(),
   };
 
-  const { error: updateErr } = await admin
+  const { data: updatedInvoice, error: updateErr } = await admin
     .from('unit_invoices')
     .update(updatePayload)
-    .eq('id', invoiceId);
+    .eq('id', invoiceId)
+    .select('id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, previous_balance_kwh, current_balance_kwh, pdf_file_url, source, status, created_at, demanda_contratada_kw, demanda_medida_kw, ultrapassagem_kw, multa_ultrapassagem, bandeira_tarifaria, raw_extraction, parsing_status, parsing_error_reason, parser_version, last_parsed_at')
+    .maybeSingle();
 
-  if (updateErr) {
+  if (updateErr || !updatedInvoice) {
     console.error("[process-fatura-pdf] Reprocess update error:", updateErr);
     return new Response(JSON.stringify({
       error: 'Falha ao atualizar fatura reprocessada',
-      details: updateErr.message,
+      details: updateErr?.message || 'Update retornou vazio',
     }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
@@ -599,6 +601,7 @@ async function reprocessInvoice(
     success: true,
     data: {
       parsed,
+      invoice: updatedInvoice,
       invoice_id: invoiceId,
       unit_id: invoice.unit_id,
       reprocessed: true,
