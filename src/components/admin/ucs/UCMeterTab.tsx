@@ -268,6 +268,7 @@ function LeituraInicialCard({ meterId, meter }: { meterId: string; meter: any })
       leitura_inicial_observacao: leituraObs || null,
     }),
     onSuccess: () => {
+      setBaseline({ l03: leitura03, l103: leitura103, data: leituraData, obs: leituraObs });
       toast({ title: "Leitura inicial salva com sucesso" });
       qc.invalidateQueries({ queryKey: ["meter_device", meterId] });
     },
