@@ -129,7 +129,7 @@ function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Recor
           <DetailField label="Classe" value={raw?.classe_consumo} />
           <DetailField label="Tipo Ligação" value={raw?.tipo_ligacao} />
           <DetailField label="Próxima Leitura" value={raw?.proxima_leitura_data} />
-          <DetailField label="AI Fallback" value={raw?.ai_fallback_used ? "Sim" : "Não"} />
+          <DetailField label="Suporte de IA" value={raw?.ai_fallback_used ? "Sim" : "Não"} />
         </div>
       </div>
 
