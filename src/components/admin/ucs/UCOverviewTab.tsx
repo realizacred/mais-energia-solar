@@ -274,10 +274,12 @@ export function UCOverviewTab({
               { key: "injecao" as const, label: "Injeção", color: "bg-warning" },
             ]).map(({ key, label, color }) => (
               <label key={key} className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground select-none">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setChartSeries(s => ({ ...s, [key]: !s[key] }))}
-                  className={`w-3.5 h-3.5 rounded-sm border border-border transition-colors ${chartSeries[key] ? color : "bg-muted"}`}
+                  className={`w-3.5 h-3.5 min-h-0 min-w-0 p-0 rounded-sm border border-border transition-colors ${chartSeries[key] ? color : "bg-muted"}`}
                 />
                 {label}
               </label>
