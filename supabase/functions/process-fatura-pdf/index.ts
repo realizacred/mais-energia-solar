@@ -56,13 +56,13 @@ Deno.serve(async (req) => {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const token = authHeader.replace('Bearer ', '');
-      const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims?.sub) {
+      const { data: userData, error: userError } = await userClient.auth.getUser();
+      if (userError || !userData?.user?.id) {
+        console.error("[process-fatura-pdf] Auth failed:", userError?.message);
         return new Response(JSON.stringify({ error: 'Não autorizado' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      const userId = claimsData.claims.sub;
+      const userId = userData.user.id;
 
       const { data: profile } = await admin
         .from('profiles')
