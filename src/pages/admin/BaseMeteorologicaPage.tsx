@@ -474,7 +474,7 @@ export function BaseMeteorologicaPage() {
                     <CardTitle className="text-sm">{ds.label}</CardTitle>
                     {active && (
                       <Badge className="bg-success/10 text-success border-success/30 text-[10px]">
-                        Ativo — {(active.row_count ?? 0).toLocaleString("pt-BR")} pts
+                        Ativo — {formatIntegerBR(active.row_count ?? 0)} pts
                       </Badge>
                     )}
                   </div>
