@@ -121,31 +121,20 @@ async function processInvoice(
 
   const pdfText = extractTextFromPdfBytes(pdfBytes);
 
-  // ── 2. Call parse-conta-energia (with PDF base64 for AI multimodal fallback) ──
-  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, normalizedPdfBase64, true, 30000);
+  // ── 2. Call parse-conta-energia (deterministic parser — NO AI) ──
+  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
   let parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
-    // Retry without AI text fallback but still with PDF base64
-    const regexOnlyAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, normalizedPdfBase64, false, 15000);
-    if (regexOnlyAttempt.ok && regexOnlyAttempt.body?.success) {
-      parseResult = regexOnlyAttempt.body;
-    } else {
-      return new Response(JSON.stringify({
-        error: 'Falha ao parsear fatura',
-        details: parseResult || regexOnlyAttempt.body || null,
-      }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    return new Response(JSON.stringify({
+      error: 'Falha ao parsear fatura (parser determinístico)',
+      details: parseResult || null,
+      extraction_method: 'deterministic',
+    }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   const parsed = parseResult.data;
-  
-  // Log AI model used for traceability
-  if (parsed.ai_fallback_used) {
-    console.log(`[process-fatura-pdf] AI model used: ${parsed.ai_model_used || 'unknown'}, confidence: ${parsed.confidence}`);
-  } else {
-    console.log(`[process-fatura-pdf] Regex-only extraction, confidence: ${parsed.confidence}`);
-  }
+  console.log(`[process-fatura-pdf] Deterministic parser v${parsed.parser_version || '?'} (${parsed.parser_used || 'generic'}), confidence: ${parsed.confidence}`);
 
   // ── 3. Resolve UC ──
   let resolvedUnitId = unit_id || null;
@@ -421,29 +410,19 @@ async function callParseContaEnergia(
   supabaseUrl: string,
   serviceRoleKey: string,
   text: string,
-  pdfBase64: string,
-  useAiFallback: boolean,
   timeoutMs: number,
 ) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const payload: Record<string, any> = {
-      text: text || "",
-      use_ai_fallback: useAiFallback,
-    };
-
-    // Sempre envie o PDF base64 para permitir fallback multimodal quando o texto extraído vier parcial ou ruidoso.
-    payload.pdf_base64 = pdfBase64;
-
     const response = await fetch(`${supabaseUrl}/functions/v1/parse-conta-energia`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ text: text || "" }),
       signal: controller.signal,
     });
 
@@ -459,11 +438,7 @@ async function callParseContaEnergia(
     if (err?.name === 'AbortError') {
       return {
         ok: false,
-        body: {
-          error: useAiFallback
-            ? 'Timeout ao extrair dados com IA; tentando modo rápido.'
-            : 'Tempo esgotado ao extrair dados da fatura.',
-        },
+        body: { error: 'Tempo esgotado ao extrair dados da fatura.' },
       };
     }
     throw err;
