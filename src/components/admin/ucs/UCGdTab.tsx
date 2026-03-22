@@ -281,11 +281,18 @@ function GeneratorSection({
                   {beneficiaries.map((b) => {
                     const ucBen = allUcs.find(u => u.id === b.uc_beneficiaria_id);
                     return (
-                      <TableRow key={b.id} className="hover:bg-muted/30 transition-colors">
+                      <TableRow
+                        key={b.id}
+                        className="hover:bg-muted/30 cursor-pointer transition-colors"
+                        onClick={() => navigate(`/admin/ucs/${b.uc_beneficiaria_id}`)}
+                      >
                         <TableCell className="text-sm text-foreground">
-                          <div>
-                            <p className="font-medium">{ucBen?.nome || "UC desconhecida"}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{ucBen?.codigo_uc || "—"}</p>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium">{ucBen?.nome || "UC desconhecida"}</p>
+                              <p className="text-xs text-muted-foreground font-mono">{ucBen?.codigo_uc || "—"}</p>
+                            </div>
+                            <ExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm">
@@ -301,7 +308,7 @@ function GeneratorSection({
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={() => handleDeleteBeneficiary(b.id)}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteBeneficiary(b.id); }}
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
