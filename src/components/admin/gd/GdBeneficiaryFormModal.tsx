@@ -68,7 +68,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
     let ucId = form.uc_beneficiaria_id;
 
     // Create new UC if toggle is on
-    if (createNew) {
+    if (effectiveCreateNew) {
       if (!newUc.nome.trim() || !newUc.codigo_uc.trim()) {
         toast({ title: "Nome e Código da UC são obrigatórios", variant: "destructive" });
         return;
@@ -124,7 +124,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
         notes: form.notes || null,
         is_active: true,
       });
-      toast({ title: createNew ? "UC criada e vinculada como beneficiária" : "Beneficiária adicionada" });
+      toast({ title: effectiveCreateNew ? "UC criada e vinculada como beneficiária" : "Beneficiária adicionada" });
       setForm({ uc_beneficiaria_id: "", allocation_percent: "", start_date: "", end_date: "", notes: "" });
       setNewUc({ nome: "", codigo_uc: "", concessionaria_id: "", email_fatura: "" });
       setCreateNew(false);
@@ -253,7 +253,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saveBen.isPending}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saveBen.isPending}>
             {saveBen.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {saveBen.isPending ? "Adicionando..." : createNew ? "Criar UC e Vincular" : "Adicionar"}
+            {saveBen.isPending ? "Adicionando..." : effectiveCreateNew ? "Criar UC e Vincular" : "Adicionar"}
           </Button>
         </DialogFooter>
       </DialogContent>
