@@ -166,21 +166,14 @@ export function UCInvoicesTab({ unitId }: Props) {
       setUploadProgress(45);
       setUploadStep("Extraindo dados da fatura...");
 
-      const headers = await getEdgeFunctionAuthHeaders({ "x-client-timeout": "120" });
-      const { data, error } = await supabase.functions.invoke("process-fatura-pdf", {
+      const data = await invokeEdgeFunction<any>("process-fatura-pdf", {
         body: {
           pdf_storage_path: pdfStoragePath,
           unit_id: unitId,
           source: "upload",
         },
-        headers,
+        headers: { "x-client-timeout": "120" },
       });
-
-      if (error) {
-        const parsedError = await parseInvokeError(error);
-        throw new Error(parsedError.message || "Erro ao processar fatura");
-      }
-      if (data?.error) throw new Error(data.error);
 
       setUploadProgress(90);
       setUploadStep("Finalizando...");
