@@ -410,7 +410,7 @@ export function RateioCreditsModal({ open, onOpenChange, ucs, geracaoMensal, onS
                   <div>
                     <p className="text-xs font-medium text-warning">Geração excedente no período</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {Math.round(preview.excedente).toLocaleString("pt-BR")} kWh não foram alocados a nenhuma UC.
+                      {formatNumberBR(Math.round(preview.excedente))} kWh não foram alocados a nenhuma UC.
                     </p>
                   </div>
                 </div>
