@@ -605,7 +605,7 @@ export function CsvImportPanel() {
           {state === "uploading" && (
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Enviados {progress.current.toLocaleString("pt-BR")} de {progress.total.toLocaleString("pt-BR")}</span>
+                <span>Enviados {formatIntegerBR(progress.current)} de {formatIntegerBR(progress.total)}</span>
                 <span>{progressPct}%</span>
               </div>
               <Progress value={progressPct} className="h-2" />
