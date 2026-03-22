@@ -260,7 +260,7 @@ async function processInvoice(
     }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  // ── 6. Update UC with reading data ──
+  // ── 6. Update UC with reading data + enrich from first invoice ──
   const ucUpdate: any = {};
   if (parsed.proxima_leitura_data) ucUpdate.proxima_leitura_data = parseDateBR(parsed.proxima_leitura_data);
   if (parsed.leitura_atual_03 != null) {
@@ -269,6 +269,30 @@ async function processInvoice(
   }
   if (parsed.leitura_atual_103 != null) {
     ucUpdate.ultima_leitura_kwh_103 = parsed.leitura_atual_103;
+  }
+
+  // Enrich UC with categoria_gd from bill (only if not already set)
+  if (parsed.categoria_gd) {
+    const { data: currentUc } = await admin
+      .from('units_consumidoras')
+      .select('categoria_gd')
+      .eq('id', resolvedUnitId)
+      .maybeSingle();
+    if (!currentUc?.categoria_gd) {
+      ucUpdate.categoria_gd = parsed.categoria_gd;
+    }
+  }
+
+  // Enrich UC with concessionaria from bill (only if not already set)
+  if (parsed.concessionaria_nome && ucData) {
+    const { data: currentUc } = await admin
+      .from('units_consumidoras')
+      .select('concessionaria_nome')
+      .eq('id', resolvedUnitId)
+      .maybeSingle();
+    if (!currentUc?.concessionaria_nome) {
+      ucUpdate.concessionaria_nome = parsed.concessionaria_nome;
+    }
   }
 
   if (Object.keys(ucUpdate).length > 0) {
