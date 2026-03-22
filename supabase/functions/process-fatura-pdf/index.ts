@@ -892,3 +892,141 @@ function normalizeInvoiceSource(source?: string): InvoiceSource {
 
   return 'import';
 }
+
+// ── Detect concessionária from text ──
+function detectConcessionariaFromText(text: string): string | null {
+  const upper = text.toUpperCase();
+  if (upper.includes("ENERGISA")) return "energisa";
+  if (upper.includes("LIGHT S") || upper.includes("LIGHT -")) return "light";
+  if (upper.includes("ENEL") || upper.includes("ELETROPAULO")) return "enel";
+  if (upper.includes("CEMIG")) return "cemig";
+  if (upper.includes("CPFL")) return "cpfl";
+  if (upper.includes("CELESC")) return "celesc";
+  if (upper.includes("COPEL")) return "copel";
+  if (upper.includes("EQUATORIAL")) return "equatorial";
+  if (upper.includes("NEOENERGIA") || upper.includes("COELBA") || upper.includes("CELPE") || upper.includes("COSERN")) return "neoenergia";
+  return null;
+}
+
+// ── GD Consistency Engine (inline for edge function) ──
+interface GdData {
+  consumo_kwh?: number | null;
+  energia_injetada_kwh?: number | null;
+  energia_compensada_kwh?: number | null;
+  saldo_gd_acumulado?: number | null;
+  saldo_gd_anterior?: number | null;
+  valor_total?: number | null;
+}
+
+interface GdCheck {
+  rule: string;
+  level: "ok" | "warning" | "error";
+  message: string;
+  expected?: number | string | null;
+  actual?: number | string | null;
+}
+
+function runGdConsistencyChecks(current: GdData, previous: GdData | null) {
+  const checks: GdCheck[] = [];
+
+  // 1. Injeção vs Compensado
+  const injected = current.energia_injetada_kwh;
+  const compensated = current.energia_compensada_kwh;
+  if (injected != null && compensated != null) {
+    if (compensated > injected) {
+      checks.push({ rule: "injection_vs_compensation", level: "warning", message: `Compensado (${compensated} kWh) > injetado (${injected} kWh). Possível uso de saldo anterior.`, expected: injected, actual: compensated });
+    } else {
+      checks.push({ rule: "injection_vs_compensation", level: "ok", message: "Compensado dentro do limite da injeção." });
+    }
+  }
+
+  // 2. Saldo coerente
+  const saldoAtual = current.saldo_gd_acumulado;
+  const saldoAnterior = current.saldo_gd_anterior;
+  if (saldoAtual != null && saldoAnterior != null && injected != null && compensated != null) {
+    const expected = saldoAnterior + injected - compensated;
+    const diff = Math.abs(saldoAtual - expected);
+    const tolerance = Math.max(expected * 0.05, 5);
+    if (diff > tolerance) {
+      checks.push({ rule: "balance_coherence", level: "error", message: `Saldo acumulado (${saldoAtual}) diverge do esperado (${Math.round(expected)}). Diferença: ${Math.round(diff)} kWh.`, expected: Math.round(expected), actual: saldoAtual });
+    } else {
+      checks.push({ rule: "balance_coherence", level: "ok", message: "Saldo acumulado coerente." });
+    }
+  }
+
+  // 3. Histórico de saldo
+  if (previous?.saldo_gd_acumulado != null && saldoAnterior != null) {
+    if (Math.abs(previous.saldo_gd_acumulado - saldoAnterior) > 5) {
+      checks.push({ rule: "historical_balance_match", level: "warning", message: `Saldo anterior desta fatura (${saldoAnterior}) difere do saldo acumulado da fatura anterior (${previous.saldo_gd_acumulado}).`, expected: previous.saldo_gd_acumulado, actual: saldoAnterior });
+    } else {
+      checks.push({ rule: "historical_balance_match", level: "ok", message: "Saldo anterior confere com histórico." });
+    }
+  }
+
+  // 4. Valores não negativos
+  const nonNegFields: Array<{ key: keyof GdData; label: string }> = [
+    { key: "energia_injetada_kwh", label: "Energia injetada" },
+    { key: "energia_compensada_kwh", label: "Energia compensada" },
+    { key: "saldo_gd_acumulado", label: "Saldo acumulado" },
+    { key: "consumo_kwh", label: "Consumo" },
+  ];
+  for (const { key, label } of nonNegFields) {
+    const val = current[key];
+    if (val != null && (val as number) < 0) {
+      checks.push({ rule: `non_negative_${key}`, level: "error", message: `${label} é negativo (${val}).`, actual: val });
+    }
+  }
+
+  // 5. Balance reduction check
+  if (previous?.saldo_gd_acumulado != null && saldoAtual != null && compensated != null) {
+    const reduction = previous.saldo_gd_acumulado - saldoAtual;
+    if (reduction > 0 && reduction > compensated * 1.1 + 10) {
+      checks.push({ rule: "balance_reduction_exceeds_compensation", level: "warning", message: `Saldo reduziu ${Math.round(reduction)} kWh mas compensado foi ${compensated} kWh.`, expected: compensated, actual: Math.round(reduction) });
+    }
+  }
+
+  const overallLevel = checks.some(c => c.level === "error") ? "error" : checks.some(c => c.level === "warning") ? "warning" : "ok";
+  const score = checks.length === 0 ? 100 : Math.round((checks.reduce((sum, c) => sum + ({ ok: 1, warning: 0.5, error: 0 }[c.level]), 0) / checks.length) * 100);
+
+  return { checks, overallLevel, score };
+}
+
+// ── Log extraction run ──
+async function logExtractionRun(
+  admin: any,
+  tenantId: string,
+  configId: string | null,
+  invoiceId: string | null,
+  unitId: string | null,
+  concessionariaCode: string,
+  strategyUsed: string,
+  status: string,
+  errorReason: string | null,
+  requiredFields: string[],
+  foundFields: string[],
+  missingFields: string[],
+  confidenceScore?: number | null,
+  parserVersion?: string | null,
+) {
+  try {
+    await admin.from('invoice_extraction_runs').insert({
+      tenant_id: tenantId,
+      config_id: configId,
+      invoice_id: invoiceId,
+      uc_id: unitId,
+      concessionaria_code: concessionariaCode,
+      strategy_used: strategyUsed,
+      provider_used: null,
+      parser_version: parserVersion || null,
+      status,
+      error_reason: errorReason,
+      required_fields_found: foundFields,
+      required_fields_missing: missingFields,
+      confidence_score: confidenceScore ?? null,
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn("[process-fatura-pdf] Failed to log extraction run:", err);
+  }
+}
