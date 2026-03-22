@@ -508,33 +508,72 @@ export function UCInvoicesTab({ unitId }: Props) {
                         <StatusBadge variant="muted">{SOURCE_LABELS[inv.source || "manual"] || inv.source}</StatusBadge>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge variant={inv.status === "processed" ? "success" : inv.status === "error" ? "destructive" : "warning"} dot>
-                          {STATUS_LABELS[inv.status] || inv.status}
-                        </StatusBadge>
+                        <div className="flex items-center gap-1">
+                          <StatusBadge variant={inv.status === "processed" ? "success" : inv.status === "error" ? "destructive" : "warning"} dot>
+                            {STATUS_LABELS[inv.status] || inv.status}
+                          </StatusBadge>
+                          {inv.parsing_status === "failed" && (
+                            <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {inv.pdf_file_url && (
-                              <DropdownMenuItem asChild>
-                                <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
-                                  <Eye className="w-4 h-4 mr-2" /> Ver PDF
-                                </a>
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setDeleteTarget(inv.id)}
+                        <div className="flex items-center gap-1">
+                          {/* Reprocess button — visible when parsing failed */}
+                          {inv.parsing_status === "failed" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              disabled={reprocessingId === inv.id}
+                              onClick={() => handleReprocess(inv.id)}
+                              title="Reprocessar fatura"
                             >
-                              <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              {reprocessingId === inv.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4 text-primary" />
+                              )}
+                            </Button>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {inv.pdf_file_url && (
+                                <DropdownMenuItem asChild>
+                                  <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
+                                    <Eye className="w-4 h-4 mr-2" /> Ver PDF
+                                  </a>
+                                </DropdownMenuItem>
+                              )}
+                              {/* Debug parsing */}
+                              {inv.raw_extraction && (
+                                <DropdownMenuItem onClick={() => setDebugInvoice(inv)}>
+                                  <Bug className="w-4 h-4 mr-2" /> Ver debug
+                                </DropdownMenuItem>
+                              )}
+                              {/* Reprocess in menu */}
+                              {inv.pdf_file_url && (
+                                <DropdownMenuItem
+                                  disabled={reprocessingId === inv.id}
+                                  onClick={() => handleReprocess(inv.id)}
+                                >
+                                  <RefreshCw className="w-4 h-4 mr-2" /> Reprocessar
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setDeleteTarget(inv.id)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                     {isExpanded && (
