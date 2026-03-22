@@ -335,6 +335,7 @@ export function UCInvoicesTab({ unitId }: Props) {
   const STATUS_LABELS: Record<string, string> = {
     pending: "Pendente",
     processed: "Processada",
+    received: "Recebida",
     error: "Erro",
   };
 
