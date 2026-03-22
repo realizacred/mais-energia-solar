@@ -39,6 +39,7 @@ interface ExtractedData {
   energia_injetada_kwh: number | null;
   energia_compensada_kwh: number | null;
   categoria_gd: string | null;
+  modalidade_tarifaria: string | null;
   confidence: number;
   ai_fallback_used: boolean;
   raw_fields: Record<string, string>;
