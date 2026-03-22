@@ -188,6 +188,7 @@ export default function ExtractionCenterPage() {
         <TabsList>
           <TabsTrigger value="configs">Configurações</TabsTrigger>
           <TabsTrigger value="test">Teste de Extração</TabsTrigger>
+          <TabsTrigger value="learning">Aprendizado de Layouts</TabsTrigger>
           <TabsTrigger value="runs">Histórico</TabsTrigger>
           <TabsTrigger value="assistant">Assistente</TabsTrigger>
         </TabsList>
