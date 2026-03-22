@@ -130,6 +130,54 @@ export function UCOverviewTab({
     staleTime: STALE_5M,
   });
 
+  // --- Today's meter delta (consumption + injection for today) ---
+  const { data: todayMeterDelta } = useQuery({
+    queryKey: ["uc_overview_today_delta", meterId],
+    queryFn: async () => {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      // Get first reading of today
+      const { data: firstReading } = await supabase
+        .from("meter_readings")
+        .select("energy_import_kwh, energy_export_kwh")
+        .eq("meter_device_id", meterId!)
+        .gte("measured_at", todayStart.toISOString())
+        .order("measured_at", { ascending: true })
+        .limit(1);
+      // Get latest reading
+      const { data: lastReading } = await supabase
+        .from("meter_readings")
+        .select("energy_import_kwh, energy_export_kwh")
+        .eq("meter_device_id", meterId!)
+        .gte("measured_at", todayStart.toISOString())
+        .order("measured_at", { ascending: false })
+        .limit(1);
+      if (!firstReading?.length || !lastReading?.length) return null;
+      const first = firstReading[0];
+      const last = lastReading[0];
+      return {
+        consumoHoje: Math.max(0, Number(last.energy_import_kwh || 0) - Number(first.energy_import_kwh || 0)),
+        injecaoHoje: Math.max(0, Number(last.energy_export_kwh || 0) - Number(first.energy_export_kwh || 0)),
+      };
+    },
+    enabled: !!meterId,
+    staleTime: STALE_2M,
+  });
+
+  // --- Unit credits sum for Saldo GD ---
+  const { data: creditSum } = useQuery({
+    queryKey: ["uc_overview_credit_sum", ucId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("unit_credits")
+        .select("quantidade_kwh")
+        .eq("unit_id", ucId);
+      if (error) throw error;
+      return (data || []).reduce((sum, c) => sum + Number(c.quantidade_kwh || 0), 0);
+    },
+    staleTime: STALE_5M,
+  });
+
   // --- Build chart data ---
   const chartData = useMemo(() => {
     const importByDay: Record<string, number[]> = {};
