@@ -339,6 +339,30 @@ export function UCInvoicesTab({ unitId }: Props) {
     });
   };
 
+  const handleReprocess = async (invoiceId: string) => {
+    setReprocessingId(invoiceId);
+    try {
+      const result = await invokeEdgeFunction<any>("process-fatura-pdf", {
+        body: {
+          force_reprocess: true,
+          invoice_id: invoiceId,
+        },
+      });
+      if (result?.success) {
+        toast({ title: "Fatura reprocessada", description: `Parser v${result.data?.parser_version || '?'} — dados atualizados.` });
+        invalidateAllUcQueries();
+      } else {
+        toast({ title: "Reprocessamento falhou", description: result?.error || "Erro desconhecido", variant: "destructive" });
+        invalidateAllUcQueries();
+      }
+    } catch (err: any) {
+      toast({ title: "Erro ao reprocessar", description: err?.message, variant: "destructive" });
+      invalidateAllUcQueries();
+    } finally {
+      setReprocessingId(null);
+    }
+  };
+
   const SOURCE_LABELS: Record<string, string> = {
     manual: "Manual",
     email: "E-mail",
