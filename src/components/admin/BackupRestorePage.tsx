@@ -189,7 +189,7 @@ export function BackupRestorePage() {
             </div>
             <div>
               <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
-                {totalRows.toLocaleString("pt-BR")}
+                {formatIntegerBR(totalRows)}
               </p>
               <p className="text-sm text-muted-foreground mt-1">Registros no último backup</p>
             </div>
