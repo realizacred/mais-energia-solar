@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { formatNumberBR } from "@/lib/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -276,8 +277,8 @@ export function RateioCreditsModal({ open, onOpenChange, ucs, geracaoMensal, onS
           <div className="rounded-md bg-muted/50 p-3 space-y-1">
             <p className="text-xs font-medium">Resumo</p>
             <div className="grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
-              <span>Consumo total: <strong>{totalConsumo.toLocaleString("pt-BR")} kWh</strong></span>
-              <span>Geração mensal: <strong>{geracaoMensal.toLocaleString("pt-BR")} kWh</strong></span>
+              <span>Consumo total: <strong>{formatNumberBR(totalConsumo)} kWh</strong></span>
+              <span>Geração mensal: <strong>{formatNumberBR(geracaoMensal)} kWh</strong></span>
             </div>
           </div>
 
@@ -389,7 +390,7 @@ export function RateioCreditsModal({ open, onOpenChange, ucs, geracaoMensal, onS
                       </span>
                       <div className="flex items-center gap-3">
                         <span className="text-muted-foreground">
-                          {alloc.toLocaleString("pt-BR")} / {cap.toLocaleString("pt-BR")} kWh
+                          {formatNumberBR(alloc)} / {formatNumberBR(cap)} kWh
                         </span>
                         <span className={`font-semibold ${isCapped ? "text-warning" : "text-secondary"}`}>
                           {preview.percentual[i]}%
@@ -409,7 +410,7 @@ export function RateioCreditsModal({ open, onOpenChange, ucs, geracaoMensal, onS
                   <div>
                     <p className="text-xs font-medium text-warning">Geração excedente no período</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {Math.round(preview.excedente).toLocaleString("pt-BR")} kWh não foram alocados a nenhuma UC.
+                      {formatNumberBR(Math.round(preview.excedente))} kWh não foram alocados a nenhuma UC.
                     </p>
                   </div>
                 </div>
@@ -455,7 +456,7 @@ export function MesAMesDialog({ open, onOpenChange, title, values, onSave }: Mes
           <DialogTitle>{title} — Mês a mês</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 py-2">
-          <p className="text-xs text-muted-foreground">Total: <strong>{total.toLocaleString("pt-BR")} kWh</strong> • Média: <strong>{Math.round(total / 12)} kWh/mês</strong></p>
+          <p className="text-xs text-muted-foreground">Total: <strong>{formatNumberBR(total)} kWh</strong> • Média: <strong>{Math.round(total / 12)} kWh/mês</strong></p>
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
             {MESES.map(m => (
               <div key={m} className="space-y-0.5">

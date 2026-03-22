@@ -3,6 +3,7 @@
  * Shows period selector, tariff/credit inputs, and a live preview of the calculation.
  */
 import { useState, useEffect, useCallback } from "react";
+import { formatBRL } from "@/lib/formatters";
 import {
   Dialog,
   DialogContent,
@@ -189,7 +190,7 @@ export function EstimateReportDialog({
             <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2 text-sm">
               {investimento > 0 && (
                 <p className="text-muted-foreground">
-                  Total investido: <span className="font-semibold text-foreground">R$ {investimento.toLocaleString("pt-BR")}</span>
+                  Total investido: <span className="font-semibold text-foreground">{formatBRL(investimento)}</span>
                 </p>
               )}
               <p className="text-muted-foreground">

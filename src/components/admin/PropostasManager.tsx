@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { formatBRL } from "@/lib/formatters";
 import {
   FileText, Plus, Search, Zap, DollarSign,
   SunMedium, FileX,
@@ -42,8 +43,8 @@ function formatProposalMessage(opts: {
   const lines: string[] = [];
   if (opts.clienteNome) lines.push(`Olá ${opts.clienteNome}! 👋`);
   lines.push("Segue o resumo da sua proposta:");
-  if (opts.totalValue) lines.push(`💰 Valor: R$ ${opts.totalValue.toLocaleString("pt-BR")}`);
-  if (opts.economiaMensal) lines.push(`📉 Economia: R$ ${opts.economiaMensal.toLocaleString("pt-BR")}/mês`);
+  if (opts.totalValue) lines.push(`💰 Valor: ${formatBRL(opts.totalValue)}`);
+  if (opts.economiaMensal) lines.push(`📉 Economia: ${formatBRL(opts.economiaMensal)}/mês`);
   if (opts.linkPdf) lines.push(`📄 PDF: ${opts.linkPdf}`);
   return lines.join("\n");
 }

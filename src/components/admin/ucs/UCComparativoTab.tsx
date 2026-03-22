@@ -3,6 +3,7 @@
  * §27: KPI cards, §5: Recharts, §12: Skeleton, §25: Modal, §4: Table shadcn.
  */
 import { useState } from "react";
+import { formatNumberBR } from "@/lib/formatters";
 import { useUnitComparativo, usePropostaVersoesForLink, useLinkSimulacao } from "@/hooks/useUnitComparativo";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -241,11 +242,11 @@ export function UCComparativoTab({ unitId, simulacaoId }: Props) {
                 return (
                   <TableRow key={m.month} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="font-medium text-foreground">{m.mes}</TableCell>
-                    <TableCell className="text-right font-mono text-muted-foreground">{m.estimado_kwh.toLocaleString("pt-BR")} kWh</TableCell>
-                    <TableCell className="text-right font-mono">{m.real_kwh.toLocaleString("pt-BR")} kWh</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">{formatNumberBR(m.estimado_kwh)} kWh</TableCell>
+                    <TableCell className="text-right font-mono">{formatNumberBR(m.real_kwh)} kWh</TableCell>
                     <TableCell className="text-right font-mono">
                       <span className={m.diferenca_kwh >= 0 ? "text-success" : "text-destructive"}>
-                        {m.diferenca_kwh >= 0 ? "+" : ""}{m.diferenca_kwh.toLocaleString("pt-BR")} kWh
+                        {m.diferenca_kwh >= 0 ? "+" : ""}{formatNumberBR(m.diferenca_kwh)} kWh
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -274,15 +275,15 @@ function SimulacaoInfo({ simulacao, onChangeClick }: { simulacao: NonNullable<im
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">Potência</p>
-            <p className="font-semibold">{simulacao.potencia_kwp?.toLocaleString("pt-BR") || "—"} kWp</p>
+            <p className="font-semibold">{simulacao.potencia_kwp ? formatNumberBR(simulacao.potencia_kwp) : "—"} kWp</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Geração Mensal Estimada</p>
-            <p className="font-semibold">{simulacao.geracao_mensal?.toLocaleString("pt-BR") || "—"} kWh</p>
+            <p className="font-semibold">{simulacao.geracao_mensal ? formatNumberBR(simulacao.geracao_mensal) : "—"} kWh</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Geração Anual Estimada</p>
-            <p className="font-semibold">{simulacao.geracao_anual?.toLocaleString("pt-BR") || "—"} kWh</p>
+            <p className="font-semibold">{simulacao.geracao_anual ? formatNumberBR(simulacao.geracao_anual) : "—"} kWh</p>
           </div>
         </div>
       </CardContent>

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { formatNumberBR } from "@/lib/formatters";
 import { transposeToTiltedPlane } from "@/services/solar-transposition";
 import type { IrradianceSeries } from "@/services/irradiance-provider";
 import { distribuirConsumoPorIrradiacao, hasConsumoMesesPreenchido } from "@/lib/distribuirConsumoPorIrradiacao";
@@ -487,7 +488,7 @@ export function StepConsumptionIntelligence({
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <BarChart3 className="h-3.5 w-3.5" />
           <span>Consumo Médio Total</span>
-          <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
+          <span className="font-bold text-foreground">{formatNumberBR(consumoTotal)} kWh</span>
         </div>
         <Button variant="ghost" onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group h-auto p-0">
           <Pencil className="h-3.5 w-3.5" />
@@ -818,7 +819,7 @@ function EquipamentosPreFilter({ pd, consumoTotal, potenciaIdealByTopo }: {
           <p className="text-sm font-semibold">Pré-filtro de Equipamentos</p>
         </div>
         <p className="text-xs text-muted-foreground">
-          Com base no consumo de <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh/mês</span> e
+          Com base no consumo de <span className="font-bold text-foreground">{formatNumberBR(consumoTotal)} kWh/mês</span> e
           topologias selecionadas ({activeTopos.map(t => TOPOLOGIA_LABELS[t]).join(", ")}),
           o sistema filtrará equipamentos compatíveis na faixa de <span className="font-bold text-foreground">{potMin.toFixed(2)}</span> a <span className="font-bold text-foreground">{potMax.toFixed(2)} kWp</span>.
         </p>
@@ -828,7 +829,7 @@ function EquipamentosPreFilter({ pd, consumoTotal, potenciaIdealByTopo }: {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-lg border border-border p-3 space-y-1">
           <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Consumo Rede</p>
-          <p className="text-lg font-bold">{consumoTotal.toLocaleString("pt-BR")} <span className="text-xs font-normal text-muted-foreground">kWh/mês</span></p>
+          <p className="text-lg font-bold">{formatNumberBR(consumoTotal)} <span className="text-xs font-normal text-muted-foreground">kWh/mês</span></p>
         </div>
         <div className="rounded-lg border border-border p-3 space-y-1">
           <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Faixa Potência</p>
