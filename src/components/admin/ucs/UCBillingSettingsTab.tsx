@@ -30,6 +30,12 @@ export function UCBillingSettingsTab({ unitId }: Props) {
   const { guardLimit, LimitDialog } = usePlanGuard();
   const [showPassword, setShowPassword] = useState(false);
 
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["billing_settings", unitId],
+    queryFn: () => invoiceService.getBillingSettings(unitId),
+    staleTime: 1000 * 60 * 5,
+  });
+
   const defaultForm = {
     billing_capture_email: "",
     forward_to_email: "",
