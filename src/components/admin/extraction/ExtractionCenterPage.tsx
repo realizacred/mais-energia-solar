@@ -210,7 +210,7 @@ export default function ExtractionCenterPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="configs">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="configs">Configurações</TabsTrigger>
           <TabsTrigger value="test">Teste de Extração</TabsTrigger>
