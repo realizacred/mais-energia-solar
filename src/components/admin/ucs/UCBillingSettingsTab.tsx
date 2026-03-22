@@ -256,6 +256,15 @@ export function UCBillingSettingsTab({ unitId }: Props) {
               <StatusBadge variant={settings.setup_status === "active" ? "success" : settings.setup_status === "error" ? "destructive" : "warning"} dot>
                 {settings.setup_status === "active" ? "Ativo" : settings.setup_status === "error" ? "Erro" : "Pendente"}
               </StatusBadge>
+              {settings.setup_status !== "active" && (
+                <span className="text-xs text-muted-foreground">
+                  {!settings.email_billing_enabled
+                    ? "— Ative o toggle acima para começar a receber faturas"
+                    : !settings.billing_capture_email
+                    ? "— Configure o e-mail de cadastro na concessionária"
+                    : "— Aguardando primeira fatura ser recebida"}
+                </span>
+              )}
             </div>
           )}
 
