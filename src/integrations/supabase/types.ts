@@ -7615,13 +7615,19 @@ export type Database = {
       invoice_extraction_configs: {
         Row: {
           active: boolean
+          beneficiaria_signals: Json
+          blocking_fields: Json
           concessionaria_code: string
           concessionaria_id: string | null
           concessionaria_nome: string
           created_at: string
+          desired_fields: Json
           fallback_enabled: boolean
+          geradora_signals: Json
           id: string
           identifier_field: string | null
+          layout_rules: Json
+          mista_signals: Json
           native_enabled: boolean
           notes: string | null
           optional_fields: Json
@@ -7631,22 +7637,32 @@ export type Database = {
           provider_name: string | null
           provider_requires_base64: boolean
           provider_requires_password: boolean
+          recovery_enabled: boolean
           required_fields: Json
           required_fields_beneficiaria: Json
+          required_fields_consumo: Json
           required_fields_geradora: Json
+          required_fields_mista: Json
+          source_type_supported: string
           strategy_mode: Database["public"]["Enums"]["extraction_strategy_mode"]
           tenant_id: string | null
           updated_at: string
         }
         Insert: {
           active?: boolean
+          beneficiaria_signals?: Json
+          blocking_fields?: Json
           concessionaria_code: string
           concessionaria_id?: string | null
           concessionaria_nome: string
           created_at?: string
+          desired_fields?: Json
           fallback_enabled?: boolean
+          geradora_signals?: Json
           id?: string
           identifier_field?: string | null
+          layout_rules?: Json
+          mista_signals?: Json
           native_enabled?: boolean
           notes?: string | null
           optional_fields?: Json
@@ -7656,22 +7672,32 @@ export type Database = {
           provider_name?: string | null
           provider_requires_base64?: boolean
           provider_requires_password?: boolean
+          recovery_enabled?: boolean
           required_fields?: Json
           required_fields_beneficiaria?: Json
+          required_fields_consumo?: Json
           required_fields_geradora?: Json
+          required_fields_mista?: Json
+          source_type_supported?: string
           strategy_mode?: Database["public"]["Enums"]["extraction_strategy_mode"]
           tenant_id?: string | null
           updated_at?: string
         }
         Update: {
           active?: boolean
+          beneficiaria_signals?: Json
+          blocking_fields?: Json
           concessionaria_code?: string
           concessionaria_id?: string | null
           concessionaria_nome?: string
           created_at?: string
+          desired_fields?: Json
           fallback_enabled?: boolean
+          geradora_signals?: Json
           id?: string
           identifier_field?: string | null
+          layout_rules?: Json
+          mista_signals?: Json
           native_enabled?: boolean
           notes?: string | null
           optional_fields?: Json
@@ -7681,9 +7707,13 @@ export type Database = {
           provider_name?: string | null
           provider_requires_base64?: boolean
           provider_requires_password?: boolean
+          recovery_enabled?: boolean
           required_fields?: Json
           required_fields_beneficiaria?: Json
+          required_fields_consumo?: Json
           required_fields_geradora?: Json
+          required_fields_mista?: Json
+          source_type_supported?: string
           strategy_mode?: Database["public"]["Enums"]["extraction_strategy_mode"]
           tenant_id?: string | null
           updated_at?: string
