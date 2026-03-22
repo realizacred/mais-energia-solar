@@ -99,7 +99,7 @@ function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Recor
           <DetailField label="Saldo Atual (kWh)" value={fmtNum(invoice.current_balance_kwh, " kWh")} />
           <DetailField label="Saldo GD Acumulado" value={fmtNum(raw?.saldo_gd_acumulado, " kWh")} />
           <DetailField label="Categoria GD" value={raw?.categoria_gd} />
-          <DetailField label="Confiança Parser" value={raw?.confidence != null ? `${raw.confidence}%` : null} />
+          <DetailField label="Confiança da extração" value={raw?.confidence != null ? `${raw.confidence}%` : null} />
         </div>
       </div>
 
