@@ -1,5 +1,5 @@
 /**
- * UCInvoicesTab — Invoices list for a UC with manual registration, PDF upload, and email config info.
+ * UCInvoicesTab — Invoices list for a UC with manual registration, PDF upload, and expandable detail rows.
  */
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -19,7 +19,7 @@ import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2, Trash2, MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +40,7 @@ import { Link } from "react-router-dom";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
 import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -57,6 +58,100 @@ const BANDEIRA_COLORS: Record<string, string> = {
   vermelha_2: "border-destructive text-destructive",
 };
 
+/** Detail fields label */
+function DetailField({ label, value }: { label: string; value: string | number | null | undefined }) {
+  const display = value != null && value !== "" ? String(value) : "—";
+  return (
+    <div className="space-y-0.5">
+      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="text-sm font-medium text-foreground">{display}</p>
+    </div>
+  );
+}
+
+function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Record<string, any> | null }) {
+  const fmtNum = (v: number | null | undefined, suffix = "") => v != null ? `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}${suffix}` : null;
+  const fmtBRL = (v: number | null | undefined) => v != null ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null;
+
+  return (
+    <div className="px-6 py-4 space-y-4">
+      {/* Leituras */}
+      <div>
+        <p className="text-xs font-semibold text-foreground mb-2">Leituras do Medidor</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+          <DetailField label="Leitura Anterior 03" value={fmtNum(raw?.leitura_anterior_03)} />
+          <DetailField label="Leitura Atual 03" value={fmtNum(raw?.leitura_atual_03)} />
+          <DetailField label="Consumo (kWh)" value={fmtNum(invoice.energy_consumed_kwh, " kWh")} />
+          <DetailField label="Leitura Anterior 103" value={fmtNum(raw?.leitura_anterior_103)} />
+          <DetailField label="Leitura Atual 103" value={fmtNum(raw?.leitura_atual_103)} />
+          <DetailField label="Injeção (kWh)" value={fmtNum(invoice.energy_injected_kwh, " kWh")} />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Energia e Saldo */}
+      <div>
+        <p className="text-xs font-semibold text-foreground mb-2">Energia e Créditos</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+          <DetailField label="Compensado (kWh)" value={fmtNum(invoice.compensated_kwh, " kWh")} />
+          <DetailField label="Saldo Anterior (kWh)" value={fmtNum(invoice.previous_balance_kwh, " kWh")} />
+          <DetailField label="Saldo Atual (kWh)" value={fmtNum(invoice.current_balance_kwh, " kWh")} />
+          <DetailField label="Saldo GD Acumulado" value={fmtNum(raw?.saldo_gd_acumulado, " kWh")} />
+          <DetailField label="Categoria GD" value={raw?.categoria_gd} />
+          <DetailField label="Confiança Parser" value={raw?.confidence != null ? `${raw.confidence}%` : null} />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Financeiro */}
+      <div>
+        <p className="text-xs font-semibold text-foreground mb-2">Financeiro</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+          <DetailField label="Valor Total" value={fmtBRL(invoice.total_amount)} />
+          <DetailField label="Tarifa Energia" value={raw?.tarifa_energia_kwh != null ? `R$ ${raw.tarifa_energia_kwh}` : null} />
+          <DetailField label="TUSD/Fio B" value={raw?.tarifa_fio_b_kwh != null ? `R$ ${raw.tarifa_fio_b_kwh}` : null} />
+          <DetailField label="ICMS" value={raw?.icms_percentual != null ? `${raw.icms_percentual}%` : null} />
+          <DetailField label="PIS" value={fmtBRL(raw?.pis_valor)} />
+          <DetailField label="COFINS" value={fmtBRL(raw?.cofins_valor)} />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Dados da UC */}
+      <div>
+        <p className="text-xs font-semibold text-foreground mb-2">Dados Extraídos</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+          <DetailField label="Concessionária" value={raw?.concessionaria_nome} />
+          <DetailField label="Nº UC" value={raw?.numero_uc} />
+          <DetailField label="Classe" value={raw?.classe_consumo} />
+          <DetailField label="Tipo Ligação" value={raw?.tipo_ligacao} />
+          <DetailField label="Próxima Leitura" value={raw?.proxima_leitura_data} />
+          <DetailField label="AI Fallback" value={raw?.ai_fallback_used ? "Sim" : "Não"} />
+        </div>
+      </div>
+
+      {/* Demanda (if applicable) */}
+      {(invoice.demanda_contratada_kw || invoice.demanda_medida_kw) && (
+        <>
+          <Separator />
+          <div>
+            <p className="text-xs font-semibold text-foreground mb-2">Demanda (Grupo A)</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <DetailField label="Contratada" value={fmtNum(invoice.demanda_contratada_kw, " kW")} />
+              <DetailField label="Medida" value={fmtNum(invoice.demanda_medida_kw, " kW")} />
+              <DetailField label="Ultrapassagem" value={fmtNum(invoice.ultrapassagem_kw, " kW")} />
+              <DetailField label="Multa" value={fmtBRL(invoice.multa_ultrapassagem)} />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   unitId: string;
 }
@@ -69,6 +164,7 @@ export function UCInvoicesTab({ unitId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStep, setUploadStep] = useState<string>("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     reference_month: new Date().getMonth() + 1,
@@ -340,55 +436,77 @@ export function UCInvoicesTab({ unitId }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((inv) => (
-                <TableRow key={inv.id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="font-medium text-foreground">{MONTHS[inv.reference_month - 1]}/{inv.reference_year}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
-                  <TableCell className="text-sm text-right font-mono">{inv.total_amount != null ? `R$ ${inv.total_amount.toFixed(2)}` : "—"}</TableCell>
-                  <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toFixed(1)} kWh` : "—"}</TableCell>
-                  <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toFixed(1)} kWh` : "—"}</TableCell>
-                  <TableCell className="text-sm text-right">{inv.current_balance_kwh != null ? `${inv.current_balance_kwh.toFixed(1)} kWh` : "—"}</TableCell>
-                  <TableCell>
-                    {inv.bandeira_tarifaria ? (
-                      <StatusBadge variant="muted" className={BANDEIRA_COLORS[inv.bandeira_tarifaria] || ""}>
-                        {BANDEIRA_LABELS[inv.bandeira_tarifaria] || inv.bandeira_tarifaria}
-                      </StatusBadge>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge variant="muted">{SOURCE_LABELS[inv.source || "manual"] || inv.source}</StatusBadge>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge variant={inv.status === "processed" ? "success" : inv.status === "error" ? "destructive" : "warning"} dot>
-                      {STATUS_LABELS[inv.status] || inv.status}
-                    </StatusBadge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {inv.pdf_file_url && (
-                          <DropdownMenuItem asChild>
-                            <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
-                              <Eye className="w-4 h-4 mr-2" /> Ver PDF
-                            </a>
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => setDeleteTarget(inv.id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {invoices.map((inv) => {
+                const isExpanded = expandedId === inv.id;
+                const raw = inv.raw_extraction as Record<string, any> | null;
+                return (
+                  <>
+                    <TableRow
+                      key={inv.id}
+                      className="hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => setExpandedId(isExpanded ? null : inv.id)}
+                    >
+                      <TableCell className="font-medium text-foreground">
+                        <div className="flex items-center gap-1.5">
+                          {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                          {MONTHS[inv.reference_month - 1]}/{inv.reference_year}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
+                      <TableCell className="text-sm text-right font-mono">{inv.total_amount != null ? `R$ ${inv.total_amount.toFixed(2)}` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.current_balance_kwh != null ? `${inv.current_balance_kwh.toFixed(1)} kWh` : "—"}</TableCell>
+                      <TableCell>
+                        {inv.bandeira_tarifaria ? (
+                          <StatusBadge variant="muted" className={BANDEIRA_COLORS[inv.bandeira_tarifaria] || ""}>
+                            {BANDEIRA_LABELS[inv.bandeira_tarifaria] || inv.bandeira_tarifaria}
+                          </StatusBadge>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge variant="muted">{SOURCE_LABELS[inv.source || "manual"] || inv.source}</StatusBadge>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge variant={inv.status === "processed" ? "success" : inv.status === "error" ? "destructive" : "warning"} dot>
+                          {STATUS_LABELS[inv.status] || inv.status}
+                        </StatusBadge>
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {inv.pdf_file_url && (
+                              <DropdownMenuItem asChild>
+                                <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
+                                  <Eye className="w-4 h-4 mr-2" /> Ver PDF
+                                </a>
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteTarget(inv.id)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && (
+                      <TableRow key={`${inv.id}-detail`} className="bg-muted/20 hover:bg-muted/20">
+                        <TableCell colSpan={10} className="p-0">
+                          <InvoiceDetailPanel invoice={inv} raw={raw} />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
