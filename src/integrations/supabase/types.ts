@@ -3707,6 +3707,7 @@ export type Database = {
           duplicate_count: number
           email_account_id: string
           error_count: number
+          error_message: string | null
           finished_at: string | null
           id: string
           imported_count: number
@@ -3719,6 +3720,7 @@ export type Database = {
           duplicate_count?: number
           email_account_id: string
           error_count?: number
+          error_message?: string | null
           finished_at?: string | null
           id?: string
           imported_count?: number
@@ -3731,6 +3733,7 @@ export type Database = {
           duplicate_count?: number
           email_account_id?: string
           error_count?: number
+          error_message?: string | null
           finished_at?: string | null
           id?: string
           imported_count?: number

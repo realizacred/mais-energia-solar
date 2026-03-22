@@ -31,6 +31,7 @@ import {
   useSaveEmailAccount,
   useDeleteEmailAccount,
   useTriggerEmailSync,
+  useClearFailedRuns,
   type EmailAccount,
 } from "@/hooks/useEmailAccounts";
 
@@ -417,21 +418,42 @@ function RunsHistory() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const accountId = selectedAccountId || accounts?.[0]?.id || null;
   const { data: runs, isLoading } = useEmailIngestionRuns(accountId);
+  const clearFailed = useClearFailedRuns();
+
+  const failedCount = runs?.filter(r => r.status === "failed").length || 0;
+
+  const handleClearFailed = async () => {
+    if (!accountId) return;
+    try {
+      await clearFailed.mutateAsync(accountId);
+      toast({ title: "Execuções com falha removidas" });
+    } catch {
+      toast({ title: "Erro ao limpar", variant: "destructive" });
+    }
+  };
 
   return (
     <div className="space-y-4">
-      {accounts && accounts.length > 1 && (
-        <Select value={accountId || ""} onValueChange={v => setSelectedAccountId(v)}>
-          <SelectTrigger className="w-full max-w-xs">
-            <SelectValue placeholder="Selecione uma conta..." />
-          </SelectTrigger>
-          <SelectContent>
-            {accounts.map(a => (
-              <SelectItem key={a.id} value={a.id}>{a.email_address}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+      <div className="flex items-center justify-between gap-4">
+        {accounts && accounts.length > 1 && (
+          <Select value={accountId || ""} onValueChange={v => setSelectedAccountId(v)}>
+            <SelectTrigger className="w-full max-w-xs">
+              <SelectValue placeholder="Selecione uma conta..." />
+            </SelectTrigger>
+            <SelectContent>
+              {accounts.map(a => (
+                <SelectItem key={a.id} value={a.id}>{a.email_address}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {failedCount > 0 && (
+          <Button variant="outline" size="sm" onClick={handleClearFailed} disabled={clearFailed.isPending}>
+            <Trash2 className="w-4 h-4 mr-1.5" />
+            Limpar falhas ({failedCount})
+          </Button>
+        )}
+      </div>
 
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}</div>
@@ -450,6 +472,7 @@ function RunsHistory() {
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold text-foreground">Data</TableHead>
                 <TableHead className="font-semibold text-foreground">Status</TableHead>
+                <TableHead className="font-semibold text-foreground">Detalhes</TableHead>
                 <TableHead className="font-semibold text-foreground text-right">Processados</TableHead>
                 <TableHead className="font-semibold text-foreground text-right">Importados</TableHead>
                 <TableHead className="font-semibold text-foreground text-right">Duplicados</TableHead>
@@ -469,6 +492,17 @@ function RunsHistory() {
                     >
                       {r.status === "completed" ? "Concluído" : r.status === "failed" ? "Falhou" : "Executando"}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[300px]">
+                    {r.status === "failed" && r.error_message ? (
+                      <p className="text-xs text-destructive truncate" title={r.error_message}>
+                        {r.error_message}
+                      </p>
+                    ) : r.status === "completed" ? (
+                      <p className="text-xs text-muted-foreground">
+                        {r.imported_count > 0 ? `${r.imported_count} fatura(s) importada(s)` : "Nenhuma fatura nova"}
+                      </p>
+                    ) : null}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm">{r.processed_count}</TableCell>
                   <TableCell className="text-right font-mono text-sm text-success">{r.imported_count}</TableCell>

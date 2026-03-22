@@ -48,6 +48,7 @@ export interface EmailIngestionRun {
   imported_count: number;
   duplicate_count: number;
   error_count: number;
+  error_message: string | null;
   status: string;
   started_at: string;
   finished_at: string | null;
@@ -234,6 +235,26 @@ export function useEmailIngestionRuns(accountId: string | null, limit = 20) {
     },
     staleTime: STALE_TIME,
     enabled: !!accountId,
+  });
+}
+
+// ─── Clear Failed Runs ──────────────────────────────────────────
+
+export function useClearFailedRuns() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (accountId: string) => {
+      const { error } = await (supabase as any)
+        .from("email_ingestion_runs")
+        .delete()
+        .eq("email_account_id", accountId)
+        .eq("status", "failed");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["email_ingestion_runs"] });
+      qc.invalidateQueries({ queryKey: ["email_ingestion_summary"] });
+    },
   });
 }
 
