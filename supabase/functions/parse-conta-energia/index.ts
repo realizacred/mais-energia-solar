@@ -211,6 +211,10 @@ function extractEnergisa(text: string): ExtractedData | null {
 
   console.log("[parse-conta-energia] Energisa detected — using strict deterministic parser v" + PARSER_VERSION);
 
+  // ── AUDIT LOG: first 2000 chars of flat text for debugging ──
+  console.log("[parse-conta-energia] AUDIT flatText sample:", flatText.slice(0, 2000));
+  console.log("[parse-conta-energia] AUDIT flatText sample2:", flatText.slice(2000, 4000));
+
   const raw: Record<string, string> = {};
   const fieldResults: Record<string, FieldResult> = {};
   const validations: ValidationResult[] = [];
@@ -245,7 +249,9 @@ function extractEnergisa(text: string): ExtractedData | null {
   const totalPatterns = [
     /TOTAL\s+A\s+PAGAR\s+(?:[A-Za-zÀ-ú]+\s*\/\s*\d{4}\s+)?(?:\d{2}[\/.]\d{2}[\/.]\d{2,4}\s+)?R\$\s*(\d[\d.,]*)/i,
     /TOTAL\s+A\s+PAGAR[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    /TOTAL\s+A\s+PAG\b[:\s]*R?\$?\s*(\d[\d.,]*)/i,
     /\(=\)\s*valor\s*do\s*documento[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    /\(=\)\s*VALOR\s*DO\s*DOCUMENTO\s*(\d[\d.,]*)/i,
     /valor\s*(?:total|a\s*pagar)[:\s]*R?\$?\s*(\d[\d.,]*)/i,
   ];
   valorTotal = firstMatchNum(flatText, totalPatterns);
@@ -265,9 +271,29 @@ function extractEnergisa(text: string): ExtractedData | null {
     /leitura\s*seguinte[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i,
   ];
   const proximaLeitura = firstMatchDate(flatText, proxPatterns);
-  if (proximaLeitura) {
-    raw['prox_leitura'] = proximaLeitura;
-    fieldResults['proxima_leitura_data'] = makeField(proximaLeitura, 'regex:PROXIMA_LEITURA', true);
+
+  // Fallback: table row "Leituras dd/mm/yyyy dd/mm/yyyy NN dd/mm/yyyy"
+  let resolvedProximaLeitura = proximaLeitura;
+  if (!resolvedProximaLeitura) {
+    const tableProxMatch = flatText.match(/Leituras\s+(\d{2}[\/.]\d{2}[\/.]\d{4})\s+(\d{2}[\/.]\d{2}[\/.]\d{4})\s+\d+\s+(\d{2}[\/.]\d{2}[\/.]\d{4})/i);
+    if (tableProxMatch) {
+      const proxCandidate = normalizeDateLike(tableProxMatch[3]);
+      if (isPlausibleDate(proxCandidate)) {
+        resolvedProximaLeitura = proxCandidate;
+        if (!dataLeituraAnterior) {
+          const d1 = normalizeDateLike(tableProxMatch[1]);
+          if (isPlausibleDate(d1)) { dataLeituraAnterior = d1; fieldResults['data_leitura_anterior'] = makeField(d1, 'regex:LEITURAS_TABLE_ROW', true); }
+        }
+        if (!dataLeituraAtual) {
+          const d2 = normalizeDateLike(tableProxMatch[2]);
+          if (isPlausibleDate(d2)) { dataLeituraAtual = d2; fieldResults['data_leitura_atual'] = makeField(d2, 'regex:LEITURAS_TABLE_ROW', true); }
+        }
+      }
+    }
+  }
+  if (resolvedProximaLeitura) {
+    raw['prox_leitura'] = resolvedProximaLeitura;
+    fieldResults['proxima_leitura_data'] = makeField(resolvedProximaLeitura, resolvedProximaLeitura === proximaLeitura ? 'regex:PROXIMA_LEITURA' : 'regex:LEITURAS_TABLE_ROW', true);
     confidence += 10;
   }
 
@@ -335,6 +361,44 @@ function extractEnergisa(text: string): ExtractedData | null {
     if (consumoKwh != null) {
       fieldResults['consumo_kwh'] = makeField(consumoKwh, 'regex:CONSUMO_KWH_FALLBACK', true);
       confidence += 10;
+    }
+  }
+
+  // Fallback: structured table "KWH Ponta anterior atual K consumo"
+  if (leituraAnterior03 == null || leituraAtual03 == null || consumoKwh == null) {
+    const structuredTableMatch = flatText.match(/KWH\s+(?:Ponta|Fora\s+de\s+Ponta)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)(?:\s+[\d.,]*)*?\s+([\d.,]+)\s+([\d.,]+)/i);
+    if (structuredTableMatch) {
+      const atu = parseNum(structuredTableMatch[1]);
+      const ant = parseNum(structuredTableMatch[2]);
+      const medido = parseNum(structuredTableMatch[4]);
+      if (Number.isFinite(atu) && Number.isFinite(ant)) {
+        if (leituraAtual03 == null) { leituraAtual03 = atu; fieldResults['leitura_atual_03'] = makeField(atu, 'regex:ESTRUTURA_CONSUMO_TABLE', true); }
+        if (leituraAnterior03 == null) { leituraAnterior03 = ant; fieldResults['leitura_anterior_03'] = makeField(ant, 'regex:ESTRUTURA_CONSUMO_TABLE', true); }
+        if (consumoKwh == null && Number.isFinite(medido)) {
+          consumoKwh = medido;
+          fieldResults['consumo_kwh'] = makeField(consumoKwh, 'regex:ESTRUTURA_CONSUMO_TABLE', true);
+          confidence += 10;
+        }
+      }
+    }
+  }
+
+  // Fallback: INJ row for injection from structured table
+  if (leituraAnterior103 == null || leituraAtual103 == null) {
+    const injTableMatch = flatText.match(/INJ\s+(?:Ponta|Fora\s+de\s+Ponta)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)(?:\s+[\d.,]*)*?\s+([\d.,]+)/i);
+    if (injTableMatch) {
+      const atu103 = parseNum(injTableMatch[1]);
+      const ant103 = parseNum(injTableMatch[2]);
+      const medido103 = parseNum(injTableMatch[4]);
+      if (Number.isFinite(atu103) && Number.isFinite(ant103)) {
+        if (leituraAtual103 == null) { leituraAtual103 = atu103; fieldResults['leitura_atual_103'] = makeField(atu103, 'regex:ESTRUTURA_INJ_TABLE', true); }
+        if (leituraAnterior103 == null) { leituraAnterior103 = ant103; fieldResults['leitura_anterior_103'] = makeField(ant103, 'regex:ESTRUTURA_INJ_TABLE', true); }
+        if (energiaInjetada == null && Number.isFinite(medido103)) {
+          energiaInjetada = medido103;
+          fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'regex:ESTRUTURA_INJ_TABLE', true);
+          confidence += 10;
+        }
+      }
     }
   }
 
