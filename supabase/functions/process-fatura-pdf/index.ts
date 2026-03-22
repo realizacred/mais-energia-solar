@@ -92,8 +92,13 @@ async function processInvoice(
   supabaseUrl: string,
   serviceRoleKey: string
 ) {
-  const { pdf_base64, pdf_storage_path, unit_id, source, source_message_id, email_address } = body;
+  const { pdf_base64, pdf_storage_path, unit_id, source, source_message_id, email_address, force_reprocess, invoice_id } = body;
   const invoiceSource = normalizeInvoiceSource(source);
+
+  // ── Reprocess mode: load existing invoice PDF ──
+  if (force_reprocess && invoice_id) {
+    return await reprocessInvoice(admin, invoice_id, tenantId, supabaseUrl, serviceRoleKey);
+  }
 
   if (!pdf_base64 && !pdf_storage_path) {
     return new Response(JSON.stringify({ error: 'pdf_base64 ou pdf_storage_path obrigatório' }),
