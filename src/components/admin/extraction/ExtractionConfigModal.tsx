@@ -476,7 +476,7 @@ export function ExtractionConfigModal({ open, onOpenChange, config, prefill }: E
     baselineRef.current = JSON.stringify(newForm);
     setCustomFieldInput("");
     setViewMode("visual");
-    setJsonError(null);
+    setJsonbErrors(new Set());
   }, [config, prefill, open]);
 
   // Sync form → JSON when switching to JSON mode
