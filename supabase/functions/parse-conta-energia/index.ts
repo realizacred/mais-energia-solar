@@ -222,43 +222,63 @@ function extractEnergisa(text: string): ExtractedData | null {
 
   // ── 1. Identificação e Datas ──
 
-  // Referência
+  // Referência / vencimento / valor total no cabeçalho DANF3E (layout novo Energisa)
   let mesRef: string | null = null;
-  const refMatch = flatText.match(/REF[:\s]*MES\s*\/\s*ANO\s+([A-Za-zÀ-ú]+\s*\/\s*\d{4})/i)
-    || flatText.match(/REF[:\s]*([A-Za-zÀ-ú]+\s*\/\s*\d{4})/i)
-    || flatText.match(/(?:m[êe]s\s*(?:de\s*)?refer[êe]ncia)[:\s]*((?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[\w\s\/]*\d{2,4})/i);
-  if (refMatch) {
-    mesRef = refMatch[1].trim();
-    raw['ref'] = refMatch[0];
-    fieldResults['mes_referencia'] = makeField(mesRef, 'regex:REF_MES_ANO', true);
-    confidence += 10;
-  }
-
-  // Vencimento
   let vencimento: string | null = null;
-  const vencMatch = flatText.match(/VENCIMENTO[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i);
-  if (vencMatch) {
-    vencimento = normalizeDateLike(vencMatch[1]);
-    raw['vencimento'] = vencMatch[0];
-    fieldResults['vencimento'] = makeField(vencimento, 'regex:VENCIMENTO', isPlausibleDate(vencimento));
-    confidence += 10;
+  let valorTotal: number | null = null;
+
+  const headerResumoMatch = flatText.match(/([A-Za-zÀ-ú]+\s*\/\s*\d{4})\s+(\d{2}[\/.]\d{2}[\/.]\d{4})\s+R\$\s*(\d[\d.,]*)/i);
+  if (headerResumoMatch) {
+    mesRef = headerResumoMatch[1].trim();
+    vencimento = normalizeDateLike(headerResumoMatch[2]);
+    valorTotal = parseNum(headerResumoMatch[3]);
+    raw['ref'] = mesRef;
+    raw['vencimento'] = vencimento;
+    raw['total'] = String(valorTotal);
+    fieldResults['mes_referencia'] = makeField(mesRef, 'regex:HEADER_RESUMO', true);
+    fieldResults['vencimento'] = makeField(vencimento, 'regex:HEADER_RESUMO', isPlausibleDate(vencimento));
+    fieldResults['valor_total'] = makeField(valorTotal, 'regex:HEADER_RESUMO', valorTotal > 0, valorTotal <= 0 ? 'Valor <= 0' : null);
+    confidence += 20;
   }
 
-  // Valor Total
-  let valorTotal: number | null = null;
-  const totalPatterns = [
-    /TOTAL\s+A\s+PAGAR\s+(?:[A-Za-zÀ-ú]+\s*\/\s*\d{4}\s+)?(?:\d{2}[\/.]\d{2}[\/.]\d{2,4}\s+)?R\$\s*(\d[\d.,]*)/i,
-    /TOTAL\s+A\s+PAGAR[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-    /TOTAL\s+A\s+PAG\b[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-    /\(=\)\s*valor\s*do\s*documento[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-    /\(=\)\s*VALOR\s*DO\s*DOCUMENTO\s*(\d[\d.,]*)/i,
-    /valor\s*(?:total|a\s*pagar)[:\s]*R?\$?\s*(\d[\d.,]*)/i,
-  ];
-  valorTotal = firstMatchNum(flatText, totalPatterns);
-  if (valorTotal != null) {
-    raw['total'] = String(valorTotal);
-    fieldResults['valor_total'] = makeField(valorTotal, 'regex:TOTAL_A_PAGAR', valorTotal > 0, valorTotal <= 0 ? 'Valor <= 0' : null);
-    confidence += 10;
+  if (!mesRef) {
+    const refMatch = flatText.match(/REF[:\s]*MES\s*\/\s*ANO\s+([A-Za-zÀ-ú]+\s*\/\s*\d{4})/i)
+      || flatText.match(/REF[:\s]*([A-Za-zÀ-ú]+\s*\/\s*\d{4})/i)
+      || flatText.match(/(?:m[êe]s\s*(?:de\s*)?refer[êe]ncia)[:\s]*((?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[\w\s\/]*\d{2,4})/i);
+    if (refMatch) {
+      mesRef = refMatch[1].trim();
+      raw['ref'] = refMatch[0];
+      fieldResults['mes_referencia'] = makeField(mesRef, 'regex:REF_MES_ANO', true);
+      confidence += 10;
+    }
+  }
+
+  if (!vencimento) {
+    const vencMatch = flatText.match(/VENCIMENTO[:\s]*(\d{2}[\/.]\d{2}[\/.]\d{2,4})/i)
+      || flatText.match(/DATA\s+DO\s+PROCESSAMENTO\s+\d{2}[\/.]\d{2}[\/.]\d{4}\s+(\d{2}[\/.]\d{2}[\/.]\d{4})/i);
+    if (vencMatch) {
+      vencimento = normalizeDateLike(vencMatch[1]);
+      raw['vencimento'] = vencMatch[0];
+      fieldResults['vencimento'] = makeField(vencimento, 'regex:VENCIMENTO', isPlausibleDate(vencimento));
+      confidence += 10;
+    }
+  }
+
+  if (valorTotal == null) {
+    const totalPatterns = [
+      /\(=\)\s*VALOR\s*DO\s*DOCUMENTO\s*(\d[\d.,]*)/i,
+      /\(=\)\s*valor\s*do\s*documento[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+      /TOTAL\s+A\s+PAGAR\s+(?:[A-Za-zÀ-ú]+\s*\/\s*\d{4}\s+)?(?:\d{2}[\/.]\d{2}[\/.]\d{2,4}\s+)?R\$\s*(\d[\d.,]*)/i,
+      /TOTAL\s+A\s+PAGAR[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+      /VALOR\s+DO\s+DOCUMENTO\D{0,30}(\d[\d.,]*)/i,
+      /valor\s*(?:total|a\s*pagar)[:\s]*R?\$?\s*(\d[\d.,]*)/i,
+    ];
+    valorTotal = firstMatchNum(flatText, totalPatterns);
+    if (valorTotal != null) {
+      raw['total'] = String(valorTotal);
+      fieldResults['valor_total'] = makeField(valorTotal, 'regex:TOTAL_A_PAGAR', valorTotal > 0, valorTotal <= 0 ? 'Valor <= 0' : null);
+      confidence += 10;
+    }
   }
 
   // Próxima Leitura
