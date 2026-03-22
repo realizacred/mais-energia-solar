@@ -158,7 +158,7 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
   const yesterday = getDaysAgoBrasilia(1);
   const monthStartStr = getMonthStartBrasilia();
 
-  // Get tenant_id from first plant for explicit tenant filtering
+  // ── Batch 1: All independent queries in parallel ──
   const [{ data: plants }, { data: todayMetrics }, { data: yesterdayMetrics }, { data: monthMetrics }] = await Promise.all([
     supabase.from("solar_plants" as any).select("*").order("name", { ascending: true }),
     supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", today),
@@ -167,72 +167,80 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
   ]);
 
   const plantList = (plants as unknown as SolarPlant[]) || [];
+  if (plantList.length === 0) return [];
+
   const tenantId = plantList[0]?.tenant_id;
+  const plantIds = plantList.map((p) => p.id);
 
-  // SSOT: Aggregated alert counts via RPC — uses solar_plant_id (= solar_plants.id)
-  const alertMap = new Map<string, number>();
-  if (tenantId) {
-    const { data: alertCounts } = await supabase.rpc("fn_monitor_open_alert_counts" as any, { _tenant_id: tenantId });
-    ((alertCounts as unknown as Array<{ solar_plant_id: string; open_count: number }>) || []).forEach((a) => {
-      if (a.solar_plant_id) alertMap.set(a.solar_plant_id, a.open_count);
-    });
-  }
-
-  // SSOT: Fetch MAX(monitor_devices.last_seen_at) per plant via monitor_plants join
-  // monitor_plants.legacy_plant_id = solar_plants.id
-  // Also fetch client_id for each plant
-  const deviceSeenMap = new Map<string, string>();
-  const monitorPlantSeenMap = new Map<string, string>();
-  const clientIdMap = new Map<string, string | null>();
-  {
-    const { data: mpRows } = await supabase
+  // ── Batch 2: Alert counts + monitor_plants (both depend only on plantList) ──
+  const [alertResult, mpResult] = await Promise.all([
+    tenantId
+      ? supabase.rpc("fn_monitor_open_alert_counts" as any, { _tenant_id: tenantId })
+      : Promise.resolve({ data: null }),
+    supabase
       .from("monitor_plants" as any)
       .select("id, legacy_plant_id, client_id, last_seen_at")
-      .in("legacy_plant_id", plantList.map((p) => p.id));
-    const monitorPlantRows = (mpRows as unknown as Array<{ id: string; legacy_plant_id: string; client_id: string | null; last_seen_at: string | null }>) || [];
-    monitorPlantRows.forEach((r) => {
-      clientIdMap.set(r.legacy_plant_id, r.client_id);
-      const bestSeen = getMostRecentTimestamp(monitorPlantSeenMap.get(r.legacy_plant_id), r.last_seen_at);
-      if (bestSeen) {
-        monitorPlantSeenMap.set(r.legacy_plant_id, bestSeen);
-      }
-    });
-    if (monitorPlantRows.length > 0) {
-      const mpIds = monitorPlantRows.map((r) => r.id);
-      const mpIdToLegacy = new Map(monitorPlantRows.map((r) => [r.id, r.legacy_plant_id]));
-      const { data: devRows } = await supabase
-        .from("monitor_devices" as any)
-        .select("plant_id, last_seen_at")
-        .in("plant_id", mpIds)
-        .not("last_seen_at", "is", null);
-      ((devRows as unknown as Array<{ plant_id: string; last_seen_at: string }>) || []).forEach((d) => {
-        const legacyId = mpIdToLegacy.get(d.plant_id);
-        if (!legacyId) return;
-        const existing = deviceSeenMap.get(legacyId);
-        if (!existing || d.last_seen_at > existing) {
-          deviceSeenMap.set(legacyId, d.last_seen_at);
-        }
-      });
-    }
-  }
+      .in("legacy_plant_id", plantIds),
+  ]);
 
-  // Fetch client names for linked plants
+  // Process alert counts
+  const alertMap = new Map<string, number>();
+  ((alertResult.data as unknown as Array<{ solar_plant_id: string; open_count: number }>) || []).forEach((a) => {
+    if (a.solar_plant_id) alertMap.set(a.solar_plant_id, a.open_count);
+  });
+
+  // Process monitor_plants
+  const monitorPlantRows = (mpResult.data as unknown as Array<{ id: string; legacy_plant_id: string; client_id: string | null; last_seen_at: string | null }>) || [];
+  const clientIdMap = new Map<string, string | null>();
+  const monitorPlantSeenMap = new Map<string, string>();
+  const mpIdToLegacy = new Map<string, string>();
+  const mpIds: string[] = [];
+
+  monitorPlantRows.forEach((r) => {
+    clientIdMap.set(r.legacy_plant_id, r.client_id);
+    mpIdToLegacy.set(r.id, r.legacy_plant_id);
+    mpIds.push(r.id);
+    const bestSeen = getMostRecentTimestamp(monitorPlantSeenMap.get(r.legacy_plant_id), r.last_seen_at);
+    if (bestSeen) monitorPlantSeenMap.set(r.legacy_plant_id, bestSeen);
+  });
+
+  // Collect unique client IDs for batch fetch
+  const clientIds = Array.from(new Set(
+    Array.from(clientIdMap.values()).filter((id): id is string => !!id)
+  ));
+
+  // ── Batch 3: Devices + client names (both depend on batch 2 results) ──
+  const [devResult, clientResult] = await Promise.all([
+    mpIds.length > 0
+      ? supabase
+          .from("monitor_devices" as any)
+          .select("plant_id, last_seen_at")
+          .in("plant_id", mpIds)
+          .not("last_seen_at", "is", null)
+      : Promise.resolve({ data: null }),
+    clientIds.length > 0
+      ? supabase.from("clientes").select("id, nome").in("id", clientIds)
+      : Promise.resolve({ data: null }),
+  ]);
+
+  // Process device last_seen_at
+  const deviceSeenMap = new Map<string, string>();
+  ((devResult.data as unknown as Array<{ plant_id: string; last_seen_at: string }>) || []).forEach((d) => {
+    const legacyId = mpIdToLegacy.get(d.plant_id);
+    if (!legacyId) return;
+    const existing = deviceSeenMap.get(legacyId);
+    if (!existing || d.last_seen_at > existing) {
+      deviceSeenMap.set(legacyId, d.last_seen_at);
+    }
+  });
+
+  // Process client names
   const clientNameMap = new Map<string, string>();
-  {
-    const clientIds = Array.from(new Set(
-      Array.from(clientIdMap.values()).filter((id): id is string => !!id)
-    ));
-    if (clientIds.length > 0) {
-      const { data: clientRows } = await supabase
-        .from("clientes")
-        .select("id, nome")
-        .in("id", clientIds);
-      ((clientRows as unknown as Array<{ id: string; nome: string }>) || []).forEach((c) => {
-        clientNameMap.set(c.id, c.nome);
-      });
-    }
-  }
+  ((clientResult.data as unknown as Array<{ id: string; nome: string }>) || []).forEach((c) => {
+    clientNameMap.set(c.id, c.nome);
+  });
 
+  // ── Build maps from metrics ──
   const todayMap = new Map<string, SolarPlantMetricsDaily>();
   ((todayMetrics as unknown as SolarPlantMetricsDaily[]) || []).forEach((m) =>
     todayMap.set(m.plant_id, m)
@@ -243,54 +251,19 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     yesterdayMap.set(m.plant_id, m)
   );
 
-  // SSOT: sumMonthlyEnergy per plant
   const monthMap = new Map<string, number>();
   ((monthMetrics as unknown as Array<{ plant_id: string; energy_kwh: number | null; power_kw: number | null }>) || []).forEach((r) => {
     const energy = extractDailyEnergy(r.energy_kwh, r.power_kw);
     monthMap.set(r.plant_id, (monthMap.get(r.plant_id) || 0) + energy);
   });
 
-  // DEBUG SSOT — temporary instrumentation (remove after validation)
-  if (import.meta.env.DEV) {
-    console.group("[SSOT] listPlantsWithHealth — deviceSeenMap stats");
-    console.log("Total solar_plants:", plantList.length);
-    console.log("deviceSeenMap entries:", deviceSeenMap.size);
-    const now = Date.now();
-    const staleEntries = Array.from(deviceSeenMap.entries())
-      .filter(([, ts]) => now - new Date(ts).getTime() > 30 * 60 * 1000);
-    console.log("Stale plants (>30min):", staleEntries.length);
-    staleEntries.slice(0, 5).forEach(([legacyId, ts]) => {
-      const ageMin = Math.round((now - new Date(ts).getTime()) / 60000);
-      console.log(`  plant=${legacyId} maxDeviceSeen=${ts} age=${ageMin}min`);
-    });
-    const missingPlants = plantList.filter(p => !deviceSeenMap.has(p.id));
-    console.log("Plants WITHOUT deviceSeenMap entry (null last_seen):", missingPlants.length);
-    console.groupEnd();
-  }
-
+  // ── Assemble results ──
   return plantList.map((sp) => {
     const m = todayMap.get(sp.id);
-    // SSOT: plant_seen_at — prefer device last_seen_at (real communication).
-    // If monitor_plants.last_seen_at is newer than monitor_devices, trust the freshest
-    // real communication timestamp available. solar_plants.updated_at remains a last-resort
-    // fallback only when neither source has a sync timestamp.
     const maxDeviceSeen = deviceSeenMap.get(sp.id) || null;
     const monitorPlantSeen = monitorPlantSeenMap.get(sp.id) || null;
     const bestLastSeen = getMostRecentTimestamp(maxDeviceSeen, monitorPlantSeen) || sp.updated_at || null;
     const health = legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id), bestLastSeen);
-
-    // DEBUG SSOT — log specific problem plants
-    if (import.meta.env.DEV && sp.id === "af44b227-7f1d-4276-bc81-0860c7425aa9") {
-      console.log("[SSOT DEBUG] Problem plant af44b227:", {
-        solarPlantId: sp.id,
-        name: sp.name,
-        solarPlantUpdatedAt: sp.updated_at,
-        maxDeviceSeen,
-        bestLastSeen,
-        derivedHealthStatus: health.status,
-        healthLastSeenAt: health.last_seen_at,
-      });
-    }
 
     const cId = clientIdMap.get(sp.id) || null;
     return {
