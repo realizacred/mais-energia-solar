@@ -387,6 +387,11 @@ export function UCInvoicesTab({ unitId }: Props) {
     processed: "Processada",
     received: "Recebida",
     error: "Erro",
+    pending_review: "Em revisão",
+    validated: "Validada",
+    failed: "Falhou",
+    incomplete: "Incompleta",
+    divergent: "Divergente",
   };
 
   return (
