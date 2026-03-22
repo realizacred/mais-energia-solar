@@ -444,6 +444,7 @@ export default function ExtractionCenterPage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         config={editConfig}
+        prefill={prefillData}
       />
     </div>
   );
