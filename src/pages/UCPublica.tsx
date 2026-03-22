@@ -20,11 +20,12 @@ import {
 } from "@/components/ui/tooltip";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  BarChart, AreaChart, Area,
+  BarChart, Legend,
 } from "recharts";
 import {
   Building2, Zap, DollarSign, Leaf, TrendingUp, FileText, Sun, Wifi,
-  Gauge, Activity, Download, Calendar, ArrowDownUp, ExternalLink,
+  Gauge, Activity, Download, Calendar, ArrowDownUp, Clock, BatteryCharging,
+  BarChart3, Info,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +38,10 @@ const BANDEIRA_LABELS: Record<string, string> = {
 };
 const BANDEIRA_COLORS: Record<string, string> = {
   verde: "text-success", amarela: "text-warning", vermelha_1: "text-destructive", vermelha_2: "text-destructive",
+};
+
+const PAPEL_GD_LABELS: Record<string, string> = {
+  geradora: "Geradora", beneficiaria: "Beneficiária", mista: "Mista",
 };
 
 const ChartTooltip = ({ active, payload, label }: any) => {
@@ -93,6 +98,22 @@ function timeAgo(dateStr: string | null): string {
   return `${days}d atrás`;
 }
 
+interface ResolvedUC {
+  unit_id: string;
+  unit_name: string;
+  codigo_uc: string;
+  concessionaria_nome: string;
+  tipo_uc: string;
+  tenant_id: string;
+  brand: { logo_url?: string; color_primary?: string; company_name?: string };
+  ultima_leitura_data?: string | null;
+  ultima_leitura_kwh_03?: number | null;
+  ultima_leitura_kwh_103?: number | null;
+  potencia_kwp?: number | null;
+  categoria_gd?: string | null;
+  papel_gd?: string | null;
+}
+
 export default function UCPublica() {
   const { token } = useParams<{ token: string }>();
   const currentYear = new Date().getFullYear();
@@ -106,11 +127,7 @@ export default function UCPublica() {
       if (error) throw error;
       const parsed = data as any;
       if (parsed?.error) throw new Error(parsed.error);
-      return parsed as {
-        unit_id: string; unit_name: string; codigo_uc: string;
-        concessionaria_nome: string; tipo_uc: string; tenant_id: string;
-        brand: { logo_url?: string; color_primary?: string; company_name?: string };
-      };
+      return parsed as ResolvedUC;
     },
     enabled: !!token,
     staleTime: 1000 * 60 * 10,
@@ -140,7 +157,7 @@ export default function UCPublica() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("unit_invoices")
-        .select("id, reference_month, reference_year, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, total_amount, bandeira_tarifaria, due_date, has_file, pdf_file_url, current_balance_kwh, previous_balance_kwh, status")
+        .select("id, reference_month, reference_year, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, total_amount, bandeira_tarifaria, due_date, has_file, pdf_file_url, current_balance_kwh, previous_balance_kwh, status, estimated_savings_brl")
         .eq("unit_id", resolved!.unit_id)
         .eq("reference_year", Number(selectedYear))
         .order("reference_month", { ascending: true });
@@ -167,7 +184,6 @@ export default function UCPublica() {
 
   const tarifa = tarifaConfig ?? 0.85;
 
-  // Download PDF handler
   const handleDownloadPdf = useCallback(async (invoiceId: string, pdfUrl: string | null, month: number, year: number) => {
     if (!pdfUrl) {
       toast.error("PDF não disponível para esta fatura.");
@@ -187,6 +203,7 @@ export default function UCPublica() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      toast.success("Download iniciado!");
     } catch {
       toast.error("Não foi possível baixar o PDF.");
     } finally {
@@ -201,7 +218,8 @@ export default function UCPublica() {
     invoices.forEach((inv: any) => {
       const comp = Number(inv.compensated_kwh || 0);
       totalCompensado += comp;
-      totalEconomia += comp * tarifa;
+      const savings = Number(inv.estimated_savings_brl || 0);
+      totalEconomia += savings > 0 ? savings : comp * tarifa;
       totalConsumo += Number(inv.energy_consumed_kwh || 0);
       totalInjected += Number(inv.energy_injected_kwh || 0);
     });
@@ -210,26 +228,22 @@ export default function UCPublica() {
     return { totalEconomia, totalCompensado, avgPercent, co2, totalConsumo, totalInjected };
   }, [invoices, tarifa]);
 
-  // Monthly chart with more data
+  // Charts
   const chartData = useMemo(() => {
     return invoices.map((inv: any) => {
       const comp = Number(inv.compensated_kwh || 0);
       const consumed = Number(inv.energy_consumed_kwh || 0);
-      const injected = Number(inv.energy_injected_kwh || 0);
-      const economia = comp * tarifa;
+      const savings = Number(inv.estimated_savings_brl || 0);
+      const economia = savings > 0 ? savings : comp * tarifa;
       const pct = (consumed + comp) > 0 ? (comp / (consumed + comp)) * 100 : 0;
       return {
         mes: MONTHS[(inv.reference_month ?? 1) - 1],
-        "Consumo (kWh)": Math.round(consumed),
-        "Compensado (kWh)": Math.round(comp),
-        "Injetado (kWh)": Math.round(injected),
         "Economia (R$)": Math.round(economia * 100) / 100,
         "Aproveitamento (%)": Math.round(pct * 10) / 10,
       };
     });
   }, [invoices, tarifa]);
 
-  // Consumption vs Compensated chart
   const energyChartData = useMemo(() => {
     return invoices.map((inv: any) => ({
       mes: MONTHS[(inv.reference_month ?? 1) - 1],
@@ -239,7 +253,6 @@ export default function UCPublica() {
     }));
   }, [invoices]);
 
-  // 7-day generation chart
   const dailyChartData = useMemo(() => {
     if (!monitoring?.daily?.length) return [];
     return monitoring.daily.map((d) => {
@@ -249,6 +262,7 @@ export default function UCPublica() {
       return {
         label: `${dayName} ${dayNum}`,
         "Geração (kWh)": Math.round((d.energy_kwh ?? 0) * 10) / 10,
+        "Pico (kW)": Math.round((d.peak_power_kw ?? 0) * 100) / 100,
       };
     });
   }, [monitoring?.daily]);
@@ -259,7 +273,10 @@ export default function UCPublica() {
   const hasMeters = monitoring?.meters && monitoring.meters.length > 0;
   const hasMonitoring = hasPlants || hasMeters;
 
-  // Loading state
+  // Derive brand accent color for dynamic styling
+  const brandPrimary = resolved?.brand?.color_primary;
+
+  // Loading
   if (loadingToken) {
     return (
       <div className="min-h-screen bg-background p-4 md:p-8 flex justify-center">
@@ -269,12 +286,12 @@ export default function UCPublica() {
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
           </div>
           <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-48 w-full" />
         </div>
       </div>
     );
   }
 
-  // Invalid token
   if (tokenError || !resolved) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -290,56 +307,146 @@ export default function UCPublica() {
   }
 
   const brand = resolved.brand;
+  const latestInvoice = invoices.length > 0 ? invoices[invoices.length - 1] as any : null;
 
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        {/* Header with brand */}
-        <header className="border-b border-border bg-card px-4 md:px-8 py-4 sticky top-0 z-10">
+        {/* ═══ HEADER ═══ */}
+        <header
+          className="border-b border-border px-4 md:px-8 py-4 sticky top-0 z-10"
+          style={{
+            backgroundColor: brandPrimary ? brandPrimary : undefined,
+            color: brandPrimary ? "#fff" : undefined,
+          }}
+        >
           <div className="max-w-4xl mx-auto flex items-center gap-3">
             {brand?.logo_url && (
-              <img src={brand.logo_url} alt={brand.company_name || ""} className="h-8 w-auto object-contain" />
+              <img src={brand.logo_url} alt={brand.company_name || ""} className="h-9 w-auto object-contain" />
             )}
             <div className="flex-1 min-w-0">
-              <h1 className="text-sm font-bold text-foreground truncate">{brand?.company_name || "Energia Solar"}</h1>
-              <p className="text-xs text-muted-foreground">Portal do Cliente</p>
+              <h1 className="text-sm font-bold truncate" style={{ color: brandPrimary ? "#fff" : undefined }}>
+                {brand?.company_name || "Energia Solar"}
+              </h1>
+              <p className="text-xs opacity-80">Portal do Cliente — Unidade Consumidora</p>
             </div>
           </div>
         </header>
 
         <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-5">
-          {/* UC Info Card */}
-          <Card>
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Building2 className="h-5 w-5 text-primary" />
+
+          {/* ═══ UC INFO HERO ═══ */}
+          <Card className="overflow-hidden">
+            <div
+              className="p-4 sm:p-5"
+              style={{
+                background: brandPrimary
+                  ? `linear-gradient(135deg, ${brandPrimary}15, ${brandPrimary}08)`
+                  : undefined,
+              }}
+            >
+              <div className="flex items-start sm:items-center gap-3 flex-wrap sm:flex-nowrap">
+                <div
+                  className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: brandPrimary ? `${brandPrimary}20` : undefined }}
+                >
+                  <Building2 className="h-5 w-5" style={{ color: brandPrimary || undefined }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-foreground truncate text-sm sm:text-base">{resolved.unit_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Contrato: <span className="font-mono">{resolved.codigo_uc}</span> · {resolved.concessionaria_nome || "—"}
-                  </p>
+                  <p className="font-bold text-foreground truncate text-base sm:text-lg">{resolved.unit_name}</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-0.5">
+                    <span>UC: <span className="font-mono font-medium text-foreground">{resolved.codigo_uc}</span></span>
+                    {resolved.concessionaria_nome && <span>· {resolved.concessionaria_nome}</span>}
+                    {resolved.potencia_kwp && <span>· <span className="font-medium text-foreground">{Number(resolved.potencia_kwp).toLocaleString("pt-BR")} kWp</span></span>}
+                  </div>
                 </div>
-                <Badge variant="outline" className="text-xs shrink-0 hidden sm:flex">
-                  {resolved.tipo_uc === "gd_geradora" ? "GD Geradora" : resolved.tipo_uc === "mista" ? "Mista" : "Beneficiária"}
-                </Badge>
+                <div className="flex flex-wrap gap-1.5">
+                  {resolved.papel_gd && (
+                    <Badge variant="outline" className="text-xs border-primary/30 text-primary">
+                      {PAPEL_GD_LABELS[resolved.papel_gd] || resolved.papel_gd}
+                    </Badge>
+                  )}
+                  {resolved.categoria_gd && (
+                    <Badge variant="outline" className="text-xs border-success/30 text-success">
+                      {resolved.categoria_gd}
+                    </Badge>
+                  )}
+                </div>
               </div>
-              {/* Show badge below on mobile */}
-              <div className="flex sm:hidden mt-2 ml-[52px]">
-                <Badge variant="outline" className="text-xs">
-                  {resolved.tipo_uc === "gd_geradora" ? "GD Geradora" : resolved.tipo_uc === "mista" ? "Mista" : "Beneficiária"}
-                </Badge>
-              </div>
-            </CardContent>
+            </div>
           </Card>
 
-          {/* ══════════ MONITORING SECTION ══════════ */}
+          {/* ═══ METER READINGS (03 & 103) ═══ */}
+          {(resolved.ultima_leitura_kwh_03 != null || resolved.ultima_leitura_kwh_103 != null) && (
+            <Card className="border-l-[3px] border-l-info">
+              <CardHeader className="pb-2 px-4">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Gauge className="w-4 h-4 text-info" /> Leitura do Medidor
+                  {resolved.ultima_leitura_data && (
+                    <span className="text-xs font-normal text-muted-foreground ml-auto flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(resolved.ultima_leitura_data + "T12:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Registro 03 — Consumo */}
+                  <div className="rounded-xl border border-border bg-muted/20 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+                        <ArrowDownUp className="w-4 h-4 text-destructive" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Registro 03</p>
+                        <p className="text-xs font-semibold text-foreground">Consumo (Ativa)</p>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold font-mono text-foreground">
+                      {resolved.ultima_leitura_kwh_03 != null
+                        ? Number(resolved.ultima_leitura_kwh_03).toLocaleString("pt-BR", { maximumFractionDigits: 0 })
+                        : "—"
+                      }
+                      <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
+                    </p>
+                  </div>
+
+                  {/* Registro 103 — Injeção */}
+                  <div className="rounded-xl border border-border bg-muted/20 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                        <BatteryCharging className="w-4 h-4 text-success" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Registro 103</p>
+                        <p className="text-xs font-semibold text-foreground">Injeção (Geração)</p>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold font-mono text-foreground">
+                      {resolved.ultima_leitura_kwh_103 != null
+                        ? Number(resolved.ultima_leitura_kwh_103).toLocaleString("pt-BR", { maximumFractionDigits: 0 })
+                        : "—"
+                      }
+                      <span className="text-sm font-normal text-muted-foreground ml-1">kWh</span>
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
+                  <Info className="w-3 h-3" />
+                  Valores acumulados do medidor bidirecional. Registro 03 = energia consumida da rede. Registro 103 = energia injetada (geração solar).
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ═══ MONITORING SECTION ═══ */}
           {hasMonitoring && (
             <>
-              <h2 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" /> Monitoramento em Tempo Real
-              </h2>
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-primary" />
+                <h2 className="text-base sm:text-lg font-bold text-foreground">Monitoramento em Tempo Real</h2>
+              </div>
 
               {/* Generation KPIs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -349,8 +456,9 @@ export default function UCPublica() {
                       <Sun className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span className="text-[11px] sm:text-xs text-muted-foreground">Geração Hoje</span>
                     </div>
-                    <p className="text-lg sm:text-xl font-bold text-foreground">
-                      {(monitoring?.today_kwh ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} <span className="text-xs font-normal text-muted-foreground">kWh</span>
+                    <p className="text-lg sm:text-xl font-bold text-foreground font-mono">
+                      {(monitoring?.today_kwh ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}
+                      <span className="text-xs font-normal text-muted-foreground ml-1">kWh</span>
                     </p>
                   </CardContent>
                 </Card>
@@ -361,8 +469,9 @@ export default function UCPublica() {
                       <Zap className="w-3.5 h-3.5 text-info shrink-0" />
                       <span className="text-[11px] sm:text-xs text-muted-foreground">Geração Mês</span>
                     </div>
-                    <p className="text-lg sm:text-xl font-bold text-foreground">
-                      {(monitoring?.month_kwh ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} <span className="text-xs font-normal text-muted-foreground">kWh</span>
+                    <p className="text-lg sm:text-xl font-bold text-foreground font-mono">
+                      {(monitoring?.month_kwh ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+                      <span className="text-xs font-normal text-muted-foreground ml-1">kWh</span>
                     </p>
                   </CardContent>
                 </Card>
@@ -433,16 +542,9 @@ export default function UCPublica() {
                                   {plant.installed_power_kwp ? `${Number(plant.installed_power_kwp).toLocaleString("pt-BR")} kWp` : "—"}
                                 </TableCell>
                                 <TableCell>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <Badge variant="outline" className={`text-xs ${status.color}`}>
-                                        {status.label}
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="sm:hidden">
-                                      {timeAgo(plant.last_seen_at)}
-                                    </TooltipContent>
-                                  </Tooltip>
+                                  <Badge variant="outline" className={`text-xs ${status.color}`}>
+                                    {status.label}
+                                  </Badge>
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
                                   {timeAgo(plant.last_seen_at)}
@@ -484,16 +586,9 @@ export default function UCPublica() {
                                   {[meter.manufacturer, meter.model].filter(Boolean).join(" ") || "—"}
                                 </TableCell>
                                 <TableCell>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <Badge variant="outline" className={`text-xs ${status.color}`}>
-                                        {status.label}
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="sm:hidden">
-                                      {timeAgo(meter.last_reading_at || meter.last_seen_at)}
-                                    </TooltipContent>
-                                  </Tooltip>
+                                  <Badge variant="outline" className={`text-xs ${status.color}`}>
+                                    {status.label}
+                                  </Badge>
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
                                   {timeAgo(meter.last_reading_at || meter.last_seen_at)}
@@ -515,7 +610,7 @@ export default function UCPublica() {
                     <CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Geração — Últimos 7 dias</CardTitle>
                   </CardHeader>
                   <CardContent className="px-2 sm:px-4">
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={dailyChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
@@ -530,9 +625,12 @@ export default function UCPublica() {
             </>
           )}
 
-          {/* ══════════ ECONOMY SECTION ══════════ */}
+          {/* ═══ ECONOMY SECTION ═══ */}
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h2 className="text-base sm:text-lg font-bold text-foreground">Relatório de Economia</h2>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-bold text-foreground">Relatório de Economia</h2>
+            </div>
             <Select value={selectedYear} onValueChange={setSelectedYear}>
               <SelectTrigger className="w-[100px]">
                 <SelectValue />
@@ -546,54 +644,56 @@ export default function UCPublica() {
           {/* KPI Cards */}
           {stats && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Card className="border-l-[3px] border-l-primary">
+              <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center gap-1.5 mb-1">
                     <DollarSign className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span className="text-[11px] sm:text-xs text-muted-foreground">Economia Total</span>
                   </div>
-                  <p className="text-lg sm:text-xl font-bold text-foreground">
+                  <p className="text-lg sm:text-xl font-bold text-foreground font-mono">
                     R$ {stats.totalEconomia.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </p>
                 </CardContent>
               </Card>
-              <Card className="border-l-[3px] border-l-info">
+              <Card className="border-l-[3px] border-l-info bg-card shadow-sm">
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center gap-1.5 mb-1">
                     <Zap className="w-3.5 h-3.5 text-info shrink-0" />
                     <span className="text-[11px] sm:text-xs text-muted-foreground">Compensado</span>
                   </div>
-                  <p className="text-lg sm:text-xl font-bold text-foreground">
-                    {stats.totalCompensado.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} <span className="text-xs font-normal text-muted-foreground">kWh</span>
+                  <p className="text-lg sm:text-xl font-bold text-foreground font-mono">
+                    {stats.totalCompensado.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+                    <span className="text-xs font-normal text-muted-foreground ml-1">kWh</span>
                   </p>
                 </CardContent>
               </Card>
-              <Card className="border-l-[3px] border-l-success">
+              <Card className="border-l-[3px] border-l-success bg-card shadow-sm">
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center gap-1.5 mb-1">
                     <TrendingUp className="w-3.5 h-3.5 text-success shrink-0" />
                     <span className="text-[11px] sm:text-xs text-muted-foreground">Aproveitamento</span>
                   </div>
-                  <p className="text-lg sm:text-xl font-bold text-foreground">
+                  <p className="text-lg sm:text-xl font-bold text-foreground font-mono">
                     {stats.avgPercent.toFixed(1)}%
                   </p>
                 </CardContent>
               </Card>
-              <Card className="border-l-[3px] border-l-warning">
+              <Card className="border-l-[3px] border-l-warning bg-card shadow-sm">
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center gap-1.5 mb-1">
                     <Leaf className="w-3.5 h-3.5 text-warning shrink-0" />
                     <span className="text-[11px] sm:text-xs text-muted-foreground">CO₂ Evitado</span>
                   </div>
-                  <p className="text-lg sm:text-xl font-bold text-foreground">
-                    {stats.co2.toFixed(0)} <span className="text-xs font-normal text-muted-foreground">kg</span>
+                  <p className="text-lg sm:text-xl font-bold text-foreground font-mono">
+                    {stats.co2.toFixed(0)}
+                    <span className="text-xs font-normal text-muted-foreground ml-1">kg</span>
                   </p>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          {/* Energy Balance Chart — Consumo vs Compensado vs Injetado */}
+          {/* Energy Balance Chart */}
           {energyChartData.length > 0 && (
             <Card>
               <CardHeader className="pb-2 px-4">
@@ -602,7 +702,7 @@ export default function UCPublica() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-2 sm:px-4">
-                <ResponsiveContainer width="100%" height={240}>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={energyChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="mes" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
@@ -631,7 +731,7 @@ export default function UCPublica() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-2 sm:px-4">
-                <ResponsiveContainer width="100%" height={240}>
+                <ResponsiveContainer width="100%" height={250}>
                   <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="mes" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
@@ -650,7 +750,7 @@ export default function UCPublica() {
             </Card>
           )}
 
-          {/* Invoice table */}
+          {/* ═══ INVOICES TABLE ═══ */}
           {loadingInvoices ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
@@ -658,7 +758,12 @@ export default function UCPublica() {
           ) : invoices.length > 0 ? (
             <Card>
               <CardHeader className="pb-2 px-4">
-                <CardTitle className="text-sm flex items-center gap-2"><FileText className="w-4 h-4" /> Faturas</CardTitle>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" /> Faturas
+                  <span className="text-xs font-normal text-muted-foreground ml-auto">
+                    {invoices.length} {invoices.length === 1 ? "fatura" : "faturas"}
+                  </span>
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {/* Desktop table */}
@@ -680,7 +785,8 @@ export default function UCPublica() {
                     <TableBody>
                       {invoices.map((inv: any) => {
                         const comp = Number(inv.compensated_kwh || 0);
-                        const economia = comp * tarifa;
+                        const savings = Number(inv.estimated_savings_brl || 0);
+                        const economia = savings > 0 ? savings : comp * tarifa;
                         const injected = Number(inv.energy_injected_kwh || 0);
                         return (
                           <TableRow key={inv.id} className="hover:bg-muted/30">
@@ -711,7 +817,7 @@ export default function UCPublica() {
                               {inv.due_date ? new Date(inv.due_date + "T12:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—"}
                             </TableCell>
                             <TableCell>
-                              {inv.has_file && inv.pdf_file_url && (
+                              {inv.has_file && inv.pdf_file_url ? (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
@@ -726,6 +832,8 @@ export default function UCPublica() {
                                   </TooltipTrigger>
                                   <TooltipContent>Baixar fatura PDF</TooltipContent>
                                 </Tooltip>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
                               )}
                             </TableCell>
                           </TableRow>
@@ -739,8 +847,10 @@ export default function UCPublica() {
                 <div className="sm:hidden divide-y divide-border">
                   {invoices.map((inv: any) => {
                     const comp = Number(inv.compensated_kwh || 0);
-                    const economia = comp * tarifa;
+                    const savings = Number(inv.estimated_savings_brl || 0);
+                    const economia = savings > 0 ? savings : comp * tarifa;
                     const consumed = Number(inv.energy_consumed_kwh || 0);
+                    const hasPdf = inv.has_file && inv.pdf_file_url;
                     return (
                       <div key={inv.id} className="p-3 space-y-2">
                         <div className="flex items-center justify-between">
@@ -753,15 +863,16 @@ export default function UCPublica() {
                                 {BANDEIRA_LABELS[inv.bandeira_tarifaria] || inv.bandeira_tarifaria}
                               </Badge>
                             )}
-                            {inv.has_file && inv.pdf_file_url && (
+                            {hasPdf && (
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs gap-1"
                                 disabled={downloadingId === inv.id}
                                 onClick={() => handleDownloadPdf(inv.id, inv.pdf_file_url, inv.reference_month, inv.reference_year)}
                               >
-                                <Download className="w-4 h-4 text-primary" />
+                                <Download className="w-3 h-3" />
+                                PDF
                               </Button>
                             )}
                           </div>
@@ -803,9 +914,27 @@ export default function UCPublica() {
             </Card>
           )}
 
+          {/* Saldo GD */}
+          {latestInvoice?.current_balance_kwh != null && Number(latestInvoice.current_balance_kwh) > 0 && (
+            <Card className="border-l-[3px] border-l-success">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                  <BatteryCharging className="w-5 h-5 text-success" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">Saldo de Crédito Acumulado (GD)</p>
+                  <p className="text-xl font-bold font-mono text-success">
+                    {Number(latestInvoice.current_balance_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} kWh
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Footer */}
           <footer className="text-center text-xs text-muted-foreground py-4 border-t border-border">
-            Dados atualizados automaticamente · {brand?.company_name || ""}
+            <p>Dados atualizados automaticamente · {brand?.company_name || ""}</p>
+            <p className="mt-1 opacity-60">Powered by Mais Energia Solar CRM</p>
           </footer>
         </main>
       </div>
