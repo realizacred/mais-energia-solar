@@ -50,7 +50,7 @@ interface TestResult {
   contexto?: string | null;
 }
 
-const ACCEPTED_TYPES = ".pdf,.png,.jpg,.jpeg,.webp";
+const ACCEPTED_TYPES = ".pdf";
 
 const STATUS_MAP: Record<string, { icon: typeof CheckCircle2; label: string; color: string }> = {
   success: { icon: CheckCircle2, label: "Sucesso", color: "text-success" },
