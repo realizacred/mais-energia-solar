@@ -28,6 +28,8 @@ export interface UCRecord {
   valor_mensalidade: number | null;
   dia_vencimento: number | null;
   servico_cobranca_ativo: boolean;
+  unit_identifier: string | null;
+  unit_identifier_type: string | null;
   created_at: string;
   updated_at: string;
 }
