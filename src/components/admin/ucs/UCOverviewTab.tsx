@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import {
   Zap, Sun, BarChart3, Calendar, Battery, Activity,
-  Gauge, ArrowRight, FileText, Clock, BarChart2
+  Gauge, ArrowRight, FileText, Clock, BarChart2, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
