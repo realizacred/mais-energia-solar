@@ -33,6 +33,9 @@ interface TestResult {
   raw_extraction: Record<string, any>;
   field_results: Record<string, any>;
   validations: Array<{ rule: string; passed: boolean; detail: string }>;
+  ownership_validation?: { status: "valid" | "mismatch" | "unknown"; score: number };
+  identifier_extracted?: string | null;
+  identifier_expected?: string | null;
 }
 
 const ACCEPTED_TYPES = ".pdf,.png,.jpg,.jpeg,.webp";
