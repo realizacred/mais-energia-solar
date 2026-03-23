@@ -737,6 +737,17 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     });
   }, [isExpanded, latestVersao?.id]);
 
+  // Auto-render when switching to "arquivo" tab for generated proposals
+  useEffect(() => {
+    if (!isExpanded || activeTab !== "arquivo" || html || rendering) return;
+    if (!latestVersao?.id) return;
+    // Only auto-render if proposal has been generated
+    const status = latestVersao.status?.toLowerCase();
+    if (status === "generated" || status === "gerada" || status === "ativa") {
+      handleRender();
+    }
+  }, [isExpanded, activeTab, latestVersao?.id]);
+
   // Delete handler
   const handleDelete = async () => {
     setDeleting(true);
