@@ -818,7 +818,7 @@ export function UCInvoicesTab({ unitId }: Props) {
             {/* Valor, Vencimento, Bandeira */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Valor (R$) *</Label>
+                <Label className="text-xs">Valor (R$) <span className="text-destructive">*</span></Label>
                 <Input type="number" step="0.01" value={form.total_amount} onChange={(e) => setForm(f => ({ ...f, total_amount: e.target.value }))} placeholder="0,00" />
               </div>
               <div className="space-y-1">
