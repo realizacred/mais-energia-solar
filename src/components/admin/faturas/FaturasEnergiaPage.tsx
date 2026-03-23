@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStartInvoiceImport } from "@/hooks/useInvoiceImport";
 import { useInvoicesList, useInvoiceKPIs } from "@/hooks/useInvoicesList";
+import { GmailAccountsSection } from "./GmailAccountsSection";
 import { invoiceService } from "@/services/invoiceService";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { ImportJobsPanel } from "./ImportJobsPanel";
