@@ -362,7 +362,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px]">
             <div>
               <span className="text-muted-foreground">GHI:</span>{" "}
-              <span className="font-semibold">{validation.ghiCount.toLocaleString("pt-BR")} pts</span>
+              <span className="font-semibold">{formatIntegerBR(validation.ghiCount)} pts</span>
             </div>
             {validation.dhiCount > 0 && (
               <div>
