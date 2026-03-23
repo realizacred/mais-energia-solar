@@ -197,7 +197,17 @@ export function WaFollowupRulesManager() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => processNowMutation.mutate()}
+              onClick={() => processNowMutation.mutate(undefined, {
+                onSuccess: (data) => {
+                  toast({
+                    title: "Processamento concluído!",
+                    description: `${data?.created || 0} follow-ups criados, ${data?.sent || 0} enviados.`,
+                  });
+                },
+                onError: (err: any) => {
+                  toast({ title: "Erro ao processar", description: err.message, variant: "destructive" });
+                },
+              })}
               disabled={processNowMutation.isPending}
               className="gap-2"
             >
