@@ -55,6 +55,7 @@ export interface WizardSnapshot {
   descricaoProposta: string;
   templateSelecionado: string;
   step: number;
+  geracaoMensalEstimada?: number;
 }
 
 interface ClienteParams {
