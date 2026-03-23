@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStartInvoiceImport } from "@/hooks/useInvoiceImport";
 import { useInvoicesList, useInvoiceKPIs } from "@/hooks/useInvoicesList";
+import { GmailAccountsSection } from "./GmailAccountsSection";
 import { invoiceService } from "@/services/invoiceService";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { ImportJobsPanel } from "./ImportJobsPanel";
@@ -29,7 +30,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Mail, CheckCircle, XCircle, Copy, Loader2, Unplug, FileText, Building2,
+  Mail, CheckCircle, XCircle, Copy, Loader2, FileText, Building2,
   Upload, Search, MoreHorizontal, Trash2, ExternalLink, AlertTriangle,
   ChevronLeft, ChevronRight, FileSearch,
 } from "lucide-react";
@@ -47,7 +48,7 @@ export default function FaturasEnergiaPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [searchParams] = useSearchParams();
-  const [disconnecting, setDisconnecting] = useState(false);
+  // disconnecting state removed — now in GmailAccountsSection
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const importMutation = useStartInvoiceImport();
@@ -67,26 +68,11 @@ export default function FaturasEnergiaPage() {
     const gmailParam = searchParams.get("gmail");
     if (gmailParam === "conectado") {
       toast({ title: "Gmail conectado com sucesso!" });
-      qc.invalidateQueries({ queryKey: ["gmail_config"] });
+      qc.invalidateQueries({ queryKey: ["gmail_accounts"] });
     } else if (gmailParam === "erro") {
       toast({ title: "Erro ao conectar Gmail", description: searchParams.get("reason") || "Tente novamente", variant: "destructive" });
     }
   }, [searchParams]);
-
-  // Gmail config
-  const { data: gmailConfig, isLoading: loadingConfig } = useQuery({
-    queryKey: ["gmail_config"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("integrations_api_configs")
-        .select("id, is_active, settings, status")
-        .eq("provider", "gmail")
-        .eq("is_active", true)
-        .maybeSingle();
-      return data;
-    },
-    staleTime: STALE,
-  });
 
   // UCs for filter
   const { data: ucs = [] } = useQuery({
@@ -118,7 +104,7 @@ export default function FaturasEnergiaPage() {
   // KPIs
   const { data: kpis } = useInvoiceKPIs();
 
-  // Years for filter (from a lightweight query)
+  // Years for filter
   const { data: years = [] } = useQuery({
     queryKey: ["invoice_years"],
     queryFn: async () => {
@@ -144,39 +130,6 @@ export default function FaturasEnergiaPage() {
     },
     onError: (err: any) => toast({ title: "Erro", description: err?.message, variant: "destructive" }),
   });
-
-  const isConnected = !!gmailConfig?.is_active;
-  const connectedEmail = (gmailConfig?.settings as any)?.email;
-
-  async function handleConnect() {
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      if (!token) { toast({ title: "Erro", description: "Você precisa estar logado", variant: "destructive" }); return; }
-      const resp = await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?action=auth_url`, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      });
-      const result = await resp.json();
-      if (result.auth_url) { window.location.href = result.auth_url; }
-      else { toast({ title: "Erro", description: result.error || "Falha ao gerar URL", variant: "destructive" }); }
-    } catch (err: any) { toast({ title: "Erro", description: err?.message, variant: "destructive" }); }
-  }
-
-  async function handleDisconnect() {
-    setDisconnecting(true);
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?action=disconnect`, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      });
-      toast({ title: "Gmail desconectado" });
-      qc.invalidateQueries({ queryKey: ["gmail_config"] });
-    } catch (err: any) { toast({ title: "Erro", description: err?.message, variant: "destructive" }); }
-    finally { setDisconnecting(false); }
-  }
 
   async function handleUploadPdf(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -284,37 +237,8 @@ export default function FaturasEnergiaPage() {
       {/* Import Jobs Panel */}
       <ImportJobsPanel />
 
-      {/* Gmail connection card (compact) */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Mail className="w-4 h-4" /> Conexão Gmail
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingConfig ? (
-            <Skeleton className="h-10 w-60" />
-          ) : isConnected ? (
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <Badge className="bg-success/10 text-success border-success/20">
-                  <CheckCircle className="w-3 h-3 mr-1" /> Conectado
-                </Badge>
-                <span className="text-sm text-muted-foreground">{connectedEmail}</span>
-              </div>
-              <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10" onClick={handleDisconnect} disabled={disconnecting}>
-                {disconnecting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Unplug className="w-4 h-4 mr-1" />}
-                Desconectar
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-muted-foreground flex-1">Conecte sua conta Gmail para receber faturas automaticamente</p>
-              <Button size="sm" onClick={handleConnect}><Mail className="w-4 h-4 mr-1" /> Conectar Gmail</Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Gmail Accounts Section */}
+      <GmailAccountsSection />
 
       {/* Filters + Table */}
       <Card>

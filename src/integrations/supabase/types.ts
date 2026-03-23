@@ -5838,6 +5838,59 @@ export type Database = {
           },
         ]
       }
+      gmail_accounts: {
+        Row: {
+          concessionaria_nome: string | null
+          created_at: string | null
+          credentials: Json | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          nome: string
+          settings: Json | null
+          tenant_id: string
+          ultimo_verificado_at: string | null
+          updated_at: string | null
+          verificar_a_cada_minutos: number | null
+        }
+        Insert: {
+          concessionaria_nome?: string | null
+          created_at?: string | null
+          credentials?: Json | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome: string
+          settings?: Json | null
+          tenant_id: string
+          ultimo_verificado_at?: string | null
+          updated_at?: string | null
+          verificar_a_cada_minutos?: number | null
+        }
+        Update: {
+          concessionaria_nome?: string | null
+          created_at?: string | null
+          credentials?: Json | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome?: string
+          settings?: Json | null
+          tenant_id?: string
+          ultimo_verificado_at?: string | null
+          updated_at?: string | null
+          verificar_a_cada_minutos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gmail_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       growatt_health_cache: {
         Row: {
           checked_at: string
@@ -18226,7 +18279,10 @@ export type Database = {
           endereco_completo: string | null
           estado: string | null
           facebook_url: string | null
+          google_client_id: string | null
+          google_client_secret: string | null
           google_maps_url: string | null
+          google_redirect_uri: string | null
           hero_badge_texto: string | null
           hero_cta_texto: string | null
           hero_cta_whatsapp_texto: string | null
@@ -18270,7 +18326,10 @@ export type Database = {
           endereco_completo?: string | null
           estado?: string | null
           facebook_url?: string | null
+          google_client_id?: string | null
+          google_client_secret?: string | null
           google_maps_url?: string | null
+          google_redirect_uri?: string | null
           hero_badge_texto?: string | null
           hero_cta_texto?: string | null
           hero_cta_whatsapp_texto?: string | null
@@ -18314,7 +18373,10 @@ export type Database = {
           endereco_completo?: string | null
           estado?: string | null
           facebook_url?: string | null
+          google_client_id?: string | null
+          google_client_secret?: string | null
           google_maps_url?: string | null
+          google_redirect_uri?: string | null
           hero_badge_texto?: string | null
           hero_cta_texto?: string | null
           hero_cta_whatsapp_texto?: string | null
