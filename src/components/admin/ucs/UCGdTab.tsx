@@ -154,15 +154,20 @@ function GeneratorSection({
     }
   }
 
-  async function handleDeleteBeneficiary(id: string) {
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  const confirmDeleteBeneficiary = useCallback(async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteBeneficiary.mutateAsync(id);
+      await deleteBeneficiary.mutateAsync(deleteTarget);
       qc.invalidateQueries({ queryKey: ["gd_group_beneficiaries", group?.id] });
       toast({ title: "Beneficiária removida" });
     } catch (err: any) {
       toast({ title: "Erro", description: err?.message, variant: "destructive" });
+    } finally {
+      setDeleteTarget(null);
     }
-  }
+  }, [deleteTarget, deleteBeneficiary, qc, group?.id, toast]);
 
   // No group yet — show CTA
   if (!group) {
