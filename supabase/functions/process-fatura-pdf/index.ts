@@ -625,6 +625,8 @@ async function processInvoice(
   const hasEnrichData = parsed.categoria_gd || parsed.concessionaria_nome || parsed.endereco
     || parsed.classe_consumo || parsed.cliente_nome || parsed.tipo_ligacao || parsed.numero_uc;
 
+  console.log(`[process-fatura-pdf] Enrich check: hasEnrichData=${!!hasEnrichData}, cliente_nome=${parsed.cliente_nome || 'NULL'}, endereco=${parsed.endereco || 'NULL'}, classe_consumo=${parsed.classe_consumo || 'NULL'}, concessionaria_nome=${parsed.concessionaria_nome || 'NULL'}, numero_uc=${parsed.numero_uc || 'NULL'}`);
+
   if (hasEnrichData) {
     // Check if this is the first invoice for this UC (excluding the one we just inserted)
     const { count: priorInvoiceCount } = await admin
@@ -635,6 +637,7 @@ async function processInvoice(
       .neq('id', invoice.id);
 
     const isFirstInvoice = (priorInvoiceCount || 0) === 0;
+    console.log(`[process-fatura-pdf] Enrich: priorInvoiceCount=${priorInvoiceCount}, isFirstInvoice=${isFirstInvoice}`);
 
     const { data: currentUc } = await admin
       .from('units_consumidoras')
