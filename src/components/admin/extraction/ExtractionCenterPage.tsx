@@ -4,7 +4,9 @@
  * Reposicionada para modelo 100% nativo — provedores internos não expostos.
  */
 import { useState } from "react";
-import { Settings2, Plus, CheckCircle2, AlertTriangle, Cpu, Pencil, Trash2, Eye, Shield, Database, RefreshCw, Upload, Sparkles } from "lucide-react";
+import { Settings2, Plus, CheckCircle2, AlertTriangle, Cpu, Pencil, Trash2, Eye, Shield, Database, RefreshCw, Upload, Sparkles, UserX } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
