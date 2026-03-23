@@ -27,25 +27,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-interface FollowupRule {
-  id: string;
-  tenant_id: string;
-  nome: string;
-  descricao: string | null;
-  cenario: string;
-  prazo_minutos: number;
-  prioridade: string;
-  mensagem_template: string | null;
-  envio_automatico: boolean;
-  max_tentativas: number;
-  status_conversa: string[] | null;
-  ativo: boolean;
-  ordem: number;
-  created_at: string;
-  updated_at: string;
-}
+import {
+  useFollowupRules,
+  useFollowupQueueStats,
+  useProcessFollowupsNow,
+  useSaveFollowupRule,
+  useDeleteFollowupRule,
+  useToggleFollowupRule,
+  type FollowupRule,
+  type FollowupRuleFormData,
+} from "@/hooks/useWaFollowup";
 
-type RuleFormData = Omit<FollowupRule, "id" | "tenant_id" | "created_at" | "updated_at">;
+type RuleFormData = FollowupRuleFormData;
 type TimeUnit = "minutos" | "horas" | "dias";
 
 function minutesToBestUnit(mins: number): { value: number; unit: TimeUnit } {

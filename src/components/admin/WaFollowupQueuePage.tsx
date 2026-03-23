@@ -91,20 +91,10 @@ export function WaFollowupQueuePage() {
   }), [items]);
 
   // ─── Drawer: conversation messages ─────────────────────
-  const { data: drawerMessages = [], isLoading: loadingMessages } = useQuery({
-    queryKey: ["followup-drawer-messages", selectedItem?.conversation_id],
-    queryFn: async () => {
-      if (!selectedItem?.conversation_id) return [];
-      const { data } = await supabase
-        .from("wa_messages")
-        .select("id, content, direction, created_at, message_type")
-        .eq("conversation_id", selectedItem.conversation_id)
-        .order("created_at", { ascending: false })
-        .limit(30);
-      return ((data || []) as MessagePreview[]).reverse();
-    },
-    enabled: !!selectedItem?.conversation_id && drawerOpen,
-  });
+  const { data: drawerMessages = [], isLoading: loadingMessages } = useFollowupDrawerMessages(
+    selectedItem?.conversation_id,
+    drawerOpen
+  );
 
   const handleOpenDrawer = (item: FollowupQueueItem) => {
     setSelectedItem(item);
