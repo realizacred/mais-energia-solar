@@ -117,24 +117,46 @@ function MeterReadingsTable({ meterId }: { meterId?: string | null }) {
 }
 
 function SolarGenerationTable({ plantId }: { plantId?: string | null }) {
-  const { data: metrics = [], isLoading } = useQuery({
-    queryKey: ["uc_historico_plant_metrics", plantId],
+  // Resolve monitor_plants.id from legacy_plant_id
+  const { data: monitorPlant } = useQuery({
+    queryKey: ["monitor_plant_by_legacy", plantId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("solar_plant_metrics_daily")
-        .select("id, date, energy_kwh, power_kw, total_energy_kwh")
-        .eq("plant_id", plantId!)
-        .order("date", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data ?? [];
+      const { data } = await (supabase as any)
+        .from("monitor_plants")
+        .select("id")
+        .eq("legacy_plant_id", plantId!)
+        .maybeSingle();
+      return data as { id: string } | null;
     },
     enabled: !!plantId,
     staleTime: STALE_5M,
   });
 
+  const monitorPlantId = monitorPlant?.id;
+
+  const { data: metrics = [], isLoading } = useQuery({
+    queryKey: ["uc_historico_plant_metrics_v2", monitorPlantId],
+    queryFn: async () => {
+      const endDate = new Date().toISOString().slice(0, 10);
+      const startDate = new Date(Date.now() - 50 * 86400000).toISOString().slice(0, 10);
+      const { data, error } = await supabase.rpc("get_plant_metrics" as any, {
+        p_plant_id: monitorPlantId!,
+        p_date_from: startDate,
+        p_date_to: endDate,
+      });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!monitorPlantId,
+    staleTime: STALE_5M,
+  });
+
   if (!plantId) {
     return <EmptyState icon={<Sun className="w-8 h-8" />} title="Sem usina" desc="Vincule uma usina para ver o histórico de geração." />;
+  }
+
+  if (plantId && !monitorPlantId && !isLoading) {
+    return <EmptyState icon={<Sun className="w-8 h-8" />} title="Usina não vinculada" desc="Usina não vinculada ao sistema de monitoramento V2." />;
   }
 
   if (isLoading) {
@@ -157,16 +179,16 @@ function SolarGenerationTable({ plantId }: { plantId?: string | null }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {metrics.map((m: any) => (
-            <TableRow key={m.id} className="hover:bg-muted/30">
+          {metrics.map((m: any, i: number) => (
+            <TableRow key={m.reading_date || i} className="hover:bg-muted/30">
               <TableCell className="text-sm font-mono">
-                {m.date ? format(new Date(m.date + "T12:00:00"), "dd/MM/yyyy") : "—"}
+                {m.reading_date ? format(new Date(m.reading_date + "T12:00:00"), "dd/MM/yyyy") : m.date ? format(new Date(m.date + "T12:00:00"), "dd/MM/yyyy") : "—"}
               </TableCell>
               <TableCell className="text-sm text-right font-mono">
                 {m.energy_kwh != null ? Number(m.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "—"}
               </TableCell>
               <TableCell className="text-sm text-right font-mono">
-                {m.power_kw != null ? formatDecimalBR(Number(m.power_kw), 2) : "—"}
+                {m.peak_power_kw != null ? formatDecimalBR(Number(m.peak_power_kw), 2) : m.power_kw != null ? formatDecimalBR(Number(m.power_kw), 2) : "—"}
               </TableCell>
               <TableCell className="text-sm text-right font-mono">
                 {m.total_energy_kwh != null ? formatDecimalBR(Number(m.total_energy_kwh), 1) : "—"}

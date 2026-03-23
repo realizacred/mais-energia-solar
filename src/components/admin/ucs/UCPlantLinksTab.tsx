@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link2, Plus, Trash2, Sun, ArrowRight, Zap, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { derivePlantStatus, type PlantUiStatus, getTodayBrasilia } from "@/services/monitoring/plantStatusEngine";
+import { derivePlantStatus, type PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
@@ -80,27 +80,17 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
   // Fetch today's generation for linked plants
   const activePlantIds = links.filter(l => l.is_active).map(l => l.plant_id);
   const { data: todayMetrics = [] } = useQuery({
-    queryKey: ["plant_today_metrics_uc", activePlantIds],
+    queryKey: ["plant_today_metrics_uc_v2", activePlantIds],
     queryFn: async () => {
       if (activePlantIds.length === 0) return [];
-      // Get legacy_plant_id mapping
-      const { data: plantRows } = await (supabase as any)
-        .from("monitor_plants")
-        .select("id, legacy_plant_id")
-        .in("id", activePlantIds);
-      const legacyIds = (plantRows || []).map((p: any) => p.legacy_plant_id).filter(Boolean);
-      if (legacyIds.length === 0) return [];
-      const today = getTodayBrasilia();
       const { data } = await (supabase as any)
-        .from("solar_plant_metrics_daily")
-        .select("plant_id, energy_kwh, date")
-        .in("plant_id", legacyIds)
-        .eq("date", today);
-      // Map back to monitor_plants.id
-      return (data || []).map((m: any) => {
-        const mp = (plantRows || []).find((p: any) => p.legacy_plant_id === m.plant_id);
-        return { ...m, monitor_plant_id: mp?.id };
-      });
+        .from("monitor_plants_with_metrics")
+        .select("id, today_energy_kwh, today_peak_power_kw")
+        .in("id", activePlantIds);
+      return (data || []).map((m: any) => ({
+        monitor_plant_id: m.id,
+        energy_kwh: m.today_energy_kwh ?? 0,
+      }));
     },
     enabled: activePlantIds.length > 0,
     staleTime: 1000 * 60 * 2,
