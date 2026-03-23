@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const REDIRECT_URI = "https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/gmail-oauth?action=callback";
+const REDIRECT_URI = "https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/gmail-oauth";
 
 export function GmailAccountsSection() {
   const { toast } = useToast();
