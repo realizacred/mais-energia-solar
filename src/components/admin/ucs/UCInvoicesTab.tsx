@@ -337,7 +337,15 @@ export function UCInvoicesTab({ unitId }: Props) {
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => invoiceService.delete(id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Check if there are remaining invoices; if none, reset proxima_leitura_data
+      const remaining = invoices.filter((inv) => inv.id !== deleteTarget);
+      if (remaining.length === 0) {
+        await supabase
+          .from("units_consumidoras" as any)
+          .update({ proxima_leitura_data: null } as any)
+          .eq("id", unitId);
+      }
       invalidateAllUcQueries();
       toast({ title: "Fatura excluída com sucesso" });
       setDeleteTarget(null);
