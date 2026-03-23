@@ -155,6 +155,9 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
 function ProjetoDetalheContent() {
   const ctx = useProjetoDetalhe();
   const navigate = useNavigate();
+  const [isPrincipal, setIsPrincipal] = useState(false);
+  const [principalLoading, setPrincipalLoading] = useState(false);
+  const [projetoId, setProjetoId] = useState<string | null>(null);
 
   const {
     deal, loading, activeTab, setActiveTab, stages,
@@ -169,6 +172,42 @@ function ProjetoDetalheContent() {
     isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge,
     dealId, onBack, initialPipelineId,
   } = ctx;
+
+  // Fetch is_principal status
+  useEffect(() => {
+    if (!dealId) return;
+    (async () => {
+      const { data: dealRow } = await supabase
+        .from("deals")
+        .select("projeto_id")
+        .eq("id", dealId)
+        .maybeSingle();
+      const pId = (dealRow as any)?.projeto_id;
+      if (!pId) return;
+      setProjetoId(pId);
+      const { data: proj } = await supabase
+        .from("projetos")
+        .select("is_principal")
+        .eq("id", pId)
+        .maybeSingle();
+      setIsPrincipal((proj as any)?.is_principal === true);
+    })();
+  }, [dealId]);
+
+  const handleTogglePrincipal = async () => {
+    if (!projetoId || isPrincipal) return;
+    setPrincipalLoading(true);
+    try {
+      const { error } = await supabase.rpc("set_projeto_principal" as any, { p_projeto_id: projetoId });
+      if (error) throw error;
+      setIsPrincipal(true);
+      toast({ title: "Projeto definido como principal", description: "Este projeto será usado como referência para contratos." });
+    } catch (err: any) {
+      toast({ title: "Erro ao definir principal", description: err.message, variant: "destructive" });
+    } finally {
+      setPrincipalLoading(false);
+    }
+  };
 
   if (loading) {
     return (
