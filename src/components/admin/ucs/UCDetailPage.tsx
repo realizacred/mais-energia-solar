@@ -64,6 +64,8 @@ const CATEGORIA_GD_LABELS: Record<string, string> = {
 export default function UCDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "overview";
   const qc = useQueryClient();
   const { toast } = useToast();
   const { tenant } = useTenantSettings();
