@@ -444,7 +444,8 @@ function extractEnergisa(text: string): ExtractedData | null {
   // Nome do cliente — geralmente logo após o cabeçalho da Energisa, antes de LIGAÇÃO
   let clienteNome: string | null = null;
   const clientePatterns = [
-    /ENERGISA[^]*?S\.A\.?\s+(?:\d{2}[\/.]\d{2}[\/.]\d{4}[^]*?)?([A-ZÀ-Ú][A-ZÀ-Ú\s]{5,60}?)(?:\s*LIGA[ÇC][ÃA]O|\s*Classifica|\s*CPF|\s*CNPJ|\s*RUA|\s*AV[\s.]|\s*Endere)/i,
+    // Energisa: name is on a line between date block and LIGAÇÃO
+    /ENERGISA[^]*?S\.A\.?\s+(?:[\d\/.\s]+)?([A-ZÀ-Ú][A-ZÀ-Ú\s]{8,60}?)\s*(?:LIGA[ÇC][ÃA]O|Classifica|CPF|CNPJ)/i,
     /(?:CLIENTE|CONSUMIDOR|DESTINAT[ÁA]RIO)[:\s]*([A-ZÀ-Ú][A-ZÀ-Ú\s]{5,60})/i,
     /NOME[:\s]*([A-ZÀ-Ú][A-Za-zÀ-ú\s]{5,60})/i,
   ];
