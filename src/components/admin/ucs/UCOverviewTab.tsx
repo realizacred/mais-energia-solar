@@ -60,7 +60,7 @@ const ChartTooltip = ({ active, payload, label }: any) => {
 };
 
 export function UCOverviewTab({
-  ucId, meterId, plantId, solarPlantId, meterName, meterOnline, plantName, plantCapacityKwp, proximaLeituraData,
+  ucId, meterId, plantId, meterName, meterOnline, plantName, plantCapacityKwp, proximaLeituraData,
 }: Props) {
   const navigate = useNavigate();
   const [chartPeriod, setChartPeriod] = useState<"7d" | "30d" | "3m">("30d");
