@@ -3824,6 +3824,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "energy_alerts_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants_with_metrics"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "energy_alerts_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
@@ -10224,6 +10231,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "monitor_channels_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants_with_metrics"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "monitor_channels_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -10281,6 +10295,13 @@ export type Database = {
             columns: ["plant_id"]
             isOneToOne: false
             referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_devices_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants_with_metrics"
             referencedColumns: ["id"]
           },
           {
@@ -10381,6 +10402,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "monitor_events_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants_with_metrics"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "monitor_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -10438,6 +10466,13 @@ export type Database = {
             columns: ["plant_id"]
             isOneToOne: false
             referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_health_cache_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants_with_metrics"
             referencedColumns: ["id"]
           },
           {
@@ -10706,6 +10741,13 @@ export type Database = {
             columns: ["plant_id"]
             isOneToOne: false
             referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_readings_daily_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants_with_metrics"
             referencedColumns: ["id"]
           },
           {
@@ -12632,6 +12674,13 @@ export type Database = {
             referencedRelation: "monitor_plants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "plant_data_sources_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants_with_metrics"
+            referencedColumns: ["id"]
+          },
         ]
       }
       plant_estimated_reports: {
@@ -12694,6 +12743,13 @@ export type Database = {
             referencedRelation: "monitor_plants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "plant_estimated_reports_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants_with_metrics"
+            referencedColumns: ["id"]
+          },
         ]
       }
       plant_resizing_history: {
@@ -12745,6 +12801,13 @@ export type Database = {
             columns: ["plant_id"]
             isOneToOne: false
             referencedRelation: "monitor_plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plant_resizing_history_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants_with_metrics"
             referencedColumns: ["id"]
           },
         ]
@@ -20748,6 +20811,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "unit_credits_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "monitor_plants_with_metrics"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "unit_credits_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -24413,6 +24483,45 @@ export type Database = {
           },
         ]
       }
+      monitor_plants_with_metrics: {
+        Row: {
+          city: string | null
+          client_id: string | null
+          created_at: string | null
+          id: string | null
+          installed_power_kwp: number | null
+          is_active: boolean | null
+          last_seen_at: string | null
+          lat: number | null
+          legacy_plant_id: string | null
+          lng: number | null
+          month_energy_kwh: number | null
+          name: string | null
+          provider_id: string | null
+          provider_plant_id: string | null
+          state: string | null
+          tenant_id: string | null
+          today_energy_kwh: number | null
+          today_peak_power_kw: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_plants_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitor_plants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm_analytics_view: {
         Row: {
           acceptance_date: string | null
@@ -25156,6 +25265,14 @@ export type Database = {
           starts_at: string
           tenant_id: string
           title: string
+        }[]
+      }
+      get_plant_metrics: {
+        Args: { p_date_from: string; p_date_to: string; p_plant_id: string }
+        Returns: {
+          date: string
+          energy_kwh: number
+          peak_power_kw: number
         }[]
       }
       get_roof_types_by_consultor: {
