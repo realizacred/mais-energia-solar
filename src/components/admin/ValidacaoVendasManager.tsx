@@ -82,18 +82,8 @@ export function ValidacaoVendasManager() {
   const [filterVendedor, setFilterVendedor] = useState("all");
   const [filterPeriodo, setFilterPeriodo] = useState("all");
 
-  // Fetch vendedores on mount
-  useEffect(() => {
-    const fetchVendedores = async () => {
-      const { data } = await supabase
-        .from("consultores")
-        .select("id, nome, percentual_comissao")
-        .eq("ativo", true)
-        .order("nome");
-      if (data) setVendedores(data);
-    };
-    fetchVendedores();
-  }, []);
+  // Fetch vendedores via hook
+  const { data: vendedores = [] } = useVendedoresAtivos();
 
   // Derived: unique vendors from pending items
   const vendedorNames = useMemo(() => {
