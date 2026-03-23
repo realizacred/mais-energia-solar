@@ -326,6 +326,7 @@ Deno.serve(async (req) => {
                 success: processResult.success,
                 unit_id: matchedUnitId,
                 auto_detect: !matchedUnitId,
+                error: processResult.success ? undefined : (processResult.error || 'Erro desconhecido'),
               });
             }
 

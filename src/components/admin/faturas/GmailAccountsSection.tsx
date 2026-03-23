@@ -183,12 +183,21 @@ export function GmailAccountsSection() {
         throw new Error(result?.error || `HTTP ${response.status}`);
       }
 
-      if (result?.errors > 0) {
+      if (result?.errors > 0 && result?.processed === 0) {
         toast({
           title: "Verificação falhou",
           description: getVerificationErrorMessage(result),
           variant: "destructive",
         });
+        return;
+      }
+
+      if (result?.errors > 0 && result?.processed > 0) {
+        toast({
+          title: "Verificação parcial",
+          description: `${result.processed} fatura(s) processada(s), ${result.errors} com erro: ${getVerificationErrorMessage(result)}`,
+        });
+        qc.invalidateQueries({ queryKey: ["gmail_accounts"] });
         return;
       }
 
