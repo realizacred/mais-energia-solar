@@ -33,23 +33,24 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-  // Validate cron secret or service_role
+  // Validate cron secret, service_role, or anon key (pg_cron uses anon key)
   const authHeader = req.headers.get('Authorization');
   const cronSecret = Deno.env.get('CRON_SECRET');
   const isCron = cronSecret && req.headers.get('x-cron-secret') === cronSecret;
   const isServiceRole = authHeader === `Bearer ${serviceRoleKey}`;
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+  const isAnonKey = anonKey && authHeader === `Bearer ${anonKey}`;
 
   // Also allow authenticated users (manual trigger from UI)
   let isAuthedUser = false;
-  if (!isCron && !isServiceRole && authHeader?.startsWith('Bearer ')) {
+  if (!isCron && !isServiceRole && !isAnonKey && authHeader?.startsWith('Bearer ')) {
     const token = authHeader.replace('Bearer ', '');
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const tmpClient = createClient(supabaseUrl, anonKey);
+    const tmpClient = createClient(supabaseUrl, anonKey || serviceRoleKey);
     const { data: { user } } = await tmpClient.auth.getUser(token);
     isAuthedUser = !!user;
   }
 
-  if (!isCron && !isServiceRole && !isAuthedUser) {
+  if (!isCron && !isServiceRole && !isAnonKey && !isAuthedUser) {
     return new Response(JSON.stringify({ error: 'Não autorizado' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
