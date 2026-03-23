@@ -3,6 +3,7 @@
  * §23: staleTime, §4: empty states, §12: skeletons.
  */
 import { useQuery } from "@tanstack/react-query";
+import { formatDecimalBR } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { meterService } from "@/services/meterService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
