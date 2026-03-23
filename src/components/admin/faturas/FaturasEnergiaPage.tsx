@@ -30,7 +30,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Mail, CheckCircle, XCircle, Copy, Loader2, Unplug, FileText, Building2,
+  Mail, CheckCircle, XCircle, Copy, Loader2, FileText, Building2,
   Upload, Search, MoreHorizontal, Trash2, ExternalLink, AlertTriangle,
   ChevronLeft, ChevronRight, FileSearch,
 } from "lucide-react";
