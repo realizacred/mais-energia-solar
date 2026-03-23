@@ -57,6 +57,7 @@ interface Props {
   onUpdateForm: (field: keyof ConcessionariaFormData, value: any) => void;
   onSave: () => void;
   isEditing: boolean;
+  disabled?: boolean;
 }
 
 export function ConcessionariaFormDialog({
@@ -66,6 +67,7 @@ export function ConcessionariaFormDialog({
   onUpdateForm,
   onSave,
   isEditing,
+  disabled,
 }: Props) {
   const currentYear = new Date().getFullYear();
   const fioBCobranca = getFioBCobranca(currentYear);
