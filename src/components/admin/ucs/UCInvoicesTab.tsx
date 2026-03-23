@@ -660,7 +660,7 @@ export function UCInvoicesTab({ unitId }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((inv) => {
+              {filteredInvoices.map((inv) => {
                 const isExpanded = expandedId === inv.id;
                 const raw = inv.raw_extraction as Record<string, any> | null;
                 return (
