@@ -155,6 +155,10 @@ function SolarGenerationTable({ plantId }: { plantId?: string | null }) {
     return <EmptyState icon={<Sun className="w-8 h-8" />} title="Sem usina" desc="Vincule uma usina para ver o histórico de geração." />;
   }
 
+  if (plantId && !monitorPlantId && !isLoading) {
+    return <EmptyState icon={<Sun className="w-8 h-8" />} title="Usina não vinculada" desc="Usina não vinculada ao sistema de monitoramento V2." />;
+  }
+
   if (isLoading) {
     return <TableSkeleton rows={6} />;
   }
