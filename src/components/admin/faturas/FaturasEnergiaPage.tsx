@@ -57,6 +57,8 @@ export default function FaturasEnergiaPage() {
   const [filterUC, setFilterUC] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterYear, setFilterYear] = useState("all");
+  const [filterCliente, setFilterCliente] = useState("all");
+  const [filterPapelGD, setFilterPapelGD] = useState("all");
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(0);
 
