@@ -218,17 +218,18 @@ function UCMeterLinkDialog({ open, onOpenChange, unitId }: { open: boolean; onOp
               <p className="text-sm text-muted-foreground text-center py-6">Nenhum medidor disponível</p>
             ) : (
               meters.map(m => (
-                <button
+                <Button
                   key={m.id}
+                  variant="ghost"
                   type="button"
                   onClick={() => setSelectedMeter(m.id)}
-                  className={`w-full text-left px-3 py-2.5 text-sm border-b last:border-b-0 transition-colors ${
-                    selectedMeter === m.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50"
+                  className={`w-full justify-start rounded-none px-3 py-2.5 h-auto text-sm border-b last:border-b-0 ${
+                    selectedMeter === m.id ? "bg-primary/10 text-primary font-medium" : ""
                   }`}
                 >
                   <span className="font-medium">{m.name}</span>
                   <span className="ml-2 text-xs text-muted-foreground font-mono">{m.external_device_id.slice(0, 12)}</span>
-                </button>
+                </Button>
               ))
             )}
           </div>
