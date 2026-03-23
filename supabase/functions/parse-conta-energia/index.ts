@@ -7,7 +7,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
-const PARSER_VERSION = "3.0.2";
+const PARSER_VERSION = "3.1.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -214,6 +214,45 @@ function extractMeterRow(flatText: string, labelPattern: string) {
   if (![previous, current, total].every(Number.isFinite)) return null;
   if (previous < 0 || current < previous || total < 0) return null;
   return { previous, current, factor: Number.isFinite(factor) ? factor : null, total };
+}
+
+/**
+ * Splits a concatenated meter reading number (common in Energisa PDFs via unpdf).
+ * unpdf sometimes joins columns: e.g. "25219041652" = total(252) + current(1904) + previous(1652)
+ * where total = current - previous.
+ * Returns null if no valid split found.
+ */
+function splitConcatenatedMeterReading(concatenated: string): { total: number; current: number; previous: number } | null {
+  const len = concatenated.length;
+  if (len < 5 || len > 20) return null;
+
+  // Try all possible 3-way splits: concatenated = total | current | previous
+  for (let i = 1; i <= Math.min(6, len - 4); i++) {
+    for (let j = i + 1; j <= len - 1; j++) {
+      const totalStr = concatenated.substring(0, i);
+      const currentStr = concatenated.substring(i, j);
+      const previousStr = concatenated.substring(j);
+
+      // Reject parts with leading zeros (except single "0")
+      if ((totalStr.length > 1 && totalStr[0] === '0') ||
+          (currentStr.length > 1 && currentStr[0] === '0') ||
+          (previousStr.length > 1 && previousStr[0] === '0')) continue;
+
+      const total = parseInt(totalStr);
+      const current = parseInt(currentStr);
+      const previous = parseInt(previousStr);
+
+      if (isNaN(total) || isNaN(current) || isNaN(previous)) continue;
+      if (total <= 0 || current < 0 || previous < 0) continue;
+      if (current <= previous) continue; // current must be > previous for meter readings
+
+      // Check if total = current - previous
+      if (total === current - previous) {
+        return { total, current, previous };
+      }
+    }
+  }
+  return null;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -542,7 +581,23 @@ function extractEnergisa(text: string): ExtractedData | null {
     confidence += 15;
   }
 
-  // Fallback consumo patterns
+  // ── Energisa fallback: concatenated meter readings from unpdf ──
+  // unpdf sometimes joins numbers: "PontaEnergia ativa em kWh 1 25219041652"
+  // where "25219041652" = consumo(252) + leitAtual(1904) + leitAnterior(1652)
+  if (leituraAnterior03 == null || leituraAtual03 == null || consumoKwh == null) {
+    const concatActiveMatch = flatText.match(/PontaEnergia\s+ativa\s+(?:em\s+)?kWh\s+1\s+(\d{7,})/i);
+    if (concatActiveMatch) {
+      const split = splitConcatenatedMeterReading(concatActiveMatch[1]);
+      if (split) {
+        if (leituraAnterior03 == null) { leituraAnterior03 = split.previous; fieldResults['leitura_anterior_03'] = makeField(split.previous, 'regex:ENERGISA_CONCAT_SPLIT', true, `split from ${concatActiveMatch[1]}`); }
+        if (leituraAtual03 == null) { leituraAtual03 = split.current; fieldResults['leitura_atual_03'] = makeField(split.current, 'regex:ENERGISA_CONCAT_SPLIT', true); }
+        if (consumoKwh == null) { consumoKwh = split.total; fieldResults['consumo_kwh'] = makeField(split.total, 'regex:ENERGISA_CONCAT_SPLIT', true); }
+        raw['leitura_03_concat'] = `${concatActiveMatch[1]} → ant=${split.previous} atu=${split.current} cons=${split.total}`;
+        confidence += 12;
+      }
+    }
+  }
+
   if (consumoKwh == null) {
     const consumoTableMatch = flatText.match(/Consumo\s+em\s+kWh\s+(\d[\d.,]*)\s+(\d[\d.,]*)\s+(\d[\d.,]*)/i);
     if (consumoTableMatch) {
@@ -671,6 +726,22 @@ function extractEnergisa(text: string): ExtractedData | null {
     fieldResults['leitura_atual_103'] = makeField(leituraAtual103, 'regex:METER_ROW_INJETADA', true);
     fieldResults['energia_injetada_kwh'] = makeField(energiaInjetada, 'regex:METER_ROW_INJETADA', true);
     confidence += 10;
+  }
+
+  // ── Energisa fallback: concatenated injection meter readings from unpdf ──
+  // e.g. "PontaEnergia injetada 1 1323101158792" = inj(1323) + atu(10115) + ant(8792)
+  if (leituraAnterior103 == null || leituraAtual103 == null || energiaInjetada == null) {
+    const concatInjMatch = flatText.match(/PontaEnergia\s+injetada\s+1\s+(\d{7,})/i);
+    if (concatInjMatch) {
+      const split = splitConcatenatedMeterReading(concatInjMatch[1]);
+      if (split) {
+        if (leituraAnterior103 == null) { leituraAnterior103 = split.previous; fieldResults['leitura_anterior_103'] = makeField(split.previous, 'regex:ENERGISA_CONCAT_SPLIT_103', true, `split from ${concatInjMatch[1]}`); }
+        if (leituraAtual103 == null) { leituraAtual103 = split.current; fieldResults['leitura_atual_103'] = makeField(split.current, 'regex:ENERGISA_CONCAT_SPLIT_103', true); }
+        if (energiaInjetada == null) { energiaInjetada = split.total; fieldResults['energia_injetada_kwh'] = makeField(split.total, 'regex:ENERGISA_CONCAT_SPLIT_103', true); }
+        raw['leitura_103_concat'] = `${concatInjMatch[1]} → ant=${split.previous} atu=${split.current} inj=${split.total}`;
+        confidence += 10;
+      }
+    }
   }
 
   // Fallback injeção
@@ -1047,6 +1118,41 @@ function extractEnergisa(text: string): ExtractedData | null {
       fieldResults['icms_percentual'] = makeField(icms, 'regex:TRIBUTOS_RESUMO', true);
     }
     confidence += 10;
+  }
+
+  // ── Energisa tributo fallback: garbled table from unpdf ──
+  // In garbled Energisa PDFs: "PIS ICMS COFINS 18 18 0 ... 0,09 0,40 ... 7,02 7,02 8,56 1,54"
+  if (icms == null || pis == null || cofins == null) {
+    // Direct PIS/COFINS values: small decimals like 0,09 and 0,40
+    if (pis == null) {
+      const pisDirectMatch = flatText.match(/\bPIS\b[^]*?(\d,\d{2,5})\s+(\d,\d{2,5})\s+(\d{1,2},\d{2,5})\s+(\d[\d.,]+)\s+(\d[\d.,]+)\s+(\d[\d.,]+)\s+(\d[\d.,]+)/i);
+      if (pisDirectMatch) {
+        const p1 = parseNum(pisDirectMatch[1]);
+        const p2 = parseNum(pisDirectMatch[2]);
+        // p1=PIS value, p2=COFINS value (small R$ amounts)
+        if (Number.isFinite(p1) && p1 < 10 && pis == null) { pis = p1; fieldResults['pis_valor'] = makeField(pis, 'regex:ENERGISA_TRIBUTO_GARBLED', true); }
+        if (Number.isFinite(p2) && p2 < 10 && cofins == null) { cofins = p2; fieldResults['cofins_valor'] = makeField(cofins, 'regex:ENERGISA_TRIBUTO_GARBLED', true); }
+      }
+    }
+
+    // ICMS: look for pattern "ICMS base aliq valor" or "18,00 base valor"
+    if (icms == null) {
+      const icmsValMatch = flatText.match(/ICMS\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/i);
+      if (icmsValMatch) {
+        const v1 = parseNum(icmsValMatch[1]);
+        const v2 = parseNum(icmsValMatch[2]);
+        const v3 = parseNum(icmsValMatch[3]);
+        // Detect which is the aliquota (should be 12-35%)
+        if (v2 > 5 && v2 <= 35) {
+          icms = v2;
+          fieldResults['icms_percentual'] = makeField(icms, 'regex:ENERGISA_ICMS_GARBLED', true, `base=R$${v1}, aliq=${v2}%, valor=R$${v3}`);
+          raw['icms_valor'] = String(v3);
+        } else if (v1 > 5 && v1 <= 35) {
+          icms = v1;
+          fieldResults['icms_percentual'] = makeField(icms, 'regex:ENERGISA_ICMS_GARBLED', true);
+        }
+      }
+    }
   }
 
   const icmsPatterns = [
