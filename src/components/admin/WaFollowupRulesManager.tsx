@@ -97,7 +97,6 @@ const DEFAULT_FORM: RuleFormData = {
 
 export function WaFollowupRulesManager() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { hasFeature } = useTenantPlan();
   const { guardLimit, LimitDialog } = usePlanGuard();
   const hasAiFollowup = hasFeature("ai_followup");
@@ -107,133 +106,12 @@ export function WaFollowupRulesManager() {
   const [formData, setFormData] = useState<RuleFormData>(DEFAULT_FORM);
   const [timeUnit, setTimeUnit] = useState<TimeUnit>("horas");
 
-  const processNowMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("process-wa-followups");
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["wa-followup-queue-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["wa-followup-pending-widget"] });
-      toast({
-        title: "Processamento concluído!",
-        description: `${data?.created || 0} follow-ups criados, ${data?.sent || 0} enviados.`,
-      });
-    },
-    onError: (err: any) => {
-      toast({ title: "Erro ao processar", description: err.message, variant: "destructive" });
-    },
-  });
-
-  const { data: rules = [], isLoading } = useQuery({
-    queryKey: ["wa-followup-rules"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_followup_rules")
-        .select("id, tenant_id, nome, descricao, cenario, prazo_minutos, prioridade, mensagem_template, envio_automatico, max_tentativas, status_conversa, ativo, ordem, created_at, updated_at")
-        .order("ordem", { ascending: true })
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data as FollowupRule[];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const { data: queueStats } = useQuery({
-    queryKey: ["wa-followup-queue-stats"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_followup_queue")
-        .select("status, rule_id");
-      if (error) throw error;
-      const pendentes = (data || []).filter((q) => q.status === "pendente").length;
-      const enviados = (data || []).filter((q) => q.status === "enviado").length;
-      const respondidos = (data || []).filter((q) => q.status === "respondido").length;
-      return { pendentes, enviados, respondidos, total: data?.length || 0 };
-    },
-    staleTime: 1000 * 30,
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: async (data: { rule?: FollowupRule; form: RuleFormData }) => {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
-        .single();
-      const tenantId = profileData?.tenant_id;
-      if (!tenantId) throw new Error("Tenant não encontrado");
-      if (data.rule) {
-        const { error } = await supabase
-          .from("wa_followup_rules")
-          .update({
-            nome: data.form.nome,
-            descricao: data.form.descricao,
-            cenario: data.form.cenario,
-            prazo_minutos: data.form.prazo_minutos,
-            prioridade: data.form.prioridade,
-            mensagem_template: data.form.mensagem_template,
-            envio_automatico: data.form.envio_automatico,
-            max_tentativas: data.form.max_tentativas,
-            status_conversa: data.form.status_conversa,
-            ativo: data.form.ativo,
-            ordem: data.form.ordem,
-          })
-          .eq("id", data.rule.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("wa_followup_rules").insert([{
-          tenant_id: tenantId,
-          nome: data.form.nome,
-          descricao: data.form.descricao,
-          cenario: data.form.cenario,
-          prazo_minutos: data.form.prazo_minutos,
-          prioridade: data.form.prioridade,
-          mensagem_template: data.form.mensagem_template,
-          envio_automatico: data.form.envio_automatico,
-          max_tentativas: data.form.max_tentativas,
-          status_conversa: data.form.status_conversa,
-          ativo: data.form.ativo,
-          ordem: data.form.ordem,
-        }]);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wa-followup-rules"] });
-      toast({ title: editingRule ? "Regra atualizada!" : "Regra criada!" });
-      closeForm();
-    },
-    onError: (err: any) => {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("wa_followup_rules").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wa-followup-rules"] });
-      toast({ title: "Regra excluída!" });
-      setDeleteTarget(null);
-    },
-    onError: (err: any) => {
-      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
-    },
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { error } = await supabase.from("wa_followup_rules").update({ ativo }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wa-followup-rules"] });
-    },
-  });
+  const processNowMutation = useProcessFollowupsNow();
+  const { data: rules = [], isLoading } = useFollowupRules();
+  const { data: queueStats } = useFollowupQueueStats();
+  const saveMutation = useSaveFollowupRule();
+  const deleteMutation = useDeleteFollowupRule();
+  const toggleMutation = useToggleFollowupRule();
 
   const openCreate = () => {
     setEditingRule(null);
