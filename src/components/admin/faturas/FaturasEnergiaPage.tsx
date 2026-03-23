@@ -180,37 +180,8 @@ export default function FaturasEnergiaPage() {
       {/* Import Jobs Panel */}
       <ImportJobsPanel />
 
-      {/* Gmail connection card (compact) */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Mail className="w-4 h-4" /> Conexão Gmail
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingConfig ? (
-            <Skeleton className="h-10 w-60" />
-          ) : isConnected ? (
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <Badge className="bg-success/10 text-success border-success/20">
-                  <CheckCircle className="w-3 h-3 mr-1" /> Conectado
-                </Badge>
-                <span className="text-sm text-muted-foreground">{connectedEmail}</span>
-              </div>
-              <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10" onClick={handleDisconnect} disabled={disconnecting}>
-                {disconnecting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Unplug className="w-4 h-4 mr-1" />}
-                Desconectar
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-muted-foreground flex-1">Conecte sua conta Gmail para receber faturas automaticamente</p>
-              <Button size="sm" onClick={handleConnect}><Mail className="w-4 h-4 mr-1" /> Conectar Gmail</Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Gmail Accounts Section */}
+      <GmailAccountsSection />
 
       {/* Filters + Table */}
       <Card>
