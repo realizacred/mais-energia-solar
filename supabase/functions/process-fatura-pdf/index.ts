@@ -688,11 +688,17 @@ async function processInvoice(
   }
 
   if (Object.keys(ucUpdate).length > 0) {
-    await admin
+    console.log(`[process-fatura-pdf] Updating UC ${resolvedUnitId} with:`, JSON.stringify(ucUpdate));
+    const { error: ucUpdateErr } = await admin
       .from('units_consumidoras')
       .update(ucUpdate)
       .eq('id', resolvedUnitId)
       .eq('tenant_id', tenantId);
+    if (ucUpdateErr) {
+      console.error(`[process-fatura-pdf] UC update error:`, ucUpdateErr.message);
+    }
+  } else {
+    console.log(`[process-fatura-pdf] No UC fields to update`);
   }
 
   // Update billing settings status
