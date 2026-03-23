@@ -4,7 +4,7 @@
  *
  * Consolidates both:
  *   - monitor_* tables (plants, health_cache, events, readings, devices)
- *   - monitoring_integrations / solar_plants / solar_plant_metrics_daily (legacy)
+ *   - monitoring_integrations / solar_plants (legacy)
  */
 import { supabase } from "@/integrations/supabase/client";
 import { parseInvokeError } from "@/lib/supabaseFunctionError";
@@ -296,7 +296,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
 
   const monitorPlantId = (mpRow as any)?.id || null;
 
-  // Use v2 tables for metrics when monitor_plants.id is available
+  // Use v2 tables for metrics (monitor_readings_daily)
   const metricsQueries = monitorPlantId
     ? [
         supabase.from("monitor_readings_daily").select("*").eq("plant_id", monitorPlantId).eq("date", today).maybeSingle(),
@@ -304,9 +304,10 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
         supabase.from("monitor_readings_daily").select("energy_kwh, peak_power_kw").eq("plant_id", monitorPlantId).gte("date", monthStartStr).lte("date", today),
       ]
     : [
-        supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", today).maybeSingle(),
-        supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", yesterday).maybeSingle(),
-        supabase.from("solar_plant_metrics_daily" as any).select("energy_kwh, power_kw").eq("plant_id", resolvedId).gte("date", monthStartStr).lte("date", today),
+        // No monitor_plants mapping — return empty results
+        Promise.resolve({ data: null, error: null }),
+        Promise.resolve({ data: null, error: null }),
+        Promise.resolve({ data: [], error: null }),
       ];
 
   const [{ data: metric }, { data: yesterdayMetric }, { data: monthMetrics }, { data: alertRows }] = await Promise.all([
@@ -378,7 +379,7 @@ export async function getDashboardStats(): Promise<MonitorDashboardStats> {
   const plants = await listPlantsWithHealth();
 
   // SSOT: monthly energy = sum of each plant's health.energy_month_kwh
-  // (already computed via solar_plant_metrics_daily in listPlantsWithHealth)
+  // (already computed via monitor_plants_with_metrics view in listPlantsWithHealth)
   // No separate listAllReadings call — single source of truth.
   const totalMonthKwh = plants.reduce((s, p) => s + (p.health?.energy_month_kwh || 0), 0);
 
@@ -586,25 +587,8 @@ export async function listDailyReadings(
     }));
   }
 
-  // Fallback: legacy table
-  const { data } = await supabase
-    .from("solar_plant_metrics_daily" as any)
-    .select("*")
-    .eq("plant_id", legacyId)
-    .gte("date", startDate)
-    .lte("date", endDate)
-    .order("date", { ascending: true });
-
-  return ((data as unknown as SolarPlantMetricsDaily[]) || []).map((m) => ({
-    id: m.id,
-    tenant_id: m.tenant_id,
-    plant_id: m.plant_id,
-    date: m.date,
-    energy_kwh: m.energy_kwh ?? 0,
-    peak_power_kw: m.power_kw,
-    metadata: m.metadata || {},
-    created_at: m.created_at,
-  }));
+  // No monitor_plants mapping found — no metrics available
+  return [];
 }
 
 export async function listAllReadings(
