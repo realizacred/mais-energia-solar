@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useCallback } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
