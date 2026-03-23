@@ -84,9 +84,9 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
       const dhi = dhiText ? parseCsvContent(dhiText, "DHI") : null;
       const dni = dniText ? parseCsvContent(dniText, "DNI") : null;
 
-      log("info", `GHI: ${ghi.rows.length.toLocaleString("pt-BR")} pontos (${ghi.unitDetected})`);
-      if (dhi) log("info", `DHI: ${dhi.rows.length.toLocaleString("pt-BR")} pontos (${dhi.unitDetected})`);
-      if (dni) log("info", `DNI: ${dni.rows.length.toLocaleString("pt-BR")} pontos (${dni.unitDetected})`);
+      log("info", `GHI: ${formatIntegerBR(ghi.rows.length)} pontos (${ghi.unitDetected})`);
+      if (dhi) log("info", `DHI: ${formatIntegerBR(dhi.rows.length)} pontos (${dhi.unitDetected})`);
+      if (dni) log("info", `DNI: ${formatIntegerBR(dni.rows.length)} pontos (${dni.unitDetected})`);
 
       // Report skipped rows
       const totalSkipped = ghi.skippedRows + (dhi?.skippedRows ?? 0) + (dni?.skippedRows ?? 0);
