@@ -253,7 +253,7 @@ export function GmailAccountsSection() {
             </div>
           )}
           <div className="flex justify-end">
-            <Button size="sm" onClick={handleSaveOAuth} disabled={oauthSaving}>
+            <Button size="sm" onClick={handleSaveOAuth} disabled={oauthSaving || !oauthDirty}>
               {oauthSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
               Salvar configurações
             </Button>
