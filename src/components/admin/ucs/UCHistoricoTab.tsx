@@ -182,7 +182,7 @@ function SolarGenerationTable({ plantId }: { plantId?: string | null }) {
           {metrics.map((m: any, i: number) => (
             <TableRow key={m.reading_date || i} className="hover:bg-muted/30">
               <TableCell className="text-sm font-mono">
-                {m.date ? format(new Date(m.date + "T12:00:00"), "dd/MM/yyyy") : "—"}
+                {m.reading_date ? format(new Date(m.reading_date + "T12:00:00"), "dd/MM/yyyy") : m.date ? format(new Date(m.date + "T12:00:00"), "dd/MM/yyyy") : "—"}
               </TableCell>
               <TableCell className="text-sm text-right font-mono">
                 {m.energy_kwh != null ? Number(m.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "—"}
