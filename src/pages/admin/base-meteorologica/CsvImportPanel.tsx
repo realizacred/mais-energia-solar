@@ -121,7 +121,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
         log("info", `Amostra: lat=${sample.lat}, lon=${sample.lon}, jan=${sample.jan.toFixed(2)}, dez=${sample.dec.toFixed(2)}`);
       }
 
-      log("success", `✅ ${merged.length.toLocaleString("pt-BR")} pontos prontos para importar.`);
+      log("success", `✅ ${formatIntegerBR(merged.length)} pontos prontos para importar.`);
       setValidation(result);
       setMergedPoints(merged);
       setState("validated");
