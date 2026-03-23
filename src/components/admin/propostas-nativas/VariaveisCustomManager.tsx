@@ -97,7 +97,9 @@ export function VariaveisCustomManager() {
 
   const startEdit = (v: VariavelCustom) => {
     setEditingId(v.id);
-    setForm({ ...v });
+    const formData = { ...v };
+    setForm(formData);
+    setEditBaseline(JSON.stringify(formData));
     setTestResult(null);
   };
 
