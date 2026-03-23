@@ -198,7 +198,7 @@ export function EstimateReportDialog({
                 {loading ? (
                   <Skeleton className="inline-block h-4 w-20" />
                 ) : geracao !== null ? (
-                  <span className="font-semibold text-foreground">{geracao.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} kWh</span>
+                  <span className="font-semibold text-foreground">{formatDecimalBR(geracao, 1)} kWh</span>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}
