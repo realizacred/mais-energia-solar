@@ -494,7 +494,7 @@ export function UCOverviewTab({
                   <span className="text-muted-foreground">Geração hoje</span>
                   <span>
                     {todayGeneration
-                      ? `${Number(todayGeneration.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} kWh`
+                      ? `${formatDecimalBR(Number(todayGeneration.energy_kwh), 1)} kWh`
                       : "—"}
                   </span>
                 </div>

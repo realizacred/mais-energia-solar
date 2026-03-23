@@ -125,7 +125,7 @@ export function UCEnergySummary({ ucId }: Props) {
                 </div>
                 <div className="rounded-lg border border-info/20 bg-info/5 p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><ArrowDownUp className="w-3 h-3" /> Compensado</p>
-                  <p className="text-sm font-bold font-mono text-success">{Number(asGeradora.snapshot.total_compensated_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
+                  <p className="text-sm font-bold font-mono text-success">{formatDecimalBR(Number(asGeradora.snapshot.total_compensated_kwh || 0), 1)} kWh</p>
                 </div>
               </div>
             ) : (

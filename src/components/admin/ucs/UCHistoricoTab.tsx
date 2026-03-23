@@ -169,7 +169,7 @@ function SolarGenerationTable({ plantId }: { plantId?: string | null }) {
                 {m.power_kw != null ? formatDecimalBR(Number(m.power_kw), 2) : "—"}
               </TableCell>
               <TableCell className="text-sm text-right font-mono">
-                {m.total_energy_kwh != null ? Number(m.total_energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1 }) : "—"}
+                {m.total_energy_kwh != null ? formatDecimalBR(Number(m.total_energy_kwh), 1) : "—"}
               </TableCell>
             </TableRow>
           ))}

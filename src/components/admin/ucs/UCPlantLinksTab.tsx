@@ -236,7 +236,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
                     <div>
                       <p className="text-xs text-muted-foreground">Geração hoje</p>
                       <p className="font-medium text-warning">
-                        {todayGen ? `${Number(todayGen.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} kWh` : "0,0 kWh"}
+                        {todayGen ? `${formatDecimalBR(Number(todayGen.energy_kwh), 1)} kWh` : "0,0 kWh"}
                       </p>
                     </div>
                     <div>
