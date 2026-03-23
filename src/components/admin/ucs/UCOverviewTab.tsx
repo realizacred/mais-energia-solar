@@ -244,7 +244,7 @@ export function UCOverviewTab({
     : null;
 
   const fmtKwh = (v: number | null) =>
-    v != null ? `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—";
+    v != null ? `${formatDecimalBR(v, 1)} kWh` : "—";
 
   return (
     <div className="space-y-6">
