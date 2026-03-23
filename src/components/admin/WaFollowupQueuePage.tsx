@@ -24,40 +24,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // ─── Types ──────────────────────────────────────────────────
-type FollowupQueueItem = {
-  id: string;
-  status: string;
-  tentativa: number;
-  scheduled_at: string;
-  sent_at: string | null;
-  responded_at: string | null;
-  assigned_to: string | null;
-  mensagem_enviada: string | null;
-  conversation_id: string;
-  created_at: string;
-  rule: {
-    nome: string;
-    cenario: string;
-    prioridade: string;
-    prazo_minutos: number;
-  } | null;
-};
-
-type ConversationInfo = {
-  id: string;
-  cliente_nome: string | null;
-  cliente_telefone: string | null;
-  status: string;
-  last_message_at: string | null;
-};
-
-type MessagePreview = {
-  id: string;
-  content: string | null;
-  direction: string;
-  created_at: string;
-  message_type: string | null;
-};
+// Types imported from useWaFollowup hook
 
 // ─── Constants ──────────────────────────────────────────────
 const STATUS_CONFIG = {
