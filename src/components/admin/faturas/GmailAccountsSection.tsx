@@ -28,6 +28,25 @@ import { useToast } from "@/hooks/use-toast";
 
 const REDIRECT_URI = "https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/gmail-oauth";
 
+function getVerificationErrorMessage(result: any): string {
+  const rawDetail = result?.results?.find((item: any) => item?.details || item?.error)?.details
+    || result?.results?.find((item: any) => item?.error)?.error
+    || result?.error
+    || "Falha ao verificar a conta Gmail.";
+
+  const lowerDetail = String(rawDetail).toLowerCase();
+
+  if (
+    lowerDetail.includes("gmail api has not been used") ||
+    lowerDetail.includes("accessnotconfigured") ||
+    lowerDetail.includes("service_disabled")
+  ) {
+    return "A Gmail API está desativada no projeto Google Cloud configurado para esta conta. Ative a Gmail API no Google Cloud Console e tente novamente.";
+  }
+
+  return String(rawDetail);
+}
+
 export function GmailAccountsSection() {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -149,7 +168,7 @@ export function GmailAccountsSection() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
-      await fetch(`${supabaseUrl}/functions/v1/check-billing-emails`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/check-billing-emails`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -157,7 +176,34 @@ export function GmailAccountsSection() {
         },
         body: JSON.stringify({ email_account_id: accountId }),
       });
-      toast({ title: "Verificação iniciada" });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result?.error || `HTTP ${response.status}`);
+      }
+
+      if (result?.errors > 0) {
+        toast({
+          title: "Verificação falhou",
+          description: getVerificationErrorMessage(result),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (result?.processed > 0) {
+        toast({
+          title: "Verificação concluída",
+          description: `${result.processed} fatura(s) processada(s) com sucesso.`,
+        });
+      } else {
+        toast({
+          title: "Verificação concluída",
+          description: "Nenhuma nova fatura elegível foi encontrada nesta conta.",
+        });
+      }
+
       qc.invalidateQueries({ queryKey: ["gmail_accounts"] });
     } catch (err: any) {
       toast({ title: "Erro", description: err?.message, variant: "destructive" });
