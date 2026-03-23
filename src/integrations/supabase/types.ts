@@ -19447,57 +19447,6 @@ export type Database = {
           },
         ]
       }
-      solar_plant_metrics_daily: {
-        Row: {
-          created_at: string
-          date: string
-          energy_kwh: number | null
-          id: string
-          metadata: Json | null
-          plant_id: string
-          power_kw: number | null
-          tenant_id: string
-          total_energy_kwh: number | null
-        }
-        Insert: {
-          created_at?: string
-          date: string
-          energy_kwh?: number | null
-          id?: string
-          metadata?: Json | null
-          plant_id: string
-          power_kw?: number | null
-          tenant_id: string
-          total_energy_kwh?: number | null
-        }
-        Update: {
-          created_at?: string
-          date?: string
-          energy_kwh?: number | null
-          id?: string
-          metadata?: Json | null
-          plant_id?: string
-          power_kw?: number | null
-          tenant_id?: string
-          total_energy_kwh?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "solar_plant_metrics_daily_plant_id_fkey"
-            columns: ["plant_id"]
-            isOneToOne: false
-            referencedRelation: "solar_plants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "solar_plant_metrics_daily_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       solar_plants: {
         Row: {
           address: string | null
