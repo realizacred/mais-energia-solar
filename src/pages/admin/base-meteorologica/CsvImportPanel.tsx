@@ -248,7 +248,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
         if (i % 5 === 0 || i === chunks.length - 1) {
           const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
           const pct = Math.round((sent / mergedPoints.length) * 100);
-          log("info", `${pct}% — ${sent.toLocaleString("pt-BR")}/${mergedPoints.length.toLocaleString("pt-BR")} pontos (${elapsed}s)`);
+          log("info", `${pct}% — ${formatIntegerBR(sent)}/${formatIntegerBR(mergedPoints.length)} pontos (${elapsed}s)`);
         }
 
         await new Promise(r => setTimeout(r, YIELD_MS));
