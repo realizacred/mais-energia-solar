@@ -252,6 +252,16 @@ function ProjetoDetalheContent() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
+                  {!isPrincipal && (
+                    <DropdownMenuItem
+                      onClick={handleTogglePrincipal}
+                      disabled={principalLoading}
+                    >
+                      <Star className="h-4 w-4 mr-2" />
+                      {principalLoading ? "Definindo..." : "Definir como Principal"}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => { setDeleteBlocking([]); handleDeleteProject(); }}
