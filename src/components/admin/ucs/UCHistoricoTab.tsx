@@ -180,7 +180,7 @@ function SolarGenerationTable({ plantId }: { plantId?: string | null }) {
         </TableHeader>
         <TableBody>
           {metrics.map((m: any) => (
-            <TableRow key={m.id} className="hover:bg-muted/30">
+            <TableRow key={m.reading_date || i} className="hover:bg-muted/30">
               <TableCell className="text-sm font-mono">
                 {m.date ? format(new Date(m.date + "T12:00:00"), "dd/MM/yyyy") : "—"}
               </TableCell>
