@@ -62,7 +62,17 @@ export function VariaveisCustomManager() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<VariavelCustom>>({});
+  const [editBaseline, setEditBaseline] = useState<string>("");
   const [testResult, setTestResult] = useState<string | null>(null);
+
+  const isEditDirty = useMemo(() => {
+    if (!editingId) return false;
+    if (editingId === "new") {
+      // For new items, dirty if any required field is filled
+      return !!(form.nome && form.nome !== "vc_" && form.label && form.expressao);
+    }
+    return JSON.stringify(form) !== editBaseline;
+  }, [form, editBaseline, editingId]);
 
   const loadVariaveis = async () => {
     setLoading(true);
