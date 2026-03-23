@@ -17,7 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send } from "lucide-react";
+import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send, Phone } from "lucide-react";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
