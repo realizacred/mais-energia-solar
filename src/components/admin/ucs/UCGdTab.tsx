@@ -314,7 +314,7 @@ function GeneratorSection({
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteBeneficiary(b.id); }}
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(b.id); }}
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>

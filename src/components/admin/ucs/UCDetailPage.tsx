@@ -259,7 +259,7 @@ export default function UCDetailPage() {
 
       {/* Tabs */}
       <div className="p-4 md:p-6 space-y-4">
-        <Tabs defaultValue="overview" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })} className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="overview" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Visão Geral</TabsTrigger>
             <TabsTrigger value="monitoramento" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Medidor</TabsTrigger>

@@ -10,8 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Gauge, Sun, FileText, BarChart2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { UCInvoicesTab } from "./UCInvoicesTab";
 
 interface Props {
   ucId: string;
