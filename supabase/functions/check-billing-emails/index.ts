@@ -30,8 +30,6 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID')!;
-  const googleClientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
 
   // Validate cron secret or service_role
   const authHeader = req.headers.get('Authorization');
