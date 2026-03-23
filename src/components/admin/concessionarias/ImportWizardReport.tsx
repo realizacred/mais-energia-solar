@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import {
   FileText, AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronRight,
   BarChart3, ShieldCheck, Columns, Users, Download,
