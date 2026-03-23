@@ -315,6 +315,15 @@ Deno.serve(async (req) => {
             totalErrors++;
           }
         }
+
+          // Update ultimo_verificado_at for this gmail account
+          if (!gmailAccount._legacy) {
+            await admin
+              .from('gmail_accounts')
+              .update({ ultimo_verificado_at: new Date().toISOString() })
+              .eq('id', gmailAccount.id);
+          }
+        } // end for gmailAccount
       } catch (tenantErr) {
         console.error(`[check-billing-emails] Tenant ${tenantId} error:`, tenantErr);
         totalErrors++;
