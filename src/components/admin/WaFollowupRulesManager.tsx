@@ -150,7 +150,18 @@ export function WaFollowupRulesManager() {
       toast({ title: "Nome obrigatório", variant: "destructive" });
       return;
     }
-    saveMutation.mutate({ rule: editingRule || undefined, form: formData });
+    saveMutation.mutate(
+      { rule: editingRule || undefined, form: formData },
+      {
+        onSuccess: () => {
+          toast({ title: editingRule ? "Regra atualizada!" : "Regra criada!" });
+          closeForm();
+        },
+        onError: (err: any) => {
+          toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+        },
+      }
+    );
   };
 
   const formatPrazo = (minutos: number) => {
