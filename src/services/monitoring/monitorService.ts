@@ -532,19 +532,65 @@ export async function listAlerts(filters?: {
   return (data as unknown as MonitorEvent[]) || [];
 }
 
-// ─── READINGS (reads from legacy solar_plant_metrics_daily) ───
+// ─── READINGS (v2: monitor_readings_daily with legacy plant_id compat) ───
+
+/**
+ * Resolve a plantId (which may be legacy solar_plants.id OR monitor_plants.id)
+ * to monitor_plants.id for querying monitor_readings_daily.
+ */
+async function resolveToMonitorPlantId(plantId: string): Promise<{ monitorId: string | null; legacyId: string }> {
+  // Check if it's already a monitor_plants.id
+  const { data: directMp } = await supabase
+    .from("monitor_plants" as any)
+    .select("id, legacy_plant_id")
+    .eq("id", plantId)
+    .maybeSingle();
+  if (directMp) {
+    return { monitorId: (directMp as any).id, legacyId: (directMp as any).legacy_plant_id || plantId };
+  }
+
+  // It's a legacy solar_plants.id — find the monitor_plants row
+  const { data: mpRow } = await supabase
+    .from("monitor_plants" as any)
+    .select("id")
+    .eq("legacy_plant_id", plantId)
+    .maybeSingle();
+
+  return { monitorId: (mpRow as any)?.id || null, legacyId: plantId };
+}
 
 export async function listDailyReadings(
   plantId: string,
   startDate: string,
   endDate: string
 ): Promise<MonitorReadingDaily[]> {
-  // LEGACY JOIN: resolve monitor_plants.id → solar_plants.id if needed
-  const resolvedId = await resolveToLegacyPlantId(plantId);
+  const { monitorId, legacyId } = await resolveToMonitorPlantId(plantId);
+
+  if (monitorId) {
+    // Use RPC for single-plant queries
+    const { data } = await supabase.rpc("get_plant_metrics", {
+      p_plant_id: monitorId,
+      p_date_from: startDate,
+      p_date_to: endDate,
+    });
+
+    return ((data as unknown as Array<{ date: string; energy_kwh: number; peak_power_kw: number }>) || []).map((r) => ({
+      id: `${monitorId}_${r.date}`,
+      tenant_id: "",
+      plant_id: legacyId, // Return legacy ID for consumer compatibility
+      date: r.date,
+      energy_kwh: r.energy_kwh ?? 0,
+      peak_power_kw: r.peak_power_kw,
+      metadata: {},
+      created_at: "",
+    }));
+  }
+
+  // Fallback: legacy table
   const { data } = await supabase
     .from("solar_plant_metrics_daily" as any)
     .select("*")
-    .eq("plant_id", resolvedId)
+    .eq("plant_id", legacyId)
     .gte("date", startDate)
     .lte("date", endDate)
     .order("date", { ascending: true });
@@ -565,36 +611,53 @@ export async function listAllReadings(
   startDate: string,
   endDate: string
 ): Promise<MonitorReadingDaily[]> {
-  const allData: SolarPlantMetricsDaily[] = [];
+  // Build legacy_plant_id lookup map
+  const { data: mpRows } = await supabase
+    .from("monitor_plants" as any)
+    .select("id, legacy_plant_id");
+  const idMap = new Map<string, string>();
+  ((mpRows as unknown as Array<{ id: string; legacy_plant_id: string | null }>) || []).forEach((r) => {
+    if (r.legacy_plant_id) idMap.set(r.id, r.legacy_plant_id);
+  });
+
+  const allData: MonitorReadingDaily[] = [];
   const BATCH_SIZE = 1000;
   let offset = 0;
   let hasMore = true;
 
   while (hasMore) {
     const { data } = await supabase
-      .from("solar_plant_metrics_daily" as any)
+      .from("monitor_readings_daily")
       .select("*")
       .gte("date", startDate)
       .lte("date", endDate)
       .order("date", { ascending: true })
       .range(offset, offset + BATCH_SIZE - 1);
 
-    const rows = (data as unknown as SolarPlantMetricsDaily[]) || [];
-    allData.push(...rows);
+    const rows = (data || []) as unknown as Array<{
+      id: string; tenant_id: string; plant_id: string; date: string;
+      energy_kwh: number | null; peak_power_kw: number | null;
+      metadata: Record<string, unknown> | null; created_at: string;
+    }>;
+
+    rows.forEach((r) => {
+      allData.push({
+        id: r.id,
+        tenant_id: r.tenant_id,
+        plant_id: idMap.get(r.plant_id) || r.plant_id, // Map to legacy ID for consumers
+        date: r.date,
+        energy_kwh: r.energy_kwh ?? 0,
+        peak_power_kw: r.peak_power_kw,
+        metadata: r.metadata || {},
+        created_at: r.created_at,
+      });
+    });
+
     offset += BATCH_SIZE;
     hasMore = rows.length === BATCH_SIZE;
   }
 
-  return allData.map((m) => ({
-    id: m.id,
-    tenant_id: m.tenant_id,
-    plant_id: m.plant_id,
-    date: m.date,
-    energy_kwh: m.energy_kwh ?? 0,
-    peak_power_kw: m.power_kw,
-    metadata: m.metadata || {},
-    created_at: m.created_at,
-  }));
+  return allData;
 }
 
 // ═══════════════════════════════════════════════════════════════
