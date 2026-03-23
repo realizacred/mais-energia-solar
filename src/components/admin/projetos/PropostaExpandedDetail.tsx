@@ -36,6 +36,7 @@ interface VersaoData {
   geracao_mensal: number | null;
   output_pdf_path: string | null;
   output_docx_path: string | null;
+  public_slug: string | null;
 }
 
 interface PropostaData {
@@ -736,6 +737,15 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       setLoadingDetail(false);
     });
   }, [isExpanded, latestVersao?.id]);
+
+  // Auto-populate publicUrl from public_slug
+  useEffect(() => {
+    if (!isExpanded || publicUrl) return;
+    const slug = latestVersao?.public_slug;
+    if (slug) {
+      setPublicUrl(`${window.location.origin}/p/${slug}`);
+    }
+  }, [isExpanded, latestVersao?.public_slug]);
 
   // Auto-render when switching to "arquivo" tab for generated proposals
   useEffect(() => {
