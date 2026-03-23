@@ -473,6 +473,10 @@ export default function ExtractionCenterPage() {
           <ExtractionEmailsTab />
         </TabsContent>
 
+        <TabsContent value="accounts" className="mt-4">
+          <EmailAccountsManager />
+        </TabsContent>
+
         <TabsContent value="assistant" className="mt-4">
           <ExtractionAssistantTab />
         </TabsContent>
