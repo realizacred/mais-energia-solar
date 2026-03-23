@@ -3527,17 +3527,24 @@ export type Database = {
           can_send: boolean
           created_at: string
           email_address: string
+          filtro_remetente: string | null
+          gmail_credentials: Json | null
+          gmail_settings: Json | null
           host: string | null
           id: string
+          imap_password_encrypted: string | null
           is_active: boolean
           last_error: string | null
           last_sync_at: string | null
+          nome: string | null
+          pasta_monitorada: string | null
           port: number | null
           provider_type: string
           settings: Json | null
           tenant_id: string
           updated_at: string
           username: string | null
+          verificar_a_cada_minutos: number | null
         }
         Insert: {
           account_role?: string
@@ -3545,17 +3552,24 @@ export type Database = {
           can_send?: boolean
           created_at?: string
           email_address: string
+          filtro_remetente?: string | null
+          gmail_credentials?: Json | null
+          gmail_settings?: Json | null
           host?: string | null
           id?: string
+          imap_password_encrypted?: string | null
           is_active?: boolean
           last_error?: string | null
           last_sync_at?: string | null
+          nome?: string | null
+          pasta_monitorada?: string | null
           port?: number | null
           provider_type?: string
           settings?: Json | null
           tenant_id?: string
           updated_at?: string
           username?: string | null
+          verificar_a_cada_minutos?: number | null
         }
         Update: {
           account_role?: string
@@ -3563,17 +3577,24 @@ export type Database = {
           can_send?: boolean
           created_at?: string
           email_address?: string
+          filtro_remetente?: string | null
+          gmail_credentials?: Json | null
+          gmail_settings?: Json | null
           host?: string | null
           id?: string
+          imap_password_encrypted?: string | null
           is_active?: boolean
           last_error?: string | null
           last_sync_at?: string | null
+          nome?: string | null
+          pasta_monitorada?: string | null
           port?: number | null
           provider_type?: string
           settings?: Json | null
           tenant_id?: string
           updated_at?: string
           username?: string | null
+          verificar_a_cada_minutos?: number | null
         }
         Relationships: [
           {
