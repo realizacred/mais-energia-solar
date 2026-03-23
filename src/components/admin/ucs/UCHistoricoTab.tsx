@@ -117,19 +117,37 @@ function MeterReadingsTable({ meterId }: { meterId?: string | null }) {
 }
 
 function SolarGenerationTable({ plantId }: { plantId?: string | null }) {
-  const { data: metrics = [], isLoading } = useQuery({
-    queryKey: ["uc_historico_plant_metrics", plantId],
+  // Resolve monitor_plants.id from legacy_plant_id
+  const { data: monitorPlant } = useQuery({
+    queryKey: ["monitor_plant_by_legacy", plantId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("solar_plant_metrics_daily")
-        .select("id, date, energy_kwh, power_kw, total_energy_kwh")
-        .eq("plant_id", plantId!)
-        .order("date", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data ?? [];
+      const { data } = await (supabase as any)
+        .from("monitor_plants")
+        .select("id")
+        .eq("legacy_plant_id", plantId!)
+        .maybeSingle();
+      return data as { id: string } | null;
     },
     enabled: !!plantId,
+    staleTime: STALE_5M,
+  });
+
+  const monitorPlantId = monitorPlant?.id;
+
+  const { data: metrics = [], isLoading } = useQuery({
+    queryKey: ["uc_historico_plant_metrics_v2", monitorPlantId],
+    queryFn: async () => {
+      const endDate = new Date().toISOString().slice(0, 10);
+      const startDate = new Date(Date.now() - 50 * 86400000).toISOString().slice(0, 10);
+      const { data, error } = await supabase.rpc("get_plant_metrics" as any, {
+        p_plant_id: monitorPlantId!,
+        p_date_from: startDate,
+        p_date_to: endDate,
+      });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!monitorPlantId,
     staleTime: STALE_5M,
   });
 
