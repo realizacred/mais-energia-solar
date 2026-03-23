@@ -120,7 +120,7 @@ function SolarGenerationTable({ plantId }: { plantId?: string | null }) {
   const { data: metrics = [], isLoading } = useQuery({
     queryKey: ["uc_historico_plant_metrics", plantId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("solar_plant_metrics_daily")
         .select("id, date, energy_kwh, power_kw, total_energy_kwh")
         .eq("plant_id", plantId!)

@@ -114,7 +114,7 @@ interface PagamentoPayload {
 }
 
 interface GenerateRequestV2 {
-  lead_id: string;
+  lead_id?: string;
   projeto_id?: string;
   cliente_id?: string;
   grupo: "A" | "B";
@@ -409,8 +409,8 @@ Deno.serve(async (req) => {
     // ── 2. PARSE PAYLOAD ────────────────────────────────────
     const body: GenerateRequestV2 = await req.json();
 
-    if (!body.lead_id || !body.grupo || !body.ucs?.length || !body.itens?.length) {
-      return jsonError("Campos obrigatórios: lead_id, grupo, ucs, itens", 400);
+    if ((!body.lead_id && !body.cliente_id) || !body.grupo || !body.ucs?.length || !body.itens?.length) {
+      return jsonError("Campos obrigatórios: lead_id ou cliente_id, grupo, ucs, itens", 400);
     }
     if (!body.idempotency_key) return jsonError("idempotency_key é obrigatório", 400);
     if (!["A", "B"].includes(body.grupo)) return jsonError("grupo deve ser A ou B", 400);
@@ -514,9 +514,9 @@ Deno.serve(async (req) => {
 
     // ── ENFORCEMENT: Validate required variables ──
     // Template-only mode: não bloquear por variáveis técnicas/financeiras ausentes.
-    // Mantemos apenas lead_id como salvaguarda defensiva.
+    // Mantemos apenas o vínculo com lead ou cliente como salvaguarda defensiva.
     const missingRequired: string[] = [];
-    if (!body.lead_id) missingRequired.push("lead_id");
+    if (!body.lead_id && !body.cliente_id) missingRequired.push("lead_id|cliente_id");
 
     if (missingRequired.length > 0) {
       console.warn("[proposal-generate][BLOCKED] missing_required_variables", {
@@ -830,7 +830,7 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       })),
       variaveis_custom: vcResults.length > 0 ? vcResults : undefined,
       inputs: {
-        lead_id: body.lead_id, projeto_id: body.projeto_id ?? null,
+        lead_id: body.lead_id ?? null, projeto_id: body.projeto_id ?? null,
         cliente_id: body.cliente_id ?? null, template_id: body.template_id ?? null,
         consultor_id: consultorId, user_id: userId,
       },
@@ -843,7 +843,9 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     // ── 8. CRIAR OU REUTILIZAR propostas_nativas ────────────
     let propostaId: string;
 
-    const matchFilter: any = { tenant_id: tenantId, lead_id: body.lead_id };
+    const matchFilter: any = { tenant_id: tenantId };
+    if (body.lead_id) matchFilter.lead_id = body.lead_id;
+    else matchFilter.cliente_id = body.cliente_id;
     if (body.projeto_id) matchFilter.projeto_id = body.projeto_id;
 
     const { data: existingProposta } = await adminClient
@@ -853,19 +855,34 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     if (existingProposta) {
       propostaId = existingProposta.id;
     } else {
-      const { data: lead } = await adminClient
-        .from("leads").select("nome, lead_code")
-        .eq("id", body.lead_id).eq("tenant_id", tenantId).single();
-      if (!lead) return jsonError("Lead não encontrado neste tenant", 404);
+      let titulo = "Proposta";
+      let codigo: string | null = null;
 
-      const titulo = `Proposta ${lead.lead_code ?? ""} - ${lead.nome}`.trim();
+      if (body.lead_id) {
+        const { data: lead } = await adminClient
+          .from("leads").select("nome, lead_code")
+          .eq("id", body.lead_id).eq("tenant_id", tenantId).single();
+        if (!lead) return jsonError("Lead não encontrado neste tenant", 404);
+
+        titulo = `Proposta ${lead.lead_code ?? ""} - ${lead.nome}`.trim();
+        codigo = lead.lead_code ? `PROP-${lead.lead_code}` : null;
+      } else {
+        const { data: cliente } = await adminClient
+          .from("clientes").select("nome, cliente_code")
+          .eq("id", body.cliente_id).eq("tenant_id", tenantId).single();
+        if (!cliente) return jsonError("Cliente não encontrado neste tenant", 404);
+
+        titulo = `Proposta ${cliente.cliente_code ?? ""} - ${cliente.nome}`.trim();
+        codigo = cliente.cliente_code ? `PROP-${cliente.cliente_code}` : null;
+      }
+
       const { data: novaProposta, error: insertErr } = await adminClient
         .from("propostas_nativas")
         .insert({
-          tenant_id: tenantId, lead_id: body.lead_id,
+          tenant_id: tenantId, lead_id: body.lead_id ?? null,
           projeto_id: body.projeto_id ?? null, cliente_id: body.cliente_id ?? null,
           consultor_id: consultorId, template_id: body.template_id ?? null,
-          titulo, codigo: lead.lead_code ? `PROP-${lead.lead_code}` : null,
+          titulo, codigo,
           versao_atual: 0, created_by: userId,
         })
         .select("id").single();
