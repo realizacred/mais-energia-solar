@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface GenerateProposalPayload {
-  lead_id: string;
+  lead_id?: string;
   projeto_id?: string;
   cliente_id?: string;
   grupo: "A" | "B";

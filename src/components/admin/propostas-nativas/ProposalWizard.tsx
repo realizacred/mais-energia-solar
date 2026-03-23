@@ -1305,7 +1305,7 @@ export function ProposalWizard() {
       const clienteIdForPayload = isSyntheticLead ? (selectedLead as any)._clienteId : undefined;
       const idempotencyKey = getOrCreateIdempotencyKey(realLeadId || clienteIdForPayload || "no-lead");
       const payload: GenerateProposalPayload = {
-        lead_id: realLeadId || clienteIdForPayload || selectedLead.id,
+        lead_id: realLeadId || undefined,
         cliente_id: clienteIdForPayload,
         projeto_id: projetoId,
         grupo: grupoValidation.grupo || (grupo.startsWith("B") ? "B" : "A"),
