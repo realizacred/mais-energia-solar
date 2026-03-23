@@ -3,7 +3,7 @@
  * Shows period selector, tariff/credit inputs, and a live preview of the calculation.
  */
 import { useState, useEffect, useCallback } from "react";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, formatDecimalBR } from "@/lib/formatters";
 import {
   Dialog,
   DialogContent,
