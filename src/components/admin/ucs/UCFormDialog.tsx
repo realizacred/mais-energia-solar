@@ -120,11 +120,15 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
       if (editingUC) {
         await unitService.update(editingUC.id, payload);
         toast({ title: "UC atualizada com sucesso" });
+        onSuccess();
       } else {
-        await unitService.create(payload);
+        const created = await unitService.create(payload);
         toast({ title: "UC criada com sucesso" });
+        onSuccess();
+        if (created?.id) {
+          navigate(`/admin/ucs/${created.id}`);
+        }
       }
-      onSuccess();
     } catch (err: any) {
       toast({ title: "Erro ao salvar", description: err?.message || String(err), variant: "destructive" });
     } finally {

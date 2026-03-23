@@ -419,10 +419,12 @@ export function UCOverviewTab({
               <CardTitle className="text-sm flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-primary" /> Medidor
               </CardTitle>
-              {meterId && (
+              {meterId ? (
                 <Badge variant="outline" className={`text-xs ${meterStatus?.online_status === "online" ? "border-success text-success" : "border-destructive text-destructive"}`}>
                   {meterStatus?.online_status === "online" ? "Online" : "Offline"}
                 </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs">Sem medidor</Badge>
               )}
             </div>
           </CardHeader>
