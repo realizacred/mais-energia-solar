@@ -1048,7 +1048,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               <Button variant="default" size="sm" onClick={handleProceedToPreview} disabled={!canProceed} className="gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {canProceed
-                  ? `Prosseguir (${validation?.validRows.toLocaleString("pt-BR") ?? 0} registros)`
+                  ? `Prosseguir (${formatIntegerBR(validation?.validRows) ?? 0} registros)`
                   : "Estrutura inválida — Corrija o arquivo"}
               </Button>
             </>
