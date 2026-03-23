@@ -1,15 +1,20 @@
 import { useState, useMemo } from "react";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Clock, AlertTriangle, CheckCircle2, MessageCircle, Filter,
   User, Bell, ExternalLink, ShieldAlert,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import {
+  useFollowupQueue,
+  useFollowupVendedores,
+  useFollowupConversations,
+  useFollowupDrawerMessages,
+  type FollowupQueueItem,
+} from "@/hooks/useWaFollowup";
 import { PageHeader, StatCard } from "@/components/ui-kit";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
