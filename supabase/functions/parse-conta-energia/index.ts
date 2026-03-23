@@ -216,6 +216,45 @@ function extractMeterRow(flatText: string, labelPattern: string) {
   return { previous, current, factor: Number.isFinite(factor) ? factor : null, total };
 }
 
+/**
+ * Splits a concatenated meter reading number (common in Energisa PDFs via unpdf).
+ * unpdf sometimes joins columns: e.g. "25219041652" = total(252) + current(1904) + previous(1652)
+ * where total = current - previous.
+ * Returns null if no valid split found.
+ */
+function splitConcatenatedMeterReading(concatenated: string): { total: number; current: number; previous: number } | null {
+  const len = concatenated.length;
+  if (len < 5 || len > 20) return null;
+
+  // Try all possible 3-way splits: concatenated = total | current | previous
+  for (let i = 1; i <= Math.min(6, len - 4); i++) {
+    for (let j = i + 1; j <= len - 1; j++) {
+      const totalStr = concatenated.substring(0, i);
+      const currentStr = concatenated.substring(i, j);
+      const previousStr = concatenated.substring(j);
+
+      // Reject parts with leading zeros (except single "0")
+      if ((totalStr.length > 1 && totalStr[0] === '0') ||
+          (currentStr.length > 1 && currentStr[0] === '0') ||
+          (previousStr.length > 1 && previousStr[0] === '0')) continue;
+
+      const total = parseInt(totalStr);
+      const current = parseInt(currentStr);
+      const previous = parseInt(previousStr);
+
+      if (isNaN(total) || isNaN(current) || isNaN(previous)) continue;
+      if (total <= 0 || current < 0 || previous < 0) continue;
+      if (current <= previous) continue; // current must be > previous for meter readings
+
+      // Check if total = current - previous
+      if (total === current - previous) {
+        return { total, current, previous };
+      }
+    }
+  }
+  return null;
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // ENERGISA PARSER — Deterministic, regex-only, auditable
 // ══════════════════════════════════════════════════════════════════════════════
