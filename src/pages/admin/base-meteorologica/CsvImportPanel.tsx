@@ -189,7 +189,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
 
       const versionId = initData.version_id;
       const datasetId = initData.dataset_id;
-      log("success", `Versão ${tag} criada. Enviando ${mergedPoints.length.toLocaleString("pt-BR")} pontos...`);
+      log("success", `Versão ${tag} criada. Enviando ${formatIntegerBR(mergedPoints.length)} pontos...`);
 
       // 2b. Upload in chunks
       const chunks = chunkArray(mergedPoints, CHUNK_SIZE);
