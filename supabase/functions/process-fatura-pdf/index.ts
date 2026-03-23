@@ -239,7 +239,7 @@ async function processInvoice(
   let requiredFields = [...BASE_REQUIRED];
 
   // ── 3. Call parse-conta-energia (deterministic parser — NO AI) ──
-  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
+  let parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000, tenantId);
   let parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
@@ -963,7 +963,7 @@ async function reprocessInvoice(
   }
 
   // 3. Re-parse
-  const parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000);
+  const parseAttempt = await callParseContaEnergia(supabaseUrl, serviceRoleKey, pdfText, 30000, tenantId);
   const parseResult = parseAttempt.body;
 
   if (!parseAttempt.ok || !parseResult?.success) {
@@ -1130,6 +1130,7 @@ async function callParseContaEnergia(
   serviceRoleKey: string,
   text: string,
   timeoutMs: number,
+  tenantId?: string,
 ) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -1141,7 +1142,7 @@ async function callParseContaEnergia(
         'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text: text || "" }),
+      body: JSON.stringify({ text: text || "", tenant_id: tenantId || null }),
       signal: controller.signal,
     });
 
