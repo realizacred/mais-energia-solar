@@ -310,6 +310,7 @@ export default function UCDetailPage() {
               meterId={activeMeterIdResolved}
               plantId={activePlantId}
               solarPlantId={solarPlantId}
+              onSwitchParentTab={(tab) => setSearchParams({ tab })}
             />
           </TabsContent>
 

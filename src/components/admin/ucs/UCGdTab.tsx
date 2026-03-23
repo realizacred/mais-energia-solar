@@ -340,6 +340,26 @@ function GeneratorSection({
         groupId={group.id}
         availableUcs={availableUcs}
       />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover beneficiária?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá desvincular a UC do grupo GD. Os créditos já compensados não serão afetados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteBeneficiary}
+              className="border-destructive text-destructive bg-transparent hover:bg-destructive/10"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
