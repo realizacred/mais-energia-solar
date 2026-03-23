@@ -615,7 +615,7 @@ export function CsvImportPanel() {
           {pointsLoaded !== null && (
             <Badge className="bg-success/10 text-success border-success/30 gap-1">
               <CheckCircle2 className="h-3 w-3" />
-              {pointsLoaded.toLocaleString("pt-BR")} pontos confirmados no banco
+              {formatIntegerBR(pointsLoaded)} pontos confirmados no banco
             </Badge>
           )}
         </CardContent>
