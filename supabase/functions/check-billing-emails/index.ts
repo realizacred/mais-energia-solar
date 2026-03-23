@@ -87,33 +87,66 @@ Deno.serve(async (req) => {
 
     for (const [tenantId, tenantSettings] of tenantGroups) {
       try {
-        // Fetch Gmail token for this tenant from integrations_api_configs
-        const { data: gmailConfig } = await admin
-          .from('integrations_api_configs')
-          .select('id, credentials, settings, config')
+        // Fetch Gmail accounts for this tenant from gmail_accounts
+        let gmailQuery = admin
+          .from('gmail_accounts')
+          .select('id, credentials, settings, email, tenant_id')
           .eq('tenant_id', tenantId)
-          .eq('provider', 'gmail')
-          .eq('is_active', true)
-          .maybeSingle();
+          .eq('is_active', true);
 
-        if (!gmailConfig) {
-          console.log(`[check-billing-emails] No Gmail config for tenant ${tenantId}`);
+        if (bodyAccountId) {
+          gmailQuery = gmailQuery.eq('id', bodyAccountId);
+        }
+
+        const { data: gmailAccounts } = await gmailQuery;
+
+        // Fallback to integrations_api_configs if no gmail_accounts found
+        let accountsToProcess: any[] = gmailAccounts || [];
+        if (accountsToProcess.length === 0 && !bodyAccountId) {
+          const { data: legacyConfig } = await admin
+            .from('integrations_api_configs')
+            .select('id, credentials, settings, config')
+            .eq('tenant_id', tenantId)
+            .eq('provider', 'gmail')
+            .eq('is_active', true)
+            .limit(1);
+          if (legacyConfig?.length) {
+            accountsToProcess = legacyConfig.map((c: any) => ({
+              id: c.id,
+              credentials: c.credentials ?? c.config ?? {},
+              settings: c.settings ?? c.config ?? {},
+              _legacy: true,
+            }));
+          }
+        }
+
+        if (accountsToProcess.length === 0) {
+          console.log(`[check-billing-emails] No Gmail accounts for tenant ${tenantId}`);
           continue;
         }
 
-        // Fallback chain: credentials/settings (gmail-oauth) → config (legacy) → top-level
-        const creds = (gmailConfig.credentials ?? gmailConfig.config ?? {}) as any;
-        const setts = (gmailConfig.settings ?? gmailConfig.config ?? {}) as any;
+        // Resolve Google OAuth credentials for token refresh
+        let googleClientId = Deno.env.get('GOOGLE_CLIENT_ID') || '';
+        let googleClientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') || '';
+        // Try site_settings first
+        const { data: siteConf } = await admin
+          .from('site_settings')
+          .select('google_client_id, google_client_secret')
+          .eq('tenant_id', tenantId)
+          .maybeSingle();
+        if (siteConf?.google_client_id && siteConf?.google_client_secret) {
+          googleClientId = siteConf.google_client_id;
+          googleClientSecret = siteConf.google_client_secret;
+        }
+
+        for (const gmailAccount of accountsToProcess) {
+        const creds = (gmailAccount.credentials ?? {}) as any;
+        const setts = (gmailAccount.settings ?? {}) as any;
 
         let accessToken = creds.access_token;
         const refreshToken = creds.refresh_token;
         const rawExpiry = setts.token_expiry ?? creds.token_expiry;
         const tokenExpiry = rawExpiry ? new Date(rawExpiry).getTime() : 0;
-
-        if (!accessToken) {
-          console.log(`[check-billing-emails] No access_token for tenant ${tenantId}`);
-          continue;
-        }
 
         // Refresh token if expired
         if (Date.now() > tokenExpiry - 60000 && refreshToken) {
