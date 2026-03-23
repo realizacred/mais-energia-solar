@@ -48,7 +48,7 @@ export default function FaturasEnergiaPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [searchParams] = useSearchParams();
-  const [disconnecting, setDisconnecting] = useState(false);
+  // disconnecting state removed — now in GmailAccountsSection
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const importMutation = useStartInvoiceImport();
