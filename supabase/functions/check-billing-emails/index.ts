@@ -1,9 +1,3 @@
-// ──────────────────────────────────────────────────────────────────────────────
-// check-billing-emails — Cron: check Gmail for new energy bill PDFs
-// Schedule: every hour via pg_cron
-// V2: Works independently of unit_billing_email_settings — processes all active
-//     Gmail accounts and attempts to match invoices to UCs after extraction.
-// ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
@@ -25,6 +19,152 @@ const KNOWN_SENDERS = [
 function isKnownSender(from: string): boolean {
   const lower = from.toLowerCase();
   return KNOWN_SENDERS.some(domain => lower.includes(domain));
+}
+
+function decodeBase64Url(data?: string | null): string {
+  if (!data) return '';
+
+  try {
+    const normalized = data.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return '';
+  }
+}
+
+function stripHtml(value: string): string {
+  return value
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function flattenAllParts(part: any): any[] {
+  const result: any[] = [];
+
+  if (!part) return result;
+  result.push(part);
+
+  if (part.parts) {
+    for (const child of part.parts) {
+      result.push(...flattenAllParts(child));
+    }
+  }
+
+  return result;
+}
+
+function extractMessageText(payload: any): string {
+  const parts = flattenAllParts(payload);
+  const chunks: string[] = [];
+
+  for (const part of parts) {
+    const mimeType = String(part?.mimeType || '').toLowerCase();
+    const decoded = decodeBase64Url(part?.body?.data);
+    if (!decoded) continue;
+
+    if (mimeType.includes('text/html')) {
+      chunks.push(stripHtml(decoded));
+      continue;
+    }
+
+    if (mimeType.includes('text/plain') || mimeType === 'multipart/alternative' || mimeType === 'multipart/mixed') {
+      chunks.push(decoded.replace(/\s+/g, ' ').trim());
+    }
+  }
+
+  return chunks.filter(Boolean).join(' ').trim();
+}
+
+function normalizeUnitIdentifier(value: string): string {
+  return value.replace(/[^\dA-Za-z/-]/g, '').trim().toLowerCase();
+}
+
+function extractUnitCandidates(text: string): string[] {
+  const candidates = new Set<string>();
+  const normalizedText = text.replace(/\s+/g, ' ').trim();
+
+  const labeledRegex = /(unidade\s*consumidora|c[oó]digo\s*(da\s*)?(instala[cç][aã]o|uc)|n[uú]mero\s*da?\s*uc|\buc\b)[^\d]{0,20}([\d./-]{6,20})/gi;
+  for (const match of normalizedText.matchAll(labeledRegex)) {
+    const candidate = normalizeUnitIdentifier(match[4] || '');
+    if (candidate.length >= 6) candidates.add(candidate);
+  }
+
+  const genericRegex = /\b\d{6,12}(?:[-/]\d{1,4})?\b/g;
+  for (const match of normalizedText.matchAll(genericRegex)) {
+    const candidate = normalizeUnitIdentifier(match[0] || '');
+    if (candidate.length >= 6) candidates.add(candidate);
+  }
+
+  return Array.from(candidates).slice(0, 12);
+}
+
+function buildUnitLookup(units: any[] | null | undefined) {
+  const lookupByTenant = new Map<string, Map<string, string>>();
+
+  for (const unit of (units || [])) {
+    const tenantId = unit.tenant_id;
+    if (!tenantId) continue;
+
+    const tenantLookup = lookupByTenant.get(tenantId) || new Map<string, string>();
+    const keys = [unit.codigo_uc, unit.unit_identifier]
+      .filter(Boolean)
+      .map((value: string) => normalizeUnitIdentifier(value))
+      .filter(Boolean);
+
+    for (const key of keys) {
+      tenantLookup.set(key, unit.id);
+    }
+
+    lookupByTenant.set(tenantId, tenantLookup);
+  }
+
+  return lookupByTenant;
+}
+
+function findMatchedUnitId(params: {
+  toHeader: string;
+  searchText: string;
+  tenantSettings: any[];
+  tenantUnitLookup: Map<string, string>;
+}) {
+  const { toHeader, searchText, tenantSettings, tenantUnitLookup } = params;
+
+  for (const setting of tenantSettings) {
+    const emailUc = String(setting.email_da_uc || setting.billing_capture_email || '').trim().toLowerCase();
+    if (emailUc && toHeader.toLowerCase().includes(emailUc)) {
+      return { unitId: setting.unit_id as string, matchSource: `to_header:${emailUc}` };
+    }
+  }
+
+  for (const candidate of extractUnitCandidates(searchText)) {
+    const match = tenantUnitLookup.get(normalizeUnitIdentifier(candidate));
+    if (match) {
+      return { unitId: match, matchSource: `content:${candidate}` };
+    }
+  }
+
+  return { unitId: null, matchSource: null };
+}
+
+// Recursively flatten MIME parts for attachments
+function flattenParts(part: any): any[] {
+  const result: any[] = [];
+  if (part?.parts) {
+    for (const p of part.parts) {
+      result.push(...flattenParts(p));
+    }
+  }
+  if (part?.filename || part?.mimeType === 'application/pdf') {
+    result.push(part);
+  }
+  return result;
 }
 
 Deno.serve(async (req) => {
@@ -64,7 +204,11 @@ Deno.serve(async (req) => {
       const body = await req.json().catch(() => ({}));
       bodyAccountId = body.email_account_id || null;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
+
+  const isManualVerification = !!bodyAccountId;
 
   try {
     // ── 1. Fetch active Gmail accounts directly (no dependency on unit_billing_email_settings) ──
@@ -90,7 +234,7 @@ Deno.serve(async (req) => {
 
     console.log(`[check-billing-emails] Encontradas ${gmailAccounts.length} conta(s) Gmail ativa(s)`);
 
-    // ── 2. Also load unit_billing_email_settings for UC matching (optional, not blocking) ──
+    // ── 2. Load billing settings + unit identifiers for UC matching ──
     const tenantIds = [...new Set(gmailAccounts.map(a => a.tenant_id))];
     const { data: billingSettings } = await admin
       .from('unit_billing_email_settings')
@@ -98,13 +242,20 @@ Deno.serve(async (req) => {
       .in('tenant_id', tenantIds)
       .eq('email_billing_enabled', true);
 
-    // Group billing settings by tenant for UC matching
+    const { data: units } = await admin
+      .from('units_consumidoras')
+      .select('id, tenant_id, codigo_uc, unit_identifier')
+      .in('tenant_id', tenantIds)
+      .eq('is_archived', false);
+
     const settingsByTenant = new Map<string, any[]>();
-    for (const s of (billingSettings || [])) {
-      const group = settingsByTenant.get(s.tenant_id) || [];
-      group.push(s);
-      settingsByTenant.set(s.tenant_id, group);
+    for (const setting of (billingSettings || [])) {
+      const group = settingsByTenant.get(setting.tenant_id) || [];
+      group.push(setting);
+      settingsByTenant.set(setting.tenant_id, group);
     }
+
+    const unitLookupByTenant = buildUnitLookup(units);
 
     let totalProcessed = 0;
     let totalErrors = 0;
@@ -114,6 +265,7 @@ Deno.serve(async (req) => {
     for (const gmailAccount of gmailAccounts) {
       const tenantId = gmailAccount.tenant_id;
       const tenantSettings = settingsByTenant.get(tenantId) || [];
+      const tenantUnitLookup = unitLookupByTenant.get(tenantId) || new Map<string, string>();
 
       try {
         const creds = (gmailAccount.credentials ?? {}) as any;
@@ -180,25 +332,53 @@ Deno.serve(async (req) => {
           }
         }
 
-        // ── 3. Search unread messages with PDF attachments ──
-        // Search for recent emails (last 7 days for broader catch)
-        const searchQuery = encodeURIComponent('is:unread has:attachment filename:pdf newer_than:7d');
-        const listRes = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${searchQuery}&maxResults=30`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
+        // ── 3. Search messages ──
+        const gmailQueryString = isManualVerification
+          ? 'in:inbox has:attachment filename:pdf newer_than:30d'
+          : 'is:unread has:attachment filename:pdf newer_than:7d';
+        const pageSize = isManualVerification ? 50 : 30;
+        const maxPages = isManualVerification ? 5 : 1;
 
-        if (!listRes.ok) {
-          const errText = await listRes.text();
-          console.error(`[check-billing-emails] Gmail list failed for ${gmailAccount.email}: ${errText}`);
-          totalErrors++;
-          results.push({ account: gmailAccount.email, error: 'gmail_list_failed', details: errText });
-          continue;
+        const collectedMessages: Array<{ id: string }> = [];
+        let nextPageToken: string | null = null;
+
+        for (let page = 0; page < maxPages; page++) {
+          const params = new URLSearchParams({
+            q: gmailQueryString,
+            maxResults: String(pageSize),
+          });
+          if (nextPageToken) params.set('pageToken', nextPageToken);
+
+          const listRes = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages?${params.toString()}`,
+            { headers: { Authorization: `Bearer ${accessToken}` } },
+          );
+
+          if (!listRes.ok) {
+            const errText = await listRes.text();
+            console.error(`[check-billing-emails] Gmail list failed for ${gmailAccount.email}: ${errText}`);
+            totalErrors++;
+            results.push({ account: gmailAccount.email, error: 'gmail_list_failed', details: errText });
+            break;
+          }
+
+          const listData = await listRes.json();
+          if (Array.isArray(listData.messages)) {
+            collectedMessages.push(...listData.messages);
+          }
+
+          nextPageToken = listData.nextPageToken || null;
+          if (!nextPageToken) break;
         }
 
-        const listData = await listRes.json();
-        const messages = listData.messages || [];
-        console.log(`[check-billing-emails] ${gmailAccount.email}: ${messages.length} unread messages with PDF`);
+        const seenMessageIds = new Set<string>();
+        const messages = collectedMessages.filter((message) => {
+          if (!message?.id || seenMessageIds.has(message.id)) return false;
+          seenMessageIds.add(message.id);
+          return true;
+        });
+
+        console.log(`[check-billing-emails] ${gmailAccount.email}: ${messages.length} message(s) found (${isManualVerification ? 'manual' : 'auto'})`);
 
         for (const msg of messages) {
           try {
@@ -237,7 +417,6 @@ Deno.serve(async (req) => {
             if (!msgRes.ok) continue;
             const msgData = await msgRes.json();
 
-            // Check sender
             const fromHeader = msgData.payload?.headers?.find(
               (h: any) => h.name.toLowerCase() === 'from'
             )?.value || '';
@@ -246,12 +425,19 @@ Deno.serve(async (req) => {
               (h: any) => h.name.toLowerCase() === 'subject'
             )?.value || '';
 
+            const toHeader = msgData.payload?.headers?.find(
+              (h: any) => h.name.toLowerCase() === 'to' || h.name.toLowerCase() === 'delivered-to'
+            )?.value || '';
+
             if (!isKnownSender(fromHeader)) {
               console.log(`[check-billing-emails] Skipping unknown sender: ${fromHeader.substring(0, 60)}`);
               continue;
             }
 
             console.log(`[check-billing-emails] Processing: "${subject}" from ${fromHeader.substring(0, 60)}`);
+
+            const bodyText = extractMessageText(msgData.payload);
+            const snippet = String(msgData.snippet || '');
 
             // Find PDF attachment
             const parts = flattenParts(msgData.payload);
@@ -277,18 +463,23 @@ Deno.serve(async (req) => {
               // Gmail uses URL-safe base64
               const pdfBase64 = attData.data.replace(/-/g, '+').replace(/_/g, '/');
 
-              // Try to match UC via billing settings
-              const toHeader = msgData.payload?.headers?.find(
-                (h: any) => h.name.toLowerCase() === 'to' || h.name.toLowerCase() === 'delivered-to'
-              )?.value || '';
+              const searchableText = [
+                toHeader,
+                subject,
+                snippet,
+                bodyText,
+                pdfPart.filename || '',
+              ].filter(Boolean).join(' ');
 
-              let matchedUnitId: string | null = null;
-              for (const s of tenantSettings) {
-                const emailUc = s.email_da_uc || s.billing_capture_email || '';
-                if (emailUc && toHeader.toLowerCase().includes(emailUc.toLowerCase())) {
-                  matchedUnitId = s.unit_id;
-                  break;
-                }
+              const { unitId: matchedUnitId, matchSource } = findMatchedUnitId({
+                toHeader,
+                searchText: searchableText,
+                tenantSettings,
+                tenantUnitLookup,
+              });
+
+              if (matchSource) {
+                console.log(`[check-billing-emails] Matched unit ${matchedUnitId} via ${matchSource}`);
               }
 
               // Call process-fatura-pdf (works with or without unit_id)
@@ -322,26 +513,30 @@ Deno.serve(async (req) => {
               results.push({
                 message_id: msg.id,
                 account: gmailAccount.email,
+                subject,
                 filename: pdfPart.filename,
                 success: processResult.success,
                 unit_id: matchedUnitId,
                 auto_detect: !matchedUnitId,
+                match_source: matchSource,
                 error: processResult.success ? undefined : (processResult.error || 'Erro desconhecido'),
               });
             }
 
-            // Mark email as read after processing all PDFs
-            await fetch(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}/modify`,
-              {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ removeLabelIds: ['UNREAD'] }),
-              }
-            );
+            // Mark email as read only in automatic flow
+            if (!isManualVerification) {
+              await fetch(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}/modify`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ removeLabelIds: ['UNREAD'] }),
+                }
+              );
+            }
           } catch (msgErr) {
             console.error(`[check-billing-emails] Message processing error:`, msgErr);
             totalErrors++;
@@ -371,22 +566,8 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (err: any) {
-    console.error("[check-billing-emails] Error:", err);
+    console.error('[check-billing-emails] Error:', err);
     return new Response(JSON.stringify({ error: err.message || 'Erro interno' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
-
-// Recursively flatten MIME parts
-function flattenParts(part: any): any[] {
-  const result: any[] = [];
-  if (part.parts) {
-    for (const p of part.parts) {
-      result.push(...flattenParts(p));
-    }
-  }
-  if (part.filename || part.mimeType === 'application/pdf') {
-    result.push(part);
-  }
-  return result;
-}
