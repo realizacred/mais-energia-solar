@@ -102,6 +102,7 @@ export function ConcessionariasManager() {
   const [editing, setEditing] = useState<Concessionaria | null>(null);
   const [deleting, setDeleting] = useState<Concessionaria | null>(null);
   const [form, setForm] = useState<ConcessionariaFormData>(EMPTY_FORM);
+  const [formBaseline, setFormBaseline] = useState<string>(JSON.stringify(EMPTY_FORM));
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -113,6 +114,10 @@ export function ConcessionariasManager() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [contaImportOpen, setContaImportOpen] = useState(false);
+
+  const isFormDirty = useMemo(() => {
+    return JSON.stringify(form) !== formBaseline;
+  }, [form, formBaseline]);
 
   // Find the most recent sync timestamp across all concessionárias
   const latestSyncTimestamp = useMemo(() => {
