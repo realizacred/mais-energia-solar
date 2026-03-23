@@ -415,7 +415,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
         {state === "validated" && (
           <Button variant="outline" size="sm" onClick={() => handleImport(false)} className="gap-1.5 text-xs">
             <Upload className="h-3.5 w-3.5" />
-            Importar {mergedPoints.length.toLocaleString("pt-BR")} pontos
+            Importar {formatIntegerBR(mergedPoints.length)} pontos
           </Button>
         )}
         {state === "uploading" && (
