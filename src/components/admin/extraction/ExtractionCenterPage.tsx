@@ -29,6 +29,7 @@ import { ExtractionConfigModal, type ExtractionConfigPrefill } from "./Extractio
 import { ExtractionTestTab } from "./ExtractionTestTab";
 import { ExtractionAssistantTab } from "./ExtractionAssistantTab";
 import { LayoutLearningTab } from "./LayoutLearningTab";
+import { ExtractionEmailsTab } from "./ExtractionEmailsTab";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
