@@ -983,7 +983,7 @@ async function reprocessInvoice(
 
   const parsed = parseResult.data;
 
-  const { data: ucData } = await admin
+  const { data: ucDetails } = await admin
     .from('units_consumidoras')
     .select('id, tipo_uc, papel_gd')
     .eq('id', invoice.unit_id)
@@ -993,13 +993,13 @@ async function reprocessInvoice(
   const ucDetection = detectUcType(
     parsed,
     pdfText,
-    ucData?.tipo_uc,
-    ucData?.papel_gd,
+    ucDetails?.tipo_uc,
+    ucDetails?.papel_gd,
   );
 
-  const ucContext = ucData?.tipo_uc === 'gd_geradora' || ucData?.papel_gd === 'geradora'
+  const ucContext = ucDetails?.tipo_uc === 'gd_geradora' || ucDetails?.papel_gd === 'geradora'
     ? 'geradora'
-    : ucData?.papel_gd === 'beneficiaria' || ucData?.tipo_uc === 'beneficiaria'
+    : ucDetails?.papel_gd === 'beneficiaria' || ucDetails?.tipo_uc === 'beneficiaria'
       ? 'beneficiaria'
       : ucDetection.tipo_uc_detectado === 'geradora' || ucDetection.tipo_uc_detectado === 'mista' || ucDetection.tipo_uc_detectado === 'beneficiaria' || ucDetection.tipo_uc_detectado === 'consumo'
         ? ucDetection.tipo_uc_detectado
