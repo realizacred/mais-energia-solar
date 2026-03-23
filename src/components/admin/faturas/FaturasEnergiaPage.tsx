@@ -74,6 +74,63 @@ export default function FaturasEnergiaPage() {
     }
   }, [searchParams]);
 
+  // UCs for filter
+  const { data: ucs = [] } = useQuery({
+    queryKey: ["ucs_for_faturas_central"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("units_consumidoras")
+        .select("id, nome, codigo_uc, concessionaria_nome")
+        .eq("is_archived", false)
+        .order("nome");
+      return data || [];
+    },
+    staleTime: STALE,
+  });
+
+  // Paginated invoices
+  const filters = {
+    unit_id: filterUC !== "all" ? filterUC : undefined,
+    status: filterStatus !== "all" ? filterStatus : undefined,
+    reference_year: filterYear !== "all" ? Number(filterYear) : undefined,
+    search: searchText || undefined,
+  };
+  const { data: invoicesResult, isLoading: loadingInvoices } = useInvoicesList(filters, page);
+  const invoices = invoicesResult?.data || [];
+  const totalCount = invoicesResult?.totalCount || 0;
+  const pageSize = invoicesResult?.pageSize || 50;
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  // KPIs
+  const { data: kpis } = useInvoiceKPIs();
+
+  // Years for filter
+  const { data: years = [] } = useQuery({
+    queryKey: ["invoice_years"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("unit_invoices")
+        .select("reference_year")
+        .order("reference_year", { ascending: false });
+      const unique = [...new Set((data || []).map((d: any) => d.reference_year))];
+      return unique as number[];
+    },
+    staleTime: STALE,
+  });
+
+  // Delete mutation
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => invoiceService.delete(id),
+    onSuccess: () => {
+      toast({ title: "Fatura excluída" });
+      qc.invalidateQueries({ queryKey: ["central_invoices"] });
+      qc.invalidateQueries({ queryKey: ["unit_invoices"] });
+      qc.invalidateQueries({ queryKey: ["invoice_kpis"] });
+      setDeleteId(null);
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err?.message, variant: "destructive" }),
+  });
+
   async function handleUploadPdf(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files?.length) return;
