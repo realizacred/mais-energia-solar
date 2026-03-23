@@ -83,21 +83,30 @@ Deno.serve(async (req) => {
         // Fetch Gmail token for this tenant from integrations_api_configs
         const { data: gmailConfig } = await admin
           .from('integrations_api_configs')
-          .select('id, config')
+          .select('id, credentials, settings, config')
           .eq('tenant_id', tenantId)
           .eq('provider', 'gmail')
           .eq('is_active', true)
           .maybeSingle();
 
-        if (!gmailConfig?.config) {
+        if (!gmailConfig) {
           console.log(`[check-billing-emails] No Gmail config for tenant ${tenantId}`);
           continue;
         }
 
-        const config = gmailConfig.config as any;
-        let accessToken = config.access_token;
-        const refreshToken = config.refresh_token;
-        const tokenExpiry = config.token_expiry ? new Date(config.token_expiry).getTime() : 0;
+        // Fallback chain: credentials/settings (gmail-oauth) → config (legacy) → top-level
+        const creds = (gmailConfig.credentials ?? gmailConfig.config ?? {}) as any;
+        const setts = (gmailConfig.settings ?? gmailConfig.config ?? {}) as any;
+
+        let accessToken = creds.access_token;
+        const refreshToken = creds.refresh_token;
+        const rawExpiry = setts.token_expiry ?? creds.token_expiry;
+        const tokenExpiry = rawExpiry ? new Date(rawExpiry).getTime() : 0;
+
+        if (!accessToken) {
+          console.log(`[check-billing-emails] No access_token for tenant ${tenantId}`);
+          continue;
+        }
 
         // Refresh token if expired
         if (Date.now() > tokenExpiry - 60000 && refreshToken) {
