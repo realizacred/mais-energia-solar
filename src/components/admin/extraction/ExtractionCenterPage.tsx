@@ -255,6 +255,7 @@ export default function ExtractionCenterPage() {
           <TabsTrigger value="test">Teste de Extração</TabsTrigger>
           <TabsTrigger value="learning">Aprendizado de Layouts</TabsTrigger>
           <TabsTrigger value="runs">Histórico</TabsTrigger>
+          <TabsTrigger value="emails">Emails</TabsTrigger>
           <TabsTrigger value="assistant">Assistente</TabsTrigger>
         </TabsList>
 
