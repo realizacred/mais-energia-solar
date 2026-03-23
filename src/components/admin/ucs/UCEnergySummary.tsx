@@ -3,6 +3,7 @@
  * Shows GD allocation info if UC is beneficiary or generator.
  */
 import { useState } from "react";
+import { formatDecimalBR } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
