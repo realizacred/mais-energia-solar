@@ -72,6 +72,7 @@ interface PropostaNativa {
     created_at: string;
     output_pdf_path: string | null;
     output_docx_path: string | null;
+    public_slug: string | null;
   }[];
 }
 
