@@ -445,7 +445,9 @@ export default function FaturasEnergiaPage() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
+
                   </TableBody>
                 </Table>
               </div>
