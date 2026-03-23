@@ -1120,6 +1120,41 @@ function extractEnergisa(text: string): ExtractedData | null {
     confidence += 10;
   }
 
+  // ── Energisa tributo fallback: garbled table from unpdf ──
+  // In garbled Energisa PDFs: "PIS ICMS COFINS 18 18 0 ... 0,09 0,40 ... 7,02 7,02 8,56 1,54"
+  if (icms == null || pis == null || cofins == null) {
+    // Direct PIS/COFINS values: small decimals like 0,09 and 0,40
+    if (pis == null) {
+      const pisDirectMatch = flatText.match(/\bPIS\b[^]*?(\d,\d{2,5})\s+(\d,\d{2,5})\s+(\d{1,2},\d{2,5})\s+(\d[\d.,]+)\s+(\d[\d.,]+)\s+(\d[\d.,]+)\s+(\d[\d.,]+)/i);
+      if (pisDirectMatch) {
+        const p1 = parseNum(pisDirectMatch[1]);
+        const p2 = parseNum(pisDirectMatch[2]);
+        // p1=PIS value, p2=COFINS value (small R$ amounts)
+        if (Number.isFinite(p1) && p1 < 10 && pis == null) { pis = p1; fieldResults['pis_valor'] = makeField(pis, 'regex:ENERGISA_TRIBUTO_GARBLED', true); }
+        if (Number.isFinite(p2) && p2 < 10 && cofins == null) { cofins = p2; fieldResults['cofins_valor'] = makeField(cofins, 'regex:ENERGISA_TRIBUTO_GARBLED', true); }
+      }
+    }
+
+    // ICMS: look for pattern "ICMS base aliq valor" or "18,00 base valor"
+    if (icms == null) {
+      const icmsValMatch = flatText.match(/ICMS\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/i);
+      if (icmsValMatch) {
+        const v1 = parseNum(icmsValMatch[1]);
+        const v2 = parseNum(icmsValMatch[2]);
+        const v3 = parseNum(icmsValMatch[3]);
+        // Detect which is the aliquota (should be 12-35%)
+        if (v2 > 5 && v2 <= 35) {
+          icms = v2;
+          fieldResults['icms_percentual'] = makeField(icms, 'regex:ENERGISA_ICMS_GARBLED', true, `base=R$${v1}, aliq=${v2}%, valor=R$${v3}`);
+          raw['icms_valor'] = String(v3);
+        } else if (v1 > 5 && v1 <= 35) {
+          icms = v1;
+          fieldResults['icms_percentual'] = makeField(icms, 'regex:ENERGISA_ICMS_GARBLED', true);
+        }
+      }
+    }
+  }
+
   const icmsPatterns = [
     /ICMS[:\s]*(\d[\d.,]*)\s*%/i,
     /al[ií]quota\s*ICMS[:\s]*(\d[\d.,]*)/i,
