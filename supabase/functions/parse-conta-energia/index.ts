@@ -728,6 +728,22 @@ function extractEnergisa(text: string): ExtractedData | null {
     confidence += 10;
   }
 
+  // ── Energisa fallback: concatenated injection meter readings from unpdf ──
+  // e.g. "PontaEnergia injetada 1 1323101158792" = inj(1323) + atu(10115) + ant(8792)
+  if (leituraAnterior103 == null || leituraAtual103 == null || energiaInjetada == null) {
+    const concatInjMatch = flatText.match(/PontaEnergia\s+injetada\s+1\s+(\d{7,})/i);
+    if (concatInjMatch) {
+      const split = splitConcatenatedMeterReading(concatInjMatch[1]);
+      if (split) {
+        if (leituraAnterior103 == null) { leituraAnterior103 = split.previous; fieldResults['leitura_anterior_103'] = makeField(split.previous, 'regex:ENERGISA_CONCAT_SPLIT_103', true, `split from ${concatInjMatch[1]}`); }
+        if (leituraAtual103 == null) { leituraAtual103 = split.current; fieldResults['leitura_atual_103'] = makeField(split.current, 'regex:ENERGISA_CONCAT_SPLIT_103', true); }
+        if (energiaInjetada == null) { energiaInjetada = split.total; fieldResults['energia_injetada_kwh'] = makeField(split.total, 'regex:ENERGISA_CONCAT_SPLIT_103', true); }
+        raw['leitura_103_concat'] = `${concatInjMatch[1]} → ant=${split.previous} atu=${split.current} inj=${split.total}`;
+        confidence += 10;
+      }
+    }
+  }
+
   // Fallback injeção
   if (energiaInjetada == null) {
     const injTableRowMatch = flatText.match(/Energia\s+Atv\s+Injetada\s+GDI\s+(\d[\d.,]*)\s+(\d[\d.,]*)\s+(-?\d[\d.,]*)/i);
