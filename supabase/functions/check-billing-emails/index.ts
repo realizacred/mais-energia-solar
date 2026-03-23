@@ -140,13 +140,18 @@ Deno.serve(async (req) => {
         }
 
         for (const gmailAccount of accountsToProcess) {
-        const creds = (gmailAccount.credentials ?? {}) as any;
-        const setts = (gmailAccount.settings ?? {}) as any;
+          const creds = (gmailAccount.credentials ?? {}) as any;
+          const setts = (gmailAccount.settings ?? {}) as any;
 
-        let accessToken = creds.access_token;
-        const refreshToken = creds.refresh_token;
-        const rawExpiry = setts.token_expiry ?? creds.token_expiry;
-        const tokenExpiry = rawExpiry ? new Date(rawExpiry).getTime() : 0;
+          let accessToken = creds.access_token;
+          const refreshToken = creds.refresh_token;
+          const rawExpiry = setts.token_expiry ?? creds.token_expiry;
+          const tokenExpiry = rawExpiry ? new Date(rawExpiry).getTime() : 0;
+
+          if (!accessToken) {
+            console.log(`[check-billing-emails] No access_token for account ${gmailAccount.id}`);
+            continue;
+          }
 
         // Refresh token if expired
         if (Date.now() > tokenExpiry - 60000 && refreshToken) {
