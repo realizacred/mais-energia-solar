@@ -690,7 +690,8 @@ export function ProposalWizard() {
         toast({ title: "Aguarde", description: res.message, variant: "destructive" });
         break;
       case "error":
-        toast({ title: "Erro ao salvar", description: res.message, variant: "destructive" });
+        console.error("[ProposalWizard] Draft save error:", res.reason, res.message);
+        toast({ title: "Erro ao salvar", description: res.reason || res.message, variant: "destructive" });
         break;
     }
   }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId]);
@@ -726,7 +727,8 @@ export function ProposalWizard() {
         toast({ title: "Aguarde", description: res.message, variant: "destructive" });
         break;
       case "error":
-        toast({ title: "Erro ao salvar", description: res.message, variant: "destructive" });
+        console.error("[ProposalWizard] Update error:", res.reason, res.message);
+        toast({ title: "Erro ao salvar", description: res.reason || res.message, variant: "destructive" });
         break;
     }
   }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult]);
@@ -1268,7 +1270,15 @@ export function ProposalWizard() {
           savedPropostaId || propostaIdFromUrl || null,
           savedVersaoId || versaoIdFromUrl || null,
         );
-        const draftRes = await persistAtomic(params, "draft");
+        let draftRes = await persistAtomic(params, "draft");
+
+        // If blocked by concurrent save, wait and retry once
+        if (draftRes.status === "blocked") {
+          console.log("[ProposalWizard] Draft blocked, retrying in 2s...");
+          await new Promise(r => setTimeout(r, 2000));
+          draftRes = await persistAtomic(params, "draft");
+        }
+
         if (draftRes.status === "success" || draftRes.status === "reused") {
           if (draftRes.propostaId) setSavedPropostaId(draftRes.propostaId);
           if (draftRes.versaoId) setSavedVersaoId(draftRes.versaoId);
@@ -1278,7 +1288,13 @@ export function ProposalWizard() {
           }
         }
         if (!projetoId) {
-          toast({ title: "Erro ao criar proposta", description: "Não foi possível criar o projeto associado. Tente salvar o rascunho antes.", variant: "destructive" });
+          const errorDetail = draftRes.status === "error"
+            ? (draftRes.reason || draftRes.message || "Erro desconhecido ao salvar rascunho")
+            : draftRes.status === "blocked"
+              ? "Outra operação de salvamento está em andamento. Tente novamente em alguns segundos."
+              : "Não foi possível criar o projeto associado. Tente salvar o rascunho antes.";
+          console.error("[ProposalWizard] Draft save failed:", draftRes);
+          toast({ title: "Erro ao criar proposta", description: errorDetail, variant: "destructive" });
           setGenerating(false);
           return;
         }
