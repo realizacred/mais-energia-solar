@@ -74,8 +74,6 @@ export function ValidacaoVendasManager() {
   const { reopenLead, reopening } = useReopenLead(() => refetchPending());
   const { reopenTarget } = useLeadStatusMap();
 
-  // Vendedor selector state
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [selectedVendedorId, setSelectedVendedorId] = useState<string>("");
 
   // Filters
