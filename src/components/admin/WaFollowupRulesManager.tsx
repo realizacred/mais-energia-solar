@@ -540,7 +540,15 @@ export function WaFollowupRulesManager() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id, {
+                onSuccess: () => {
+                  toast({ title: "Regra excluída!" });
+                  setDeleteTarget(null);
+                },
+                onError: (err: any) => {
+                  toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+                },
+              })}
             >
               Excluir
             </AlertDialogAction>
