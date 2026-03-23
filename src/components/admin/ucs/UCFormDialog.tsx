@@ -2,6 +2,7 @@
  * UCFormDialog — Create/Edit UC dialog with sections, CEP auto-fill, and input masks.
  */
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
