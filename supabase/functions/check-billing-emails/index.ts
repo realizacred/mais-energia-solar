@@ -125,15 +125,14 @@ Deno.serve(async (req) => {
             const tokenData = await tokenRes.json();
             accessToken = tokenData.access_token;
 
-            // Update stored token
+            // Update stored token in both credentials and settings for consistency
+            const newExpiry = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
             await admin
               .from('integrations_api_configs')
               .update({
-                config: {
-                  ...config,
-                  access_token: accessToken,
-                  token_expiry: new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString(),
-                },
+                credentials: { ...creds, access_token: accessToken },
+                settings: { ...setts, token_expiry: newExpiry },
+                updated_at: new Date().toISOString(),
               })
               .eq('id', gmailConfig.id);
           } else {
