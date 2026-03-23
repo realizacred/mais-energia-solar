@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link2, Plus, Trash2, Sun, ArrowRight, Zap, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { derivePlantStatus, type PlantUiStatus, getTodayBrasilia } from "@/services/monitoring/plantStatusEngine";
+import { derivePlantStatus, type PlantUiStatus } from "@/services/monitoring/plantStatusEngine";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
