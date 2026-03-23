@@ -44,6 +44,7 @@ import { uploadInvoiceTempPdf } from "@/services/invoiceUploadService";
 import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 import { invalidateUcQueries } from "@/lib/invalidateUcQueries";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Textarea } from "@/components/ui/textarea";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -263,6 +264,13 @@ export function UCInvoicesTab({ unitId }: Props) {
     ultrapassagem_kw: "",
     multa_ultrapassagem: "",
     bandeira_tarifaria: "" as string,
+    icms_percentual: "",
+    pis_valor: "",
+    cofins_valor: "",
+    tarifa_energia_kwh: "",
+    tarifa_fio_b_kwh: "",
+    proxima_leitura_data: "",
+    extracted_json: "",
   });
 
   const isEditing = !!editingInvoice;
@@ -308,6 +316,16 @@ export function UCInvoicesTab({ unitId }: Props) {
         ultrapassagem_kw: parseNum(form.ultrapassagem_kw),
         multa_ultrapassagem: parseNum(form.multa_ultrapassagem),
         bandeira_tarifaria: (form.bandeira_tarifaria || null) as BandeiraTarifaria | null,
+        raw_extraction: {
+          ...(editingInvoice?.raw_extraction || {}),
+          ...(form.extracted_json ? JSON.parse(form.extracted_json) : {}),
+          icms_percentual: parseNum(form.icms_percentual),
+          pis_valor: parseNum(form.pis_valor),
+          cofins_valor: parseNum(form.cofins_valor),
+          tarifa_energia_kwh: parseNum(form.tarifa_energia_kwh),
+          tarifa_fio_b_kwh: parseNum(form.tarifa_fio_b_kwh),
+          proxima_leitura_data: form.proxima_leitura_data || null,
+        },
       };
 
       if (editingInvoice) {
@@ -442,10 +460,18 @@ export function UCInvoicesTab({ unitId }: Props) {
       ultrapassagem_kw: "",
       multa_ultrapassagem: "",
       bandeira_tarifaria: "",
+      icms_percentual: "",
+      pis_valor: "",
+      cofins_valor: "",
+      tarifa_energia_kwh: "",
+      tarifa_fio_b_kwh: "",
+      proxima_leitura_data: "",
+      extracted_json: "",
     });
   };
 
   const openEditDialog = (inv: UnitInvoice) => {
+    const raw = (inv.raw_extraction || {}) as Record<string, any>;
     setEditingInvoice(inv);
     setForm({
       reference_month: inv.reference_month,
@@ -463,6 +489,13 @@ export function UCInvoicesTab({ unitId }: Props) {
       ultrapassagem_kw: inv.ultrapassagem_kw != null ? String(inv.ultrapassagem_kw) : "",
       multa_ultrapassagem: inv.multa_ultrapassagem != null ? String(inv.multa_ultrapassagem) : "",
       bandeira_tarifaria: inv.bandeira_tarifaria || "",
+      icms_percentual: raw.icms_percentual != null ? String(raw.icms_percentual) : "",
+      pis_valor: raw.pis_valor != null ? String(raw.pis_valor) : "",
+      cofins_valor: raw.cofins_valor != null ? String(raw.cofins_valor) : "",
+      tarifa_energia_kwh: raw.tarifa_energia_kwh != null ? String(raw.tarifa_energia_kwh) : "",
+      tarifa_fio_b_kwh: raw.tarifa_fio_b_kwh != null ? String(raw.tarifa_fio_b_kwh) : "",
+      proxima_leitura_data: raw.proxima_leitura_data || "",
+      extracted_json: JSON.stringify(raw, null, 2),
     });
     setDialogOpen(true);
   };
@@ -895,6 +928,45 @@ export function UCInvoicesTab({ unitId }: Props) {
                 <Label className="text-xs">Multa (R$)</Label>
                 <Input type="number" step="0.01" value={form.multa_ultrapassagem} onChange={(e) => setForm(f => ({ ...f, multa_ultrapassagem: e.target.value }))} placeholder="0,00" />
               </div>
+            </div>
+
+            <Separator />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tributos e tarifas</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">ICMS (%)</Label>
+                <Input type="number" step="0.01" value={form.icms_percentual} onChange={(e) => setForm(f => ({ ...f, icms_percentual: e.target.value }))} placeholder="0,00" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">PIS (R$)</Label>
+                <Input type="number" step="0.01" value={form.pis_valor} onChange={(e) => setForm(f => ({ ...f, pis_valor: e.target.value }))} placeholder="0,00" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">COFINS (R$)</Label>
+                <Input type="number" step="0.01" value={form.cofins_valor} onChange={(e) => setForm(f => ({ ...f, cofins_valor: e.target.value }))} placeholder="0,00" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Tarifa Energia</Label>
+                <Input type="number" step="0.000001" value={form.tarifa_energia_kwh} onChange={(e) => setForm(f => ({ ...f, tarifa_energia_kwh: e.target.value }))} placeholder="0,000000" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">TUSD/Fio B</Label>
+                <Input type="number" step="0.000001" value={form.tarifa_fio_b_kwh} onChange={(e) => setForm(f => ({ ...f, tarifa_fio_b_kwh: e.target.value }))} placeholder="0,000000" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Próxima leitura</Label>
+                <Input value={form.proxima_leitura_data} onChange={(e) => setForm(f => ({ ...f, proxima_leitura_data: e.target.value }))} placeholder="dd/mm/aaaa" />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">JSON de dados extraídos</Label>
+              <Textarea
+                value={form.extracted_json}
+                onChange={(e) => setForm(f => ({ ...f, extracted_json: e.target.value }))}
+                className="min-h-[180px] font-mono text-xs"
+                placeholder='{"icms_percentual":18}'
+              />
             </div>
 
             {/* PDF upload — only for creation */}
