@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
 import { Button } from "@/components/ui/button";
@@ -50,37 +49,17 @@ import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
 import { PageHeader, EmptyState, LoadingState, SearchInput } from "@/components/ui-kit";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import {
+  useClientes,
+  useLeadsForClientes,
+  useSalvarCliente,
+  useCheckClienteDependencies,
+  useDeletarCliente,
+  useClientesRealtime,
+  type ClienteRow,
+} from "@/hooks/useClientes";
 
-interface Cliente {
-  id: string;
-  nome: string;
-  telefone: string;
-  email: string | null;
-  cpf_cnpj: string | null;
-  data_nascimento: string | null;
-  cep: string | null;
-  estado: string | null;
-  cidade: string | null;
-  bairro: string | null;
-  rua: string | null;
-  numero: string | null;
-  complemento: string | null;
-  potencia_kwp: number | null;
-  valor_projeto: number | null;
-  data_instalacao: string | null;
-  numero_placas: number | null;
-  modelo_inversor: string | null;
-  observacoes: string | null;
-  lead_id: string | null;
-  localizacao: string | null;
-  ativo: boolean;
-  created_at: string;
-  identidade_urls: string[] | null;
-  comprovante_endereco_urls: string[] | null;
-  comprovante_beneficiaria_urls: string[] | null;
-  disjuntor_id: string | null;
-  transformador_id: string | null;
-}
+type Cliente = ClienteRow;
 
 interface Lead {
   id: string;
@@ -94,9 +73,13 @@ interface ClientesManagerProps {
 }
 
 export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: clientes = [], isLoading: loading } = useClientes();
+  const { data: leads = [] } = useLeadsForClientes();
+  const salvarCliente = useSalvarCliente();
+  const checkDeps = useCheckClienteDependencies();
+  const deletarCliente = useDeletarCliente();
+  useClientesRealtime();
+
   const { hasPermission } = useUserPermissions();
   const { lookup: lookupCep } = useCepLookup();
   const canDeleteClients = hasPermission("delete_clients");
@@ -141,87 +124,6 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     lead_id: "",
   });
 
-  useEffect(() => {
-    fetchClientes();
-    fetchLeads();
-  }, []);
-
-  // ⚠️ HARDENING: Realtime subscription for cross-user sync on clientes
-  useEffect(() => {
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const channel = supabase
-      .channel('clientes-realtime')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'clientes' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => fetchClientes(), 500);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'clientes' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => fetchClientes(), 500);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'clientes' },
-        (payload) => {
-          if (payload.old) {
-            const deletedId = (payload.old as any).id;
-            setClientes(prev => prev.filter(c => c.id !== deletedId));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchClientes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("id, nome, telefone, email, cpf_cnpj, data_nascimento, cep, estado, cidade, bairro, rua, numero, complemento, potencia_kwp, valor_projeto, data_instalacao, numero_placas, modelo_inversor, observacoes, lead_id, localizacao, ativo, created_at, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls, disjuntor_id, transformador_id")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setClientes(data || []);
-    } catch (error) {
-      const appError = handleSupabaseError(error, "fetch_clientes");
-      toast({
-        title: "Erro ao carregar clientes",
-        description: appError.userMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchLeads = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("id, nome, telefone, lead_code")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setLeads(data || []);
-    } catch (error) {
-      console.error("Error fetching leads:", error);
-    }
-  };
-
   const handleSubmit = async () => {
     setSaving(true);
 
@@ -248,25 +150,14 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         lead_id: formData.lead_id || null,
       };
 
-      if (editingCliente) {
-        const { error } = await supabase
-          .from("clientes")
-          .update(clienteData)
-          .eq("id", editingCliente.id);
+      await salvarCliente.mutateAsync({
+        id: editingCliente?.id,
+        data: clienteData,
+      });
 
-        if (error) throw error;
-        toast({ title: "Cliente atualizado!" });
-      } else {
-        // cliente_code é gerado automaticamente pelo trigger generate_cliente_code()
-        const { error } = await supabase.from("clientes").insert(clienteData as any);
-
-        if (error) throw error;
-        toast({ title: "Cliente cadastrado!" });
-      }
-
+      toast({ title: editingCliente ? "Cliente atualizado!" : "Cliente cadastrado!" });
       setDialogOpen(false);
       resetForm();
-      fetchClientes();
     } catch (error) {
       const appError = handleSupabaseError(error, editingCliente ? "update_cliente" : "create_cliente");
       toast({
@@ -314,36 +205,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     if (!confirm("Tem certeza que deseja excluir este cliente? Todos os registros vinculados serão desassociados.")) return;
 
     try {
-      // Check for blocking dependencies and provide clear feedback
-      const dependencyChecks = await Promise.all([
-        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("projetos").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("deals").select("id", { count: "exact", head: true }).eq("customer_id", id),
-        supabase.from("comissoes").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("recebimentos").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("checklists_cliente").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("checklists_instalador").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("layouts_solares").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("servicos_agendados").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("appointments").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("obras").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("wa_conversations").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-        supabase.from("wa_cadence_enrollments").select("id", { count: "exact", head: true }).eq("cliente_id", id),
-      ]);
-
-      const depNames = [
-        "Propostas", "Projetos", "Negociações em andamento", "Comissões",
-        "Recebimentos", "Checklists do Cliente", "Checklists do Instalador",
-        "Layouts Solares", "Serviços Agendados",
-        "Agendamentos", "Obras", "Conversas WhatsApp", "Cadências WhatsApp",
-      ];
-
-      const blocking: string[] = [];
-      dependencyChecks.forEach((res, i) => {
-        if ((res.count ?? 0) > 0) {
-          blocking.push(`${depNames[i]} (${res.count})`);
-        }
-      });
+      const blocking = await checkDeps.mutateAsync(id);
 
       if (blocking.length > 0) {
         toast({
@@ -354,10 +216,8 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         return;
       }
 
-      const { error } = await supabase.from("clientes").delete().eq("id", id);
-      if (error) throw error;
+      await deletarCliente.mutateAsync(id);
       toast({ title: "Cliente excluído!" });
-      fetchClientes();
     } catch (error) {
       const appError = handleSupabaseError(error, "delete_cliente", { entityId: id });
       toast({
@@ -634,7 +494,6 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                     documents={editDocuments}
                     onDocumentsChange={(updated) => {
                       setEditDocuments(updated);
-                      fetchClientes();
                     }}
                   />
                 </FormSection>
