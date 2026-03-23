@@ -77,8 +77,7 @@ export default function UCDetailPage() {
     staleTime: 1000 * 60 * 2,
   });
 
-  // Resolve próxima leitura — prefer UC column (set by process-fatura-pdf), fallback to raw_extraction
-  const proximaLeituraData = (uc as any)?.proxima_leitura_data ?? null;
+  // proxima_leitura_data is fetched directly from UC record (set by process-fatura-pdf)
 
   // Resolve linked meter
   const { data: meterLinks = [] } = useQuery({
