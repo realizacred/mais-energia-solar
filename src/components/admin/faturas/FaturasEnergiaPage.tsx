@@ -365,51 +365,66 @@ export default function FaturasEnergiaPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="text-xs font-semibold text-foreground">Cliente</TableHead>
                       <TableHead className="text-xs font-semibold text-foreground">UC</TableHead>
+                      <TableHead className="text-xs font-semibold text-foreground">Tipo</TableHead>
                       <TableHead className="text-xs font-semibold text-foreground">Concessionária</TableHead>
                       <TableHead className="text-xs font-semibold text-foreground">Referência</TableHead>
                       <TableHead className="text-xs font-semibold text-foreground text-right">Valor</TableHead>
                       <TableHead className="text-xs font-semibold text-foreground text-right">Consumo</TableHead>
                       <TableHead className="text-xs font-semibold text-foreground">Vencimento</TableHead>
-                      <TableHead className="text-xs font-semibold text-foreground">Origem</TableHead>
                       <TableHead className="text-xs font-semibold text-foreground">Status</TableHead>
                       <TableHead className="w-[50px]" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {invoices.map((inv: any) => (
-                      <TableRow key={inv.id} className="hover:bg-muted/30">
-                        <TableCell className="text-sm font-medium">
-                          {inv.units_consumidoras?.nome || "—"}
-                          <span className="block text-xs text-muted-foreground font-mono">{inv.units_consumidoras?.codigo_uc}</span>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{inv.units_consumidoras?.concessionaria_nome || "—"}</TableCell>
-                        <TableCell className="text-sm">
-                          {MONTH_LABELS[inv.reference_month] || inv.reference_month}/{inv.reference_year}
-                        </TableCell>
-                        <TableCell className="text-sm text-right font-mono">
-                          {inv.total_amount != null
-                            ? formatBRL(Number(inv.total_amount))
-                            : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm text-right font-mono">
-                          {inv.energy_consumed_kwh != null ? `${formatNumberBR(Number(inv.energy_consumed_kwh))} kWh` : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {inv.source === "upload" ? "Upload" : inv.source === "email" ? "E-mail" : inv.source || "—"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={`text-xs ${
-                            inv.status === "processed" ? "bg-success/10 text-success border-success/20" :
-                            inv.status === "error" ? "bg-destructive/10 text-destructive border-destructive/20" :
-                            ""
-                          }`}>
-                            {inv.status || "pendente"}
-                          </Badge>
-                        </TableCell>
+                    {invoices.map((inv: any) => {
+                      const papelGd = inv.units_consumidoras?.papel_gd;
+                      const clienteNome = inv.units_consumidoras?.clientes?.nome;
+                      const statusLabel = STATUS_MAP[inv.status] || inv.status || "pendente";
+                      const statusClass = STATUS_CLASSES[inv.status] || "";
+                      const gdLabel = GD_LABELS[papelGd] || "—";
+                      const gdClass = GD_CLASSES[papelGd] || "";
+
+                      return (
+                        <TableRow key={inv.id} className="hover:bg-muted/30">
+                          <TableCell className="text-sm font-medium">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate max-w-[180px]">{clienteNome || "Sem cliente"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <span className="font-medium text-foreground block truncate max-w-[200px]">{inv.units_consumidoras?.nome || "—"}</span>
+                            <span className="text-xs text-muted-foreground font-mono">{inv.units_consumidoras?.codigo_uc}</span>
+                          </TableCell>
+                          <TableCell>
+                            {papelGd && papelGd !== "nenhum" ? (
+                              <Badge variant="outline" className={`text-xs ${gdClass}`}>
+                                {papelGd === "geradora" && <Sun className="w-3 h-3 mr-1" />}
+                                {papelGd === "beneficiaria" && <Zap className="w-3 h-3 mr-1" />}
+                                {gdLabel}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Consumo</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{inv.units_consumidoras?.concessionaria_nome || "—"}</TableCell>
+                          <TableCell className="text-sm font-medium">
+                            {MONTH_LABELS[inv.reference_month] || inv.reference_month}/{inv.reference_year}
+                          </TableCell>
+                          <TableCell className="text-sm text-right font-mono">
+                            {inv.total_amount != null ? formatBRL(Number(inv.total_amount)) : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-right font-mono">
+                            {inv.energy_consumed_kwh != null ? `${formatNumberBR(Number(inv.energy_consumed_kwh))} kWh` : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={`text-xs ${statusClass}`}>
+                              {statusLabel}
+                            </Badge>
+                          </TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
