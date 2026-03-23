@@ -2434,7 +2434,15 @@ async function dispatchSync(
     const hwRegion = (tokens.region as string) || (credentials.region as string) || "la5";
 
     // Helper: attempt re-auth if token expired and credentials available
+    let hwReAuthCount = 0;
+    const HW_MAX_REAUTH = 2;
+
     const tryReAuth = async () => {
+      hwReAuthCount++;
+      if (hwReAuthCount > HW_MAX_REAUTH) {
+        console.error(`[Huawei] Re-auth excedeu limite de ${HW_MAX_REAUTH} tentativas. Abortando.`);
+        throw new Error("Huawei re-auth max retries exceeded");
+      }
       if (!credentials.username || !credentials.password) {
         // No password stored — mark integration for reconnection
         await admin.from("monitoring_integrations").update({
@@ -2444,23 +2452,42 @@ async function dispatchSync(
         }).eq("id", ctx.integrationId);
         throw new Error("Sessão Huawei expirada. Reconecte a integração com username e senha.");
       }
-      console.log("[Huawei] Token expirado, re-autenticando...");
-      const reauth = await huaweiReAuth(credentials);
-      xsrf = reauth.xsrfToken;
-      hwCookies = reauth.cookies;
-      await admin.from("monitoring_integrations").update({ tokens: { xsrfToken: xsrf, cookies: hwCookies, region: hwRegion } }).eq("id", ctx.integrationId);
+      console.log(`[Huawei] Token expirado, renovando... (tentativa ${hwReAuthCount}/${HW_MAX_REAUTH})`);
+      try {
+        const reauth = await huaweiReAuth(credentials);
+        xsrf = reauth.xsrfToken;
+        hwCookies = reauth.cookies;
+        await admin.from("monitoring_integrations").update({ tokens: { xsrfToken: xsrf, cookies: hwCookies, region: hwRegion } }).eq("id", ctx.integrationId);
+        console.log(`[Huawei] Re-auth OK na tentativa ${hwReAuthCount}`);
+      } catch (reAuthErr: any) {
+        console.error(`[Huawei] Re-auth falhou na tentativa ${hwReAuthCount}: ${reAuthErr.message}`);
+        throw reAuthErr;
+      }
     };
 
-    const listFnHw = async () => {
+    /** Wrapper: executa fn com até HW_MAX_REAUTH re-auths em caso de TOKEN_EXPIRED */
+    async function huaweiWithReAuth<T>(label: string, fn: () => Promise<T>): Promise<T> {
       try {
-        return await huaweiListPlants(xsrf, hwCookies, hwRegion);
+        return await fn();
       } catch (e: any) {
         if (e.message === "TOKEN_EXPIRED") {
           await tryReAuth();
-          return await huaweiListPlants(xsrf, hwCookies, hwRegion);
+          try {
+            return await fn();
+          } catch (e2: any) {
+            if (e2.message === "TOKEN_EXPIRED") {
+              await tryReAuth();
+              return await fn();
+            }
+            throw e2;
+          }
         }
         throw e;
       }
+    }
+
+    const listFnHw = async () => {
+      return huaweiWithReAuth("listPlants", () => huaweiListPlants(xsrf, hwCookies, hwRegion));
     };
 
     // Huawei devicesFn: fetch devices for all stations
@@ -2469,15 +2496,7 @@ async function dispatchSync(
       const { data: dbPlants } = await admin.from("solar_plants").select("external_id").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
       const stationCodes = (dbPlants || []).map((p: any) => String(p.external_id));
       if (stationCodes.length === 0) return [];
-      try {
-        return await huaweiListDevices(xsrf, hwCookies, hwRegion, stationCodes);
-      } catch (e: any) {
-        if (e.message === "TOKEN_EXPIRED") {
-          await tryReAuth();
-          return await huaweiListDevices(xsrf, hwCookies, hwRegion, stationCodes);
-        }
-        throw e;
-      }
+      return huaweiWithReAuth("listDevices", () => huaweiListDevices(xsrf, hwCookies, hwRegion, stationCodes));
     };
 
     // Use batch metrics: pre-fetch ALL station metrics in 1-2 API calls, then serve from cache
@@ -2492,17 +2511,11 @@ async function dispatchSync(
           .select("external_id").eq("tenant_id", ctx.tenantId).eq("integration_id", ctx.integrationId);
         const allCodes = (dbPlants || []).map((p: any) => String(p.external_id));
         try {
-          const batchResult = await huaweiMetricsBatch(xsrf, hwCookies, allCodes, hwRegion);
+          const batchResult = await huaweiWithReAuth("metricsBatch", () => huaweiMetricsBatch(xsrf, hwCookies, allCodes, hwRegion));
           for (const [k, v] of batchResult) hwMetricsCache.set(k, v);
           console.log(`[Huawei] Batch metrics cache loaded: ${hwMetricsCache.size} stations`);
         } catch (e: any) {
-          if (e.message === "TOKEN_EXPIRED") {
-            await tryReAuth();
-            const batchResult = await huaweiMetricsBatch(xsrf, hwCookies, allCodes, hwRegion);
-            for (const [k, v] of batchResult) hwMetricsCache.set(k, v);
-          } else {
-            console.error(`[Huawei] Batch metrics failed: ${e.message}`);
-          }
+          console.error(`[Huawei] Batch metrics failed após re-auth: ${e.message}`);
         }
       }
       return hwMetricsCache.get(stationCode) || { power_kw: null, energy_kwh: null, total_energy_kwh: null, metadata: {} };
