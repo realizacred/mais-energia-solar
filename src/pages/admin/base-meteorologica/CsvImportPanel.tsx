@@ -367,7 +367,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
             {validation.dhiCount > 0 && (
               <div>
                 <span className="text-muted-foreground">DHI:</span>{" "}
-                <span className="font-semibold">{validation.dhiCount.toLocaleString("pt-BR")} pts</span>
+                <span className="font-semibold">{formatIntegerBR(validation.dhiCount)} pts</span>
               </div>
             )}
             {validation.dniCount > 0 && (
