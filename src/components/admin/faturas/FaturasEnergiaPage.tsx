@@ -44,6 +44,37 @@ const MONTH_LABELS = [
   "Jul", "Ago", "Set", "Out", "Nov", "Dez",
 ];
 
+const STATUS_MAP: Record<string, string> = {
+  received: "Recebida",
+  processed: "Processada",
+  pending: "Pendente",
+  pending_review: "Em revisão",
+  error: "Erro",
+  valid: "Válida",
+  divergent: "Divergente",
+};
+
+const STATUS_CLASSES: Record<string, string> = {
+  received: "bg-info/10 text-info border-info/20",
+  processed: "bg-success/10 text-success border-success/20",
+  valid: "bg-success/10 text-success border-success/20",
+  pending: "bg-warning/10 text-warning border-warning/20",
+  pending_review: "bg-warning/10 text-warning border-warning/20",
+  error: "bg-destructive/10 text-destructive border-destructive/20",
+  divergent: "bg-destructive/10 text-destructive border-destructive/20",
+};
+
+const GD_LABELS: Record<string, string> = {
+  geradora: "Geradora",
+  beneficiaria: "Beneficiária",
+  nenhum: "Consumo",
+};
+
+const GD_CLASSES: Record<string, string> = {
+  geradora: "bg-success/10 text-success border-success/20",
+  beneficiaria: "bg-primary/10 text-primary border-primary/20",
+};
+
 export default function FaturasEnergiaPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
