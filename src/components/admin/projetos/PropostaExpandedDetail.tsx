@@ -738,6 +738,15 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     });
   }, [isExpanded, latestVersao?.id]);
 
+  // Auto-populate publicUrl from public_slug
+  useEffect(() => {
+    if (!isExpanded || publicUrl) return;
+    const slug = latestVersao?.public_slug;
+    if (slug) {
+      setPublicUrl(`${window.location.origin}/p/${slug}`);
+    }
+  }, [isExpanded, latestVersao?.public_slug]);
+
   // Auto-render when switching to "arquivo" tab for generated proposals
   useEffect(() => {
     if (!isExpanded || activeTab !== "arquivo" || html || rendering) return;
