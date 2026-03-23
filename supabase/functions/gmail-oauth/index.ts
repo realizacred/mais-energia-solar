@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (action === "callback") {
+    if (action === "callback" || (!action && url.searchParams.has("code"))) {
       const code = url.searchParams.get("code");
       const stateParam = url.searchParams.get("state");
       const error = url.searchParams.get("error");
