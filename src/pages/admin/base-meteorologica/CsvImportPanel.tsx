@@ -446,7 +446,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
           </div>
           <Progress value={progressPct} className="h-3" />
           <p className="text-[10px] text-muted-foreground text-right">
-            {progress.current.toLocaleString("pt-BR")} / {progress.total.toLocaleString("pt-BR")} pontos
+            {formatIntegerBR(progress.current)} / {formatIntegerBR(progress.total)} pontos
           </p>
         </div>
       )}

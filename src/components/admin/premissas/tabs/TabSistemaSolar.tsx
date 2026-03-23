@@ -100,7 +100,7 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
                   <>
                     <CheckCircle2 className="h-3 w-3 text-success" />
                     <span className="text-[11px] text-success">
-                      Base ativa — {currentBase.points.toLocaleString("pt-BR")} pontos carregados
+                      Base ativa — {formatIntegerBR(currentBase.points)} pontos carregados
                     </span>
                   </>
                 ) : (

@@ -651,7 +651,7 @@ export function CsvImportPanel() {
               </div>
               <div className="flex gap-2">
                 <span className="text-muted-foreground">Row Count:</span>
-                <span className="font-semibold">{activateResult.row_count.toLocaleString("pt-BR")}</span>
+                <span className="font-semibold">{formatIntegerBR(activateResult.row_count)}</span>
               </div>
             </div>
           )}
