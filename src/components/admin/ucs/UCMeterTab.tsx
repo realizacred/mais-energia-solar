@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Gauge, Link2, Link2Off, ArrowLeftRight, History, Search, Save, Info } from "lucide-react";
@@ -56,7 +57,19 @@ export function UCMeterTab({ unitId }: Props) {
     },
   });
 
-  if (isLoading) return <div className="py-8 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
+  if (isLoading) return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="flex-1">
+            <Skeleton className="h-4 w-3/4 mb-2" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -194,7 +207,7 @@ function UCMeterLinkDialog({ open, onOpenChange, unitId }: { open: boolean; onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[90vw] max-w-md">
         <DialogHeader><DialogTitle>Vincular Medidor</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="relative">
@@ -206,17 +219,18 @@ function UCMeterLinkDialog({ open, onOpenChange, unitId }: { open: boolean; onOp
               <p className="text-sm text-muted-foreground text-center py-6">Nenhum medidor disponível</p>
             ) : (
               meters.map(m => (
-                <button
+                <Button
                   key={m.id}
+                  variant="ghost"
                   type="button"
                   onClick={() => setSelectedMeter(m.id)}
-                  className={`w-full text-left px-3 py-2.5 text-sm border-b last:border-b-0 transition-colors ${
-                    selectedMeter === m.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50"
+                  className={`w-full justify-start rounded-none px-3 py-2.5 h-auto text-sm border-b last:border-b-0 ${
+                    selectedMeter === m.id ? "bg-primary/10 text-primary font-medium" : ""
                   }`}
                 >
                   <span className="font-medium">{m.name}</span>
                   <span className="ml-2 text-xs text-muted-foreground font-mono">{m.external_device_id.slice(0, 12)}</span>
-                </button>
+                </Button>
               ))
             )}
           </div>

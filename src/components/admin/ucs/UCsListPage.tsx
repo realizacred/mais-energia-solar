@@ -221,7 +221,7 @@ export default function UCsListPage() {
       <TableRow
         key={uc.id}
         className={cn(
-          "hover:bg-muted/30 cursor-pointer transition-colors",
+          "group hover:bg-muted/30 cursor-pointer transition-colors",
           isChild && "bg-muted/20",
           isGenerator && "border-l-2 border-l-primary/40"
         )}
