@@ -80,7 +80,7 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
                         {st !== undefined && (
                           hasData ? (
                             <Badge variant="secondary" className="text-[9px] bg-success/10 text-success border-success/30 px-1.5 py-0">
-                              {st.points.toLocaleString("pt-BR")} pts
+                              {formatIntegerBR(st.points)} pts
                             </Badge>
                           ) : (
                             <Badge variant="secondary" className="text-[9px] bg-destructive/10 text-destructive border-destructive/30 px-1.5 py-0">
