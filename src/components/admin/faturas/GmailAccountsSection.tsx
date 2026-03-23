@@ -40,8 +40,12 @@ export function GmailAccountsSection() {
   const [oauthSaving, setOauthSaving] = useState(false);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
+  const [savedClientId, setSavedClientId] = useState("");
+  const [savedClientSecret, setSavedClientSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [oauthLoaded, setOauthLoaded] = useState(false);
+
+  const oauthDirty = clientId !== savedClientId || clientSecret !== savedClientSecret;
 
   // New account modal
   const [showNewModal, setShowNewModal] = useState(false);
