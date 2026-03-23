@@ -102,6 +102,7 @@ export function ConcessionariaFormDialog({
       onSubmit={onSave}
       submitLabel={isEditing ? "Salvar alterações" : "Cadastrar"}
       className="max-w-3xl"
+      disabled={disabled}
     >
           {/* Identificação */}
           <FormSection title="Identificação">
