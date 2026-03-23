@@ -7,7 +7,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
-const PARSER_VERSION = "3.0.2";
+const PARSER_VERSION = "3.1.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
