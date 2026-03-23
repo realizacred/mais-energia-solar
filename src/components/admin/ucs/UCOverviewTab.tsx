@@ -267,8 +267,8 @@ export function UCOverviewTab({
         <StatCard
           icon={Activity}
           label="Status do Sistema"
-          value={meterStatus?.online_status === "online" || meterOnline === "online" ? "Online" : "Offline"}
-          color={meterStatus?.online_status === "online" || meterOnline === "online" ? "success" : "destructive"}
+          value={!meterId ? "Sem medidor" : (meterStatus?.online_status === "online" || meterOnline === "online") ? "Online" : "Offline"}
+          color={!meterId ? "muted" : (meterStatus?.online_status === "online" || meterOnline === "online") ? "success" : "destructive"}
         />
 
         {loadingPlantMetrics ? (
