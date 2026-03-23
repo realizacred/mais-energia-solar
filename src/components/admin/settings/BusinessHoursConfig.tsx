@@ -74,6 +74,13 @@ export function BusinessHoursConfig({ tenantId }: { tenantId: string }) {
       })));
     }
     setLoading(false);
+    // Set baseline after loading for dirty comparison
+    setTimeout(() => {
+      setHorarios(prev => {
+        baselineRef.current = JSON.stringify(prev.map(h => ({ dia_semana: h.dia_semana, ativo: h.ativo, hora_inicio: h.hora_inicio, hora_fim: h.hora_fim })));
+        return prev;
+      });
+    }, 0);
   };
 
   const updateHorario = (index: number, field: keyof HorarioRow, value: any) => {
