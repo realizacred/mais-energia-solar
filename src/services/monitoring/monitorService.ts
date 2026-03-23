@@ -587,25 +587,8 @@ export async function listDailyReadings(
     }));
   }
 
-  // Fallback: legacy table
-  const { data } = await supabase
-    .from("solar_plant_metrics_daily" as any)
-    .select("*")
-    .eq("plant_id", legacyId)
-    .gte("date", startDate)
-    .lte("date", endDate)
-    .order("date", { ascending: true });
-
-  return ((data as unknown as SolarPlantMetricsDaily[]) || []).map((m) => ({
-    id: m.id,
-    tenant_id: m.tenant_id,
-    plant_id: m.plant_id,
-    date: m.date,
-    energy_kwh: m.energy_kwh ?? 0,
-    peak_power_kw: m.power_kw,
-    metadata: m.metadata || {},
-    created_at: m.created_at,
-  }));
+  // No monitor_plants mapping found — no metrics available
+  return [];
 }
 
 export async function listAllReadings(
