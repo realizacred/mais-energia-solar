@@ -810,7 +810,7 @@ export function UCInvoicesTab({ unitId }: Props) {
                 <Input type="number" min={1} max={12} value={form.reference_month} onChange={(e) => setForm(f => ({ ...f, reference_month: parseInt(e.target.value) || 1 }))} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Ano *</Label>
+                <Label className="text-xs">Ano <span className="text-destructive">*</span></Label>
                 <Input type="number" value={form.reference_year} onChange={(e) => setForm(f => ({ ...f, reference_year: parseInt(e.target.value) || 2024 }))} />
               </div>
             </div>
