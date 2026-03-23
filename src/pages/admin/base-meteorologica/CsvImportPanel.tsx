@@ -378,7 +378,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
             )}
             <div>
               <span className="text-muted-foreground">Total mesclado:</span>{" "}
-              <span className="font-semibold text-primary">{validation.mergedCount.toLocaleString("pt-BR")} pts</span>
+              <span className="font-semibold text-primary">{formatIntegerBR(validation.mergedCount)} pts</span>
             </div>
           </div>
           {validation.skippedRows > 0 && (
