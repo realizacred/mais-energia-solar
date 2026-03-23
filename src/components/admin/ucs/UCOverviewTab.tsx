@@ -312,8 +312,9 @@ export function UCOverviewTab({
         <StatCard
           icon={Calendar}
           label="Próxima Leitura"
-          value={proximaLeituraData ? format(parseISO(proximaLeituraData), "dd/MM/yyyy") : "Não agendada"}
-          color={proximaDias != null && proximaDias < 7 ? "warning" : "muted"}
+          value={proximaLeituraData ? format(parseISO(proximaLeituraData), "dd/MM/yyyy") : "—"}
+          color={proximaDias != null && proximaDias <= 0 ? "destructive" : proximaDias != null && proximaDias < 7 ? "warning" : "muted"}
+          subtitle={proximaDias != null && proximaDias <= 0 ? "⚠ Leitura atrasada" : undefined}
         />
 
         <StatCard
