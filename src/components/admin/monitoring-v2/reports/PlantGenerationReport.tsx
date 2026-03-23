@@ -4,6 +4,7 @@
  * Used in both usina detail and UC detail pages.
  */
 import { useState } from "react";
+import { formatDecimalBR } from "@/lib/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
