@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
         scope: scopes.join(" "),
         state,
         access_type: "offline",
-        prompt: "consent",
+        prompt: "select_account consent",
       });
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
