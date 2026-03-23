@@ -27,9 +27,8 @@ import { ptBR } from "date-fns/locale";
 interface Props {
   ucId: string;
   meterId?: string | null;
+  /** monitor_plants.id — used for V2 metrics queries */
   plantId?: string | null;
-  /** Resolved solar_plants.id (from monitor_plants.legacy_plant_id) for metrics queries */
-  solarPlantId?: string | null;
   meterName?: string | null;
   meterOnline?: string | null;
   plantName?: string | null;

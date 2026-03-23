@@ -279,12 +279,11 @@ export default function UCDetailPage() {
               ucId={uc.id}
               meterId={activeMeterIdResolved}
               plantId={activePlantId}
-              solarPlantId={solarPlantId}
               meterName={activeMeter?.name ?? null}
               meterOnline={activeMeter?.online_status ?? null}
               plantName={activePlant?.name ?? null}
               plantCapacityKwp={activePlant?.installed_power_kwp ?? null}
-              proximaLeituraData={proximaLeituraData ?? null}
+              proximaLeituraData={(uc as any)?.proxima_leitura_data ?? null}
             />
           </TabsContent>
 
