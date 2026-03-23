@@ -905,7 +905,18 @@ export function UCInvoicesTab({ unitId }: Props) {
 
           <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
             <Button variant="ghost" onClick={() => { setDialogOpen(false); setEditingInvoice(null); }} disabled={saveMut.isPending}>Cancelar</Button>
-            <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !isFormValid}>
+            <Button onClick={() => {
+              if (!isFormValid) {
+                toast({ title: "Preencha os campos obrigatórios", description: "Mês, ano e valor total são obrigatórios.", variant: "destructive" });
+                return;
+              }
+              const amount = parseFloat(form.total_amount);
+              if (isNaN(amount) || amount <= 0) {
+                toast({ title: "Valor inválido", description: "O valor total deve ser maior que zero.", variant: "destructive" });
+                return;
+              }
+              saveMut.mutate();
+            }} disabled={saveMut.isPending}>
               {saveMut.isPending ? "Salvando..." : isEditing ? "Salvar alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
