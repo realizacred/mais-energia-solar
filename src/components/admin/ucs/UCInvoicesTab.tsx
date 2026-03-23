@@ -806,11 +806,11 @@ export function UCInvoicesTab({ unitId }: Props) {
             {/* Referência */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Mês *</Label>
+                <Label className="text-xs">Mês <span className="text-destructive">*</span></Label>
                 <Input type="number" min={1} max={12} value={form.reference_month} onChange={(e) => setForm(f => ({ ...f, reference_month: parseInt(e.target.value) || 1 }))} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Ano *</Label>
+                <Label className="text-xs">Ano <span className="text-destructive">*</span></Label>
                 <Input type="number" value={form.reference_year} onChange={(e) => setForm(f => ({ ...f, reference_year: parseInt(e.target.value) || 2024 }))} />
               </div>
             </div>
@@ -818,7 +818,7 @@ export function UCInvoicesTab({ unitId }: Props) {
             {/* Valor, Vencimento, Bandeira */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Valor (R$) *</Label>
+                <Label className="text-xs">Valor (R$) <span className="text-destructive">*</span></Label>
                 <Input type="number" step="0.01" value={form.total_amount} onChange={(e) => setForm(f => ({ ...f, total_amount: e.target.value }))} placeholder="0,00" />
               </div>
               <div className="space-y-1">
@@ -905,7 +905,18 @@ export function UCInvoicesTab({ unitId }: Props) {
 
           <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
             <Button variant="ghost" onClick={() => { setDialogOpen(false); setEditingInvoice(null); }} disabled={saveMut.isPending}>Cancelar</Button>
-            <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !isFormValid}>
+            <Button onClick={() => {
+              if (!isFormValid) {
+                toast({ title: "Preencha os campos obrigatórios", description: "Mês, ano e valor total são obrigatórios.", variant: "destructive" });
+                return;
+              }
+              const amount = parseFloat(form.total_amount);
+              if (isNaN(amount) || amount <= 0) {
+                toast({ title: "Valor inválido", description: "O valor total deve ser maior que zero.", variant: "destructive" });
+                return;
+              }
+              saveMut.mutate();
+            }} disabled={saveMut.isPending}>
               {saveMut.isPending ? "Salvando..." : isEditing ? "Salvar alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
