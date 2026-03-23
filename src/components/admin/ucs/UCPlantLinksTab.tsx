@@ -2,6 +2,7 @@
  * UCPlantLinksTab — Manage links between UC and Plants (usinas).
  */
 import { useState } from "react";
+import { formatDecimalBR } from "@/lib/formatters";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
