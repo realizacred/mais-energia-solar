@@ -452,8 +452,10 @@ function extractEnergisa(text: string): ExtractedData | null {
     const m = flatText.match(p);
     if (m) {
       const candidate = m[1].trim().replace(/\s+/g, ' ');
-      // Reject if it looks like an address or company name
-      if (candidate.length >= 5 && !/^(RUA|AV|TRAV|ROD|ESTR|BR\s|ENERGISA|DISTRIBUID)/i.test(candidate)) {
+      // Reject if it looks like an address, company name, or ligação type
+      if (candidate.length >= 5
+        && !/^(RUA|AV|TRAV|ROD|ESTR|BR\s|ENERGISA|DISTRIBUID)/i.test(candidate)
+        && !/^(BIFASICO|TRIFASICO|MONOFASICO|BIFÁSICO|TRIFÁSICO|MONOFÁSICO)$/i.test(candidate)) {
         clienteNome = candidate;
         fieldResults['cliente_nome'] = makeField(clienteNome, 'regex:CLIENTE_NOME', true);
         break;
