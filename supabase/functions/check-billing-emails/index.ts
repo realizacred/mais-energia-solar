@@ -43,9 +43,8 @@ Deno.serve(async (req) => {
   let isAuthedUser = false;
   if (!isCron && !isServiceRole && authHeader?.startsWith('Bearer ')) {
     const token = authHeader.replace('Bearer ', '');
-    const tmpClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') || serviceRoleKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const tmpClient = createClient(supabaseUrl, anonKey);
     const { data: { user } } = await tmpClient.auth.getUser(token);
     isAuthedUser = !!user;
   }
