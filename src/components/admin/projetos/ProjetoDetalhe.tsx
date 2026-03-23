@@ -13,7 +13,7 @@ import {
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check, Link2,
   AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity,
-  ChevronDown, SunMedium, Bell, Users, Tag
+  ChevronDown, SunMedium, Bell, Users, Tag, Star
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -155,6 +155,9 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
 function ProjetoDetalheContent() {
   const ctx = useProjetoDetalhe();
   const navigate = useNavigate();
+  const [isPrincipal, setIsPrincipal] = useState(false);
+  const [principalLoading, setPrincipalLoading] = useState(false);
+  const [projetoId, setProjetoId] = useState<string | null>(null);
 
   const {
     deal, loading, activeTab, setActiveTab, stages,
@@ -169,6 +172,42 @@ function ProjetoDetalheContent() {
     isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge,
     dealId, onBack, initialPipelineId,
   } = ctx;
+
+  // Fetch is_principal status
+  useEffect(() => {
+    if (!dealId) return;
+    (async () => {
+      const { data: dealRow } = await supabase
+        .from("deals")
+        .select("projeto_id")
+        .eq("id", dealId)
+        .maybeSingle();
+      const pId = (dealRow as any)?.projeto_id;
+      if (!pId) return;
+      setProjetoId(pId);
+      const { data: proj } = await supabase
+        .from("projetos")
+        .select("is_principal")
+        .eq("id", pId)
+        .maybeSingle();
+      setIsPrincipal((proj as any)?.is_principal === true);
+    })();
+  }, [dealId]);
+
+  const handleTogglePrincipal = async () => {
+    if (!projetoId || isPrincipal) return;
+    setPrincipalLoading(true);
+    try {
+      const { error } = await supabase.rpc("set_projeto_principal" as any, { p_projeto_id: projetoId });
+      if (error) throw error;
+      setIsPrincipal(true);
+      toast({ title: "Projeto definido como principal", description: "Este projeto será usado como referência para contratos." });
+    } catch (err: any) {
+      toast({ title: "Erro ao definir principal", description: err.message, variant: "destructive" });
+    } finally {
+      setPrincipalLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -213,6 +252,16 @@ function ProjetoDetalheContent() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
+                  {!isPrincipal && (
+                    <DropdownMenuItem
+                      onClick={handleTogglePrincipal}
+                      disabled={principalLoading}
+                    >
+                      <Star className="h-4 w-4 mr-2" />
+                      {principalLoading ? "Definindo..." : "Definir como Principal"}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => { setDeleteBlocking([]); handleDeleteProject(); }}
@@ -270,8 +319,14 @@ function ProjetoDetalheContent() {
               </Popover>
             </div>
 
-            {/* Right side: status + consultor + nova proposta inline */}
+            {/* Right side: principal + status + consultor + nova proposta inline */}
             <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+              {isPrincipal && (
+                <Badge variant="outline" className="text-xs shrink-0 gap-1 bg-warning/10 text-warning border-warning/20 font-semibold">
+                  <Star className="h-3 w-3 fill-current" />
+                  Principal
+                </Badge>
+              )}
               <Badge
                 variant="secondary"
                 className={cn(

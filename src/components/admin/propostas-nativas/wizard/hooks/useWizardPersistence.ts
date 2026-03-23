@@ -221,15 +221,10 @@ async function persistProposalAtomic(
 
       if (error) {
         console.error("[persist] RPC error:", JSON.stringify(error, null, 2));
-        const isDuplicateProject = error.message?.includes("idx_projetos_unique_cliente_ativo");
         return {
           status: "error",
-          reason: isDuplicateProject
-            ? "Este cliente já possui um projeto ativo. Finalize ou arquive o projeto existente antes de criar uma nova proposta."
-            : error.message,
-          message: isDuplicateProject
-            ? "Projeto duplicado"
-            : "Erro ao criar proposta",
+          reason: error.message,
+          message: "Erro ao criar proposta",
         };
       }
 

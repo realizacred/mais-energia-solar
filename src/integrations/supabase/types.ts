@@ -14179,6 +14179,7 @@ export type Database = {
           geracao_mensal_media_kwh: number | null
           id: string
           instalador_id: string | null
+          is_principal: boolean
           lat_instalacao: number | null
           lead_id: string | null
           lon_instalacao: number | null
@@ -14231,6 +14232,7 @@ export type Database = {
           geracao_mensal_media_kwh?: number | null
           id?: string
           instalador_id?: string | null
+          is_principal?: boolean
           lat_instalacao?: number | null
           lead_id?: string | null
           lon_instalacao?: number | null
@@ -14283,6 +14285,7 @@ export type Database = {
           geracao_mensal_media_kwh?: number | null
           id?: string
           instalador_id?: string | null
+          is_principal?: boolean
           lat_instalacao?: number | null
           lead_id?: string | null
           lon_instalacao?: number | null
@@ -25567,6 +25570,10 @@ export type Database = {
       }
       set_billing_pdf_password: {
         Args: { p_password: string; p_unit_id: string }
+        Returns: undefined
+      }
+      set_projeto_principal: {
+        Args: { p_projeto_id: string }
         Returns: undefined
       }
       sm_match_clients_to_leads: {
