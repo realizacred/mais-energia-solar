@@ -150,26 +150,26 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
         </DialogHeader>
 
         {/* Body — §39 flex-1 min-h-0 overflow-y-auto */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
           {/* Row 1: Dados da UC + Classificação */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {/* Dados da UC — §2 bg-muted/30 */}
-            <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4 min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5 text-primary" />
+            <section className="rounded-lg border border-border bg-muted/30 p-3.5 space-y-3 min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <Zap className="w-3 h-3 text-primary" />
                 Dados da UC
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Código da UC <span className="text-destructive">*</span></Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">Código da UC <span className="text-destructive">*</span></Label>
                   <Input value={form.codigo_uc} onChange={set("codigo_uc")} placeholder="Ex: 0012345678" autoComplete="off" />
                 </div>
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Nome / Denominação <span className="text-destructive">*</span></Label>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">Nome / Denominação <span className="text-destructive">*</span></Label>
                   <Input value={form.nome} onChange={set("nome")} placeholder="Nome da unidade" autoComplete="off" />
                 </div>
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Tipo da UC</Label>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">Tipo da UC</Label>
                   <Select value={form.tipo_uc} onValueChange={set("tipo_uc")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -179,8 +179,8 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Concessionária <span className="text-destructive">*</span></Label>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">Concessionária <span className="text-destructive">*</span></Label>
                   <Select value={form.concessionaria_id} onValueChange={set("concessionaria_id")}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
@@ -194,14 +194,14 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
             </section>
 
             {/* Classificação Tarifária — §2 bg-muted/30 */}
-            <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4 min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-primary" />
+            <section className="rounded-lg border border-border bg-muted/30 p-3.5 space-y-3 min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <FileText className="w-3 h-3 text-primary" />
                 Classificação Tarifária
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Grupo</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">Grupo</Label>
                   <Select value={form.classificacao_grupo} onValueChange={set("classificacao_grupo")}>
                     <SelectTrigger><SelectValue placeholder="Ex: B1" /></SelectTrigger>
                     <SelectContent>
@@ -209,12 +209,12 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Subgrupo</Label>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">Subgrupo</Label>
                   <Input value={form.classificacao_subgrupo} onChange={set("classificacao_subgrupo")} placeholder="Ex: Residencial" autoComplete="off" />
                 </div>
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Modalidade Tarifária</Label>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">Modalidade Tarifária</Label>
                   <Select value={form.modalidade_tarifaria} onValueChange={set("modalidade_tarifaria")}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
@@ -223,32 +223,32 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                   </Select>
                 </div>
               </div>
-              <div className="pt-1 space-y-2">
+              <div className="pt-0.5 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">Observações</Label>
+                  <Label className="text-[11px] font-semibold">Observações</Label>
                   {editingUC && (
-                    <div className="flex items-center gap-2 px-1">
-                      <Label className="text-xs text-muted-foreground">Ativo</Label>
+                    <div className="flex items-center gap-1.5 px-1">
+                      <Label className="text-[11px] text-muted-foreground">Ativo</Label>
                       <Switch checked={form.ativo} onCheckedChange={(v) => setForm(f => ({ ...f, ativo: v }))} />
                     </div>
                   )}
                 </div>
-                <Textarea value={form.observacoes} onChange={set("observacoes")} rows={3} placeholder="Notas internas..." />
+                <Textarea value={form.observacoes} onChange={set("observacoes")} rows={2} placeholder="Notas internas..." className="text-sm" />
               </div>
             </section>
           </div>
 
           {/* Row 2: GD + Faturamento + Cliente */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {/* GD */}
-            <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4 min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                <Sun className="w-3.5 h-3.5 text-primary" />
+            <section className="rounded-lg border border-border bg-muted/30 p-3.5 space-y-3 min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <Sun className="w-3 h-3 text-primary" />
                 Geração Distribuída
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Papel GD</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">Papel GD</Label>
                   <Select value={form.papel_gd} onValueChange={set("papel_gd")}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -258,8 +258,8 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Categoria GD</Label>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">Categoria GD</Label>
                   <Select value={form.categoria_gd || "none"} onValueChange={(v) => setForm(f => ({ ...f, categoria_gd: v === "none" ? "" : v }))}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
@@ -274,14 +274,14 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
             </section>
 
             {/* Faturamento */}
-            <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4 min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-primary" />
+            <section className="rounded-lg border border-border bg-muted/30 p-3.5 space-y-3 min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <Mail className="w-3 h-3 text-primary" />
                 Faturamento
               </p>
-              <div className="space-y-4">
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">Cliente</Label>
+              <div className="space-y-3">
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">Cliente</Label>
                   <Select value={form.cliente_id || "none"} onValueChange={(v) => setForm(f => ({ ...f, cliente_id: v === "none" ? "" : v }))}>
                     <SelectTrigger><SelectValue placeholder="Selecione o cliente..." /></SelectTrigger>
                     <SelectContent>
@@ -292,12 +292,12 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5 min-w-0">
-                  <Label className="text-xs">E-mail da Fatura</Label>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-[11px]">E-mail da Fatura</Label>
                   <Input type="email" value={form.email_fatura} onChange={set("email_fatura")} placeholder="fatura@email.com" autoComplete="off" />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs">Leitura automática por e-mail</Label>
+                  <Label className="text-[11px]">Leitura automática por e-mail</Label>
                   <Switch checked={form.leitura_automatica_email} onCheckedChange={(v) => setForm(f => ({ ...f, leitura_automatica_email: v }))} />
                 </div>
               </div>
@@ -305,9 +305,9 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
           </div>
 
           {/* Row 3: Endereço — §13 AddressFields */}
-          <section className="rounded-lg border border-border bg-muted/30 p-5 space-y-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5 text-primary" />
+          <section className="rounded-lg border border-border bg-muted/30 p-3.5 space-y-3">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <MapPin className="w-3 h-3 text-primary" />
               Endereço
             </p>
             <AddressFields value={address} onChange={setAddress} />
@@ -315,7 +315,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
         </div>
 
         {/* Footer — §25 */}
-        <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+        <div className="flex justify-end gap-2 p-3 border-t border-border bg-muted/30 shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
