@@ -3788,6 +3788,7 @@ export type Database = {
           description: string | null
           gd_group_id: string | null
           id: string
+          notification_sent_at: string | null
           plant_id: string | null
           resolution_note: string | null
           resolved_at: string | null
@@ -3804,6 +3805,7 @@ export type Database = {
           description?: string | null
           gd_group_id?: string | null
           id?: string
+          notification_sent_at?: string | null
           plant_id?: string | null
           resolution_note?: string | null
           resolved_at?: string | null
@@ -3820,6 +3822,7 @@ export type Database = {
           description?: string | null
           gd_group_id?: string | null
           id?: string
+          notification_sent_at?: string | null
           plant_id?: string | null
           resolution_note?: string | null
           resolved_at?: string | null
@@ -21234,6 +21237,7 @@ export type Database = {
           servico_cobranca_ativo: boolean | null
           simulacao_id: string | null
           status: string
+          telefone_alertas: string | null
           tenant_id: string
           tipo_uc: Database["public"]["Enums"]["uc_type"]
           ultima_leitura_data: string | null
@@ -21270,6 +21274,7 @@ export type Database = {
           servico_cobranca_ativo?: boolean | null
           simulacao_id?: string | null
           status?: string
+          telefone_alertas?: string | null
           tenant_id?: string
           tipo_uc?: Database["public"]["Enums"]["uc_type"]
           ultima_leitura_data?: string | null
@@ -21306,6 +21311,7 @@ export type Database = {
           servico_cobranca_ativo?: boolean | null
           simulacao_id?: string | null
           status?: string
+          telefone_alertas?: string | null
           tenant_id?: string
           tipo_uc?: Database["public"]["Enums"]["uc_type"]
           ultima_leitura_data?: string | null
