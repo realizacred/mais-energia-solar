@@ -1601,6 +1601,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
                 geracao_mensal: geracao,
                 output_pdf_path: (v as any).output_pdf_path || null,
                 output_docx_path: (v as any).output_docx_path || null,
+                public_slug: (v as any).public_slug || null,
               };
             }),
           }));
