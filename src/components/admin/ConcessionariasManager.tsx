@@ -921,6 +921,7 @@ export function ConcessionariasManager() {
           onUpdateForm={updateForm}
           onSave={handleSave}
           isEditing={!!editing}
+          disabled={!isFormDirty}
         />
 
         {/* Delete Confirmation */}
