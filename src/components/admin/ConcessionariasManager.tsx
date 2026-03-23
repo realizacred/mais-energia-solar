@@ -352,7 +352,7 @@ export function ConcessionariasManager() {
   const openDialog = (concessionaria?: Concessionaria) => {
     if (concessionaria) {
       setEditing(concessionaria);
-      setForm({
+      const formData: ConcessionariaFormData = {
         nome: concessionaria.nome,
         sigla: concessionaria.sigla || "",
         estado: concessionaria.estado || "",
@@ -367,10 +367,13 @@ export function ConcessionariasManager() {
         cofins_percentual: concessionaria.cofins_percentual?.toString() || "",
         possui_isencao_scee: concessionaria.possui_isencao_scee,
         percentual_isencao: concessionaria.percentual_isencao?.toString() || "",
-      });
+      };
+      setForm(formData);
+      setFormBaseline(JSON.stringify(formData));
     } else {
       setEditing(null);
       setForm(EMPTY_FORM);
+      setFormBaseline(JSON.stringify(EMPTY_FORM));
     }
     setDialogOpen(true);
   };
