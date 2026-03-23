@@ -51,58 +51,17 @@ export function WaFollowupQueuePage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ─── Data Queries ───────────────────────────────────────
-  const { data: items = [], isLoading } = useQuery({
-    queryKey: ["wa-followup-queue-page", statusFilter, isAdmin, user?.id],
-    queryFn: async () => {
-      let query = supabase
-        .from("wa_followup_queue")
-        .select(`
-          id, status, tentativa, scheduled_at, sent_at, responded_at,
-          assigned_to, mensagem_enviada, conversation_id, created_at,
-          rule:wa_followup_rules(nome, cenario, prioridade, prazo_minutos)
-        `)
-        .order("scheduled_at", { ascending: true })
-        .limit(100);
-
-      if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter);
-      }
-
-      // 🔐 Consultores só veem seus próprios follow-ups
-      if (!isAdmin && user?.id) {
-        query = query.eq("assigned_to", user.id);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []) as unknown as FollowupQueueItem[];
-    },
-    staleTime: 15_000,
+  // ─── Data Queries (hooks from useWaFollowup) ─────────────
+  const { data: items = [], isLoading } = useFollowupQueue({
+    statusFilter,
+    isAdmin,
+    userId: user?.id,
   });
 
-  const { data: vendedores = [] } = useQuery({
-    queryKey: ["wa-followup-vendedores-page"],
-    queryFn: async () => {
-      const { data } = await supabase.from("consultores").select("id, nome, user_id").eq("ativo", true);
-      return data || [];
-    },
-    staleTime: 60_000,
-  });
+  const { data: vendedores = [] } = useFollowupVendedores();
 
   const conversationIds = [...new Set(items.map((f) => f.conversation_id).filter(Boolean))];
-  const { data: conversations = [] } = useQuery({
-    queryKey: ["wa-followup-convs-page", conversationIds],
-    queryFn: async () => {
-      if (conversationIds.length === 0) return [];
-      const { data } = await supabase
-        .from("wa_conversations")
-        .select("id, cliente_nome, cliente_telefone, status, last_message_at")
-        .in("id", conversationIds);
-      return (data || []) as ConversationInfo[];
-    },
-    enabled: conversationIds.length > 0,
-    staleTime: 30_000,
-  });
+  const { data: conversations = [] } = useFollowupConversations(conversationIds);
 
   const convsMap = useMemo(
     () => Object.fromEntries(conversations.map((c) => [c.id, c])),
