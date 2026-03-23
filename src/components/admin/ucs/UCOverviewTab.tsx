@@ -4,6 +4,7 @@
  * §27: KPI cards via StatCard, §5: Recharts, §4: empty states, §23: staleTime.
  */
 import { useQuery } from "@tanstack/react-query";
+import { formatDecimalBR } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { meterService } from "@/services/meterService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
