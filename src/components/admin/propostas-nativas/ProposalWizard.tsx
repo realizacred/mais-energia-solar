@@ -495,10 +495,59 @@ export function ProposalWizard() {
 
         const rawSnapshot = versao.snapshot as unknown as Record<string, any>;
 
-        // Normalize legacy snapshots (imported from SolarMarket) to wizard format
-        const s = rawSnapshot.source === "legacy_import"
-          ? await normalizeLegacySnapshot(rawSnapshot, propostaIdFromUrl, versao) as WizardSnapshot
-          : rawSnapshot as WizardSnapshot;
+        // Detect snapshot format and normalize to wizard format
+        let s: WizardSnapshot;
+        if (rawSnapshot.source === "legacy_import") {
+          // Legacy SolarMarket import
+          s = await normalizeLegacySnapshot(rawSnapshot, propostaIdFromUrl, versao) as WizardSnapshot;
+        } else if (rawSnapshot.engine_version || rawSnapshot.versao_schema) {
+          // Engine-enriched snapshot — map back to wizard format
+          const uc0 = (rawSnapshot.ucs as any[])?.[0] || {};
+          s = {
+            locEstado: uc0.estado || "",
+            locCidade: uc0.cidade || "",
+            locTipoTelhado: uc0.tipo_telhado || "",
+            locDistribuidoraId: uc0.distribuidora_id || "",
+            locDistribuidoraNome: uc0.distribuidora || "",
+            locIrradiacao: rawSnapshot.tecnico?.irradiacao_media_kwp_mes || 0,
+            locGhiSeries: null,
+            locLatitude: null,
+            distanciaKm: uc0.distancia || 0,
+            projectAddress: undefined,
+            mapSnapshots: [],
+            ucs: rawSnapshot.ucs || [],
+            grupo: rawSnapshot.ucs?.length > 1 ? "multi" : "B",
+            potenciaKwp: rawSnapshot.tecnico?.potencia_kwp || versao.potencia_kwp || 0,
+            itens: rawSnapshot.itens || [],
+            layouts: [],
+            manualKits: [],
+            adicionais: [],
+            servicos: rawSnapshot.servicos || [],
+            venda: rawSnapshot.venda || {},
+            premissas: rawSnapshot.premissas || null,
+            preDimensionamento: {
+              sistema: "on_grid",
+              tipos_kit: [],
+              topologias: [],
+              inclinacao: uc0.inclinacao || 0,
+              desvio_azimutal: uc0.desvio_azimutal || 0,
+              desempenho: uc0.taxa_desempenho || 80,
+              fator_geracao: 0,
+              sombreamento: "Nenhuma",
+              topologia_configs: {},
+            } as any,
+            pagamentoOpcoes: rawSnapshot.pagamento_opcoes || rawSnapshot.pagamentoOpcoes || [],
+            customFieldValues: rawSnapshot.variaveis_custom || {},
+            nomeProposta: "",
+            descricaoProposta: "",
+            templateSelecionado: "",
+            step: 0,
+          } as any;
+          console.log("[ProposalWizard] Normalized engine snapshot to wizard format");
+        } else {
+          // Native wizard snapshot — use as-is
+          s = rawSnapshot as WizardSnapshot;
+        }
 
         // Diagnostic: log snapshot data for debugging restore issues
         console.log("[ProposalWizard] Snapshot restore:", {
