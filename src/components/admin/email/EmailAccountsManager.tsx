@@ -53,8 +53,8 @@ const EMPTY_FORM = {
 
 export function EmailAccountsManager() {
   const { data: accounts = [], isLoading } = useEmailAccounts();
-  const salvar = useSalvarEmailAccount();
-  const deletar = useDeletarEmailAccount();
+  const salvar = useSaveEmailAccount();
+  const deletar = useDeleteEmailAccount();
   const toggle = useToggleEmailAccount();
 
   const [modalOpen, setModalOpen] = useState(false);
