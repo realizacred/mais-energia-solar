@@ -91,7 +91,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
       const legacyIds = (plantRows || []).map((p: any) => p.legacy_plant_id).filter(Boolean);
       if (legacyIds.length === 0) return [];
       const today = getTodayBrasilia();
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("solar_plant_metrics_daily")
         .select("plant_id, energy_kwh, date")
         .in("plant_id", legacyIds)
