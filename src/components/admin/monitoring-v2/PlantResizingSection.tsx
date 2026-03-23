@@ -3,6 +3,7 @@
  * §4: Table pattern. §12: Skeleton loading. §22: Button variants.
  */
 import { useState } from "react";
+import { formatDecimalBR } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
