@@ -296,7 +296,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
 
   const monitorPlantId = (mpRow as any)?.id || null;
 
-  // Use v2 tables for metrics when monitor_plants.id is available
+  // Use v2 tables for metrics (monitor_readings_daily)
   const metricsQueries = monitorPlantId
     ? [
         supabase.from("monitor_readings_daily").select("*").eq("plant_id", monitorPlantId).eq("date", today).maybeSingle(),
@@ -304,9 +304,10 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
         supabase.from("monitor_readings_daily").select("energy_kwh, peak_power_kw").eq("plant_id", monitorPlantId).gte("date", monthStartStr).lte("date", today),
       ]
     : [
-        supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", today).maybeSingle(),
-        supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", yesterday).maybeSingle(),
-        supabase.from("solar_plant_metrics_daily" as any).select("energy_kwh, power_kw").eq("plant_id", resolvedId).gte("date", monthStartStr).lte("date", today),
+        // No monitor_plants mapping — return empty results
+        Promise.resolve({ data: null, error: null }),
+        Promise.resolve({ data: null, error: null }),
+        Promise.resolve({ data: [], error: null }),
       ];
 
   const [{ data: metric }, { data: yesterdayMetric }, { data: monthMetrics }, { data: alertRows }] = await Promise.all([
