@@ -89,7 +89,7 @@ export function useSalvarObra() {
         const { error } = await supabase.from("obras").update(data as any).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("obras").insert(data);
+        const { error } = await supabase.from("obras").insert(data as any);
         if (error) throw error;
       }
     },
