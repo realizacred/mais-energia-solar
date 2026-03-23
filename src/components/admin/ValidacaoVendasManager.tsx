@@ -45,17 +45,6 @@ import {
   type LeadSimulacao,
 } from "@/hooks/useValidacaoVendas";
 
-interface LeadSimulacao {
-  id: string;
-  investimento_estimado: number | null;
-  potencia_recomendada_kwp: number | null;
-  economia_mensal: number | null;
-  consumo_kwh: number | null;
-  geracao_mensal_estimada: number | null;
-  payback_meses: number | null;
-  created_at: string;
-}
-
 interface Vendedor {
   id: string;
   nome: string;
