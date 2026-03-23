@@ -581,7 +581,23 @@ function extractEnergisa(text: string): ExtractedData | null {
     confidence += 15;
   }
 
-  // Fallback consumo patterns
+  // ── Energisa fallback: concatenated meter readings from unpdf ──
+  // unpdf sometimes joins numbers: "PontaEnergia ativa em kWh 1 25219041652"
+  // where "25219041652" = consumo(252) + leitAtual(1904) + leitAnterior(1652)
+  if (leituraAnterior03 == null || leituraAtual03 == null || consumoKwh == null) {
+    const concatActiveMatch = flatText.match(/PontaEnergia\s+ativa\s+(?:em\s+)?kWh\s+1\s+(\d{7,})/i);
+    if (concatActiveMatch) {
+      const split = splitConcatenatedMeterReading(concatActiveMatch[1]);
+      if (split) {
+        if (leituraAnterior03 == null) { leituraAnterior03 = split.previous; fieldResults['leitura_anterior_03'] = makeField(split.previous, 'regex:ENERGISA_CONCAT_SPLIT', true, `split from ${concatActiveMatch[1]}`); }
+        if (leituraAtual03 == null) { leituraAtual03 = split.current; fieldResults['leitura_atual_03'] = makeField(split.current, 'regex:ENERGISA_CONCAT_SPLIT', true); }
+        if (consumoKwh == null) { consumoKwh = split.total; fieldResults['consumo_kwh'] = makeField(split.total, 'regex:ENERGISA_CONCAT_SPLIT', true); }
+        raw['leitura_03_concat'] = `${concatActiveMatch[1]} → ant=${split.previous} atu=${split.current} cons=${split.total}`;
+        confidence += 12;
+      }
+    }
+  }
+
   if (consumoKwh == null) {
     const consumoTableMatch = flatText.match(/Consumo\s+em\s+kWh\s+(\d[\d.,]*)\s+(\d[\d.,]*)\s+(\d[\d.,]*)/i);
     if (consumoTableMatch) {
