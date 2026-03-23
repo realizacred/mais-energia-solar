@@ -13,7 +13,7 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const APP_URL = Deno.env.get("APP_URL") || "https://maisenergiasolar.lovable.app";
 
 function getRedirectUri(): string {
-  return `${SUPABASE_URL}/functions/v1/gmail-oauth?action=callback`;
+  return `${SUPABASE_URL}/functions/v1/gmail-oauth`;
 }
 
 /**
