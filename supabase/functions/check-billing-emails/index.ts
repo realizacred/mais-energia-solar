@@ -2,8 +2,10 @@ import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-client-timeout, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+const MANUAL_VERIFICATION_TIMEBOX_MS = 45_000;
 
 // Known utility company email domains
 const KNOWN_SENDERS = [
@@ -209,6 +211,10 @@ Deno.serve(async (req) => {
   }
 
   const isManualVerification = !!bodyAccountId;
+  const requestStartedAt = Date.now();
+  let timedOut = false;
+
+  const exceededTimebox = () => isManualVerification && (Date.now() - requestStartedAt) >= MANUAL_VERIFICATION_TIMEBOX_MS;
 
   try {
     // ── 1. Fetch active Gmail accounts directly (no dependency on unit_billing_email_settings) ──
@@ -343,6 +349,12 @@ Deno.serve(async (req) => {
         let nextPageToken: string | null = null;
 
         for (let page = 0; page < maxPages; page++) {
+          if (exceededTimebox()) {
+            timedOut = true;
+            console.warn(`[check-billing-emails] Manual verification timebox reached while listing messages for ${gmailAccount.email}`);
+            break;
+          }
+
           const params = new URLSearchParams({
             q: gmailQueryString,
             maxResults: String(pageSize),
@@ -381,6 +393,12 @@ Deno.serve(async (req) => {
         console.log(`[check-billing-emails] ${gmailAccount.email}: ${messages.length} message(s) found (${isManualVerification ? 'manual' : 'auto'})`);
 
         for (const msg of messages) {
+          if (exceededTimebox()) {
+            timedOut = true;
+            console.warn(`[check-billing-emails] Manual verification timebox reached while processing messages for ${gmailAccount.email}`);
+            break;
+          }
+
           try {
             // Check if already processed (by source_message_id)
             const { data: existing } = await admin
@@ -449,6 +467,12 @@ Deno.serve(async (req) => {
             if (pdfParts.length === 0) continue;
 
             for (const pdfPart of pdfParts) {
+              if (exceededTimebox()) {
+                timedOut = true;
+                console.warn(`[check-billing-emails] Manual verification timebox reached while processing attachments for ${gmailAccount.email}`);
+                break;
+              }
+
               if (!pdfPart?.body?.attachmentId) continue;
 
               // Download attachment
@@ -523,6 +547,10 @@ Deno.serve(async (req) => {
               });
             }
 
+            if (timedOut) {
+              break;
+            }
+
             // Mark email as read only in automatic flow
             if (!isManualVerification) {
               await fetch(
@@ -541,6 +569,10 @@ Deno.serve(async (req) => {
             console.error(`[check-billing-emails] Message processing error:`, msgErr);
             totalErrors++;
           }
+        }
+
+        if (timedOut) {
+          console.warn(`[check-billing-emails] Manual verification finished with partial results for ${gmailAccount.email}`);
         }
 
         // Update ultimo_verificado_at
@@ -562,6 +594,7 @@ Deno.serve(async (req) => {
       processed: totalProcessed,
       skipped: totalSkipped,
       errors: totalErrors,
+      timed_out: timedOut,
       results,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 

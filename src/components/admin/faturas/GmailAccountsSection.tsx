@@ -25,6 +25,7 @@ import {
   Loader2, Eye, EyeOff, RefreshCw, Info, Copy,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 
 const REDIRECT_URI = "https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/gmail-oauth";
 
@@ -42,6 +43,10 @@ function getVerificationErrorMessage(result: any): string {
     lowerDetail.includes("service_disabled")
   ) {
     return "A Gmail API está desativada no projeto Google Cloud configurado para esta conta. Ative a Gmail API no Google Cloud Console e tente novamente.";
+  }
+
+  if (lowerDetail.includes("tempo limite") || lowerDetail.includes("timeout")) {
+    return "A verificação manual demorou mais do que o limite seguro. Reduzimos a busca e retornamos os resultados parciais encontrados.";
   }
 
   return String(rawDetail);
@@ -165,23 +170,10 @@ export function GmailAccountsSection() {
   async function handleVerifyNow(accountId: string) {
     setVerifyingId(accountId);
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      const response = await fetch(`${supabaseUrl}/functions/v1/check-billing-emails`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email_account_id: accountId }),
+      const result = await invokeEdgeFunction<any>("check-billing-emails", {
+        body: { email_account_id: accountId },
+        headers: { "x-client-timeout": "120" },
       });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(result?.error || `HTTP ${response.status}`);
-      }
 
       if (result?.errors > 0 && result?.processed === 0) {
         toast({
@@ -196,6 +188,17 @@ export function GmailAccountsSection() {
         toast({
           title: "Verificação parcial",
           description: `${result.processed} fatura(s) processada(s), ${result.errors} com erro: ${getVerificationErrorMessage(result)}`,
+        });
+        qc.invalidateQueries({ queryKey: ["gmail_accounts"] });
+        return;
+      }
+
+      if (result?.timed_out) {
+        toast({
+          title: "Verificação parcial",
+          description: result?.processed > 0
+            ? `${result.processed} fatura(s) processada(s) antes do tempo limite da busca manual.`
+            : "A busca foi interrompida no tempo limite seguro para evitar travamento. Tente refinar os e-mails monitorados e execute novamente.",
         });
         qc.invalidateQueries({ queryKey: ["gmail_accounts"] });
         return;
