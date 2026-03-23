@@ -1832,6 +1832,17 @@ async function syncPlantsByProvider(
       dbPlantsQuery = dbPlantsQuery.in("external_id", Array.from(selectedExternalIds));
     }
     const { data: dbPlants } = await dbPlantsQuery;
+
+    // Build legacy_plant_id → monitor_plants.id mapping for V2 readings table
+    const legacyIds = (dbPlants || []).map((p: any) => p.id);
+    const { data: mpRows } = legacyIds.length > 0
+      ? await ctx.supabaseAdmin.from("monitor_plants").select("id, legacy_plant_id").in("legacy_plant_id", legacyIds)
+      : { data: [] };
+    const legacyToMonitorId = new Map<string, string>();
+    ((mpRows as any[]) || []).forEach((mp: any) => {
+      if (mp.legacy_plant_id) legacyToMonitorId.set(mp.legacy_plant_id, mp.id);
+    });
+
     const metricsStartTime = Date.now();
     // Per-provider budget: 280s when running solo (per-provider cron), 30s when sharing
     const isSingleProviderRun = ctx.provider === (globalThis as any).__singleProviderFilter;
@@ -1856,7 +1867,8 @@ async function syncPlantsByProvider(
       const results = await Promise.allSettled(
         batch.map(async (p) => {
           const metrics = await metricsFn(p.external_id);
-          const err = await upsertMetrics(ctx, p.id, metrics);
+          const monitorId = legacyToMonitorId.get(p.id) || null;
+          const err = await upsertMetrics(ctx, p.id, metrics, monitorId);
           if (err) throw new Error(`Metrics ${p.external_id}: ${err}`);
 
           // ── APPEND-ONLY: Save raw payload for audit trail ──
