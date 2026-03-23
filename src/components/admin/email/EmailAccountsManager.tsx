@@ -187,7 +187,14 @@ export function EmailAccountsManager() {
       });
       const data = await resp.json();
       if (data.auth_url) {
-        window.location.href = data.auth_url;
+        const popup = window.open(data.auth_url, 'gmail-oauth', 'width=600,height=700,scrollbars=yes');
+        const timer = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(timer);
+            // refresh accounts list
+            window.location.reload();
+          }
+        }, 1000);
       } else {
         toast.error(data.error || "Erro ao gerar URL de autenticação");
       }
