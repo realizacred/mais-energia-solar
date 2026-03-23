@@ -1160,8 +1160,7 @@ function extractEnergisa(text: string): ExtractedData | null {
     const energisaTableLinePatterns = [
       /Consumo\s+em\s+kWh[^\n]*?\b(\d{1,2}(?:[,.]\d+)?)\b\s+(\d[\d.,]*)\s*$/im,
       /Energia\s+Atv\s+Injetada[^\n]*?\b(\d{1,2}(?:[,.]\d+)?)\b\s+[-−]?(\d[\d.,]*)\s*$/im,
-      /Subs[ií]dio\s+SCEE[^\n]*?\b(\d{1,2}(?:[,.]\d+)?)\b\s+(
-\d[\d.,]*)\s*$/im,
+      /Subs[ií]dio\s+SCEE[^\n]*?\b(\d{1,2}(?:[,.]\d+)?)\b\s+(\d[\d.,]*)\s*$/im,
     ];
 
     for (const pattern of energisaTableLinePatterns) {
