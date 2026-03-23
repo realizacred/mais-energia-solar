@@ -825,7 +825,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               ) : (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20 text-[11px] text-success">
                   <CheckCircle2 className="w-4 h-4" />
-                  Todas as {validation.validRows.toLocaleString("pt-BR")} linhas são válidas.
+                  Todas as {formatIntegerBR(validation.validRows)} linhas são válidas.
                 </div>
               )}
 
