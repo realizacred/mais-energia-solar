@@ -18,7 +18,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import {
-  useEmailAccounts, useSalvarEmailAccount, useDeletarEmailAccount, useToggleEmailAccount,
+  useEmailAccounts, useSaveEmailAccount, useDeleteEmailAccount, useToggleEmailAccount,
   type EmailAccount,
 } from "@/hooks/useEmailAccounts";
 import { supabase } from "@/integrations/supabase/client";
