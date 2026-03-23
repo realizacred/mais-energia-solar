@@ -121,16 +121,8 @@ export default function FaturasEnergiaPage() {
     staleTime: STALE,
   });
 
-  // Clientes for filter (derived from UCs)
-  const clientes = (() => {
-    const map = new Map<string, string>();
-    ucs.forEach((uc: any) => {
-      if (uc.cliente_id && !map.has(uc.cliente_id)) {
-        // We'll need client names - fetch separately
-      }
-    });
-    return map;
-  })();
+
+
 
   const { data: clientesList = [] } = useQuery({
     queryKey: ["clientes_for_faturas_filter"],
