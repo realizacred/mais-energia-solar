@@ -102,6 +102,7 @@ export function ConcessionariasManager() {
   const [editing, setEditing] = useState<Concessionaria | null>(null);
   const [deleting, setDeleting] = useState<Concessionaria | null>(null);
   const [form, setForm] = useState<ConcessionariaFormData>(EMPTY_FORM);
+  const [formBaseline, setFormBaseline] = useState<string>(JSON.stringify(EMPTY_FORM));
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -113,6 +114,10 @@ export function ConcessionariasManager() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [contaImportOpen, setContaImportOpen] = useState(false);
+
+  const isFormDirty = useMemo(() => {
+    return JSON.stringify(form) !== formBaseline;
+  }, [form, formBaseline]);
 
   // Find the most recent sync timestamp across all concessionárias
   const latestSyncTimestamp = useMemo(() => {
@@ -347,7 +352,7 @@ export function ConcessionariasManager() {
   const openDialog = (concessionaria?: Concessionaria) => {
     if (concessionaria) {
       setEditing(concessionaria);
-      setForm({
+      const formData: ConcessionariaFormData = {
         nome: concessionaria.nome,
         sigla: concessionaria.sigla || "",
         estado: concessionaria.estado || "",
@@ -362,10 +367,13 @@ export function ConcessionariasManager() {
         cofins_percentual: concessionaria.cofins_percentual?.toString() || "",
         possui_isencao_scee: concessionaria.possui_isencao_scee,
         percentual_isencao: concessionaria.percentual_isencao?.toString() || "",
-      });
+      };
+      setForm(formData);
+      setFormBaseline(JSON.stringify(formData));
     } else {
       setEditing(null);
       setForm(EMPTY_FORM);
+      setFormBaseline(JSON.stringify(EMPTY_FORM));
     }
     setDialogOpen(true);
   };
@@ -913,6 +921,7 @@ export function ConcessionariasManager() {
           onUpdateForm={updateForm}
           onSave={handleSave}
           isEditing={!!editing}
+          disabled={!isFormDirty}
         />
 
         {/* Delete Confirmation */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Trash2, Edit2, Save, X, Variable, TestTube, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +62,17 @@ export function VariaveisCustomManager() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<VariavelCustom>>({});
+  const [editBaseline, setEditBaseline] = useState<string>("");
   const [testResult, setTestResult] = useState<string | null>(null);
+
+  const isEditDirty = useMemo(() => {
+    if (!editingId) return false;
+    if (editingId === "new") {
+      // For new items, dirty if any required field is filled
+      return !!(form.nome && form.nome !== "vc_" && form.label && form.expressao);
+    }
+    return JSON.stringify(form) !== editBaseline;
+  }, [form, editBaseline, editingId]);
 
   const loadVariaveis = async () => {
     setLoading(true);
@@ -87,7 +97,9 @@ export function VariaveisCustomManager() {
 
   const startEdit = (v: VariavelCustom) => {
     setEditingId(v.id);
-    setForm({ ...v });
+    const formData = { ...v };
+    setForm(formData);
+    setEditBaseline(JSON.stringify(formData));
     setTestResult(null);
   };
 
@@ -263,7 +275,7 @@ export function VariaveisCustomManager() {
 
             <div className="flex gap-2 justify-end">
               <Button variant="ghost" size="sm" onClick={cancelEdit}><X className="h-3 w-3 mr-1" /> Cancelar</Button>
-              <Button size="sm" onClick={handleSave}><Save className="h-3 w-3 mr-1" /> Salvar</Button>
+              <Button size="sm" onClick={handleSave} disabled={!isEditDirty}><Save className="h-3 w-3 mr-1" /> Salvar</Button>
             </div>
           </CardContent>
         </Card>

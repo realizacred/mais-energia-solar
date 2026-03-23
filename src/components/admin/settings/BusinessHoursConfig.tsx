@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Clock, Plus, Trash2, Loader2, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +30,13 @@ export function BusinessHoursConfig({ tenantId }: { tenantId: string }) {
   const [horarios, setHorarios] = useState<HorarioRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const baselineRef = useRef<string>("");
+
+  const isDirty = useMemo(() => {
+    if (!baselineRef.current) return false;
+    const current = JSON.stringify(horarios.map(h => ({ dia_semana: h.dia_semana, ativo: h.ativo, hora_inicio: h.hora_inicio, hora_fim: h.hora_fim })));
+    return current !== baselineRef.current;
+  }, [horarios]);
 
   useEffect(() => {
     loadHorarios();
@@ -67,6 +74,13 @@ export function BusinessHoursConfig({ tenantId }: { tenantId: string }) {
       })));
     }
     setLoading(false);
+    // Set baseline after loading for dirty comparison
+    setTimeout(() => {
+      setHorarios(prev => {
+        baselineRef.current = JSON.stringify(prev.map(h => ({ dia_semana: h.dia_semana, ativo: h.ativo, hora_inicio: h.hora_inicio, hora_fim: h.hora_fim })));
+        return prev;
+      });
+    }, 0);
   };
 
   const updateHorario = (index: number, field: keyof HorarioRow, value: any) => {
@@ -123,7 +137,7 @@ export function BusinessHoursConfig({ tenantId }: { tenantId: string }) {
             <Clock className="h-4 w-4 text-primary" />
             <CardTitle className="text-base">Horário de Atendimento</CardTitle>
           </div>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
+          <Button size="sm" onClick={handleSave} disabled={saving || !isDirty} className="gap-1.5">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Salvar
           </Button>
