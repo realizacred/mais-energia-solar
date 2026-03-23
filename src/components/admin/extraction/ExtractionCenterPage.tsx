@@ -92,6 +92,20 @@ export default function ExtractionCenterPage() {
   const nativeConfigs = configs.filter(c => c.native_enabled).length;
   const withFallback = configs.filter(c => c.fallback_enabled).length;
 
+  // Count invoices pending manual assignment
+  const { data: pendingAssignmentCount } = useQuery({
+    queryKey: ["invoices_pending_assignment_count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("unit_invoices")
+        .select("id", { count: "exact", head: true })
+        .eq("needs_manual_assignment", true);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   const handleEdit = (config: ExtractionConfig) => {
     setEditConfig(config);
     setModalOpen(true);
