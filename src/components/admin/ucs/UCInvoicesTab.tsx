@@ -806,7 +806,7 @@ export function UCInvoicesTab({ unitId }: Props) {
             {/* Referência */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Mês *</Label>
+                <Label className="text-xs">Mês <span className="text-destructive">*</span></Label>
                 <Input type="number" min={1} max={12} value={form.reference_month} onChange={(e) => setForm(f => ({ ...f, reference_month: parseInt(e.target.value) || 1 }))} />
               </div>
               <div className="space-y-1">
