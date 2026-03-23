@@ -7,7 +7,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
-const PARSER_VERSION = "3.1.0";
+const PARSER_VERSION = "3.2.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,11 +69,11 @@ interface ExtractedData {
   demanda_ultrapassagem_kw: number | null;
   multa_demanda_valor: number | null;
   confidence: number;
-  ai_fallback_used: false;
-  ai_model_used: null;
+  ai_fallback_used: boolean;
+  ai_model_used: string | null;
   parser_version: string;
   parser_used: string;
-  extraction_method: "deterministic";
+  extraction_method: "deterministic" | "ai_enriched";
   field_results: Record<string, FieldResult>;
   validations: ValidationResult[];
   raw_fields: Record<string, string>;
@@ -1670,6 +1670,214 @@ function extractFromText(text: string): ExtractedData {
   };
 }
 
+// ── AI Fallback: Gemini enrichment for missing critical fields ──────────────
+
+const AI_CRITICAL_FIELDS = [
+  'icms_percentual', 'proxima_leitura_data', 'dias_leitura',
+  'data_leitura_anterior', 'data_leitura_atual',
+] as const;
+
+const AI_ENRICHABLE_FIELDS = [
+  'icms_percentual', 'pis_valor', 'cofins_valor',
+  'proxima_leitura_data', 'dias_leitura',
+  'data_leitura_anterior', 'data_leitura_atual',
+  'demanda_contratada_kw', 'demanda_medida_kw',
+  'modalidade_tarifaria', 'bandeira_tarifaria',
+] as const;
+
+function needsAiFallback(data: ExtractedData): boolean {
+  return AI_CRITICAL_FIELDS.some(f => (data as any)[f] == null);
+}
+
+function getMissingFields(data: ExtractedData): string[] {
+  return AI_ENRICHABLE_FIELDS.filter(f => (data as any)[f] == null);
+}
+
+async function tryAiEnrichment(
+  data: ExtractedData,
+  text: string,
+  tenantId: string | null,
+): Promise<ExtractedData> {
+  if (!tenantId) {
+    console.log('[parse-conta-energia] AI fallback skipped: no tenant_id');
+    return data;
+  }
+
+  const missing = getMissingFields(data);
+  if (missing.length === 0) return data;
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const admin = createClient(supabaseUrl, serviceRoleKey);
+
+  // Try Gemini key from tenant
+  const { data: keyRow } = await admin
+    .from('integration_configs')
+    .select('api_key')
+    .eq('tenant_id', tenantId)
+    .eq('service_key', 'google_gemini')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  // Fallback to LOVABLE_API_KEY if no tenant Gemini key
+  const lovableKey = Deno.env.get('LOVABLE_API_KEY');
+  const useGeminiDirect = !!keyRow?.api_key;
+  const apiKey = keyRow?.api_key || lovableKey;
+
+  if (!apiKey) {
+    console.log('[parse-conta-energia] AI fallback skipped: no API key available');
+    return data;
+  }
+
+  console.log(`[parse-conta-energia] AI fallback: enriching ${missing.length} fields via ${useGeminiDirect ? 'Gemini Direct' : 'Lovable Gateway'}`);
+
+  // Truncate text for AI (first 4000 chars is enough)
+  const truncatedText = text.length > 4000 ? text.substring(0, 4000) : text;
+
+  const systemPrompt = `Você é um extrator de dados de faturas de energia elétrica brasileiras.
+Analise o texto da fatura e extraia APENAS os campos solicitados.
+Retorne um JSON com os campos encontrados. Use null para campos não encontrados.
+Regras:
+- icms_percentual: alíquota em %, número (ex: 18, 25, 12)
+- pis_valor: valor em R$, número decimal
+- cofins_valor: valor em R$, número decimal
+- proxima_leitura_data: formato dd/mm/aaaa
+- dias_leitura: número inteiro de dias entre leituras
+- data_leitura_anterior: formato dd/mm/aaaa
+- data_leitura_atual: formato dd/mm/aaaa
+- demanda_contratada_kw: número em kW
+- demanda_medida_kw: número em kW
+- modalidade_tarifaria: string (ex: "Convencional", "Horosazonal")
+- bandeira_tarifaria: "verde", "amarela", "vermelha_1" ou "vermelha_2"
+NÃO invente dados. Se não encontrar, retorne null.`;
+
+  const userPrompt = `Extraia APENAS estes campos faltantes: ${missing.join(', ')}
+
+Texto da fatura:
+${truncatedText}
+
+Responda APENAS com JSON válido, sem explicações.`;
+
+  try {
+    let aiResult: Record<string, any> | null = null;
+    let modelUsed = '';
+
+    if (useGeminiDirect) {
+      // Direct Gemini API call
+      modelUsed = 'gemini-2.5-flash';
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelUsed}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 500,
+              responseMimeType: 'application/json',
+            },
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const errBody = await response.text();
+          console.error(`[parse-conta-energia] Gemini error ${response.status}: ${errBody.substring(0, 200)}`);
+          return data;
+        }
+
+        const geminiData = await response.json();
+        const content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (content) {
+          aiResult = JSON.parse(content);
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+    } else {
+      // Lovable Gateway
+      modelUsed = 'google/gemini-2.5-flash';
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      try {
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: modelUsed,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.1,
+            max_tokens: 500,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          console.error(`[parse-conta-energia] Gateway error ${response.status}`);
+          return data;
+        }
+
+        const gwData = await response.json();
+        const content = gwData.choices?.[0]?.message?.content;
+        if (content) {
+          // Strip markdown code fences if present
+          const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          aiResult = JSON.parse(cleaned);
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    if (!aiResult || typeof aiResult !== 'object') {
+      console.log('[parse-conta-energia] AI fallback: no valid result');
+      return data;
+    }
+
+    // Merge only missing fields from AI result
+    let enrichedCount = 0;
+    const enrichedData = { ...data } as any;
+
+    for (const field of missing) {
+      const aiValue = aiResult[field];
+      if (aiValue != null && aiValue !== '') {
+        enrichedData[field] = typeof aiValue === 'string' && !isNaN(Number(aiValue)) ? Number(aiValue) : aiValue;
+        enrichedData.field_results[field] = {
+          value: enrichedData[field],
+          source: `ai:${modelUsed}`,
+          validated: false,
+          note: 'Preenchido por IA como fallback',
+        };
+        enrichedCount++;
+      }
+    }
+
+    if (enrichedCount > 0) {
+      enrichedData.ai_fallback_used = true;
+      enrichedData.ai_model_used = modelUsed;
+      enrichedData.extraction_method = 'ai_enriched';
+      console.log(`[parse-conta-energia] AI fallback: enriched ${enrichedCount} fields via ${modelUsed}`);
+    }
+
+    return enrichedData as ExtractedData;
+  } catch (err: any) {
+    console.error(`[parse-conta-energia] AI fallback error: ${err.message}`);
+    return data; // Graceful degradation: return deterministic result
+  }
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -1700,7 +1908,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { text } = body;
+    const { text, tenant_id } = body;
 
     if (!text) {
       return new Response(JSON.stringify({ error: 'Campo "text" é obrigatório' }),
@@ -1723,7 +1931,11 @@ Deno.serve(async (req) => {
       console.log(`[parse-conta-energia] Generic parser v${PARSER_VERSION} — confidence: ${extracted.confidence}`);
     }
 
-    // NO AI FALLBACK — deterministic only
+    // Strategy 2: AI enrichment for missing critical fields
+    if (extracted && needsAiFallback(extracted)) {
+      const resolvedTenantId = tenant_id || null;
+      extracted = await tryAiEnrichment(extracted, text, resolvedTenantId);
+    }
 
     if (!extracted) {
       return new Response(JSON.stringify({
@@ -1737,8 +1949,9 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       data: extracted,
-      parser_version: PARSER_VERSION,
-      extraction_method: 'deterministic',
+      parser_version: extracted.parser_version,
+      extraction_method: extracted.extraction_method,
+      ai_fallback_used: extracted.ai_fallback_used,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (err: any) {
