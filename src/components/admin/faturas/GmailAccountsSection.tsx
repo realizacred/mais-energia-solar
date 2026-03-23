@@ -72,6 +72,8 @@ export function GmailAccountsSection() {
       if (data) {
         setClientId(data.google_client_id || "");
         setClientSecret(data.google_client_secret || "");
+        setSavedClientId(data.google_client_id || "");
+        setSavedClientSecret(data.google_client_secret || "");
       }
       setOauthLoaded(true);
     } catch { /* ignore */ }
