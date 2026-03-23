@@ -763,7 +763,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               {/* Summary stats */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-center">
-                  <div className="text-lg font-bold text-success font-mono">{validation.validRows.toLocaleString("pt-BR")}</div>
+                  <div className="text-lg font-bold text-success font-mono">{formatIntegerBR(validation.validRows)}</div>
                   <div className="text-[10px] text-success/80">Válidos</div>
                 </div>
                 <div className="rounded-lg bg-warning/10 border border-warning/20 p-3 text-center">
