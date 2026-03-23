@@ -175,7 +175,7 @@ export default function ExtractionCenterPage() {
       </Card>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
@@ -204,9 +204,9 @@ export default function ExtractionCenterPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-l-[3px] border-l-warning bg-card shadow-sm">
+        <Card className="border-l-[3px] border-l-destructive bg-card shadow-sm">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-destructive/10 text-destructive shrink-0">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
@@ -214,6 +214,20 @@ export default function ExtractionCenterPage() {
                 {stats ? stats.failed : <Skeleton className="h-8 w-12" />}
               </p>
               <p className="text-sm text-muted-foreground mt-1">Falhas (30d)</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-[3px] border-l-warning bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+              <UserX className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
+                {pendingAssignmentCount != null ? pendingAssignmentCount : <Skeleton className="h-8 w-12" />}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Atribuição pendente</p>
             </div>
           </CardContent>
         </Card>
