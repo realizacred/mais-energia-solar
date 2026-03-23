@@ -77,23 +77,8 @@ export default function UCDetailPage() {
     staleTime: 1000 * 60 * 2,
   });
 
-  // Resolve próxima leitura from latest invoice raw_extraction
-  const { data: proximaLeituraData } = useQuery({
-    queryKey: ["uc_proxima_leitura", id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("unit_invoices")
-        .select("raw_extraction")
-        .eq("unit_id", id!)
-        .order("reference_year", { ascending: false })
-        .order("reference_month", { ascending: false })
-        .limit(1);
-      const raw = data?.[0]?.raw_extraction as Record<string, any> | null;
-      return raw?.proxima_leitura ?? raw?.next_reading_date ?? null;
-    },
-    enabled: !!id,
-    staleTime: 1000 * 60 * 2,
-  });
+  // Resolve próxima leitura — prefer UC column (set by process-fatura-pdf), fallback to raw_extraction
+  const proximaLeituraData = (uc as any)?.proxima_leitura_data ?? null;
 
   // Resolve linked meter
   const { data: meterLinks = [] } = useQuery({

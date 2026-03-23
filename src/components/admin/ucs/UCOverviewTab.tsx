@@ -76,21 +76,25 @@ export function UCOverviewTab({
   });
 
   // --- Plant metrics daily (for chart + KPI) ---
-  // solarPlantId = solar_plants.id (resolved from monitor_plants.legacy_plant_id in parent)
+  // plantId = monitor_plants.id; use RPC get_plant_metrics for V2 data
   const chartDays = chartPeriod === "7d" ? 7 : chartPeriod === "30d" ? 30 : 90;
-  const effectivePlantId = solarPlantId || plantId;
+  const effectivePlantId = plantId;
   const { data: plantMetrics = [], isLoading: loadingPlantMetrics } = useQuery({
     queryKey: ["uc_overview_plant_metrics", effectivePlantId, chartDays],
     queryFn: async () => {
       const since = subDays(new Date(), chartDays).toISOString().slice(0, 10);
-      const { data, error } = await supabase
-        .from("solar_plant_metrics_daily")
-        .select("date, energy_kwh, power_kw")
-        .eq("plant_id", effectivePlantId!)
-        .gte("date", since)
-        .order("date", { ascending: true });
+      const today = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase.rpc("get_plant_metrics", {
+        p_plant_id: effectivePlantId!,
+        p_date_from: since,
+        p_date_to: today,
+      });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).map((r: any) => ({
+        date: r.date,
+        energy_kwh: r.energy_kwh ?? 0,
+        power_kw: r.peak_power_kw ?? 0,
+      }));
     },
     enabled: !!effectivePlantId,
     staleTime: STALE_5M,
