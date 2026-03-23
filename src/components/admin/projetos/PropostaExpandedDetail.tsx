@@ -36,6 +36,7 @@ interface VersaoData {
   geracao_mensal: number | null;
   output_pdf_path: string | null;
   output_docx_path: string | null;
+  public_slug: string | null;
 }
 
 interface PropostaData {
