@@ -3,6 +3,7 @@
  * §4: Table pattern. §12: Skeleton loading. §22: Button variants.
  */
 import { useState } from "react";
+import { formatDecimalBR } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -90,7 +91,7 @@ export function PlantResizingSection({ plantId, tenantId }: Props) {
                         {format(parseISO(row.data_ampliacao), "dd-MM-yyyy")}
                       </TableCell>
                       <TableCell className="text-sm text-right font-mono">
-                        {Number(row.potencia_kwp).toLocaleString("pt-BR", { minimumFractionDigits: 3 })}
+                        {formatDecimalBR(Number(row.potencia_kwp), 3)}
                       </TableCell>
                       <TableCell className="text-sm text-right font-mono">
                         {row.valor_investido_total != null

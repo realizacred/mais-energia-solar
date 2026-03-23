@@ -3,6 +3,7 @@
  * §23: staleTime, §4: empty states, §12: skeletons.
  */
 import { useQuery } from "@tanstack/react-query";
+import { formatDecimalBR } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { meterService } from "@/services/meterService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -165,10 +166,10 @@ function SolarGenerationTable({ plantId }: { plantId?: string | null }) {
                 {m.energy_kwh != null ? Number(m.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "—"}
               </TableCell>
               <TableCell className="text-sm text-right font-mono">
-                {m.power_kw != null ? Number(m.power_kw).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "—"}
+                {m.power_kw != null ? formatDecimalBR(Number(m.power_kw), 2) : "—"}
               </TableCell>
               <TableCell className="text-sm text-right font-mono">
-                {m.total_energy_kwh != null ? Number(m.total_energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1 }) : "—"}
+                {m.total_energy_kwh != null ? formatDecimalBR(Number(m.total_energy_kwh), 1) : "—"}
               </TableCell>
             </TableRow>
           ))}

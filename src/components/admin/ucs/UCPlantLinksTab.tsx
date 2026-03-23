@@ -2,6 +2,7 @@
  * UCPlantLinksTab — Manage links between UC and Plants (usinas).
  */
 import { useState } from "react";
+import { formatDecimalBR } from "@/lib/formatters";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -235,7 +236,7 @@ export function UCPlantLinksTab({ unitId, ucTipo }: Props) {
                     <div>
                       <p className="text-xs text-muted-foreground">Geração hoje</p>
                       <p className="font-medium text-warning">
-                        {todayGen ? `${Number(todayGen.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} kWh` : "0,0 kWh"}
+                        {todayGen ? `${formatDecimalBR(Number(todayGen.energy_kwh), 1)} kWh` : "0,0 kWh"}
                       </p>
                     </div>
                     <div>

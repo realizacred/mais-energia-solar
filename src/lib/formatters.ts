@@ -71,6 +71,21 @@ export function formatIntegerBR(value: number | null | undefined): string {
 }
 
 /**
+ * Format number with specific decimal places in Brazilian locale: "1.234,5"
+ * Returns "—" for null/undefined/NaN.
+ */
+export function formatDecimalBR(
+  value: number | null | undefined,
+  decimalPlaces: number = 2
+): string {
+  if (value == null || isNaN(value)) return "—";
+  return value.toLocaleString("pt-BR", {
+    minimumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces,
+  });
+}
+
+/**
  * Parse a Brazilian-formatted number string to a JS number.
  * Handles: "1.234,56" → 1234.56, "99.999,99" → 99999.99
  */

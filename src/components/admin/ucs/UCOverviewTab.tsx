@@ -4,6 +4,7 @@
  * §27: KPI cards via StatCard, §5: Recharts, §4: empty states, §23: staleTime.
  */
 import { useQuery } from "@tanstack/react-query";
+import { formatDecimalBR } from "@/lib/formatters";
 import { supabase } from "@/integrations/supabase/client";
 import { meterService } from "@/services/meterService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -243,7 +244,7 @@ export function UCOverviewTab({
     : null;
 
   const fmtKwh = (v: number | null) =>
-    v != null ? `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—";
+    v != null ? `${formatDecimalBR(v, 1)} kWh` : "—";
 
   return (
     <div className="space-y-6">
@@ -493,7 +494,7 @@ export function UCOverviewTab({
                   <span className="text-muted-foreground">Geração hoje</span>
                   <span>
                     {todayGeneration
-                      ? `${Number(todayGeneration.energy_kwh).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} kWh`
+                      ? `${formatDecimalBR(Number(todayGeneration.energy_kwh), 1)} kWh`
                       : "—"}
                   </span>
                 </div>

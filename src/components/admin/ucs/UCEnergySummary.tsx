@@ -3,6 +3,7 @@
  * Shows GD allocation info if UC is beneficiary or generator.
  */
 import { useState } from "react";
+import { formatDecimalBR } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,20 +76,20 @@ export function UCEnergySummary({ ucId }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
                 <p className="text-xs text-muted-foreground flex items-center gap-1"><ArrowDownUp className="w-3 h-3" /> Consumo</p>
-                <p className="text-sm font-bold font-mono">{Number(asBeneficiary.consumed_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
+                <p className="text-sm font-bold font-mono">{formatDecimalBR(Number(asBeneficiary.consumed_kwh || 0), 1)} kWh</p>
               </div>
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                 <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Crédito Recebido</p>
-                <p className="text-sm font-bold font-mono">{Number(asBeneficiary.allocated_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
+                <p className="text-sm font-bold font-mono">{formatDecimalBR(Number(asBeneficiary.allocated_kwh || 0), 1)} kWh</p>
               </div>
               <div className="rounded-lg border border-success/20 bg-success/5 p-3">
                 <p className="text-xs text-muted-foreground flex items-center gap-1"><Sun className="w-3 h-3" /> Compensado</p>
-                <p className="text-sm font-bold font-mono text-success">{Number(asBeneficiary.compensated_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
+                <p className="text-sm font-bold font-mono text-success">{formatDecimalBR(Number(asBeneficiary.compensated_kwh || 0), 1)} kWh</p>
               </div>
               {Number(asBeneficiary.used_from_balance_kwh || 0) > 0 && (
                 <div className="rounded-lg border border-info/20 bg-info/5 p-3">
                   <p className="text-xs text-muted-foreground">Usado do Saldo</p>
-                  <p className="text-sm font-bold font-mono text-info">{Number(asBeneficiary.used_from_balance_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
+                  <p className="text-sm font-bold font-mono text-info">{formatDecimalBR(Number(asBeneficiary.used_from_balance_kwh), 1)} kWh</p>
                 </div>
               )}
               <div className="rounded-lg border border-warning/20 bg-warning/5 p-3">
@@ -116,15 +117,15 @@ export function UCEnergySummary({ ucId }: Props) {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div className="rounded-lg border border-success/20 bg-success/5 p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><Sun className="w-3 h-3" /> Geração</p>
-                  <p className="text-sm font-bold font-mono">{Number(asGeradora.snapshot.generation_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
+                  <p className="text-sm font-bold font-mono">{formatDecimalBR(Number(asGeradora.snapshot.generation_kwh || 0), 1)} kWh</p>
                 </div>
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Distribuído</p>
-                  <p className="text-sm font-bold font-mono">{Number(asGeradora.snapshot.total_allocated_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
+                  <p className="text-sm font-bold font-mono">{formatDecimalBR(Number(asGeradora.snapshot.total_allocated_kwh || 0), 1)} kWh</p>
                 </div>
                 <div className="rounded-lg border border-info/20 bg-info/5 p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><ArrowDownUp className="w-3 h-3" /> Compensado</p>
-                  <p className="text-sm font-bold font-mono text-success">{Number(asGeradora.snapshot.total_compensated_kwh || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
+                  <p className="text-sm font-bold font-mono text-success">{formatDecimalBR(Number(asGeradora.snapshot.total_compensated_kwh || 0), 1)} kWh</p>
                 </div>
               </div>
             ) : (

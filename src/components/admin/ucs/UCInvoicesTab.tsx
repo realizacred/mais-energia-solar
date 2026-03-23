@@ -2,6 +2,7 @@
  * UCInvoicesTab — Invoices list for a UC with manual registration, PDF upload, and expandable detail rows.
  */
 import { useState, useRef } from "react";
+import { formatDecimalBR, formatBRL } from "@/lib/formatters";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoiceService, type UnitInvoice, type BandeiraTarifaria } from "@/services/invoiceService";
 import { supabase } from "@/integrations/supabase/client";
@@ -129,8 +130,8 @@ function DetailField({ label, value }: { label: string; value: string | number |
 }
 
 function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Record<string, any> | null }) {
-  const fmtNum = (v: number | null | undefined, suffix = "") => v != null ? `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}${suffix}` : null;
-  const fmtBRL = (v: number | null | undefined) => v != null ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null;
+  const fmtNum = (v: number | null | undefined, suffix = "") => v != null ? `${formatDecimalBR(v, 1)}${suffix}` : null;
+  const fmtBRL = (v: number | null | undefined) => v != null ? formatBRL(v) : null;
 
   return (
     <div className="px-6 py-4 space-y-4">
@@ -586,10 +587,10 @@ export function UCInvoicesTab({ unitId }: Props) {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
-                      <TableCell className="text-sm text-right font-mono">{inv.total_amount != null ? `R$ ${inv.total_amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}</TableCell>
-                      <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${inv.energy_consumed_kwh.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—"}</TableCell>
-                      <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${inv.energy_injected_kwh.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—"}</TableCell>
-                      <TableCell className="text-sm text-right">{inv.current_balance_kwh != null ? `${inv.current_balance_kwh.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right font-mono">{inv.total_amount != null ? formatBRL(inv.total_amount) : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.energy_consumed_kwh != null ? `${formatDecimalBR(inv.energy_consumed_kwh, 1)} kWh` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.energy_injected_kwh != null ? `${formatDecimalBR(inv.energy_injected_kwh, 1)} kWh` : "—"}</TableCell>
+                      <TableCell className="text-sm text-right">{inv.current_balance_kwh != null ? `${formatDecimalBR(inv.current_balance_kwh, 1)} kWh` : "—"}</TableCell>
                       <TableCell>
                         {inv.bandeira_tarifaria ? (
                           <StatusBadge variant="muted" className={BANDEIRA_COLORS[inv.bandeira_tarifaria] || ""}>

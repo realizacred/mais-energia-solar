@@ -4,6 +4,7 @@
  * Used in both usina detail and UC detail pages.
  */
 import { useState } from "react";
+import { formatDecimalBR } from "@/lib/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -361,7 +362,7 @@ export function PlantGenerationReport({ plantId, showExport = true }: Props) {
                         R$ {Number(er.tarifa_kwh).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-sm text-right font-mono">
-                        {er.geracao_periodo_kwh?.toLocaleString("pt-BR", { minimumFractionDigits: 1 }) ?? "—"} kWh
+                        {er.geracao_periodo_kwh != null ? `${formatDecimalBR(er.geracao_periodo_kwh, 1)} kWh` : "—"}
                       </TableCell>
                       <TableCell className="text-sm text-right font-mono font-medium text-success">
                         R$ {er.retorno_estimado?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) ?? "—"}
