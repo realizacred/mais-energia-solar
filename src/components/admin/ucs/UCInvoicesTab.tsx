@@ -131,7 +131,7 @@ function DetailField({ label, value }: { label: string; value: string | number |
 
 function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Record<string, any> | null }) {
   const fmtNum = (v: number | null | undefined, suffix = "") => v != null ? `${formatDecimalBR(v, 1)}${suffix}` : null;
-  const fmtBRL2 = (v: number | null | undefined) => v != null ? formatBRL(v) : null;
+  const fmtBRL = (v: number | null | undefined) => v != null ? formatBRL(v) : null;
 
   return (
     <div className="px-6 py-4 space-y-4">
