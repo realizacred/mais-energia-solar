@@ -41,6 +41,7 @@ const EMPTY_ADDRESS: AddressData = {
 
 export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [address, setAddress] = useState<AddressData>({ ...EMPTY_ADDRESS });
