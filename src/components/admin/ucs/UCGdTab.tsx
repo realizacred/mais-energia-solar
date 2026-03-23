@@ -3,7 +3,7 @@
  * Allows creating a group (if UC is geradora) and managing beneficiaries.
  * §16: queries in hooks. §4: table pattern. §12: skeleton. §26: headers.
  */
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sun, Users, Plus, Trash2, Loader2, AlertCircle, ExternalLink } from "lucide-react";
@@ -153,15 +154,20 @@ function GeneratorSection({
     }
   }
 
-  async function handleDeleteBeneficiary(id: string) {
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  const confirmDeleteBeneficiary = useCallback(async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteBeneficiary.mutateAsync(id);
+      await deleteBeneficiary.mutateAsync(deleteTarget);
       qc.invalidateQueries({ queryKey: ["gd_group_beneficiaries", group?.id] });
       toast({ title: "Beneficiária removida" });
     } catch (err: any) {
       toast({ title: "Erro", description: err?.message, variant: "destructive" });
+    } finally {
+      setDeleteTarget(null);
     }
-  }
+  }, [deleteTarget, deleteBeneficiary, qc, group?.id, toast]);
 
   // No group yet — show CTA
   if (!group) {
@@ -308,7 +314,7 @@ function GeneratorSection({
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteBeneficiary(b.id); }}
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(b.id); }}
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
@@ -334,6 +340,26 @@ function GeneratorSection({
         groupId={group.id}
         availableUcs={availableUcs}
       />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover beneficiária?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá desvincular a UC do grupo GD. Os créditos já compensados não serão afetados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteBeneficiary}
+              className="border-destructive text-destructive bg-transparent hover:bg-destructive/10"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

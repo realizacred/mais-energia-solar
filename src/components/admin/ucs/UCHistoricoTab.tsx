@@ -10,8 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Gauge, Sun, FileText, BarChart2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { UCInvoicesTab } from "./UCInvoicesTab";
 
 interface Props {
   ucId: string;
@@ -19,11 +19,13 @@ interface Props {
   plantId?: string | null;
   /** Resolved solar_plants.id for metrics queries */
   solarPlantId?: string | null;
+  /** Callback to switch to a parent tab (e.g., "faturas") */
+  onSwitchParentTab?: (tab: string) => void;
 }
 
 const STALE_5M = 1000 * 60 * 5;
 
-export function UCHistoricoTab({ ucId, meterId, plantId, solarPlantId }: Props) {
+export function UCHistoricoTab({ ucId, meterId, plantId, solarPlantId, onSwitchParentTab }: Props) {
   const effectivePlantId = solarPlantId || plantId;
   return (
     <Tabs defaultValue="leituras" className="space-y-4">
@@ -33,9 +35,6 @@ export function UCHistoricoTab({ ucId, meterId, plantId, solarPlantId }: Props) 
         </TabsTrigger>
         <TabsTrigger value="geracao" className="gap-1 text-xs">
           <Sun className="w-3.5 h-3.5" /> Geração Solar
-        </TabsTrigger>
-        <TabsTrigger value="faturas" className="gap-1 text-xs">
-          <FileText className="w-3.5 h-3.5" /> Faturas
         </TabsTrigger>
       </TabsList>
 
@@ -47,9 +46,13 @@ export function UCHistoricoTab({ ucId, meterId, plantId, solarPlantId }: Props) 
         <SolarGenerationTable plantId={effectivePlantId} />
       </TabsContent>
 
-      <TabsContent value="faturas">
-        <UCInvoicesTab unitId={ucId} />
-      </TabsContent>
+      {onSwitchParentTab && (
+        <div className="pt-2">
+          <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => onSwitchParentTab("faturas")}>
+            <FileText className="w-3.5 h-3.5" /> Ver faturas →
+          </Button>
+        </div>
+      )}
     </Tabs>
   );
 }

@@ -4,7 +4,7 @@
  * All UC features: overview, monitoring, GD, invoices, comparativo, economy, config.
  */
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unitService, type UCRecord } from "@/services/unitService";
@@ -64,6 +64,8 @@ const CATEGORIA_GD_LABELS: Record<string, string> = {
 export default function UCDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "overview";
   const qc = useQueryClient();
   const { toast } = useToast();
   const { tenant } = useTenantSettings();
@@ -259,7 +261,7 @@ export default function UCDetailPage() {
 
       {/* Tabs */}
       <div className="p-4 md:p-6 space-y-4">
-        <Tabs defaultValue="overview" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })} className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="overview" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Visão Geral</TabsTrigger>
             <TabsTrigger value="monitoramento" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Medidor</TabsTrigger>
@@ -308,6 +310,7 @@ export default function UCDetailPage() {
               meterId={activeMeterIdResolved}
               plantId={activePlantId}
               solarPlantId={solarPlantId}
+              onSwitchParentTab={(tab) => setSearchParams({ tab })}
             />
           </TabsContent>
 
