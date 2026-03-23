@@ -170,18 +170,19 @@ Deno.serve(async (req) => {
             const tokenData = await tokenRes.json();
             accessToken = tokenData.access_token;
 
-            // Update stored token in both credentials and settings for consistency
+            // Update stored token
             const newExpiry = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
+            const updateTable = gmailAccount._legacy ? 'integrations_api_configs' : 'gmail_accounts';
             await admin
-              .from('integrations_api_configs')
+              .from(updateTable)
               .update({
                 credentials: { ...creds, access_token: accessToken },
                 settings: { ...setts, token_expiry: newExpiry },
                 updated_at: new Date().toISOString(),
               })
-              .eq('id', gmailConfig.id);
+              .eq('id', gmailAccount.id);
           } else {
-            console.error(`[check-billing-emails] Token refresh failed for tenant ${tenantId}`);
+            console.error(`[check-billing-emails] Token refresh failed for account ${gmailAccount.id}`);
             totalErrors++;
             continue;
           }
