@@ -120,6 +120,8 @@ export default function FaturasEnergiaPage() {
     status: filterStatus !== "all" ? filterStatus : undefined,
     reference_year: filterYear !== "all" ? Number(filterYear) : undefined,
     search: searchText || undefined,
+    cliente_id: filterCliente !== "all" ? filterCliente : undefined,
+    papel_gd: filterPapelGD !== "all" ? filterPapelGD : undefined,
   };
   const { data: invoicesResult, isLoading: loadingInvoices } = useInvoicesList(filters, page);
   const invoices = invoicesResult?.data || [];
