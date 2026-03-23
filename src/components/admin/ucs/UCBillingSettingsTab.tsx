@@ -196,6 +196,9 @@ export function UCBillingSettingsTab({ unitId }: Props) {
         )}
       </Card>
 
+      {/* Card: Telefone para Alertas Energéticos */}
+      <AlertPhoneCard unitId={unitId} />
+
       {/* Card: Info */}
       <Card className="border-info/20 bg-info/5">
         <CardContent className="flex items-start gap-3 py-4">
