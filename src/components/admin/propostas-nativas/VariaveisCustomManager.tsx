@@ -275,7 +275,7 @@ export function VariaveisCustomManager() {
 
             <div className="flex gap-2 justify-end">
               <Button variant="ghost" size="sm" onClick={cancelEdit}><X className="h-3 w-3 mr-1" /> Cancelar</Button>
-              <Button size="sm" onClick={handleSave}><Save className="h-3 w-3 mr-1" /> Salvar</Button>
+              <Button size="sm" onClick={handleSave} disabled={!isEditDirty}><Save className="h-3 w-3 mr-1" /> Salvar</Button>
             </div>
           </CardContent>
         </Card>
