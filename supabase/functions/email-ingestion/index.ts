@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
               const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 
               await admin.storage
-                .from("invoices")
+                .from("faturas-energia")
                 .upload(fileName, binaryData, { contentType: "application/pdf", upsert: false });
 
               // Create invoice import job
@@ -257,6 +257,36 @@ Deno.serve(async (req) => {
                 })
                 .select("id")
                 .single();
+
+              // Trigger PDF processing via process-fatura-pdf
+              if (job?.id) {
+                const { error: processError } = await admin.functions.invoke(
+                  "process-fatura-pdf",
+                  {
+                    body: {
+                      job_id: job.id,
+                      file_path: fileName,
+                    },
+                  }
+                );
+
+                if (processError) {
+                  console.error(`process-fatura-pdf error for job ${job.id}:`, processError);
+                  await admin
+                    .from("invoice_import_jobs")
+                    .update({
+                      status: "failed",
+                      error_count: 1,
+                      processed_files: 1,
+                      summary_json: {
+                        email_message_id: msgId,
+                        file_name: part.filename,
+                        process_error: processError.message || String(processError),
+                      },
+                    })
+                    .eq("id", job.id);
+                }
+              }
 
               await admin.from("email_ingestion_messages").insert({
                 tenant_id: tenantId,
