@@ -32,7 +32,7 @@ import {
 import {
   Mail, CheckCircle, XCircle, Copy, Loader2, FileText, Building2,
   Upload, Search, MoreHorizontal, Trash2, ExternalLink, AlertTriangle,
-  ChevronLeft, ChevronRight, FileSearch,
+  ChevronLeft, ChevronRight, FileSearch, Users, Zap, Sun,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/dateUtils";
@@ -297,6 +297,24 @@ export default function FaturasEnergiaPage() {
                 className="h-9"
               />
             </div>
+            <Select value={filterCliente} onValueChange={setFilterCliente}>
+              <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Cliente" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os clientes</SelectItem>
+                {clientesList.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterPapelGD} onValueChange={setFilterPapelGD}>
+              <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Tipo GD" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="geradora">Geradora</SelectItem>
+                <SelectItem value="beneficiaria">Beneficiária</SelectItem>
+                <SelectItem value="nenhum">Consumo puro</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={filterUC} onValueChange={setFilterUC}>
               <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="UC" /></SelectTrigger>
               <SelectContent>
@@ -307,16 +325,18 @@ export default function FaturasEnergiaPage() {
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="received">Recebida</SelectItem>
                 <SelectItem value="processed">Processada</SelectItem>
                 <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="pending_review">Em revisão</SelectItem>
                 <SelectItem value="error">Erro</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterYear} onValueChange={setFilterYear}>
-              <SelectTrigger className="w-[120px] h-9"><SelectValue placeholder="Ano" /></SelectTrigger>
+              <SelectTrigger className="w-[110px] h-9"><SelectValue placeholder="Ano" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 {years.map((y: number) => (
