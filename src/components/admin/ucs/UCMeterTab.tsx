@@ -206,7 +206,7 @@ function UCMeterLinkDialog({ open, onOpenChange, unitId }: { open: boolean; onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[90vw] max-w-md">
         <DialogHeader><DialogTitle>Vincular Medidor</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="relative">
