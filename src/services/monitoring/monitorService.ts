@@ -287,20 +287,52 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
   const yesterday = getDaysAgoBrasilia(1);
   const monthStartStr = getMonthStartBrasilia();
 
+  // Resolve monitor_plants.id for this legacy plant
+  const { data: mpRow } = await supabase
+    .from("monitor_plants" as any)
+    .select("id, client_id, last_seen_at")
+    .eq("legacy_plant_id", resolvedId)
+    .maybeSingle();
+
+  const monitorPlantId = (mpRow as any)?.id || null;
+
+  // Use v2 tables for metrics when monitor_plants.id is available
+  const metricsQueries = monitorPlantId
+    ? [
+        supabase.from("monitor_readings_daily").select("*").eq("plant_id", monitorPlantId).eq("date", today).maybeSingle(),
+        supabase.from("monitor_readings_daily").select("*").eq("plant_id", monitorPlantId).eq("date", yesterday).maybeSingle(),
+        supabase.from("monitor_readings_daily").select("energy_kwh, peak_power_kw").eq("plant_id", monitorPlantId).gte("date", monthStartStr).lte("date", today),
+      ]
+    : [
+        supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", today).maybeSingle(),
+        supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", yesterday).maybeSingle(),
+        supabase.from("solar_plant_metrics_daily" as any).select("energy_kwh, power_kw").eq("plant_id", resolvedId).gte("date", monthStartStr).lte("date", today),
+      ];
+
   const [{ data: metric }, { data: yesterdayMetric }, { data: monthMetrics }, { data: alertRows }] = await Promise.all([
-    supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", today).maybeSingle(),
-    supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", yesterday).maybeSingle(),
-    supabase.from("solar_plant_metrics_daily" as any).select("energy_kwh, power_kw").eq("plant_id", resolvedId).gte("date", monthStartStr).lte("date", today),
+    ...metricsQueries,
     supabase.from("monitor_events" as any).select("id").eq("solar_plant_id", resolvedId).eq("tenant_id", sp.tenant_id).eq("is_open", true),
   ]);
 
-  const m = metric as unknown as SolarPlantMetricsDaily | undefined;
-  const ym = yesterdayMetric as unknown as SolarPlantMetricsDaily | undefined;
+  // Normalize metrics to SolarPlantMetricsDaily shape for legacyStatusToHealth
+  const m = monitorPlantId
+    ? (metric ? { id: "", tenant_id: sp.tenant_id, plant_id: resolvedId, date: today,
+        energy_kwh: (metric as any).energy_kwh, power_kw: (metric as any).peak_power_kw,
+        total_energy_kwh: null, metadata: {}, created_at: "" } as SolarPlantMetricsDaily : undefined)
+    : (metric as unknown as SolarPlantMetricsDaily | undefined);
+
+  const ym = monitorPlantId
+    ? (yesterdayMetric ? { id: "", tenant_id: sp.tenant_id, plant_id: resolvedId, date: yesterday,
+        energy_kwh: (yesterdayMetric as any).energy_kwh, power_kw: (yesterdayMetric as any).peak_power_kw,
+        total_energy_kwh: null, metadata: {}, created_at: "" } as SolarPlantMetricsDaily : undefined)
+    : (yesterdayMetric as unknown as SolarPlantMetricsDaily | undefined);
 
   // SSOT: sumMonthlyEnergy
-  const monthKwh = sumMonthlyEnergy(
-    ((monthMetrics as unknown as Array<{ energy_kwh: number | null; power_kw: number | null }>) || [])
-  );
+  const monthRows = monitorPlantId
+    ? ((monthMetrics as unknown as Array<{ energy_kwh: number | null; peak_power_kw: number | null }>) || [])
+        .map((r) => ({ energy_kwh: r.energy_kwh, power_kw: r.peak_power_kw }))
+    : ((monthMetrics as unknown as Array<{ energy_kwh: number | null; power_kw: number | null }>) || []);
+  const monthKwh = sumMonthlyEnergy(monthRows);
 
   const openAlertCount = ((alertRows as unknown as any[]) || []).length;
 
@@ -309,33 +341,26 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
   let monitorPlantLastSeen: string | null = null;
   let plantClientId: string | null = null;
   let plantClientName: string | null = null;
-  {
-    const { data: mpRow } = await supabase
-      .from("monitor_plants" as any)
-      .select("id, client_id, last_seen_at")
-      .eq("legacy_plant_id", resolvedId)
+  if (mpRow) {
+    plantClientId = (mpRow as any).client_id || null;
+    monitorPlantLastSeen = (mpRow as any).last_seen_at || null;
+    const { data: devRows } = await supabase
+      .from("monitor_devices" as any)
+      .select("last_seen_at")
+      .eq("plant_id", (mpRow as any).id)
+      .not("last_seen_at", "is", null)
+      .order("last_seen_at", { ascending: false })
+      .limit(1);
+    const topDev = (devRows as unknown as Array<{ last_seen_at: string }>) || [];
+    if (topDev.length > 0) maxDeviceSeen = topDev[0].last_seen_at;
+  }
+  if (plantClientId) {
+    const { data: clientRow } = await supabase
+      .from("clientes")
+      .select("nome")
+      .eq("id", plantClientId)
       .maybeSingle();
-    if (mpRow) {
-      plantClientId = (mpRow as any).client_id || null;
-      monitorPlantLastSeen = (mpRow as any).last_seen_at || null;
-      const { data: devRows } = await supabase
-        .from("monitor_devices" as any)
-        .select("last_seen_at")
-        .eq("plant_id", (mpRow as any).id)
-        .not("last_seen_at", "is", null)
-        .order("last_seen_at", { ascending: false })
-        .limit(1);
-      const topDev = (devRows as unknown as Array<{ last_seen_at: string }>) || [];
-      if (topDev.length > 0) maxDeviceSeen = topDev[0].last_seen_at;
-    }
-    if (plantClientId) {
-      const { data: clientRow } = await supabase
-        .from("clientes")
-        .select("nome")
-        .eq("id", plantClientId)
-        .maybeSingle();
-      plantClientName = (clientRow as any)?.nome || null;
-    }
+    plantClientName = (clientRow as any)?.nome || null;
   }
 
   const bestLastSeen = getMostRecentTimestamp(maxDeviceSeen, monitorPlantLastSeen);
