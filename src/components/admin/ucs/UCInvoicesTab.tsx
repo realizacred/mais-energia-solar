@@ -2,6 +2,7 @@
  * UCInvoicesTab — Invoices list for a UC with manual registration, PDF upload, and expandable detail rows.
  */
 import { useState, useRef } from "react";
+import { formatDecimalBR, formatBRL } from "@/lib/formatters";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { invoiceService, type UnitInvoice, type BandeiraTarifaria } from "@/services/invoiceService";
 import { supabase } from "@/integrations/supabase/client";
