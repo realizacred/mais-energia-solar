@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ApproveVendaDialog } from "./ApproveVendaDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +36,14 @@ import { formatBRL } from "@/lib/formatters";
 import { usePendingValidations, type PendingValidation } from "@/hooks/usePendingValidations";
 import { useReopenLead } from "@/hooks/useReopenLead";
 import { useLeadStatusMap } from "@/hooks/useLeadStatusMap";
+import {
+  useVendedoresAtivos,
+  useLeadSimulacoes,
+  useApproveVenda,
+  useRejectVenda,
+  useConvertidoStatus,
+  type LeadSimulacao,
+} from "@/hooks/useValidacaoVendas";
 
 interface LeadSimulacao {
   id: string;
