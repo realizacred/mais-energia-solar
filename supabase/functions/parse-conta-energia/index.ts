@@ -1155,6 +1155,31 @@ function extractEnergisa(text: string): ExtractedData | null {
     }
   }
 
+  // ── Energisa line-table fallback: preserve row structure from OCR/layout parsers ──
+  if (icms == null) {
+    const energisaTableLinePatterns = [
+      /Consumo\s+em\s+kWh[^\n]*?\b(\d{1,2}(?:[,.]\d+)?)\b\s+(\d[\d.,]*)\s*$/im,
+      /Energia\s+Atv\s+Injetada[^\n]*?\b(\d{1,2}(?:[,.]\d+)?)\b\s+[-−]?(\d[\d.,]*)\s*$/im,
+      /Subs[ií]dio\s+SCEE[^\n]*?\b(\d{1,2}(?:[,.]\d+)?)\b\s+(\d[\d.,]*)\s*$/im,
+    ];
+
+    for (const pattern of energisaTableLinePatterns) {
+      const match = text.match(pattern);
+      if (!match) continue;
+
+      const aliquota = parseNum(match[1]);
+      const valor = parseNum(match[2]);
+      if (Number.isFinite(aliquota) && aliquota > 0 && aliquota <= 35) {
+        icms = aliquota;
+        fieldResults['icms_percentual'] = makeField(icms, 'regex:ENERGISA_ICMS_TABLE_ROW', true, `valor=R$${valor}`);
+        if (Number.isFinite(valor)) {
+          raw['icms_valor'] = String(valor);
+        }
+        break;
+      }
+    }
+  }
+
   const icmsPatterns = [
     /ICMS[:\s]*(\d[\d.,]*)\s*%/i,
     /al[ií]quota\s*ICMS[:\s]*(\d[\d.,]*)/i,
