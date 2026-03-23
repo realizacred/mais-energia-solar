@@ -15,12 +15,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2, Trash2, MoreHorizontal, ChevronDown, ChevronRight, RefreshCw, Bug, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, FileText, Upload, Mail, ExternalLink, Eye, Loader2, Trash2, MoreHorizontal, ChevronDown, ChevronRight, RefreshCw, Bug, AlertTriangle, CheckCircle2, XCircle, Pencil } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -135,6 +136,17 @@ function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Recor
 
   return (
     <div className="px-6 py-4 space-y-4">
+      {/* Manual assignment warning */}
+      {invoice.needs_manual_assignment && (
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+          <div className="text-xs text-warning space-y-0.5">
+            <p className="font-medium">Atribuição pendente</p>
+            <p>Esta fatura não foi associada automaticamente à UC. Confirme se os dados estão corretos.</p>
+          </div>
+        </div>
+      )}
+
       {/* Leituras */}
       <div>
         <p className="text-xs font-semibold text-foreground mb-2">Leituras do Medidor</p>
@@ -225,6 +237,7 @@ export function UCInvoicesTab({ unitId }: Props) {
     invalidateUcQueries(qc, unitId);
   };
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<UnitInvoice | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -251,6 +264,8 @@ export function UCInvoicesTab({ unitId }: Props) {
     bandeira_tarifaria: "" as string,
   });
 
+  const isEditing = !!editingInvoice;
+
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["unit_invoices", unitId],
     queryFn: () => invoiceService.listByUnit(unitId),
@@ -273,14 +288,11 @@ export function UCInvoicesTab({ unitId }: Props) {
 
   const parseNum = (v: string) => v ? parseFloat(v) : null;
 
-  const createMut = useMutation({
+  const isFormValid = form.reference_month >= 1 && form.reference_month <= 12 && form.reference_year >= 2000 && !!form.total_amount;
+
+  const saveMut = useMutation({
     mutationFn: async () => {
-      let pdfUrl: string | null = null;
-      if (form.pdf_file) {
-        pdfUrl = await uploadPdf(form.pdf_file);
-      }
-      return invoiceService.create({
-        unit_id: unitId,
+      const payload: Partial<UnitInvoice> = {
         reference_month: form.reference_month,
         reference_year: form.reference_year,
         total_amount: parseNum(form.total_amount),
@@ -290,22 +302,36 @@ export function UCInvoicesTab({ unitId }: Props) {
         previous_balance_kwh: parseNum(form.previous_balance_kwh),
         current_balance_kwh: parseNum(form.current_balance_kwh),
         due_date: form.due_date || null,
-        pdf_file_url: pdfUrl,
-        source: "manual",
         demanda_contratada_kw: parseNum(form.demanda_contratada_kw),
         demanda_medida_kw: parseNum(form.demanda_medida_kw),
         ultrapassagem_kw: parseNum(form.ultrapassagem_kw),
         multa_ultrapassagem: parseNum(form.multa_ultrapassagem),
         bandeira_tarifaria: (form.bandeira_tarifaria || null) as BandeiraTarifaria | null,
-      } as any);
+      };
+
+      if (editingInvoice) {
+        return invoiceService.update(editingInvoice.id, payload);
+      } else {
+        let pdfUrl: string | null = null;
+        if (form.pdf_file) {
+          pdfUrl = await uploadPdf(form.pdf_file);
+        }
+        return invoiceService.create({
+          ...payload,
+          unit_id: unitId,
+          pdf_file_url: pdfUrl,
+          source: "manual",
+        } as any);
+      }
     },
     onSuccess: () => {
       invalidateAllUcQueries();
       setDialogOpen(false);
+      setEditingInvoice(null);
       resetForm();
-      toast({ title: "Fatura registrada com sucesso" });
+      toast({ title: isEditing ? "Fatura atualizada com sucesso" : "Fatura registrada com sucesso" });
     },
-    onError: (err: any) => toast({ title: "Erro ao registrar fatura", description: err?.message, variant: "destructive" }),
+    onError: (err: any) => toast({ title: isEditing ? "Erro ao atualizar fatura" : "Erro ao registrar fatura", description: err?.message, variant: "destructive" }),
   });
 
   const deleteMut = useMutation({
@@ -410,6 +436,28 @@ export function UCInvoicesTab({ unitId }: Props) {
     });
   };
 
+  const openEditDialog = (inv: UnitInvoice) => {
+    setEditingInvoice(inv);
+    setForm({
+      reference_month: inv.reference_month,
+      reference_year: inv.reference_year,
+      total_amount: inv.total_amount != null ? String(inv.total_amount) : "",
+      energy_consumed_kwh: inv.energy_consumed_kwh != null ? String(inv.energy_consumed_kwh) : "",
+      energy_injected_kwh: inv.energy_injected_kwh != null ? String(inv.energy_injected_kwh) : "",
+      compensated_kwh: inv.compensated_kwh != null ? String(inv.compensated_kwh) : "",
+      previous_balance_kwh: inv.previous_balance_kwh != null ? String(inv.previous_balance_kwh) : "",
+      current_balance_kwh: inv.current_balance_kwh != null ? String(inv.current_balance_kwh) : "",
+      due_date: inv.due_date || "",
+      pdf_file: null,
+      demanda_contratada_kw: inv.demanda_contratada_kw != null ? String(inv.demanda_contratada_kw) : "",
+      demanda_medida_kw: inv.demanda_medida_kw != null ? String(inv.demanda_medida_kw) : "",
+      ultrapassagem_kw: inv.ultrapassagem_kw != null ? String(inv.ultrapassagem_kw) : "",
+      multa_ultrapassagem: inv.multa_ultrapassagem != null ? String(inv.multa_ultrapassagem) : "",
+      bandeira_tarifaria: inv.bandeira_tarifaria || "",
+    });
+    setDialogOpen(true);
+  };
+
   const handleReprocess = async (invoiceId: string) => {
     setReprocessingId(invoiceId);
     try {
@@ -505,7 +553,7 @@ export function UCInvoicesTab({ unitId }: Props) {
             <Upload className="w-4 h-4 mr-1" />
             {uploading ? "Enviando..." : "Importar PDF"}
           </Button>
-          <Button size="sm" onClick={() => { resetForm(); setDialogOpen(true); }}>
+          <Button size="sm" onClick={() => { resetForm(); setEditingInvoice(null); setDialogOpen(true); }}>
             <Plus className="w-4 h-4 mr-1" /> Registrar Fatura
           </Button>
         </div>
@@ -584,6 +632,11 @@ export function UCInvoicesTab({ unitId }: Props) {
                         <div className="flex items-center gap-1.5">
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
                           {MONTHS[inv.reference_month - 1]}/{inv.reference_year}
+                          {inv.needs_manual_assignment && (
+                            <Badge variant="outline" className="text-[10px] ml-1 bg-warning/10 text-warning border-warning/20">
+                              Atribuição pendente
+                            </Badge>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{inv.due_date ? formatDate(inv.due_date) : "—"}</TableCell>
@@ -644,6 +697,10 @@ export function UCInvoicesTab({ unitId }: Props) {
                                   </a>
                                 </DropdownMenuItem>
                               )}
+                              {/* Edit invoice */}
+                              <DropdownMenuItem onClick={() => openEditDialog(inv)}>
+                                <Pencil className="w-4 h-4 mr-2" /> Editar
+                              </DropdownMenuItem>
                               {/* Debug parsing */}
                               {inv.raw_extraction && (
                                 <DropdownMenuItem onClick={() => setDebugInvoice(inv)}>
@@ -685,16 +742,20 @@ export function UCInvoicesTab({ unitId }: Props) {
         </div>
       )}
 
-      {/* Register invoice dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Register/Edit invoice dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingInvoice(null); }}>
         <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
           <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
-              <DialogTitle className="text-base font-semibold text-foreground">Registrar Fatura</DialogTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Preencha os dados da conta de energia manualmente</p>
+              <DialogTitle className="text-base font-semibold text-foreground">
+                {isEditing ? "Editar Fatura" : "Nova Fatura"}
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isEditing ? "Altere os dados da fatura selecionada" : "Preencha os dados da conta de energia manualmente"}
+              </p>
             </div>
           </DialogHeader>
 
@@ -702,11 +763,11 @@ export function UCInvoicesTab({ unitId }: Props) {
             {/* Referência */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Mês</Label>
+                <Label className="text-xs">Mês *</Label>
                 <Input type="number" min={1} max={12} value={form.reference_month} onChange={(e) => setForm(f => ({ ...f, reference_month: parseInt(e.target.value) || 1 }))} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Ano</Label>
+                <Label className="text-xs">Ano *</Label>
                 <Input type="number" value={form.reference_year} onChange={(e) => setForm(f => ({ ...f, reference_year: parseInt(e.target.value) || 2024 }))} />
               </div>
             </div>
@@ -714,7 +775,7 @@ export function UCInvoicesTab({ unitId }: Props) {
             {/* Valor, Vencimento, Bandeira */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Valor (R$)</Label>
+                <Label className="text-xs">Valor (R$) *</Label>
                 <Input type="number" step="0.01" value={form.total_amount} onChange={(e) => setForm(f => ({ ...f, total_amount: e.target.value }))} placeholder="0,00" />
               </div>
               <div className="space-y-1">
@@ -785,22 +846,24 @@ export function UCInvoicesTab({ unitId }: Props) {
               </div>
             </div>
 
-            {/* PDF upload */}
-            <div className="space-y-1">
-              <Label className="text-xs">PDF da Fatura (opcional)</Label>
-              <Input
-                type="file"
-                accept=".pdf"
-                onChange={(e) => setForm(f => ({ ...f, pdf_file: e.target.files?.[0] || null }))}
-                className="text-sm file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-              />
-            </div>
+            {/* PDF upload — only for creation */}
+            {!isEditing && (
+              <div className="space-y-1">
+                <Label className="text-xs">PDF da Fatura (opcional)</Label>
+                <Input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => setForm(f => ({ ...f, pdf_file: e.target.files?.[0] || null }))}
+                  className="text-sm file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={createMut.isPending}>Cancelar</Button>
-            <Button onClick={() => createMut.mutate()} disabled={createMut.isPending}>
-              {createMut.isPending ? "Salvando..." : "Salvar"}
+            <Button variant="ghost" onClick={() => { setDialogOpen(false); setEditingInvoice(null); }} disabled={saveMut.isPending}>Cancelar</Button>
+            <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !isFormValid}>
+              {saveMut.isPending ? "Salvando..." : isEditing ? "Salvar alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>

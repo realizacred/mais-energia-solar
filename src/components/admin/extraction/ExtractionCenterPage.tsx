@@ -4,7 +4,9 @@
  * Reposicionada para modelo 100% nativo — provedores internos não expostos.
  */
 import { useState } from "react";
-import { Settings2, Plus, CheckCircle2, AlertTriangle, Cpu, Pencil, Trash2, Eye, Shield, Database, RefreshCw, Upload, Sparkles } from "lucide-react";
+import { Settings2, Plus, CheckCircle2, AlertTriangle, Cpu, Pencil, Trash2, Eye, Shield, Database, RefreshCw, Upload, Sparkles, UserX } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -90,6 +92,20 @@ export default function ExtractionCenterPage() {
   const nativeConfigs = configs.filter(c => c.native_enabled).length;
   const withFallback = configs.filter(c => c.fallback_enabled).length;
 
+  // Count invoices pending manual assignment
+  const { data: pendingAssignmentCount } = useQuery({
+    queryKey: ["invoices_pending_assignment_count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("unit_invoices")
+        .select("id", { count: "exact", head: true })
+        .eq("needs_manual_assignment", true);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   const handleEdit = (config: ExtractionConfig) => {
     setEditConfig(config);
     setModalOpen(true);
@@ -159,7 +175,7 @@ export default function ExtractionCenterPage() {
       </Card>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
@@ -188,9 +204,9 @@ export default function ExtractionCenterPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-l-[3px] border-l-warning bg-card shadow-sm">
+        <Card className="border-l-[3px] border-l-destructive bg-card shadow-sm">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-destructive/10 text-destructive shrink-0">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
@@ -198,6 +214,20 @@ export default function ExtractionCenterPage() {
                 {stats ? stats.failed : <Skeleton className="h-8 w-12" />}
               </p>
               <p className="text-sm text-muted-foreground mt-1">Falhas (30d)</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-[3px] border-l-warning bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+              <UserX className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
+                {pendingAssignmentCount != null ? pendingAssignmentCount : <Skeleton className="h-8 w-12" />}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Atribuição pendente</p>
             </div>
           </CardContent>
         </Card>
