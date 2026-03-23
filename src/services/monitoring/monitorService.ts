@@ -4,7 +4,7 @@
  *
  * Consolidates both:
  *   - monitor_* tables (plants, health_cache, events, readings, devices)
- *   - monitoring_integrations / solar_plants / solar_plant_metrics_daily (legacy)
+ *   - monitoring_integrations / solar_plants (legacy)
  */
 import { supabase } from "@/integrations/supabase/client";
 import { parseInvokeError } from "@/lib/supabaseFunctionError";
