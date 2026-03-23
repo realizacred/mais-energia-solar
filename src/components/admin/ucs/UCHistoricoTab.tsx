@@ -19,6 +19,8 @@ interface Props {
   plantId?: string | null;
   /** Resolved solar_plants.id for metrics queries */
   solarPlantId?: string | null;
+  /** Callback to switch to a parent tab (e.g., "faturas") */
+  onSwitchParentTab?: (tab: string) => void;
 }
 
 const STALE_5M = 1000 * 60 * 5;
