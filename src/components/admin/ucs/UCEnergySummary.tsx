@@ -89,7 +89,7 @@ export function UCEnergySummary({ ucId }: Props) {
               {Number(asBeneficiary.used_from_balance_kwh || 0) > 0 && (
                 <div className="rounded-lg border border-info/20 bg-info/5 p-3">
                   <p className="text-xs text-muted-foreground">Usado do Saldo</p>
-                  <p className="text-sm font-bold font-mono text-info">{Number(asBeneficiary.used_from_balance_kwh).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWh</p>
+                  <p className="text-sm font-bold font-mono text-info">{formatDecimalBR(Number(asBeneficiary.used_from_balance_kwh), 1)} kWh</p>
                 </div>
               )}
               <div className="rounded-lg border border-warning/20 bg-warning/5 p-3">
