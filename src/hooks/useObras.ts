@@ -86,7 +86,7 @@ export function useSalvarObra() {
   return useMutation({
     mutationFn: async ({ id, data }: { id?: string; data: Record<string, any> }) => {
       if (id) {
-        const { error } = await supabase.from("obras").update(data).eq("id", id);
+        const { error } = await supabase.from("obras").update(data as any).eq("id", id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("obras").insert(data);
