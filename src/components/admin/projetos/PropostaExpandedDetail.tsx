@@ -756,9 +756,11 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   useEffect(() => {
     if (!isExpanded || activeTab !== "arquivo" || html || rendering) return;
     if (!latestVersao?.id) return;
-    // Only auto-render if proposal has been generated
-    const status = latestVersao.status?.toLowerCase();
-    if (status === "generated" || status === "gerada" || status === "ativa") {
+    // Check both versao status and proposta status
+    const vStatus = latestVersao.status?.toLowerCase();
+    const pStatus = p.status?.toLowerCase();
+    if (vStatus === "generated" || vStatus === "gerada" || vStatus === "ativa" ||
+        pStatus === "gerada" || pStatus === "generated" || pStatus === "enviada" || pStatus === "aceita") {
       handleRender();
     }
   }, [isExpanded, activeTab, latestVersao?.id]);
