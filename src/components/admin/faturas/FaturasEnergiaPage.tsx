@@ -68,116 +68,11 @@ export default function FaturasEnergiaPage() {
     const gmailParam = searchParams.get("gmail");
     if (gmailParam === "conectado") {
       toast({ title: "Gmail conectado com sucesso!" });
-      qc.invalidateQueries({ queryKey: ["gmail_config"] });
+      qc.invalidateQueries({ queryKey: ["gmail_accounts"] });
     } else if (gmailParam === "erro") {
       toast({ title: "Erro ao conectar Gmail", description: searchParams.get("reason") || "Tente novamente", variant: "destructive" });
     }
   }, [searchParams]);
-
-  // Gmail config
-  const { data: gmailConfig, isLoading: loadingConfig } = useQuery({
-    queryKey: ["gmail_config"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("integrations_api_configs")
-        .select("id, is_active, settings, status")
-        .eq("provider", "gmail")
-        .eq("is_active", true)
-        .maybeSingle();
-      return data;
-    },
-    staleTime: STALE,
-  });
-
-  // UCs for filter
-  const { data: ucs = [] } = useQuery({
-    queryKey: ["ucs_for_faturas_central"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("units_consumidoras")
-        .select("id, nome, codigo_uc, concessionaria_nome")
-        .eq("is_archived", false)
-        .order("nome");
-      return data || [];
-    },
-    staleTime: STALE,
-  });
-
-  // Paginated invoices
-  const filters = {
-    unit_id: filterUC !== "all" ? filterUC : undefined,
-    status: filterStatus !== "all" ? filterStatus : undefined,
-    reference_year: filterYear !== "all" ? Number(filterYear) : undefined,
-    search: searchText || undefined,
-  };
-  const { data: invoicesResult, isLoading: loadingInvoices } = useInvoicesList(filters, page);
-  const invoices = invoicesResult?.data || [];
-  const totalCount = invoicesResult?.totalCount || 0;
-  const pageSize = invoicesResult?.pageSize || 50;
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  // KPIs
-  const { data: kpis } = useInvoiceKPIs();
-
-  // Years for filter (from a lightweight query)
-  const { data: years = [] } = useQuery({
-    queryKey: ["invoice_years"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("unit_invoices")
-        .select("reference_year")
-        .order("reference_year", { ascending: false });
-      const unique = [...new Set((data || []).map((d: any) => d.reference_year))];
-      return unique as number[];
-    },
-    staleTime: STALE,
-  });
-
-  // Delete mutation
-  const deleteMut = useMutation({
-    mutationFn: (id: string) => invoiceService.delete(id),
-    onSuccess: () => {
-      toast({ title: "Fatura excluída" });
-      qc.invalidateQueries({ queryKey: ["central_invoices"] });
-      qc.invalidateQueries({ queryKey: ["unit_invoices"] });
-      qc.invalidateQueries({ queryKey: ["invoice_kpis"] });
-      setDeleteId(null);
-    },
-    onError: (err: any) => toast({ title: "Erro", description: err?.message, variant: "destructive" }),
-  });
-
-  const isConnected = !!gmailConfig?.is_active;
-  const connectedEmail = (gmailConfig?.settings as any)?.email;
-
-  async function handleConnect() {
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      if (!token) { toast({ title: "Erro", description: "Você precisa estar logado", variant: "destructive" }); return; }
-      const resp = await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?action=auth_url`, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      });
-      const result = await resp.json();
-      if (result.auth_url) { window.location.href = result.auth_url; }
-      else { toast({ title: "Erro", description: result.error || "Falha ao gerar URL", variant: "destructive" }); }
-    } catch (err: any) { toast({ title: "Erro", description: err?.message, variant: "destructive" }); }
-  }
-
-  async function handleDisconnect() {
-    setDisconnecting(true);
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?action=disconnect`, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      });
-      toast({ title: "Gmail desconectado" });
-      qc.invalidateQueries({ queryKey: ["gmail_config"] });
-    } catch (err: any) { toast({ title: "Erro", description: err?.message, variant: "destructive" }); }
-    finally { setDisconnecting(false); }
-  }
 
   async function handleUploadPdf(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
