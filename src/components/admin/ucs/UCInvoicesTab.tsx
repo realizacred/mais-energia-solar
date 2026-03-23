@@ -782,7 +782,8 @@ export function UCInvoicesTab({ unitId }: Props) {
             </TableBody>
           </Table>
         </div>
-      )}
+        );
+      })()}
 
       {/* Register/Edit invoice dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingInvoice(null); }}>
