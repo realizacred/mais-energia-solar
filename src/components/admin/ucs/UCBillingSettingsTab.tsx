@@ -17,7 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send } from "lucide-react";
+import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send, Phone } from "lucide-react";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 interface Props {
@@ -195,6 +196,9 @@ export function UCBillingSettingsTab({ unitId }: Props) {
         )}
       </Card>
 
+      {/* Card: Telefone para Alertas Energéticos */}
+      <AlertPhoneCard unitId={unitId} />
+
       {/* Card: Info */}
       <Card className="border-info/20 bg-info/5">
         <CardContent className="flex items-start gap-3 py-4">
@@ -338,5 +342,86 @@ function LastAlertInfo({ unitId }: { unitId: string }) {
         {sendManual.isPending ? "Enviando..." : "Testar alerta"}
       </Button>
     </div>
+  );
+}
+
+/** Sub-component: Alert phone number for the UC */
+function AlertPhoneCard({ unitId }: { unitId: string }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [phone, setPhone] = useState("");
+  const [initialPhone, setInitialPhone] = useState("");
+
+  const { data: ucData, isLoading } = useQuery({
+    queryKey: ["uc_telefone_alertas", unitId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("units_consumidoras")
+        .select("telefone_alertas")
+        .eq("id", unitId)
+        .single();
+      if (error) throw error;
+      return data as { telefone_alertas: string | null };
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  useEffect(() => {
+    if (ucData) {
+      const val = ucData.telefone_alertas || "";
+      setPhone(val);
+      setInitialPhone(val);
+    }
+  }, [ucData]);
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase as any)
+        .from("units_consumidoras")
+        .update({ telefone_alertas: phone || null })
+        .eq("id", unitId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setInitialPhone(phone);
+      qc.invalidateQueries({ queryKey: ["uc_telefone_alertas", unitId] });
+      toast({ title: "Telefone para alertas salvo" });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err?.message, variant: "destructive" }),
+  });
+
+  const isDirty = phone !== initialPhone;
+
+  if (isLoading) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Phone className="w-4 h-4 text-primary" /> Telefone para Alertas Energéticos
+        </CardTitle>
+        <CardDescription>
+          Número que receberá notificações via WhatsApp quando houver alerta energético crítico.
+          Se não preenchido, o administrador será notificado.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Telefone (WhatsApp)</Label>
+          <PhoneInput
+            value={phone}
+            onChange={setPhone}
+            placeholder="(00) 00000-0000"
+          />
+        </div>
+        <Button
+          onClick={() => saveMut.mutate()}
+          disabled={saveMut.isPending || !isDirty}
+          size="sm"
+        >
+          {saveMut.isPending ? "Salvando..." : "Salvar"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
