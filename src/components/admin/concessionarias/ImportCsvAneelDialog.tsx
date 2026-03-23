@@ -964,7 +964,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                   ))}
                   {parsed.length > 30 && (
                     <div className="text-[10px] text-muted-foreground text-center py-1">
-                      … e mais {(parsed.length - 30).toLocaleString("pt-BR")} registros
+                      … e mais {formatIntegerBR(parsed.length - 30)} registros
                     </div>
                   )}
                 </div>
