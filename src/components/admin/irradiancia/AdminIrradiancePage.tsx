@@ -615,7 +615,7 @@ export function CsvImportPanel() {
           {pointsLoaded !== null && (
             <Badge className="bg-success/10 text-success border-success/30 gap-1">
               <CheckCircle2 className="h-3 w-3" />
-              {pointsLoaded.toLocaleString("pt-BR")} pontos confirmados no banco
+              {formatIntegerBR(pointsLoaded)} pontos confirmados no banco
             </Badge>
           )}
         </CardContent>
@@ -651,7 +651,7 @@ export function CsvImportPanel() {
               </div>
               <div className="flex gap-2">
                 <span className="text-muted-foreground">Row Count:</span>
-                <span className="font-semibold">{activateResult.row_count.toLocaleString("pt-BR")}</span>
+                <span className="font-semibold">{formatIntegerBR(activateResult.row_count)}</span>
               </div>
             </div>
           )}

@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useCallback } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,9 +84,9 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
       const dhi = dhiText ? parseCsvContent(dhiText, "DHI") : null;
       const dni = dniText ? parseCsvContent(dniText, "DNI") : null;
 
-      log("info", `GHI: ${ghi.rows.length.toLocaleString("pt-BR")} pontos (${ghi.unitDetected})`);
-      if (dhi) log("info", `DHI: ${dhi.rows.length.toLocaleString("pt-BR")} pontos (${dhi.unitDetected})`);
-      if (dni) log("info", `DNI: ${dni.rows.length.toLocaleString("pt-BR")} pontos (${dni.unitDetected})`);
+      log("info", `GHI: ${formatIntegerBR(ghi.rows.length)} pontos (${ghi.unitDetected})`);
+      if (dhi) log("info", `DHI: ${formatIntegerBR(dhi.rows.length)} pontos (${dhi.unitDetected})`);
+      if (dni) log("info", `DNI: ${formatIntegerBR(dni.rows.length)} pontos (${dni.unitDetected})`);
 
       // Report skipped rows
       const totalSkipped = ghi.skippedRows + (dhi?.skippedRows ?? 0) + (dni?.skippedRows ?? 0);
@@ -120,7 +121,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
         log("info", `Amostra: lat=${sample.lat}, lon=${sample.lon}, jan=${sample.jan.toFixed(2)}, dez=${sample.dec.toFixed(2)}`);
       }
 
-      log("success", `✅ ${merged.length.toLocaleString("pt-BR")} pontos prontos para importar.`);
+      log("success", `✅ ${formatIntegerBR(merged.length)} pontos prontos para importar.`);
       setValidation(result);
       setMergedPoints(merged);
       setState("validated");
@@ -188,7 +189,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
 
       const versionId = initData.version_id;
       const datasetId = initData.dataset_id;
-      log("success", `Versão ${tag} criada. Enviando ${mergedPoints.length.toLocaleString("pt-BR")} pontos...`);
+      log("success", `Versão ${tag} criada. Enviando ${formatIntegerBR(mergedPoints.length)} pontos...`);
 
       // 2b. Upload in chunks
       const chunks = chunkArray(mergedPoints, CHUNK_SIZE);
@@ -247,7 +248,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
         if (i % 5 === 0 || i === chunks.length - 1) {
           const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
           const pct = Math.round((sent / mergedPoints.length) * 100);
-          log("info", `${pct}% — ${sent.toLocaleString("pt-BR")}/${mergedPoints.length.toLocaleString("pt-BR")} pontos (${elapsed}s)`);
+          log("info", `${pct}% — ${formatIntegerBR(sent)}/${formatIntegerBR(mergedPoints.length)} pontos (${elapsed}s)`);
         }
 
         await new Promise(r => setTimeout(r, YIELD_MS));
@@ -267,9 +268,9 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
       });
 
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-      log("success", `✅ ${mergedPoints.length.toLocaleString("pt-BR")} pontos importados em ${totalTime}s!`);
+      log("success", `✅ ${formatIntegerBR(mergedPoints.length)} pontos importados em ${totalTime}s!`);
       setState("done");
-      toast.success("Importação concluída!", { description: `${mergedPoints.length.toLocaleString("pt-BR")} pontos em ${totalTime}s.` });
+      toast.success("Importação concluída!", { description: `${formatIntegerBR(mergedPoints.length)} pontos em ${totalTime}s.` });
       onReload();
     } catch (e: any) {
       log("error", `Erro: ${e.message}`);
@@ -361,23 +362,23 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px]">
             <div>
               <span className="text-muted-foreground">GHI:</span>{" "}
-              <span className="font-semibold">{validation.ghiCount.toLocaleString("pt-BR")} pts</span>
+              <span className="font-semibold">{formatIntegerBR(validation.ghiCount)} pts</span>
             </div>
             {validation.dhiCount > 0 && (
               <div>
                 <span className="text-muted-foreground">DHI:</span>{" "}
-                <span className="font-semibold">{validation.dhiCount.toLocaleString("pt-BR")} pts</span>
+                <span className="font-semibold">{formatIntegerBR(validation.dhiCount)} pts</span>
               </div>
             )}
             {validation.dniCount > 0 && (
               <div>
                 <span className="text-muted-foreground">DNI:</span>{" "}
-                <span className="font-semibold">{validation.dniCount.toLocaleString("pt-BR")} pts</span>
+                <span className="font-semibold">{formatIntegerBR(validation.dniCount)} pts</span>
               </div>
             )}
             <div>
               <span className="text-muted-foreground">Total mesclado:</span>{" "}
-              <span className="font-semibold text-primary">{validation.mergedCount.toLocaleString("pt-BR")} pts</span>
+              <span className="font-semibold text-primary">{formatIntegerBR(validation.mergedCount)} pts</span>
             </div>
           </div>
           {validation.skippedRows > 0 && (
@@ -414,7 +415,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
         {state === "validated" && (
           <Button variant="outline" size="sm" onClick={() => handleImport(false)} className="gap-1.5 text-xs">
             <Upload className="h-3.5 w-3.5" />
-            Importar {mergedPoints.length.toLocaleString("pt-BR")} pontos
+            Importar {formatIntegerBR(mergedPoints.length)} pontos
           </Button>
         )}
         {state === "uploading" && (
@@ -445,7 +446,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
           </div>
           <Progress value={progressPct} className="h-3" />
           <p className="text-[10px] text-muted-foreground text-right">
-            {progress.current.toLocaleString("pt-BR")} / {progress.total.toLocaleString("pt-BR")} pontos
+            {formatIntegerBR(progress.current)} / {formatIntegerBR(progress.total)} pontos
           </p>
         </div>
       )}

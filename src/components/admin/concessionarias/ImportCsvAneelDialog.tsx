@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import {
   Upload, FileText, AlertTriangle, CheckCircle2, Info, ShieldCheck, XCircle,
   AlertCircle, ChevronDown, ChevronRight, FileSpreadsheet, ArrowRight,
@@ -762,7 +763,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               {/* Summary stats */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-center">
-                  <div className="text-lg font-bold text-success font-mono">{validation.validRows.toLocaleString("pt-BR")}</div>
+                  <div className="text-lg font-bold text-success font-mono">{formatIntegerBR(validation.validRows)}</div>
                   <div className="text-[10px] text-success/80">Válidos</div>
                 </div>
                 <div className="rounded-lg bg-warning/10 border border-warning/20 p-3 text-center">
@@ -824,7 +825,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               ) : (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20 text-[11px] text-success">
                   <CheckCircle2 className="w-4 h-4" />
-                  Todas as {validation.validRows.toLocaleString("pt-BR")} linhas são válidas.
+                  Todas as {formatIntegerBR(validation.validRows)} linhas são válidas.
                 </div>
               )}
 
@@ -850,7 +851,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border text-[11px] text-muted-foreground">
                 <Info className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
                 <div className="space-y-1">
-                  <p><strong>Próximo passo:</strong> os {validation.totalRows.toLocaleString("pt-BR")} registros serão agrupados por distribuidora + subgrupo + modalidade.</p>
+                  <p><strong>Próximo passo:</strong> os {formatIntegerBR(validation.totalRows)} registros serão agrupados por distribuidora + subgrupo + modalidade.</p>
                   <p>Apenas distribuidoras cadastradas serão atualizadas. Linhas inválidas são descartadas automaticamente.</p>
                 </div>
               </div>
@@ -869,7 +870,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-lg bg-muted/50 p-3 text-center">
-                  <div className="text-lg font-bold font-mono">{parsed.length.toLocaleString("pt-BR")}</div>
+                  <div className="text-lg font-bold font-mono">{formatIntegerBR(parsed.length)}</div>
                   <div className="text-[10px] text-muted-foreground">Registros</div>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-3 text-center">
@@ -963,7 +964,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                   ))}
                   {parsed.length > 30 && (
                     <div className="text-[10px] text-muted-foreground text-center py-1">
-                      … e mais {(parsed.length - 30).toLocaleString("pt-BR")} registros
+                      … e mais {formatIntegerBR(parsed.length - 30)} registros
                     </div>
                   )}
                 </div>
@@ -1047,7 +1048,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               <Button variant="default" size="sm" onClick={handleProceedToPreview} disabled={!canProceed} className="gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {canProceed
-                  ? `Prosseguir (${validation?.validRows.toLocaleString("pt-BR") ?? 0} registros)`
+                  ? `Prosseguir (${formatIntegerBR(validation?.validRows) ?? 0} registros)`
                   : "Estrutura inválida — Corrija o arquivo"}
               </Button>
             </>
@@ -1057,7 +1058,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               <Button variant="ghost" size="sm" onClick={() => setStep("validate")}>Voltar</Button>
               <Button variant="outline" size="sm" onClick={handleImport} disabled={importing || parsed.length === 0} className="gap-1.5">
                 <Upload className="w-3.5 h-3.5" />
-                Importar {parsed.length.toLocaleString("pt-BR")} registros
+                Importar {formatIntegerBR(parsed.length)} registros
               </Button>
             </>
           )}

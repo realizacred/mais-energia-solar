@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import {
   FileText, AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronRight,
   BarChart3, ShieldCheck, Columns, Users, Download,
@@ -336,7 +337,7 @@ function ReportSanidade({ data }: { data: ImportReports["sanidade"] }) {
 function KpiCard({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
     <div className="rounded-lg bg-muted/30 border p-2.5 text-center">
-      <div className={cn("text-base font-bold font-mono", color)}>{value.toLocaleString("pt-BR")}</div>
+      <div className={cn("text-base font-bold font-mono", color)}>{formatIntegerBR(value)}</div>
       <div className="text-[9px] text-muted-foreground">{label}</div>
     </div>
   );

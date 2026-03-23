@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -79,7 +80,7 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
                         {st !== undefined && (
                           hasData ? (
                             <Badge variant="secondary" className="text-[9px] bg-success/10 text-success border-success/30 px-1.5 py-0">
-                              {st.points.toLocaleString("pt-BR")} pts
+                              {formatIntegerBR(st.points)} pts
                             </Badge>
                           ) : (
                             <Badge variant="secondary" className="text-[9px] bg-destructive/10 text-destructive border-destructive/30 px-1.5 py-0">
@@ -99,7 +100,7 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
                   <>
                     <CheckCircle2 className="h-3 w-3 text-success" />
                     <span className="text-[11px] text-success">
-                      Base ativa — {currentBase.points.toLocaleString("pt-BR")} pontos carregados
+                      Base ativa — {formatIntegerBR(currentBase.points)} pontos carregados
                     </span>
                   </>
                 ) : (
