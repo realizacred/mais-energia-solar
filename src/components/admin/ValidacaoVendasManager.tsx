@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ApproveVendaDialog } from "./ApproveVendaDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,17 +36,14 @@ import { formatBRL } from "@/lib/formatters";
 import { usePendingValidations, type PendingValidation } from "@/hooks/usePendingValidations";
 import { useReopenLead } from "@/hooks/useReopenLead";
 import { useLeadStatusMap } from "@/hooks/useLeadStatusMap";
-
-interface LeadSimulacao {
-  id: string;
-  investimento_estimado: number | null;
-  potencia_recomendada_kwp: number | null;
-  economia_mensal: number | null;
-  consumo_kwh: number | null;
-  geracao_mensal_estimada: number | null;
-  payback_meses: number | null;
-  created_at: string;
-}
+import {
+  useVendedoresAtivos,
+  useLeadSimulacoes,
+  useApproveVenda,
+  useRejectVenda,
+  useConvertidoStatus,
+  type LeadSimulacao,
+} from "@/hooks/useValidacaoVendas";
 
 interface Vendedor {
   id: string;
@@ -77,26 +74,14 @@ export function ValidacaoVendasManager() {
   const { reopenLead, reopening } = useReopenLead(() => refetchPending());
   const { reopenTarget } = useLeadStatusMap();
 
-  // Vendedor selector state
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [selectedVendedorId, setSelectedVendedorId] = useState<string>("");
 
   // Filters
   const [filterVendedor, setFilterVendedor] = useState("all");
   const [filterPeriodo, setFilterPeriodo] = useState("all");
 
-  // Fetch vendedores on mount
-  useEffect(() => {
-    const fetchVendedores = async () => {
-      const { data } = await supabase
-        .from("consultores")
-        .select("id, nome, percentual_comissao")
-        .eq("ativo", true)
-        .order("nome");
-      if (data) setVendedores(data);
-    };
-    fetchVendedores();
-  }, []);
+  // Fetch vendedores via hook
+  const { data: vendedores = [] } = useVendedoresAtivos();
 
   // Derived: unique vendors from pending items
   const vendedorNames = useMemo(() => {

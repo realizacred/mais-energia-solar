@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
@@ -23,37 +23,18 @@ import { Spinner } from "@/components/ui-kit/Spinner";
 import { PageHeader, EmptyState } from "@/components/ui-kit";
 import { ESTADOS_BRASIL } from "@/lib/validations";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
+import {
+  useObras,
+  useObrasFormOptions,
+  useSalvarObra,
+  useDeletarObra,
+  useToggleObraAtivo,
+  useToggleObraDestaque,
+  useObrasRealtime,
+  type ObraRow,
+} from "@/hooks/useObras";
 
-interface Obra {
-  id: string;
-  titulo: string;
-  descricao: string | null;
-  cidade: string;
-  estado: string;
-  potencia_kwp: number | null;
-  economia_mensal: number | null;
-  tipo_projeto: string;
-  data_conclusao: string | null;
-  imagens_urls: string[];
-  video_url: string | null;
-  destaque: boolean;
-  ativo: boolean;
-  ordem: number;
-  numero_modulos: number | null;
-  modelo_inversor: string | null;
-  cliente_nome: string | null;
-  tags: string[];
-  marca_paineis: string | null;
-  tempo_instalacao_dias: number | null;
-  depoimento_cliente: string | null;
-  payback_meses: number | null;
-  projeto_id: string | null;
-  cliente_id: string | null;
-  created_at: string;
-}
-
-interface ProjetoOption { id: string; codigo: string; potencia_kwp: number | null; }
-interface ClienteOption { id: string; nome: string; telefone: string; }
+type Obra = ObraRow;
 
 const TIPOS_PROJETO = [
   { value: "residencial", label: "Residencial" },
@@ -95,8 +76,16 @@ const emptyForm = {
 };
 
 export function ObrasManager() {
-  const [obras, setObras] = useState<Obra[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: obras = [], isLoading: loading } = useObras();
+  const { data: formOptions } = useObrasFormOptions();
+  const projetos = formOptions?.projetos || [];
+  const clientes = formOptions?.clientes || [];
+  const salvarObra = useSalvarObra();
+  const deletarObra = useDeletarObra();
+  const toggleAtivo = useToggleObraAtivo();
+  const toggleDestaque = useToggleObraDestaque();
+  useObrasRealtime();
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingObra, setEditingObra] = useState<Obra | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -105,58 +94,8 @@ export function ObrasManager() {
   const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
-  const [projetos, setProjetos] = useState<ProjetoOption[]>([]);
-  const [clientes, setClientes] = useState<ClienteOption[]>([]);
 
   const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(form.estado);
-
-  const fetchObras = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("obras")
-        .select("id, titulo, descricao, cidade, estado, potencia_kwp, tipo_projeto, imagens_urls, tags, destaque, ativo, ordem, numero_modulos, marca_paineis, modelo_inversor, economia_mensal, payback_meses, tempo_instalacao_dias, data_conclusao, depoimento_cliente, video_url, cliente_nome, cliente_id, projeto_id, created_at, updated_at")
-        .order("ordem", { ascending: true })
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setObras((data as unknown as Obra[]) || []);
-    } catch (error) {
-      const appError = handleSupabaseError(error, "fetch_obras");
-      toast({ title: "Erro", description: appError.userMessage, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchOptions = useCallback(async () => {
-    const [projRes, cliRes] = await Promise.all([
-      supabase.from("projetos").select("id, codigo, potencia_kwp").order("codigo"),
-      supabase.from("clientes").select("id, nome, telefone").eq("ativo", true).order("nome"),
-    ]);
-    if (projRes.data) setProjetos(projRes.data as unknown as ProjetoOption[]);
-    if (cliRes.data) setClientes(cliRes.data as ClienteOption[]);
-  }, []);
-
-  useEffect(() => { fetchObras(); fetchOptions(); }, [fetchObras, fetchOptions]);
-
-  // ⚠️ HARDENING: Realtime for cross-user sync on obras
-  useEffect(() => {
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const channel = supabase
-      .channel('obras-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'obras' }, () => {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => fetchObras(), 600);
-      })
-      .subscribe();
-
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
-    };
-  }, [fetchObras]);
 
   const openNew = () => {
     setEditingObra(null);
@@ -287,17 +226,9 @@ export function ObrasManager() {
         cliente_id: form.cliente_id || null,
       };
 
-      if (editingObra) {
-        const { error } = await supabase.from("obras").update(payload).eq("id", editingObra.id);
-        if (error) throw error;
-        toast({ title: "Obra atualizada com sucesso!" });
-      } else {
-        const { error } = await supabase.from("obras").insert(payload);
-        if (error) throw error;
-        toast({ title: "Obra adicionada com sucesso!" });
-      }
+      await salvarObra.mutateAsync({ id: editingObra?.id, data: payload });
+      toast({ title: editingObra ? "Obra atualizada com sucesso!" : "Obra adicionada com sucesso!" });
       setDialogOpen(false);
-      fetchObras();
     } catch (error) {
       const appError = handleSupabaseError(error, editingObra ? "update_obra" : "create_obra");
       toast({ title: "Erro ao salvar", description: appError.userMessage, variant: "destructive" });
@@ -308,30 +239,24 @@ export function ObrasManager() {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from("obras").delete().eq("id", id);
-      if (error) throw error;
+      await deletarObra.mutateAsync(id);
       toast({ title: "Obra excluída" });
       setDeleteConfirm(null);
-      fetchObras();
     } catch (error) {
       const appError = handleSupabaseError(error, "delete_obra", { entityId: id });
       toast({ title: "Erro ao excluir", description: appError.userMessage, variant: "destructive" });
     }
   };
 
-  const toggleActive = async (obra: Obra) => {
+  const handleToggleActive = async (obra: Obra) => {
     try {
-      const { error } = await supabase.from("obras").update({ ativo: !obra.ativo }).eq("id", obra.id);
-      if (error) throw error;
-      fetchObras();
+      await toggleAtivo.mutateAsync({ id: obra.id, ativo: !obra.ativo });
     } catch (error) { handleSupabaseError(error, "toggle_obra_ativo"); }
   };
 
-  const toggleDestaque = async (obra: Obra) => {
+  const handleToggleDestaque = async (obra: Obra) => {
     try {
-      const { error } = await supabase.from("obras").update({ destaque: !obra.destaque }).eq("id", obra.id);
-      if (error) throw error;
-      fetchObras();
+      await toggleDestaque.mutateAsync({ id: obra.id, destaque: !obra.destaque });
     } catch (error) { handleSupabaseError(error, "toggle_obra_destaque"); }
   };
 
@@ -426,11 +351,11 @@ export function ObrasManager() {
                   <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => openEdit(obra)}>
                     <Pencil className="w-3 h-3 mr-1" /> Editar
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => toggleActive(obra)}>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleToggleActive(obra)}>
                     {obra.ativo ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
                     {obra.ativo ? "Ocultar" : "Mostrar"}
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => toggleDestaque(obra)}>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleToggleDestaque(obra)}>
                     <Star className={`w-3 h-3 mr-1 ${obra.destaque ? "fill-primary text-primary" : ""}`} />
                   </Button>
                   <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive ml-auto" onClick={() => setDeleteConfirm(obra.id)}>
