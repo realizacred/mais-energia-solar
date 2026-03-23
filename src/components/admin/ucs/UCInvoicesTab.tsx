@@ -342,7 +342,7 @@ export function UCInvoicesTab({ unitId }: Props) {
       const remaining = invoices.filter((inv) => inv.id !== deleteTarget);
       if (remaining.length === 0) {
         await supabase
-          .from("unit_consumers")
+          .from("units_consumidoras" as any)
           .update({ proxima_leitura_data: null } as any)
           .eq("id", unitId);
       }
