@@ -44,6 +44,15 @@ Deno.serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceRoleKey);
 
+  // Parse optional body for specific account
+  let bodyAccountId: string | null = null;
+  try {
+    if (req.method === 'POST') {
+      const body = await req.json().catch(() => ({}));
+      bodyAccountId = body.email_account_id || null;
+    }
+  } catch { /* ignore */ }
+
   try {
     // ── 1. Fetch active billing email settings with Gmail tokens ──
     const { data: settings, error: settingsErr } = await admin
