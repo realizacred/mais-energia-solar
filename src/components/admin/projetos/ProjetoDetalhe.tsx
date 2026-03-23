@@ -319,8 +319,14 @@ function ProjetoDetalheContent() {
               </Popover>
             </div>
 
-            {/* Right side: status + consultor + nova proposta inline */}
+            {/* Right side: principal + status + consultor + nova proposta inline */}
             <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+              {isPrincipal && (
+                <Badge variant="outline" className="text-xs shrink-0 gap-1 bg-warning/10 text-warning border-warning/20 font-semibold">
+                  <Star className="h-3 w-3 fill-current" />
+                  Principal
+                </Badge>
+              )}
               <Badge
                 variant="secondary"
                 className={cn(
