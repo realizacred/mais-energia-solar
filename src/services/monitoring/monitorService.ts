@@ -151,19 +151,16 @@ function legacyStatusToHealth(
     is_yesterday_fallback: isYesterdayFallback,
   };
 }
-// ─── PLANTS + HEALTH (reads from legacy solar_plants) ─────────
+// ─── PLANTS + HEALTH (reads from legacy solar_plants + v2 view) ─────────
 
 export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
-  const today = getTodayBrasilia();
   const yesterday = getDaysAgoBrasilia(1);
-  const monthStartStr = getMonthStartBrasilia();
 
-  // ── Batch 1: All independent queries in parallel ──
-  const [{ data: plants }, { data: todayMetrics }, { data: yesterdayMetrics }, { data: monthMetrics }] = await Promise.all([
+  // ── Batch 1: plants + v2 metrics view + yesterday fallback ──
+  const [{ data: plants }, { data: viewRows }, { data: yesterdayMetrics }] = await Promise.all([
     supabase.from("solar_plants" as any).select("*").order("name", { ascending: true }),
-    supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", today),
-    supabase.from("solar_plant_metrics_daily" as any).select("*").eq("date", yesterday),
-    supabase.from("solar_plant_metrics_daily" as any).select("plant_id, energy_kwh, power_kw").gte("date", monthStartStr).lte("date", today),
+    supabase.from("monitor_plants_with_metrics").select("*"),
+    supabase.from("monitor_readings_daily").select("plant_id, energy_kwh, peak_power_kw").eq("date", yesterday),
   ]);
 
   const plantList = (plants as unknown as SolarPlant[]) || [];
@@ -172,45 +169,46 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
   const tenantId = plantList[0]?.tenant_id;
   const plantIds = plantList.map((p) => p.id);
 
-  // ── Batch 2: Alert counts + monitor_plants (both depend only on plantList) ──
-  const [alertResult, mpResult] = await Promise.all([
+  // Build map from v2 view: legacy_plant_id → view row
+  type ViewRow = {
+    id: string; legacy_plant_id: string | null; client_id: string | null;
+    last_seen_at: string | null; today_energy_kwh: number | null;
+    today_peak_power_kw: number | null; month_energy_kwh: number | null;
+  };
+  const viewList = (viewRows as unknown as ViewRow[]) || [];
+  const viewByLegacy = new Map<string, ViewRow>();
+  const mpIdToLegacy = new Map<string, string>();
+  const mpIds: string[] = [];
+  viewList.forEach((r) => {
+    if (r.legacy_plant_id) {
+      viewByLegacy.set(r.legacy_plant_id, r);
+      mpIdToLegacy.set(r.id, r.legacy_plant_id);
+    }
+    mpIds.push(r.id);
+  });
+
+  // Yesterday fallback map (monitor_plants.id → energy)
+  const yesterdayMap = new Map<string, SolarPlantMetricsDaily>();
+  ((yesterdayMetrics as unknown as Array<{ plant_id: string; energy_kwh: number | null; peak_power_kw: number | null }>) || []).forEach((m) => {
+    const legacyId = mpIdToLegacy.get(m.plant_id);
+    if (legacyId) {
+      yesterdayMap.set(legacyId, {
+        id: "", tenant_id: "", plant_id: legacyId, date: yesterday,
+        energy_kwh: m.energy_kwh, power_kw: m.peak_power_kw,
+        total_energy_kwh: null, metadata: {}, created_at: "",
+      });
+    }
+  });
+
+  // ── Batch 2: Alert counts + devices + clients ──
+  const clientIds = Array.from(new Set(
+    viewList.map((r) => r.client_id).filter((id): id is string => !!id)
+  ));
+
+  const [alertResult, devResult, clientResult] = await Promise.all([
     tenantId
       ? supabase.rpc("fn_monitor_open_alert_counts" as any, { _tenant_id: tenantId })
       : Promise.resolve({ data: null }),
-    supabase
-      .from("monitor_plants" as any)
-      .select("id, legacy_plant_id, client_id, last_seen_at")
-      .in("legacy_plant_id", plantIds),
-  ]);
-
-  // Process alert counts
-  const alertMap = new Map<string, number>();
-  ((alertResult.data as unknown as Array<{ solar_plant_id: string; open_count: number }>) || []).forEach((a) => {
-    if (a.solar_plant_id) alertMap.set(a.solar_plant_id, a.open_count);
-  });
-
-  // Process monitor_plants
-  const monitorPlantRows = (mpResult.data as unknown as Array<{ id: string; legacy_plant_id: string; client_id: string | null; last_seen_at: string | null }>) || [];
-  const clientIdMap = new Map<string, string | null>();
-  const monitorPlantSeenMap = new Map<string, string>();
-  const mpIdToLegacy = new Map<string, string>();
-  const mpIds: string[] = [];
-
-  monitorPlantRows.forEach((r) => {
-    clientIdMap.set(r.legacy_plant_id, r.client_id);
-    mpIdToLegacy.set(r.id, r.legacy_plant_id);
-    mpIds.push(r.id);
-    const bestSeen = getMostRecentTimestamp(monitorPlantSeenMap.get(r.legacy_plant_id), r.last_seen_at);
-    if (bestSeen) monitorPlantSeenMap.set(r.legacy_plant_id, bestSeen);
-  });
-
-  // Collect unique client IDs for batch fetch
-  const clientIds = Array.from(new Set(
-    Array.from(clientIdMap.values()).filter((id): id is string => !!id)
-  ));
-
-  // ── Batch 3: Devices + client names (both depend on batch 2 results) ──
-  const [devResult, clientResult] = await Promise.all([
     mpIds.length > 0
       ? supabase
           .from("monitor_devices" as any)
@@ -222,6 +220,12 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
       ? supabase.from("clientes").select("id, nome").in("id", clientIds)
       : Promise.resolve({ data: null }),
   ]);
+
+  // Process alert counts
+  const alertMap = new Map<string, number>();
+  ((alertResult.data as unknown as Array<{ solar_plant_id: string; open_count: number }>) || []).forEach((a) => {
+    if (a.solar_plant_id) alertMap.set(a.solar_plant_id, a.open_count);
+  });
 
   // Process device last_seen_at
   const deviceSeenMap = new Map<string, string>();
@@ -240,32 +244,25 @@ export async function listPlantsWithHealth(): Promise<PlantWithHealth[]> {
     clientNameMap.set(c.id, c.nome);
   });
 
-  // ── Build maps from metrics ──
-  const todayMap = new Map<string, SolarPlantMetricsDaily>();
-  ((todayMetrics as unknown as SolarPlantMetricsDaily[]) || []).forEach((m) =>
-    todayMap.set(m.plant_id, m)
-  );
-
-  const yesterdayMap = new Map<string, SolarPlantMetricsDaily>();
-  ((yesterdayMetrics as unknown as SolarPlantMetricsDaily[]) || []).forEach((m) =>
-    yesterdayMap.set(m.plant_id, m)
-  );
-
-  const monthMap = new Map<string, number>();
-  ((monthMetrics as unknown as Array<{ plant_id: string; energy_kwh: number | null; power_kw: number | null }>) || []).forEach((r) => {
-    const energy = extractDailyEnergy(r.energy_kwh, r.power_kw);
-    monthMap.set(r.plant_id, (monthMap.get(r.plant_id) || 0) + energy);
-  });
-
   // ── Assemble results ──
   return plantList.map((sp) => {
-    const m = todayMap.get(sp.id);
-    const maxDeviceSeen = deviceSeenMap.get(sp.id) || null;
-    const monitorPlantSeen = monitorPlantSeenMap.get(sp.id) || null;
-    const bestLastSeen = getMostRecentTimestamp(maxDeviceSeen, monitorPlantSeen) || sp.updated_at || null;
-    const health = legacyStatusToHealth(sp, m, monthMap.get(sp.id), yesterdayMap.get(sp.id), alertMap.get(sp.id), bestLastSeen);
+    const vr = viewByLegacy.get(sp.id);
 
-    const cId = clientIdMap.get(sp.id) || null;
+    // Build a synthetic SolarPlantMetricsDaily for today from the v2 view
+    const todayMetric: SolarPlantMetricsDaily | undefined = vr ? {
+      id: "", tenant_id: sp.tenant_id, plant_id: sp.id, date: getTodayBrasilia(),
+      energy_kwh: vr.today_energy_kwh, power_kw: vr.today_peak_power_kw,
+      total_energy_kwh: null, metadata: {}, created_at: "",
+    } : undefined;
+
+    const monthKwh = vr?.month_energy_kwh ?? 0;
+
+    const maxDeviceSeen = deviceSeenMap.get(sp.id) || null;
+    const monitorPlantSeen = vr?.last_seen_at || null;
+    const bestLastSeen = getMostRecentTimestamp(maxDeviceSeen, monitorPlantSeen) || sp.updated_at || null;
+    const health = legacyStatusToHealth(sp, todayMetric, monthKwh, yesterdayMap.get(sp.id), alertMap.get(sp.id), bestLastSeen);
+
+    const cId = vr?.client_id || null;
     return {
       ...mapSolarPlantToMonitorPlant(sp, cId),
       health,
@@ -290,20 +287,52 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
   const yesterday = getDaysAgoBrasilia(1);
   const monthStartStr = getMonthStartBrasilia();
 
+  // Resolve monitor_plants.id for this legacy plant
+  const { data: mpRow } = await supabase
+    .from("monitor_plants" as any)
+    .select("id, client_id, last_seen_at")
+    .eq("legacy_plant_id", resolvedId)
+    .maybeSingle();
+
+  const monitorPlantId = (mpRow as any)?.id || null;
+
+  // Use v2 tables for metrics when monitor_plants.id is available
+  const metricsQueries = monitorPlantId
+    ? [
+        supabase.from("monitor_readings_daily").select("*").eq("plant_id", monitorPlantId).eq("date", today).maybeSingle(),
+        supabase.from("monitor_readings_daily").select("*").eq("plant_id", monitorPlantId).eq("date", yesterday).maybeSingle(),
+        supabase.from("monitor_readings_daily").select("energy_kwh, peak_power_kw").eq("plant_id", monitorPlantId).gte("date", monthStartStr).lte("date", today),
+      ]
+    : [
+        supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", today).maybeSingle(),
+        supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", yesterday).maybeSingle(),
+        supabase.from("solar_plant_metrics_daily" as any).select("energy_kwh, power_kw").eq("plant_id", resolvedId).gte("date", monthStartStr).lte("date", today),
+      ];
+
   const [{ data: metric }, { data: yesterdayMetric }, { data: monthMetrics }, { data: alertRows }] = await Promise.all([
-    supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", today).maybeSingle(),
-    supabase.from("solar_plant_metrics_daily" as any).select("*").eq("plant_id", resolvedId).eq("date", yesterday).maybeSingle(),
-    supabase.from("solar_plant_metrics_daily" as any).select("energy_kwh, power_kw").eq("plant_id", resolvedId).gte("date", monthStartStr).lte("date", today),
+    ...metricsQueries,
     supabase.from("monitor_events" as any).select("id").eq("solar_plant_id", resolvedId).eq("tenant_id", sp.tenant_id).eq("is_open", true),
   ]);
 
-  const m = metric as unknown as SolarPlantMetricsDaily | undefined;
-  const ym = yesterdayMetric as unknown as SolarPlantMetricsDaily | undefined;
+  // Normalize metrics to SolarPlantMetricsDaily shape for legacyStatusToHealth
+  const m = monitorPlantId
+    ? (metric ? { id: "", tenant_id: sp.tenant_id, plant_id: resolvedId, date: today,
+        energy_kwh: (metric as any).energy_kwh, power_kw: (metric as any).peak_power_kw,
+        total_energy_kwh: null, metadata: {}, created_at: "" } as SolarPlantMetricsDaily : undefined)
+    : (metric as unknown as SolarPlantMetricsDaily | undefined);
+
+  const ym = monitorPlantId
+    ? (yesterdayMetric ? { id: "", tenant_id: sp.tenant_id, plant_id: resolvedId, date: yesterday,
+        energy_kwh: (yesterdayMetric as any).energy_kwh, power_kw: (yesterdayMetric as any).peak_power_kw,
+        total_energy_kwh: null, metadata: {}, created_at: "" } as SolarPlantMetricsDaily : undefined)
+    : (yesterdayMetric as unknown as SolarPlantMetricsDaily | undefined);
 
   // SSOT: sumMonthlyEnergy
-  const monthKwh = sumMonthlyEnergy(
-    ((monthMetrics as unknown as Array<{ energy_kwh: number | null; power_kw: number | null }>) || [])
-  );
+  const monthRows = monitorPlantId
+    ? ((monthMetrics as unknown as Array<{ energy_kwh: number | null; peak_power_kw: number | null }>) || [])
+        .map((r) => ({ energy_kwh: r.energy_kwh, power_kw: r.peak_power_kw }))
+    : ((monthMetrics as unknown as Array<{ energy_kwh: number | null; power_kw: number | null }>) || []);
+  const monthKwh = sumMonthlyEnergy(monthRows);
 
   const openAlertCount = ((alertRows as unknown as any[]) || []).length;
 
@@ -312,33 +341,26 @@ export async function getPlantDetail(plantId: string): Promise<PlantWithHealth |
   let monitorPlantLastSeen: string | null = null;
   let plantClientId: string | null = null;
   let plantClientName: string | null = null;
-  {
-    const { data: mpRow } = await supabase
-      .from("monitor_plants" as any)
-      .select("id, client_id, last_seen_at")
-      .eq("legacy_plant_id", resolvedId)
+  if (mpRow) {
+    plantClientId = (mpRow as any).client_id || null;
+    monitorPlantLastSeen = (mpRow as any).last_seen_at || null;
+    const { data: devRows } = await supabase
+      .from("monitor_devices" as any)
+      .select("last_seen_at")
+      .eq("plant_id", (mpRow as any).id)
+      .not("last_seen_at", "is", null)
+      .order("last_seen_at", { ascending: false })
+      .limit(1);
+    const topDev = (devRows as unknown as Array<{ last_seen_at: string }>) || [];
+    if (topDev.length > 0) maxDeviceSeen = topDev[0].last_seen_at;
+  }
+  if (plantClientId) {
+    const { data: clientRow } = await supabase
+      .from("clientes")
+      .select("nome")
+      .eq("id", plantClientId)
       .maybeSingle();
-    if (mpRow) {
-      plantClientId = (mpRow as any).client_id || null;
-      monitorPlantLastSeen = (mpRow as any).last_seen_at || null;
-      const { data: devRows } = await supabase
-        .from("monitor_devices" as any)
-        .select("last_seen_at")
-        .eq("plant_id", (mpRow as any).id)
-        .not("last_seen_at", "is", null)
-        .order("last_seen_at", { ascending: false })
-        .limit(1);
-      const topDev = (devRows as unknown as Array<{ last_seen_at: string }>) || [];
-      if (topDev.length > 0) maxDeviceSeen = topDev[0].last_seen_at;
-    }
-    if (plantClientId) {
-      const { data: clientRow } = await supabase
-        .from("clientes")
-        .select("nome")
-        .eq("id", plantClientId)
-        .maybeSingle();
-      plantClientName = (clientRow as any)?.nome || null;
-    }
+    plantClientName = (clientRow as any)?.nome || null;
   }
 
   const bestLastSeen = getMostRecentTimestamp(maxDeviceSeen, monitorPlantLastSeen);
@@ -510,19 +532,65 @@ export async function listAlerts(filters?: {
   return (data as unknown as MonitorEvent[]) || [];
 }
 
-// ─── READINGS (reads from legacy solar_plant_metrics_daily) ───
+// ─── READINGS (v2: monitor_readings_daily with legacy plant_id compat) ───
+
+/**
+ * Resolve a plantId (which may be legacy solar_plants.id OR monitor_plants.id)
+ * to monitor_plants.id for querying monitor_readings_daily.
+ */
+async function resolveToMonitorPlantId(plantId: string): Promise<{ monitorId: string | null; legacyId: string }> {
+  // Check if it's already a monitor_plants.id
+  const { data: directMp } = await supabase
+    .from("monitor_plants" as any)
+    .select("id, legacy_plant_id")
+    .eq("id", plantId)
+    .maybeSingle();
+  if (directMp) {
+    return { monitorId: (directMp as any).id, legacyId: (directMp as any).legacy_plant_id || plantId };
+  }
+
+  // It's a legacy solar_plants.id — find the monitor_plants row
+  const { data: mpRow } = await supabase
+    .from("monitor_plants" as any)
+    .select("id")
+    .eq("legacy_plant_id", plantId)
+    .maybeSingle();
+
+  return { monitorId: (mpRow as any)?.id || null, legacyId: plantId };
+}
 
 export async function listDailyReadings(
   plantId: string,
   startDate: string,
   endDate: string
 ): Promise<MonitorReadingDaily[]> {
-  // LEGACY JOIN: resolve monitor_plants.id → solar_plants.id if needed
-  const resolvedId = await resolveToLegacyPlantId(plantId);
+  const { monitorId, legacyId } = await resolveToMonitorPlantId(plantId);
+
+  if (monitorId) {
+    // Use RPC for single-plant queries
+    const { data } = await supabase.rpc("get_plant_metrics", {
+      p_plant_id: monitorId,
+      p_date_from: startDate,
+      p_date_to: endDate,
+    });
+
+    return ((data as unknown as Array<{ date: string; energy_kwh: number; peak_power_kw: number }>) || []).map((r) => ({
+      id: `${monitorId}_${r.date}`,
+      tenant_id: "",
+      plant_id: legacyId, // Return legacy ID for consumer compatibility
+      date: r.date,
+      energy_kwh: r.energy_kwh ?? 0,
+      peak_power_kw: r.peak_power_kw,
+      metadata: {},
+      created_at: "",
+    }));
+  }
+
+  // Fallback: legacy table
   const { data } = await supabase
     .from("solar_plant_metrics_daily" as any)
     .select("*")
-    .eq("plant_id", resolvedId)
+    .eq("plant_id", legacyId)
     .gte("date", startDate)
     .lte("date", endDate)
     .order("date", { ascending: true });
@@ -543,36 +611,53 @@ export async function listAllReadings(
   startDate: string,
   endDate: string
 ): Promise<MonitorReadingDaily[]> {
-  const allData: SolarPlantMetricsDaily[] = [];
+  // Build legacy_plant_id lookup map
+  const { data: mpRows } = await supabase
+    .from("monitor_plants" as any)
+    .select("id, legacy_plant_id");
+  const idMap = new Map<string, string>();
+  ((mpRows as unknown as Array<{ id: string; legacy_plant_id: string | null }>) || []).forEach((r) => {
+    if (r.legacy_plant_id) idMap.set(r.id, r.legacy_plant_id);
+  });
+
+  const allData: MonitorReadingDaily[] = [];
   const BATCH_SIZE = 1000;
   let offset = 0;
   let hasMore = true;
 
   while (hasMore) {
     const { data } = await supabase
-      .from("solar_plant_metrics_daily" as any)
+      .from("monitor_readings_daily")
       .select("*")
       .gte("date", startDate)
       .lte("date", endDate)
       .order("date", { ascending: true })
       .range(offset, offset + BATCH_SIZE - 1);
 
-    const rows = (data as unknown as SolarPlantMetricsDaily[]) || [];
-    allData.push(...rows);
+    const rows = (data || []) as unknown as Array<{
+      id: string; tenant_id: string; plant_id: string; date: string;
+      energy_kwh: number | null; peak_power_kw: number | null;
+      metadata: Record<string, unknown> | null; created_at: string;
+    }>;
+
+    rows.forEach((r) => {
+      allData.push({
+        id: r.id,
+        tenant_id: r.tenant_id,
+        plant_id: idMap.get(r.plant_id) || r.plant_id, // Map to legacy ID for consumers
+        date: r.date,
+        energy_kwh: r.energy_kwh ?? 0,
+        peak_power_kw: r.peak_power_kw,
+        metadata: r.metadata || {},
+        created_at: r.created_at,
+      });
+    });
+
     offset += BATCH_SIZE;
     hasMore = rows.length === BATCH_SIZE;
   }
 
-  return allData.map((m) => ({
-    id: m.id,
-    tenant_id: m.tenant_id,
-    plant_id: m.plant_id,
-    date: m.date,
-    energy_kwh: m.energy_kwh ?? 0,
-    peak_power_kw: m.power_kw,
-    metadata: m.metadata || {},
-    created_at: m.created_at,
-  }));
+  return allData;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -682,14 +767,27 @@ export async function listSolarPlants(): Promise<SolarPlant[]> {
   return (data as unknown as SolarPlant[]) || [];
 }
 
-/** Fetch today's metrics for all solar plants (legacy table) */
+/** Fetch today's metrics for all plants (v2: monitor_plants_with_metrics view) */
 export async function getTodayMetrics(): Promise<SolarPlantMetricsDaily[]> {
   const today = getTodayBrasilia();
   const { data } = await supabase
-    .from("solar_plant_metrics_daily" as any)
-    .select("*")
-    .eq("date", today);
-  return (data as unknown as SolarPlantMetricsDaily[]) || [];
+    .from("monitor_plants_with_metrics")
+    .select("id, legacy_plant_id, tenant_id, today_energy_kwh, today_peak_power_kw");
+
+  return ((data as unknown as Array<{
+    id: string; legacy_plant_id: string | null; tenant_id: string | null;
+    today_energy_kwh: number | null; today_peak_power_kw: number | null;
+  }>) || []).map((r) => ({
+    id: r.id,
+    tenant_id: r.tenant_id || "",
+    plant_id: r.legacy_plant_id || r.id,
+    date: today,
+    energy_kwh: r.today_energy_kwh,
+    power_kw: r.today_peak_power_kw,
+    total_energy_kwh: null,
+    metadata: {},
+    created_at: "",
+  }));
 }
 
 // ─── CLIENT LINKING ──────────────────────────────────────────
