@@ -727,7 +727,8 @@ export function ProposalWizard() {
         toast({ title: "Aguarde", description: res.message, variant: "destructive" });
         break;
       case "error":
-        toast({ title: "Erro ao salvar", description: res.message, variant: "destructive" });
+        console.error("[ProposalWizard] Update error:", res.reason, res.message);
+        toast({ title: "Erro ao salvar", description: res.reason || res.message, variant: "destructive" });
         break;
     }
   }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult]);
