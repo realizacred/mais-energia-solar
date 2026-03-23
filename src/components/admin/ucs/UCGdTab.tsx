@@ -3,7 +3,7 @@
  * Allows creating a group (if UC is geradora) and managing beneficiaries.
  * §16: queries in hooks. §4: table pattern. §12: skeleton. §26: headers.
  */
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
