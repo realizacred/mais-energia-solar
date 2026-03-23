@@ -30,6 +30,13 @@ export function BusinessHoursConfig({ tenantId }: { tenantId: string }) {
   const [horarios, setHorarios] = useState<HorarioRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const baselineRef = useRef<string>("");
+
+  const isDirty = useMemo(() => {
+    if (!baselineRef.current) return false;
+    const current = JSON.stringify(horarios.map(h => ({ dia_semana: h.dia_semana, ativo: h.ativo, hora_inicio: h.hora_inicio, hora_fim: h.hora_fim })));
+    return current !== baselineRef.current;
+  }, [horarios]);
 
   useEffect(() => {
     loadHorarios();
