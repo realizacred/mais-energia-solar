@@ -243,6 +243,7 @@ export function UCInvoicesTab({ unitId }: Props) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStep, setUploadStep] = useState<string>("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [debugInvoice, setDebugInvoice] = useState<UnitInvoice | null>(null);
   const [reprocessingId, setReprocessingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -591,6 +592,41 @@ export function UCInvoicesTab({ unitId }: Props) {
         </CardContent>
       </Card>
 
+      {/* Status filter */}
+      {invoices.length > 0 && (() => {
+        const counts = {
+          all: invoices.length,
+          success: invoices.filter(i => i.parsing_status === "success").length,
+          failed: invoices.filter(i => i.parsing_status === "failed").length,
+          review: invoices.filter(i => i.parsing_status === "review").length,
+          pending: invoices.filter(i => i.parsing_status === "pending").length,
+        };
+        return (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {([
+              { key: "all", label: "Todos", color: "" },
+              { key: "success", label: "Processadas", color: "text-success" },
+              { key: "failed", label: "Erros", color: "text-destructive" },
+              { key: "review", label: "Em revisão", color: "text-warning" },
+              { key: "pending", label: "Pendentes", color: "text-muted-foreground" },
+            ] as const).map(f => (
+              <Button
+                key={f.key}
+                variant={statusFilter === f.key ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setStatusFilter(f.key)}
+              >
+                <span className={statusFilter !== f.key ? f.color : ""}>{f.label}</span>
+                {counts[f.key] > 0 && (
+                  <span className="ml-1 opacity-70">({counts[f.key]})</span>
+                )}
+              </Button>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Table */}
       {isLoading ? (
         <div className="space-y-2">
@@ -600,7 +636,13 @@ export function UCInvoicesTab({ unitId }: Props) {
         </div>
       ) : invoices.length === 0 ? (
         <EmptyState icon={FileText} title="Nenhuma fatura" description="Registre manualmente, importe um PDF ou configure o recebimento por e-mail." />
-      ) : (
+      ) : (() => {
+        const filteredInvoices = statusFilter === "all"
+          ? invoices
+          : invoices.filter(i => i.parsing_status === statusFilter);
+        return filteredInvoices.length === 0 ? (
+          <EmptyState icon={FileText} title="Nenhuma fatura neste filtro" description="Altere o filtro acima para ver outras faturas." />
+        ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <Table>
             <TableHeader>
@@ -618,7 +660,7 @@ export function UCInvoicesTab({ unitId }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((inv) => {
+              {filteredInvoices.map((inv) => {
                 const isExpanded = expandedId === inv.id;
                 const raw = inv.raw_extraction as Record<string, any> | null;
                 return (
@@ -740,7 +782,8 @@ export function UCInvoicesTab({ unitId }: Props) {
             </TableBody>
           </Table>
         </div>
-      )}
+        );
+      })()}
 
       {/* Register/Edit invoice dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingInvoice(null); }}>

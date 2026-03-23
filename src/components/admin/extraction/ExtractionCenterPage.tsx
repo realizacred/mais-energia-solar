@@ -29,6 +29,7 @@ import { ExtractionConfigModal, type ExtractionConfigPrefill } from "./Extractio
 import { ExtractionTestTab } from "./ExtractionTestTab";
 import { ExtractionAssistantTab } from "./ExtractionAssistantTab";
 import { LayoutLearningTab } from "./LayoutLearningTab";
+import { ExtractionEmailsTab } from "./ExtractionEmailsTab";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -254,6 +255,7 @@ export default function ExtractionCenterPage() {
           <TabsTrigger value="test">Teste de Extração</TabsTrigger>
           <TabsTrigger value="learning">Aprendizado de Layouts</TabsTrigger>
           <TabsTrigger value="runs">Histórico</TabsTrigger>
+          <TabsTrigger value="emails">Emails</TabsTrigger>
           <TabsTrigger value="assistant">Assistente</TabsTrigger>
         </TabsList>
 
@@ -463,6 +465,10 @@ export default function ExtractionCenterPage() {
               </Table>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="emails" className="mt-4">
+          <ExtractionEmailsTab />
         </TabsContent>
 
         <TabsContent value="assistant" className="mt-4">
