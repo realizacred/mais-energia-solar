@@ -13,6 +13,8 @@ export interface InvoiceFilters {
   status?: string;
   reference_year?: number;
   search?: string;
+  cliente_id?: string;
+  papel_gd?: string;
 }
 
 export function useInvoicesList(filters: InvoiceFilters, page: number) {
@@ -22,7 +24,7 @@ export function useInvoicesList(filters: InvoiceFilters, page: number) {
       let q = supabase
         .from("unit_invoices")
         .select(
-          `id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, pdf_file_url, source, status, created_at, has_file, units_consumidoras!inner(nome, codigo_uc, concessionaria_nome, cliente_id)`,
+          `id, unit_id, reference_month, reference_year, due_date, total_amount, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, pdf_file_url, source, status, created_at, has_file, units_consumidoras!inner(nome, codigo_uc, concessionaria_nome, cliente_id, papel_gd, clientes(nome))`,
           { count: "exact" }
         )
         .order("reference_year", { ascending: false })
@@ -31,6 +33,8 @@ export function useInvoicesList(filters: InvoiceFilters, page: number) {
       if (filters.unit_id) q = q.eq("unit_id", filters.unit_id);
       if (filters.status) q = q.eq("status", filters.status);
       if (filters.reference_year) q = q.eq("reference_year", filters.reference_year);
+      if (filters.cliente_id) q = q.eq("units_consumidoras.cliente_id", filters.cliente_id);
+      if (filters.papel_gd) q = q.eq("units_consumidoras.papel_gd", filters.papel_gd);
 
       const from = page * PAGE_SIZE;
       q = q.range(from, from + PAGE_SIZE - 1);
