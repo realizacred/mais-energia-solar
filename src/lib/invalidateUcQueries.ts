@@ -44,4 +44,7 @@ export function invalidateUcQueries(qc: QueryClient, unitId?: string) {
 
   // Invoices list (global)
   qc.invalidateQueries({ queryKey: ["invoices-list"] });
+  qc.invalidateQueries({ queryKey: ["central_invoices"] });
+  qc.invalidateQueries({ queryKey: ["invoice_kpis"] });
+  qc.invalidateQueries({ queryKey: ["invoice_review_items"] });
 }
