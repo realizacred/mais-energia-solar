@@ -851,7 +851,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border text-[11px] text-muted-foreground">
                 <Info className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
                 <div className="space-y-1">
-                  <p><strong>Próximo passo:</strong> os {validation.totalRows.toLocaleString("pt-BR")} registros serão agrupados por distribuidora + subgrupo + modalidade.</p>
+                  <p><strong>Próximo passo:</strong> os {formatIntegerBR(validation.totalRows)} registros serão agrupados por distribuidora + subgrupo + modalidade.</p>
                   <p>Apenas distribuidoras cadastradas serão atualizadas. Linhas inválidas são descartadas automaticamente.</p>
                 </div>
               </div>
