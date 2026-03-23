@@ -30,6 +30,7 @@ import { ExtractionTestTab } from "./ExtractionTestTab";
 import { ExtractionAssistantTab } from "./ExtractionAssistantTab";
 import { LayoutLearningTab } from "./LayoutLearningTab";
 import { ExtractionEmailsTab } from "./ExtractionEmailsTab";
+import { EmailAccountsManager } from "@/components/admin/email/EmailAccountsManager";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -256,6 +257,7 @@ export default function ExtractionCenterPage() {
           <TabsTrigger value="learning">Aprendizado de Layouts</TabsTrigger>
           <TabsTrigger value="runs">Histórico</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
+          <TabsTrigger value="accounts">Contas de Email</TabsTrigger>
           <TabsTrigger value="assistant">Assistente</TabsTrigger>
         </TabsList>
 
@@ -469,6 +471,10 @@ export default function ExtractionCenterPage() {
 
         <TabsContent value="emails" className="mt-4">
           <ExtractionEmailsTab />
+        </TabsContent>
+
+        <TabsContent value="accounts" className="mt-4">
+          <EmailAccountsManager />
         </TabsContent>
 
         <TabsContent value="assistant" className="mt-4">

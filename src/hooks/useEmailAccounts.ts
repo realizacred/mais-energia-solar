@@ -10,15 +10,22 @@ const STALE_TIME = 1000 * 60 * 5;
 export interface EmailAccount {
   id: string;
   tenant_id: string;
+  nome: string | null;
   email_address: string;
   provider_type: "gmail" | "imap";
   account_role: "invoices" | "operational" | "support";
   host: string | null;
   port: number | null;
   username: string | null;
+  imap_password_encrypted: string | null;
   is_active: boolean;
   can_read: boolean;
   can_send: boolean;
+  verificar_a_cada_minutos: number | null;
+  pasta_monitorada: string | null;
+  filtro_remetente: string | null;
+  gmail_credentials: any;
+  gmail_settings: any;
   last_sync_at: string | null;
   last_error: string | null;
   settings: Record<string, unknown>;
@@ -141,6 +148,22 @@ export function useDeleteEmailAccount() {
       const { error } = await (supabase as any)
         .from("email_accounts")
         .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["email_accounts"] });
+    },
+  });
+}
+
+export function useToggleEmailAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("email_accounts")
+        .update({ is_active, updated_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
     },
