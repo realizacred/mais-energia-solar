@@ -23,6 +23,83 @@ interface ProcessRequest {
 }
 
 type InvoiceSource = 'email' | 'manual' | 'import' | 'api';
+type ExtractionStatus = 'success' | 'partial' | 'failed';
+
+function hasParsedValue(value: unknown) {
+  return value !== null && value !== undefined;
+}
+
+function resolveExtractionStatus(
+  parsed: Record<string, any>,
+  ucContext: string,
+  ucDetection: ReturnType<typeof detectUcType>,
+  baseRequired: string[],
+  geradoraExtra: string[],
+  beneficiariaNeverRequired: string[],
+): {
+  extractionStatus: ExtractionStatus;
+  coreRequired: string[];
+  coreMissing: string[];
+  strategy: 'default' | 'strict' | 'geradora_flex';
+} {
+  const defaultCoreRequired = ucContext === 'geradora' || ucContext === 'mista'
+    ? [...baseRequired, ...geradoraExtra]
+    : ucContext === 'beneficiaria' || ucContext === 'consumo'
+      ? baseRequired.filter((f) => !beneficiariaNeverRequired.includes(f))
+      : [...baseRequired];
+
+  const defaultCoreMissing = defaultCoreRequired.filter((f) => !hasParsedValue(parsed[f]));
+
+  if (ucContext !== 'geradora' && ucContext !== 'mista') {
+    return {
+      extractionStatus: defaultCoreMissing.length === 0 ? 'success' : defaultCoreMissing.length <= 2 ? 'partial' : 'failed',
+      coreRequired: defaultCoreRequired,
+      coreMissing: defaultCoreMissing,
+      strategy: 'default',
+    };
+  }
+
+  if (defaultCoreMissing.length === 0) {
+    return {
+      extractionStatus: 'success',
+      coreRequired: defaultCoreRequired,
+      coreMissing: defaultCoreMissing,
+      strategy: 'strict',
+    };
+  }
+
+  const geradoraSignalFields = [
+    'saldo_gd_acumulado',
+    'energia_injetada_kwh',
+    'leitura_anterior_103',
+    'leitura_atual_103',
+    'categoria_gd',
+    'medidor_injecao_codigo',
+  ];
+
+  const hasGeradoraEvidence = geradoraSignalFields.some((field) => hasParsedValue(parsed[field]))
+    || ucDetection.tipo_uc_detectado === 'geradora'
+    || ucDetection.tipo_uc_detectado === 'mista';
+
+  const geradoraFlexibleCore = [...baseRequired.filter((f) => f !== 'consumo_kwh'), 'saldo_gd_acumulado'];
+  const geradoraFlexibleMissing = geradoraFlexibleCore.filter((f) => !hasParsedValue(parsed[f]));
+
+  if (hasGeradoraEvidence && geradoraFlexibleMissing.length === 0) {
+    return {
+      extractionStatus: 'partial',
+      coreRequired: defaultCoreRequired,
+      coreMissing: defaultCoreMissing,
+      strategy: 'geradora_flex',
+    };
+  }
+
+  return {
+    extractionStatus: defaultCoreMissing.length <= 2 ? 'partial' : 'failed',
+    coreRequired: defaultCoreRequired,
+    coreMissing: defaultCoreMissing,
+    strategy: 'strict',
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -209,7 +286,19 @@ async function processInvoice(
 
     const testFoundFields = testRequiredFields.filter((f: string) => parsed[f] != null);
     const testMissingFields = testRequiredFields.filter((f: string) => parsed[f] == null);
-    const testExtractionStatus = testMissingFields.length === 0 ? 'success' : testMissingFields.length <= 2 ? 'partial' : 'failed';
+    const testContext = ucDetection.tipo_uc_detectado === 'geradora' || ucDetection.tipo_uc_detectado === 'mista'
+      ? ucDetection.tipo_uc_detectado
+      : ucDetection.tipo_uc_detectado === 'beneficiaria' || ucDetection.tipo_uc_detectado === 'consumo'
+        ? ucDetection.tipo_uc_detectado
+        : 'base';
+    const testExtractionStatus = resolveExtractionStatus(
+      parsed,
+      testContext,
+      ucDetection,
+      BASE_REQUIRED,
+      GERADORA_EXTRA,
+      BENEFICIARIA_NEVER_REQUIRED,
+    ).extractionStatus;
 
     const gdChecks = runGdConsistencyChecks(parsed, null);
 
@@ -332,14 +421,16 @@ async function processInvoice(
 
   // Determine status based on CORE fields only (not extended config fields)
   // Config fields (from extraction_configs) can be 20+ which makes everything "failed"
-  const coreRequired = ucContext === 'geradora' || ucContext === 'mista'
-    ? [...BASE_REQUIRED, ...GERADORA_EXTRA]
-    : ucContext === 'beneficiaria' || ucContext === 'consumo'
-      ? BASE_REQUIRED.filter(f => !BENEFICIARIA_NEVER_REQUIRED.includes(f))
-      : [...BASE_REQUIRED];
-  const coreMissing = coreRequired.filter((f: string) => parsed[f] == null);
-  const extractionStatus = coreMissing.length === 0 ? 'success' : coreMissing.length <= 2 ? 'partial' : 'failed';
-  console.log(`[process-fatura-pdf] Status: ${extractionStatus} (core missing: ${coreMissing.length}/${coreRequired.length}, config missing: ${missingFields.length}/${requiredFields.length})`);
+  const coreValidation = resolveExtractionStatus(
+    parsed,
+    ucContext,
+    ucDetection,
+    BASE_REQUIRED,
+    GERADORA_EXTRA,
+    BENEFICIARIA_NEVER_REQUIRED,
+  );
+  const extractionStatus = coreValidation.extractionStatus;
+  console.log(`[process-fatura-pdf] Status: ${extractionStatus} (strategy=${coreValidation.strategy}, core missing: ${coreValidation.coreMissing.length}/${coreValidation.coreRequired.length}, config missing: ${missingFields.length}/${requiredFields.length})`);
 
   // ── 5b. Ownership validation ──
   const identifierField = extractionConfig?.identifier_field || 'numero_uc';
@@ -892,6 +983,28 @@ async function reprocessInvoice(
 
   const parsed = parseResult.data;
 
+  const { data: ucData } = await admin
+    .from('units_consumidoras')
+    .select('id, tipo_uc, papel_gd')
+    .eq('id', invoice.unit_id)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+
+  const ucDetection = detectUcType(
+    parsed,
+    pdfText,
+    ucData?.tipo_uc,
+    ucData?.papel_gd,
+  );
+
+  const ucContext = ucData?.tipo_uc === 'gd_geradora' || ucData?.papel_gd === 'geradora'
+    ? 'geradora'
+    : ucData?.papel_gd === 'beneficiaria' || ucData?.tipo_uc === 'beneficiaria'
+      ? 'beneficiaria'
+      : ucDetection.tipo_uc_detectado === 'geradora' || ucDetection.tipo_uc_detectado === 'mista' || ucDetection.tipo_uc_detectado === 'beneficiaria' || ucDetection.tipo_uc_detectado === 'consumo'
+        ? ucDetection.tipo_uc_detectado
+        : 'base';
+
   // 4. Calculate derived fields
   let energyInjected = parsed.energia_injetada_kwh ?? null;
   if (energyInjected === null && parsed.leitura_atual_103 != null && parsed.leitura_anterior_103 != null) {
@@ -939,6 +1052,15 @@ async function reprocessInvoice(
     else if (rawB.includes('vermelha')) bandeira = 'vermelha_1';
   }
 
+  const reprocessValidation = resolveExtractionStatus(
+    parsed,
+    ucContext,
+    ucDetection,
+    ['consumo_kwh', 'valor_total', 'vencimento', 'numero_uc', 'mes_referencia'],
+    ['energia_injetada_kwh', 'saldo_gd_acumulado', 'leitura_anterior_103', 'leitura_atual_103'],
+    ['energia_injetada_kwh', 'saldo_gd_acumulado', 'leitura_anterior_103', 'leitura_atual_103', 'medidor_injecao_codigo', 'categoria_gd'],
+  );
+
   // 5. Update the invoice
   const updatePayload: any = {
     reference_month: reprocessedMonth,
@@ -952,12 +1074,15 @@ async function reprocessInvoice(
     bandeira_tarifaria: bandeira,
     due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
     demanda_contratada_kw: parsed.demanda_contratada_kw,
-    raw_extraction: parsed,
-    parsing_status: 'success',
+    raw_extraction: { ...parsed, uc_detection: ucDetection },
+    parsing_status: reprocessValidation.extractionStatus,
     parser_version: parsed.parser_version || null,
     last_parsed_at: new Date().toISOString(),
-    parsing_error_reason: null,
+    parsing_error_reason: reprocessValidation.extractionStatus === 'failed'
+      ? `Campos core faltantes (${ucContext}): ${reprocessValidation.coreMissing.join(', ')}`
+      : null,
     updated_at: new Date().toISOString(),
+    status: reprocessValidation.extractionStatus === 'failed' ? 'pending_review' : 'received',
     consistency_status: gdChecks.overallLevel,
     consistency_score: gdChecks.score,
     consistency_checks_json: gdChecks.checks,
