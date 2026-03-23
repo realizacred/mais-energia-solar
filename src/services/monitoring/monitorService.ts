@@ -767,14 +767,27 @@ export async function listSolarPlants(): Promise<SolarPlant[]> {
   return (data as unknown as SolarPlant[]) || [];
 }
 
-/** Fetch today's metrics for all solar plants (legacy table) */
+/** Fetch today's metrics for all plants (v2: monitor_plants_with_metrics view) */
 export async function getTodayMetrics(): Promise<SolarPlantMetricsDaily[]> {
   const today = getTodayBrasilia();
   const { data } = await supabase
-    .from("solar_plant_metrics_daily" as any)
-    .select("*")
-    .eq("date", today);
-  return (data as unknown as SolarPlantMetricsDaily[]) || [];
+    .from("monitor_plants_with_metrics")
+    .select("id, legacy_plant_id, tenant_id, today_energy_kwh, today_peak_power_kw");
+
+  return ((data as unknown as Array<{
+    id: string; legacy_plant_id: string | null; tenant_id: string | null;
+    today_energy_kwh: number | null; today_peak_power_kw: number | null;
+  }>) || []).map((r) => ({
+    id: r.id,
+    tenant_id: r.tenant_id || "",
+    plant_id: r.legacy_plant_id || r.id,
+    date: today,
+    energy_kwh: r.today_energy_kwh,
+    power_kw: r.today_peak_power_kw,
+    total_energy_kwh: null,
+    metadata: {},
+    created_at: "",
+  }));
 }
 
 // ─── CLIENT LINKING ──────────────────────────────────────────
