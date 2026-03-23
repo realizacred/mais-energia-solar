@@ -870,7 +870,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-lg bg-muted/50 p-3 text-center">
-                  <div className="text-lg font-bold font-mono">{parsed.length.toLocaleString("pt-BR")}</div>
+                  <div className="text-lg font-bold font-mono">{formatIntegerBR(parsed.length)}</div>
                   <div className="text-[10px] text-muted-foreground">Registros</div>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-3 text-center">
