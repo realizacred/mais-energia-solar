@@ -157,6 +157,22 @@ export function useDeleteEmailAccount() {
   });
 }
 
+export function useToggleEmailAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("email_accounts")
+        .update({ is_active, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["email_accounts"] });
+    },
+  });
+}
+
 // ─── Ingestion Rules ────────────────────────────────────────────
 
 export function useEmailIngestionRules(accountId: string | null) {
