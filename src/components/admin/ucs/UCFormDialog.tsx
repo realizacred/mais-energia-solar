@@ -2,6 +2,7 @@
  * UCFormDialog — Create/Edit UC dialog with sections, CEP auto-fill, and input masks.
  */
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ const EMPTY_ADDRESS: AddressData = {
 
 export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [address, setAddress] = useState<AddressData>({ ...EMPTY_ADDRESS });
@@ -119,11 +121,15 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
       if (editingUC) {
         await unitService.update(editingUC.id, payload);
         toast({ title: "UC atualizada com sucesso" });
+        onSuccess();
       } else {
-        await unitService.create(payload);
+        const created = await unitService.create(payload);
         toast({ title: "UC criada com sucesso" });
+        onSuccess();
+        if (created?.id) {
+          navigate(`/admin/ucs/${created.id}`);
+        }
       }
-      onSuccess();
     } catch (err: any) {
       toast({ title: "Erro ao salvar", description: err?.message || String(err), variant: "destructive" });
     } finally {

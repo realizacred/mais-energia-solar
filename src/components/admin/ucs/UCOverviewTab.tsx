@@ -267,8 +267,8 @@ export function UCOverviewTab({
         <StatCard
           icon={Activity}
           label="Status do Sistema"
-          value={meterStatus?.online_status === "online" || meterOnline === "online" ? "Online" : "Offline"}
-          color={meterStatus?.online_status === "online" || meterOnline === "online" ? "success" : "destructive"}
+          value={!meterId ? "Sem medidor" : (meterStatus?.online_status === "online" || meterOnline === "online") ? "Online" : "Offline"}
+          color={!meterId ? "muted" : (meterStatus?.online_status === "online" || meterOnline === "online") ? "success" : "destructive"}
         />
 
         {loadingPlantMetrics ? (
@@ -419,10 +419,12 @@ export function UCOverviewTab({
               <CardTitle className="text-sm flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-primary" /> Medidor
               </CardTitle>
-              {meterId && (
+              {meterId ? (
                 <Badge variant="outline" className={`text-xs ${meterStatus?.online_status === "online" ? "border-success text-success" : "border-destructive text-destructive"}`}>
                   {meterStatus?.online_status === "online" ? "Online" : "Offline"}
                 </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs">Sem medidor</Badge>
               )}
             </div>
           </CardHeader>
