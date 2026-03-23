@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback } from "react";
+import { formatIntegerBR } from "@/lib/formatters";
 import {
   Upload, FileText, AlertTriangle, CheckCircle2, Info, ShieldCheck, XCircle,
   AlertCircle, ChevronDown, ChevronRight, FileSpreadsheet, ArrowRight,
