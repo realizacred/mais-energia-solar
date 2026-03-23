@@ -95,6 +95,8 @@ export function GmailAccountsSection() {
         })
         .neq("id", "00000000-0000-0000-0000-000000000000"); // update all rows for tenant (RLS filters)
       if (error) throw error;
+      setSavedClientId(clientId);
+      setSavedClientSecret(clientSecret);
       toast({ title: "Configurações OAuth salvas" });
     } catch (err: any) {
       toast({ title: "Erro", description: err?.message, variant: "destructive" });
