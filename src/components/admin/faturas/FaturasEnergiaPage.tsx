@@ -63,7 +63,7 @@ export default function FaturasEnergiaPage() {
   const [page, setPage] = useState(0);
 
   // Reset page when filters change
-  useEffect(() => { setPage(0); }, [filterUC, filterStatus, filterYear, searchText]);
+  useEffect(() => { setPage(0); }, [filterUC, filterStatus, filterYear, filterCliente, filterPapelGD, searchText]);
 
   // Gmail redirect toast
   useEffect(() => {
@@ -82,8 +82,32 @@ export default function FaturasEnergiaPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("units_consumidoras")
-        .select("id, nome, codigo_uc, concessionaria_nome")
+        .select("id, nome, codigo_uc, concessionaria_nome, cliente_id, papel_gd")
         .eq("is_archived", false)
+        .order("nome");
+      return data || [];
+    },
+    staleTime: STALE,
+  });
+
+  // Clientes for filter (derived from UCs)
+  const clientes = (() => {
+    const map = new Map<string, string>();
+    ucs.forEach((uc: any) => {
+      if (uc.cliente_id && !map.has(uc.cliente_id)) {
+        // We'll need client names - fetch separately
+      }
+    });
+    return map;
+  })();
+
+  const { data: clientesList = [] } = useQuery({
+    queryKey: ["clientes_for_faturas_filter"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("clientes")
+        .select("id, nome")
+        .eq("ativo", true)
         .order("nome");
       return data || [];
     },
