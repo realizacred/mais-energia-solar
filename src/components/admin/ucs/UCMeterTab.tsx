@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Gauge, Link2, Link2Off, ArrowLeftRight, History, Search, Save, Info } from "lucide-react";
