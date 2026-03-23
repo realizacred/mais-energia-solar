@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const REDIRECT_URI = "https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/gmail-oauth?action=callback";
+const REDIRECT_URI = "https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/gmail-oauth";
 
 export function GmailAccountsSection() {
   const { toast } = useToast();
@@ -40,8 +40,12 @@ export function GmailAccountsSection() {
   const [oauthSaving, setOauthSaving] = useState(false);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
+  const [savedClientId, setSavedClientId] = useState("");
+  const [savedClientSecret, setSavedClientSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [oauthLoaded, setOauthLoaded] = useState(false);
+
+  const oauthDirty = clientId !== savedClientId || clientSecret !== savedClientSecret;
 
   // New account modal
   const [showNewModal, setShowNewModal] = useState(false);
@@ -68,6 +72,8 @@ export function GmailAccountsSection() {
       if (data) {
         setClientId(data.google_client_id || "");
         setClientSecret(data.google_client_secret || "");
+        setSavedClientId(data.google_client_id || "");
+        setSavedClientSecret(data.google_client_secret || "");
       }
       setOauthLoaded(true);
     } catch { /* ignore */ }
@@ -89,6 +95,8 @@ export function GmailAccountsSection() {
         })
         .neq("id", "00000000-0000-0000-0000-000000000000"); // update all rows for tenant (RLS filters)
       if (error) throw error;
+      setSavedClientId(clientId);
+      setSavedClientSecret(clientSecret);
       toast({ title: "Configurações OAuth salvas" });
     } catch (err: any) {
       toast({ title: "Erro", description: err?.message, variant: "destructive" });
@@ -245,7 +253,7 @@ export function GmailAccountsSection() {
             </div>
           )}
           <div className="flex justify-end">
-            <Button size="sm" onClick={handleSaveOAuth} disabled={oauthSaving}>
+            <Button size="sm" onClick={handleSaveOAuth} disabled={oauthSaving || !oauthDirty}>
               {oauthSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
               Salvar configurações
             </Button>
