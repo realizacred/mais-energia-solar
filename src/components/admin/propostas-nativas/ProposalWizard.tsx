@@ -273,6 +273,7 @@ export function ProposalWizard() {
     itens, layouts, manualKits, adicionais, servicos, venda,
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
     step,
+    geracaoMensalEstimada,
   }), [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
     locIrradiacao, locGhiSeries, locLatitude, distanciaKm, projectAddress, mapSnapshots,
@@ -280,7 +281,7 @@ export function ProposalWizard() {
     customFieldValues, premissas, preDimensionamento,
     itens, layouts, manualKits, adicionais, servicos, venda,
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
-    step,
+    step, geracaoMensalEstimada,
   ]);
 
   // ─── Local draft: auto-save to localStorage on every state change
