@@ -379,7 +379,7 @@ export async function getDashboardStats(): Promise<MonitorDashboardStats> {
   const plants = await listPlantsWithHealth();
 
   // SSOT: monthly energy = sum of each plant's health.energy_month_kwh
-  // (already computed via solar_plant_metrics_daily in listPlantsWithHealth)
+  // (already computed via monitor_plants_with_metrics view in listPlantsWithHealth)
   // No separate listAllReadings call — single source of truth.
   const totalMonthKwh = plants.reduce((s, p) => s + (p.health?.energy_month_kwh || 0), 0);
 
