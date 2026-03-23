@@ -268,9 +268,9 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
       });
 
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-      log("success", `✅ ${mergedPoints.length.toLocaleString("pt-BR")} pontos importados em ${totalTime}s!`);
+      log("success", `✅ ${formatIntegerBR(mergedPoints.length)} pontos importados em ${totalTime}s!`);
       setState("done");
-      toast.success("Importação concluída!", { description: `${mergedPoints.length.toLocaleString("pt-BR")} pontos em ${totalTime}s.` });
+      toast.success("Importação concluída!", { description: `${formatIntegerBR(mergedPoints.length)} pontos em ${totalTime}s.` });
       onReload();
     } catch (e: any) {
       log("error", `Erro: ${e.message}`);
