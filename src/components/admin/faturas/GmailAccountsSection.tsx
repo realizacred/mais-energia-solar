@@ -119,7 +119,13 @@ export function GmailAccountsSection() {
       });
       const result = await resp.json();
       if (result.auth_url) {
-        window.location.href = result.auth_url;
+        const popup = window.open(result.auth_url, 'gmail-oauth', 'width=600,height=700,scrollbars=yes');
+        const timer = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(timer);
+            qc.invalidateQueries({ queryKey: ["gmail_accounts"] });
+          }
+        }, 1000);
       } else {
         toast({ title: "Erro", description: result.error || "Falha ao gerar URL OAuth", variant: "destructive" });
       }
