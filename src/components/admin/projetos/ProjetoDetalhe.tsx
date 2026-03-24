@@ -36,7 +36,7 @@ import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 import { ProjetoInstalacaoTab } from "./ProjetoInstalacaoTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
-import { ProjetoChatTab } from "./ProjetoChatTab";
+import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
 import { useQuery } from "@tanstack/react-query";
 import { usePropostasProjetoTab, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
