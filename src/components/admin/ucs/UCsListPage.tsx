@@ -321,6 +321,18 @@ export default function UCsListPage() {
         </Button>
       </div>
 
+      <Tabs defaultValue="lista" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="lista" className="gap-1.5">
+            <Building2 className="w-3.5 h-3.5" /> Lista de UCs
+          </TabsTrigger>
+          <TabsTrigger value="gd" className="gap-1.5">
+            <GitBranch className="w-3.5 h-3.5" /> GD Consolidado
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="lista" className="space-y-4 mt-0">
+
       {/* §27 KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {kpiCards.map((kpi, i) => (
