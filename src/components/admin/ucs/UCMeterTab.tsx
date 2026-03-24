@@ -3,21 +3,27 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { meterService } from "@/services/meterService";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Gauge, Link2, Link2Off, ArrowLeftRight, History, Search, Save, Info } from "lucide-react";
+import { Gauge, Link2, Link2Off, ArrowLeftRight, History, Search, Save, Info, BarChart3 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { formatDecimalBR } from "@/lib/formatters";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from "recharts";
 
 interface Props {
   unitId: string;
@@ -137,6 +143,9 @@ export function UCMeterTab({ unitId }: Props) {
 
           {/* Leitura Inicial do Relógio Físico */}
           <LeituraInicialCard meterId={activeMeter.id} meter={activeMeter} />
+
+          {/* Histórico de Leituras */}
+          <MeterReadingsHistory meterId={activeMeter.id} />
         </>
       ) : (
         <EmptyState
@@ -348,6 +357,203 @@ function LeituraInicialCard({ meterId, meter }: { meterId: string; meter: any })
           <Save className="w-3 h-3 mr-1" />
           {saveMut.isPending ? "Salvando..." : "Salvar Leitura Inicial"}
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Chart Tooltip (§5-S1) ───
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
+      <p className="font-medium text-foreground mb-1">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.name} className="text-muted-foreground">
+          {p.name}: <span className="font-semibold text-foreground">{formatDecimalBR(Number(p.value), 2)}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
+
+const PERIOD_OPTIONS = [
+  { label: "Hoje", value: "today", days: 1 },
+  { label: "7 dias", value: "7d", days: 7 },
+  { label: "30 dias", value: "30d", days: 30 },
+  { label: "3 meses", value: "90d", days: 90 },
+] as const;
+
+interface MeterReading {
+  id: string;
+  measured_at: string;
+  energy_import_kwh: number | null;
+  energy_export_kwh: number | null;
+  power_w: number | null;
+  voltage_v: number | null;
+  created_at: string;
+}
+
+/** Sub-component: Histórico de Leituras */
+function MeterReadingsHistory({ meterId }: { meterId: string }) {
+  const [period, setPeriod] = useState<string>("7d");
+
+  const startDate = useMemo(() => {
+    const opt = PERIOD_OPTIONS.find(o => o.value === period) || PERIOD_OPTIONS[1];
+    const d = new Date();
+    d.setDate(d.getDate() - opt.days);
+    return d.toISOString();
+  }, [period]);
+
+  const { data: readings = [], isLoading } = useQuery({
+    queryKey: ["meter_readings_history", meterId, period],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("meter_readings")
+        .select("id, measured_at, energy_import_kwh, energy_export_kwh, power_w, voltage_v, created_at")
+        .eq("meter_device_id", meterId)
+        .gte("created_at", startDate)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data || []) as MeterReading[];
+    },
+    staleTime: 1000 * 30,
+    enabled: !!meterId,
+  });
+
+  const chartData = useMemo(() => {
+    return [...readings]
+      .sort((a, b) => a.measured_at.localeCompare(b.measured_at))
+      .map(r => ({
+        time: new Date(r.measured_at).toLocaleString("pt-BR", {
+          day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+          timeZone: "America/Sao_Paulo",
+        }),
+        "Consumo (kWh)": r.energy_import_kwh ?? 0,
+        "Injeção (kWh)": r.energy_export_kwh ?? 0,
+        "Potência (kW)": r.power_w != null ? r.power_w / 1000 : 0,
+      }));
+  }, [readings]);
+
+  const tableData = readings.slice(0, 50);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-primary" /> Histórico de Leituras
+          </CardTitle>
+          <div className="flex gap-1">
+            {PERIOD_OPTIONS.map(opt => (
+              <Button
+                key={opt.value}
+                variant={period === opt.value ? "default" : "outline"}
+                size="sm"
+                className="text-xs h-7 px-2.5"
+                onClick={() => setPeriod(opt.value)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Chart */}
+        {isLoading ? (
+          <Skeleton className="h-[220px] w-full rounded-lg" />
+        ) : chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gradImport" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="hsl(var(--warning))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradExport" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradPower" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis
+                dataKey="time"
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={false}
+                tickLine={false}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip content={<ChartTooltip />} />
+              <Legend />
+              <Area type="monotone" dataKey="Consumo (kWh)" stroke="hsl(var(--warning))" fill="url(#gradImport)" strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="Injeção (kWh)" stroke="hsl(var(--success))" fill="url(#gradExport)" strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="Potência (kW)" stroke="hsl(var(--primary))" fill="url(#gradPower)" strokeWidth={2} dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="text-center text-sm text-muted-foreground py-8">
+            Nenhuma leitura no período selecionado
+          </div>
+        )}
+
+        {/* Table */}
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : tableData.length > 0 && (
+          <div className="rounded-lg border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="font-semibold text-foreground text-xs">Data/Hora</TableHead>
+                  <TableHead className="font-semibold text-foreground text-xs text-right">Consumo kWh</TableHead>
+                  <TableHead className="font-semibold text-foreground text-xs text-right">Injeção kWh</TableHead>
+                  <TableHead className="font-semibold text-foreground text-xs text-right">Potência W</TableHead>
+                  <TableHead className="font-semibold text-foreground text-xs text-right">Tensão V</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tableData.map(r => (
+                  <TableRow key={r.id} className="hover:bg-muted/30">
+                    <TableCell className="text-xs text-foreground whitespace-nowrap">
+                      {new Date(r.measured_at).toLocaleString("pt-BR", {
+                        day: "2-digit", month: "2-digit", year: "2-digit",
+                        hour: "2-digit", minute: "2-digit",
+                        timeZone: "America/Sao_Paulo",
+                      })}
+                    </TableCell>
+                    <TableCell className="text-xs text-right font-mono">
+                      {r.energy_import_kwh != null ? formatDecimalBR(r.energy_import_kwh, 2) : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs text-right font-mono">
+                      {r.energy_export_kwh != null ? formatDecimalBR(r.energy_export_kwh, 2) : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs text-right font-mono">
+                      {r.power_w != null ? formatDecimalBR(r.power_w, 0) : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs text-right font-mono">
+                      {r.voltage_v != null ? formatDecimalBR(r.voltage_v, 1) : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
