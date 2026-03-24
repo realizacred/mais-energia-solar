@@ -160,8 +160,8 @@ export function UCShareLinkButton({ unitId }: Props) {
 
   const deactivateUser = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase
-        .from("client_portal_users" as any)
+      const { error } = await (supabase as any)
+        .from("client_portal_users")
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq("id", userId);
       if (error) throw error;
