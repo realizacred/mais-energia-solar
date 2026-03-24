@@ -327,7 +327,9 @@ export function ProposalWizard() {
     if (s.nomeProposta != null) setNomeProposta(s.nomeProposta);
     if (s.descricaoProposta != null) setDescricaoProposta(s.descricaoProposta);
     if (s.templateSelecionado != null) setTemplateSelecionado(s.templateSelecionado);
-    if (s.step != null && s.step > 0) setStep(s.step);
+    // NOTE: Do NOT restore s.step here — edit mode always opens at step 0
+    // to force the consultant to review all data from the beginning.
+    // The step is still persisted in the snapshot for localStorage draft restore only.
   }, []);
 
   // Restore from localStorage on mount (only once, skip if loading from DB or project context)
@@ -1613,7 +1615,10 @@ export function ProposalWizard() {
   };
 
   const goToStep = (target: number) => {
-    setStep(target);
+    // Only allow navigating to completed (past) steps — never forward
+    if (target < step) {
+      setStep(target);
+    }
   };
 
   const goNext = () => {
