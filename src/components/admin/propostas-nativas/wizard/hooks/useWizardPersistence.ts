@@ -249,6 +249,19 @@ async function persistProposalAtomic(
           .eq("id", result.versao_id);
       }
 
+      // Sync deal value + kwp so kanban projection reflects proposal data
+      const syncDealId = params.dealId || result.projeto_id;
+      if (syncDealId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
+        await supabase
+          .from("deals")
+          .update({
+            value: params.precoFinal,
+            kwp: params.potenciaKwp,
+            updated_at: new Date().toISOString(),
+          } as any)
+          .eq("id", syncDealId);
+      }
+
       return {
         status: "success",
         propostaId: result.proposta_id,
@@ -321,6 +334,19 @@ async function persistProposalAtomic(
         reason: vErr.message,
         message: "Erro ao atualizar proposta",
       };
+    }
+
+    // Sync deal value + kwp so kanban projection reflects proposal data
+    const syncDealId = params.dealId;
+    if (syncDealId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
+      await supabase
+        .from("deals")
+        .update({
+          value: params.precoFinal,
+          kwp: params.potenciaKwp,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", syncDealId);
     }
 
     return {
