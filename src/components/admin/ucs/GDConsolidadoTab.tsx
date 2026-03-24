@@ -124,7 +124,7 @@ export function GDConsolidadoTab() {
     enabled: groups.length > 0,
   });
 
-  // Fetch allocations for those snapshots
+   // Fetch allocations for those snapshots
   const snapshotIds = useMemo(() => snapshots.map(s => s.id), [snapshots]);
   const { data: allocations = [], isLoading: loadingAllocs } = useQuery({
     queryKey: ["gd_allocations_consolidado", snapshotIds],
@@ -139,6 +139,24 @@ export function GDConsolidadoTab() {
     },
     staleTime: STALE_TIME,
     enabled: snapshotIds.length > 0,
+  });
+
+  // Fetch real beneficiaries from gd_group_beneficiaries (source of truth for count)
+  const groupIds = useMemo(() => groups.map(g => g.id), [groups]);
+  const { data: realBeneficiaries = [] } = useQuery({
+    queryKey: ["gd_real_beneficiaries_consolidado", groupIds],
+    queryFn: async () => {
+      if (!groupIds.length) return [];
+      const { data, error } = await (supabase as any)
+        .from("gd_group_beneficiaries")
+        .select("id, gd_group_id, uc_beneficiaria_id, allocation_percent, is_active")
+        .in("gd_group_id", groupIds)
+        .eq("is_active", true);
+      if (error) throw error;
+      return (data || []) as { id: string; gd_group_id: string; uc_beneficiaria_id: string; allocation_percent: number; is_active: boolean }[];
+    },
+    staleTime: STALE_TIME,
+    enabled: groupIds.length > 0,
   });
 
   // Fetch UC names for generators + beneficiaries
