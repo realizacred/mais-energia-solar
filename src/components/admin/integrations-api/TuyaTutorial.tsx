@@ -110,7 +110,7 @@ export function TuyaTutorial() {
               <div>
                 <p className="text-xs font-medium text-foreground">Observação</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Nem todos os modelos de medidores Tuya expõem dados de energia exportada (injeção).
+                  Nem todos os modelos de medidores Tuya expõem dados de energia injetada (injeção).
                   Medidores como o RMDZW-3PNB 100A geralmente suportam importação, tensão, corrente e potência.
                   A disponibilidade de dados depende do firmware e categoria do dispositivo.
                 </p>
