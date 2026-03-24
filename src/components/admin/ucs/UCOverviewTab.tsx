@@ -198,11 +198,16 @@ export function UCOverviewTab({
 
   // --- Build chart data ---
   const chartData = useMemo(() => {
+    // RB-13: Group meter readings by Brasília date, not UTC
+    const toDateBRT = (isoStr: string) => {
+      const d = new Date(isoStr);
+      return d.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }); // YYYY-MM-DD
+    };
     const importByDay: Record<string, number[]> = {};
     const exportByDay: Record<string, number[]> = {};
     meterReadings.forEach((r: any) => {
-      const day = r.measured_at?.slice(0, 10);
-      if (!day) return;
+      if (!r.measured_at) return;
+      const day = toDateBRT(r.measured_at);
       if (!importByDay[day]) importByDay[day] = [];
       if (!exportByDay[day]) exportByDay[day] = [];
       importByDay[day].push(Number(r.energy_import_kwh) || 0);
@@ -242,8 +247,8 @@ export function UCOverviewTab({
       });
   }, [meterReadings, plantMetrics]);
 
-  // --- KPI values ---
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // --- KPI values --- (RB-13: use Brasília date)
+  const todayStr = todayBrasilia;
   const todayGeneration = plantMetrics.find((m: any) => m.date === todayStr);
   const latestInvoice = recentInvoices[0];
   
