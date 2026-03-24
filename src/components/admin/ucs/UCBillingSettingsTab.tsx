@@ -19,7 +19,7 @@ import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send, Phone, CheckCircle2, XCircle, AlertTriangle, RefreshCw, FileSearch } from "lucide-react";
+import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send, Phone, CheckCircle2, XCircle, AlertTriangle, RefreshCw, FileSearch, Tag } from "lucide-react";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { formatDateTime, formatDate } from "@/lib/dateUtils";
 import { SettingsHelpCard } from "./SettingsHelpCard";
@@ -63,6 +63,22 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
   const { guardLimit, LimitDialog } = usePlanGuard();
   const [showPassword, setShowPassword] = useState(false);
 
+  // Fetch Gmail labels from connected accounts
+  const { data: gmailLabels = [], isLoading: labelsLoading } = useQuery({
+    queryKey: ["gmail_labels"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return [];
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const resp = await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?action=list_labels`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!resp.ok) return [];
+      const result = await resp.json();
+      return (result.labels || []) as { id: string; name: string }[];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
   const { data: settings, isLoading } = useQuery({
     queryKey: ["billing_settings", unitId],
     queryFn: () => invoiceService.getBillingSettings(unitId),
@@ -95,6 +111,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
     dias_antecedencia_alerta: "1",
     canal_notificacao: "whatsapp" as BillingNotificationChannel,
     servico_fatura_ativo: false,
+    gmail_label: "",
   };
 
   const { form, setForm, isDirty, commitBaseline, resetTo } = useDirtyForm(defaultForm);
@@ -111,6 +128,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
         dias_antecedencia_alerta: String(settings.dias_antecedencia_alerta ?? 1),
         canal_notificacao: settings.canal_notificacao || "whatsapp",
         servico_fatura_ativo: settings.servico_fatura_ativo ?? false,
+        gmail_label: settings.gmail_label || "",
       });
     }
   }, [settings, resetTo]);
@@ -143,6 +161,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
       dias_antecedencia_alerta: parseInt(form.dias_antecedencia_alerta, 10) || 1,
       canal_notificacao: form.canal_notificacao,
       servico_fatura_ativo: form.servico_fatura_ativo,
+      gmail_label: form.gmail_label || null,
     } as any),
     onSuccess: () => {
       commitBaseline();
@@ -380,6 +399,30 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
                   <Label className="text-xs">E-mail para cadastro na concessionária</Label>
                   <Input value={form.billing_capture_email} onChange={(e) => setForm(f => ({ ...f, billing_capture_email: e.target.value }))} placeholder="fatura-uc-xxx@seudominio.com" />
                   <p className="text-xs text-muted-foreground">Este é o endereço que deve ser cadastrado na concessionária para recebimento das faturas digitais.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-1"><Tag className="w-3 h-3" /> Marcador do Gmail</Label>
+                  {gmailLabels.length > 0 ? (
+                    <Select value={form.gmail_label} onValueChange={(v) => setForm(f => ({ ...f, gmail_label: v === "__none__" ? "" : v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um marcador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Nenhum (usar caixa de entrada)</SelectItem>
+                        {gmailLabels.map((l) => (
+                          <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={form.gmail_label}
+                      onChange={(e) => setForm(f => ({ ...f, gmail_label: e.target.value }))}
+                      placeholder={labelsLoading ? "Carregando marcadores..." : "Ex: ENERGISA/UC-970915"}
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground">Marcador no Gmail para filtrar os e-mails desta UC. Crie o marcador no Gmail e ele aparecerá aqui.</p>
                 </div>
 
                 <div className="space-y-1.5">

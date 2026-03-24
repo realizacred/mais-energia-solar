@@ -1,0 +1,1 @@
+ALTER TABLE public.unit_billing_email_settings ADD COLUMN IF NOT EXISTS gmail_label text DEFAULT NULL; COMMENT ON COLUMN public.unit_billing_email_settings.gmail_label IS 'Marcador/label do Gmail usado para filtrar faturas desta UC';

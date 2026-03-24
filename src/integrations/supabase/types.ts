@@ -20837,6 +20837,7 @@ export type Database = {
           email_billing_enabled: boolean
           email_da_uc: string | null
           forward_to_email: string | null
+          gmail_label: string | null
           id: string
           notes: string | null
           pdf_password: string | null
@@ -20859,6 +20860,7 @@ export type Database = {
           email_billing_enabled?: boolean
           email_da_uc?: string | null
           forward_to_email?: string | null
+          gmail_label?: string | null
           id?: string
           notes?: string | null
           pdf_password?: string | null
@@ -20881,6 +20883,7 @@ export type Database = {
           email_billing_enabled?: boolean
           email_da_uc?: string | null
           forward_to_email?: string | null
+          gmail_label?: string | null
           id?: string
           notes?: string | null
           pdf_password?: string | null

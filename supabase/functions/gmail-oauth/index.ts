@@ -308,6 +308,123 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── list_labels: fetch Gmail labels for a specific account ──
+    if (action === "list_labels") {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const { data: claimsData, error: claimsError } = await supabase.auth.getUser();
+      if (claimsError || !claimsData?.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", claimsData.user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        return new Response(JSON.stringify({ error: "Tenant not found" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+      // Get all active gmail accounts for the tenant
+      const { data: accounts, error: accError } = await adminClient
+        .from("gmail_accounts")
+        .select("id, email, nome, credentials, settings")
+        .eq("tenant_id", profile.tenant_id)
+        .eq("is_active", true);
+
+      if (accError || !accounts?.length) {
+        return new Response(JSON.stringify({ labels: [], error: "Nenhuma conta Gmail ativa encontrada" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Use the first account (or a specific one if account_id is provided)
+      const accountId = url.searchParams.get("account_id");
+      const account = accountId
+        ? accounts.find((a: any) => a.id === accountId)
+        : accounts[0];
+
+      if (!account) {
+        return new Response(JSON.stringify({ labels: [], error: "Conta não encontrada" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get access token, refresh if needed
+      let accessToken = account.credentials?.access_token;
+      const tokenExpiry = account.settings?.token_expiry || 0;
+
+      if (Date.now() > tokenExpiry - 60000 && account.credentials?.refresh_token) {
+        const { clientId, clientSecret } = await resolveGoogleCredentials(adminClient, profile.tenant_id);
+        const refreshResp = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            client_id: clientId,
+            client_secret: clientSecret,
+            refresh_token: account.credentials.refresh_token,
+            grant_type: "refresh_token",
+          }),
+        });
+        const refreshData = await refreshResp.json();
+        if (refreshData.access_token) {
+          accessToken = refreshData.access_token;
+          // Update stored token
+          await adminClient
+            .from("gmail_accounts")
+            .update({
+              credentials: { ...account.credentials, access_token: accessToken },
+              settings: { ...account.settings, token_expiry: Date.now() + (refreshData.expires_in || 3600) * 1000 },
+            })
+            .eq("id", account.id);
+        }
+      }
+
+      if (!accessToken) {
+        return new Response(JSON.stringify({ labels: [], error: "Token de acesso indisponível. Reconecte a conta Gmail." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fetch labels from Gmail API
+      const labelsResp = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/labels", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!labelsResp.ok) {
+        return new Response(JSON.stringify({ labels: [], error: `Erro ao buscar marcadores: ${labelsResp.status}` }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const labelsData = await labelsResp.json();
+      const labels = (labelsData.labels || [])
+        .filter((l: any) => l.type === "user") // Only user-created labels
+        .map((l: any) => ({ id: l.id, name: l.name }))
+        .sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+      return new Response(JSON.stringify({ labels }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
