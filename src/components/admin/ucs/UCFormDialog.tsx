@@ -1,7 +1,7 @@
 /**
  * UCFormDialog — Create/Edit UC dialog with sections, CEP auto-fill, and input masks.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,10 @@ import { useToast } from "@/hooks/use-toast";
 import { unitService, type UCRecord } from "@/services/unitService";
 import { useConcessionarias } from "@/hooks/useConcessionarias";
 import { useClientesList } from "@/hooks/useFormSelects";
-import { Loader2, MapPin, Zap, FileText, Sun, Mail } from "lucide-react";
+import { Loader2, MapPin, Zap, FileText, Sun, Mail, UserPlus, Search, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
+import { InlineClienteCreateModal } from "./InlineClienteCreateModal";
 
 interface Props {
   open: boolean;
@@ -48,6 +49,21 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
 
   const { data: concessionarias = [] } = useConcessionarias();
   const { data: clientes = [] } = useClientesList();
+  const [clientSearch, setClientSearch] = useState("");
+  const [showCreateCliente, setShowCreateCliente] = useState(false);
+
+  const filteredClientes = useMemo(() => {
+    if (!clientSearch.trim()) return clientes;
+    const q = clientSearch.toLowerCase();
+    return clientes.filter(c =>
+      c.nome.toLowerCase().includes(q) ||
+      (c.telefone || "").includes(q) ||
+      (c.cpf_cnpj || "").includes(q) ||
+      (c.email || "").toLowerCase().includes(q)
+    );
+  }, [clientes, clientSearch]);
+
+  const selectedCliente = clientes.find(c => c.id === form.cliente_id);
 
   useEffect(() => {
     if (!open) return;
