@@ -505,7 +505,25 @@ function GeneratorSection({
                 Esta UC é a origem do grupo <span className="font-medium text-foreground">{group.nome}</span>. Abra cada beneficiária sem perder o caminho de volta para o grupo.
               </CardDescription>
             </div>
-            <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Grupo ativo</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Grupo ativo</Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={() => { setEditGroupName(group.nome); setEditGroupOpen(true); }}
+              >
+                <Edit className="w-3 h-3" /> Renomear
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setDeleteGroupConfirm(true)}
+              >
+                <Trash2 className="w-3 h-3" /> Excluir Grupo
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="pt-0 space-y-4">
