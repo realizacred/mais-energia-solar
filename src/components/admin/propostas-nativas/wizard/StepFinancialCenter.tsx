@@ -476,8 +476,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                       // Group by categoria for label
                       const catLabel = item.categoria === "modulo" ? "Módulo"
                         : item.categoria === "inversor" ? "Inversor"
-                        : item.categoria === "otimizador" ? "Otimizador"
                         : item.categoria === "bateria" ? "Bateria"
+                        : item.categoria === "estrutura" ? "Estrutura"
                         : item.categoria;
 
                       return (
@@ -635,13 +635,5 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     </div>
   );
 }
-
-/** Helper to calculate precoFinal from outside */
-export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], venda: VendaData): number {
-  const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
-  const custoServicos = roundCurrency(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
-  const custoBase = roundCurrency(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
-  const margemValor = roundCurrency(custoBase * (venda.margem_percentual / 100));
-  const precoComMargem = roundCurrency(custoBase + margemValor);
-  return roundCurrency(precoComMargem - precoComMargem * (venda.desconto_percentual / 100));
-}
+// calcPrecoFinal movido para types.ts (SSOT) — re-export para compatibilidade
+export { calcPrecoFinal } from "./types";

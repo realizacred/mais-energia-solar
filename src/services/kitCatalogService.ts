@@ -60,10 +60,12 @@ interface BateriaRef {
 
 // ─── Categoria mapping ────────────────────────────────────
 
-const ITEM_TYPE_TO_CATEGORIA: Record<string, string> = {
+import type { KitCategoria } from "@/components/admin/propostas-nativas/wizard/types";
+
+const ITEM_TYPE_TO_CATEGORIA: Record<string, KitCategoria> = {
   modulo: "modulo",
   inversor: "inversor",
-  bateria: "outros",
+  bateria: "bateria",
   generico: "outros",
   estrutura: "estrutura",
   string_box: "string_box",
@@ -72,7 +74,7 @@ const ITEM_TYPE_TO_CATEGORIA: Record<string, string> = {
   mao_obra: "mao_obra",
 };
 
-function mapCategoria(itemType: string): string {
+function mapCategoria(itemType: string): KitCategoria {
   return ITEM_TYPE_TO_CATEGORIA[itemType] ?? "outros";
 }
 
