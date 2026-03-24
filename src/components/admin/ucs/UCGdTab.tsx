@@ -1,6 +1,6 @@
 /**
- * UCGdTab — gestão contextual de GD dentro da UC.
- * Foco em clareza visual, distinção geradora/beneficiária e navegação ida e volta.
+ * UCGdTab — gestão de Geração Distribuída dentro da UC.
+ * Linguagem natural, navegação simples, sem jargão técnico.
  */
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -15,14 +15,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, ArrowLeft, Building2, GitBranch, Loader2, MoveRight, Plus, Sun, Trash2, Users, Edit } from "lucide-react";
+import { AlertCircle, ArrowRight, Building2, GitBranch, Loader2, Plus, Sun, Trash2, Users, Edit } from "lucide-react";
 import { useGdGroupByGenerator, useGdBeneficiaries, useGdBeneficiariesByUC, useSaveGdBeneficiary, useDeleteGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
 import { useSaveGdGroup, useDeleteGdGroup, type GdGroup } from "@/hooks/useGdGroups";
 import { useUCsList, type UCOption } from "@/hooks/useFormSelects";
 import { type UCRecord } from "@/services/unitService";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { buildUcDetailPath, readUcNavigationContext } from "./ucNavigation";
+import { buildUcDetailPath } from "./ucNavigation";
+import { GdHelpCard } from "./GdHelpCard";
 
 interface Props {
   uc: UCRecord;
@@ -33,9 +34,7 @@ type BeneficiaryWithGroup = GdBeneficiary & {
 };
 
 export function UCGdTab({ uc }: Props) {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const navigationContext = readUcNavigationContext(searchParams);
   const { data: allUcs = [] } = useUCsList();
 
   const { data: generatorGroups = [], isLoading: loadingGen } = useGdGroupByGenerator(uc.id);
@@ -45,7 +44,6 @@ export function UCGdTab({ uc }: Props) {
 
   const isLoading = loadingGen || loadingBen;
   const isGenerator = uc.papel_gd === "geradora" || uc.tipo_uc === "gd_geradora" || uc.tipo_uc === "mista";
-  const hasContext = !!navigationContext.fromUcId && navigationContext.fromUcId !== uc.id;
 
   if (isLoading) {
     return (
@@ -58,7 +56,7 @@ export function UCGdTab({ uc }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* ─── Compact Header: Role badges ─── */}
+      {/* ─── Role badges ─── */}
       <div className="flex flex-wrap items-center gap-2">
         <Badge className={isGenerator ? "text-xs bg-primary/10 text-primary border-primary/20" : "text-xs bg-muted text-muted-foreground border-border"}>
           <Sun className="w-3 h-3 mr-1" /> {isGenerator ? "Geradora" : "Sem papel de geradora"}
@@ -72,77 +70,6 @@ export function UCGdTab({ uc }: Props) {
           </Badge>
         )}
       </div>
-
-      {/* ─── Context breadcrumb (only when navigated from another UC) ─── */}
-      {hasContext && navigationContext.fromUcId && (
-        <div className="rounded-lg border border-border bg-muted/20 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-            <span className="text-muted-foreground">Você veio de</span>
-            <span className="font-medium text-foreground truncate">{navigationContext.fromUcName || "UC"}</span>
-            {navigationContext.gdGroupName && (
-              <>
-                <MoveRight className="w-3 h-3 shrink-0" />
-                <span className="truncate">{navigationContext.gdGroupName}</span>
-              </>
-            )}
-            <MoveRight className="w-3 h-3 shrink-0" />
-            <span className="font-medium text-foreground truncate">{uc.nome}</span>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs gap-1"
-              onClick={() =>
-                navigate(
-                  buildUcDetailPath(navigationContext.fromUcId!, {
-                    tab: navigationContext.returnTab || "overview",
-                    subtab: navigationContext.returnSubtab || null,
-                    origin: "gd-return",
-                    fromUcId: uc.id,
-                    fromUcName: uc.nome,
-                    fromUcCode: uc.codigo_uc,
-                    gdGroupId: navigationContext.gdGroupId,
-                    gdGroupName: navigationContext.gdGroupName,
-                    relatedUcId: uc.id,
-                    relatedUcName: uc.nome,
-                    relatedUcCode: uc.codigo_uc,
-                    beneficiaryId: navigationContext.beneficiaryId,
-                    beneficiaryName: navigationContext.beneficiaryName,
-                  }),
-                )
-              }
-            >
-              <ArrowLeft className="w-3 h-3" /> Voltar
-            </Button>
-            <Button
-              variant="soft"
-              size="sm"
-              className="h-7 text-xs gap-1"
-              onClick={() =>
-                navigate(
-                  buildUcDetailPath(navigationContext.fromUcId!, {
-                    tab: "gd",
-                    origin: "gd-return",
-                    fromUcId: uc.id,
-                    fromUcName: uc.nome,
-                    fromUcCode: uc.codigo_uc,
-                    gdGroupId: navigationContext.gdGroupId,
-                    gdGroupName: navigationContext.gdGroupName,
-                    relatedUcId: uc.id,
-                    relatedUcName: uc.nome,
-                    relatedUcCode: uc.codigo_uc,
-                    beneficiaryId: navigationContext.beneficiaryId,
-                    beneficiaryName: navigationContext.beneficiaryName,
-                  }),
-                )
-              }
-            >
-              <GitBranch className="w-3 h-3" /> Geração Distribuída
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* ─── Generator Section ─── */}
       {isGenerator && (
@@ -176,6 +103,13 @@ export function UCGdTab({ uc }: Props) {
           </CardContent>
         </Card>
       )}
+
+      {/* ─── Help Card ─── */}
+      <GdHelpCard
+        isGenerator={isGenerator}
+        isBeneficiary={beneficiaryOf.length > 0}
+        hasGroup={!!activeGroup}
+      />
     </div>
   );
 }
