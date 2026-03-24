@@ -109,7 +109,12 @@ const TEMPLATE_KEYS = [
 // ─── Component ──────────────────────────────────────
 
 export default function ProposalMessageConfigPage() {
-  const { tenantId } = useTenantContext();
+  const { data: tenantCtx } = useQuery({
+    queryKey: ["current-tenant-id"],
+    queryFn: getCurrentTenantId,
+    staleTime: 1000 * 60 * 15,
+  });
+  const tenantId = tenantCtx?.tenantId;
   const { data: config, isLoading } = useProposalMessageConfig(tenantId);
   const saveMutation = useSaveProposalMessageConfig();
 
