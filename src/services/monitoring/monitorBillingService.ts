@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface MonitorSubscription {
   id: string;
   tenant_id: string;
+  /** @deprecated Legacy. Canonical: resolve via unit_plant_links → UC → cliente_id */
   client_id: string | null;
   plan_name: string;
   price_brl: number;

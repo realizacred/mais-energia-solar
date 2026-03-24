@@ -2,6 +2,10 @@
  * energyFinancialService — Financial layer over GD energy engine.
  * §17: Business logic in services. §20: SRP.
  * Consumes gd_monthly_allocations, gd_monthly_snapshots, gd_credit_balances as SSOT.
+ *
+ * NOTE: Some queries still use gd_groups.cliente_id (legacy/deprecated).
+ * Canonical path: gd_groups.uc_geradora_id → units_consumidoras → cliente_id.
+ * Legacy field is still populated on write for backward compat.
  */
 import { supabase } from "@/integrations/supabase/client";
 
