@@ -757,11 +757,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   }, [isExpanded, latestVersao?.public_slug]);
 
-  // Auto-render when switching to "arquivo" tab for generated proposals
+  // Auto-render ONLY when no persisted PDF exists and status indicates generation happened
+  // If output_pdf_path exists, the Arquivo tab will use signed URL instead
   useEffect(() => {
     if (!isExpanded || activeTab !== "arquivo" || html || rendering) return;
     if (!latestVersao?.id) return;
-    // Check both versao status and proposta status
+    // Skip auto-render if persisted PDF exists
+    if (latestVersao.output_pdf_path) return;
     const vStatus = latestVersao.status?.toLowerCase();
     const pStatus = p.status?.toLowerCase();
     if (vStatus === "generated" || vStatus === "gerada" || vStatus === "ativa" ||
