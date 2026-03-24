@@ -589,7 +589,7 @@ function GeneratorSection({
                               <Building2 className="w-3 h-3" /> Abrir UC
                             </Button>
                             <Button variant="soft" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(beneficiaryGdPath)}>
-                              <Users className="w-3 h-3" /> Ver GD da beneficiária
+                              <Users className="w-3 h-3" /> Ver aba GD
                             </Button>
                           </div>
                         </TableCell>
