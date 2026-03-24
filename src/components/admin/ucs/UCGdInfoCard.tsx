@@ -92,7 +92,7 @@ export function UCGdInfoCard({ ucId, ucName, ucCode }: Props) {
                           )
                         }
                       >
-                        Abrir GD <ExternalLink className="w-3 h-3" />
+                        Ver distribuição <ExternalLink className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
@@ -160,7 +160,7 @@ export function UCGdInfoCard({ ucId, ucName, ucCode }: Props) {
                             )
                           }
                         >
-                          Ver UC geradora <ExternalLink className="w-3 h-3" />
+                          Ir para UC geradora <ExternalLink className="w-3 h-3" />
                         </Button>
                       )}
 
@@ -187,7 +187,7 @@ export function UCGdInfoCard({ ucId, ucName, ucCode }: Props) {
                             )
                           }
                         >
-                          Abrir grupo GD <ExternalLink className="w-3 h-3" />
+                          Ver grupo e distribuição <ExternalLink className="w-3 h-3" />
                         </Button>
                       )}
                     </div>

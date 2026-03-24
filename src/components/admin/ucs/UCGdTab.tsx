@@ -77,6 +77,7 @@ export function UCGdTab({ uc }: Props) {
       {hasContext && navigationContext.fromUcId && (
         <div className="rounded-lg border border-border bg-muted/20 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+            <span className="text-muted-foreground">Você veio de</span>
             <span className="font-medium text-foreground truncate">{navigationContext.fromUcName || "UC"}</span>
             {navigationContext.gdGroupName && (
               <>
@@ -137,7 +138,7 @@ export function UCGdTab({ uc }: Props) {
                 )
               }
             >
-              <GitBranch className="w-3 h-3" /> Aba GD
+              <GitBranch className="w-3 h-3" /> Geração Distribuída
             </Button>
           </div>
         </div>
@@ -268,12 +269,12 @@ function BeneficiarySection({
                 <div className="flex flex-wrap gap-2">
                   {generatorOverviewPath && (
                     <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(generatorOverviewPath)}>
-                      <Building2 className="w-3 h-3" /> Abrir UC geradora
+                      <Building2 className="w-3 h-3" /> Ir para UC geradora
                     </Button>
                   )}
                   {generatorGroupPath && (
                     <Button variant="soft" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(generatorGroupPath)}>
-                      <GitBranch className="w-3 h-3" /> Abrir grupo GD
+                      <GitBranch className="w-3 h-3" /> Ver grupo e distribuição
                     </Button>
                   )}
                 </div>
@@ -589,7 +590,7 @@ function GeneratorSection({
                               <Building2 className="w-3 h-3" /> Abrir UC
                             </Button>
                             <Button variant="soft" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(beneficiaryGdPath)}>
-                              <Users className="w-3 h-3" /> Ver aba GD
+                              <Users className="w-3 h-3" /> Ver créditos GD
                             </Button>
                           </div>
                         </TableCell>
