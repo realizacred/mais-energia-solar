@@ -5,10 +5,10 @@
  * Configurações > Mensagens da Proposta
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   MessageCircle, Settings2, Save, RotateCcw, Eye, Variable,
-  ToggleLeft, Sliders, Copy, CheckCircle
+  ToggleLeft, Sliders, Copy, CheckCircle, ShieldAlert
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,8 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
   useProposalMessageConfig,
@@ -109,6 +111,25 @@ const TEMPLATE_KEYS = [
 // ─── Component ──────────────────────────────────────
 
 export default function ProposalMessageConfigPage() {
+  const { user } = useAuth();
+
+  // Check admin role
+  const { data: userRoles = [], isLoading: rolesLoading } = useQuery({
+    queryKey: ["user-roles-config-page", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      return (data ?? []).map((r) => r.role);
+    },
+    staleTime: 1000 * 60 * 15,
+    enabled: !!user?.id,
+  });
+
+  const isAdmin = userRoles.includes("admin");
+
   const { data: tenantCtx } = useQuery({
     queryKey: ["current-tenant-id"],
     queryFn: getCurrentTenantId,
