@@ -74,15 +74,18 @@ export function ProposalMessageDrawer({
     if (!open || !versaoId) return;
     if (snapshot) return; // already loaded
     setLoadingSnapshot(true);
-    supabase
-      .from("proposta_versoes")
-      .select("snapshot")
-      .eq("id", versaoId)
-      .single()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("proposta_versoes")
+          .select("snapshot")
+          .eq("id", versaoId)
+          .single();
         setSnapshot(data?.snapshot || {});
-      })
-      .finally(() => setLoadingSnapshot(false));
+      } finally {
+        setLoadingSnapshot(false);
+      }
+    })();
   }, [open, versaoId]);
 
   // Build context from snapshot + versao data
