@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
-  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, Plus, FolderOpen
+  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, Plus, FolderOpen, MessageSquareText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import { formatBRL, formatNumberBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -643,6 +644,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [recusaMotivo, setRecusaMotivo] = useState("");
   const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
+  const [messageDrawerOpen, setMessageDrawerOpen] = useState(false);
 
   // PDF signed URL for persisted artifacts
   const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
@@ -1097,6 +1099,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 <DropdownMenuItem onClick={() => copyLink(false)} disabled={!publicUrl}>
                   <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link s/ rastreio
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)} disabled={!latestVersao}>
+                  <MessageSquareText className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar mensagem
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => {
                   const params = new URLSearchParams({ deal_id: dealId });
@@ -1324,6 +1329,28 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Message drawer */}
+      {latestVersao && (
+        <ProposalMessageDrawer
+          open={messageDrawerOpen}
+          onOpenChange={setMessageDrawerOpen}
+          versaoId={latestVersao.id}
+          propostaData={{
+            cliente_nome: p.cliente_nome,
+            codigo: p.codigo,
+            status: p.status,
+          }}
+          versaoData={{
+            valor_total: latestVersao.valor_total,
+            potencia_kwp: latestVersao.potencia_kwp,
+            economia_mensal: latestVersao.economia_mensal,
+            payback_meses: latestVersao.payback_meses,
+            geracao_mensal: latestVersao.geracao_mensal,
+            public_slug: latestVersao.public_slug,
+          }}
+        />
+      )}
     </>
   );
 }
