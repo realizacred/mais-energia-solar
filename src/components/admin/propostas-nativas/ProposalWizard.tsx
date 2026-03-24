@@ -41,6 +41,7 @@ import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
 import { useWizardPersistence, type WizardSnapshot, type PersistenceParams, type AtomicPersistResult } from "./wizard/hooks/useWizardPersistence";
 import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
 import { StepPagamento } from "./wizard/StepPagamento";
+import { StepResumo } from "./wizard/StepResumo";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
 import { ProposalAuditPanel } from "./wizard/ProposalAuditPanel";
@@ -71,6 +72,7 @@ const STEP_KEYS = {
   SERVICOS: "servicos",
   VENDA: "venda",
   PAGAMENTO: "pagamento",
+  RESUMO: "resumo",
   PROPOSTA: "proposta",
 } as const;
 
@@ -83,6 +85,7 @@ const BASE_STEPS: WizardStep[] = [
   { key: STEP_KEYS.SERVICOS, label: "Serviços", icon: Wrench },
   { key: STEP_KEYS.VENDA, label: "Venda", icon: DollarSign },
   { key: STEP_KEYS.PAGAMENTO, label: "Formas de pagamento", icon: CreditCard },
+  { key: STEP_KEYS.RESUMO, label: "Resumo", icon: BarChart3 },
   { key: STEP_KEYS.PROPOSTA, label: "Proposta", icon: FileText },
 ];
 
@@ -96,6 +99,7 @@ const STEP_META: Record<string, { title: string; description: string }> = {
   [STEP_KEYS.SERVICOS]: { title: "Serviços", description: "Configure mão de obra, frete e serviços inclusos ou extras." },
   [STEP_KEYS.VENDA]: { title: "Centro Financeiro", description: "Defina margens, comissões e precificação final do projeto." },
   [STEP_KEYS.PAGAMENTO]: { title: "Formas de Pagamento", description: "Configure opções de pagamento, financiamentos e parcelamentos." },
+  [STEP_KEYS.RESUMO]: { title: "Resumo da Proposta", description: "Revise todos os dados antes de gerar a proposta comercial." },
   [STEP_KEYS.PROPOSTA]: { title: "Gerar Proposta", description: "Revise os dados e gere o documento final da proposta comercial." },
 };
 
@@ -327,7 +331,9 @@ export function ProposalWizard() {
     if (s.nomeProposta != null) setNomeProposta(s.nomeProposta);
     if (s.descricaoProposta != null) setDescricaoProposta(s.descricaoProposta);
     if (s.templateSelecionado != null) setTemplateSelecionado(s.templateSelecionado);
-    if (s.step != null && s.step > 0) setStep(s.step);
+    // NOTE: Do NOT restore s.step here — edit mode always opens at step 0
+    // to force the consultant to review all data from the beginning.
+    // The step is still persisted in the snapshot for localStorage draft restore only.
   }, []);
 
   // Restore from localStorage on mount (only once, skip if loading from DB or project context)
@@ -347,6 +353,10 @@ export function ProposalWizard() {
     if (!draft?.snapshot) return;
 
     restoreFromSnapshot(draft.snapshot);
+    // For localStorage drafts (new proposals), restore the step position
+    if (draft.snapshot.step != null && draft.snapshot.step > 0) {
+      setStep(draft.snapshot.step);
+    }
     if (draft.savedPropostaId) setSavedPropostaId(draft.savedPropostaId);
     if (draft.savedVersaoId) setSavedVersaoId(draft.savedVersaoId);
 
@@ -1260,6 +1270,7 @@ export function ProposalWizard() {
     [STEP_KEYS.SERVICOS]: true,
     [STEP_KEYS.VENDA]: venda.margem_percentual >= 0,
     [STEP_KEYS.PAGAMENTO]: true,
+    [STEP_KEYS.RESUMO]: true,
     [STEP_KEYS.PROPOSTA]: grupoValidation.valid,
   };
 
@@ -1613,14 +1624,17 @@ export function ProposalWizard() {
   };
 
   const goToStep = (target: number) => {
-    setStep(target);
+    // Only allow navigating to completed (past) steps — never forward
+    if (target < step) {
+      setStep(target);
+    }
   };
 
   const goNext = () => {
     if (step >= activeSteps.length - 1) return;
-    // Intercept: when advancing FROM Pagamento → show pos-dimensionamento dialog
+    // Intercept: when advancing FROM Resumo → show pos-dimensionamento dialog
     const nextKey = activeSteps[step + 1]?.key;
-    if (currentStepKey === STEP_KEYS.PAGAMENTO && nextKey === STEP_KEYS.PROPOSTA) {
+    if (currentStepKey === STEP_KEYS.RESUMO && nextKey === STEP_KEYS.PROPOSTA) {
       // Auto-fill nome if empty
       if (!nomeProposta && (cliente.nome || selectedLead?.nome)) {
         setNomeProposta(cliente.nome || selectedLead?.nome || "");
@@ -1823,6 +1837,35 @@ export function ProposalWizard() {
       case STEP_KEYS.PAGAMENTO:
         return wrap("pagamento", (
           <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} ucs={ucs} premissas={premissas} potenciaKwp={potenciaKwp} irradiacao={locIrradiacao} />
+        ));
+
+      case STEP_KEYS.RESUMO:
+        return wrap("resumo", (
+          <StepResumo
+            estado={locEstado}
+            cidade={locCidade}
+            tipoTelhado={locTipoTelhado}
+            distribuidoraNome={locDistribuidoraNome}
+            irradiacao={locIrradiacao}
+            clienteNome={cliente.nome || ""}
+            clienteCelular={cliente.celular || ""}
+            clienteEmail={cliente.email || ""}
+            clienteEmpresa={cliente.empresa || ""}
+            leadNome={selectedLead?.nome || ""}
+            potenciaKwp={potenciaKwp}
+            consumoTotal={consumoTotal}
+            geracaoMensalKwh={geracaoMensalEstimada}
+            numUcs={ucs.length}
+            grupo={grupo}
+            itens={itens}
+            adicionais={adicionais}
+            servicos={servicos}
+            precoFinal={precoFinal}
+            margemPercentual={venda.margem_percentual}
+            custoComissao={venda.custo_comissao}
+            descontoPercentual={venda.desconto_percentual}
+            pagamentoOpcoes={pagamentoOpcoes}
+          />
         ));
 
       case STEP_KEYS.PROPOSTA:
