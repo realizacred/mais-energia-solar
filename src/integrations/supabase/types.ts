@@ -16797,6 +16797,7 @@ export type Database = {
           enviada_via: string | null
           fio_b_percent_aplicado: number | null
           id: string
+          is_principal: boolean
           lead_id: string | null
           metadata: Json | null
           missing_variables: string[] | null
@@ -16846,6 +16847,7 @@ export type Database = {
           enviada_via?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
+          is_principal?: boolean
           lead_id?: string | null
           metadata?: Json | null
           missing_variables?: string[] | null
@@ -16895,6 +16897,7 @@ export type Database = {
           enviada_via?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
+          is_principal?: boolean
           lead_id?: string | null
           metadata?: Json | null
           missing_variables?: string[] | null

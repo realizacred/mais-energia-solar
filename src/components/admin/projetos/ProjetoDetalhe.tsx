@@ -38,6 +38,8 @@ import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
 import { ProjetoChatTab } from "./ProjetoChatTab";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
+import { useQuery } from "@tanstack/react-query";
+import { usePropostasProjetoTab, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
 import {
   ProjetoDetalheProvider,
   useProjetoDetalhe,
@@ -60,6 +62,7 @@ interface PropostaNativa {
   status: string;
   created_at: string;
   cliente_nome: string | null;
+  is_principal: boolean;
   versoes: {
     id: string;
     versao_numero: number;
@@ -73,6 +76,7 @@ interface PropostaNativa {
     output_pdf_path: string | null;
     output_docx_path: string | null;
     public_slug: string | null;
+    gerado_em: string | null;
   }[];
 }
 
@@ -1493,127 +1497,23 @@ interface LinkedOrcamento {
 }
 
 function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string }) {
-  const [propostas, setPropostas] = useState<PropostaNativa[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: propostas = [], isLoading: loading, refetch } = usePropostasProjetoTab(dealId, customerId);
+  const setPrincipalMutation = useSetPropostaPrincipal();
+  const arquivarMutation = useArquivarProposta();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Refetch when tab/window regains focus only if data is stale (>30s)
-  const lastFetchRef = useRef(0);
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible" && Date.now() - lastFetchRef.current > 30_000) {
-        setRefreshKey(k => k + 1);
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, []);
-
-  // Load proposals — query propostas_nativas.deal_id directly
-  useEffect(() => {
-    async function load() {
-      if (!dealId && !customerId) { setLoading(false); return; }
-      setLoading(true);
-      try {
-        let query = supabase
-          .from("propostas_nativas")
-          .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at, cliente_id, clientes(nome)")
-          .order("created_at", { ascending: false })
-          .limit(20);
-
-        if (dealId) {
-          query = query.eq("deal_id", dealId);
-        } else if (customerId) {
-          query = query.eq("cliente_id", customerId);
-        }
-
-        const { data } = await query;
-
-        if (data && data.length > 0) {
-          const ids = data.map(p => p.id);
-          const { data: versoes } = await supabase
-            .from("proposta_versoes")
-            .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, created_at, snapshot, output_pdf_path, output_docx_path, public_slug")
-            .in("proposta_id", ids)
-            .order("versao_numero", { ascending: false });
-
-          // Fetch UCs for geracao_mensal
-          const versaoIds = (versoes || []).map((v: any) => v.id);
-          const geracaoMap = new Map<string, number>();
-          if (versaoIds.length > 0) {
-            const { data: ucs } = await supabase
-              .from("proposta_versao_ucs")
-              .select("versao_id, geracao_mensal_estimada")
-              .in("versao_id", versaoIds);
-            if (ucs) {
-              for (const uc of ucs as any[]) {
-                const cur = geracaoMap.get(uc.versao_id) || 0;
-                geracaoMap.set(uc.versao_id, cur + (uc.geracao_mensal_estimada || 0));
-              }
-            }
-          }
-
-          const mapped: PropostaNativa[] = data.map((p: any) => ({
-            id: p.id,
-            titulo: p.titulo,
-            codigo: p.codigo,
-            proposta_num: p.proposta_num,
-            versao_atual: p.versao_atual,
-            status: p.status,
-            created_at: p.created_at,
-            cliente_nome: p.clientes?.nome || null,
-            versoes: (versoes || []).filter(v => (v as any).proposta_id === p.id).map(v => {
-              const snap = (v as any).snapshot as any;
-              // Fallback: calculate potencia from snapshot items
-              let potencia = (v as any).potencia_kwp;
-              if ((!potencia || potencia === 0) && snap?.itens) {
-                const modulos = (snap.itens as any[]).filter((i: any) => i.categoria === "modulo" || i.categoria === "modulos");
-                if (modulos.length > 0) {
-                  potencia = modulos.reduce((s: number, m: any) => s + ((m.potencia_w || 0) * (m.quantidade || 1)) / 1000, 0);
-                }
-              }
-              // Fallback: calculate geracao from snapshot UCs or from potência × irradiação
-              let geracao = geracaoMap.get((v as any).id) || null;
-              if ((!geracao || geracao === 0) && snap?.ucs) {
-                const totalGeracao = (snap.ucs as any[]).reduce((s: number, uc: any) => s + (uc.geracao_mensal_estimada || 0), 0);
-                if (totalGeracao > 0) geracao = totalGeracao;
-              }
-              // Fallback: coluna dedicada (propostas migradas)
-              if ((!geracao || geracao === 0) && (v as any).geracao_mensal > 0) {
-                geracao = (v as any).geracao_mensal;
-              }
-              // Ultimate fallback: potência × irradiação × 30 × PR(0.80)
-              if ((!geracao || geracao === 0) && potencia > 0 && snap?.locIrradiacao > 0) {
-                geracao = Math.round(potencia * snap.locIrradiacao * 30 * 0.80);
-              }
-              return {
-                id: (v as any).id,
-                versao_numero: (v as any).versao_numero,
-                valor_total: (v as any).valor_total,
-                potencia_kwp: potencia,
-                status: (v as any).status,
-                economia_mensal: (v as any).economia_mensal,
-                payback_meses: (v as any).payback_meses,
-                created_at: (v as any).created_at,
-                geracao_mensal: geracao,
-                output_pdf_path: (v as any).output_pdf_path || null,
-                output_docx_path: (v as any).output_docx_path || null,
-                public_slug: (v as any).public_slug || null,
-              };
-            }),
-          }));
-          setPropostas(mapped);
-        } else {
-          setPropostas([]);
-        }
-      } catch (err) { console.error("PropostasTab:", err); }
-      finally { setLoading(false); lastFetchRef.current = Date.now(); }
-    }
-    load();
-  }, [customerId, dealId, refreshKey]);
+  // Fetch deal updated_at for staleness detection
+  const { data: dealUpdatedAt } = useQuery({
+    queryKey: ["deal-updated-at", dealId],
+    queryFn: async () => {
+      const { data } = await supabase.from("deals").select("updated_at").eq("id", dealId).single();
+      return data?.updated_at || null;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!dealId,
+  });
 
   // Lead discovery by customer phone
   useEffect(() => {
@@ -1674,29 +1574,36 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
 
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
 
-  // Principal = latest (first in array, already sorted desc)
-  const principal = propostas.length > 0 ? propostas[0] : null;
-  const outras = propostas.slice(1);
+  const principal = selectPrincipal(propostas as any[]);
+  const outras = propostas.filter(p => p.id !== principal?.id);
 
-  // Render a proposal card using the new expanded detail component
-  const renderPropostaCard = (p: PropostaNativa, isPrincipal: boolean) => {
+  const isPrincipalOutdated = (() => {
+    if (!principal || !dealUpdatedAt) return false;
+    const latestVersao = principal.versoes[0];
+    if (!latestVersao?.gerado_em) return false;
+    return new Date(dealUpdatedAt).getTime() > new Date(latestVersao.gerado_em).getTime();
+  })();
+
+  const renderPropostaCard = (p: any, isPrin: boolean) => {
     return (
       <PropostaExpandedDetail
         key={p.id}
         proposta={p}
-        isPrincipal={isPrincipal}
+        isPrincipal={isPrin}
         isExpanded={expandedId === p.id}
         onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
         dealId={dealId}
         customerId={customerId}
-        onRefresh={() => setRefreshKey(k => k + 1)}
+        onRefresh={() => refetch()}
+        isOutdated={isPrin && isPrincipalOutdated}
+        onSetPrincipal={() => setPrincipalMutation.mutate({ propostaId: p.id, dealId })}
+        onArchive={() => arquivarMutation.mutate(p.id)}
       />
     );
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       {isClosed && (
         <div className="flex items-center justify-end">
           <Badge variant="secondary" className={cn("text-xs", dealStatus === "won" ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20")}>
@@ -1706,7 +1613,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
         </div>
       )}
 
-      {/* Lead discovery cards */}
       {linkedOrcs.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -1773,7 +1679,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
         </div>
       )}
 
-      {/* Proposals */}
       {propostas.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground">
@@ -1786,14 +1691,18 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Proposta principal */}
           {principal && (
             <div>
+              {isPrincipalOutdated && (
+                <div className="flex items-center gap-2 mb-3 py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>O projeto foi atualizado após esta proposta. Gere uma nova proposta, se necessário.</span>
+                </div>
+              )}
               {renderPropostaCard(principal, true)}
             </div>
           )}
 
-          {/* Outras propostas */}
           {outras.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-bold text-foreground">Outras propostas</p>

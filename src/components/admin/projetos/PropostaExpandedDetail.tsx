@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
-  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2
+  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, Plus, FolderOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,7 @@ interface VersaoData {
   output_pdf_path: string | null;
   output_docx_path: string | null;
   public_slug: string | null;
+  gerado_em: string | null;
 }
 
 interface PropostaData {
@@ -48,6 +49,7 @@ interface PropostaData {
   status: string;
   created_at: string;
   cliente_nome: string | null;
+  is_principal: boolean;
   versoes: VersaoData[];
 }
 
@@ -604,9 +606,12 @@ interface Props {
   dealId: string;
   customerId: string | null;
   onRefresh: () => void;
+  isOutdated?: boolean;
+  onSetPrincipal?: () => void;
+  onArchive?: () => void;
 }
 
-export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh }: Props) {
+export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
   const navigate = useNavigate();
   const latestVersao = p.versoes[0];
   const wpPrice = latestVersao?.valor_total && latestVersao?.potencia_kwp
@@ -752,11 +757,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   }, [isExpanded, latestVersao?.public_slug]);
 
-  // Auto-render when switching to "arquivo" tab for generated proposals
+  // Auto-render ONLY when no persisted PDF exists and status indicates generation happened
+  // If output_pdf_path exists, the Arquivo tab will use signed URL instead
   useEffect(() => {
     if (!isExpanded || activeTab !== "arquivo" || html || rendering) return;
     if (!latestVersao?.id) return;
-    // Check both versao status and proposta status
+    // Skip auto-render if persisted PDF exists
+    if (latestVersao.output_pdf_path) return;
     const vStatus = latestVersao.status?.toLowerCase();
     const pStatus = p.status?.toLowerCase();
     if (vStatus === "generated" || vStatus === "gerada" || vStatus === "ativa" ||
@@ -1002,7 +1009,12 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-52">
+                {!p.is_principal && onSetPrincipal && (
+                  <DropdownMenuItem onClick={onSetPrincipal}>
+                    <Star className="h-3.5 w-3.5 mr-2 text-warning" /> Definir como principal
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => {
                   if (latestVersao) navigate(`/admin/propostas-nativas/${p.id}/versoes/${latestVersao.id}`);
                 }}>
@@ -1010,7 +1022,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => {
                   if (latestVersao) {
-                    // Edit mode: pass proposta_id + versao_id so wizard restores from snapshot
                     const params = new URLSearchParams({
                       proposta_id: p.id,
                       versao_id: latestVersao.id,
@@ -1019,7 +1030,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     if (customerId) params.set("customer_id", customerId);
                     navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
                   } else {
-                    // Fallback: no version yet, open as new with project context
                     const params = new URLSearchParams({ deal_id: dealId });
                     if (customerId) params.set("customer_id", customerId);
                     navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
@@ -1027,16 +1037,34 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 }}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-warning" /> Editar dimensionamento
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  toast({ title: "Clonar proposta", description: "Funcionalidade em desenvolvimento." });
-                }}>
-                  <Copy className="h-3.5 w-3.5 mr-2 text-info" /> Clonar proposta
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleDownloadPdf} disabled={!latestVersao?.output_pdf_path}>
+                  <Download className="h-3.5 w-3.5 mr-2 text-success" /> Baixar PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  if (latestVersao) navigate(`/admin/propostas-nativas/${p.id}/versoes/${latestVersao.id}?tab=arquivo`);
-                }}>
-                  <Download className="h-3.5 w-3.5 mr-2 text-success" /> Visualizar o PDF
+                {latestVersao?.output_docx_path && (
+                  <DropdownMenuItem onClick={handleDownloadPdf}>
+                    <Download className="h-3.5 w-3.5 mr-2 text-info" /> Baixar DOCX
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => copyLink(true)} disabled={!publicUrl}>
+                  <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Copiar link c/ rastreio
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => copyLink(false)} disabled={!publicUrl}>
+                  <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link s/ rastreio
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => {
+                  const params = new URLSearchParams({ deal_id: dealId });
+                  if (customerId) params.set("customer_id", customerId);
+                  navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+                }}>
+                  <Plus className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar nova proposta
+                </DropdownMenuItem>
+                {onArchive && p.status !== "arquivada" && (
+                  <DropdownMenuItem onClick={onArchive}>
+                    <FolderOpen className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Arquivar
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
