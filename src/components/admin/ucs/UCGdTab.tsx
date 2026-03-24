@@ -541,25 +541,6 @@ function GeneratorSection({
 }
 
 
-function MetricCard({
-  label,
-  value,
-  subtitle,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  subtitle?: string;
-  tone?: "default" | "destructive";
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-muted/20 p-4">
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={tone === "destructive" ? "text-2xl font-bold text-destructive mt-1" : "text-2xl font-bold text-foreground mt-1"}>{value}</p>
-      {subtitle && <p className={tone === "destructive" ? "text-xs text-destructive mt-1" : "text-xs text-muted-foreground mt-1"}>{subtitle}</p>}
-    </div>
-  );
-}
 
 function AddBeneficiaryDialog({
   open,
