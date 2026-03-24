@@ -94,6 +94,7 @@ Deno.serve(async (req) => {
       // Extra params from query string
       const accountName = url.searchParams.get("account_name") || "Gmail";
       const concessionaria = url.searchParams.get("concessionaria") || "";
+      const gmailLabel = url.searchParams.get("gmail_label") || "";
 
       const state = btoa(
         JSON.stringify({
@@ -101,6 +102,7 @@ Deno.serve(async (req) => {
           user_id: claimsData.user.id,
           account_name: accountName,
           concessionaria,
+          gmail_label: gmailLabel,
         })
       );
 
@@ -146,7 +148,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      let stateData: { tenant_id: string; user_id: string; account_name?: string; concessionaria?: string };
+      let stateData: { tenant_id: string; user_id: string; account_name?: string; concessionaria?: string; gmail_label?: string };
       try {
         stateData = JSON.parse(atob(stateParam));
       } catch {
@@ -213,6 +215,7 @@ Deno.serve(async (req) => {
           nome: stateData.account_name || `Gmail - ${userEmail}`,
           email: userEmail,
           concessionaria_nome: stateData.concessionaria || null,
+          gmail_label: stateData.gmail_label || null,
           credentials: { access_token, refresh_token },
           settings: {
             token_expiry: Date.now() + expires_in * 1000,
