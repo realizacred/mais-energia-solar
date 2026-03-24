@@ -11,9 +11,10 @@ import {
 
 interface HelpDropdownProps {
   className?: string;
+  onOpenHelpCenter?: () => void;
 }
 
-export function HelpDropdown({ className }: HelpDropdownProps) {
+export function HelpDropdown({ className, onOpenHelpCenter }: HelpDropdownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -24,6 +25,12 @@ export function HelpDropdown({ className }: HelpDropdownProps) {
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel className="text-xs font-semibold">Central de ajuda</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {onOpenHelpCenter && (
+          <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={onOpenHelpCenter}>
+            <HelpCircle className="h-3.5 w-3.5" />
+            Central de Ajuda
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem className="text-xs gap-2 cursor-pointer">
           <Video className="h-3.5 w-3.5" />
           Vídeos tutoriais
