@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send, Phone, CheckCircle2, XCircle, AlertTriangle, RefreshCw, FileSearch } from "lucide-react";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { formatDateTime, formatDate } from "@/lib/dateUtils";
+import { SettingsHelpCard } from "./SettingsHelpCard";
 
 interface Props {
   unitId: string;
