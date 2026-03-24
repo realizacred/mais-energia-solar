@@ -45,6 +45,7 @@ import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 import { invalidateUcQueries } from "@/lib/invalidateUcQueries";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Textarea } from "@/components/ui/textarea";
+import { InvoiceMeterValidation } from "./InvoiceMeterValidation";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -131,7 +132,7 @@ function DetailField({ label, value }: { label: string; value: string | number |
   );
 }
 
-function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Record<string, any> | null }) {
+function InvoiceDetailPanel({ invoice, raw, unitId }: { invoice: UnitInvoice; raw: Record<string, any> | null; unitId: string }) {
   const fmtNum = (v: number | null | undefined, suffix = "") => v != null ? `${formatDecimalBR(v, 1)}${suffix}` : null;
   const fmtBRL = (v: number | null | undefined) => v != null ? formatBRL(v) : null;
 
@@ -221,6 +222,14 @@ function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Recor
           </div>
         </>
       )}
+
+      {/* Cross-validation: Invoice vs Meter */}
+      <Separator />
+      <InvoiceMeterValidation
+        unitId={unitId}
+        referenceMonth={invoice.reference_month}
+        referenceYear={invoice.reference_year}
+      />
     </div>
   );
 }
@@ -813,7 +822,7 @@ export function UCInvoicesTab({ unitId }: Props) {
                     {isExpanded && (
                       <TableRow key={`${inv.id}-detail`} className="bg-muted/20 hover:bg-muted/20">
                         <TableCell colSpan={10} className="p-0">
-                          <InvoiceDetailPanel invoice={inv} raw={raw} />
+                          <InvoiceDetailPanel invoice={inv} raw={raw} unitId={unitId} />
                         </TableCell>
                       </TableRow>
                     )}
