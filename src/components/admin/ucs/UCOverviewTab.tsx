@@ -135,17 +135,30 @@ export function UCOverviewTab({
   });
 
   // --- Today's meter delta (consumption + injection for today) ---
+  // RB-13: Use Brasília timezone for "today" boundary
+  const getTodayBrasiliaISO = () => {
+    const now = new Date();
+    const brt = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    const y = brt.getFullYear();
+    const m = String(brt.getMonth() + 1).padStart(2, "0");
+    const d = String(brt.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+  const todayBrasilia = getTodayBrasiliaISO();
+
   const { data: todayMeterDelta } = useQuery({
-    queryKey: ["uc_overview_today_delta", meterId],
+    queryKey: ["uc_overview_today_delta", meterId, todayBrasilia],
     queryFn: async () => {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      // Get first reading of today
+      // Convert Brasília midnight to UTC for query filter
+      const todayMidnightUTC = new Date(`${todayBrasilia}T03:00:00Z`); // BRT = UTC-3
+      const tomorrowMidnightUTC = new Date(todayMidnightUTC.getTime() + 24 * 60 * 60 * 1000);
+      // Get first reading of today (Brasília)
       const { data: firstReading } = await supabase
         .from("meter_readings")
         .select("energy_import_kwh, energy_export_kwh")
         .eq("meter_device_id", meterId!)
-        .gte("measured_at", todayStart.toISOString())
+        .gte("measured_at", todayMidnightUTC.toISOString())
+        .lt("measured_at", tomorrowMidnightUTC.toISOString())
         .order("measured_at", { ascending: true })
         .limit(1);
       // Get latest reading
@@ -153,7 +166,8 @@ export function UCOverviewTab({
         .from("meter_readings")
         .select("energy_import_kwh, energy_export_kwh")
         .eq("meter_device_id", meterId!)
-        .gte("measured_at", todayStart.toISOString())
+        .gte("measured_at", todayMidnightUTC.toISOString())
+        .lt("measured_at", tomorrowMidnightUTC.toISOString())
         .order("measured_at", { ascending: false })
         .limit(1);
       if (!firstReading?.length || !lastReading?.length) return null;
@@ -184,11 +198,16 @@ export function UCOverviewTab({
 
   // --- Build chart data ---
   const chartData = useMemo(() => {
+    // RB-13: Group meter readings by Brasília date, not UTC
+    const toDateBRT = (isoStr: string) => {
+      const d = new Date(isoStr);
+      return d.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }); // YYYY-MM-DD
+    };
     const importByDay: Record<string, number[]> = {};
     const exportByDay: Record<string, number[]> = {};
     meterReadings.forEach((r: any) => {
-      const day = r.measured_at?.slice(0, 10);
-      if (!day) return;
+      if (!r.measured_at) return;
+      const day = toDateBRT(r.measured_at);
       if (!importByDay[day]) importByDay[day] = [];
       if (!exportByDay[day]) exportByDay[day] = [];
       importByDay[day].push(Number(r.energy_import_kwh) || 0);
@@ -228,8 +247,8 @@ export function UCOverviewTab({
       });
   }, [meterReadings, plantMetrics]);
 
-  // --- KPI values ---
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // --- KPI values --- (RB-13: use Brasília date)
+  const todayStr = todayBrasilia;
   const todayGeneration = plantMetrics.find((m: any) => m.date === todayStr);
   const latestInvoice = recentInvoices[0];
   
