@@ -132,7 +132,8 @@ export default function UCPublica() {
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  const { data: resolved, isLoading: loadingToken, error: tokenError } = useQuery({
+  const { data: gdData, isLoading: loadingGd } = usePublicGdData(token ?? null);
+
     queryKey: ["uc_public_token", token],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("resolve_uc_client_token", { p_token: token! });
