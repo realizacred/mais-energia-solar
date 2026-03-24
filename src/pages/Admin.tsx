@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
-import { Menu, ShieldAlert, HelpCircle } from "lucide-react";
+import { Menu, ShieldAlert } from "lucide-react";
 import { SistemaInstallBanner } from "@/components/pwa/SistemaInstallBanner";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
