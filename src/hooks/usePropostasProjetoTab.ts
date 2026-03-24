@@ -1,0 +1,223 @@
+// §16: Queries só em hooks — NUNCA em componentes
+// §23: staleTime obrigatório
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+
+// ─── Types ──────────────────────────────────────────
+export interface VersaoProjetoTab {
+  id: string;
+  versao_numero: number;
+  valor_total: number | null;
+  potencia_kwp: number | null;
+  status: string;
+  economia_mensal: number | null;
+  payback_meses: number | null;
+  geracao_mensal: number | null;
+  created_at: string;
+  output_pdf_path: string | null;
+  output_docx_path: string | null;
+  public_slug: string | null;
+  gerado_em: string | null;
+}
+
+export interface PropostaNativaProjetoTab {
+  id: string;
+  titulo: string;
+  codigo: string | null;
+  proposta_num: number | null;
+  versao_atual: number;
+  status: string;
+  created_at: string;
+  cliente_nome: string | null;
+  is_principal: boolean;
+  versoes: VersaoProjetoTab[];
+}
+
+const STALE_TIME = 1000 * 60 * 5; // 5 min
+const QUERY_KEY = "propostas-projeto-tab" as const;
+
+/**
+ * Hook canônico para a aba Propostas do Projeto.
+ * Substitui o padrão useState+useEffect+refreshKey.
+ */
+export function usePropostasProjetoTab(dealId: string, customerId: string | null) {
+  return useQuery({
+    queryKey: [QUERY_KEY, dealId, customerId],
+    queryFn: async () => {
+      if (!dealId && !customerId) return [] as PropostaNativaProjetoTab[];
+
+      let query = (supabase as any)
+        .from("propostas_nativas")
+        .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at, is_principal, cliente_id, clientes(nome)")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (dealId) {
+        query = query.eq("deal_id", dealId);
+      } else if (customerId) {
+        query = query.eq("cliente_id", customerId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      if (!data || data.length === 0) return [] as PropostaNativaProjetoTab[];
+
+      const ids = data.map((p: any) => p.id);
+
+      // Fetch versoes
+      const { data: versoes } = await supabase
+        .from("proposta_versoes")
+        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, created_at, snapshot, output_pdf_path, output_docx_path, public_slug, gerado_em")
+        .in("proposta_id", ids)
+        .order("versao_numero", { ascending: false });
+
+      // Fetch UC geração
+      const versaoIds = (versoes || []).map((v: any) => v.id);
+      const geracaoMap = new Map<string, number>();
+      if (versaoIds.length > 0) {
+        const { data: ucs } = await supabase
+          .from("proposta_versao_ucs")
+          .select("versao_id, geracao_mensal_estimada")
+          .in("versao_id", versaoIds);
+        if (ucs) {
+          for (const uc of ucs as any[]) {
+            const cur = geracaoMap.get(uc.versao_id) || 0;
+            geracaoMap.set(uc.versao_id, cur + (uc.geracao_mensal_estimada || 0));
+          }
+        }
+      }
+
+      return data.map((p: any): PropostaNativaProjetoTab => ({
+        id: p.id,
+        titulo: p.titulo,
+        codigo: p.codigo,
+        proposta_num: p.proposta_num,
+        versao_atual: p.versao_atual,
+        status: p.status,
+        created_at: p.created_at,
+        cliente_nome: p.clientes?.nome || null,
+        is_principal: p.is_principal ?? false,
+        versoes: (versoes || [])
+          .filter((v: any) => v.proposta_id === p.id)
+          .map((v: any) => {
+            const snap = v.snapshot as any;
+            // Fallback potência from snapshot
+            let potencia = v.potencia_kwp;
+            if ((!potencia || potencia === 0) && snap?.itens) {
+              const modulos = (snap.itens as any[]).filter((i: any) => i.categoria === "modulo" || i.categoria === "modulos");
+              if (modulos.length > 0) {
+                potencia = modulos.reduce((s: number, m: any) => s + ((m.potencia_w || 0) * (m.quantidade || 1)) / 1000, 0);
+              }
+            }
+            // Fallback geração
+            let geracao = geracaoMap.get(v.id) || null;
+            if ((!geracao || geracao === 0) && snap?.ucs) {
+              const totalGeracao = (snap.ucs as any[]).reduce((s: number, uc: any) => s + (uc.geracao_mensal_estimada || 0), 0);
+              if (totalGeracao > 0) geracao = totalGeracao;
+            }
+            if ((!geracao || geracao === 0) && v.geracao_mensal > 0) {
+              geracao = v.geracao_mensal;
+            }
+            if ((!geracao || geracao === 0) && potencia > 0 && snap?.locIrradiacao > 0) {
+              geracao = Math.round(potencia * snap.locIrradiacao * 30 * 0.80);
+            }
+            return {
+              id: v.id,
+              versao_numero: v.versao_numero,
+              valor_total: v.valor_total,
+              potencia_kwp: potencia,
+              status: v.status,
+              economia_mensal: v.economia_mensal,
+              payback_meses: v.payback_meses,
+              created_at: v.created_at,
+              geracao_mensal: geracao,
+              output_pdf_path: v.output_pdf_path || null,
+              output_docx_path: v.output_docx_path || null,
+              public_slug: v.public_slug || null,
+              gerado_em: v.gerado_em || v.created_at,
+            };
+          }),
+      }));
+    },
+    staleTime: STALE_TIME,
+    enabled: !!(dealId || customerId),
+  });
+}
+
+/**
+ * Seleciona a proposta principal de uma lista.
+ * Prioridade: is_principal → status forte → mais recente.
+ */
+export function selectPrincipal(propostas: PropostaNativaProjetoTab[]): PropostaNativaProjetoTab | null {
+  if (propostas.length === 0) return null;
+  const principal = propostas.find(p => p.is_principal);
+  if (principal) return principal;
+  // Fallback: aceita > enviada > gerada > mais recente
+  const statusPriority: Record<string, number> = { aceita: 1, enviada: 2, gerada: 3 };
+  const sorted = [...propostas].sort((a, b) => {
+    const pa = statusPriority[a.status] ?? 99;
+    const pb = statusPriority[b.status] ?? 99;
+    if (pa !== pb) return pa - pb;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+  return sorted[0];
+}
+
+/**
+ * Mutation para definir uma proposta como principal (toggle).
+ * Removes principal from other proposals of the same deal.
+ */
+export function useSetPropostaPrincipal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ propostaId, dealId }: { propostaId: string; dealId: string }) => {
+      // Remove principal from all other proposals in this deal
+      await (supabase as any)
+        .from("propostas_nativas")
+        .update({ is_principal: false })
+        .eq("deal_id", dealId)
+        .neq("id", propostaId);
+
+      // Set this one as principal
+      const { error } = await (supabase as any)
+        .from("propostas_nativas")
+        .update({ is_principal: true })
+        .eq("id", propostaId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast({ title: "Proposta definida como principal ⭐" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao definir principal", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
+/**
+ * Mutation para arquivar uma proposta.
+ */
+export function useArquivarProposta() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (propostaId: string) => {
+      const { error } = await supabase
+        .from("propostas_nativas")
+        .update({ status: "arquivada" } as any)
+        .eq("id", propostaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast({ title: "Proposta arquivada" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao arquivar", description: err.message, variant: "destructive" });
+    },
+  });
+}
