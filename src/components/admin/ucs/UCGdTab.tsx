@@ -24,6 +24,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { buildUcDetailPath } from "./ucNavigation";
 import { GdHelpCard } from "./GdHelpCard";
+import { GdEnergyNetworkCard } from "./GdEnergyNetworkCard";
 
 interface Props {
   uc: UCRecord;
