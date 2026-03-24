@@ -676,6 +676,57 @@ function GeneratorSection({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Group Confirmation */}
+      <AlertDialog open={deleteGroupConfirm} onOpenChange={setDeleteGroupConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir grupo GD "{group.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {beneficiaries.length > 0
+                ? `Este grupo possui ${beneficiaries.length} beneficiária(s) vinculada(s). Todas serão desvinculadas. Esta ação não pode ser desfeita.`
+                : "Esta ação irá excluir o grupo GD permanentemente. Os dados históricos de compensação não serão afetados."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteGroup}
+              className="border-destructive text-destructive bg-transparent hover:bg-destructive/10"
+            >
+              {deleteGroup.isPending ? "Excluindo..." : "Excluir Grupo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Group Name */}
+      <Dialog open={editGroupOpen} onOpenChange={setEditGroupOpen}>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Edit className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">Renomear Grupo GD</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Altere o nome do grupo</p>
+            </div>
+          </DialogHeader>
+          <div className="p-5 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome do grupo</Label>
+              <Input value={editGroupName} onChange={(e) => setEditGroupName(e.target.value)} placeholder="Nome do grupo" />
+            </div>
+          </div>
+          <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            <Button variant="outline" onClick={() => setEditGroupOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEditGroup} disabled={saveGroup.isPending || !editGroupName.trim()}>
+              {saveGroup.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
