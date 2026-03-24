@@ -154,6 +154,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-[1100px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* Header — §25 */}
