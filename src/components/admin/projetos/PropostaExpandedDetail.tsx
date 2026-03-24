@@ -1329,6 +1329,28 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Message drawer */}
+      {latestVersao && (
+        <ProposalMessageDrawer
+          open={messageDrawerOpen}
+          onOpenChange={setMessageDrawerOpen}
+          versaoId={latestVersao.id}
+          propostaData={{
+            cliente_nome: p.cliente_nome,
+            codigo: p.codigo,
+            status: p.status,
+          }}
+          versaoData={{
+            valor_total: latestVersao.valor_total,
+            potencia_kwp: latestVersao.potencia_kwp,
+            economia_mensal: latestVersao.economia_mensal,
+            payback_meses: latestVersao.payback_meses,
+            geracao_mensal: latestVersao.geracao_mensal,
+            public_slug: latestVersao.public_slug,
+          }}
+        />
+      )}
     </>
   );
 }
