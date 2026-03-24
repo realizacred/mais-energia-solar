@@ -271,13 +271,20 @@ function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
     blocks.bloco_servicos = "";
   }
 
-  // Garantias — now configurable via blocks_config
-  blocks.bloco_garantias = [
-    "✅ *Garantias:*",
-    "• Módulos: 25 anos de performance",
-    "• Inversor: conforme fabricante",
-    "• Instalação: 5 anos de garantia",
-  ].join("\n");
+  // Garantias — uses snapshot data when available, omits block if no data
+  blocks.bloco_garantias = "";
+  // Check for warranty data in context (populated from snapshot enrichment)
+  const garantiasLines: string[] = [];
+  const snap = (ctx as any)?._snapshot;
+  const moduloGarantia = snap?.modulo_garantia_performance || snap?.modulo_garantia || null;
+  const inversorGarantia = snap?.inversor_garantia || null;
+  const instalacaoGarantia = snap?.instalacao_garantia || null;
+  if (moduloGarantia) garantiasLines.push(`• Módulos: ${moduloGarantia}`);
+  if (inversorGarantia) garantiasLines.push(`• Inversor: ${inversorGarantia}`);
+  if (instalacaoGarantia) garantiasLines.push(`• Instalação: ${instalacaoGarantia}`);
+  if (garantiasLines.length > 0) {
+    blocks.bloco_garantias = `✅ *Garantias:*\n${garantiasLines.join("\n")}`;
+  }
 
   // Validade
   if (ctx.validadeDias && ctx.validadeDias > 0) {
@@ -421,7 +428,7 @@ export function extractMessageContext(
   const publicSlug = versao.public_slug;
   const linkProposta = publicSlug ? `${window.location.origin}/p/${publicSlug}` : null;
 
-  return {
+  const result: ProposalMessageContext & { _snapshot?: any } = {
     clienteNome: proposta.cliente_nome || snap.clienteNome || snap.cliente_nome || null,
     potenciaKwp: versao.potencia_kwp || snap.potenciaKwp || snap.potencia_kwp || null,
     modulosQtd: modulosQtd || versao.potencia_kwp ? modulosQtd : null,
@@ -452,5 +459,9 @@ export function extractMessageContext(
     })),
     propostaStatus: proposta.status,
     propostaCodigo: proposta.codigo,
+    // Pass snapshot for warranty data extraction in resolveBlocks
+    _snapshot: snap,
   };
+
+  return result as ProposalMessageContext;
 }
