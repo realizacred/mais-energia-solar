@@ -37,6 +37,7 @@ interface VersaoData {
   output_pdf_path: string | null;
   output_docx_path: string | null;
   public_slug: string | null;
+  gerado_em: string | null;
 }
 
 interface PropostaData {
@@ -48,6 +49,7 @@ interface PropostaData {
   status: string;
   created_at: string;
   cliente_nome: string | null;
+  is_principal: boolean;
   versoes: VersaoData[];
 }
 
@@ -604,6 +606,9 @@ interface Props {
   dealId: string;
   customerId: string | null;
   onRefresh: () => void;
+  isOutdated?: boolean;
+  onSetPrincipal?: () => void;
+  onArchive?: () => void;
 }
 
 export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh }: Props) {
