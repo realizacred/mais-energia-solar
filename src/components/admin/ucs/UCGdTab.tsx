@@ -461,10 +461,10 @@ function GeneratorSection({
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="space-y-1">
               <CardTitle className="text-base flex items-center gap-2">
-                <Sun className="w-4 h-4 text-primary" /> Como Geradora
+                <Sun className="w-4 h-4 text-primary" /> Grupo GD — {group.nome}
               </CardTitle>
               <CardDescription>
-                Esta UC é a origem do grupo <span className="font-medium text-foreground">{group.nome}</span>. Abra cada beneficiária sem perder o caminho de volta para o grupo.
+                Gerencie beneficiárias e alocação de créditos deste grupo.
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
