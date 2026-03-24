@@ -332,6 +332,36 @@ export default function UCDetailPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Cadastro details — inline in hero */}
+              {(enderecoStr || uc.email_fatura || uc.categoria_gd) && (
+                <div className="mt-3 pt-3 border-t border-primary/10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1.5 text-sm">
+                  {enderecoStr && (
+                    <div className="flex gap-1.5 min-w-0">
+                      <span className="text-muted-foreground shrink-0">Endereço:</span>
+                      <span className="text-foreground truncate">{enderecoStr}</span>
+                    </div>
+                  )}
+                  {uc.email_fatura && (
+                    <div className="flex gap-1.5 min-w-0">
+                      <span className="text-muted-foreground shrink-0">E-mail Fatura:</span>
+                      <span className="text-foreground truncate">{uc.email_fatura}</span>
+                    </div>
+                  )}
+                  {uc.categoria_gd && (
+                    <div className="flex gap-1.5 min-w-0">
+                      <span className="text-muted-foreground shrink-0">Categoria GD:</span>
+                      <span className="text-foreground">{CATEGORIA_GD_LABELS[uc.categoria_gd] || uc.categoria_gd}</span>
+                    </div>
+                  )}
+                  {uc.observacoes && (
+                    <div className="flex gap-1.5 min-w-0 sm:col-span-2 lg:col-span-3">
+                      <span className="text-muted-foreground shrink-0">Obs:</span>
+                      <span className="text-foreground truncate">{uc.observacoes}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
