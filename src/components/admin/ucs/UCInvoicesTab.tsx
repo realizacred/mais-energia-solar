@@ -642,23 +642,23 @@ export function UCInvoicesTab({ unitId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Status filter */}
+      {/* Status filter — filters by parsing_status (success/partial/failed) */}
       {invoices.length > 0 && (() => {
         const counts = {
           all: invoices.length,
           success: invoices.filter(i => i.parsing_status === "success").length,
+          partial: invoices.filter(i => i.parsing_status === "partial").length,
           failed: invoices.filter(i => i.parsing_status === "failed").length,
-          review: invoices.filter(i => i.parsing_status === "review").length,
-          pending: invoices.filter(i => i.parsing_status === "pending").length,
+          pending_review: invoices.filter(i => i.status === "pending_review" || i.needs_manual_assignment).length,
         };
         return (
           <div className="flex items-center gap-1.5 flex-wrap">
             {([
               { key: "all", label: "Todos", color: "" },
               { key: "success", label: "Processadas", color: "text-success" },
+              { key: "partial", label: "Parciais", color: "text-warning" },
               { key: "failed", label: "Erros", color: "text-destructive" },
-              { key: "review", label: "Em revisão", color: "text-warning" },
-              { key: "pending", label: "Pendentes", color: "text-muted-foreground" },
+              { key: "pending_review", label: "Em revisão", color: "text-muted-foreground" },
             ] as const).map(f => (
               <Button
                 key={f.key}
@@ -689,7 +689,9 @@ export function UCInvoicesTab({ unitId }: Props) {
       ) : (() => {
         const filteredInvoices = statusFilter === "all"
           ? invoices
-          : invoices.filter(i => i.parsing_status === statusFilter);
+          : statusFilter === "pending_review"
+            ? invoices.filter(i => i.status === "pending_review" || i.needs_manual_assignment)
+            : invoices.filter(i => i.parsing_status === statusFilter);
         return filteredInvoices.length === 0 ? (
           <EmptyState icon={FileText} title="Nenhuma fatura neste filtro" description="Altere o filtro acima para ver outras faturas." />
         ) : (
