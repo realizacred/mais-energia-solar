@@ -62,7 +62,7 @@ export function useGDGroupBeneficiaries() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("gd_group_beneficiaries")
-        .select("id, gd_group_id, unit_id, percentual_rateio");
+        .select("id, gd_group_id, uc_beneficiaria_id, allocation_percent");
       if (error) throw error;
       return data || [];
     },

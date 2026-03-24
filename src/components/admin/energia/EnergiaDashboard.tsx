@@ -104,7 +104,7 @@ export function EnergiaDashboard() {
     // Group readings by date
     const byDate = new Map<string, { generation: number; consumption: number; injection: number }>();
     for (const r of readings) {
-      const date = r.reading_date || (r.timestamp ? r.timestamp.slice(0, 10) : null);
+      const date = r.date;
       if (!date) continue;
       const existing = byDate.get(date) || { generation: 0, consumption: 0, injection: 0 };
       existing.generation += r.energy_kwh || 0;
