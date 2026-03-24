@@ -87,6 +87,7 @@ export function UCGdTab({ uc }: Props) {
               beneficiaries={beneficiaries}
               allUcs={allUcs}
               tarifaMedia={(uc as any).tarifa_media_kwh ?? null}
+              categoriaGd={activeGroup.categoria_gd}
             />
           )}
 
