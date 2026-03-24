@@ -1,13 +1,17 @@
 /**
- * PlantCreateClientDialog — Create client and link to plant.
- * NOTE: This still writes to monitor_plants.client_id (legacy).
- * Canonical path: UC.cliente_id is the source of truth.
- * TODO: Migrate to link client via UC instead of directly to plant.
+ * PlantCreateClientDialog — Create client for a plant.
+ *
+ * ARCHITECTURE: This dialog creates the client record only.
+ * It does NOT write to monitor_plants.client_id (legacy/deprecated).
+ * Canonical client resolution for plants uses:
+ *   unit_plant_links → units_consumidoras → cliente_id
+ * See resolveClienteFromPlant() in clienteResolution.ts.
+ *
+ * After creating the client, the user should link it via the UC form.
  */
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { updatePlantClientId } from "@/services/monitoring/monitorService";
 import {
   Dialog,
   DialogContent,
@@ -69,8 +73,8 @@ export function PlantCreateClientDialog({ open, onOpenChange, plantId }: Props) 
         throw insertErr;
       }
 
-      // 2. Link to plant
-      await updatePlantClientId(plantId, newClient.id);
+      // NOTE: No longer writes to monitor_plants.client_id (legacy).
+      // Client should be linked via UC → cliente_id (canonical path).
       return newClient;
     },
     onSuccess: () => {
@@ -78,7 +82,7 @@ export function PlantCreateClientDialog({ open, onOpenChange, plantId }: Props) 
       queryClient.invalidateQueries({ queryKey: ["monitor-plants-health"] });
       queryClient.invalidateQueries({ queryKey: ["monitor-dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["clientes-search"] });
-      toast.success("Cliente criado e vinculado com sucesso");
+      toast.success("Cliente criado. Vincule-o à UC desta usina para completar o vínculo canônico.");
       resetForm();
       onOpenChange(false);
     },
