@@ -41,6 +41,7 @@ import { UCHistoricoTab } from "./UCHistoricoTab";
 import { UCEconomyReportTab } from "./UCEconomyReportTab";
 import { UCGdTab } from "./UCGdTab";
 import { formatDateTime } from "@/lib/dateUtils";
+import { buildUcDetailPath, mergeUcSearchParams, readUcNavigationContext } from "./ucNavigation";
 
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Beneficiária",
@@ -72,6 +73,7 @@ export default function UCDetailPage() {
   const { tenant } = useTenantSettings();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addCreditOpen, setAddCreditOpen] = useState(false);
+  const navigationContext = readUcNavigationContext(searchParams);
 
   const { data: uc, isLoading, error } = useQuery({
     queryKey: ["uc_detail", id],
@@ -137,6 +139,11 @@ export default function UCDetailPage() {
 
   const totalCreditoAdicionado = credits.reduce((sum, c) => sum + Number(c.quantidade_kwh), 0);
 
+  /** Update search params preserving navigation context (origin, gd_group, etc.) */
+  const updateSearchParams = (updates: Parameters<typeof mergeUcSearchParams>[1]) => {
+    setSearchParams(mergeUcSearchParams(searchParams, updates));
+  };
+
   const handleDeleteCredit = async (creditId: string) => {
     try {
       await deleteCredit.mutateAsync({ id: creditId, unitId: id! });
@@ -173,13 +180,33 @@ export default function UCDetailPage() {
 
   const end = uc.endereco || {};
   const enderecoStr = [end.logradouro, end.numero, end.bairro, end.cidade, end.estado].filter(Boolean).join(", ");
+  const hasContextualOrigin = !!navigationContext.fromUcId && navigationContext.fromUcId !== uc.id;
+
+  const handleBack = () => {
+    if (hasContextualOrigin && navigationContext.fromUcId) {
+      navigate(
+        buildUcDetailPath(navigationContext.fromUcId, {
+          tab: navigationContext.returnTab || "overview",
+          subtab: navigationContext.returnSubtab || null,
+          origin: "gd-return",
+          fromUcId: uc.id,
+          fromUcName: uc.nome,
+          fromUcCode: uc.codigo_uc,
+          gdGroupId: navigationContext.gdGroupId,
+          gdGroupName: navigationContext.gdGroupName,
+        }),
+      );
+      return;
+    }
+    navigate("/admin/ucs");
+  };
 
   return (
-    <div className="space-y-0">
+    <div className="space-y-0 pb-6">
       {/* Back button + Actions row */}
-      <div className="p-4 md:px-6 md:pt-6 pb-0 flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/admin/ucs")}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
+      <div className="p-4 md:px-6 md:pt-6 pb-0 flex items-center justify-between gap-3 flex-wrap">
+        <Button variant="ghost" size="sm" onClick={handleBack}>
+          <ArrowLeft className="w-4 h-4 mr-1" /> {hasContextualOrigin ? "Voltar para UC relacionada" : "Voltar"}
         </Button>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setEditDialogOpen(true)}>
@@ -187,6 +214,60 @@ export default function UCDetailPage() {
           </Button>
         </div>
       </div>
+
+      {/* Contextual breadcrumb when navigating between related UCs */}
+      {hasContextualOrigin && navigationContext.fromUcId && (
+        <div className="mx-4 md:mx-6 mt-3 rounded-xl border border-border bg-card shadow-sm">
+          <div className="p-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-1 min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contexto de navegação</p>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-medium text-foreground truncate">{navigationContext.fromUcName || "UC relacionada"}</span>
+                {navigationContext.gdGroupName && (
+                  <>
+                    <span className="text-muted-foreground">/</span>
+                    <span className="text-muted-foreground truncate">{navigationContext.gdGroupName}</span>
+                  </>
+                )}
+                <span className="text-muted-foreground">/</span>
+                <span className="text-foreground truncate">{uc.nome}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {navigationContext.origin === "gd-generator"
+                  ? "Você abriu esta UC a partir da visão da geradora; o retorno para o grupo foi preservado."
+                  : navigationContext.origin === "gd-beneficiary"
+                    ? "Você abriu esta UC a partir de uma beneficiária vinculada; os atalhos mantêm ida e volta."
+                    : "Navegação contextual entre UCs relacionadas está ativa."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleBack}>
+                <ArrowLeft className="w-3 h-3" /> Voltar para UC
+              </Button>
+              <Button
+                variant="soft"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                onClick={() =>
+                  navigate(
+                    buildUcDetailPath(navigationContext.fromUcId!, {
+                      tab: "gd",
+                      origin: "gd-return",
+                      fromUcId: uc.id,
+                      fromUcName: uc.nome,
+                      fromUcCode: uc.codigo_uc,
+                      gdGroupId: navigationContext.gdGroupId,
+                      gdGroupName: navigationContext.gdGroupName,
+                    }),
+                  )
+                }
+              >
+                <Sun className="w-3 h-3" /> Voltar para GD
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero header banner — redesigned */}
       <div className="mx-4 md:mx-6 mt-3 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card shadow-sm overflow-hidden">
@@ -206,7 +287,10 @@ export default function UCDetailPage() {
               <div className="flex items-start gap-3 flex-wrap mb-3">
                 <div className="flex-1 min-w-0">
                   <h1 className="text-lg font-bold text-foreground truncate">{uc.nome}</h1>
-                  <p className="text-sm text-muted-foreground font-mono mt-0.5">{uc.codigo_uc}</p>
+                    <p className="text-sm text-muted-foreground font-mono mt-0.5">{uc.codigo_uc}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Acompanhe energia, faturas e relações de GD desta unidade consumidora.
+                    </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Badge className="text-xs bg-primary/10 text-primary border-primary/20 font-medium">
@@ -255,8 +339,8 @@ export default function UCDetailPage() {
       </div>
 
       {/* GD Info + Energy Summary */}
-      <div className="mx-4 md:mx-6 mt-3 space-y-3">
-        <UCGdInfoCard ucId={id!} />
+      <div className="mx-4 md:mx-6 mt-3 grid gap-3 xl:grid-cols-2">
+        <UCGdInfoCard ucId={id!} ucName={uc.nome} ucCode={uc.codigo_uc} />
         <UCEnergySummary ucId={id!} />
       </div>
 
@@ -265,19 +349,25 @@ export default function UCDetailPage() {
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
-            const params: Record<string, string> = { tab: v };
-            setSearchParams(params);
+            updateSearchParams({
+              tab: v,
+              subtab: v === "energia" ? (activeTab === "energia" && activeSubtab ? activeSubtab : "medidor")
+                : v === "analise" ? (activeTab === "analise" && activeSubtab ? activeSubtab : "comparativo")
+                : null,
+            });
           }}
           className="space-y-4"
         >
-          <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="overview" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Visão Geral</TabsTrigger>
-            <TabsTrigger value="energia" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Energia</TabsTrigger>
-            <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
-            <TabsTrigger value="analise" className="gap-1"><TrendingUp className="w-3.5 h-3.5" /> Análise</TabsTrigger>
-            <TabsTrigger value="gd" className="gap-1"><Sun className="w-3.5 h-3.5" /> GD</TabsTrigger>
-            <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
-          </TabsList>
+          <div className="rounded-xl border border-border bg-muted/20 p-2">
+            <TabsList className="flex-wrap h-auto gap-1 bg-transparent p-0">
+              <TabsTrigger value="overview" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Visão Geral</TabsTrigger>
+              <TabsTrigger value="energia" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Energia</TabsTrigger>
+              <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
+              <TabsTrigger value="analise" className="gap-1"><TrendingUp className="w-3.5 h-3.5" /> Análise</TabsTrigger>
+              <TabsTrigger value="gd" className="gap-1"><Sun className="w-3.5 h-3.5" /> GD</TabsTrigger>
+              <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* === VISÃO GERAL === */}
           <TabsContent value="overview" className="space-y-6">
@@ -297,13 +387,13 @@ export default function UCDetailPage() {
           <TabsContent value="energia" className="space-y-4">
             <EnergiaSubTabs
               activeSubtab={activeSubtab}
-              onSubtabChange={(sub) => setSearchParams({ tab: "energia", subtab: sub })}
+              onSubtabChange={(sub) => updateSearchParams({ tab: "energia", subtab: sub })}
               ucId={uc.id}
               ucTipo={uc.tipo_uc}
               meterId={activeMeterIdResolved}
               plantId={activePlantId}
               solarPlantId={solarPlantId}
-              onSwitchParentTab={(tab) => setSearchParams({ tab })}
+              onSwitchParentTab={(tab) => updateSearchParams({ tab, subtab: tab === "energia" ? "medidor" : tab === "analise" ? "comparativo" : null })}
             />
           </TabsContent>
 
@@ -316,7 +406,7 @@ export default function UCDetailPage() {
           <TabsContent value="analise" className="space-y-4">
             <AnaliseSubTabs
               activeSubtab={activeSubtab}
-              onSubtabChange={(sub) => setSearchParams({ tab: "analise", subtab: sub })}
+              onSubtabChange={(sub) => updateSearchParams({ tab: "analise", subtab: sub })}
               unitId={uc.id}
               simulacaoId={(uc as any).simulacao_id ?? null}
             />
