@@ -88,6 +88,74 @@ export function UCGdTab({ uc }: Props) {
   );
 }
 
+// ── Beneficiary Section — bidirectional navigation ──
+function BeneficiarySection({ beneficiaryOf }: { beneficiaryOf: (GdBeneficiary & { gd_groups: { id: string; nome: string; uc_geradora_id: string; status: string } })[] }) {
+  const navigate = useNavigate();
+
+  // Fetch generator UC names for display
+  const generatorIds = [...new Set(beneficiaryOf.map(b => b.gd_groups?.uc_geradora_id).filter(Boolean))];
+  const { data: generatorUcs = [] } = useQuery({
+    queryKey: ["ucs_generator_names", generatorIds],
+    queryFn: async () => {
+      if (generatorIds.length === 0) return [];
+      const { data } = await (supabase as any)
+        .from("units_consumidoras")
+        .select("id, nome, codigo_uc")
+        .in("id", generatorIds);
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: generatorIds.length > 0,
+  });
+  const genMap = new Map(generatorUcs.map((u: any) => [u.id, u]));
+
+  return (
+    <Card className="border-l-[3px] border-l-muted">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Users className="w-4 h-4 text-muted-foreground" /> Esta UC como Beneficiária
+        </CardTitle>
+        <CardDescription>Grupos GD onde esta UC recebe créditos</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="space-y-2">
+          {beneficiaryOf.map((b) => {
+            const genUc = genMap.get(b.gd_groups?.uc_geradora_id);
+            return (
+              <div key={b.id} className="flex flex-col gap-2 p-3 rounded-lg bg-muted/30 border border-border">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Badge variant="outline" className="text-xs shrink-0">
+                    <Users className="w-3 h-3 mr-1" /> Beneficiária
+                  </Badge>
+                  <span className="text-sm font-medium text-foreground">{b.gd_groups?.nome}</span>
+                  <span className="text-xs text-muted-foreground font-mono ml-auto">
+                    {Number(b.allocation_percent).toFixed(2)}%
+                  </span>
+                </div>
+                {/* Bidirectional navigation */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {b.gd_groups?.uc_geradora_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1.5"
+                      onClick={() => navigate(`/admin/ucs/${b.gd_groups.uc_geradora_id}?tab=gd`)}
+                    >
+                      <Sun className="w-3 h-3 text-primary" />
+                      {genUc ? `Ver geradora: ${genUc.nome}` : "Ver UC Geradora"}
+                      <ExternalLink className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Generator Section ──
 function GeneratorSection({
   uc, group, beneficiaries, loadingBenefs,
