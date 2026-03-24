@@ -1099,6 +1099,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 <DropdownMenuItem onClick={() => copyLink(false)} disabled={!publicUrl}>
                   <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link s/ rastreio
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)} disabled={!latestVersao}>
+                  <MessageSquareText className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar mensagem
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => {
                   const params = new URLSearchParams({ deal_id: dealId });
