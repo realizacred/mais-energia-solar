@@ -340,3 +340,69 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
     </Dialog>
   );
 }
+
+// ─── Sub-component: Dashboard with real data ────────────────────
+
+function GdDashboardWithData({
+  groupId,
+  ucGeradoraId,
+  ucGeradoraLabel,
+  activeBens,
+  ucMap,
+}: {
+  groupId: string;
+  ucGeradoraId: string;
+  ucGeradoraLabel: string;
+  activeBens: GdBeneficiary[];
+  ucMap: Map<string, any>;
+}) {
+  const now = new Date();
+  // Use Brasília time for current month
+  const brNow = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const year = brNow.getFullYear();
+  const month = brNow.getMonth() + 1;
+
+  const benUcIds = useMemo(() => activeBens.map((b) => b.uc_beneficiaria_id), [activeBens]);
+
+  const { data: dashData, isLoading } = useGdDashboardData({
+    groupId,
+    ucGeradoraId,
+    beneficiaryUcIds: benUcIds,
+    year,
+    month,
+  });
+
+  const generationKwh = dashData?.generation.value ?? 0;
+  const generatorConsumption = dashData?.generatorConsumption.value ?? 0;
+
+  const beneficiaries = useMemo(() => {
+    return activeBens.map((b) => {
+      const uc = ucMap.get(b.uc_beneficiaria_id);
+      const benData = dashData?.beneficiaryConsumption.find((bc) => bc.ucId === b.uc_beneficiaria_id);
+      return {
+        ucId: b.uc_beneficiaria_id,
+        label: uc ? `${uc.codigo_uc} — ${uc.nome}` : b.uc_beneficiaria_id.slice(0, 8),
+        allocationPercent: Number(b.allocation_percent),
+        consumedKwh: benData?.resolved.value ?? 0,
+      };
+    });
+  }, [activeBens, ucMap, dashData]);
+
+  return (
+    <GdDecisionDashboard
+      generationKwh={generationKwh}
+      generatorUc={{
+        ucId: ucGeradoraId,
+        label: ucGeradoraLabel,
+        consumedKwh: generatorConsumption,
+      }}
+      beneficiaries={beneficiaries}
+      dataSources={dashData ? {
+        generation: dashData.generation,
+        generatorConsumption: dashData.generatorConsumption,
+        beneficiaryConsumption: dashData.beneficiaryConsumption,
+      } : null}
+      isLoadingData={isLoading}
+    />
+  );
+}
