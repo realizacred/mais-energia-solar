@@ -539,3 +539,76 @@ export default function UCDetailPage() {
     </div>
   );
 }
+
+// ─── Sub-tab wrapper: Energia (Medidor | Usinas | Histórico) ───
+interface EnergiaSubTabsProps {
+  activeSubtab: string;
+  onSubtabChange: (sub: string) => void;
+  ucId: string;
+  ucTipo: string;
+  meterId: string | null;
+  plantId: string | null;
+  solarPlantId: string | null;
+  onSwitchParentTab: (tab: string) => void;
+}
+
+function EnergiaSubTabs({ activeSubtab, onSubtabChange, ucId, ucTipo, meterId, plantId, solarPlantId, onSwitchParentTab }: EnergiaSubTabsProps) {
+  const sub = activeSubtab || "medidor";
+
+  return (
+    <Tabs value={sub} onValueChange={onSubtabChange} className="space-y-4">
+      <TabsList className="h-8 gap-0.5">
+        <TabsTrigger value="medidor" className="text-xs h-7 px-3 gap-1"><Gauge className="w-3 h-3" /> Medidor</TabsTrigger>
+        <TabsTrigger value="usinas" className="text-xs h-7 px-3 gap-1"><Activity className="w-3 h-3" /> Usinas</TabsTrigger>
+        <TabsTrigger value="historico" className="text-xs h-7 px-3 gap-1"><Calendar className="w-3 h-3" /> Histórico</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="medidor" className="space-y-6">
+        <UCMeterTab unitId={ucId} />
+      </TabsContent>
+
+      <TabsContent value="usinas" className="space-y-6">
+        <UCPlantLinksTab unitId={ucId} ucTipo={ucTipo} />
+      </TabsContent>
+
+      <TabsContent value="historico" className="space-y-6">
+        <UCHistoricoTab
+          ucId={ucId}
+          meterId={meterId}
+          plantId={plantId}
+          solarPlantId={solarPlantId}
+          onSwitchParentTab={onSwitchParentTab}
+        />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+// ─── Sub-tab wrapper: Análise (Comparativo | Economia) ───
+interface AnaliseSubTabsProps {
+  activeSubtab: string;
+  onSubtabChange: (sub: string) => void;
+  unitId: string;
+  simulacaoId: string | null;
+}
+
+function AnaliseSubTabs({ activeSubtab, onSubtabChange, unitId, simulacaoId }: AnaliseSubTabsProps) {
+  const sub = activeSubtab || "comparativo";
+
+  return (
+    <Tabs value={sub} onValueChange={onSubtabChange} className="space-y-4">
+      <TabsList className="h-8 gap-0.5">
+        <TabsTrigger value="comparativo" className="text-xs h-7 px-3 gap-1"><TrendingUp className="w-3 h-3" /> Comparativo</TabsTrigger>
+        <TabsTrigger value="economia" className="text-xs h-7 px-3 gap-1"><DollarSign className="w-3 h-3" /> Economia</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="comparativo" className="space-y-6">
+        <UCComparativoTab unitId={unitId} simulacaoId={simulacaoId} />
+      </TabsContent>
+
+      <TabsContent value="economia" className="space-y-6">
+        <UCEconomyReportTab unitId={unitId} />
+      </TabsContent>
+    </Tabs>
+  );
+}
