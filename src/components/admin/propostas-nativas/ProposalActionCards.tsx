@@ -103,11 +103,8 @@ export function ProposalActionCards({
           </div>
 
           <Button size="sm" variant="outline" className="gap-2 w-full justify-start border-primary/30 text-primary hover:bg-primary/5" onClick={navigateToEdit} disabled={cloning}>
-            <Pencil className="h-3.5 w-3.5" /> {isFinalized ? "Editar (nova versão)" : "Editar Dimensionamento"}
+            <Pencil className="h-3.5 w-3.5" /> Editar Dimensionamento
           </Button>
-          {isFinalized && (
-            <p className="text-[10px] text-muted-foreground px-1">Versão finalizada — editar cria uma nova versão rascunho.</p>
-          )}
 
           <Separator />
 
