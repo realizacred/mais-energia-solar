@@ -18,6 +18,7 @@ export interface GdGroup {
   uc_geradora_id: string;
   status: string;
   notes: string | null;
+  categoria_gd: string | null;
   created_at: string;
   updated_at: string;
 }

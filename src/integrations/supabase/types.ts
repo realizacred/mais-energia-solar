@@ -5350,6 +5350,7 @@ export type Database = {
       }
       gd_groups: {
         Row: {
+          categoria_gd: string | null
           cliente_id: string | null
           concessionaria_id: string
           created_at: string
@@ -5362,6 +5363,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          categoria_gd?: string | null
           cliente_id?: string | null
           concessionaria_id: string
           created_at?: string
@@ -5374,6 +5376,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          categoria_gd?: string | null
           cliente_id?: string | null
           concessionaria_id?: string
           created_at?: string
