@@ -139,7 +139,7 @@ export default function ProposalMessageConfigPage() {
   // Preview
   const previewText = useMemo(() => {
     const customTemplate = templates[`${previewMode}_${previewStyle}`] || undefined;
-    return generateProposalMessage(MOCK_CONTEXT, previewMode, previewStyle, customTemplate);
+    return generateProposalMessage(MOCK_CONTEXT, previewMode, previewStyle, { customTemplate, blocksConfig: blocks });
   }, [previewMode, previewStyle, templates]);
 
   // Handlers

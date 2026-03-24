@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useNavigate } from "react-router-dom";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
@@ -623,6 +625,7 @@ interface Props {
 
 export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
   const navigate = useNavigate();
+  const { data: tenantCtx } = useQuery({ queryKey: ["current-tenant-id"], queryFn: getCurrentTenantId, staleTime: 1000 * 60 * 15 });
   const latestVersao = p.versoes[0];
   const wpPrice = latestVersao?.valor_total && latestVersao?.potencia_kwp
     ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
@@ -1336,6 +1339,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           open={messageDrawerOpen}
           onOpenChange={setMessageDrawerOpen}
           versaoId={latestVersao.id}
+          tenantId={tenantCtx?.tenantId}
           propostaData={{
             cliente_nome: p.cliente_nome,
             codigo: p.codigo,
