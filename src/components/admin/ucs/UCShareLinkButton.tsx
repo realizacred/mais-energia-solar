@@ -416,7 +416,7 @@ export function UCShareLinkButton({ unitId }: Props) {
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        O cliente poderá fazer login em <strong>/uc/login</strong> com este email e senha para acessar o portal completo.
+                        O cliente acessa o portal em <strong>{getPublicUrl()}/uc/login</strong> usando este email e senha.
                       </p>
                     </div>
                   )}
