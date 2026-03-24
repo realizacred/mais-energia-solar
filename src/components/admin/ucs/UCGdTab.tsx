@@ -378,6 +378,8 @@ function GeneratorSection({
   const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(false);
   const [editGroupOpen, setEditGroupOpen] = useState(false);
   const [editGroupName, setEditGroupName] = useState("");
+  const [newGroupOpen, setNewGroupOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
 
   async function handleCreateGroup() {
     try {
