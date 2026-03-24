@@ -3,6 +3,7 @@
  * 
  * Drawer para gerar, editar e copiar/enviar mensagem da proposta.
  * Usa a proposta ativa/principal do projeto.
+ * Lê configuração enterprise do tenant (templates, blocos, defaults).
  */
 
 import { useState, useEffect, useMemo } from "react";
@@ -21,7 +22,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { useProposalVersionSnapshot } from "@/hooks/useProposalVersionSnapshot";
+import { useProposalMessageConfig } from "@/hooks/useProposalMessageConfig";
 import {
   generateProposalMessage,
   extractMessageContext,
@@ -37,6 +39,8 @@ interface ProposalMessageDrawerProps {
   onOpenChange: (open: boolean) => void;
   /** Versão ID da proposta ativa */
   versaoId: string;
+  /** Tenant ID for config lookup */
+  tenantId?: string;
   /** Dados básicos já disponíveis (evita refetch) */
   propostaData: {
     cliente_nome: string | null;
@@ -59,34 +63,39 @@ export function ProposalMessageDrawer({
   open,
   onOpenChange,
   versaoId,
+  tenantId,
   propostaData,
   versaoData,
 }: ProposalMessageDrawerProps) {
-  const [mode, setMode] = useState<MessageMode>("cliente");
-  const [style, setStyle] = useState<MessageStyle>("completa");
+  // Read tenant config (templates, blocks, defaults)
+  const { data: tenantConfig } = useProposalMessageConfig(tenantId);
+
+  // Defaults from tenant config (applied once on open)
+  const configMode = tenantConfig?.defaults?.mode || "cliente";
+  const configStyle = tenantConfig?.defaults?.style || "completa";
+
+  const [mode, setMode] = useState<MessageMode>(configMode);
+  const [style, setStyle] = useState<MessageStyle>(configStyle);
   const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
-  const [loadingSnapshot, setLoadingSnapshot] = useState(false);
-  const [snapshot, setSnapshot] = useState<any>(null);
+  const [defaultsApplied, setDefaultsApplied] = useState(false);
 
-  // Fetch snapshot when drawer opens
+  // Apply tenant defaults when config loads and drawer opens
   useEffect(() => {
-    if (!open || !versaoId) return;
-    if (snapshot) return; // already loaded
-    setLoadingSnapshot(true);
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from("proposta_versoes")
-          .select("snapshot")
-          .eq("id", versaoId)
-          .single();
-        setSnapshot(data?.snapshot || {});
-      } finally {
-        setLoadingSnapshot(false);
-      }
-    })();
-  }, [open, versaoId]);
+    if (open && tenantConfig && !defaultsApplied) {
+      setMode(tenantConfig.defaults.mode || "cliente");
+      setStyle(tenantConfig.defaults.style || "completa");
+      setDefaultsApplied(true);
+    }
+    if (!open) {
+      setDefaultsApplied(false);
+    }
+  }, [open, tenantConfig, defaultsApplied]);
+
+  // Fetch snapshot via hook (§16 compliant)
+  const { data: snapshot, isLoading: loadingSnapshot } = useProposalVersionSnapshot(
+    open ? versaoId : null
+  );
 
   // Build context from snapshot + versao data
   const msgContext = useMemo<ProposalMessageContext | null>(() => {
@@ -94,17 +103,28 @@ export function ProposalMessageDrawer({
     return extractMessageContext(snapshot, versaoData, propostaData);
   }, [snapshot, versaoData, propostaData]);
 
+  // Resolve template and blocks from tenant config
+  const generateOptions = useMemo(() => {
+    if (!tenantConfig) return {};
+    const templateKey = `${mode}_${style}`;
+    const customTemplate = tenantConfig.templates[templateKey] || undefined;
+    return {
+      customTemplate,
+      blocksConfig: tenantConfig.blocks_config,
+    };
+  }, [tenantConfig, mode, style]);
+
   // Generate message on mode/style/context change
   useEffect(() => {
     if (!msgContext) return;
-    const text = generateProposalMessage(msgContext, mode, style);
+    const text = generateProposalMessage(msgContext, mode, style, generateOptions);
     setMessage(text);
     setCopied(false);
-  }, [msgContext, mode, style]);
+  }, [msgContext, mode, style, generateOptions]);
 
   const handleRegenerate = () => {
     if (!msgContext) return;
-    const text = generateProposalMessage(msgContext, mode, style);
+    const text = generateProposalMessage(msgContext, mode, style, generateOptions);
     setMessage(text);
     setCopied(false);
     toast({ title: "Mensagem regenerada" });
