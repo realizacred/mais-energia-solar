@@ -674,6 +674,15 @@ export default function UCPublica() {
             </>
           )}
 
+          {/* ═══ GD DASHBOARD ═══ */}
+          {(gdData?.has_gd || loadingGd) && (
+            <GdPublicDashboard
+              gdData={gdData!}
+              isLoading={loadingGd}
+              brandPrimary={brandPrimary}
+            />
+          )}
+
           {/* ═══ ECONOMY SECTION ═══ */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
