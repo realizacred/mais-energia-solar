@@ -275,8 +275,8 @@ export function StageDealCard({
           </div>
         </div>
 
-        {/* ACTIONS (compact, low-key) */}
-        <div className="flex items-center gap-0.5 pt-1 border-t border-border/30 opacity-60 group-hover:opacity-100 transition-opacity">
+        {/* ACTIONS (inline, minimal — no separator bar) */}
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -285,7 +285,7 @@ export function StageDealCard({
                   onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
                   disabled={!deal.customer_phone}
                 >
-                  <MessageSquare className="h-3.5 w-3.5" />
+                  <MessageSquare className="h-3 w-3" />
                 </button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">WhatsApp</TooltipContent>
@@ -296,7 +296,7 @@ export function StageDealCard({
                   className="action-icon-btn action-icon-btn--proposal"
                   onClick={(e) => { e.stopPropagation(); onClick(); }}
                 >
-                  <FileText className="h-3.5 w-3.5" />
+                  <FileText className="h-3 w-3" />
                 </button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">Propostas</TooltipContent>
@@ -308,27 +308,16 @@ export function StageDealCard({
                   onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
                   disabled={!deal.customer_phone}
                 >
-                  <Phone className="h-3.5 w-3.5" />
+                  <Phone className="h-3 w-3" />
                 </button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">Ligar</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="action-icon-btn action-icon-btn--calendar"
-                  onClick={(e) => { e.stopPropagation(); onSchedule?.(deal); }}
-                >
-                  <Calendar className="h-3.5 w-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">Agendar</TooltipContent>
             </Tooltip>
             {deal.notas?.trim() && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="action-icon-btn action-icon-btn--note">
-                    <StickyNote className="h-3.5 w-3.5" />
+                    <StickyNote className="h-3 w-3" />
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="text-xs max-w-[250px]">
