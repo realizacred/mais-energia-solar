@@ -134,6 +134,7 @@ export default function UCPublica() {
 
   const { data: gdData, isLoading: loadingGd } = usePublicGdData(token ?? null);
 
+  const { data: resolved, isLoading: loadingToken, error: tokenError } = useQuery({
     queryKey: ["uc_public_token", token],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("resolve_uc_client_token", { p_token: token! });
