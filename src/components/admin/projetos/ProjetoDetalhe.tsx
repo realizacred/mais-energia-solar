@@ -1577,14 +1577,14 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const principal = selectPrincipal(propostas as any[]);
   const outras = propostas.filter(p => p.id !== principal?.id);
 
-  const isPrincipalOutdated = principal ? isPropostaOutdated(principal) : false;
-
   const isPropostaOutdated = (prop: any) => {
     if (!dealUpdatedAt) return false;
     const lv = prop.versoes?.[0];
     if (!lv?.gerado_em) return false;
     return new Date(dealUpdatedAt).getTime() > new Date(lv.gerado_em).getTime();
   };
+
+  const isPrincipalOutdated = principal ? isPropostaOutdated(principal) : false;
 
   const renderPropostaCard = (p: any, isPrin: boolean) => {
     return (
