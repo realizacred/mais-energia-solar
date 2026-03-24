@@ -71,6 +71,7 @@ const STEP_KEYS = {
   SERVICOS: "servicos",
   VENDA: "venda",
   PAGAMENTO: "pagamento",
+  RESUMO: "resumo",
   PROPOSTA: "proposta",
 } as const;
 
@@ -83,6 +84,7 @@ const BASE_STEPS: WizardStep[] = [
   { key: STEP_KEYS.SERVICOS, label: "Serviços", icon: Wrench },
   { key: STEP_KEYS.VENDA, label: "Venda", icon: DollarSign },
   { key: STEP_KEYS.PAGAMENTO, label: "Formas de pagamento", icon: CreditCard },
+  { key: STEP_KEYS.RESUMO, label: "Resumo", icon: BarChart3 },
   { key: STEP_KEYS.PROPOSTA, label: "Proposta", icon: FileText },
 ];
 
