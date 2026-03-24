@@ -37,6 +37,8 @@ import { StepAdicionais, type AdicionalItem } from "./wizard/StepAdicionais";
 import { StepServicos } from "./wizard/StepServicos";
 import { StepVenda } from "./wizard/StepVenda";
 import { calcPrecoFinal, validateKit } from "./wizard/types";
+import { validatePropostaFinal, type PropostaFinalValidationResult } from "./wizard/validatePropostaFinal";
+import { PreGenerationGateModal } from "./wizard/PreGenerationGateModal";
 import { StepFinancialCenter } from "./wizard/StepFinancialCenter";
 import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
 import { useWizardPersistence, type WizardSnapshot, type PersistenceParams, type AtomicPersistResult } from "./wizard/hooks/useWizardPersistence";
