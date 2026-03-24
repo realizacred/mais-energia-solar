@@ -197,10 +197,10 @@ function BeneficiarySection({
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="space-y-1">
             <CardTitle className="text-base flex items-center gap-2">
-              <Users className="w-4 h-4 text-info" /> Como Beneficiária
+              <Users className="w-4 h-4 text-info" /> Unidade Beneficiária
             </CardTitle>
             <CardDescription>
-              Esta UC recebe créditos dos grupos abaixo. Use os atalhos para abrir a UC geradora ou voltar direto para a gestão do grupo.
+              Esta UC recebe créditos de energia dos grupos listados abaixo. Use os atalhos para navegar até a UC geradora ou o grupo GD.
             </CardDescription>
           </div>
           <Badge variant="outline" className="text-xs border-info/20 text-info bg-info/10">
@@ -589,7 +589,7 @@ function GeneratorSection({
                               <Building2 className="w-3 h-3" /> Abrir UC
                             </Button>
                             <Button variant="soft" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(beneficiaryGdPath)}>
-                              <Users className="w-3 h-3" /> Ver como beneficiária
+                              <Users className="w-3 h-3" /> Ver GD da beneficiária
                             </Button>
                           </div>
                         </TableCell>
