@@ -152,6 +152,30 @@ export default function UCDetailPage() {
     }
   };
 
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteUC = async () => {
+    if (!id) return;
+    setIsDeleting(true);
+    try {
+      const { data, error: rpcError } = await supabase.rpc("delete_uc_permanently" as any, { p_unit_id: id });
+      const result = data as any;
+      if (rpcError) throw rpcError;
+      if (!result?.success) {
+        toast({ title: "Não foi possível excluir", description: result?.error || "Erro desconhecido", variant: "destructive" });
+        return;
+      }
+      toast({ title: "UC excluída permanentemente" });
+      navigate("/admin/ucs");
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir UC", description: err.message, variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmOpen(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 space-y-4">
@@ -563,10 +587,56 @@ export default function UCDetailPage() {
                 <CardTitle className="text-sm text-destructive">Zona de Perigo</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground mb-3">Esta ação é irreversível e removerá todos os dados associados a esta UC.</p>
-                <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 text-xs gap-1">
-                  <Trash2 className="w-3 h-3 mr-1" /> Remover UC
-                </Button>
+                {!deleteConfirmOpen ? (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Esta ação é irreversível e removerá permanentemente a UC e todos os dados associados (faturas, créditos, medidores, tokens).
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-destructive text-destructive hover:bg-destructive/10 text-xs gap-1"
+                      onClick={() => setDeleteConfirmOpen(true)}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Remover UC permanentemente
+                    </Button>
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-destructive">
+                      Tem certeza que deseja excluir "{uc.nome}" ({uc.codigo_uc})?
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Faturas, créditos, medidores vinculados, tokens de acesso e configurações de cobrança serão removidos permanentemente.
+                      {uc.papel_gd !== "none" && (
+                        <span className="block mt-1 font-medium text-warning">
+                          ⚠️ Se esta UC estiver vinculada a um grupo GD, a exclusão será bloqueada. Remova as associações GD primeiro.
+                        </span>
+                      )}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-destructive text-destructive hover:bg-destructive/10 text-xs gap-1"
+                        onClick={handleDeleteUC}
+                        disabled={isDeleting}
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" />
+                        {isDeleting ? "Excluindo..." : "Confirmar exclusão"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => setDeleteConfirmOpen(false)}
+                        disabled={isDeleting}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
