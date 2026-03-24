@@ -5,7 +5,7 @@
  * Configurações > Mensagens da Proposta
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   MessageCircle, Settings2, Save, RotateCcw, Eye, Variable,
   ToggleLeft, Sliders, Copy, CheckCircle
@@ -25,7 +25,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { useTenantContext } from "@/contexts/TenantContext";
+import { useQuery } from "@tanstack/react-query";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
   useProposalMessageConfig,
   useSaveProposalMessageConfig,
