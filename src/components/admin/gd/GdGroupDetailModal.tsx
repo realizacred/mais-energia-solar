@@ -25,6 +25,7 @@ import { GdBeneficiaryFormModal } from "./GdBeneficiaryFormModal";
 import { formatDate } from "@/lib/dateUtils";
 import { GdEnergyMonthly } from "./GdEnergyMonthly";
 import { GdEnergyReport } from "./GdEnergyReport";
+import { GdDecisionDashboard } from "./GdDecisionDashboard";
 
 interface Props {
   open: boolean;
