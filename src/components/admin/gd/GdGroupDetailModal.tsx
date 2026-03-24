@@ -304,24 +304,14 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                   </div>
                 )}
 
-                {/* GD Decision Dashboard */}
+                {/* GD Decision Dashboard — wired with real data */}
                 {group && activeBens.length > 0 && (
-                  <GdDecisionDashboard
-                    generationKwh={0}
-                    generatorUc={{
-                      ucId: group.uc_geradora_id,
-                      label: ucGeradora ? `${ucGeradora.codigo_uc} — ${ucGeradora.nome}` : "Geradora",
-                      consumedKwh: 0,
-                    }}
-                    beneficiaries={activeBens.map((b) => {
-                      const uc = ucMap.get(b.uc_beneficiaria_id);
-                      return {
-                        ucId: b.uc_beneficiaria_id,
-                        label: uc ? `${uc.codigo_uc} — ${uc.nome}` : b.uc_beneficiaria_id.slice(0, 8),
-                        allocationPercent: Number(b.allocation_percent),
-                        consumedKwh: 0,
-                      };
-                    })}
+                  <GdDashboardWithData
+                    groupId={group.id}
+                    ucGeradoraId={group.uc_geradora_id}
+                    ucGeradoraLabel={ucGeradora ? `${ucGeradora.codigo_uc} — ${ucGeradora.nome}` : "Geradora"}
+                    activeBens={activeBens}
+                    ucMap={ucMap}
                   />
                 )}
 
