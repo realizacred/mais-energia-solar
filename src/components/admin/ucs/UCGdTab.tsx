@@ -22,7 +22,7 @@ import { useUCsList, type UCOption } from "@/hooks/useFormSelects";
 import { type UCRecord } from "@/services/unitService";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { buildUcDetailPath, readUcNavigationContext, type UcNavigationContext } from "./ucNavigation";
+import { buildUcDetailPath, readUcNavigationContext } from "./ucNavigation";
 
 interface Props {
   uc: UCRecord;
@@ -34,6 +34,7 @@ type BeneficiaryWithGroup = GdBeneficiary & {
 
 export function UCGdTab({ uc }: Props) {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const navigationContext = readUcNavigationContext(searchParams);
   const { data: allUcs = [] } = useUCsList();
 
@@ -44,28 +45,105 @@ export function UCGdTab({ uc }: Props) {
 
   const isLoading = loadingGen || loadingBen;
   const isGenerator = uc.papel_gd === "geradora" || uc.tipo_uc === "gd_geradora" || uc.tipo_uc === "mista";
+  const hasContext = !!navigationContext.fromUcId && navigationContext.fromUcId !== uc.id;
 
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-40 w-full rounded-lg" />
+        <Skeleton className="h-14 w-full rounded-lg" />
         <Skeleton className="h-56 w-full rounded-lg" />
-        <Skeleton className="h-48 w-full rounded-lg" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <GdSummaryCard
-        uc={uc}
-        isGenerator={isGenerator}
-        activeGroup={activeGroup}
-        beneficiaries={beneficiaries}
-        beneficiaryOf={beneficiaryOf as BeneficiaryWithGroup[]}
-        navigationContext={navigationContext}
-      />
+    <div className="space-y-5">
+      {/* ─── Compact Header: Role badges ─── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className={isGenerator ? "text-xs bg-primary/10 text-primary border-primary/20" : "text-xs bg-muted text-muted-foreground border-border"}>
+          <Sun className="w-3 h-3 mr-1" /> {isGenerator ? "Geradora" : "Sem papel de geradora"}
+        </Badge>
+        <Badge className={beneficiaryOf.length > 0 ? "text-xs bg-info/10 text-info border-info/20" : "text-xs bg-muted text-muted-foreground border-border"}>
+          <Users className="w-3 h-3 mr-1" /> {beneficiaryOf.length > 0 ? `Beneficiária (${beneficiaryOf.length})` : "Sem vínculo como beneficiária"}
+        </Badge>
+        {activeGroup && (
+          <Badge variant="outline" className="text-xs">
+            <GitBranch className="w-3 h-3 mr-1" /> {activeGroup.nome}
+          </Badge>
+        )}
+      </div>
 
+      {/* ─── Context breadcrumb (only when navigated from another UC) ─── */}
+      {hasContext && navigationContext.fromUcId && (
+        <div className="rounded-lg border border-border bg-muted/20 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+            <span className="font-medium text-foreground truncate">{navigationContext.fromUcName || "UC"}</span>
+            {navigationContext.gdGroupName && (
+              <>
+                <MoveRight className="w-3 h-3 shrink-0" />
+                <span className="truncate">{navigationContext.gdGroupName}</span>
+              </>
+            )}
+            <MoveRight className="w-3 h-3 shrink-0" />
+            <span className="font-medium text-foreground truncate">{uc.nome}</span>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={() =>
+                navigate(
+                  buildUcDetailPath(navigationContext.fromUcId!, {
+                    tab: navigationContext.returnTab || "overview",
+                    subtab: navigationContext.returnSubtab || null,
+                    origin: "gd-return",
+                    fromUcId: uc.id,
+                    fromUcName: uc.nome,
+                    fromUcCode: uc.codigo_uc,
+                    gdGroupId: navigationContext.gdGroupId,
+                    gdGroupName: navigationContext.gdGroupName,
+                    relatedUcId: uc.id,
+                    relatedUcName: uc.nome,
+                    relatedUcCode: uc.codigo_uc,
+                    beneficiaryId: navigationContext.beneficiaryId,
+                    beneficiaryName: navigationContext.beneficiaryName,
+                  }),
+                )
+              }
+            >
+              <ArrowLeft className="w-3 h-3" /> Voltar
+            </Button>
+            <Button
+              variant="soft"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={() =>
+                navigate(
+                  buildUcDetailPath(navigationContext.fromUcId!, {
+                    tab: "gd",
+                    origin: "gd-return",
+                    fromUcId: uc.id,
+                    fromUcName: uc.nome,
+                    fromUcCode: uc.codigo_uc,
+                    gdGroupId: navigationContext.gdGroupId,
+                    gdGroupName: navigationContext.gdGroupName,
+                    relatedUcId: uc.id,
+                    relatedUcName: uc.nome,
+                    relatedUcCode: uc.codigo_uc,
+                    beneficiaryId: navigationContext.beneficiaryId,
+                    beneficiaryName: navigationContext.beneficiaryName,
+                  }),
+                )
+              }
+            >
+              <GitBranch className="w-3 h-3" /> Aba GD
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Generator Section ─── */}
       {isGenerator && (
         <GeneratorSection
           uc={uc}
@@ -76,6 +154,7 @@ export function UCGdTab({ uc }: Props) {
         />
       )}
 
+      {/* ─── Beneficiary Section ─── */}
       {beneficiaryOf.length > 0 && (
         <BeneficiarySection
           currentUc={uc}
@@ -84,6 +163,7 @@ export function UCGdTab({ uc }: Props) {
         />
       )}
 
+      {/* ─── Empty state ─── */}
       {!isGenerator && beneficiaryOf.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center space-y-3">
@@ -91,156 +171,11 @@ export function UCGdTab({ uc }: Props) {
               <Sun className="w-6 h-6 text-muted-foreground" />
             </div>
             <p className="text-sm font-medium text-foreground">Esta UC ainda não participa de Geração Distribuída</p>
-            <p className="text-xs text-muted-foreground">Defina o papel GD no cadastro ou vincule esta UC a um grupo existente para habilitar a navegação contextual.</p>
+            <p className="text-xs text-muted-foreground">Defina o papel GD no cadastro ou vincule esta UC a um grupo existente.</p>
           </CardContent>
         </Card>
       )}
     </div>
-  );
-}
-
-function GdSummaryCard({
-  uc,
-  isGenerator,
-  activeGroup,
-  beneficiaries,
-  beneficiaryOf,
-  navigationContext,
-}: {
-  uc: UCRecord;
-  isGenerator: boolean;
-  activeGroup?: GdGroup;
-  beneficiaries: GdBeneficiary[];
-  beneficiaryOf: BeneficiaryWithGroup[];
-  navigationContext: UcNavigationContext;
-}) {
-  const navigate = useNavigate();
-  const hasContext = !!navigationContext.fromUcId && navigationContext.fromUcId !== uc.id;
-
-  return (
-    <Card className="border-l-[3px] border-l-primary">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="space-y-1">
-            <CardTitle className="text-base flex items-center gap-2">
-              <GitBranch className="w-4 h-4 text-primary" /> Mapa GD desta UC
-            </CardTitle>
-            <CardDescription>
-              Aqui fica claro se <span className="font-medium text-foreground">{uc.nome}</span> gera créditos, recebe créditos e para onde você pode navegar sem perder contexto.
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge className={isGenerator ? "text-xs bg-primary/10 text-primary border-primary/20" : "text-xs bg-muted text-muted-foreground border-border"}>
-              <Sun className="w-3 h-3 mr-1" /> {isGenerator ? "Atua como geradora" : "Sem papel de geradora"}
-            </Badge>
-            <Badge className={beneficiaryOf.length > 0 ? "text-xs bg-info/10 text-info border-info/20" : "text-xs bg-muted text-muted-foreground border-border"}>
-              <Users className="w-3 h-3 mr-1" /> {beneficiaryOf.length > 0 ? "Recebe créditos" : "Sem vínculo como beneficiária"}
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0 space-y-4">
-        <div className="grid gap-3 xl:grid-cols-2">
-          <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
-            <p className="text-sm font-semibold text-foreground">Como Geradora</p>
-            <p className="text-sm text-muted-foreground">
-              {activeGroup
-                ? `Grupo ${activeGroup.nome} com ${beneficiaries.length} beneficiária${beneficiaries.length === 1 ? "" : "s"} vinculada${beneficiaries.length === 1 ? "" : "s"}.`
-                : isGenerator
-                  ? "UC configurada para gerar créditos, mas ainda sem grupo GD criado."
-                  : "Esta UC não distribui créditos para outras unidades."}
-            </p>
-          </div>
-          <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
-            <p className="text-sm font-semibold text-foreground">Como Beneficiária</p>
-            <p className="text-sm text-muted-foreground">
-              {beneficiaryOf.length > 0
-                ? `${beneficiaryOf.length} vínculo${beneficiaryOf.length === 1 ? "" : "s"} ativo${beneficiaryOf.length === 1 ? "" : "s"} em grupos GD.`
-                : "Esta UC não recebe créditos de outro grupo GD neste momento."}
-            </p>
-          </div>
-        </div>
-
-        {hasContext && navigationContext.fromUcId && (
-          <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-1 min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contexto preservado</p>
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="font-medium text-foreground truncate">{navigationContext.fromUcName || "UC relacionada"}</span>
-                {navigationContext.gdGroupName && (
-                  <>
-                    <MoveRight className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-muted-foreground truncate">{navigationContext.gdGroupName}</span>
-                  </>
-                )}
-                <MoveRight className="w-3 h-3 text-muted-foreground" />
-                <span className="text-foreground truncate">{uc.nome}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {navigationContext.origin === "gd-generator"
-                  ? "Você abriu esta UC a partir da visão da geradora; o retorno para o grupo GD foi preservado."
-                  : navigationContext.origin === "gd-beneficiary"
-                    ? "Você abriu esta UC a partir de uma beneficiária; o caminho de volta para a UC e para o grupo foi mantido."
-                    : "A navegação contextual entre UCs relacionadas está ativa nesta tela."}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs gap-1.5"
-                onClick={() =>
-                  navigate(
-                    buildUcDetailPath(navigationContext.fromUcId!, {
-                      tab: navigationContext.returnTab || "overview",
-                      subtab: navigationContext.returnSubtab || null,
-                      origin: "gd-return",
-                      fromUcId: uc.id,
-                      fromUcName: uc.nome,
-                      fromUcCode: uc.codigo_uc,
-                      gdGroupId: navigationContext.gdGroupId,
-                      gdGroupName: navigationContext.gdGroupName,
-                      relatedUcId: uc.id,
-                      relatedUcName: uc.nome,
-                      relatedUcCode: uc.codigo_uc,
-                      beneficiaryId: navigationContext.beneficiaryId,
-                      beneficiaryName: navigationContext.beneficiaryName,
-                    }),
-                  )
-                }
-              >
-                <ArrowLeft className="w-3 h-3" /> Voltar para UC
-              </Button>
-              <Button
-                variant="soft"
-                size="sm"
-                className="h-8 text-xs gap-1.5"
-                onClick={() =>
-                  navigate(
-                    buildUcDetailPath(navigationContext.fromUcId!, {
-                      tab: "gd",
-                      origin: "gd-return",
-                      fromUcId: uc.id,
-                      fromUcName: uc.nome,
-                      fromUcCode: uc.codigo_uc,
-                      gdGroupId: navigationContext.gdGroupId,
-                      gdGroupName: navigationContext.gdGroupName,
-                      relatedUcId: uc.id,
-                      relatedUcName: uc.nome,
-                      relatedUcCode: uc.codigo_uc,
-                      beneficiaryId: navigationContext.beneficiaryId,
-                      beneficiaryName: navigationContext.beneficiaryName,
-                    }),
-                  )
-                }
-              >
-                <GitBranch className="w-3 h-3" /> Voltar para GD
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 
@@ -526,10 +461,10 @@ function GeneratorSection({
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="space-y-1">
               <CardTitle className="text-base flex items-center gap-2">
-                <Sun className="w-4 h-4 text-primary" /> Como Geradora
+                <Sun className="w-4 h-4 text-primary" /> Grupo GD — {group.nome}
               </CardTitle>
               <CardDescription>
-                Esta UC é a origem do grupo <span className="font-medium text-foreground">{group.nome}</span>. Abra cada beneficiária sem perder o caminho de volta para o grupo.
+                Gerencie beneficiárias e alocação de créditos deste grupo.
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
