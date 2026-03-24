@@ -1806,10 +1806,32 @@ export function ProposalWizard() {
           <StepCamposCustomizados values={customFieldValues} onValuesChange={setCustomFieldValues} />
         ));
 
-      case STEP_KEYS.KIT:
+      case STEP_KEYS.KIT: {
+        const kitVal = validateKit(itens, potenciaKwp);
         return wrap("kit", (
-          <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} />
+          <div className="space-y-4">
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} />
+            {kitVal.warnings.length > 0 && (
+              <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
+                {kitVal.warnings.map((w, i) => (
+                  <p key={i} className="text-xs text-warning font-medium flex items-center gap-1.5">
+                    <span className="shrink-0">⚠</span> {w}
+                  </p>
+                ))}
+              </div>
+            )}
+            {kitVal.errors.length > 0 && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-1">
+                {kitVal.errors.map((e, i) => (
+                  <p key={i} className="text-xs text-destructive font-medium flex items-center gap-1.5">
+                    <span className="shrink-0">✕</span> {e}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
         ));
+      }
 
       case STEP_KEYS.ADICIONAIS:
         return wrap("adicionais", (
