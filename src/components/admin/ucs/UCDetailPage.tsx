@@ -3,7 +3,7 @@
  * Route: /admin/ucs/:id
  * All UC features: overview, monitoring, GD, invoices, comparativo, economy, config.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
