@@ -75,6 +75,7 @@ export function GmailAccountsSection() {
   const [showNewModal, setShowNewModal] = useState(false);
   const [newNome, setNewNome] = useState("");
   const [newConcessionaria, setNewConcessionaria] = useState("");
+  const [newLabel, setNewLabel] = useState("");
   const [connecting, setConnecting] = useState(false);
 
   // Delete confirmation
@@ -144,6 +145,7 @@ export function GmailAccountsSection() {
         action: "auth_url",
         account_name: newNome.trim(),
         concessionaria: newConcessionaria.trim(),
+        gmail_label: newLabel.trim(),
       });
 
       const resp = await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?${params}`, {
@@ -328,7 +330,7 @@ export function GmailAccountsSection() {
               <span className="text-xs font-normal text-muted-foreground">({accounts.length})</span>
             )}
           </CardTitle>
-          <Button size="sm" onClick={() => { setNewNome(""); setNewConcessionaria(""); setShowNewModal(true); }}>
+          <Button size="sm" onClick={() => { setNewNome(""); setNewConcessionaria(""); setNewLabel(""); setShowNewModal(true); }}>
             <Plus className="w-4 h-4 mr-1" /> Conectar Nova Conta
           </Button>
         </CardHeader>
