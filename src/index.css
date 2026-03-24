@@ -635,44 +635,40 @@
 
   /* ===== KANBAN CARD STATUS BORDERS ===== */
   .kanban-card {
-    @apply bg-card rounded-xl cursor-grab active:cursor-grabbing;
-    @apply border border-border transition-all duration-200 ease-out relative;
-    border-left: 4px solid transparent;
-    box-shadow: var(--shadow-sm);
+    @apply bg-card rounded-lg cursor-grab active:cursor-grabbing;
+    @apply border border-border/60 transition-all duration-150 ease-out relative;
+    border-left: 3px solid transparent;
+    box-shadow: var(--shadow-xs);
   }
   .kanban-card:hover {
     @apply border-border;
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
-  }
-  .kanban-card:hover {
-    border-left-width: 4px;
+    box-shadow: var(--shadow-sm);
   }
   .kanban-card--won {
-    border-left: 4px solid hsl(142 71% 45%); /* emerald-500 */
+    border-left-color: hsl(var(--success));
   }
   .kanban-card--lost {
-    border-left: 4px solid hsl(0 84% 60%); /* red-500 */
-    @apply opacity-60;
+    border-left-color: hsl(var(--destructive));
+    @apply opacity-50;
   }
   .kanban-card--stagnation-critical {
-    border-left: 4px solid hsl(0 84% 60%); /* red-500 */
+    border-left-color: hsl(var(--destructive));
   }
   .kanban-card--stagnation-warning {
-    border-left: 4px solid hsl(38 92% 50%); /* amber-500 */
+    border-left-color: hsl(var(--warning));
   }
   .kanban-card--no-proposal {
-    border-left: 4px solid hsl(27 96% 61%); /* orange-400 */
+    border-left-color: hsl(var(--muted-foreground));
   }
   .kanban-card--has-proposal {
-    border-left: 4px solid hsl(var(--primary));
+    border-left-color: hsl(var(--primary));
   }
   .kanban-card--etiqueta {
     /* color set inline via style prop */
   }
   .kanban-card--dragging {
     @apply opacity-30 scale-95;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-md);
   }
 
   /* ===== ENHANCED SURFACE SYSTEM ===== */
