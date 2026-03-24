@@ -260,18 +260,22 @@ export default function UCDetailPage() {
         <UCEnergySummary ucId={id!} />
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — reorganized into 6 groups */}
       <div className="p-4 md:p-6 space-y-4">
-        <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v })} className="space-y-4">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            const params: Record<string, string> = { tab: v };
+            setSearchParams(params);
+          }}
+          className="space-y-4"
+        >
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="overview" className="gap-1"><BarChart3 className="w-3.5 h-3.5" /> Visão Geral</TabsTrigger>
-            <TabsTrigger value="monitoramento" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Medidor</TabsTrigger>
-            <TabsTrigger value="usinas" className="gap-1"><Activity className="w-3.5 h-3.5" /> Usinas</TabsTrigger>
+            <TabsTrigger value="energia" className="gap-1"><Gauge className="w-3.5 h-3.5" /> Energia</TabsTrigger>
             <TabsTrigger value="faturas" className="gap-1"><FileText className="w-3.5 h-3.5" /> Faturas</TabsTrigger>
-            <TabsTrigger value="historico" className="gap-1"><Calendar className="w-3.5 h-3.5" /> Histórico</TabsTrigger>
-            <TabsTrigger value="comparativo" className="gap-1"><TrendingUp className="w-3.5 h-3.5" /> Comparativo</TabsTrigger>
-            <TabsTrigger value="economia" className="gap-1"><DollarSign className="w-3.5 h-3.5" /> Economia</TabsTrigger>
-            <TabsTrigger value="gd" className="gap-1"><Sun className="w-3.5 h-3.5" /> Beneficiárias</TabsTrigger>
+            <TabsTrigger value="analise" className="gap-1"><TrendingUp className="w-3.5 h-3.5" /> Análise</TabsTrigger>
+            <TabsTrigger value="gd" className="gap-1"><Sun className="w-3.5 h-3.5" /> GD</TabsTrigger>
             <TabsTrigger value="config" className="gap-1"><Settings className="w-3.5 h-3.5" /> Configurações</TabsTrigger>
           </TabsList>
 
@@ -289,25 +293,13 @@ export default function UCDetailPage() {
             />
           </TabsContent>
 
-          {/* === MEDIDOR === */}
-          <TabsContent value="monitoramento" className="space-y-6">
-            <UCMeterTab unitId={uc.id} />
-          </TabsContent>
-
-          {/* === USINAS === */}
-          <TabsContent value="usinas" className="space-y-6">
-            <UCPlantLinksTab unitId={uc.id} ucTipo={uc.tipo_uc} />
-          </TabsContent>
-
-          {/* === FATURAS === forceMount to keep upload alive across tab switches */}
-          <TabsContent value="faturas" forceMount className="data-[state=inactive]:hidden">
-            <UCInvoicesTab unitId={uc.id} />
-          </TabsContent>
-
-          {/* === HISTÓRICO === */}
-          <TabsContent value="historico" className="space-y-6">
-            <UCHistoricoTab
+          {/* === ENERGIA (sub-tabs: Medidor | Usinas | Histórico) === */}
+          <TabsContent value="energia" className="space-y-4">
+            <EnergiaSubTabs
+              activeSubtab={activeSubtab}
+              onSubtabChange={(sub) => setSearchParams({ tab: "energia", subtab: sub })}
               ucId={uc.id}
+              ucTipo={uc.tipo_uc}
               meterId={activeMeterIdResolved}
               plantId={activePlantId}
               solarPlantId={solarPlantId}
@@ -315,17 +307,19 @@ export default function UCDetailPage() {
             />
           </TabsContent>
 
-          {/* === COMPARATIVO === */}
-          <TabsContent value="comparativo" className="space-y-6">
-            <UCComparativoTab
+          {/* === FATURAS === forceMount to keep upload alive */}
+          <TabsContent value="faturas" forceMount className="data-[state=inactive]:hidden">
+            <UCInvoicesTab unitId={uc.id} />
+          </TabsContent>
+
+          {/* === ANÁLISE (sub-tabs: Comparativo | Economia) === */}
+          <TabsContent value="analise" className="space-y-4">
+            <AnaliseSubTabs
+              activeSubtab={activeSubtab}
+              onSubtabChange={(sub) => setSearchParams({ tab: "analise", subtab: sub })}
               unitId={uc.id}
               simulacaoId={(uc as any).simulacao_id ?? null}
             />
-          </TabsContent>
-
-          {/* === ECONOMIA === */}
-          <TabsContent value="economia" className="space-y-6">
-            <UCEconomyReportTab unitId={uc.id} />
           </TabsContent>
 
           {/* === GD === */}
