@@ -53,11 +53,11 @@ export function useGdBeneficiariesByUC(ucId: string | null) {
       if (!ucId) return [];
       const { data, error } = await supabase
         .from("gd_group_beneficiaries")
-        .select("*, gd_groups!inner(id, nome, uc_geradora_id, status)")
+        .select("*, gd_groups!inner(id, nome, uc_geradora_id, status, categoria_gd)")
         .eq("uc_beneficiaria_id", ucId)
         .eq("is_active", true);
       if (error) throw error;
-      return data as (GdBeneficiary & { gd_groups: { id: string; nome: string; uc_geradora_id: string; status: string } })[];
+      return data as (GdBeneficiary & { gd_groups: { id: string; nome: string; uc_geradora_id: string; status: string; categoria_gd: string | null } })[];
     },
     staleTime: STALE_TIME,
     enabled: !!ucId,

@@ -17,6 +17,12 @@ import { type UCOption } from "@/hooks/useFormSelects";
 import { buildUcDetailPath } from "./ucNavigation";
 import { formatDecimalBR, formatBRL } from "@/lib/formatters";
 
+const CATEGORIA_GD_LABELS: Record<string, string> = {
+  gd1: "GD I — Autoconsumo Local",
+  gd2: "GD II — Autoconsumo Remoto",
+  gd3: "GD III — Compartilhado",
+};
+
 interface Props {
   groupId: string;
   groupName: string;
@@ -26,6 +32,7 @@ interface Props {
   beneficiaries: GdBeneficiary[];
   allUcs: UCOption[];
   tarifaMedia?: number | null;
+  categoriaGd?: string | null;
 }
 
 const STALE = 1000 * 60 * 5;
@@ -40,6 +47,7 @@ export function GdEnergyNetworkCard({
   beneficiaries,
   allUcs,
   tarifaMedia,
+  categoriaGd,
 }: Props) {
   const navigate = useNavigate();
   const tarifa = tarifaMedia ?? DEFAULT_TARIFA;
@@ -159,6 +167,11 @@ export function GdEnergyNetworkCard({
             </CardTitle>
             <CardDescription>
               Fluxo de energia, distribuição e economia estimada do grupo.
+              {categoriaGd && CATEGORIA_GD_LABELS[categoriaGd] && (
+                <Badge variant="outline" className="ml-2 text-[10px] border-primary/20 text-primary bg-primary/5">
+                  {CATEGORIA_GD_LABELS[categoriaGd]}
+                </Badge>
+              )}
             </CardDescription>
           </div>
           {hasData && (
