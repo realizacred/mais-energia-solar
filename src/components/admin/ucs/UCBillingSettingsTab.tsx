@@ -402,6 +402,28 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
                 </div>
 
                 <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-1"><Tag className="w-3 h-3" /> Marcador do Gmail</Label>
+                  {gmailLabels.length > 0 ? (
+                    <Select value={form.gmail_label} onValueChange={(v) => setForm(f => ({ ...f, gmail_label: v === "__none__" ? "" : v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um marcador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Nenhum (usar caixa de entrada)</SelectItem>
+                        {gmailLabels.map((l) => (
+                          <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={form.gmail_label}
+                      onChange={(e) => setForm(f => ({ ...f, gmail_label: e.target.value }))}
+                      placeholder={labelsLoading ? "Carregando marcadores..." : "Ex: ENERGISA/UC-970915"}
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground">Marcador no Gmail para filtrar os e-mails desta UC. Crie o marcador no Gmail e ele aparecerá aqui.</p>
+                <div className="space-y-1.5">
                   <Label className="text-xs">E-mail de encaminhamento</Label>
                   <Input value={form.forward_to_email} onChange={(e) => setForm(f => ({ ...f, forward_to_email: e.target.value }))} placeholder="cliente@email.com" />
                   <p className="text-xs text-muted-foreground">Endereço do cliente que receberá o repasse da fatura.</p>
