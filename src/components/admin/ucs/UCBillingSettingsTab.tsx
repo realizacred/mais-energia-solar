@@ -40,23 +40,40 @@ function sourceLabel(source: string | null | undefined): string {
   return source;
 }
 
+type LastInvoiceStatus = {
+  status?: string | null;
+  parsing_status?: string | null;
+  created_at?: string | null;
+  last_parsed_at?: string | null;
+};
+
 function statusLabel(status: string | null | undefined): string {
   switch (status) {
     case "valid": return "Processada com sucesso";
-    case "received": return "Recebida e processada";
+    case "received": return "Recebida";
     case "divergent": return "Processada com divergências";
-    case "review": return "Aguardando revisão";
+    case "review":
+    case "pending_review": return "Aguardando revisão";
     case "failed": return "Falha no processamento";
     default: return status || "Desconhecido";
   }
 }
 
-function statusVariant(status: string | null | undefined): "success" | "destructive" | "warning" {
-  switch (status) {
-    case "valid":
-    case "received": return "success";
+function processingStatusLabel(invoice: LastInvoiceStatus): string {
+  switch (invoice.parsing_status) {
+    case "success": return "Processada com sucesso";
+    case "partial": return "Processada parcialmente";
+    case "failed": return "Falha no processamento";
+    default: return statusLabel(invoice.status);
+  }
+}
+
+function processingStatusVariant(invoice: LastInvoiceStatus): "success" | "destructive" | "warning" {
+  switch (invoice.parsing_status) {
+    case "success": return "success";
     case "failed": return "destructive";
-    default: return "warning";
+    default:
+      return invoice.status === "failed" ? "destructive" : "warning";
   }
 }
 
@@ -101,7 +118,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
     queryFn: async () => {
       const { data } = await supabase
         .from("unit_invoices")
-        .select("id, created_at, reference_month, reference_year, status, source")
+        .select("id, created_at, last_parsed_at, reference_month, reference_year, status, parsing_status, source")
         .eq("unit_id", unitId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -226,9 +243,9 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
     ? `${MONTH_NAMES[(lastInvoice.reference_month ?? 1) - 1]}/${lastInvoice.reference_year} (via ${sourceLabel(lastInvoice.source)})`
     : null;
 
-  const lastInvoiceStatusLabel = lastInvoice ? statusLabel(lastInvoice.status) : null;
-  const lastInvoiceDate = lastInvoice?.created_at
-    ? formatDate(lastInvoice.created_at)
+  const lastInvoiceStatusLabel = lastInvoice ? processingStatusLabel(lastInvoice) : null;
+  const lastInvoiceDate = (lastInvoice?.last_parsed_at || lastInvoice?.created_at)
+    ? formatDate(lastInvoice.last_parsed_at || lastInvoice.created_at)
     : null;
 
   return (
@@ -284,7 +301,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
             <div className="p-3 rounded-lg bg-muted/20 border border-border space-y-1">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-foreground">Detalhes do último processamento</p>
-                <StatusBadge variant={statusVariant(lastInvoice.status)} dot className="text-xs">
+                <StatusBadge variant={processingStatusVariant(lastInvoice)} dot className="text-xs">
                   {lastInvoiceStatusLabel}
                 </StatusBadge>
               </div>
