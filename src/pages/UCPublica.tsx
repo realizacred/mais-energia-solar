@@ -4,6 +4,8 @@
  * No authentication required.
  */
 import { useState, useMemo, useCallback } from "react";
+import { usePublicGdData } from "@/hooks/usePublicGdData";
+import { GdPublicDashboard } from "@/components/public/gd/GdPublicDashboard";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -129,6 +131,8 @@ export default function UCPublica() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const { data: gdData, isLoading: loadingGd } = usePublicGdData(token ?? null);
 
   const { data: resolved, isLoading: loadingToken, error: tokenError } = useQuery({
     queryKey: ["uc_public_token", token],
@@ -668,6 +672,15 @@ export default function UCPublica() {
                 </Card>
               )}
             </>
+          )}
+
+          {/* ═══ GD DASHBOARD ═══ */}
+          {(gdData?.has_gd || loadingGd) && (
+            <GdPublicDashboard
+              gdData={gdData!}
+              isLoading={loadingGd}
+              brandPrimary={brandPrimary}
+            />
           )}
 
           {/* ═══ ECONOMY SECTION ═══ */}

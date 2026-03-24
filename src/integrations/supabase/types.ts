@@ -25628,6 +25628,7 @@ export type Database = {
         }[]
       }
       resolve_uc_client_token: { Args: { p_token: string }; Returns: Json }
+      resolve_uc_gd_data: { Args: { p_token: string }; Returns: Json }
       resolve_uc_monitoring: { Args: { p_token: string }; Returns: Json }
       resolve_wa_conversation: {
         Args: { p_instance_id: string; p_remote_jid: string }
