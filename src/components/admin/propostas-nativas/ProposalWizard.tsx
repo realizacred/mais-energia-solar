@@ -37,6 +37,8 @@ import { StepAdicionais, type AdicionalItem } from "./wizard/StepAdicionais";
 import { StepServicos } from "./wizard/StepServicos";
 import { StepVenda } from "./wizard/StepVenda";
 import { calcPrecoFinal, validateKit } from "./wizard/types";
+import { validatePropostaFinal, type PropostaFinalValidationResult } from "./wizard/validatePropostaFinal";
+import { PreGenerationGateModal } from "./wizard/PreGenerationGateModal";
 import { StepFinancialCenter } from "./wizard/StepFinancialCenter";
 import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
 import { useWizardPersistence, type WizardSnapshot, type PersistenceParams, type AtomicPersistResult } from "./wizard/hooks/useWizardPersistence";
@@ -244,6 +246,9 @@ export function ProposalWizard() {
   const [blockMissing, setBlockMissing] = useState<string[]>([]);
   const [descricaoProposta, setDescricaoProposta] = useState("");
   const [debugMode, setDebugMode] = useState(false);
+  // ─── Pre-generation gate state
+  const [showGateModal, setShowGateModal] = useState(false);
+  const [gateValidation, setGateValidation] = useState<PropostaFinalValidationResult | null>(null);
   // ─── Derived
   const precoFinal = useMemo(() => {
     const val = calcPrecoFinal(itens, servicos, venda);
@@ -1277,6 +1282,39 @@ export function ProposalWizard() {
 
   const canCurrentStep = canAdvance[currentStepKey] ?? true;
 
+  // ─── Pre-generation: run canonical validation and show gate modal
+  const handlePreGenerate = () => {
+    const validation = validatePropostaFinal({
+      cliente,
+      selectedLead,
+      ucs,
+      itens,
+      servicos,
+      venda,
+      pagamentoOpcoes,
+      potenciaKwp,
+      precoFinal,
+      geracaoMensalKwh: geracaoMensalEstimada,
+      consumoTotal,
+      locEstado,
+      locCidade,
+      locDistribuidoraNome: locDistribuidoraNome,
+      templateSelecionado,
+    });
+
+    console.debug("[ProposalWizard] Pre-generation validation:", validation);
+
+    // If perfectly clean — skip modal, go straight to generate
+    if (validation.canGenerate && !validation.needsConfirmation) {
+      handleGenerate();
+      return;
+    }
+
+    // Show gate modal for errors or warnings
+    setGateValidation(validation);
+    setShowGateModal(true);
+  };
+
   // ─── Generate (with enforcement gate)
   const handleGenerate = async () => {
     if (!selectedLead) {
@@ -1923,7 +1961,7 @@ export function ProposalWizard() {
               generationStatus={generationStatus}
               generationError={generationError}
               missingVars={missingVars}
-              onGenerate={handleGenerate}
+              onGenerate={handlePreGenerate}
               onNewVersion={handleNewVersion}
               onViewDetail={handleViewDetail}
               customFieldValues={customFieldValues}
@@ -2166,6 +2204,16 @@ export function ProposalWizard() {
         missingVariables={blockMissing}
         reason={blockReason}
       />
+
+      {/* Pre-generation gate modal */}
+      {gateValidation && (
+        <PreGenerationGateModal
+          open={showGateModal}
+          onOpenChange={setShowGateModal}
+          validation={gateValidation}
+          onConfirmGenerate={handleGenerate}
+        />
+      )}
     </div>
   );
 }
