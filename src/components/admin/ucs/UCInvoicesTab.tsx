@@ -812,10 +812,11 @@ export function UCInvoicesTab({ unitId }: Props) {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {inv.pdf_file_url && (
-                                <DropdownMenuItem asChild>
-                                  <a href={inv.pdf_file_url} target="_blank" rel="noopener noreferrer">
-                                    <Eye className="w-4 h-4 mr-2" /> Ver PDF
-                                  </a>
+                                <DropdownMenuItem onClick={async () => {
+                                  const { data } = await supabase.storage.from("faturas-energia").createSignedUrl(inv.pdf_file_url!, 60);
+                                  if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                                }}>
+                                  <Eye className="w-4 h-4 mr-2" /> Ver PDF
                                 </DropdownMenuItem>
                               )}
                               {/* Edit invoice */}

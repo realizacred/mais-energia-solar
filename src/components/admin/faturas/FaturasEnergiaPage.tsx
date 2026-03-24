@@ -457,7 +457,10 @@ export default function FaturasEnergiaPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {inv.pdf_file_url && (
-                                <DropdownMenuItem onClick={() => window.open(inv.pdf_file_url, "_blank")}>
+                                <DropdownMenuItem onClick={async () => {
+                                  const { data } = await supabase.storage.from("faturas-energia").createSignedUrl(inv.pdf_file_url!, 60);
+                                  if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                                }}>
                                   <ExternalLink className="w-4 h-4 mr-2" /> Ver PDF
                                 </DropdownMenuItem>
                               )}
