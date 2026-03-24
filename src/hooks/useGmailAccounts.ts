@@ -12,6 +12,7 @@ export interface GmailAccount {
   nome: string;
   email: string | null;
   concessionaria_nome: string | null;
+  gmail_label: string | null;
   credentials: Record<string, any> | null;
   settings: Record<string, any> | null;
   is_active: boolean;
@@ -30,7 +31,7 @@ export function useGmailAccounts() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("gmail_accounts")
-        .select("id, tenant_id, nome, email, concessionaria_nome, is_active, verificar_a_cada_minutos, ultimo_verificado_at, settings, created_at, updated_at")
+        .select("id, tenant_id, nome, email, concessionaria_nome, gmail_label, is_active, verificar_a_cada_minutos, ultimo_verificado_at, settings, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as GmailAccount[];

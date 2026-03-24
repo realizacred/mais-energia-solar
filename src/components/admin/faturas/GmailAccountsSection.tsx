@@ -75,6 +75,7 @@ export function GmailAccountsSection() {
   const [showNewModal, setShowNewModal] = useState(false);
   const [newNome, setNewNome] = useState("");
   const [newConcessionaria, setNewConcessionaria] = useState("");
+  const [newLabel, setNewLabel] = useState("");
   const [connecting, setConnecting] = useState(false);
 
   // Delete confirmation
@@ -144,6 +145,7 @@ export function GmailAccountsSection() {
         action: "auth_url",
         account_name: newNome.trim(),
         concessionaria: newConcessionaria.trim(),
+        gmail_label: newLabel.trim(),
       });
 
       const resp = await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?${params}`, {
@@ -328,7 +330,7 @@ export function GmailAccountsSection() {
               <span className="text-xs font-normal text-muted-foreground">({accounts.length})</span>
             )}
           </CardTitle>
-          <Button size="sm" onClick={() => { setNewNome(""); setNewConcessionaria(""); setShowNewModal(true); }}>
+          <Button size="sm" onClick={() => { setNewNome(""); setNewConcessionaria(""); setNewLabel(""); setShowNewModal(true); }}>
             <Plus className="w-4 h-4 mr-1" /> Conectar Nova Conta
           </Button>
         </CardHeader>
@@ -337,7 +339,8 @@ export function GmailAccountsSection() {
           <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 border border-border">
             <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
             <p className="text-xs text-muted-foreground">
-              Apenas UCs com "Leitura automática por email" ativada serão processadas automaticamente.
+              Configure um <strong>marcador (label) do Gmail</strong> em cada conta para filtrar automaticamente os e-mails de faturas.
+              Crie uma regra no Gmail que aplique o marcador nos e-mails da concessionária.
             </p>
           </div>
 
@@ -368,6 +371,11 @@ export function GmailAccountsSection() {
                     <p className="text-xs text-muted-foreground truncate">{acc.email || "Email não configurado"}</p>
                     {acc.concessionaria_nome && (
                       <p className="text-xs text-muted-foreground">{acc.concessionaria_nome}</p>
+                    )}
+                    {(acc as any).gmail_label && (
+                      <p className="text-xs text-muted-foreground">
+                        Marcador: <span className="font-mono text-foreground">{(acc as any).gmail_label}</span>
+                      </p>
                     )}
                   </div>
                 </div>
@@ -452,6 +460,18 @@ export function GmailAccountsSection() {
                 value={newConcessionaria}
                 onChange={(e) => setNewConcessionaria(e.target.value)}
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Marcador do Gmail (label)</Label>
+              <Input
+                placeholder="Ex: faturas-energia"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Crie esse marcador no Gmail e configure uma regra para aplicá-lo nos e-mails da concessionária.
+                O sistema buscará apenas e-mails com este marcador.
+              </p>
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
