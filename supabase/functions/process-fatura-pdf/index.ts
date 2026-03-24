@@ -604,10 +604,8 @@ async function processInvoice(
     });
 
   if (!uploadErr) {
-    const { data: signedData } = await admin.storage
-      .from('faturas-energia')
-      .createSignedUrl(storagePath, 86400);
-    pdfUrl = signedData?.signedUrl || null;
+    // Store the permanent storage path, NOT a signed URL (which expires in 24h)
+    pdfUrl = storagePath;
 
     if (pdf_storage_path && pdf_storage_path !== storagePath) {
       await admin.storage.from('faturas-energia').remove([pdf_storage_path]);
@@ -619,35 +617,21 @@ async function processInvoice(
   // ── 7. Lookup previous balance from DB history (SSOT) ──
   let previousBalanceKwh: number | null = null;
   {
+    // Single query: find the most recent invoice BEFORE this month/year
+    // Using combined ordering to handle both same-year and cross-year cases
     const { data: prevInvoice } = await admin
       .from('unit_invoices')
       .select('current_balance_kwh, reference_year, reference_month')
       .eq('unit_id', resolvedUnitId)
       .eq('tenant_id', tenantId)
-      .lt('reference_year', ano)
+      .neq('status', 'deleted')
+      .or(`reference_year.lt.${ano},and(reference_year.eq.${ano},reference_month.lt.${mes})`)
       .order('reference_year', { ascending: false })
       .order('reference_month', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    // If no result with year filter, try same year but earlier month
-    if (!prevInvoice) {
-      const { data: prevSameYear } = await admin
-        .from('unit_invoices')
-        .select('current_balance_kwh, reference_year, reference_month')
-        .eq('unit_id', resolvedUnitId)
-        .eq('tenant_id', tenantId)
-        .eq('reference_year', ano)
-        .lt('reference_month', mes)
-        .order('reference_month', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (prevSameYear?.current_balance_kwh != null) {
-        previousBalanceKwh = prevSameYear.current_balance_kwh;
-        console.log(`[process-fatura-pdf] Previous balance from DB: ${previousBalanceKwh} kWh (${prevSameYear.reference_month}/${prevSameYear.reference_year})`);
-      }
-    } else if (prevInvoice?.current_balance_kwh != null) {
+    if (prevInvoice?.current_balance_kwh != null) {
       previousBalanceKwh = prevInvoice.current_balance_kwh;
       console.log(`[process-fatura-pdf] Previous balance from DB: ${previousBalanceKwh} kWh (${prevInvoice.reference_month}/${prevInvoice.reference_year})`);
     }
@@ -724,6 +708,31 @@ async function processInvoice(
     identifier_expected: identifierExpected,
     needs_manual_assignment: ownershipResult.status === 'unknown',
   };
+
+  // ── 9b. Check for duplicate before insert ──
+  const { data: existingInvoice } = await admin
+    .from('unit_invoices')
+    .select('id')
+    .eq('unit_id', resolvedUnitId)
+    .eq('reference_month', mes)
+    .eq('reference_year', ano)
+    .neq('status', 'deleted')
+    .limit(1)
+    .maybeSingle();
+
+  if (existingInvoice) {
+    console.log(`[process-fatura-pdf] Duplicate invoice found: ${existingInvoice.id} for ${mes}/${ano}`);
+    return new Response(JSON.stringify({
+      success: true,
+      data: {
+        invoice_id: existingInvoice.id,
+        unit_id: resolvedUnitId,
+        parsed,
+        duplicate: true,
+        message: `Fatura duplicada para ${mes}/${ano}. ID existente: ${existingInvoice.id}`,
+      },
+    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
 
   const { data: invoice, error: invoiceErr } = await admin
     .from('unit_invoices')
