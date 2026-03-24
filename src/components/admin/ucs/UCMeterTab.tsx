@@ -128,11 +128,11 @@ export function UCMeterTab({ unitId }: Props) {
                       <p className="text-sm font-medium">{latestStatus.power_w != null ? `${latestStatus.power_w} W` : "—"}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Energia Importada</p>
+                      <p className="text-xs text-muted-foreground">Consumo (Cód. 03)</p>
                       <p className="text-sm">{latestStatus.energy_import_kwh != null ? `${latestStatus.energy_import_kwh} kWh` : "—"}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Energia Exportada</p>
+                      <p className="text-xs text-muted-foreground">Injeção (Cód. 103)</p>
                       <p className="text-sm">{latestStatus.energy_export_kwh != null ? `${latestStatus.energy_export_kwh} kWh` : "—"}</p>
                     </div>
                   </>
