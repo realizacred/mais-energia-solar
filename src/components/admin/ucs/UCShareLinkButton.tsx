@@ -68,8 +68,8 @@ export function UCShareLinkButton({ unitId }: Props) {
   const { data: portalUsers = [] } = useQuery({
     queryKey: ["client_portal_users", unitId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("client_portal_users" as any)
+      const { data, error } = await (supabase as any)
+        .from("client_portal_users")
         .select("id, email, is_active, last_login_at, created_at")
         .eq("unit_id", unitId)
         .eq("is_active", true)
