@@ -452,33 +452,9 @@ function GeneratorSection({
                     const beneficiaryUc = allUcs.find((candidate) => candidate.id === item.uc_beneficiaria_id);
                     const beneficiaryOverviewPath = buildUcDetailPath(item.uc_beneficiaria_id, {
                       tab: "overview",
-                      origin: "gd-generator",
-                      fromUcId: uc.id,
-                      fromUcName: uc.nome,
-                      fromUcCode: uc.codigo_uc,
-                      gdGroupId: group.id,
-                      gdGroupName: group.nome,
-                      relatedUcId: uc.id,
-                      relatedUcName: uc.nome,
-                      relatedUcCode: uc.codigo_uc,
-                      beneficiaryId: item.uc_beneficiaria_id,
-                      beneficiaryName: beneficiaryUc?.nome || null,
-                      returnTab: "gd",
                     });
                     const beneficiaryGdPath = buildUcDetailPath(item.uc_beneficiaria_id, {
                       tab: "gd",
-                      origin: "gd-generator",
-                      fromUcId: uc.id,
-                      fromUcName: uc.nome,
-                      fromUcCode: uc.codigo_uc,
-                      gdGroupId: group.id,
-                      gdGroupName: group.nome,
-                      relatedUcId: uc.id,
-                      relatedUcName: uc.nome,
-                      relatedUcCode: uc.codigo_uc,
-                      beneficiaryId: item.uc_beneficiaria_id,
-                      beneficiaryName: beneficiaryUc?.nome || null,
-                      returnTab: "gd",
                     });
 
                     return (
