@@ -490,8 +490,8 @@ export default function UCDetailPage() {
                     });
                     if (res.error) throw res.error;
                     toast({ title: "Teste concluído", description: "Verifique a aba de faturas para resultados." });
-                    queryClient.invalidateQueries({ queryKey: ["system_status_invoice", uc.id] });
-                    queryClient.invalidateQueries({ queryKey: ["system_status_log", uc.id] });
+                    qc.invalidateQueries({ queryKey: ["system_status_invoice", uc.id] });
+                    qc.invalidateQueries({ queryKey: ["system_status_log", uc.id] });
                   } catch (err: any) {
                     toast({ title: "Erro ao testar", description: err?.message || "Falha ao verificar e-mails.", variant: "destructive" });
                   }
