@@ -34,6 +34,7 @@ type BeneficiaryWithGroup = GdBeneficiary & {
 
 export function UCGdTab({ uc }: Props) {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const navigationContext = readUcNavigationContext(searchParams);
   const { data: allUcs = [] } = useUCsList();
 
@@ -44,28 +45,105 @@ export function UCGdTab({ uc }: Props) {
 
   const isLoading = loadingGen || loadingBen;
   const isGenerator = uc.papel_gd === "geradora" || uc.tipo_uc === "gd_geradora" || uc.tipo_uc === "mista";
+  const hasContext = !!navigationContext.fromUcId && navigationContext.fromUcId !== uc.id;
 
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-40 w-full rounded-lg" />
+        <Skeleton className="h-14 w-full rounded-lg" />
         <Skeleton className="h-56 w-full rounded-lg" />
-        <Skeleton className="h-48 w-full rounded-lg" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <GdSummaryCard
-        uc={uc}
-        isGenerator={isGenerator}
-        activeGroup={activeGroup}
-        beneficiaries={beneficiaries}
-        beneficiaryOf={beneficiaryOf as BeneficiaryWithGroup[]}
-        navigationContext={navigationContext}
-      />
+    <div className="space-y-5">
+      {/* ─── Compact Header: Role badges ─── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className={isGenerator ? "text-xs bg-primary/10 text-primary border-primary/20" : "text-xs bg-muted text-muted-foreground border-border"}>
+          <Sun className="w-3 h-3 mr-1" /> {isGenerator ? "Geradora" : "Sem papel de geradora"}
+        </Badge>
+        <Badge className={beneficiaryOf.length > 0 ? "text-xs bg-info/10 text-info border-info/20" : "text-xs bg-muted text-muted-foreground border-border"}>
+          <Users className="w-3 h-3 mr-1" /> {beneficiaryOf.length > 0 ? `Beneficiária (${beneficiaryOf.length})` : "Sem vínculo como beneficiária"}
+        </Badge>
+        {activeGroup && (
+          <Badge variant="outline" className="text-xs">
+            <GitBranch className="w-3 h-3 mr-1" /> {activeGroup.nome}
+          </Badge>
+        )}
+      </div>
 
+      {/* ─── Context breadcrumb (only when navigated from another UC) ─── */}
+      {hasContext && navigationContext.fromUcId && (
+        <div className="rounded-lg border border-border bg-muted/20 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+            <span className="font-medium text-foreground truncate">{navigationContext.fromUcName || "UC"}</span>
+            {navigationContext.gdGroupName && (
+              <>
+                <MoveRight className="w-3 h-3 shrink-0" />
+                <span className="truncate">{navigationContext.gdGroupName}</span>
+              </>
+            )}
+            <MoveRight className="w-3 h-3 shrink-0" />
+            <span className="font-medium text-foreground truncate">{uc.nome}</span>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={() =>
+                navigate(
+                  buildUcDetailPath(navigationContext.fromUcId!, {
+                    tab: navigationContext.returnTab || "overview",
+                    subtab: navigationContext.returnSubtab || null,
+                    origin: "gd-return",
+                    fromUcId: uc.id,
+                    fromUcName: uc.nome,
+                    fromUcCode: uc.codigo_uc,
+                    gdGroupId: navigationContext.gdGroupId,
+                    gdGroupName: navigationContext.gdGroupName,
+                    relatedUcId: uc.id,
+                    relatedUcName: uc.nome,
+                    relatedUcCode: uc.codigo_uc,
+                    beneficiaryId: navigationContext.beneficiaryId,
+                    beneficiaryName: navigationContext.beneficiaryName,
+                  }),
+                )
+              }
+            >
+              <ArrowLeft className="w-3 h-3" /> Voltar
+            </Button>
+            <Button
+              variant="soft"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={() =>
+                navigate(
+                  buildUcDetailPath(navigationContext.fromUcId!, {
+                    tab: "gd",
+                    origin: "gd-return",
+                    fromUcId: uc.id,
+                    fromUcName: uc.nome,
+                    fromUcCode: uc.codigo_uc,
+                    gdGroupId: navigationContext.gdGroupId,
+                    gdGroupName: navigationContext.gdGroupName,
+                    relatedUcId: uc.id,
+                    relatedUcName: uc.nome,
+                    relatedUcCode: uc.codigo_uc,
+                    beneficiaryId: navigationContext.beneficiaryId,
+                    beneficiaryName: navigationContext.beneficiaryName,
+                  }),
+                )
+              }
+            >
+              <GitBranch className="w-3 h-3" /> Aba GD
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Generator Section ─── */}
       {isGenerator && (
         <GeneratorSection
           uc={uc}
@@ -76,6 +154,7 @@ export function UCGdTab({ uc }: Props) {
         />
       )}
 
+      {/* ─── Beneficiary Section ─── */}
       {beneficiaryOf.length > 0 && (
         <BeneficiarySection
           currentUc={uc}
@@ -84,6 +163,7 @@ export function UCGdTab({ uc }: Props) {
         />
       )}
 
+      {/* ─── Empty state ─── */}
       {!isGenerator && beneficiaryOf.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center space-y-3">
@@ -91,7 +171,7 @@ export function UCGdTab({ uc }: Props) {
               <Sun className="w-6 h-6 text-muted-foreground" />
             </div>
             <p className="text-sm font-medium text-foreground">Esta UC ainda não participa de Geração Distribuída</p>
-            <p className="text-xs text-muted-foreground">Defina o papel GD no cadastro ou vincule esta UC a um grupo existente para habilitar a navegação contextual.</p>
+            <p className="text-xs text-muted-foreground">Defina o papel GD no cadastro ou vincule esta UC a um grupo existente.</p>
           </CardContent>
         </Card>
       )}
