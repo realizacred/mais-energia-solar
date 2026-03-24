@@ -2,7 +2,7 @@
  * GdGroupDetailModal — Detail view of a GD Group with beneficiaries.
  * §25-S1: w-[90vw] mandatory.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import { formatDate } from "@/lib/dateUtils";
 import { GdEnergyMonthly } from "./GdEnergyMonthly";
 import { GdEnergyReport } from "./GdEnergyReport";
 import { GdDecisionDashboard } from "./GdDecisionDashboard";
+import { useGdDashboardData } from "@/hooks/useGdDashboardData";
 
 interface Props {
   open: boolean;
