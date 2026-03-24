@@ -24,6 +24,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { buildUcDetailPath } from "./ucNavigation";
 import { GdHelpCard } from "./GdHelpCard";
+import { GdEnergyNetworkCard } from "./GdEnergyNetworkCard";
 
 interface Props {
   uc: UCRecord;
@@ -73,13 +74,28 @@ export function UCGdTab({ uc }: Props) {
 
       {/* ─── Generator Section ─── */}
       {isGenerator && (
-        <GeneratorSection
-          uc={uc}
-          group={activeGroup}
-          beneficiaries={beneficiaries}
-          loadingBenefs={loadingBenefs}
-          allUcs={allUcs}
-        />
+        <>
+          {/* Energy Network Card — only when group exists */}
+          {activeGroup && (
+            <GdEnergyNetworkCard
+              groupId={activeGroup.id}
+              groupName={activeGroup.nome}
+              generatorUcId={uc.id}
+              generatorName={uc.nome}
+              generatorCodigo={uc.codigo_uc}
+              beneficiaries={beneficiaries}
+              allUcs={allUcs}
+            />
+          )}
+
+          <GeneratorSection
+            uc={uc}
+            group={activeGroup}
+            beneficiaries={beneficiaries}
+            loadingBenefs={loadingBenefs}
+            allUcs={allUcs}
+          />
+        </>
       )}
 
       {/* ─── Beneficiary Section ─── */}

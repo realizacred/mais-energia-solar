@@ -8337,6 +8337,57 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_processing_logs: {
+        Row: {
+          created_at: string
+          error_details: Json | null
+          id: string
+          invoice_id: string | null
+          message: string | null
+          source: string | null
+          status: string
+          tenant_id: string
+          unit_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          invoice_id?: string | null
+          message?: string | null
+          source?: string | null
+          status?: string
+          tenant_id?: string
+          unit_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          invoice_id?: string | null
+          message?: string | null
+          source?: string | null
+          status?: string
+          tenant_id?: string
+          unit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_processing_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_processing_logs_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       irradiacao_por_estado: {
         Row: {
           created_at: string

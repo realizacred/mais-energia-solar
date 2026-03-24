@@ -31,6 +31,7 @@ import { UCInvoicesTab } from "./UCInvoicesTab";
 import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
 import { UCShareLinkButton } from "./UCShareLinkButton";
+import { SystemStatusCard } from "./SystemStatusCard";
 
 import { UCMeterTab } from "./UCMeterTab";
 import { UCPlantLinksTab } from "./UCPlantLinksTab";
@@ -469,7 +470,12 @@ export default function UCDetailPage() {
 
           {/* === CONFIGURAÇÕES TAB === */}
           <TabsContent value="config" className="space-y-6">
-            {/* Cadastro info moved to hero header */}
+            {/* Status do Sistema — visão geral operacional */}
+            <SystemStatusCard
+              unitId={uc.id}
+              leituraAutomaticaEmail={uc.leitura_automatica_email}
+              servicoCobrancaAtivo={(uc as any).servico_cobranca_ativo || false}
+            />
 
             {/* Recebimento de Faturas — unificado */}
             <UCBillingSettingsTab unitId={uc.id} leituraAutomaticaEmail={uc.leitura_automatica_email} />
