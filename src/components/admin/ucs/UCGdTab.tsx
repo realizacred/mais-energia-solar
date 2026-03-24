@@ -22,7 +22,7 @@ import { useUCsList, type UCOption } from "@/hooks/useFormSelects";
 import { type UCRecord } from "@/services/unitService";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { buildUcDetailPath, readUcNavigationContext, type UcNavigationContext } from "./ucNavigation";
+import { buildUcDetailPath, readUcNavigationContext } from "./ucNavigation";
 
 interface Props {
   uc: UCRecord;
