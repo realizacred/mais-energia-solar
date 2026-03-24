@@ -777,6 +777,33 @@ async function processInvoice(
       .join(' ');
   }
 
+  // ── Helper: Sanitize client name — reject junk/technical text ──
+  function sanitizeClientName(raw: string | null | undefined): string | null {
+    if (!raw || typeof raw !== 'string') return null;
+    const trimmed = raw.trim();
+    if (trimmed.length < 3) return null;
+    if (trimmed.length > 120) return null;
+    // Reject strings that are clearly NOT a person/company name
+    const JUNK_PATTERNS = [
+      /^a\s+ser[áa]\s+alter/i,      // "a será alterado", "a sera alterado"
+      /^(nao|não)\s+(informad|disponiv)/i,
+      /^(teste|test|sample|exemplo)/i,
+      /^(null|undefined|none|n\/a|n\.a\.)$/i,
+      /^(bifasic|trifasic|monofasic)/i,
+      /^(residencial|comercial|industrial|rural|poder.p[uú]blic)/i,
+      /^(baixa|m[eé]dia|alta)\s+tens[aã]o/i,
+      /^\d+$/,                        // Only digits
+      /^[^a-záàâãéèêíïóôõúüç]{3,}$/i, // No letters at all
+    ];
+    for (const pat of JUNK_PATTERNS) {
+      if (pat.test(trimmed)) {
+        console.warn(`[process-fatura-pdf] cliente_nome rejected by sanitization: "${trimmed}"`);
+        return null;
+      }
+    }
+    return trimmed;
+  }
+
   // Enrich UC from invoice — on first import (no history), OVERWRITE all fields from invoice
   const enrichFields = [
     'categoria_gd', 'concessionaria_nome', 'endereco',
@@ -832,8 +859,9 @@ async function processInvoice(
       if (parsed.modalidade_tarifaria && (shouldOverwrite || !currentUc.modalidade_tarifaria)) {
         ucUpdate.modalidade_tarifaria = toTitleCase(parsed.modalidade_tarifaria);
       }
-      if (parsed.cliente_nome && (shouldOverwrite || !currentUc.nome)) {
-        ucUpdate.nome = toTitleCase(parsed.cliente_nome);
+      const sanitizedClienteName = sanitizeClientName(parsed.cliente_nome);
+      if (sanitizedClienteName && (shouldOverwrite || !currentUc.nome)) {
+        ucUpdate.nome = toTitleCase(sanitizedClienteName);
       }
       if (parsed.tipo_ligacao && (shouldOverwrite || !currentUc.tipo_ligacao)) {
         ucUpdate.tipo_ligacao = parsed.tipo_ligacao.toLowerCase();

@@ -138,6 +138,28 @@ function InvoiceDetailPanel({ invoice, raw, unitId }: { invoice: UnitInvoice; ra
 
   return (
     <div className="px-6 py-4 space-y-4">
+      {/* Partial parsing warning */}
+      {invoice.parsing_status === "partial" && (
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+          <div className="text-xs text-warning space-y-0.5">
+            <p className="font-medium">Extração parcial</p>
+            <p>Alguns campos não foram extraídos corretamente. {invoice.parsing_error_reason || "Os dados abaixo podem estar incompletos."}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Failed parsing warning */}
+      {invoice.parsing_status === "failed" && (
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+          <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+          <div className="text-xs text-destructive space-y-0.5">
+            <p className="font-medium">Falha na extração</p>
+            <p>{invoice.parsing_error_reason || "Não foi possível extrair os dados desta fatura. Tente reprocessar."}</p>
+          </div>
+        </div>
+      )}
+
       {/* Manual assignment warning */}
       {invoice.needs_manual_assignment && (
         <div className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
@@ -642,23 +664,23 @@ export function UCInvoicesTab({ unitId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Status filter */}
+      {/* Status filter — filters by parsing_status (success/partial/failed) */}
       {invoices.length > 0 && (() => {
         const counts = {
           all: invoices.length,
           success: invoices.filter(i => i.parsing_status === "success").length,
+          partial: invoices.filter(i => i.parsing_status === "partial").length,
           failed: invoices.filter(i => i.parsing_status === "failed").length,
-          review: invoices.filter(i => i.parsing_status === "review").length,
-          pending: invoices.filter(i => i.parsing_status === "pending").length,
+          pending_review: invoices.filter(i => i.status === "pending_review" || i.needs_manual_assignment).length,
         };
         return (
           <div className="flex items-center gap-1.5 flex-wrap">
             {([
               { key: "all", label: "Todos", color: "" },
               { key: "success", label: "Processadas", color: "text-success" },
+              { key: "partial", label: "Parciais", color: "text-warning" },
               { key: "failed", label: "Erros", color: "text-destructive" },
-              { key: "review", label: "Em revisão", color: "text-warning" },
-              { key: "pending", label: "Pendentes", color: "text-muted-foreground" },
+              { key: "pending_review", label: "Em revisão", color: "text-muted-foreground" },
             ] as const).map(f => (
               <Button
                 key={f.key}
@@ -689,7 +711,9 @@ export function UCInvoicesTab({ unitId }: Props) {
       ) : (() => {
         const filteredInvoices = statusFilter === "all"
           ? invoices
-          : invoices.filter(i => i.parsing_status === statusFilter);
+          : statusFilter === "pending_review"
+            ? invoices.filter(i => i.status === "pending_review" || i.needs_manual_assignment)
+            : invoices.filter(i => i.parsing_status === statusFilter);
         return filteredInvoices.length === 0 ? (
           <EmptyState icon={FileText} title="Nenhuma fatura neste filtro" description="Altere o filtro acima para ver outras faturas." />
         ) : (
@@ -747,10 +771,15 @@ export function UCInvoicesTab({ unitId }: Props) {
                         <StatusBadge variant="muted">{SOURCE_LABELS[inv.source || "manual"] || inv.source}</StatusBadge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-wrap">
                           <StatusBadge variant={inv.status === "processed" ? "success" : inv.status === "error" ? "destructive" : "warning"} dot>
                             {STATUS_LABELS[inv.status] || inv.status}
                           </StatusBadge>
+                          {inv.parsing_status === "partial" && (
+                            <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">
+                              Parcial
+                            </Badge>
+                          )}
                           {inv.parsing_status === "failed" && (
                             <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />
                           )}
@@ -758,8 +787,8 @@ export function UCInvoicesTab({ unitId }: Props) {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
-                          {/* Reprocess button — visible when parsing failed */}
-                          {inv.parsing_status === "failed" && (
+                          {/* Reprocess button — visible when parsing failed or partial */}
+                          {(inv.parsing_status === "failed" || inv.parsing_status === "partial") && (
                             <Button
                               variant="ghost"
                               size="icon"
