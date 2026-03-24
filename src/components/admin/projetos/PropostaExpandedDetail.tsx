@@ -421,7 +421,7 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   );
 }
 
-function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, publicUrl, validadeDate, handleRender, handleDownloadPdf, handleSend, copyLink }: {
+function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, publicUrl, validadeDate, handleRender, handleDownloadPdf, handleSend, copyLink, pdfSignedUrl, pdfLoading, pdfError }: {
   snapshot: SnapshotData | null;
   html: string | null;
   rendering: boolean;
@@ -433,56 +433,65 @@ function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, 
   handleDownloadPdf: () => void;
   handleSend: (canal: "link" | "whatsapp") => void;
   copyLink: (withTracking: boolean) => void;
+  pdfSignedUrl: string | null;
+  pdfLoading: boolean;
+  pdfError: boolean;
 }) {
+  // Priority: persisted PDF > runtime HTML > empty state
+  const hasPdf = !!pdfSignedUrl;
+  const hasHtml = !!html;
+  const hasContent = hasPdf || hasHtml;
+
   return (
     <>
-      {snapshot && html && (
-        <div className="flex items-center gap-2 mt-3 mb-3 py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-          <span>Atenção! Houve atualização na proposta e seu arquivo pode não estar atualizado. Gere um novo arquivo, se necessário.</span>
-        </div>
-      )}
       <div className="flex gap-5 mt-3">
         <div className="w-[220px] shrink-0 space-y-3">
           <p className="text-sm font-bold text-foreground">Opções</p>
           <Button size="sm" className="w-full justify-start gap-2 h-8 text-xs" onClick={handleRender} disabled={rendering}>
             {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            Gerar outro arquivo
+            {hasPdf ? "Gerar novo arquivo" : "Gerar arquivo"}
           </Button>
           <div className="space-y-1">
-            <Button variant="link" onClick={handleDownloadPdf} disabled={!html || downloadingPdf} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
+            <Button variant="link" onClick={handleDownloadPdf} disabled={!hasPdf || downloadingPdf} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
               <FileText className="h-3.5 w-3.5" />
-              {downloadingPdf ? "Gerando..." : "Baixar PDF"}
+              {downloadingPdf ? "Baixando..." : "Baixar PDF"}
             </Button>
-            <Button variant="link" onClick={() => copyLink(true)} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
+            <Button variant="link" onClick={() => copyLink(true)} disabled={!publicUrl} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
               <Link2 className="h-3.5 w-3.5" /> Copiar link com rastreio
             </Button>
-            <Button variant="link" onClick={() => copyLink(false)} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
+            <Button variant="link" onClick={() => copyLink(false)} disabled={!publicUrl} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
               <Link2 className="h-3.5 w-3.5" /> Copiar link sem rastreio
             </Button>
             {validadeDate && (
               <div className="flex items-center gap-2 text-xs text-primary py-1">
-                <CalendarCheck className="h-3.5 w-3.5" /> Validade da proposta: {validadeDate}
+                <CalendarCheck className="h-3.5 w-3.5" /> Validade: {validadeDate}
               </div>
             )}
           </div>
           <div className="space-y-2 pt-1">
-            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-success text-success hover:bg-success/10" onClick={() => handleSend("whatsapp")} disabled={sending || !html}>
+            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-success text-success hover:bg-success/10" onClick={() => handleSend("whatsapp")} disabled={sending || !hasContent}>
               <MessageCircle className="h-3.5 w-3.5" /> Enviar por whatsapp
             </Button>
-            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-primary text-primary hover:bg-primary/10" disabled={!html}>
+            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-primary text-primary hover:bg-primary/10" disabled={!hasContent}>
               <Mail className="h-3.5 w-3.5" /> Enviar por e-mail
             </Button>
           </div>
         </div>
-        <div className="flex-1 min-w-0 border rounded-lg overflow-hidden bg-muted/20">
-          {html ? (
-            <iframe srcDoc={html} className="w-full h-[500px] border-0" title="Preview da proposta" sandbox="allow-same-origin" />
+        <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-muted/20">
+          {pdfLoading ? (
+            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin mb-3 text-primary" />
+              <p className="text-sm font-medium">Carregando PDF...</p>
+            </div>
+          ) : hasPdf ? (
+            <iframe src={pdfSignedUrl!} className="w-full h-[500px] border-0" title="Preview do PDF" />
+          ) : hasHtml ? (
+            <iframe srcDoc={html!} className="w-full h-[500px] border-0" title="Preview da proposta" sandbox="allow-same-origin" />
           ) : (
             <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
               <FileText className="h-10 w-10 opacity-20 mb-3" />
               <p className="text-sm font-medium">Nenhum arquivo gerado</p>
-              <p className="text-xs mt-1">Clique em "Gerar outro arquivo" para visualizar</p>
+              <p className="text-xs mt-1">Clique em "Gerar arquivo" para criar o PDF da proposta</p>
               <Button size="sm" variant="outline" className="mt-3 gap-1.5 text-xs" onClick={handleRender} disabled={rendering}>
                 {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                 Gerar arquivo
