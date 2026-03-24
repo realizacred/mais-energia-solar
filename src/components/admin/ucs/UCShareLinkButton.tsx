@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Link2, Copy, Check, Trash2, ExternalLink, Share2, UserPlus, KeyRound, Eye, EyeOff } from "lucide-react";
+import { Link2, Copy, Check, Trash2, ExternalLink, Share2, UserPlus, KeyRound, Eye, EyeOff, CheckCircle2, XCircle } from "lucide-react";
 import { formatDate } from "@/lib/dateUtils";
 import { SettingsHelpCard } from "./SettingsHelpCard";
 
