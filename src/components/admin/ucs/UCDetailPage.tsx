@@ -373,9 +373,9 @@ export default function UCDetailPage() {
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Papel GD</p>
                     <p className="text-sm font-semibold text-foreground">
                       {PAPEL_GD_LABELS[uc.papel_gd] || uc.papel_gd || "Nenhum"}
-                      {uc.categoria_gd && (
+                      {resolvedCategoriaGd && (
                         <span className="text-muted-foreground font-normal text-xs ml-1.5">
-                          ({CATEGORIA_GD_LABELS[uc.categoria_gd] || uc.categoria_gd})
+                          ({CATEGORIA_GD_LABELS[resolvedCategoriaGd] || resolvedCategoriaGd})
                         </span>
                       )}
                     </p>
