@@ -533,16 +533,7 @@ export default function Admin() {
             {/* Right-aligned actions — hide less important on mobile */}
             <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
               <span className="hidden md:inline-flex"><HeaderSearch /></span>
-              <span className="hidden sm:inline-flex"><HelpDropdown /></span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-md"
-                onClick={() => setHelpOpen(true)}
-                aria-label="Central de Ajuda"
-              >
-                <HelpCircle className="h-4 w-4" />
-              </Button>
+              <HelpDropdown onOpenHelpCenter={() => setHelpOpen(true)} />
               <NotificationsDropdown />
               <AgendaSheet />
               <div className="h-4 w-px bg-border/40 mx-0.5 sm:mx-1 hidden sm:block" />
