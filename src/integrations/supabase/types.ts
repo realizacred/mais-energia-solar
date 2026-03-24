@@ -14678,6 +14678,74 @@ export type Database = {
           },
         ]
       }
+      proposal_message_logs: {
+        Row: {
+          canal: string
+          cliente_id: string | null
+          conteudo: string
+          created_at: string
+          destinatario_tipo: string
+          destinatario_valor: string | null
+          erro: string | null
+          estilo: string
+          id: string
+          projeto_id: string
+          proposta_id: string
+          sent_at: string | null
+          status: string
+          tenant_id: string
+          tipo_mensagem: string
+          user_id: string
+          versao_id: string
+        }
+        Insert: {
+          canal: string
+          cliente_id?: string | null
+          conteudo: string
+          created_at?: string
+          destinatario_tipo: string
+          destinatario_valor?: string | null
+          erro?: string | null
+          estilo: string
+          id?: string
+          projeto_id: string
+          proposta_id: string
+          sent_at?: string | null
+          status?: string
+          tenant_id: string
+          tipo_mensagem: string
+          user_id: string
+          versao_id: string
+        }
+        Update: {
+          canal?: string
+          cliente_id?: string | null
+          conteudo?: string
+          created_at?: string
+          destinatario_tipo?: string
+          destinatario_valor?: string | null
+          erro?: string | null
+          estilo?: string
+          id?: string
+          projeto_id?: string
+          proposta_id?: string
+          sent_at?: string | null
+          status?: string
+          tenant_id?: string
+          tipo_mensagem?: string
+          user_id?: string
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_message_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_variables: {
         Row: {
           created_at: string
