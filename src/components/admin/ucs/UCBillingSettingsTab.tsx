@@ -19,7 +19,7 @@ import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send, Phone, CheckCircle2, XCircle, AlertTriangle, RefreshCw, FileSearch } from "lucide-react";
+import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send, Phone, CheckCircle2, XCircle, AlertTriangle, RefreshCw, FileSearch, Tag } from "lucide-react";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { formatDateTime, formatDate } from "@/lib/dateUtils";
 import { SettingsHelpCard } from "./SettingsHelpCard";
@@ -63,6 +63,22 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
   const { guardLimit, LimitDialog } = usePlanGuard();
   const [showPassword, setShowPassword] = useState(false);
 
+  // Fetch Gmail labels from connected accounts
+  const { data: gmailLabels = [], isLoading: labelsLoading } = useQuery({
+    queryKey: ["gmail_labels"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return [];
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const resp = await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?action=list_labels`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!resp.ok) return [];
+      const result = await resp.json();
+      return (result.labels || []) as { id: string; name: string }[];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
   const { data: settings, isLoading } = useQuery({
     queryKey: ["billing_settings", unitId],
     queryFn: () => invoiceService.getBillingSettings(unitId),
