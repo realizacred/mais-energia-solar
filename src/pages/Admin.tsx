@@ -395,6 +395,7 @@ export default function Admin() {
   const [hasAccess, setHasAccess] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Resolve tenant for onboarding check
   useEffect(() => {
