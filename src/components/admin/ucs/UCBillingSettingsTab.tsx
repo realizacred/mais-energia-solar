@@ -95,6 +95,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
     dias_antecedencia_alerta: "1",
     canal_notificacao: "whatsapp" as BillingNotificationChannel,
     servico_fatura_ativo: false,
+    gmail_label: "",
   };
 
   const { form, setForm, isDirty, commitBaseline, resetTo } = useDirtyForm(defaultForm);
@@ -111,6 +112,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
         dias_antecedencia_alerta: String(settings.dias_antecedencia_alerta ?? 1),
         canal_notificacao: settings.canal_notificacao || "whatsapp",
         servico_fatura_ativo: settings.servico_fatura_ativo ?? false,
+        gmail_label: settings.gmail_label || "",
       });
     }
   }, [settings, resetTo]);
