@@ -777,8 +777,10 @@ export async function getTodayMetrics(): Promise<SolarPlantMetricsDaily[]> {
 // ─── CLIENT LINKING ──────────────────────────────────────────
 
 /**
- * Update the client_id on monitor_plants for a given legacy solar_plants.id.
- * Pass null to unlink.
+ * @deprecated Legacy: writes directly to monitor_plants.client_id.
+ * Canonical path is: UC.cliente_id → resolved via unit_plant_links.
+ * Use resolveClienteFromPlant() from clienteResolution.ts for reads.
+ * This function is kept for backward compatibility during migration.
  */
 export async function updatePlantClientId(plantId: string, clientId: string | null): Promise<void> {
   // Resolve to monitor_plants row via legacy_plant_id
@@ -812,7 +814,8 @@ export async function updatePlantClientId(plantId: string, clientId: string | nu
 }
 
 /**
- * List all plants linked to a specific client
+ * @deprecated Legacy filter by monitor_plants.client_id.
+ * Canonical: resolve via unit_plant_links → UC → cliente_id.
  */
 export async function listPlantsByClientId(clientId: string): Promise<PlantWithHealth[]> {
   const all = await listPlantsWithHealth();

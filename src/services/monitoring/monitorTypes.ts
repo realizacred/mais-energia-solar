@@ -8,6 +8,7 @@ export type DeviceType = "inverter" | "logger" | "gateway" | "meter";
 export interface MonitorPlant {
   id: string;
   tenant_id: string;
+  /** @deprecated Legacy. Canonical: resolve via unit_plant_links → UC → cliente_id */
   client_id: string | null;
   name: string;
   lat: number | null;
