@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Link2, Copy, Check, Trash2, ExternalLink, Share2, UserPlus, KeyRound, Eye, EyeOff } from "lucide-react";
 import { formatDate } from "@/lib/dateUtils";
+import { SettingsHelpCard } from "./SettingsHelpCard";
 
 interface Props {
   unitId: string;
