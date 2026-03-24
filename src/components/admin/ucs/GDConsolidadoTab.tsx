@@ -196,19 +196,39 @@ export function GDConsolidadoTab() {
       const groupAllocs = allocations.filter(a => a.gd_group_id === group.id);
       const gen = ucMap.get(group.uc_geradora_id);
 
-      const beneficiaries: BeneficiaryInfo[] = groupAllocs.map(a => {
-        const uc = ucMap.get(a.uc_beneficiaria_id);
-        return {
-          id: a.id,
-          uc_beneficiaria_id: a.uc_beneficiaria_id,
-          allocation_percent: Number(a.allocation_percent) || 0,
-          allocated_kwh: Number(a.allocated_kwh) || 0,
-          compensated_kwh: Number(a.compensated_kwh) || 0,
-          estimated_savings_brl: Number(a.estimated_savings_brl) || 0,
-          uc_nome: uc?.nome,
-          uc_codigo: uc?.codigo_uc,
-        };
-      });
+      // Use snapshot allocations if available, otherwise fallback to real beneficiaries
+      let beneficiaries: BeneficiaryInfo[];
+      if (groupAllocs.length > 0) {
+        beneficiaries = groupAllocs.map(a => {
+          const uc = ucMap.get(a.uc_beneficiaria_id);
+          return {
+            id: a.id,
+            uc_beneficiaria_id: a.uc_beneficiaria_id,
+            allocation_percent: Number(a.allocation_percent) || 0,
+            allocated_kwh: Number(a.allocated_kwh) || 0,
+            compensated_kwh: Number(a.compensated_kwh) || 0,
+            estimated_savings_brl: Number(a.estimated_savings_brl) || 0,
+            uc_nome: uc?.nome,
+            uc_codigo: uc?.codigo_uc,
+          };
+        });
+      } else {
+        // Fallback: show real beneficiaries even without monthly snapshot
+        const groupReal = realBeneficiaries.filter(b => b.gd_group_id === group.id);
+        beneficiaries = groupReal.map(b => {
+          const uc = ucMap.get(b.uc_beneficiaria_id);
+          return {
+            id: b.id,
+            uc_beneficiaria_id: b.uc_beneficiaria_id,
+            allocation_percent: Number(b.allocation_percent) || 0,
+            allocated_kwh: 0,
+            compensated_kwh: 0,
+            estimated_savings_brl: 0,
+            uc_nome: uc?.nome,
+            uc_codigo: uc?.codigo_uc,
+          };
+        });
+      }
 
       const totalSavings = beneficiaries.reduce((s, b) => s + b.estimated_savings_brl, 0);
 
@@ -221,7 +241,7 @@ export function GDConsolidadoTab() {
         totalSavings,
       };
     });
-  }, [groups, snapshots, allocations, ucMap]);
+  }, [groups, snapshots, allocations, realBeneficiaries, ucMap]);
 
   // KPIs
   const kpis = useMemo(() => {
