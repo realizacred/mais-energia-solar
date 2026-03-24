@@ -105,18 +105,9 @@ const TABS = [
 function RecebimentoCTA({ dealId, customerId, customerName, navigate }: {
   dealId: string; customerId: string | null; customerName: string; navigate: ReturnType<typeof useNavigate>;
 }) {
-  const [hasRecebimento, setHasRecebimento] = useState<boolean | null>(null);
+  const { data: hasRecebimento, isLoading } = useClienteHasRecebimento(customerId);
 
-  useEffect(() => {
-    if (!customerId) return;
-    supabase
-      .from("recebimentos")
-      .select("id", { count: "exact", head: true })
-      .eq("cliente_id", customerId)
-      .then(({ count }) => setHasRecebimento((count ?? 0) > 0));
-  }, [customerId]);
-
-  if (hasRecebimento === null) return null;
+  if (isLoading || hasRecebimento === undefined) return null;
   if (hasRecebimento) return null;
 
   return (
