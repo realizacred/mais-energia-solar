@@ -143,6 +143,9 @@ export function UCMeterTab({ unitId }: Props) {
 
           {/* Leitura Inicial do Relógio Físico */}
           <LeituraInicialCard meterId={activeMeter.id} meter={activeMeter} />
+
+          {/* Histórico de Leituras */}
+          <MeterReadingsHistory meterId={activeMeter.id} />
         </>
       ) : (
         <EmptyState
