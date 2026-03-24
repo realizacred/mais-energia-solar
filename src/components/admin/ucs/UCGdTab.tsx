@@ -132,83 +132,62 @@ function BeneficiarySection({
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="space-y-1">
             <CardTitle className="text-base flex items-center gap-2">
-              <Users className="w-4 h-4 text-info" /> Unidade Beneficiária
+              <Users className="w-4 h-4 text-info" /> Grupos que fornecem créditos para esta UC
             </CardTitle>
             <CardDescription>
-              Esta UC recebe créditos de energia dos grupos listados abaixo. Use os atalhos para navegar até a UC geradora ou o grupo GD.
+              Esta unidade recebe créditos de energia dos grupos abaixo. Navegue para a UC geradora ou veja a distribuição completa.
             </CardDescription>
           </div>
-          <Badge variant="outline" className="text-xs border-info/20 text-info bg-info/10">
-            {beneficiaryOf.length} vínculo{beneficiaryOf.length === 1 ? "" : "s"}
-          </Badge>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-3">
           {beneficiaryOf.map((relation) => {
             const genUc = genMap.get(relation.gd_groups?.uc_geradora_id);
-            const generatorOverviewPath = relation.gd_groups?.uc_geradora_id
-              ? buildUcDetailPath(relation.gd_groups.uc_geradora_id, {
-                  tab: "overview",
-                  origin: "gd-beneficiary",
-                  fromUcId: currentUc.id,
-                  fromUcName: currentUc.nome,
-                  fromUcCode: currentUc.codigo_uc,
-                  gdGroupId: relation.gd_groups.id,
-                  gdGroupName: relation.gd_groups.nome,
-                  relatedUcId: currentUc.id,
-                  relatedUcName: currentUc.nome,
-                  relatedUcCode: currentUc.codigo_uc,
-                  returnTab: "gd",
-                })
+            const generatorPath = relation.gd_groups?.uc_geradora_id
+              ? buildUcDetailPath(relation.gd_groups.uc_geradora_id, { tab: "overview" })
               : null;
-            const generatorGroupPath = relation.gd_groups?.uc_geradora_id
-              ? buildUcDetailPath(relation.gd_groups.uc_geradora_id, {
-                  tab: "gd",
-                  origin: "gd-beneficiary",
-                  fromUcId: currentUc.id,
-                  fromUcName: currentUc.nome,
-                  fromUcCode: currentUc.codigo_uc,
-                  gdGroupId: relation.gd_groups.id,
-                  gdGroupName: relation.gd_groups.nome,
-                  relatedUcId: currentUc.id,
-                  relatedUcName: currentUc.nome,
-                  relatedUcCode: currentUc.codigo_uc,
-                  returnTab: "gd",
-                })
+            const groupPath = relation.gd_groups?.uc_geradora_id
+              ? buildUcDetailPath(relation.gd_groups.uc_geradora_id, { tab: "gd" })
               : null;
 
             return (
-              <div key={relation.id} className="rounded-xl border border-border bg-muted/20 p-4 space-y-4">
+              <div key={relation.id} className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+                {/* Group name + allocation */}
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{relation.gd_groups?.nome}</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      Grupo "{relation.gd_groups?.nome}"
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      Esta UC recebe <span className="font-mono text-foreground">{Number(relation.allocation_percent).toFixed(2)}%</span> deste grupo.
+                      Recebe <span className="font-mono font-medium text-foreground">{Number(relation.allocation_percent).toFixed(1)}%</span> dos créditos deste grupo
                     </p>
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    <Users className="w-3 h-3 mr-1" /> Beneficiária ativa
+                  <Badge variant="outline" className="text-xs border-info/20 text-info bg-info/10">
+                    Beneficiária ativa
                   </Badge>
                 </div>
 
-                <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center">
-                  <FlowCard label="UC atual" title={currentUc.nome} subtitle={currentUc.codigo_uc} />
-                  <MoveRight className="w-4 h-4 text-muted-foreground hidden lg:block" />
-                  <FlowCard label="Grupo GD" title={relation.gd_groups?.nome} subtitle={`Alocação ${Number(relation.allocation_percent).toFixed(2)}%`} />
-                  <MoveRight className="w-4 h-4 text-muted-foreground hidden lg:block" />
-                  <FlowCard label="UC geradora" title={genUc?.nome || "UC geradora"} subtitle={genUc?.codigo_uc || "—"} />
-                </div>
+                {/* Generator info */}
+                {genUc && (
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-card border border-border">
+                    <Sun className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="text-xs text-muted-foreground">UC geradora:</span>
+                    <span className="text-xs font-medium text-foreground truncate">{genUc.nome}</span>
+                    <span className="text-xs text-muted-foreground font-mono">({genUc.codigo_uc})</span>
+                  </div>
+                )}
 
+                {/* Actions */}
                 <div className="flex flex-wrap gap-2">
-                  {generatorOverviewPath && (
-                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(generatorOverviewPath)}>
+                  {generatorPath && (
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(generatorPath)}>
                       <Building2 className="w-3 h-3" /> Ir para UC geradora
                     </Button>
                   )}
-                  {generatorGroupPath && (
-                    <Button variant="soft" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(generatorGroupPath)}>
-                      <GitBranch className="w-3 h-3" /> Ver grupo e distribuição
+                  {groupPath && (
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(groupPath)}>
+                      <Users className="w-3 h-3" /> Ver grupo e distribuição
                     </Button>
                   )}
                 </div>
