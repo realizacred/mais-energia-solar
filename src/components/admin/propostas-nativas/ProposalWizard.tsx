@@ -41,6 +41,7 @@ import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
 import { useWizardPersistence, type WizardSnapshot, type PersistenceParams, type AtomicPersistResult } from "./wizard/hooks/useWizardPersistence";
 import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
 import { StepPagamento } from "./wizard/StepPagamento";
+import { StepResumo } from "./wizard/StepResumo";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
 import { ProposalAuditPanel } from "./wizard/ProposalAuditPanel";
@@ -98,6 +99,7 @@ const STEP_META: Record<string, { title: string; description: string }> = {
   [STEP_KEYS.SERVICOS]: { title: "Serviços", description: "Configure mão de obra, frete e serviços inclusos ou extras." },
   [STEP_KEYS.VENDA]: { title: "Centro Financeiro", description: "Defina margens, comissões e precificação final do projeto." },
   [STEP_KEYS.PAGAMENTO]: { title: "Formas de Pagamento", description: "Configure opções de pagamento, financiamentos e parcelamentos." },
+  [STEP_KEYS.RESUMO]: { title: "Resumo da Proposta", description: "Revise todos os dados antes de gerar a proposta comercial." },
   [STEP_KEYS.PROPOSTA]: { title: "Gerar Proposta", description: "Revise os dados e gere o documento final da proposta comercial." },
 };
 
