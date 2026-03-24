@@ -43,7 +43,7 @@ function sourceLabel(source: string | null | undefined): string {
 function statusLabel(status: string | null | undefined): string {
   switch (status) {
     case "valid": return "Processada com sucesso";
-    case "received": return "Recebida, aguardando processamento";
+    case "received": return "Recebida e processada";
     case "divergent": return "Processada com divergências";
     case "review": return "Aguardando revisão";
     case "failed": return "Falha no processamento";
@@ -53,7 +53,8 @@ function statusLabel(status: string | null | undefined): string {
 
 function statusVariant(status: string | null | undefined): "success" | "destructive" | "warning" {
   switch (status) {
-    case "valid": return "success";
+    case "valid":
+    case "received": return "success";
     case "failed": return "destructive";
     default: return "warning";
   }
