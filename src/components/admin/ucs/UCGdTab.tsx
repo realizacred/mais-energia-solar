@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, ArrowRight, Building2, GitBranch, Loader2, Plus, Sun, Trash2, Users, Edit } from "lucide-react";
+import { AlertCircle, ArrowRight, Building2, GitBranch, Loader2, PieChart, Plus, Sun, Trash2, Users, Edit } from "lucide-react";
 import { useGdGroupByGenerator, useGdBeneficiaries, useGdBeneficiariesByUC, useSaveGdBeneficiary, useDeleteGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
 import { useSaveGdGroup, useDeleteGdGroup, type GdGroup } from "@/hooks/useGdGroups";
 import { useUCsList, type UCOption } from "@/hooks/useFormSelects";
@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { buildUcDetailPath } from "./ucNavigation";
 import { GdHelpCard } from "./GdHelpCard";
 import { GdEnergyNetworkCard } from "./GdEnergyNetworkCard";
+import { EditDistributionModal } from "./EditDistributionModal";
 
 interface Props {
   uc: UCRecord;
@@ -246,6 +247,7 @@ function GeneratorSection({
   const [editGroupName, setEditGroupName] = useState("");
   const [newGroupOpen, setNewGroupOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const [editDistOpen, setEditDistOpen] = useState(false);
 
   async function handleCreateGroup() {
     try {
@@ -521,9 +523,16 @@ function GeneratorSection({
             </div>
           )}
 
-          <Button variant="outline" size="sm" onClick={() => setAddBenOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Adicionar Beneficiária
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAddBenOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Adicionar Beneficiária
+            </Button>
+            {beneficiaries.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setEditDistOpen(true)}>
+                <PieChart className="w-4 h-4 mr-1" /> Ajustar distribuição
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -532,6 +541,16 @@ function GeneratorSection({
         onOpenChange={setAddBenOpen}
         groupId={group.id}
         availableUcs={availableUcs}
+      />
+
+      <EditDistributionModal
+        open={editDistOpen}
+        onOpenChange={setEditDistOpen}
+        groupId={group.id}
+        groupName={group.nome}
+        generatorName={uc.nome}
+        beneficiaries={beneficiaries}
+        allUcs={allUcs}
       />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
