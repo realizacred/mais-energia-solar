@@ -693,6 +693,21 @@ export default function UCPublica() {
             />
           )}
 
+          {/* ═══ SAVINGS HIGHLIGHT ═══ */}
+          {latestInvoice && (() => {
+            const comp = Number(latestInvoice.compensated_kwh || 0);
+            const savings = Number(latestInvoice.estimated_savings_brl || 0);
+            const economia = savings > 0 ? savings : comp * tarifa;
+            const monthIdx = (latestInvoice.reference_month ?? 1) - 1;
+            return (
+              <PortalSavingsHighlight
+                savingsBrl={economia}
+                monthLabel={`${MONTHS_FULL[monthIdx]} ${latestInvoice.reference_year}`}
+                compensatedKwh={comp}
+              />
+            );
+          })()}
+
           {/* ═══ ECONOMY SECTION ═══ */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
