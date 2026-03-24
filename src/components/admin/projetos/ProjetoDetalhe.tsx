@@ -1686,7 +1686,7 @@ interface GeneratedDocRow {
   template_categoria?: string;
 }
 
-function DocumentosTab({ dealId }: { dealId: string }) {
+function DocumentosTab({ dealId, customerId }: { dealId: string; customerId: string | null }) {
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [generatedDocs, setGeneratedDocs] = useState<GeneratedDocRow[]>([]);
   const [templates, setTemplates] = useState<{ id: string; nome: string; categoria: string }[]>([]);
