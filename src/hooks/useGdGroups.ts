@@ -83,6 +83,9 @@ export function useSaveGdGroup() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QK] });
+      // Sync: UC categoria_gd is updated by DB trigger (trg_sync_gd_categoria)
+      qc.invalidateQueries({ queryKey: ["units_consumidoras"] });
+      qc.invalidateQueries({ queryKey: ["uc_detail"] });
     },
   });
 }

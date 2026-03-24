@@ -53,6 +53,29 @@ export const gdService = {
   },
 
   /**
+   * Validate GD2 titular constraint: all UCs must share the same cliente_id.
+   * Returns { valid, message }.
+   */
+  validateTitularGD2(
+    generatorClienteId: string | null,
+    beneficiaryClienteId: string | null
+  ): { valid: boolean; message: string | null } {
+    if (!generatorClienteId || !beneficiaryClienteId) {
+      return {
+        valid: false,
+        message: "GD II exige que geradora e beneficiária tenham o mesmo titular (cliente). Vincule ambas a um cliente.",
+      };
+    }
+    if (generatorClienteId !== beneficiaryClienteId) {
+      return {
+        valid: false,
+        message: "GD II exige mesmo titular (CPF/CNPJ). A beneficiária pertence a um cliente diferente da geradora.",
+      };
+    }
+    return { valid: true, message: null };
+  },
+
+  /**
    * Validate that allocation_percent > 0.
    */
   isValidPercent(percent: number): boolean {
