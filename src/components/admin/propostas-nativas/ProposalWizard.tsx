@@ -353,6 +353,10 @@ export function ProposalWizard() {
     if (!draft?.snapshot) return;
 
     restoreFromSnapshot(draft.snapshot);
+    // For localStorage drafts (new proposals), restore the step position
+    if (draft.snapshot.step != null && draft.snapshot.step > 0) {
+      setStep(draft.snapshot.step);
+    }
     if (draft.savedPropostaId) setSavedPropostaId(draft.savedPropostaId);
     if (draft.savedVersaoId) setSavedVersaoId(draft.savedVersaoId);
 
