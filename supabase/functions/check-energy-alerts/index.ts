@@ -47,7 +47,6 @@ Deno.serve(async (req) => {
 
     // ─── Helper: deduplicated alert insert ───
     async function createAlertIfNew(payload: AlertPayload): Promise<boolean> {
-      // Check for existing unresolved alert of same type + entity
       let q = supabase
         .from("energy_alerts")
         .select("id")
@@ -57,7 +56,6 @@ Deno.serve(async (req) => {
       if (payload.unit_id) q = q.eq("unit_id", payload.unit_id);
       if (payload.plant_id) q = q.eq("plant_id", payload.plant_id);
       if (payload.gd_group_id) q = q.eq("gd_group_id", payload.gd_group_id);
-      // For meter_offline without unit/plant/gd, scope by tenant + type
       if (!payload.unit_id && !payload.plant_id && !payload.gd_group_id) {
         q = q.eq("tenant_id", payload.tenant_id);
       }
@@ -142,31 +140,32 @@ Deno.serve(async (req) => {
         .from("units_consumidoras")
         .select("id, tenant_id, nome, codigo_uc, leitura_automatica_email")
         .eq("leitura_automatica_email", true)
-        .eq("ativo", true);
+        .eq("is_archived", false);
 
       for (const uc of ucs || []) {
-        // Check if invoice exists for current month
-        const refStart = `${currentYear}-${String(currentMonth).padStart(2, "0")}-01`;
+        // Check current month invoice in unit_invoices
         const { data: currentInvoice } = await supabase
-          .from("faturas_energia")
+          .from("unit_invoices")
           .select("id")
           .eq("unit_id", uc.id)
-          .gte("mes_referencia", refStart)
+          .eq("reference_month", currentMonth)
+          .eq("reference_year", currentYear)
           .limit(1);
 
         if (!currentInvoice || currentInvoice.length === 0) {
-          // Check previous month too for critical
-          const prevDate = new Date(currentYear, currentMonth - 2, 1);
-          const prevStart = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}-01`;
+          // Check previous month for critical severity
+          const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+          const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
           const { data: prevInvoice } = await supabase
-            .from("faturas_energia")
+            .from("unit_invoices")
             .select("id")
             .eq("unit_id", uc.id)
-            .gte("mes_referencia", prevStart)
-            .lt("mes_referencia", refStart)
+            .eq("reference_month", prevMonth)
+            .eq("reference_year", prevYear)
             .limit(1);
 
-          const severity = (!prevInvoice || prevInvoice.length === 0) ? "critical" : "warning";
+          const severity = (!prevInvoice || prevInvoice.length === 0) ? "critical" as const : "warning" as const;
 
           const created = await createAlertIfNew({
             tenant_id: uc.tenant_id,
@@ -222,19 +221,19 @@ Deno.serve(async (req) => {
     const { data: gdGroups } = await supabase
       .from("gd_groups")
       .select("id, tenant_id, nome")
-      .eq("ativo", true);
+      .eq("status", "active");
 
     for (const group of gdGroups || []) {
       const { data: allocations } = await supabase
-        .from("gd_beneficiarias")
-        .select("percentual_rateio")
+        .from("gd_group_beneficiaries")
+        .select("allocation_percent")
         .eq("gd_group_id", group.id)
-        .eq("ativo", true);
+        .eq("is_active", true);
 
       if (!allocations || allocations.length === 0) continue;
 
       const totalPercent = allocations.reduce(
-        (sum: number, a: { percentual_rateio: number | null }) => sum + (a.percentual_rateio || 0),
+        (sum: number, a: { allocation_percent: number | null }) => sum + (a.allocation_percent || 0),
         0
       );
 
