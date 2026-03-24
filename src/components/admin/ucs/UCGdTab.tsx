@@ -409,6 +409,33 @@ function GeneratorSection({
     }
   }, [deleteTarget, deleteBeneficiary, group?.id, qc, toast]);
 
+  const handleDeleteGroup = useCallback(async () => {
+    if (!group) return;
+    try {
+      await deleteGroup.mutateAsync(group.id);
+      qc.invalidateQueries({ queryKey: ["gd_groups", "by_generator", uc.id] });
+      qc.invalidateQueries({ queryKey: ["gd_groups"] });
+      toast({ title: "Grupo GD excluído" });
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir grupo", description: err?.message, variant: "destructive" });
+    } finally {
+      setDeleteGroupConfirm(false);
+    }
+  }, [group, deleteGroup, uc.id, qc, toast]);
+
+  const handleEditGroup = useCallback(async () => {
+    if (!group || !editGroupName.trim()) return;
+    try {
+      await saveGroup.mutateAsync({ id: group.id, nome: editGroupName });
+      qc.invalidateQueries({ queryKey: ["gd_groups", "by_generator", uc.id] });
+      qc.invalidateQueries({ queryKey: ["gd_groups"] });
+      toast({ title: "Grupo atualizado" });
+      setEditGroupOpen(false);
+    } catch (err: any) {
+      toast({ title: "Erro", description: err?.message, variant: "destructive" });
+    }
+  }, [group, editGroupName, saveGroup, uc.id, qc, toast]);
+
   if (!group) {
     return (
       <>
