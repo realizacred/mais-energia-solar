@@ -543,6 +543,16 @@ function GeneratorSection({
         availableUcs={availableUcs}
       />
 
+      <EditDistributionModal
+        open={editDistOpen}
+        onOpenChange={setEditDistOpen}
+        groupId={group.id}
+        groupName={group.nome}
+        generatorName={uc.nome}
+        beneficiaries={beneficiaries}
+        allUcs={allUcs}
+      />
+
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
