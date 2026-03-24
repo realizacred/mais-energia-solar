@@ -135,12 +135,15 @@ export const invoiceBootstrapService = {
   /**
    * Validate that critical invoice fields are present before persistence.
    * Returns list of missing critical fields.
+   * If not valid, invoice MUST NOT be saved as 'success' — mark as 'partial'.
    */
   validateCriticalFields(extraction: {
     reference_month?: number | null;
     reference_year?: number | null;
     total_amount?: number | null;
-  }): { valid: boolean; missingFields: string[] } {
+    parsing_status?: string | null;
+    confidence?: number | null;
+  }): { valid: boolean; missingFields: string[]; shouldPersist: boolean } {
     const missing: string[] = [];
 
     if (!extraction.reference_month || extraction.reference_month < 1 || extraction.reference_month > 12) {
@@ -150,6 +153,14 @@ export const invoiceBootstrapService = {
       missing.push("reference_year");
     }
 
-    return { valid: missing.length === 0, missingFields: missing };
+    // Parsing status check: partial/error should NOT auto-persist as valid
+    const isParsingReliable = extraction.parsing_status === "success";
+    const isConfident = extraction.confidence == null || extraction.confidence >= 60;
+
+    const valid = missing.length === 0;
+    // Only persist automatically if valid AND parsing is reliable AND confidence is acceptable
+    const shouldPersist = valid && isParsingReliable && isConfident;
+
+    return { valid, missingFields: missing, shouldPersist };
   },
 };
