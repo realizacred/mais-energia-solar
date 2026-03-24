@@ -74,6 +74,7 @@ const InvoiceReviewPage = lazy(() => import("@/components/admin/faturas/InvoiceR
 const ExtractionCenterPage = lazy(() => import("@/components/admin/extraction/ExtractionCenterPage"));
 // GdGroupsPage removida — funcionalidade migrada para aba Beneficiárias na UC
 const EnergyAlertsPage = lazy(() => import("@/components/admin/energia/EnergyAlertsPage").then(m => ({ default: m.EnergyAlertsPage })));
+const EnergiaDashboard = lazy(() => import("@/components/admin/energia/EnergiaDashboard"));
 const GdAutomationPage = lazy(() => import("@/components/admin/energia/GdAutomationPage").then(m => ({ default: m.GdAutomationPage })));
 const EnergyFinancialPage = lazy(() => import("@/components/admin/energia/EnergyFinancialPage").then(m => ({ default: m.EnergyFinancialPage })));
 const ClienteEnergiaDashboardPage = lazy(() => import("@/components/admin/energia/ClienteEnergiaDashboardPage").then(m => ({ default: m.ClienteEnergiaDashboardPage })));
@@ -633,6 +634,7 @@ export default function Admin() {
                 <Route path="central-extracao" element={<ExtractionCenterPage />} />
                 {/* gd-rateio removida — funcionalidade na aba Beneficiárias da UC */}
                 <Route path="alertas-energia" element={<EnergyAlertsPage />} />
+                <Route path="energia-dashboard" element={<EnergiaDashboard />} />
                 <Route path="automacoes-energia" element={<GdAutomationPage />} />
                 <Route path="financeiro-energia" element={<EnergyFinancialPage />} />
                 <Route path="painel-cliente-energia" element={<ClienteEnergiaDashboardPage />} />
