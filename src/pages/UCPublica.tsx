@@ -427,6 +427,14 @@ export default function UCPublica() {
             </div>
           </Card>
 
+          {/* ═══ COMMERCIAL VALUE HEADER ═══ */}
+          <PortalValueHeader
+            unitName={resolved.unit_name}
+            codigoUc={resolved.codigo_uc}
+            hasGd={gdData?.has_gd ?? false}
+            totalSavingsYear={stats?.totalEconomia}
+          />
+
           {/* ═══ METER READINGS (03 & 103) ═══ */}
           {(resolved.ultima_leitura_kwh_03 != null || resolved.ultima_leitura_kwh_103 != null) && (
             <Card className="border-l-[3px] border-l-info">
