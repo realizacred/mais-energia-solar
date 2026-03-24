@@ -1,0 +1,400 @@
+/**
+ * proposalMessageGenerator.ts
+ * 
+ * Gera mensagens textuais da proposta para envio a cliente ou consultor.
+ * Usa sistema de templates com placeholders {{var}} para permitir
+ * configuração futura por tenant.
+ * 
+ * Arquitetura preparada para:
+ * - templates por tenant (tabela futura: proposta_mensagem_templates)
+ * - blocos configuráveis
+ * - estilos e canais configuráveis
+ */
+
+import { formatBRL, formatNumberBR } from "@/lib/formatters";
+
+// ─── Types ──────────────────────────────────────────
+
+export type MessageMode = "cliente" | "consultor";
+export type MessageStyle = "curta" | "completa";
+
+export interface ProposalMessageContext {
+  clienteNome: string | null;
+  potenciaKwp: number | null;
+  modulosQtd: number | null;
+  moduloPotenciaW: number | null;
+  moduloModelo: string | null;
+  inversorModelo: string | null;
+  consumoMensal: number | null;
+  geracaoMensal: number | null;
+  economiaMensal: number | null;
+  paybackMeses: number | null;
+  valorTotal: number | null;
+  linkProposta: string | null;
+  tipoTelhado: string | null;
+  distribuidora: string | null;
+  consultorNome: string | null;
+  empresaNome: string | null;
+  validadeDias: number | null;
+  pagamentoOpcoes: Array<{
+    nome: string;
+    entrada?: number | null;
+    parcelas?: number | null;
+    valor_parcela?: number | null;
+  }>;
+  itensInclusos: Array<{
+    descricao: string;
+    quantidade: number;
+    categoria: string;
+  }>;
+  servicos: Array<{
+    descricao: string;
+    valor: number;
+    incluso?: boolean;
+  }>;
+  propostaStatus: string;
+  propostaCodigo: string | null;
+}
+
+// ─── Template Definitions ───────────────────────────
+// Default templates — future: load from DB per tenant
+
+const TEMPLATES: Record<`${MessageMode}_${MessageStyle}`, string> = {
+  cliente_curta: [
+    "Olá, {{cliente_nome}}! 👋",
+    "",
+    "Sua proposta de energia solar está pronta! ☀️",
+    "",
+    "⚡ Sistema de {{potencia_kwp}} kWp",
+    "💰 Investimento: {{valor_total}}",
+    "📊 Economia estimada: {{economia_mensal}}/mês",
+    "{{bloco_payback}}",
+    "",
+    "{{bloco_link}}",
+    "",
+    "Qualquer dúvida, estou à disposição!",
+    "{{assinatura}}",
+  ].join("\n"),
+
+  cliente_completa: [
+    "Olá, {{cliente_nome}}! 👋",
+    "",
+    "É com satisfação que apresento sua proposta de energia solar. Confira os detalhes abaixo:",
+    "",
+    "━━━ *Sistema Solar* ━━━",
+    "⚡ Potência: {{potencia_kwp}} kWp",
+    "🔋 {{modulos_qtd}} módulos{{bloco_modulo_modelo}}",
+    "{{bloco_inversor}}",
+    "{{bloco_telhado}}",
+    "",
+    "━━━ *Consumo e Geração* ━━━",
+    "📊 Consumo mensal: {{consumo_mensal}} kWh",
+    "☀️ Geração estimada: {{geracao_mensal}} kWh/mês",
+    "{{bloco_economia}}",
+    "{{bloco_payback}}",
+    "",
+    "━━━ *Investimento* ━━━",
+    "💰 Valor total: {{valor_total}}",
+    "{{bloco_pagamento}}",
+    "",
+    "{{bloco_itens_inclusos}}",
+    "{{bloco_servicos}}",
+    "{{bloco_garantias}}",
+    "",
+    "{{bloco_link}}",
+    "",
+    "{{bloco_validade}}",
+    "",
+    "Estou à disposição para esclarecer qualquer dúvida!",
+    "{{assinatura}}",
+  ].join("\n"),
+
+  consultor_curta: [
+    "📋 *Resumo da Proposta*{{bloco_codigo}}",
+    "",
+    "👤 Cliente: {{cliente_nome}}",
+    "⚡ {{potencia_kwp}} kWp • {{modulos_qtd}} módulos",
+    "💰 {{valor_total}}",
+    "📊 Economia: {{economia_mensal}}/mês",
+    "{{bloco_payback}}",
+    "📌 Status: {{status}}",
+    "{{bloco_link}}",
+  ].join("\n"),
+
+  consultor_completa: [
+    "📋 *Proposta — Resumo Interno*{{bloco_codigo}}",
+    "",
+    "👤 *Cliente:* {{cliente_nome}}",
+    "{{bloco_distribuidora}}",
+    "{{bloco_telhado}}",
+    "",
+    "━━━ *Dimensionamento* ━━━",
+    "⚡ Potência: {{potencia_kwp}} kWp",
+    "🔋 {{modulos_qtd}} módulos{{bloco_modulo_modelo}}",
+    "{{bloco_inversor}}",
+    "",
+    "━━━ *Financeiro* ━━━",
+    "📊 Consumo: {{consumo_mensal}} kWh/mês",
+    "☀️ Geração: {{geracao_mensal}} kWh/mês",
+    "💰 Valor total: {{valor_total}}",
+    "{{bloco_economia}}",
+    "{{bloco_payback}}",
+    "{{bloco_pagamento}}",
+    "",
+    "📌 *Status:* {{status}}",
+    "{{bloco_link}}",
+  ].join("\n"),
+};
+
+// ─── Block Resolvers ────────────────────────────────
+// Each block is a named section that can be toggled on/off in future config
+
+function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
+  const blocks: Record<string, string> = {};
+
+  // Payback
+  if (ctx.paybackMeses && ctx.paybackMeses > 0) {
+    const anos = Math.floor(ctx.paybackMeses / 12);
+    const meses = ctx.paybackMeses % 12;
+    const paybackStr = anos > 0
+      ? (meses > 0 ? `${anos} ano${anos > 1 ? "s" : ""} e ${meses} mês${meses > 1 ? "es" : ""}` : `${anos} ano${anos > 1 ? "s" : ""}`)
+      : `${meses} mês${meses > 1 ? "es" : ""}`;
+    blocks.bloco_payback = `⏱️ Retorno do investimento: ${paybackStr}`;
+  } else {
+    blocks.bloco_payback = "";
+  }
+
+  // Economia
+  if (ctx.economiaMensal && ctx.economiaMensal > 0) {
+    blocks.bloco_economia = `💵 Economia mensal estimada: ${formatBRL(ctx.economiaMensal)}`;
+  } else {
+    blocks.bloco_economia = "";
+  }
+
+  // Link
+  if (ctx.linkProposta) {
+    blocks.bloco_link = `🔗 Acesse sua proposta: ${ctx.linkProposta}`;
+  } else {
+    blocks.bloco_link = "";
+  }
+
+  // Inversor
+  if (ctx.inversorModelo) {
+    blocks.bloco_inversor = `🔌 Inversor: ${ctx.inversorModelo}`;
+  } else {
+    blocks.bloco_inversor = "";
+  }
+
+  // Modelo do módulo
+  if (ctx.moduloModelo) {
+    blocks.bloco_modulo_modelo = ` (${ctx.moduloModelo})`;
+  } else {
+    blocks.bloco_modulo_modelo = "";
+  }
+
+  // Telhado
+  if (ctx.tipoTelhado) {
+    blocks.bloco_telhado = `🏠 Telhado: ${ctx.tipoTelhado}`;
+  } else {
+    blocks.bloco_telhado = "";
+  }
+
+  // Distribuidora
+  if (ctx.distribuidora) {
+    blocks.bloco_distribuidora = `🏢 Distribuidora: ${ctx.distribuidora}`;
+  } else {
+    blocks.bloco_distribuidora = "";
+  }
+
+  // Código
+  if (ctx.propostaCodigo) {
+    blocks.bloco_codigo = ` — ${ctx.propostaCodigo}`;
+  } else {
+    blocks.bloco_codigo = "";
+  }
+
+  // Pagamento
+  if (ctx.pagamentoOpcoes.length > 0) {
+    const lines = ctx.pagamentoOpcoes.map(op => {
+      let line = `• ${op.nome}`;
+      if (op.entrada) line += ` — Entrada: ${formatBRL(op.entrada)}`;
+      if (op.parcelas && op.valor_parcela) {
+        line += ` + ${op.parcelas}x de ${formatBRL(op.valor_parcela)}`;
+      }
+      return line;
+    });
+    blocks.bloco_pagamento = `\n💳 *Pagamento:*\n${lines.join("\n")}`;
+  } else {
+    blocks.bloco_pagamento = "";
+  }
+
+  // Itens inclusos
+  const itens = ctx.itensInclusos.filter(i => i.quantidade > 0);
+  if (itens.length > 0) {
+    const lines = itens.map(i => `• ${i.quantidade}x ${i.descricao}`);
+    blocks.bloco_itens_inclusos = `📦 *Itens inclusos:*\n${lines.join("\n")}`;
+  } else {
+    blocks.bloco_itens_inclusos = "";
+  }
+
+  // Serviços
+  const servicosInclusos = ctx.servicos.filter(s => s.incluso !== false);
+  if (servicosInclusos.length > 0) {
+    const lines = servicosInclusos.map(s => `• ${s.descricao}${s.valor > 0 ? ` (${formatBRL(s.valor)})` : " — Incluso"}`);
+    blocks.bloco_servicos = `🛠️ *Serviços:*\n${lines.join("\n")}`;
+  } else {
+    blocks.bloco_servicos = "";
+  }
+
+  // Garantias
+  blocks.bloco_garantias = [
+    "✅ *Garantias:*",
+    "• Módulos: 25 anos de performance",
+    "• Inversor: conforme fabricante",
+    "• Instalação: 5 anos de garantia",
+  ].join("\n");
+
+  // Validade
+  if (ctx.validadeDias && ctx.validadeDias > 0) {
+    blocks.bloco_validade = `⏰ Proposta válida por ${ctx.validadeDias} dias.`;
+  } else {
+    blocks.bloco_validade = "";
+  }
+
+  // Assinatura
+  if (ctx.consultorNome && ctx.empresaNome) {
+    blocks.assinatura = `${ctx.consultorNome}\n${ctx.empresaNome}`;
+  } else if (ctx.consultorNome) {
+    blocks.assinatura = ctx.consultorNome;
+  } else if (ctx.empresaNome) {
+    blocks.assinatura = ctx.empresaNome;
+  } else {
+    blocks.assinatura = "";
+  }
+
+  return blocks;
+}
+
+// ─── Main Generator ─────────────────────────────────
+
+export function generateProposalMessage(
+  ctx: ProposalMessageContext,
+  mode: MessageMode,
+  style: MessageStyle,
+  /** Future: custom template override from tenant config */
+  customTemplate?: string,
+): string {
+  const templateKey = `${mode}_${style}` as const;
+  const template = customTemplate || TEMPLATES[templateKey];
+
+  // Build variable map
+  const vars: Record<string, string> = {
+    cliente_nome: ctx.clienteNome || "Cliente",
+    potencia_kwp: ctx.potenciaKwp ? formatNumberBR(ctx.potenciaKwp) : "—",
+    modulos_qtd: ctx.modulosQtd?.toString() || "—",
+    modulo_potencia: ctx.moduloPotenciaW ? `${ctx.moduloPotenciaW}W` : "—",
+    modulo_modelo: ctx.moduloModelo || "—",
+    inversor_modelo: ctx.inversorModelo || "—",
+    consumo_mensal: ctx.consumoMensal ? formatNumberBR(ctx.consumoMensal) : "—",
+    geracao_mensal: ctx.geracaoMensal ? formatNumberBR(ctx.geracaoMensal) : "—",
+    economia_mensal: ctx.economiaMensal ? formatBRL(ctx.economiaMensal) : "—",
+    valor_total: ctx.valorTotal ? formatBRL(ctx.valorTotal) : "—",
+    link_proposta: ctx.linkProposta || "",
+    status: ctx.propostaStatus || "—",
+    consultor_nome: ctx.consultorNome || "",
+    empresa_nome: ctx.empresaNome || "",
+  };
+
+  // Resolve blocks
+  const blocks = resolveBlocks(ctx);
+
+  // Merge all into replacement map
+  const allVars = { ...vars, ...blocks };
+
+  // Replace placeholders
+  let result = template.replace(/\{\{(\w+)\}\}/g, (match, key) => allVars[key] ?? match);
+
+  // Clean up: remove consecutive empty lines (more than 2)
+  result = result.replace(/\n{3,}/g, "\n\n").trim();
+
+  return result;
+}
+
+// ─── Context Extractor ──────────────────────────────
+// Extracts ProposalMessageContext from snapshot + versao data
+
+export function extractMessageContext(
+  snapshot: any,
+  versao: {
+    valor_total: number | null;
+    potencia_kwp: number | null;
+    economia_mensal: number | null;
+    payback_meses: number | null;
+    geracao_mensal: number | null;
+    public_slug: string | null;
+  },
+  proposta: {
+    cliente_nome: string | null;
+    codigo: string | null;
+    status: string;
+  },
+): ProposalMessageContext {
+  const snap = snapshot || {};
+
+  // Extract modules info from snapshot items
+  const itens = snap.itens || [];
+  const modulos = itens.filter((i: any) => i.categoria === "modulo" || i.categoria === "modulos");
+  const inversores = itens.filter((i: any) => i.categoria === "inversor" || i.categoria === "inversores");
+
+  const modulosQtd = modulos.reduce((s: number, m: any) => s + (m.quantidade || 0), 0);
+  const moduloPotencia = modulos[0]?.potencia_w || null;
+  const moduloModelo = modulos[0] ? `${modulos[0].fabricante || ""} ${modulos[0].modelo || modulos[0].descricao || ""}`.trim() : null;
+  const inversorModelo = inversores[0] ? `${inversores[0].fabricante || ""} ${inversores[0].modelo || inversores[0].descricao || ""}`.trim() : null;
+
+  // Consumo from UCs
+  const ucs = snap.ucs || [];
+  const consumoMensal = ucs.reduce((s: number, uc: any) => s + (uc.consumo_mensal || uc.consumo_mensal_kwh || 0), 0);
+
+  // Pagamento
+  const pagOpcoes = snap.pagamentoOpcoes || snap.pagamento_opcoes || [];
+
+  // Serviços
+  const servicos = snap.servicos || [];
+
+  // Link
+  const publicSlug = versao.public_slug;
+  const linkProposta = publicSlug ? `${window.location.origin}/p/${publicSlug}` : null;
+
+  return {
+    clienteNome: proposta.cliente_nome || snap.clienteNome || snap.cliente_nome || null,
+    potenciaKwp: versao.potencia_kwp || snap.potenciaKwp || snap.potencia_kwp || null,
+    modulosQtd: modulosQtd || versao.potencia_kwp ? modulosQtd : null,
+    moduloPotenciaW: moduloPotencia,
+    moduloModelo,
+    inversorModelo,
+    consumoMensal: consumoMensal || null,
+    geracaoMensal: versao.geracao_mensal || snap.geracaoMensal || snap.geracao_mensal || null,
+    economiaMensal: versao.economia_mensal || snap.economiaMensal || snap.economia_mensal || null,
+    paybackMeses: versao.payback_meses || snap.paybackMeses || snap.payback_meses || null,
+    valorTotal: versao.valor_total || snap.valorTotal || snap.valor_total || null,
+    linkProposta,
+    tipoTelhado: snap.locTipoTelhado || snap.loc_tipo_telhado || snap.tipo_telhado || null,
+    distribuidora: snap.locDistribuidoraNome || snap.loc_distribuidora_nome || snap.distribuidora || null,
+    consultorNome: snap.consultorNome || snap.consultor_nome || null,
+    empresaNome: snap.empresaNome || snap.empresa_nome || null,
+    validadeDias: snap.validade_dias || snap.validadeDias || null,
+    pagamentoOpcoes: pagOpcoes,
+    itensInclusos: itens.map((i: any) => ({
+      descricao: `${i.fabricante || ""} ${i.modelo || i.descricao || ""}`.trim(),
+      quantidade: i.quantidade || 1,
+      categoria: i.categoria || "outros",
+    })),
+    servicos: servicos.map((s: any) => ({
+      descricao: s.descricao || s.nome || "",
+      valor: s.valor || 0,
+      incluso: s.incluso,
+    })),
+    propostaStatus: proposta.status,
+    propostaCodigo: proposta.codigo,
+  };
+}
