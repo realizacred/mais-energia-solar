@@ -66,6 +66,7 @@ export default function UCDetailPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "overview";
+  const activeSubtab = searchParams.get("subtab") || "";
   const qc = useQueryClient();
   const { toast } = useToast();
   const { tenant } = useTenantSettings();
