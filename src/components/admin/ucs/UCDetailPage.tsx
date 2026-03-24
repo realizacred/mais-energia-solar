@@ -414,57 +414,16 @@ export default function UCDetailPage() {
 
           {/* === CONFIGURAÇÕES TAB === */}
           <TabsContent value="config" className="space-y-6">
-            {/* Cadastro section */}
+            {/* Cadastro — apenas campos que NÃO estão no hero header */}
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm">Cadastro</CardTitle>
-                  <Button variant="link" size="sm" className="text-primary h-auto p-0 text-xs" onClick={() => setEditDialogOpen(true)}>
-                    <Edit className="w-3 h-3 mr-1" /> Editar Cadastro
-                  </Button>
-                </div>
+                <CardTitle className="text-sm">Cadastro</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <div className="flex gap-1">
-                  <span className="text-muted-foreground min-w-[120px]">Denominação:</span>
-                  <span>{uc.nome}</span>
-                </div>
-                <div className="flex gap-1">
-                  <span className="text-muted-foreground min-w-[120px]">Concessionária:</span>
-                  <span>{uc.concessionaria_nome || "Não definida"}</span>
-                </div>
-                <div className="flex gap-1">
-                  <span className="text-muted-foreground min-w-[120px]">Contrato:</span>
-                  <span className="font-mono">{uc.codigo_uc}</span>
-                </div>
-                <div className="flex gap-1">
-                  <span className="text-muted-foreground min-w-[120px]">Classificação:</span>
-                  <span>{uc.classificacao_grupo || "—"}{uc.classificacao_subgrupo ? ` - ${uc.classificacao_subgrupo}` : ""}</span>
-                </div>
-                <div className="flex gap-1">
-                  <span className="text-muted-foreground min-w-[120px]">Modalidade:</span>
-                  <span>{uc.modalidade_tarifaria || "—"}</span>
-                </div>
                 {enderecoStr && (
                   <div className="flex gap-1">
                     <span className="text-muted-foreground min-w-[120px]">Endereço:</span>
                     <span>{enderecoStr}</span>
-                  </div>
-                )}
-                {uc.observacoes && (
-                  <div className="flex gap-1">
-                    <span className="text-muted-foreground min-w-[120px]">Observações:</span>
-                    <span>{uc.observacoes}</span>
-                  </div>
-                )}
-                <div className="flex gap-1">
-                  <span className="text-muted-foreground min-w-[120px]">Papel GD:</span>
-                  <span>{PAPEL_GD_LABELS[uc.papel_gd] || uc.papel_gd || "Nenhum"}</span>
-                </div>
-                {uc.categoria_gd && (
-                  <div className="flex gap-1">
-                    <span className="text-muted-foreground min-w-[120px]">Categoria GD:</span>
-                    <span>{CATEGORIA_GD_LABELS[uc.categoria_gd] || uc.categoria_gd}</span>
                   </div>
                 )}
                 {uc.email_fatura && (
@@ -473,14 +432,49 @@ export default function UCDetailPage() {
                     <span>{uc.email_fatura}</span>
                   </div>
                 )}
-                <div className="flex gap-1">
-                  <span className="text-muted-foreground min-w-[120px]">Leitura Auto:</span>
-                  <Badge variant="outline" className="text-xs">{uc.leitura_automatica_email ? "Ativa" : "Inativa"}</Badge>
-                </div>
+                {uc.observacoes && (
+                  <div className="flex gap-1">
+                    <span className="text-muted-foreground min-w-[120px]">Observações:</span>
+                    <span>{uc.observacoes}</span>
+                  </div>
+                )}
+                {uc.categoria_gd && (
+                  <div className="flex gap-1">
+                    <span className="text-muted-foreground min-w-[120px]">Categoria GD:</span>
+                    <span>{CATEGORIA_GD_LABELS[uc.categoria_gd] || uc.categoria_gd}</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Créditos */}
+            {/* Recebimento de Faturas — unificado */}
+            <UCBillingSettingsTab unitId={uc.id} leituraAutomaticaEmail={uc.leitura_automatica_email} />
+
+            {/* Alertas e Notificações */}
+            {/* (AlertPhoneCard is inside UCBillingSettingsTab) */}
+
+            {/* Plano de Serviço / Cobrança */}
+            <UCServicePlanCard
+              unitId={uc.id}
+              planoServicoId={(uc as any).plano_servico_id || null}
+              valorMensalidade={(uc as any).valor_mensalidade || null}
+              diaVencimento={(uc as any).dia_vencimento || null}
+              servicoCobrancaAtivo={(uc as any).servico_cobranca_ativo || false}
+            />
+
+            {/* Histórico de Cobranças */}
+            <UCBillingHistoryCard
+              unitId={uc.id}
+              clienteId={(uc as any).cliente_id || null}
+              tenantId={uc.tenant_id}
+              valorMensalidade={(uc as any).valor_mensalidade || null}
+              diaVencimento={(uc as any).dia_vencimento || null}
+            />
+
+            {/* Portal do Cliente */}
+            <UCShareLinkButton unitId={uc.id} />
+
+            {/* Créditos GD */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -564,36 +558,13 @@ export default function UCDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Plano de Serviço / Cobrança */}
-            <UCServicePlanCard
-              unitId={uc.id}
-              planoServicoId={(uc as any).plano_servico_id || null}
-              valorMensalidade={(uc as any).valor_mensalidade || null}
-              diaVencimento={(uc as any).dia_vencimento || null}
-              servicoCobrancaAtivo={(uc as any).servico_cobranca_ativo || false}
-            />
-
-            {/* Histórico de Cobranças */}
-            <UCBillingHistoryCard
-              unitId={uc.id}
-              clienteId={(uc as any).cliente_id || null}
-              tenantId={uc.tenant_id}
-              valorMensalidade={(uc as any).valor_mensalidade || null}
-              diaVencimento={(uc as any).dia_vencimento || null}
-            />
-
-            {/* Faturas por E-mail */}
-            <UCBillingSettingsTab unitId={uc.id} />
-
-            {/* Portal do Cliente — link compartilhável */}
-            <UCShareLinkButton unitId={uc.id} />
-
-            {/* Remover */}
+            {/* Zona de perigo */}
             <Card className="border-destructive/20">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm text-destructive">Outros</CardTitle>
+                <CardTitle className="text-sm text-destructive">Zona de Perigo</CardTitle>
               </CardHeader>
               <CardContent>
+                <p className="text-xs text-muted-foreground mb-3">Esta ação é irreversível e removerá todos os dados associados a esta UC.</p>
                 <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10 text-xs gap-1">
                   <Trash2 className="w-3 h-3 mr-1" /> Remover UC
                 </Button>
