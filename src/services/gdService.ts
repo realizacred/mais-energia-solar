@@ -8,6 +8,7 @@ export interface GdGroupInput {
   nome: string;
   concessionaria_id: string;
   uc_geradora_id: string;
+  /** @deprecated Legacy field, kept for backward compat. Canonical: resolved via uc_geradora_id → UC → cliente_id */
   cliente_id?: string | null;
   notes?: string | null;
   status?: string;

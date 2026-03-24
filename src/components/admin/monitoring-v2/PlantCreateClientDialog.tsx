@@ -1,3 +1,9 @@
+/**
+ * PlantCreateClientDialog — Create client and link to plant.
+ * NOTE: This still writes to monitor_plants.client_id (legacy).
+ * Canonical path: UC.cliente_id is the source of truth.
+ * TODO: Migrate to link client via UC instead of directly to plant.
+ */
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,7 +62,12 @@ export function PlantCreateClientDialog({ open, onOpenChange, plantId }: Props) 
         .select("id")
         .single();
 
-      if (insertErr) throw insertErr;
+      if (insertErr) {
+        if (insertErr.code === "23505" && insertErr.message?.includes("cpf_cnpj")) {
+          throw new Error("Já existe um cliente com este CPF/CNPJ neste tenant.");
+        }
+        throw insertErr;
+      }
 
       // 2. Link to plant
       await updatePlantClientId(plantId, newClient.id);
