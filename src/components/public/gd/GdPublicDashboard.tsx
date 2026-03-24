@@ -44,29 +44,14 @@ interface GdPublicDashboardProps {
 }
 
 export function GdPublicDashboard({ gdData, isLoading, brandPrimary }: GdPublicDashboardProps) {
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-48 w-full rounded-lg" />
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
-        </div>
-        <Skeleton className="h-64 w-full rounded-lg" />
-      </div>
-    );
-  }
-
-  if (!gdData?.has_gd) return null;
-
-  const {
-    beneficiaries = [],
-    geradora_invoices = [],
-    tarifa_kwh = 0.85,
-    uc_geradora_name,
-    uc_geradora_id,
-    categoria_gd,
-    group_name,
-  } = gdData;
+  const hasGd = gdData?.has_gd ?? false;
+  const beneficiaries = gdData?.beneficiaries ?? [];
+  const geradora_invoices = gdData?.geradora_invoices ?? [];
+  const tarifa_kwh = gdData?.tarifa_kwh ?? 0.85;
+  const uc_geradora_name = gdData?.uc_geradora_name;
+  const uc_geradora_id = gdData?.uc_geradora_id;
+  const categoria_gd = gdData?.categoria_gd;
+  const group_name = gdData?.group_name;
 
   // Calculate distribution using the existing service
   const calculation = useMemo(() => {
