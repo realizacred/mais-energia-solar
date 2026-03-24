@@ -629,15 +629,6 @@ function GeneratorSection({
   );
 }
 
-function FlowCard({ label, title, subtitle }: { label: string; title: string; subtitle: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-3">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium text-foreground">{title}</p>
-      <p className="text-xs text-muted-foreground font-mono">{subtitle}</p>
-    </div>
-  );
-}
 
 function MetricCard({
   label,
