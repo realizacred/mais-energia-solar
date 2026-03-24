@@ -131,7 +131,7 @@ function DetailField({ label, value }: { label: string; value: string | number |
   );
 }
 
-function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Record<string, any> | null }) {
+function InvoiceDetailPanel({ invoice, raw, unitId }: { invoice: UnitInvoice; raw: Record<string, any> | null; unitId: string }) {
   const fmtNum = (v: number | null | undefined, suffix = "") => v != null ? `${formatDecimalBR(v, 1)}${suffix}` : null;
   const fmtBRL = (v: number | null | undefined) => v != null ? formatBRL(v) : null;
 
@@ -221,6 +221,14 @@ function InvoiceDetailPanel({ invoice, raw }: { invoice: UnitInvoice; raw: Recor
           </div>
         </>
       )}
+
+      {/* Cross-validation: Invoice vs Meter */}
+      <Separator />
+      <InvoiceMeterValidation
+        unitId={unitId}
+        referenceMonth={invoice.reference_month}
+        referenceYear={invoice.reference_year}
+      />
     </div>
   );
 }
