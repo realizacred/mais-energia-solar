@@ -164,8 +164,9 @@ export function GDConsolidadoTab() {
     const ids = new Set<string>();
     groups.forEach(g => ids.add(g.uc_geradora_id));
     allocations.forEach(a => ids.add(a.uc_beneficiaria_id));
+    realBeneficiaries.forEach(b => ids.add(b.uc_beneficiaria_id));
     return [...ids];
-  }, [groups, allocations]);
+  }, [groups, allocations, realBeneficiaries]);
 
   const { data: ucNames = [] } = useQuery({
     queryKey: ["uc_names_for_gd", allUcIds],
