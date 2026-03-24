@@ -644,6 +644,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [recusaMotivo, setRecusaMotivo] = useState("");
   const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
+  const [messageDrawerOpen, setMessageDrawerOpen] = useState(false);
 
   // PDF signed URL for persisted artifacts
   const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
