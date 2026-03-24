@@ -1,6 +1,7 @@
 /**
  * GdEnergyNetworkCard — "Rede de Energia deste Grupo" card.
- * Shows the full energy flow: generator → beneficiaries with real data.
+ * Shows the full energy flow: generator → beneficiaries with real data,
+ * distribution bar, highlights, and R$ economy estimates.
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sun, ArrowRight, Building2, Zap, TrendingUp, AlertTriangle } from "lucide-react";
+import { Sun, ArrowRight, Building2, Zap, TrendingUp, AlertTriangle, DollarSign, Crown, ArrowDown } from "lucide-react";
 import { type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
 import { type UCOption } from "@/hooks/useFormSelects";
 import { buildUcDetailPath } from "./ucNavigation";
@@ -24,9 +25,11 @@ interface Props {
   generatorCodigo: string;
   beneficiaries: GdBeneficiary[];
   allUcs: UCOption[];
+  tarifaMedia?: number | null;
 }
 
 const STALE = 1000 * 60 * 5;
+const DEFAULT_TARIFA = 0.85; // R$/kWh fallback
 
 export function GdEnergyNetworkCard({
   groupId,
@@ -36,8 +39,10 @@ export function GdEnergyNetworkCard({
   generatorCodigo,
   beneficiaries,
   allUcs,
+  tarifaMedia,
 }: Props) {
   const navigate = useNavigate();
+  const tarifa = tarifaMedia ?? DEFAULT_TARIFA;
 
   const ucMap = useMemo(() => new Map(allUcs.map((u) => [u.id, u])), [allUcs]);
 
@@ -112,6 +117,38 @@ export function GdEnergyNetworkCard({
 
   const hasData = generationKwh !== null;
 
+  // Build enriched beneficiary data for sorting and highlights
+  const enrichedBeneficiaries = useMemo(() => {
+    return beneficiaries.map((ben) => {
+      const ucInfo = ucMap.get(ben.uc_beneficiaria_id);
+      const avgConsumption = consumptionMap.get(ben.uc_beneficiaria_id);
+      const allocPercent = Number(ben.allocation_percent);
+      const estimatedReceived = generationKwh != null ? (generationKwh * allocPercent) / 100 : null;
+      const allocationData = allocations.find((a: any) => a.uc_beneficiaria_id === ben.uc_beneficiaria_id);
+      const actualReceived = allocationData?.compensated_kwh ?? estimatedReceived;
+      const economyR$ = actualReceived != null ? actualReceived * tarifa : null;
+
+      return {
+        ...ben,
+        ucInfo,
+        avgConsumption,
+        allocPercent,
+        actualReceived,
+        economyR$,
+      };
+    }).sort((a, b) => b.allocPercent - a.allocPercent);
+  }, [beneficiaries, ucMap, consumptionMap, generationKwh, allocations, tarifa]);
+
+  const maxBen = enrichedBeneficiaries.length > 1 ? enrichedBeneficiaries[0] : null;
+  const minBen = enrichedBeneficiaries.length > 1 ? enrichedBeneficiaries[enrichedBeneficiaries.length - 1] : null;
+
+  const totalEconomy = enrichedBeneficiaries.reduce((s, b) => s + (b.economyR$ ?? 0), 0);
+  const generatorRetainedKwh = generationKwh != null && totalDistributed != null ? generationKwh - totalDistributed : null;
+  const generatorEconomy = generatorRetainedKwh != null ? generatorRetainedKwh * tarifa : null;
+  const totalGroupEconomy = totalEconomy + (generatorEconomy ?? 0);
+
+  const isFallbackTarifa = !tarifaMedia;
+
   return (
     <Card className="border-l-[3px] border-l-success">
       <CardHeader className="pb-3">
@@ -121,7 +158,7 @@ export function GdEnergyNetworkCard({
               <Zap className="w-4 h-4 text-success" /> Rede de Energia — {groupName}
             </CardTitle>
             <CardDescription>
-              Visão completa do fluxo de energia: geração, distribuição e consumo das unidades.
+              Fluxo de energia, distribuição e economia estimada do grupo.
             </CardDescription>
           </div>
           {hasData && (
@@ -179,12 +216,46 @@ export function GdEnergyNetworkCard({
               </div>
             </div>
 
+            {/* Distribution bar */}
+            {beneficiaries.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Distribuição do grupo</p>
+                <div className="h-3 rounded-full overflow-hidden flex bg-muted/50 border border-border">
+                  {enrichedBeneficiaries.map((ben) => (
+                    <div
+                      key={ben.id}
+                      className="h-full bg-info/70 border-r border-background last:border-r-0 transition-all"
+                      style={{ width: `${ben.allocPercent}%` }}
+                      title={`${ucMap.get(ben.uc_beneficiaria_id)?.nome || "UC"}: ${ben.allocPercent.toFixed(1)}%`}
+                    />
+                  ))}
+                  {undistributedPercent > 0 && (
+                    <div
+                      className="h-full bg-primary/30"
+                      style={{ width: `${undistributedPercent}%` }}
+                      title={`Saldo geradora: ${undistributedPercent.toFixed(1)}%`}
+                    />
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-sm bg-info/70 shrink-0" />
+                    Beneficiárias ({formatDecimalBR(totalAllocationPercent, 1)}%)
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-sm bg-primary/30 shrink-0" />
+                    Saldo geradora ({formatDecimalBR(undistributedPercent, 1)}%)
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Arrow */}
             <div className="flex justify-center">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <div className="h-px w-8 bg-border" />
                 <ArrowRight className="w-4 h-4" />
-                <span className="text-xs font-medium">Distribuição</span>
+                <span className="text-xs font-medium">Unidades beneficiárias</span>
                 <ArrowRight className="w-4 h-4" />
                 <div className="h-px w-8 bg-border" />
               </div>
@@ -198,38 +269,53 @@ export function GdEnergyNetworkCard({
               </div>
             ) : (
               <div className="space-y-2">
-                {beneficiaries.map((ben) => {
-                  const ucInfo = ucMap.get(ben.uc_beneficiaria_id);
-                  const avgConsumption = consumptionMap.get(ben.uc_beneficiaria_id);
-                  const allocPercent = Number(ben.allocation_percent);
-                  const estimatedReceived = generationKwh != null ? (generationKwh * allocPercent) / 100 : null;
-                  const allocationData = allocations.find((a: any) => a.uc_beneficiaria_id === ben.uc_beneficiaria_id);
-                  const actualReceived = allocationData?.compensated_kwh ?? estimatedReceived;
+                {enrichedBeneficiaries.map((ben) => {
+                  const isMax = maxBen?.id === ben.id;
+                  const isMin = minBen?.id === ben.id;
 
                   return (
                     <div
                       key={ben.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border hover:bg-muted/50 transition-colors"
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors hover:bg-muted/50 ${
+                        isMax ? "bg-success/5 border-success/20" : isMin ? "bg-warning/5 border-warning/20" : "bg-muted/30 border-border"
+                      }`}
                     >
                       <Building2 className="w-4 h-4 text-info shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {ucInfo?.nome || "UC desconhecida"}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                          <span className="font-mono">{allocPercent.toFixed(1)}%</span>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {ben.ucInfo?.nome || "UC desconhecida"}
+                          </p>
+                          {isMax && (
+                            <Badge variant="outline" className="text-[10px] h-4 px-1 border-success/30 text-success bg-success/10">
+                              <Crown className="w-2.5 h-2.5 mr-0.5" /> Maior
+                            </Badge>
+                          )}
+                          {isMin && (
+                            <Badge variant="outline" className="text-[10px] h-4 px-1 border-warning/30 text-warning bg-warning/10">
+                              <ArrowDown className="w-2.5 h-2.5 mr-0.5" /> Menor
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
+                          <span className="font-mono">{ben.allocPercent.toFixed(1)}%</span>
                           <span>·</span>
                           <span>
-                            Consumo médio: {avgConsumption != null ? `${formatDecimalBR(avgConsumption, 0)} kWh` : "sem dados"}
-                          </span>
-                          <span>·</span>
-                          <span>
-                            Recebe: {actualReceived != null ? (
-                              <span className="font-medium text-foreground">{formatDecimalBR(actualReceived, 0)} kWh</span>
+                            Recebe:{" "}
+                            {ben.actualReceived != null ? (
+                              <span className="font-medium text-foreground">{formatDecimalBR(ben.actualReceived, 0)} kWh</span>
                             ) : (
-                              <span className="italic">estimado</span>
+                              <span className="italic">sem dados</span>
                             )}
                           </span>
+                          {ben.economyR$ != null && (
+                            <>
+                              <span>·</span>
+                              <span className="font-medium text-success">
+                                {formatBRL(ben.economyR$)}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                       <Button
@@ -243,6 +329,25 @@ export function GdEnergyNetworkCard({
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Economy summary */}
+            {totalGroupEconomy > 0 && (
+              <div className="p-3 rounded-lg bg-success/5 border border-success/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <DollarSign className="w-4 h-4 text-success shrink-0" />
+                  <p className="text-sm font-semibold text-foreground">
+                    Economia estimada do grupo: <span className="text-success">{formatBRL(totalGroupEconomy)}</span>/mês
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground ml-6">
+                  Beneficiárias: {formatBRL(totalEconomy)}
+                  {generatorEconomy != null && generatorEconomy > 0 && ` · Geradora: ${formatBRL(generatorEconomy)}`}
+                  {isFallbackTarifa && (
+                    <span className="ml-1 italic">(tarifa estimada: {formatBRL(DEFAULT_TARIFA)}/kWh)</span>
+                  )}
+                </p>
               </div>
             )}
 

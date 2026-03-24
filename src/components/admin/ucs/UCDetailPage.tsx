@@ -475,6 +475,11 @@ export default function UCDetailPage() {
               unitId={uc.id}
               leituraAutomaticaEmail={uc.leitura_automatica_email}
               servicoCobrancaAtivo={(uc as any).servico_cobranca_ativo || false}
+              onNavigateToSection={(section) => {
+                // Scroll to relevant section or open config
+                const el = document.getElementById(section);
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
             />
 
             {/* Recebimento de Faturas — unificado */}
