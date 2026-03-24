@@ -15,9 +15,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, ArrowLeft, Building2, GitBranch, Loader2, MoveRight, Plus, Sun, Trash2, Users } from "lucide-react";
+import { AlertCircle, ArrowLeft, Building2, GitBranch, Loader2, MoveRight, Plus, Sun, Trash2, Users, Edit } from "lucide-react";
 import { useGdGroupByGenerator, useGdBeneficiaries, useGdBeneficiariesByUC, useSaveGdBeneficiary, useDeleteGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
-import { useSaveGdGroup, type GdGroup } from "@/hooks/useGdGroups";
+import { useSaveGdGroup, useDeleteGdGroup, type GdGroup } from "@/hooks/useGdGroups";
 import { useUCsList, type UCOption } from "@/hooks/useFormSelects";
 import { type UCRecord } from "@/services/unitService";
 import { useQueryClient } from "@tanstack/react-query";
@@ -368,12 +368,16 @@ function GeneratorSection({
   const qc = useQueryClient();
   const navigate = useNavigate();
   const saveGroup = useSaveGdGroup();
+  const deleteGroup = useDeleteGdGroup();
   const deleteBeneficiary = useDeleteGdBeneficiary();
 
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [groupName, setGroupName] = useState(uc.nome);
   const [addBenOpen, setAddBenOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(false);
+  const [editGroupOpen, setEditGroupOpen] = useState(false);
+  const [editGroupName, setEditGroupName] = useState("");
 
   async function handleCreateGroup() {
     try {
@@ -404,6 +408,33 @@ function GeneratorSection({
       setDeleteTarget(null);
     }
   }, [deleteTarget, deleteBeneficiary, group?.id, qc, toast]);
+
+  const handleDeleteGroup = useCallback(async () => {
+    if (!group) return;
+    try {
+      await deleteGroup.mutateAsync(group.id);
+      qc.invalidateQueries({ queryKey: ["gd_groups", "by_generator", uc.id] });
+      qc.invalidateQueries({ queryKey: ["gd_groups"] });
+      toast({ title: "Grupo GD excluído" });
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir grupo", description: err?.message, variant: "destructive" });
+    } finally {
+      setDeleteGroupConfirm(false);
+    }
+  }, [group, deleteGroup, uc.id, qc, toast]);
+
+  const handleEditGroup = useCallback(async () => {
+    if (!group || !editGroupName.trim()) return;
+    try {
+      await saveGroup.mutateAsync({ id: group.id, nome: editGroupName });
+      qc.invalidateQueries({ queryKey: ["gd_groups", "by_generator", uc.id] });
+      qc.invalidateQueries({ queryKey: ["gd_groups"] });
+      toast({ title: "Grupo atualizado" });
+      setEditGroupOpen(false);
+    } catch (err: any) {
+      toast({ title: "Erro", description: err?.message, variant: "destructive" });
+    }
+  }, [group, editGroupName, saveGroup, uc.id, qc, toast]);
 
   if (!group) {
     return (
@@ -474,7 +505,25 @@ function GeneratorSection({
                 Esta UC é a origem do grupo <span className="font-medium text-foreground">{group.nome}</span>. Abra cada beneficiária sem perder o caminho de volta para o grupo.
               </CardDescription>
             </div>
-            <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Grupo ativo</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Grupo ativo</Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={() => { setEditGroupName(group.nome); setEditGroupOpen(true); }}
+              >
+                <Edit className="w-3 h-3" /> Renomear
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setDeleteGroupConfirm(true)}
+              >
+                <Trash2 className="w-3 h-3" /> Excluir Grupo
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="pt-0 space-y-4">
@@ -627,6 +676,57 @@ function GeneratorSection({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Group Confirmation */}
+      <AlertDialog open={deleteGroupConfirm} onOpenChange={setDeleteGroupConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir grupo GD "{group.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {beneficiaries.length > 0
+                ? `Este grupo possui ${beneficiaries.length} beneficiária(s) vinculada(s). Todas serão desvinculadas. Esta ação não pode ser desfeita.`
+                : "Esta ação irá excluir o grupo GD permanentemente. Os dados históricos de compensação não serão afetados."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteGroup}
+              className="border-destructive text-destructive bg-transparent hover:bg-destructive/10"
+            >
+              {deleteGroup.isPending ? "Excluindo..." : "Excluir Grupo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Group Name */}
+      <Dialog open={editGroupOpen} onOpenChange={setEditGroupOpen}>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Edit className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">Renomear Grupo GD</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Altere o nome do grupo</p>
+            </div>
+          </DialogHeader>
+          <div className="p-5 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome do grupo</Label>
+              <Input value={editGroupName} onChange={(e) => setEditGroupName(e.target.value)} placeholder="Nome do grupo" />
+            </div>
+          </div>
+          <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            <Button variant="outline" onClick={() => setEditGroupOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEditGroup} disabled={saveGroup.isPending || !editGroupName.trim()}>
+              {saveGroup.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
