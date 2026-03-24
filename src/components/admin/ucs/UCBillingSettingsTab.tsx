@@ -19,13 +19,41 @@ import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send, Phone, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send, Phone, CheckCircle2, XCircle, AlertTriangle, RefreshCw, FileSearch } from "lucide-react";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { formatDateTime, formatDate } from "@/lib/dateUtils";
 
 interface Props {
   unitId: string;
   leituraAutomaticaEmail?: boolean;
+}
+
+const MONTH_NAMES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+
+function sourceLabel(source: string | null | undefined): string {
+  if (!source) return "desconhecida";
+  if (source === "email" || source === "gmail") return "e-mail";
+  if (source === "manual" || source === "upload") return "upload manual";
+  return source;
+}
+
+function statusLabel(status: string | null | undefined): string {
+  switch (status) {
+    case "valid": return "Processada com sucesso";
+    case "received": return "Recebida, aguardando processamento";
+    case "divergent": return "Processada com divergências";
+    case "review": return "Aguardando revisão";
+    case "failed": return "Falha no processamento";
+    default: return status || "Desconhecido";
+  }
+}
+
+function statusVariant(status: string | null | undefined): "success" | "destructive" | "warning" {
+  switch (status) {
+    case "valid": return "success";
+    case "failed": return "destructive";
+    default: return "warning";
+  }
 }
 
 export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) {
@@ -123,6 +151,21 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
     onError: (err: any) => toast({ title: "Erro", description: err?.message, variant: "destructive" }),
   });
 
+  // Test button: invoke check-billing-emails for this UC
+  const testReceiveMut = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.functions.invoke("check-billing-emails", {
+        body: { unit_id: unitId, manual: true },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["last_invoice_for_status", unitId] });
+      toast({ title: "Teste concluído", description: "Verificação de e-mails executada. Veja o resultado abaixo." });
+    },
+    onError: (err: any) => toast({ title: "Erro no teste", description: err?.message, variant: "destructive" }),
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -147,7 +190,16 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
   // Determine overall status for display
   const isLeituraAtiva = leituraAutomaticaEmail ?? false;
   const isEmailAtivo = form.email_billing_enabled;
-  const isServicoAtivo = form.servico_fatura_ativo;
+
+  // Build last invoice display
+  const lastInvoiceLabel = lastInvoice
+    ? `${MONTH_NAMES[(lastInvoice.reference_month ?? 1) - 1]}/${lastInvoice.reference_year} (via ${sourceLabel(lastInvoice.source)})`
+    : null;
+
+  const lastInvoiceStatusLabel = lastInvoice ? statusLabel(lastInvoice.status) : null;
+  const lastInvoiceDate = lastInvoice?.created_at
+    ? formatDate(lastInvoice.created_at)
+    : null;
 
   return (
     <div className="space-y-4">
@@ -160,40 +212,57 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
                 <Mail className="w-4 h-4 text-primary" /> Recebimento de Faturas
               </CardTitle>
               <CardDescription className="mt-1">
-                Configure como esta UC recebe e processa faturas automaticamente.
+                Acompanhe o status e configure como esta UC recebe faturas.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Status overview */}
+          {/* Status overview — enhanced with real data */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border">
               {isLeituraAtiva ? <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> : <XCircle className="w-4 h-4 text-muted-foreground shrink-0" />}
               <div className="min-w-0">
                 <p className="text-xs font-medium text-foreground">Leitura Automática</p>
-                <p className="text-xs text-muted-foreground">{isLeituraAtiva ? "Ativa" : "Inativa"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isLeituraAtiva ? "Recebendo faturas automaticamente" : "Inativa"}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border">
               {isEmailAtivo ? <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> : <XCircle className="w-4 h-4 text-muted-foreground shrink-0" />}
               <div className="min-w-0">
                 <p className="text-xs font-medium text-foreground">Faturas por E-mail</p>
-                <p className="text-xs text-muted-foreground">{isEmailAtivo ? "Configurado" : "Não configurado"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isEmailAtivo ? "Sistema ativo e funcionando" : "Não configurado"}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border">
               {lastInvoice ? <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> : <AlertTriangle className="w-4 h-4 text-warning shrink-0" />}
               <div className="min-w-0">
                 <p className="text-xs font-medium text-foreground">Última Fatura</p>
-                <p className="text-xs text-muted-foreground">
-                  {lastInvoice
-                    ? `${String(lastInvoice.reference_month).padStart(2, "0")}/${lastInvoice.reference_year}`
-                    : "Nenhuma recebida"}
+                <p className="text-xs text-muted-foreground truncate">
+                  {lastInvoiceLabel || "Nenhuma fatura recebida ainda"}
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Detailed last invoice status */}
+          {lastInvoice && (
+            <div className="p-3 rounded-lg bg-muted/20 border border-border space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-foreground">Detalhes do último processamento</p>
+                <StatusBadge variant={statusVariant(lastInvoice.status)} dot className="text-xs">
+                  {lastInvoiceStatusLabel}
+                </StatusBadge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Recebida em {lastInvoiceDate} • Fonte: {sourceLabel(lastInvoice.source)}
+              </p>
+            </div>
+          )}
 
           <Separator />
 
@@ -360,9 +429,22 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
             )}
           </div>
 
-          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !isDirty} className="w-full sm:w-auto">
-            {saveMut.isPending ? "Salvando..." : "Salvar Configurações"}
-          </Button>
+          {/* Action buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !isDirty} className="w-full sm:w-auto">
+              {saveMut.isPending ? "Salvando..." : "Salvar Configurações"}
+            </Button>
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => testReceiveMut.mutate()}
+              disabled={testReceiveMut.isPending}
+              className="w-full sm:w-auto gap-1.5"
+            >
+              {testReceiveMut.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileSearch className="w-4 h-4" />}
+              {testReceiveMut.isPending ? "Verificando..." : "Testar recebimento"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -414,7 +496,7 @@ function LastAlertInfo({ unitId }: { unitId: string }) {
             </span>
             {" — "}
             <StatusBadge variant={lastAlert.status === "sent" ? "success" : lastAlert.status === "failed" ? "destructive" : "warning"} className="text-xs">
-              {lastAlert.status === "sent" ? "Enviado" : lastAlert.status === "failed" ? "Falha" : "Pulado"}
+              {lastAlert.status === "sent" ? "Enviado" : lastAlert.status === "failed" ? "Falha no envio" : "Pulado"}
             </StatusBadge>
           </>
         ) : (
@@ -451,6 +533,22 @@ function AlertPhoneCard({ unitId }: { unitId: string }) {
         .single();
       if (error) throw error;
       return data as { telefone_alertas: string | null };
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Fetch last energy alert for this UC
+  const { data: lastEnergyAlert } = useQuery({
+    queryKey: ["last_energy_alert", unitId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("energy_alerts" as any)
+        .select("id, alert_type, severity, created_at, resolved_at, status")
+        .eq("unit_id", unitId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as any;
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -513,6 +611,28 @@ function AlertPhoneCard({ unitId }: { unitId: string }) {
             Se não preenchido, o administrador será notificado.
           </p>
         </div>
+
+        {/* Last alert info */}
+        <div className="p-3 rounded-lg bg-muted/20 border border-border">
+          <p className="text-xs font-medium text-foreground mb-1">Último alerta energético</p>
+          {lastEnergyAlert ? (
+            <div className="flex items-center gap-2">
+              <StatusBadge
+                variant={lastEnergyAlert.resolved_at ? "success" : lastEnergyAlert.severity === "critical" ? "destructive" : "warning"}
+                dot
+                className="text-xs"
+              >
+                {lastEnergyAlert.resolved_at ? "Resolvido" : lastEnergyAlert.severity === "critical" ? "Crítico" : "Atenção"}
+              </StatusBadge>
+              <span className="text-xs text-muted-foreground">
+                {formatDate(lastEnergyAlert.created_at)} • {lastEnergyAlert.alert_type}
+              </span>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Nenhum alerta registrado — sistema funcionando normalmente</p>
+          )}
+        </div>
+
         <Button
           onClick={() => saveMut.mutate()}
           disabled={saveMut.isPending || !isDirty}
