@@ -31,7 +31,7 @@ import { UCInvoicesTab } from "./UCInvoicesTab";
 import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
 import { UCShareLinkButton } from "./UCShareLinkButton";
-import { UCEnergySummary } from "./UCEnergySummary";
+
 import { UCMeterTab } from "./UCMeterTab";
 import { UCPlantLinksTab } from "./UCPlantLinksTab";
 import { UCOverviewTab } from "./UCOverviewTab";
