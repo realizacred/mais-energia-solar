@@ -5901,6 +5901,7 @@ export type Database = {
           created_at: string | null
           credentials: Json | null
           email: string | null
+          gmail_label: string | null
           id: string
           is_active: boolean | null
           nome: string
@@ -5915,6 +5916,7 @@ export type Database = {
           created_at?: string | null
           credentials?: Json | null
           email?: string | null
+          gmail_label?: string | null
           id?: string
           is_active?: boolean | null
           nome: string
@@ -5929,6 +5931,7 @@ export type Database = {
           created_at?: string | null
           credentials?: Json | null
           email?: string | null
+          gmail_label?: string | null
           id?: string
           is_active?: boolean | null
           nome?: string

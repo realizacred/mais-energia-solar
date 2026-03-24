@@ -1,0 +1,1 @@
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS gmail_label TEXT DEFAULT NULL;
