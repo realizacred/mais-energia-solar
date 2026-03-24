@@ -4,6 +4,8 @@
  * No authentication required.
  */
 import { useState, useMemo, useCallback } from "react";
+import { usePublicGdData } from "@/hooks/usePublicGdData";
+import { GdPublicDashboard } from "@/components/public/gd/GdPublicDashboard";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
