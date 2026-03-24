@@ -60,6 +60,7 @@ interface PropostaNativa {
   status: string;
   created_at: string;
   cliente_nome: string | null;
+  is_principal: boolean;
   versoes: {
     id: string;
     versao_numero: number;
@@ -73,6 +74,7 @@ interface PropostaNativa {
     output_pdf_path: string | null;
     output_docx_path: string | null;
     public_slug: string | null;
+    gerado_em: string | null;
   }[];
 }
 
