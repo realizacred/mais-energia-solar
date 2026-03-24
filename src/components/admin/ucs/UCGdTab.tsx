@@ -523,9 +523,16 @@ function GeneratorSection({
             </div>
           )}
 
-          <Button variant="outline" size="sm" onClick={() => setAddBenOpen(true)}>
-            <Plus className="w-4 h-4 mr-1" /> Adicionar Beneficiária
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAddBenOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Adicionar Beneficiária
+            </Button>
+            {beneficiaries.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setEditDistOpen(true)}>
+                <PieChart className="w-4 h-4 mr-1" /> Ajustar distribuição
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
