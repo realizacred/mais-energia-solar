@@ -327,7 +327,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
           {form.servico_fatura_ativo && (
             <>
               <Separator />
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
                 <div className="space-y-1.5">
                   <Label className="text-xs flex items-center gap-1">
                     <CalendarClock className="w-3 h-3" /> Dia da leitura mensal
@@ -340,11 +340,12 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
                     onChange={(e) => setForm(f => ({ ...f, dia_leitura: e.target.value }))}
                     placeholder="Ex: 15"
                   />
-                  {nextReadingDisplay && (
-                    <p className="text-xs text-muted-foreground">
-                      Próxima leitura: <span className="font-medium text-foreground">{nextReadingDisplay}</span>
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {nextReadingDisplay
+                      ? <>Próxima leitura: <span className="font-medium text-foreground">{nextReadingDisplay}</span></>
+                      : <>&nbsp;</>
+                    }
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">
@@ -377,6 +378,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
                       <SelectItem value="ambos">Ambos</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">&nbsp;</p>
                 </div>
               </div>
 
