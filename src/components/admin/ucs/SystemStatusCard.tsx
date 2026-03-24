@@ -28,6 +28,7 @@ interface Props {
   leituraAutomaticaEmail?: boolean;
   servicoCobrancaAtivo?: boolean;
   onNavigateToSection?: (section: string) => void;
+  onAction?: (action: string) => void;
 }
 
 const STALE = 1000 * 60 * 5;
@@ -37,6 +38,7 @@ type StatusLevel = "ok" | "warning" | "error" | "inactive";
 interface ModuleAction {
   label: string;
   icon: React.ReactNode;
+  /** If starts with "action:", triggers onAction; otherwise scrolls to section */
   section: string;
 }
 
@@ -74,7 +76,7 @@ function statusBadgeClass(s: StatusLevel) {
   }
 }
 
-export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobrancaAtivo, onNavigateToSection }: Props) {
+export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobrancaAtivo, onNavigateToSection, onAction }: Props) {
   // Last invoice
   const { data: lastInvoice } = useQuery({
     queryKey: ["system_status_invoice", unitId],
@@ -166,9 +168,9 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
   })();
 
   const faturaAction: ModuleAction | undefined = (() => {
-    if (faturaStatus === "inactive") return { label: "Configurar", icon: <Settings className="w-3 h-3" />, section: "billing-settings" };
-    if (faturaStatus === "warning") return { label: "Testar", icon: <Play className="w-3 h-3" />, section: "billing-test" };
-    if (faturaStatus === "error") return { label: "Ver erro", icon: <AlertTriangle className="w-3 h-3" />, section: "billing-settings" };
+    if (faturaStatus === "inactive") return { label: "Configurar", icon: <Settings className="w-3 h-3" />, section: "section-billing-settings" };
+    if (faturaStatus === "warning") return { label: "Testar", icon: <Play className="w-3 h-3" />, section: "action:billing-test" };
+    if (faturaStatus === "error") return { label: "Ver erro", icon: <AlertTriangle className="w-3 h-3" />, section: "section-billing-settings" };
     return undefined;
   })();
 
@@ -202,7 +204,7 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
       : "Sem alertas — sistema normal",
     icon: <Bell className="w-3.5 h-3.5 text-primary" />,
     action: !lastAlert
-      ? { label: "Configurar", icon: <Settings className="w-3 h-3" />, section: "alert-settings" }
+      ? { label: "Configurar", icon: <Settings className="w-3 h-3" />, section: "section-billing-settings" }
       : undefined,
   });
 
@@ -213,10 +215,10 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
   })();
 
   const portalAction: ModuleAction | undefined = (() => {
-    if (portalStatus === "inactive") return { label: "Criar acesso", icon: <UserPlus className="w-3 h-3" />, section: "portal-create" };
+    if (portalStatus === "inactive") return { label: "Criar acesso", icon: <UserPlus className="w-3 h-3" />, section: "section-portal" };
     const hasLogin = portalUsers.length > 0;
     const neverAccessed = hasLogin && !portalUsers[0]?.last_login_at;
-    if (neverAccessed) return { label: "Enviar acesso", icon: <Send className="w-3 h-3" />, section: "portal-send" };
+    if (neverAccessed) return { label: "Enviar acesso", icon: <Send className="w-3 h-3" />, section: "action:portal-copy-link" };
     return undefined;
   })();
 
@@ -244,7 +246,7 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
     detail: servicoCobrancaAtivo ? "Serviço ativo" : "Não configurado",
     icon: <DollarSign className="w-3.5 h-3.5 text-primary" />,
     action: !servicoCobrancaAtivo
-      ? { label: "Configurar", icon: <Settings className="w-3 h-3" />, section: "billing-plan" }
+      ? { label: "Configurar", icon: <Settings className="w-3 h-3" />, section: "section-billing-plan" }
       : undefined,
   });
 
@@ -303,12 +305,19 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
                   </p>
                 </div>
               </div>
-              {mod.action && onNavigateToSection && (
+              {mod.action && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="w-full h-7 text-xs gap-1.5 mt-auto"
-                  onClick={() => onNavigateToSection(mod.action!.section)}
+                  onClick={() => {
+                    const sec = mod.action!.section;
+                    if (sec.startsWith("action:") && onAction) {
+                      onAction(sec.replace("action:", ""));
+                    } else if (onNavigateToSection) {
+                      onNavigateToSection(sec);
+                    }
+                  }}
                 >
                   {mod.action.icon}
                   {mod.action.label}

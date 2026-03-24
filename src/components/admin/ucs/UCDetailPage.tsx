@@ -476,26 +476,51 @@ export default function UCDetailPage() {
               leituraAutomaticaEmail={uc.leitura_automatica_email}
               servicoCobrancaAtivo={(uc as any).servico_cobranca_ativo || false}
               onNavigateToSection={(section) => {
-                // Scroll to relevant section or open config
                 const el = document.getElementById(section);
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              onAction={async (action) => {
+                if (action === "billing-test") {
+                  toast({ title: "Testando recebimento de faturas...", description: "Aguarde enquanto verificamos seus e-mails." });
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session?.access_token) throw new Error("Sessão inválida");
+                    const res = await supabase.functions.invoke("check-billing-emails", {
+                      body: { manual: true, unit_id: uc.id },
+                    });
+                    if (res.error) throw res.error;
+                    toast({ title: "Teste concluído", description: "Verifique a aba de faturas para resultados." });
+                    qc.invalidateQueries({ queryKey: ["system_status_invoice", uc.id] });
+                    qc.invalidateQueries({ queryKey: ["system_status_log", uc.id] });
+                  } catch (err: any) {
+                    toast({ title: "Erro ao testar", description: err?.message || "Falha ao verificar e-mails.", variant: "destructive" });
+                  }
+                } else if (action === "portal-copy-link") {
+                  const el = document.getElementById("section-portal");
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  toast({ title: "Portal do Cliente", description: "Use os botões abaixo para copiar o link ou gerenciar o acesso." });
+                }
               }}
             />
 
             {/* Recebimento de Faturas — unificado */}
-            <UCBillingSettingsTab unitId={uc.id} leituraAutomaticaEmail={uc.leitura_automatica_email} />
+            <div id="section-billing-settings">
+              <UCBillingSettingsTab unitId={uc.id} leituraAutomaticaEmail={uc.leitura_automatica_email} />
+            </div>
 
             {/* Alertas e Notificações */}
             {/* (AlertPhoneCard is inside UCBillingSettingsTab) */}
 
             {/* Plano de Serviço / Cobrança */}
-            <UCServicePlanCard
-              unitId={uc.id}
-              planoServicoId={(uc as any).plano_servico_id || null}
-              valorMensalidade={(uc as any).valor_mensalidade || null}
-              diaVencimento={(uc as any).dia_vencimento || null}
-              servicoCobrancaAtivo={(uc as any).servico_cobranca_ativo || false}
-            />
+            <div id="section-billing-plan">
+              <UCServicePlanCard
+                unitId={uc.id}
+                planoServicoId={(uc as any).plano_servico_id || null}
+                valorMensalidade={(uc as any).valor_mensalidade || null}
+                diaVencimento={(uc as any).dia_vencimento || null}
+                servicoCobrancaAtivo={(uc as any).servico_cobranca_ativo || false}
+              />
+            </div>
 
             {/* Histórico de Cobranças */}
             <UCBillingHistoryCard
@@ -507,7 +532,9 @@ export default function UCDetailPage() {
             />
 
             {/* Portal do Cliente */}
-            <UCShareLinkButton unitId={uc.id} />
+            <div id="section-portal">
+              <UCShareLinkButton unitId={uc.id} />
+            </div>
 
             {/* Créditos GD */}
             <Card>
