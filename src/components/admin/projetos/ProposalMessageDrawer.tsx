@@ -1,19 +1,22 @@
 /**
  * ProposalMessageDrawer.tsx
  * 
- * Drawer para gerar, editar e copiar/enviar mensagem da proposta.
+ * Drawer para gerar, editar e enviar mensagem da proposta.
  * Usa a proposta ativa/principal do projeto.
  * Lê configuração enterprise do tenant (templates, blocos, defaults).
+ * Envia via WhatsApp real, Email real, ou apenas copia.
  */
 
 import { useState, useEffect, useMemo } from "react";
 import {
-  MessageCircle, Mail, Copy, RefreshCw, Send, User, Briefcase,
-  AlignLeft, AlignJustify, CheckCircle, Loader2
+  MessageCircle, Mail, Copy, RefreshCw, User, Briefcase,
+  AlignLeft, AlignJustify, CheckCircle, Loader2, Phone, AtSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter
 } from "@/components/ui/sheet";
@@ -24,6 +27,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useProposalVersionSnapshot } from "@/hooks/useProposalVersionSnapshot";
 import { useProposalMessageConfig } from "@/hooks/useProposalMessageConfig";
+import { useSendProposalMessage } from "@/hooks/useSendProposalMessage";
 import {
   generateProposalMessage,
   extractMessageContext,
@@ -39,6 +43,12 @@ interface ProposalMessageDrawerProps {
   onOpenChange: (open: boolean) => void;
   /** Versão ID da proposta ativa */
   versaoId: string;
+  /** Proposta ID */
+  propostaId: string;
+  /** Projeto (deal) ID */
+  projetoId: string;
+  /** Cliente ID */
+  clienteId?: string | null;
   /** Tenant ID for config lookup */
   tenantId?: string;
   /** Dados básicos já disponíveis (evita refetch) */
@@ -55,6 +65,9 @@ interface ProposalMessageDrawerProps {
     geracao_mensal: number | null;
     public_slug: string | null;
   };
+  /** Pre-filled contact info */
+  clienteTelefone?: string | null;
+  clienteEmail?: string | null;
 }
 
 // ─── Component ──────────────────────────────────────
@@ -63,9 +76,14 @@ export function ProposalMessageDrawer({
   open,
   onOpenChange,
   versaoId,
+  propostaId,
+  projetoId,
+  clienteId,
   tenantId,
   propostaData,
   versaoData,
+  clienteTelefone,
+  clienteEmail,
 }: ProposalMessageDrawerProps) {
   // Read tenant config (templates, blocks, defaults)
   const { data: tenantConfig } = useProposalMessageConfig(tenantId);
@@ -79,6 +97,10 @@ export function ProposalMessageDrawer({
   const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
   const [defaultsApplied, setDefaultsApplied] = useState(false);
+  const [destinatarioTelefone, setDestinatarioTelefone] = useState("");
+  const [destinatarioEmail, setDestinatarioEmail] = useState("");
+
+  const sendMutation = useSendProposalMessage();
 
   // Apply tenant defaults when config loads and drawer opens
   useEffect(() => {
@@ -91,6 +113,14 @@ export function ProposalMessageDrawer({
       setDefaultsApplied(false);
     }
   }, [open, tenantConfig, defaultsApplied]);
+
+  // Pre-fill destinatário when drawer opens
+  useEffect(() => {
+    if (open) {
+      setDestinatarioTelefone(clienteTelefone || "");
+      setDestinatarioEmail(clienteEmail || "");
+    }
+  }, [open, clienteTelefone, clienteEmail]);
 
   // Fetch snapshot via hook (§16 compliant)
   const { data: snapshot, isLoading: loadingSnapshot } = useProposalVersionSnapshot(
@@ -130,10 +160,28 @@ export function ProposalMessageDrawer({
     toast({ title: "Mensagem regenerada" });
   };
 
+  const buildPayload = (canal: "whatsapp" | "email" | "copy", destValor: string) => ({
+    canal,
+    conteudo: message,
+    destinatario_valor: destValor,
+    destinatario_tipo: mode as "cliente" | "consultor",
+    tipo_mensagem: mode as "cliente" | "consultor",
+    estilo: style as "curta" | "completa",
+    proposta_id: propostaId,
+    versao_id: versaoId,
+    projeto_id: projetoId,
+    cliente_id: clienteId,
+    cliente_nome: propostaData.cliente_nome,
+  });
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(message);
       setCopied(true);
+      // Log copy action
+      sendMutation.mutate(buildPayload("copy", ""), {
+        onError: () => {/* silent — copy still worked */},
+      });
       toast({ title: "Mensagem copiada! 📋" });
       setTimeout(() => setCopied(false), 3000);
     } catch {
@@ -142,15 +190,56 @@ export function ProposalMessageDrawer({
   };
 
   const handleSendWhatsApp = () => {
-    const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/?text=${encoded}`, "_blank");
+    const phone = destinatarioTelefone.replace(/\D/g, "");
+    if (!phone) {
+      toast({ title: "Informe o telefone do destinatário", variant: "destructive" });
+      return;
+    }
+    if (!message.trim()) {
+      toast({ title: "Mensagem vazia", variant: "destructive" });
+      return;
+    }
+
+    sendMutation.mutate(buildPayload("whatsapp", phone), {
+      onSuccess: () => {
+        toast({ title: "✅ Mensagem enviada via WhatsApp" });
+      },
+      onError: (err) => {
+        toast({
+          title: "Erro ao enviar via WhatsApp",
+          description: err instanceof Error ? err.message : "Erro desconhecido",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const handleSendEmail = () => {
-    const subject = encodeURIComponent(`Proposta de Energia Solar — ${propostaData.cliente_nome || "Cliente"}`);
-    const body = encodeURIComponent(message);
-    window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
+    const email = destinatarioEmail.trim();
+    if (!email || !email.includes("@")) {
+      toast({ title: "Informe um e-mail válido", variant: "destructive" });
+      return;
+    }
+    if (!message.trim()) {
+      toast({ title: "Mensagem vazia", variant: "destructive" });
+      return;
+    }
+
+    sendMutation.mutate(buildPayload("email", email), {
+      onSuccess: () => {
+        toast({ title: "✅ Mensagem enviada via e-mail" });
+      },
+      onError: (err) => {
+        toast({
+          title: "Erro ao enviar via e-mail",
+          description: err instanceof Error ? err.message : "Erro desconhecido",
+          variant: "destructive",
+        });
+      },
+    });
   };
+
+  const isSending = sendMutation.isPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -166,7 +255,7 @@ export function ProposalMessageDrawer({
                 Mensagem da Proposta
               </SheetTitle>
               <SheetDescription className="text-xs text-muted-foreground mt-0.5">
-                Gere e edite a mensagem para enviar ao cliente ou consultor
+                Gere, edite e envie ao cliente ou consultor
               </SheetDescription>
             </div>
           </div>
@@ -221,6 +310,35 @@ export function ProposalMessageDrawer({
             </Badge>
           </div>
 
+          {/* Destinatário fields */}
+          <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/30">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contato para envio</p>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs flex items-center gap-1.5">
+                  <Phone className="h-3 w-3" /> Telefone (WhatsApp)
+                </Label>
+                <Input
+                  value={destinatarioTelefone}
+                  onChange={(e) => setDestinatarioTelefone(e.target.value)}
+                  placeholder="5511999998888"
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs flex items-center gap-1.5">
+                  <AtSign className="h-3 w-3" /> E-mail
+                </Label>
+                <Input
+                  value={destinatarioEmail}
+                  onChange={(e) => setDestinatarioEmail(e.target.value)}
+                  placeholder="cliente@email.com"
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Message area */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -232,7 +350,7 @@ export function ProposalMessageDrawer({
                     size="icon"
                     className="h-7 w-7"
                     onClick={handleRegenerate}
-                    disabled={loadingSnapshot}
+                    disabled={loadingSnapshot || isSending}
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
                   </Button>
@@ -257,7 +375,7 @@ export function ProposalMessageDrawer({
                   setMessage(e.target.value);
                   setCopied(false);
                 }}
-                className="min-h-[280px] text-sm font-mono leading-relaxed resize-y"
+                className="min-h-[220px] text-sm font-mono leading-relaxed resize-y"
                 placeholder="A mensagem será gerada automaticamente..."
               />
             )}
@@ -271,7 +389,7 @@ export function ProposalMessageDrawer({
               variant={copied ? "default" : "outline"}
               className={cn("flex-1 gap-1.5", copied && "bg-success text-success-foreground hover:bg-success/90")}
               onClick={handleCopy}
-              disabled={!message || loadingSnapshot}
+              disabled={!message || loadingSnapshot || isSending}
             >
               {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? "Copiado!" : "Copiar"}
@@ -280,29 +398,37 @@ export function ProposalMessageDrawer({
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
-                  size="icon"
-                  className="shrink-0"
+                  className="gap-1.5 shrink-0"
                   onClick={handleSendWhatsApp}
-                  disabled={!message || loadingSnapshot}
+                  disabled={!message || loadingSnapshot || isSending}
                 >
-                  <MessageCircle className="h-4 w-4 text-success" />
+                  {isSending && sendMutation.variables?.canal === "whatsapp" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MessageCircle className="h-4 w-4 text-success" />
+                  )}
+                  <span className="hidden sm:inline text-xs">WhatsApp</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Enviar via WhatsApp</TooltipContent>
+              <TooltipContent>Enviar via WhatsApp (real)</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
-                  size="icon"
-                  className="shrink-0"
+                  className="gap-1.5 shrink-0"
                   onClick={handleSendEmail}
-                  disabled={!message || loadingSnapshot}
+                  disabled={!message || loadingSnapshot || isSending}
                 >
-                  <Mail className="h-4 w-4 text-info" />
+                  {isSending && sendMutation.variables?.canal === "email" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mail className="h-4 w-4 text-info" />
+                  )}
+                  <span className="hidden sm:inline text-xs">E-mail</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Enviar via e-mail</TooltipContent>
+              <TooltipContent>Enviar via e-mail (real)</TooltipContent>
             </Tooltip>
           </div>
         </SheetFooter>

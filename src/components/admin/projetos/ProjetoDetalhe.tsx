@@ -816,6 +816,7 @@ function GerenciamentoTab({
             pipeline_added: "Adicionado ao funil",
             pipeline_removed: "Removido do funil",
             consultor_changed: "Consultor alterado",
+            proposal_message_sent: "Mensagem da proposta enviada",
           };
           const VALUE_LABELS: Record<string, string> = {
             open: "Aberto",

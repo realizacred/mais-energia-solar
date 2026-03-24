@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
+import { ProposalMessageHistory } from "./ProposalMessageHistory";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -1333,12 +1334,23 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Message history */}
+      {isExpanded && (
+        <div className="mt-4 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Mensagens enviadas</p>
+          <ProposalMessageHistory propostaId={p.id} />
+        </div>
+      )}
+
       {/* Message drawer */}
       {latestVersao && (
         <ProposalMessageDrawer
           open={messageDrawerOpen}
           onOpenChange={setMessageDrawerOpen}
           versaoId={latestVersao.id}
+          propostaId={p.id}
+          projetoId={dealId}
+          clienteId={customerId}
           tenantId={tenantCtx?.tenantId}
           propostaData={{
             cliente_nome: p.cliente_nome,
