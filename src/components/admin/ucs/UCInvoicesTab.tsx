@@ -138,6 +138,28 @@ function InvoiceDetailPanel({ invoice, raw, unitId }: { invoice: UnitInvoice; ra
 
   return (
     <div className="px-6 py-4 space-y-4">
+      {/* Partial parsing warning */}
+      {invoice.parsing_status === "partial" && (
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+          <div className="text-xs text-warning space-y-0.5">
+            <p className="font-medium">Extração parcial</p>
+            <p>Alguns campos não foram extraídos corretamente. {invoice.parsing_error_reason || "Os dados abaixo podem estar incompletos."}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Failed parsing warning */}
+      {invoice.parsing_status === "failed" && (
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+          <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+          <div className="text-xs text-destructive space-y-0.5">
+            <p className="font-medium">Falha na extração</p>
+            <p>{invoice.parsing_error_reason || "Não foi possível extrair os dados desta fatura. Tente reprocessar."}</p>
+          </div>
+        </div>
+      )}
+
       {/* Manual assignment warning */}
       {invoice.needs_manual_assignment && (
         <div className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
