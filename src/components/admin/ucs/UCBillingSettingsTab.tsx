@@ -449,6 +449,13 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
         </CardContent>
       </Card>
 
+      {/* ─── Help Card: Recebimento ─── */}
+      <SettingsHelpCard tips={[
+        "Ative o recebimento automático para que o sistema processe as faturas sem upload manual.",
+        "Use o botão \"Testar recebimento\" para verificar imediatamente se há faturas pendentes no e-mail.",
+        "Se a última fatura mostra erro, verifique se a senha do PDF está correta.",
+      ]} />
+
       {/* ─── Card 2: Alertas e Notificações ─── */}
       <AlertPhoneCard unitId={unitId} />
 
