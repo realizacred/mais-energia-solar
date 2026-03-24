@@ -12,6 +12,8 @@ export interface ClienteOption {
   nome: string;
   telefone?: string;
   cidade?: string;
+  cpf_cnpj?: string;
+  email?: string;
 }
 
 export interface UCOption {
@@ -30,7 +32,7 @@ export function useClientesList() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes")
-        .select("id, nome, telefone, cidade")
+        .select("id, nome, telefone, cidade, cpf_cnpj, email")
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;

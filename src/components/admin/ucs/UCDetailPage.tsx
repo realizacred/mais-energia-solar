@@ -334,13 +334,18 @@ export default function UCDetailPage() {
                       Acompanhe energia, faturas e relações de GD desta unidade consumidora.
                     </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
                   <Badge className="text-xs bg-primary/10 text-primary border-primary/20 font-medium">
                     {UC_TYPE_LABELS[uc.tipo_uc] || uc.tipo_uc}
                   </Badge>
                   <StatusBadge variant={uc.is_archived ? "muted" : uc.status === "active" ? "success" : "warning"} dot>
                     {uc.is_archived ? "Arquivada" : uc.status === "active" ? "Ativa" : uc.status}
                   </StatusBadge>
+                  {!(uc as any).cliente_id && (
+                    <Badge variant="outline" className="text-xs border-warning/30 text-warning bg-warning/5">
+                      Cliente não vinculado
+                    </Badge>
+                  )}
                 </div>
               </div>
 
