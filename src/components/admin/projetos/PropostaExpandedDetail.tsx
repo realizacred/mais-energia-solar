@@ -1339,6 +1339,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           open={messageDrawerOpen}
           onOpenChange={setMessageDrawerOpen}
           versaoId={latestVersao.id}
+          propostaId={p.id}
+          projetoId={dealId}
+          clienteId={customerId}
           tenantId={tenantCtx?.tenantId}
           propostaData={{
             cliente_nome: p.cliente_nome,
