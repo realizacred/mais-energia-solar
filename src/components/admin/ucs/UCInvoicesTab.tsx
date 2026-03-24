@@ -765,8 +765,8 @@ export function UCInvoicesTab({ unitId }: Props) {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
-                          {/* Reprocess button — visible when parsing failed */}
-                          {inv.parsing_status === "failed" && (
+                          {/* Reprocess button — visible when parsing failed or partial */}
+                          {(inv.parsing_status === "failed" || inv.parsing_status === "partial") && (
                             <Button
                               variant="ghost"
                               size="icon"
