@@ -246,6 +246,9 @@ export function ProposalWizard() {
   const [blockMissing, setBlockMissing] = useState<string[]>([]);
   const [descricaoProposta, setDescricaoProposta] = useState("");
   const [debugMode, setDebugMode] = useState(false);
+  // ─── Pre-generation gate state
+  const [showGateModal, setShowGateModal] = useState(false);
+  const [gateValidation, setGateValidation] = useState<PropostaFinalValidationResult | null>(null);
   // ─── Derived
   const precoFinal = useMemo(() => {
     const val = calcPrecoFinal(itens, servicos, venda);
