@@ -2009,6 +2009,16 @@ function DocumentosTab({ dealId, customerId }: { dealId: string; customerId: str
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Variáveis de Contrato (absorvido da antiga aba "Vínculo de Contrato") */}
+      <Separator className="my-2" />
+      <VariableMapperPanel
+        dealId={dealId}
+        customerId={customerId}
+        onGenerateContract={() => {
+          toast({ title: "Geração de contrato", description: "Funcionalidade será conectada ao motor de documentos." });
+        }}
+      />
     </div>
   );
 }
