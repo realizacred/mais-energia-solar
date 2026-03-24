@@ -2,6 +2,7 @@
  * InlineClienteCreateModal — Create a new client inline without leaving the UC form.
  * Includes duplicate detection by CPF/CNPJ, telefone and email.
  * §25: w-[90vw] obrigatório. §16: queries in hooks. RB-01: semantic colors.
+ * RB-09: Uses PhoneInput and CpfCnpjInput from shared components.
  */
 import { useState, useMemo } from "react";
 import {
@@ -16,6 +17,9 @@ import { UserPlus, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
+import { onlyDigits, isValidCpfCnpj } from "@/lib/cpfCnpjUtils";
 import type { ClienteOption } from "@/hooks/useFormSelects";
 
 interface Props {
@@ -46,13 +50,14 @@ export function InlineClienteCreateModal({ open, onOpenChange, existingClientes,
     const matches: DuplicateMatch[] = [];
     if (!nome && !telefone && !email && !cpfCnpj) return matches;
 
-    const normalize = (s: string) => (s || "").replace(/\D/g, "").toLowerCase();
+    const normalize = (s: string) => onlyDigits(s || "");
     const normTel = normalize(telefone);
     const normCpf = normalize(cpfCnpj);
     const normEmail = (email || "").trim().toLowerCase();
     const normNome = (nome || "").trim().toLowerCase();
 
     for (const c of existingClientes) {
+      // CPF/CNPJ — strong match (highest priority)
       if (normCpf.length >= 8 && normalize(c.cpf_cnpj || "") === normCpf) {
         matches.push({ id: c.id, nome: c.nome, campo: "CPF/CNPJ", valor: cpfCnpj });
       } else if (normTel.length >= 8 && normalize(c.telefone || "").includes(normTel)) {
@@ -66,7 +71,8 @@ export function InlineClienteCreateModal({ open, onOpenChange, existingClientes,
     return matches;
   }, [nome, telefone, email, cpfCnpj, existingClientes]);
 
-  const canSave = nome.trim().length >= 2 && telefone.trim().length >= 8;
+  const cpfCnpjValid = isValidCpfCnpj(cpfCnpj);
+  const canSave = nome.trim().length >= 2 && telefone.trim().length >= 8 && cpfCnpjValid;
 
   const handleUseExisting = (clienteId: string) => {
     onCreated(clienteId);
@@ -89,7 +95,18 @@ export function InlineClienteCreateModal({ open, onOpenChange, existingClientes,
         .select("id")
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Check for unique constraint violation on cpf_cnpj
+        if (error.code === "23505" && error.message?.includes("cpf_cnpj")) {
+          toast({
+            title: "CPF/CNPJ já cadastrado",
+            description: "Já existe um cliente com este CPF/CNPJ. Use o botão 'Usar este' acima.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       await queryClient.invalidateQueries({ queryKey: ["clientes_list"] });
       toast({ title: "Cliente criado", description: `${nome} cadastrado com sucesso.` });
@@ -154,11 +171,14 @@ export function InlineClienteCreateModal({ open, onOpenChange, existingClientes,
               </div>
               <div className="space-y-1">
                 <Label className="text-[11px]">Telefone *</Label>
-                <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(00) 00000-0000" />
+                <PhoneInput value={telefone} onChange={setTelefone} />
               </div>
               <div className="space-y-1">
                 <Label className="text-[11px]">CPF/CNPJ</Label>
-                <Input value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} placeholder="000.000.000-00" />
+                <CpfCnpjInput value={cpfCnpj} onChange={setCpfCnpj} />
+                {cpfCnpj && !cpfCnpjValid && (
+                  <p className="text-[10px] text-destructive">CPF/CNPJ inválido</p>
+                )}
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-[11px]">E-mail</Label>
