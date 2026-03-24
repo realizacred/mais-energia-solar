@@ -428,7 +428,7 @@ export function extractMessageContext(
   const publicSlug = versao.public_slug;
   const linkProposta = publicSlug ? `${window.location.origin}/p/${publicSlug}` : null;
 
-  return {
+  const result: ProposalMessageContext & { _snapshot?: any } = {
     clienteNome: proposta.cliente_nome || snap.clienteNome || snap.cliente_nome || null,
     potenciaKwp: versao.potencia_kwp || snap.potenciaKwp || snap.potencia_kwp || null,
     modulosQtd: modulosQtd || versao.potencia_kwp ? modulosQtd : null,
@@ -459,5 +459,9 @@ export function extractMessageContext(
     })),
     propostaStatus: proposta.status,
     propostaCodigo: proposta.codigo,
+    // Pass snapshot for warranty data extraction in resolveBlocks
+    _snapshot: snap,
   };
+
+  return result as ProposalMessageContext;
 }
