@@ -77,6 +77,7 @@ export function UCGdTab({ uc }: Props) {
       {hasContext && navigationContext.fromUcId && (
         <div className="rounded-lg border border-border bg-muted/20 p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+            <span className="text-muted-foreground">Você veio de</span>
             <span className="font-medium text-foreground truncate">{navigationContext.fromUcName || "UC"}</span>
             {navigationContext.gdGroupName && (
               <>
