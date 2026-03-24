@@ -29,6 +29,40 @@ function hasParsedValue(value: unknown) {
   return value !== null && value !== undefined;
 }
 
+function parseLocalizedNumber(value: string): number {
+  const normalized = value.trim().replace(/\s/g, '');
+  if (!normalized) return NaN;
+
+  const hasComma = normalized.includes(',');
+  const hasDot = normalized.includes('.');
+
+  if (hasComma && hasDot) {
+    if (normalized.lastIndexOf(',') > normalized.lastIndexOf('.')) {
+      return Number(normalized.replace(/\./g, '').replace(',', '.'));
+    }
+    return Number(normalized.replace(/,/g, ''));
+  }
+
+  if (hasComma) return Number(normalized.replace(/\./g, '').replace(',', '.'));
+
+  if (hasDot) {
+    const parts = normalized.split('.');
+    if (parts.length > 2) return Number(parts.join(''));
+    if (/^\d+\.\d{3}$/.test(normalized)) return Number(parts.join(''));
+  }
+
+  return Number(normalized);
+}
+
+function normalizeParsedNumber(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string') {
+    const parsed = parseLocalizedNumber(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
 function resolveExtractionStatus(
   parsed: Record<string, any>,
   ucContext: string,
@@ -440,11 +474,43 @@ async function processInvoice(
 
   console.log(`[process-fatura-pdf] Ownership: extracted=${identifierExtracted}, expected=${identifierExpected}, status=${ownershipResult.status}, score=${ownershipResult.score}`);
 
-  // ── Derive reference month/year early (needed by ownership mismatch path too) ──
+  // ── Derive reference month/year without dangerous temporal fallback ──
+  const referencePeriod = resolveReferencePeriod(parsed.mes_referencia);
+  if (!referencePeriod) {
+    await logExtractionRun(
+      admin,
+      tenantId,
+      extractionConfig?.id,
+      null,
+      resolvedUnitId,
+      detectedConc || parsed.parser_used || 'unknown',
+      strategyMode,
+      'failed',
+      'Competência ausente ou inválida. A fatura não pode ser persistida sem mês/ano confiáveis.',
+      requiredFields,
+      foundFields,
+      missingFields,
+      parsed.confidence,
+      parsed.parser_version,
+      ownershipResult.status,
+      ownershipResult.score,
+      identifierExtracted,
+      ownershipResult.status === 'valid',
+    );
+
+    return new Response(JSON.stringify({
+      error: 'Competência da fatura ausente ou inválida.',
+      parsing_status: 'failed',
+      details: { mes_referencia: parsed.mes_referencia ?? null },
+    }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   const now = new Date();
-  const ano = parsed.mes_referencia ? extractYear(parsed.mes_referencia, now.getFullYear()) : now.getFullYear();
-  const mes = parsed.mes_referencia ? extractMonth(parsed.mes_referencia, now.getMonth() + 1) : now.getMonth() + 1;
+  const ano = referencePeriod.year;
+  const mes = referencePeriod.month;
   const ucCode = ucData?.codigo_uc || parsed.numero_uc || 'unknown';
+  const normalizedTotalAmount = normalizeParsedNumber(parsed.valor_total);
+  const normalizedConsumedKwh = normalizeParsedNumber(parsed.consumo_kwh);
 
   if (ownershipResult.status === 'mismatch' && resolvedUnitId) {
     // Check if this UC has any existing invoices (first import = allow & enrich)
@@ -484,8 +550,8 @@ async function processInvoice(
         unit_id: resolvedUnitId,
         reference_month: mes,
         reference_year: ano,
-        total_amount: parsed.valor_total,
-        energy_consumed_kwh: parsed.consumo_kwh,
+        total_amount: normalizedTotalAmount,
+        energy_consumed_kwh: normalizedConsumedKwh,
         raw_extraction: parsed,
         parsing_status: extractionStatus,
         parser_version: parsed.parser_version || null,
@@ -597,22 +663,27 @@ async function processInvoice(
     else if (raw.includes('vermelha')) bandeira = 'vermelha_1';
   }
 
-  let energyInjected = parsed.energia_injetada_kwh ?? null;
-  if (energyInjected === null && parsed.leitura_atual_103 != null && parsed.leitura_anterior_103 != null) {
-    energyInjected = Math.max(parsed.leitura_atual_103 - parsed.leitura_anterior_103, 0);
+  const normalizedReadingAtual103 = normalizeParsedNumber(parsed.leitura_atual_103);
+  const normalizedReadingAnterior103 = normalizeParsedNumber(parsed.leitura_anterior_103);
+  let energyInjected = normalizeParsedNumber(parsed.energia_injetada_kwh);
+  if (energyInjected === null && normalizedReadingAtual103 != null && normalizedReadingAnterior103 != null) {
+    energyInjected = Math.max(normalizedReadingAtual103 - normalizedReadingAnterior103, 0);
   }
 
-  const currentBalance = parsed.saldo_gd_acumulado ?? parsed.saldo_gd ?? null;
+  const compensatedKwh = normalizeParsedNumber(parsed.energia_compensada_kwh);
+  const currentBalance = normalizeParsedNumber(parsed.saldo_gd_acumulado) ?? normalizeParsedNumber(parsed.saldo_gd);
+  const demandaContratadaKw = normalizeParsedNumber(parsed.demanda_contratada_kw);
+  const dueDate = typeof parsed.vencimento === 'string' ? parseDateBR(parsed.vencimento) : null;
 
   // ── 9. Run GD consistency checks ──
   const gdPrevious = previousBalanceKwh != null ? { saldo_gd_acumulado: previousBalanceKwh } : null;
   const gdChecks = runGdConsistencyChecks({
-    consumo_kwh: parsed.consumo_kwh,
+    consumo_kwh: normalizedConsumedKwh,
     energia_injetada_kwh: energyInjected,
-    energia_compensada_kwh: parsed.energia_compensada_kwh,
+    energia_compensada_kwh: compensatedKwh,
     saldo_gd_acumulado: currentBalance,
     saldo_gd_anterior: previousBalanceKwh,
-    valor_total: parsed.valor_total,
+    valor_total: normalizedTotalAmount,
   }, gdPrevious ? { saldo_gd_acumulado: previousBalanceKwh } : null);
 
   console.log(`[process-fatura-pdf] GD Consistency: status=${gdChecks.overallLevel} score=${gdChecks.score}`);
@@ -622,19 +693,19 @@ async function processInvoice(
     unit_id: resolvedUnitId,
     reference_month: mes,
     reference_year: ano,
-    total_amount: parsed.valor_total,
-    energy_consumed_kwh: parsed.consumo_kwh,
+    total_amount: normalizedTotalAmount,
+    energy_consumed_kwh: normalizedConsumedKwh,
     energy_injected_kwh: energyInjected,
-    compensated_kwh: parsed.energia_compensada_kwh ?? null,
+    compensated_kwh: compensatedKwh,
     current_balance_kwh: currentBalance,
     previous_balance_kwh: previousBalanceKwh,
     bandeira_tarifaria: bandeira,
-    due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
+    due_date: dueDate,
     pdf_file_url: pdfUrl,
     source: invoiceSource,
     source_message_id: source_message_id || null,
-    status: extractionStatus === 'success' ? 'received' : extractionStatus === 'partial' ? 'received' : 'pending_review',
-    demanda_contratada_kw: parsed.demanda_contratada_kw,
+    status: extractionStatus === 'success' ? 'received' : 'pending_review',
+    demanda_contratada_kw: demandaContratadaKw,
     raw_extraction: { ...parsed, uc_detection: ucDetection },
     parsing_status: extractionStatus,
     parser_version: parsed.parser_version || null,
@@ -1006,13 +1077,21 @@ async function reprocessInvoice(
         : 'base';
 
   // 4. Calculate derived fields
-  let energyInjected = parsed.energia_injetada_kwh ?? null;
-  if (energyInjected === null && parsed.leitura_atual_103 != null && parsed.leitura_anterior_103 != null) {
-    energyInjected = Math.max(parsed.leitura_atual_103 - parsed.leitura_anterior_103, 0);
+    let energyInjected = normalizeParsedNumber(parsed.energia_injetada_kwh);
+    const readingAtual103 = normalizeParsedNumber(parsed.leitura_atual_103);
+    const readingAnterior103 = normalizeParsedNumber(parsed.leitura_anterior_103);
+    if (energyInjected === null && readingAtual103 != null && readingAnterior103 != null) {
+      energyInjected = Math.max(readingAtual103 - readingAnterior103, 0);
   }
-  const currentBalance = parsed.saldo_gd_acumulado ?? parsed.saldo_gd ?? null;
-  const reprocessedYear = parsed.mes_referencia ? extractYear(parsed.mes_referencia, invoice.reference_year) : invoice.reference_year;
-  const reprocessedMonth = parsed.mes_referencia ? extractMonth(parsed.mes_referencia, invoice.reference_month) : invoice.reference_month;
+    const currentBalance = normalizeParsedNumber(parsed.saldo_gd_acumulado) ?? normalizeParsedNumber(parsed.saldo_gd);
+    const referencePeriod = resolveReferencePeriod(parsed.mes_referencia);
+    const reprocessedYear = referencePeriod?.year ?? invoice.reference_year;
+    const reprocessedMonth = referencePeriod?.month ?? invoice.reference_month;
+    const normalizedTotalAmount = normalizeParsedNumber(parsed.valor_total);
+    const normalizedConsumedKwh = normalizeParsedNumber(parsed.consumo_kwh);
+    const compensatedKwh = normalizeParsedNumber(parsed.energia_compensada_kwh);
+    const demandaContratadaKw = normalizeParsedNumber(parsed.demanda_contratada_kw);
+    const dueDate = typeof parsed.vencimento === 'string' ? parseDateBR(parsed.vencimento) : null;
 
   // Lookup previous balance from DB
   let previousBalance: number | null = null;
@@ -1035,12 +1114,12 @@ async function reprocessInvoice(
 
   // Run GD consistency
   const gdChecks = runGdConsistencyChecks({
-    consumo_kwh: parsed.consumo_kwh,
+    consumo_kwh: normalizedConsumedKwh,
     energia_injetada_kwh: energyInjected,
-    energia_compensada_kwh: parsed.energia_compensada_kwh,
+    energia_compensada_kwh: compensatedKwh,
     saldo_gd_acumulado: currentBalance,
     saldo_gd_anterior: previousBalance,
-    valor_total: parsed.valor_total,
+    valor_total: normalizedTotalAmount,
   }, previousBalance != null ? { saldo_gd_acumulado: previousBalance } : null);
 
   let bandeira: string | null = null;
@@ -1060,29 +1139,35 @@ async function reprocessInvoice(
     ['energia_injetada_kwh', 'saldo_gd_acumulado', 'leitura_anterior_103', 'leitura_atual_103'],
     ['energia_injetada_kwh', 'saldo_gd_acumulado', 'leitura_anterior_103', 'leitura_atual_103', 'medidor_injecao_codigo', 'categoria_gd'],
   );
+  const reprocessExtractionStatus: ExtractionStatus = referencePeriod ? reprocessValidation.extractionStatus : 'failed';
+  const reprocessErrorReason = !referencePeriod
+    ? 'Competência ausente ou inválida no reprocessamento.'
+    : reprocessExtractionStatus === 'failed'
+      ? `Campos core faltantes (${ucContext}): ${reprocessValidation.coreMissing.join(', ')}`
+      : reprocessExtractionStatus === 'partial'
+        ? `Campos core faltantes (${ucContext}): ${reprocessValidation.coreMissing.join(', ')}`
+        : null;
 
   // 5. Update the invoice
   const updatePayload: any = {
     reference_month: reprocessedMonth,
     reference_year: reprocessedYear,
-    total_amount: parsed.valor_total,
-    energy_consumed_kwh: parsed.consumo_kwh,
+    total_amount: normalizedTotalAmount,
+    energy_consumed_kwh: normalizedConsumedKwh,
     energy_injected_kwh: energyInjected,
-    compensated_kwh: parsed.energia_compensada_kwh ?? null,
+    compensated_kwh: compensatedKwh,
     current_balance_kwh: currentBalance,
     previous_balance_kwh: previousBalance,
     bandeira_tarifaria: bandeira,
-    due_date: parsed.vencimento ? parseDateBR(parsed.vencimento) : null,
-    demanda_contratada_kw: parsed.demanda_contratada_kw,
+    due_date: dueDate,
+    demanda_contratada_kw: demandaContratadaKw,
     raw_extraction: { ...parsed, uc_detection: ucDetection },
-    parsing_status: reprocessValidation.extractionStatus,
+    parsing_status: reprocessExtractionStatus,
     parser_version: parsed.parser_version || null,
     last_parsed_at: new Date().toISOString(),
-    parsing_error_reason: reprocessValidation.extractionStatus === 'failed'
-      ? `Campos core faltantes (${ucContext}): ${reprocessValidation.coreMissing.join(', ')}`
-      : null,
+    parsing_error_reason: reprocessErrorReason,
     updated_at: new Date().toISOString(),
-    status: reprocessValidation.extractionStatus === 'failed' ? 'pending_review' : 'received',
+    status: reprocessExtractionStatus === 'success' ? 'received' : 'pending_review',
     consistency_status: gdChecks.overallLevel,
     consistency_score: gdChecks.score,
     consistency_checks_json: gdChecks.checks,
@@ -1107,7 +1192,7 @@ async function reprocessInvoice(
 
   // Log extraction run
   const detectedConc = detectConcessionariaFromText(pdfText);
-  await logExtractionRun(admin, tenantId, null, invoiceId, invoice.unit_id, detectedConc || parsed.parser_used || 'unknown', 'native', 'success', null, [], [], [], parsed.confidence, parsed.parser_version);
+  await logExtractionRun(admin, tenantId, null, invoiceId, invoice.unit_id, detectedConc || parsed.parser_used || 'unknown', 'native', reprocessExtractionStatus, reprocessErrorReason, [], [], [], parsed.confidence, parsed.parser_version);
 
   console.log(`[process-fatura-pdf] Reprocessed invoice ${invoiceId} — parser v${parsed.parser_version}, confidence: ${parsed.confidence}, GD: ${gdChecks.overallLevel}`);
 
@@ -1248,6 +1333,24 @@ function parseDateBR(dateStr: string): string | null {
   const [day, month, year] = parts;
   const fullYear = year.length === 2 ? `20${year}` : year;
   return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
+function extractYearStrict(mesRef: string): number | null {
+  const year = extractYear(mesRef, Number.NaN);
+  return Number.isFinite(year) && year >= 2020 && year <= 2100 ? year : null;
+}
+
+function extractMonthStrict(mesRef: string): number | null {
+  const month = extractMonth(mesRef, Number.NaN);
+  return Number.isFinite(month) && month >= 1 && month <= 12 ? month : null;
+}
+
+function resolveReferencePeriod(mesReferencia: unknown): { month: number; year: number } | null {
+  if (typeof mesReferencia !== 'string' || !mesReferencia.trim()) return null;
+  const month = extractMonthStrict(mesReferencia);
+  const year = extractYearStrict(mesReferencia);
+  if (!month || !year) return null;
+  return { month, year };
 }
 
 
