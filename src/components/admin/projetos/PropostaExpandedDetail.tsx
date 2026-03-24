@@ -644,6 +644,32 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [recusaMotivo, setRecusaMotivo] = useState("");
   const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
 
+  // PDF signed URL for persisted artifacts
+  const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
+
+  // Fetch signed URL when expanded and PDF path exists
+  useEffect(() => {
+    if (!isExpanded || !latestVersao?.output_pdf_path) {
+      setPdfSignedUrl(null);
+      setPdfError(false);
+      return;
+    }
+    setPdfLoading(true);
+    setPdfError(false);
+    supabase.storage.from("proposta-documentos").createSignedUrl(latestVersao.output_pdf_path, 3600)
+      .then(({ data, error }) => {
+        if (error || !data?.signedUrl) {
+          setPdfError(true);
+          setPdfSignedUrl(null);
+        } else {
+          setPdfSignedUrl(data.signedUrl);
+        }
+      })
+      .finally(() => setPdfLoading(false));
+  }, [isExpanded, latestVersao?.output_pdf_path]);
+
   // ─── Accept / Reject handler ───
   const updatePropostaStatus = async (newStatus: string, extra?: Record<string, any>) => {
     setUpdatingStatus(true);
@@ -1200,6 +1226,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         handleDownloadPdf={handleDownloadPdf}
                         handleSend={handleSend}
                         copyLink={copyLink}
+                        pdfSignedUrl={pdfSignedUrl}
+                        pdfLoading={pdfLoading}
+                        pdfError={pdfError}
                       />
                     )}
                   </TabsContent>
