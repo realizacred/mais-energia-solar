@@ -423,6 +423,8 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
                     />
                   )}
                   <p className="text-xs text-muted-foreground">Marcador no Gmail para filtrar os e-mails desta UC. Crie o marcador no Gmail e ele aparecerá aqui.</p>
+                </div>
+
                 <div className="space-y-1.5">
                   <Label className="text-xs">E-mail de encaminhamento</Label>
                   <Input value={form.forward_to_email} onChange={(e) => setForm(f => ({ ...f, forward_to_email: e.target.value }))} placeholder="cliente@email.com" />
