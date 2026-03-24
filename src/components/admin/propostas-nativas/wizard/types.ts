@@ -137,6 +137,19 @@ export interface PremissasData {
   vpl_taxa_desconto: number;
 }
 
+/** Categorias canônicas para itens do kit gerador. Manter em sync com CATEGORIAS em StepKit.tsx */
+export type KitCategoria =
+  | "modulo"
+  | "inversor"
+  | "bateria"
+  | "transformador"
+  | "estrutura"
+  | "string_box"
+  | "cabos"
+  | "conectores"
+  | "mao_obra"
+  | "outros";
+
 export interface KitItemRow {
   id: string;
   descricao: string;
@@ -145,10 +158,36 @@ export interface KitItemRow {
   potencia_w: number;
   quantidade: number;
   preco_unitario: number;
-  categoria: string;
+  categoria: KitCategoria;
   avulso: boolean;
   /** Referência ao produto de origem (modulos_solares.id, inversores_catalogo.id, etc.) para rastreabilidade do snapshot. */
   produto_ref?: string | null;
+}
+
+/** Rótulos legíveis para cada KitCategoria */
+export const KIT_CATEGORIA_LABELS: Record<KitCategoria, string> = {
+  modulo: "Módulo",
+  inversor: "Inversor",
+  bateria: "Bateria",
+  transformador: "Transformador",
+  estrutura: "Estrutura",
+  string_box: "String Box",
+  cabos: "Cabos",
+  conectores: "Conectores",
+  mao_obra: "Mão de obra",
+  outros: "Outros",
+};
+
+/** Calcula o preço final (custo base + margem − desconto) de forma canônica.
+ *  SSOT: toda lógica de pricing deve usar esta função. */
+export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], venda: VendaData): number {
+  const { roundCurrency } = require("@/lib/formatters");
+  const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
+  const custoServicos = roundCurrency(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
+  const custoBase = roundCurrency(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
+  const margemValor = roundCurrency(custoBase * (venda.margem_percentual / 100));
+  const precoComMargem = roundCurrency(custoBase + margemValor);
+  return roundCurrency(precoComMargem - precoComMargem * (venda.desconto_percentual / 100));
 }
 
 export interface KitData {
