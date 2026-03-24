@@ -1,6 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,23 +6,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   MessageSquare, ExternalLink, User, Bot, Clock,
-  Sparkles, AlertCircle,
+  Sparkles,
 } from "lucide-react";
-import { formatDateTime } from "@/lib/dateUtils";
+import { useConversationByPhone } from "@/hooks/useConversationByPhone";
+import type { ConvSummary } from "@/hooks/useConversationByPhone";
 
 interface Props {
   customerId: string | null;
   customerPhone: string;
-}
-
-interface ConvSummary {
-  id: string;
-  cliente_nome: string | null;
-  cliente_telefone: string;
-  last_message_preview: string | null;
-  last_message_at: string | null;
-  last_message_direction: string | null;
-  status: string;
 }
 
 type DerivedStatus = "aguardando_cliente" | "respondido" | "sem_resposta" | "resolvida";
@@ -56,53 +45,17 @@ function timeAgo(dateStr: string): string {
 
 export function ProjetoComunicacaoResumo({ customerId, customerPhone }: Props) {
   const navigate = useNavigate();
-  const [conv, setConv] = useState<ConvSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const { data, isLoading } = useConversationByPhone(customerPhone, customerId);
 
-  useEffect(() => {
-    async function load() {
-      if (!customerPhone && !customerId) { setLoading(false); return; }
-      try {
-        const digits = customerPhone.replace(/\D/g, "");
-        if (digits.length >= 8) {
-          const suffix = digits.slice(-8);
-          const { data } = await supabase
-            .from("wa_conversations")
-            .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, last_message_direction, status")
-            .or(`cliente_telefone.ilike.%${suffix}%,remote_jid.ilike.%${suffix}%`)
-            .order("last_message_at", { ascending: false })
-            .limit(1);
-          const c = data?.[0] as ConvSummary | undefined;
-          if (c) {
-            setConv(c);
-            // Try to load cached AI summary
-            try {
-              const { data: summaryData } = await supabase
-                .from("wa_conversation_summaries" as any)
-                .select("summary")
-                .eq("conversation_id", c.id)
-                .maybeSingle();
-              const raw = (summaryData as any)?.summary;
-              if (raw) {
-                const s = typeof raw === "string" ? raw : raw?.resumo;
-                if (s) setAiSummary(typeof s === "string" ? s : JSON.stringify(s));
-              }
-            } catch { /* ignore */ }
-          }
-        }
-      } catch (err) { console.error("ComunicacaoResumo:", err); }
-      finally { setLoading(false); }
-    }
-    load();
-  }, [customerId, customerPhone]);
+  const conv = data?.conversation ?? null;
+  const aiSummary = data?.aiSummary ?? null;
 
   const openFullInbox = () => {
     const digits = customerPhone.replace(/\D/g, "");
     navigate(`/admin/wa-inbox?search=${digits}`);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardContent className="p-4 space-y-3">

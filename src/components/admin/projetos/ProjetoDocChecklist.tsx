@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Check, Square, FileText, AlertCircle } from "lucide-react";
+import { useCallback } from "react";
+import { Check, FileText, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useDealDocChecklist, useUpdateDealDocChecklist } from "@/hooks/useDealDocChecklist";
 
 interface DocItem {
   key: string;
@@ -26,44 +27,36 @@ interface Props {
 }
 
 export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
-  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    supabase
-      .from("deals")
-      .select("doc_checklist")
-      .eq("id", dealId)
-      .single()
-      .then(({ data }) => {
-        if (data?.doc_checklist && typeof data.doc_checklist === "object") {
-          setChecklist(data.doc_checklist as Record<string, boolean>);
-        }
-      });
-  }, [dealId]);
+  const { data: checklist = {}, isLoading } = useDealDocChecklist(dealId);
+  const updateMutation = useUpdateDealDocChecklist();
 
   const toggleItem = useCallback(async (key: string) => {
     const newVal = !checklist[key];
     const updated = { ...checklist, [key]: newVal };
-    setChecklist(updated);
-    setSaving(true);
     try {
-      const { error } = await supabase
-        .from("deals")
-        .update({ doc_checklist: updated } as any)
-        .eq("id", dealId);
-      if (error) throw error;
+      await updateMutation.mutateAsync({ dealId, checklist: updated });
     } catch (err: any) {
-      setChecklist(checklist); // rollback
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
     }
-  }, [checklist, dealId]);
+  }, [checklist, dealId, updateMutation]);
 
   const completed = DOC_ITEMS.filter(d => checklist[d.key]).length;
   const total = DOC_ITEMS.length;
   const progress = total > 0 ? (completed / total) * 100 : 0;
+
+  if (isLoading) {
+    return compact ? (
+      <Skeleton className="h-6 w-full" />
+    ) : (
+      <Card className="border-border/60">
+        <CardContent className="p-4 space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (compact) {
     return (
@@ -129,7 +122,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
             <button
               key={item.key}
               onClick={() => toggleItem(item.key)}
-              disabled={saving}
+              disabled={updateMutation.isPending}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left",
                 "hover:bg-muted/50",
