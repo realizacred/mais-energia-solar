@@ -382,7 +382,7 @@ function ProjetoDetalheContent() {
             />
           )}
           {activeTab === "comunicacao" && (
-            <ProjetoChatTab customerId={deal.customer_id} customerPhone={customerPhone} />
+            <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />
           )}
           {activeTab === "propostas" && (
             <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} />

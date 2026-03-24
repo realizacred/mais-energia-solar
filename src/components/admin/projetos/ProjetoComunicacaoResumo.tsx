@@ -83,8 +83,9 @@ export function ProjetoComunicacaoResumo({ customerId, customerPhone }: Props) {
                 .select("summary")
                 .eq("conversation_id", c.id)
                 .maybeSingle();
-              if (summaryData?.summary) {
-                const s = typeof summaryData.summary === "string" ? summaryData.summary : (summaryData.summary as any)?.resumo;
+              const raw = (summaryData as any)?.summary;
+              if (raw) {
+                const s = typeof raw === "string" ? raw : raw?.resumo;
                 if (s) setAiSummary(typeof s === "string" ? s : JSON.stringify(s));
               }
             } catch { /* ignore */ }
