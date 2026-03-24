@@ -1961,7 +1961,7 @@ export function ProposalWizard() {
               generationStatus={generationStatus}
               generationError={generationError}
               missingVars={missingVars}
-              onGenerate={handleGenerate}
+              onGenerate={handlePreGenerate}
               onNewVersion={handleNewVersion}
               onViewDetail={handleViewDetail}
               customFieldValues={customFieldValues}
