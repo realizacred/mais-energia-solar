@@ -749,10 +749,15 @@ export function UCInvoicesTab({ unitId }: Props) {
                         <StatusBadge variant="muted">{SOURCE_LABELS[inv.source || "manual"] || inv.source}</StatusBadge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-wrap">
                           <StatusBadge variant={inv.status === "processed" ? "success" : inv.status === "error" ? "destructive" : "warning"} dot>
                             {STATUS_LABELS[inv.status] || inv.status}
                           </StatusBadge>
+                          {inv.parsing_status === "partial" && (
+                            <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">
+                              Parcial
+                            </Badge>
+                          )}
                           {inv.parsing_status === "failed" && (
                             <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />
                           )}
