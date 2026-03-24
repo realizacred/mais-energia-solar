@@ -990,11 +990,21 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
           {/* Col 1: Name + Status */}
           <div className="min-w-0 pr-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-semibold text-foreground truncate">
                 {p.cliente_nome || p.titulo || p.codigo || `Proposta #${p.proposta_num}`}
               </p>
               <StatusBadge status={p.status} />
+              {isPrincipal && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/10 text-warning">
+                  <Star className="h-2.5 w-2.5 inline mr-0.5 -mt-0.5" />Principal
+                </span>
+              )}
+              {isOutdated && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/10 text-warning border border-warning/20">
+                  Desatualizada
+                </span>
+              )}
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">
               Criada em {formatDate(p.created_at)}
