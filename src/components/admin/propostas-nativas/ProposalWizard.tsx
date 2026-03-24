@@ -1835,6 +1835,35 @@ export function ProposalWizard() {
           <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} ucs={ucs} premissas={premissas} potenciaKwp={potenciaKwp} irradiacao={locIrradiacao} />
         ));
 
+      case STEP_KEYS.RESUMO:
+        return wrap("resumo", (
+          <StepResumo
+            estado={locEstado}
+            cidade={locCidade}
+            tipoTelhado={locTipoTelhado}
+            distribuidoraNome={locDistribuidoraNome}
+            irradiacao={locIrradiacao}
+            clienteNome={cliente.nome || ""}
+            clienteCelular={cliente.celular || ""}
+            clienteEmail={cliente.email || ""}
+            clienteEmpresa={cliente.empresa || ""}
+            leadNome={selectedLead?.nome || ""}
+            potenciaKwp={potenciaKwp}
+            consumoTotal={consumoTotal}
+            geracaoMensalKwh={geracaoMensalEstimada}
+            numUcs={ucs.length}
+            grupo={grupo}
+            itens={itens}
+            adicionais={adicionais}
+            servicos={servicos}
+            precoFinal={precoFinal}
+            margemPercentual={venda.margem_percentual}
+            custoComissao={venda.custo_comissao}
+            descontoPercentual={venda.desconto_percentual}
+            pagamentoOpcoes={pagamentoOpcoes}
+          />
+        ));
+
       case STEP_KEYS.PROPOSTA:
         return wrap("proposta", (
           <>
