@@ -302,17 +302,74 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                 Faturamento
               </p>
               <div className="space-y-3">
-                <div className="space-y-1 min-w-0">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-[11px]">Cliente</Label>
-                  <Select value={form.cliente_id || "none"} onValueChange={(v) => setForm(f => ({ ...f, cliente_id: v === "none" ? "" : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o cliente..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhum</SelectItem>
-                      {clientes.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {form.cliente_id && selectedCliente ? (
+                    <div className="flex items-center gap-2 p-2 rounded-md border border-border bg-background text-sm">
+                      <span className="flex-1 truncate text-foreground font-medium">{selectedCliente.nome}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 shrink-0"
+                        onClick={() => setForm(f => ({ ...f, cliente_id: "" }))}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                        <Input
+                          value={clientSearch}
+                          onChange={(e) => setClientSearch(e.target.value)}
+                          placeholder="Buscar por nome, telefone, CPF..."
+                          className="pl-8 h-8 text-xs"
+                        />
+                      </div>
+                      {clientSearch.trim() && (
+                        <div className="max-h-32 overflow-y-auto rounded-md border border-border bg-background">
+                          {filteredClientes.length === 0 ? (
+                            <p className="text-xs text-muted-foreground p-2 text-center">Nenhum cliente encontrado</p>
+                          ) : (
+                            filteredClientes.slice(0, 8).map(c => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors flex items-center justify-between"
+                                onClick={() => { setForm(f => ({ ...f, cliente_id: c.id })); setClientSearch(""); }}
+                              >
+                                <span className="font-medium text-foreground truncate">{c.nome}</span>
+                                {c.telefone && <span className="text-muted-foreground text-[10px] ml-2 shrink-0">{c.telefone}</span>}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                      {!clientSearch.trim() && (
+                        <Select value="none" onValueChange={(v) => { if (v !== "none") setForm(f => ({ ...f, cliente_id: v })); }}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="ou selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
+                            {clientes.slice(0, 50).map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-7 text-[11px]"
+                        onClick={() => setShowCreateCliente(true)}
+                      >
+                        <UserPlus className="w-3 h-3 mr-1.5" />
+                        Cadastrar novo cliente
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1 min-w-0">
                   <Label className="text-[11px]">E-mail da Fatura</Label>
