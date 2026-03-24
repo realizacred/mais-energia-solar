@@ -52,6 +52,7 @@ export function UCGdTab({ uc }: Props) {
 
   const isLoading = loadingGen || loadingBen;
   const isGenerator = uc.papel_gd === "geradora" || uc.tipo_uc === "gd_geradora" || uc.tipo_uc === "mista";
+  const activeBeneficiariesCount = beneficiaries.filter((item) => item.is_active).length;
 
   if (isLoading) {
     return (
@@ -70,8 +71,14 @@ export function UCGdTab({ uc }: Props) {
           <Sun className="w-3 h-3 mr-1" /> {isGenerator ? "Geradora" : "Sem papel de geradora"}
         </Badge>
         <Badge className={beneficiaryOf.length > 0 ? "text-xs bg-info/10 text-info border-info/20" : "text-xs bg-muted text-muted-foreground border-border"}>
-          <Users className="w-3 h-3 mr-1" /> {beneficiaryOf.length > 0 ? `Beneficiária (${beneficiaryOf.length})` : "Sem vínculo como beneficiária"}
+          <Users className="w-3 h-3 mr-1" /> {beneficiaryOf.length > 0 ? `Recebe como beneficiária (${beneficiaryOf.length})` : "Esta UC não recebe como beneficiária"}
         </Badge>
+        {activeGroup && !loadingBenefs && (
+          <Badge variant="outline" className="text-xs border-info/20 text-info bg-info/10">
+            <Users className="w-3 h-3 mr-1" />
+            Grupo com {activeBeneficiariesCount} beneficiária{activeBeneficiariesCount === 1 ? "" : "s"}
+          </Badge>
+        )}
         {activeGroup && (
           <Badge variant="outline" className="text-xs">
             <GitBranch className="w-3 h-3 mr-1" /> {activeGroup.nome}
