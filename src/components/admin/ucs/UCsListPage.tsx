@@ -16,11 +16,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Archive, Edit, Building2, AlertTriangle, ChevronLeft, ChevronRight, Zap, ShieldAlert, CheckCircle2, ArchiveIcon, ChevronDown, ChevronRight as ChevronRightIcon, Sun, Users, CornerDownRight } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Search, Archive, Edit, Building2, AlertTriangle, ChevronLeft, ChevronRight, Zap, ShieldAlert, CheckCircle2, ArchiveIcon, ChevronDown, ChevronRight as ChevronRightIcon, Sun, Users, CornerDownRight, GitBranch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UCFormDialog } from "./UCFormDialog";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { GDConsolidadoTab } from "./GDConsolidadoTab";
 
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Beneficiária",
@@ -319,6 +321,18 @@ export default function UCsListPage() {
         </Button>
       </div>
 
+      <Tabs defaultValue="lista" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="lista" className="gap-1.5">
+            <Building2 className="w-3.5 h-3.5" /> Lista de UCs
+          </TabsTrigger>
+          <TabsTrigger value="gd" className="gap-1.5">
+            <GitBranch className="w-3.5 h-3.5" /> GD Consolidado
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="lista" className="space-y-4 mt-0">
+
       {/* §27 KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {kpiCards.map((kpi, i) => (
@@ -499,6 +513,12 @@ export default function UCsListPage() {
           )}
         </>
       )}
+        </TabsContent>
+
+        <TabsContent value="gd" className="mt-0">
+          <GDConsolidadoTab />
+        </TabsContent>
+      </Tabs>
 
       <UCFormDialog
         open={dialogOpen}
