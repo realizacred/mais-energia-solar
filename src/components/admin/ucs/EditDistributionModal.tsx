@@ -2,13 +2,12 @@
  * EditDistributionModal — Edita percentuais de rateio GD em lote.
  * §25: Modal padrão. RB-07: w-[90vw].
  */
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle, Loader2, PieChart, Sun, Users } from "lucide-react";
 import { useSaveGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
@@ -31,7 +30,7 @@ interface EditableRow {
   ucId: string;
   ucName: string;
   codigoUc: string;
-  percent: string; // string for input control
+  percent: string;
   original: number;
 }
 
@@ -51,22 +50,11 @@ export function EditDistributionModal({
 
   const ucMap = useMemo(() => new Map(allUcs.map((u) => [u.id, u])), [allUcs]);
 
-  const [rows, setRows] = useState<EditableRow[]>(() =>
-    beneficiaries.map((b) => {
-      const uc = ucMap.get(b.uc_beneficiaria_id);
-      return {
-        id: b.id,
-        ucId: b.uc_beneficiaria_id,
-        ucName: uc?.nome || "UC desconhecida",
-        codigoUc: uc?.codigo_uc || "—",
-        percent: String(Number(b.allocation_percent)),
-        original: Number(b.allocation_percent),
-      };
-    })
-  );
+  const [rows, setRows] = useState<EditableRow[]>([]);
 
-  // Reset rows when modal opens with new data
-  const resetRows = useCallback(() => {
+  // Sync rows from beneficiaries whenever modal opens or beneficiaries change while open
+  useEffect(() => {
+    if (!open) return;
     setRows(
       beneficiaries.map((b) => {
         const uc = ucMap.get(b.uc_beneficiaria_id);
@@ -80,13 +68,9 @@ export function EditDistributionModal({
         };
       })
     );
-  }, [beneficiaries, ucMap]);
-
-  // Recalculate when beneficiaries change
-  useState(() => { resetRows(); });
+  }, [open, beneficiaries, ucMap]);
 
   const handlePercentChange = (index: number, value: string) => {
-    // Allow empty string, numbers, and decimal
     if (value !== "" && !/^\d*\.?\d*$/.test(value)) return;
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, percent: value } : r)));
   };
@@ -107,7 +91,6 @@ export function EditDistributionModal({
     if (!canSave) return;
     setSaving(true);
     try {
-      // Save each beneficiary sequentially to avoid race conditions
       for (const row of parsedRows) {
         if (Math.abs(row.numericPercent - row.original) > 0.001) {
           await saveBeneficiary.mutateAsync({
@@ -128,13 +111,8 @@ export function EditDistributionModal({
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen) resetRows();
-    onOpenChange(newOpen);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* Header */}
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
@@ -154,7 +132,6 @@ export function EditDistributionModal({
         {/* Body */}
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-5 space-y-4">
-            {/* Beneficiary rows */}
             <div className="space-y-2">
               {rows.map((row, index) => (
                 <div
@@ -206,7 +183,6 @@ export function EditDistributionModal({
                 </span>
               </div>
 
-              {/* Progress bar */}
               <div className="h-2.5 rounded-full bg-muted overflow-hidden mt-1">
                 <div
                   className={`h-full rounded-full transition-all duration-300 ${isOverLimit ? "bg-destructive" : "bg-primary"}`}
