@@ -1577,12 +1577,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const principal = selectPrincipal(propostas as any[]);
   const outras = propostas.filter(p => p.id !== principal?.id);
 
-  const isPrincipalOutdated = (() => {
-    if (!principal || !dealUpdatedAt) return false;
-    const latestVersao = principal.versoes[0];
-    if (!latestVersao?.gerado_em) return false;
-    return new Date(dealUpdatedAt).getTime() > new Date(latestVersao.gerado_em).getTime();
-  })();
+  const isPrincipalOutdated = principal ? isPropostaOutdated(principal) : false;
 
   const isPropostaOutdated = (prop: any) => {
     if (!dealUpdatedAt) return false;
