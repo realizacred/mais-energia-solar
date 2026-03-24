@@ -1,7 +1,7 @@
 /**
- * GdEnergyNetworkCard — "Rede de Energia deste Grupo" card.
- * Shows the full energy flow: generator → beneficiaries with real data,
- * distribution bar, highlights, and R$ economy estimates.
+ * GdEnergyNetworkCard — Card unificado de GD.
+ * Mostra: fluxo de energia, beneficiárias com ações, distribuição, economia
+ * e ações de gerenciamento do grupo.
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sun, ArrowRight, Building2, Zap, TrendingUp, AlertTriangle, DollarSign, Crown, ArrowDown } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sun, ArrowRight, Building2, Zap, TrendingUp, AlertTriangle, DollarSign, Crown, ArrowDown, Plus, PieChart, Edit, Trash2, Users } from "lucide-react";
 import { type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
 import { type UCOption } from "@/hooks/useFormSelects";
 import { buildUcDetailPath } from "./ucNavigation";
@@ -33,6 +35,13 @@ interface Props {
   allUcs: UCOption[];
   tarifaMedia?: number | null;
   categoriaGd?: string | null;
+  /** Management callbacks — when provided, action buttons appear */
+  onAddBeneficiary?: () => void;
+  onEditDistribution?: () => void;
+  onRenameGroup?: () => void;
+  onNewGroup?: () => void;
+  onDeleteGroup?: () => void;
+  onDeleteBeneficiary?: (beneficiaryId: string) => void;
 }
 
 const STALE = 1000 * 60 * 5;
@@ -48,6 +57,12 @@ export function GdEnergyNetworkCard({
   allUcs,
   tarifaMedia,
   categoriaGd,
+  onAddBeneficiary,
+  onEditDistribution,
+  onRenameGroup,
+  onNewGroup,
+  onDeleteGroup,
+  onDeleteBeneficiary,
 }: Props) {
   const navigate = useNavigate();
   const tarifa = tarifaMedia ?? DEFAULT_TARIFA;
@@ -274,31 +289,43 @@ export function GdEnergyNetworkCard({
               </div>
             </div>
 
-            {/* Beneficiaries list */}
+            {/* Beneficiaries list — unified with actions */}
             {beneficiaries.length === 0 ? (
               <div className="text-center py-6">
                 <p className="text-sm text-muted-foreground">Nenhuma beneficiária cadastrada</p>
                 <p className="text-xs text-muted-foreground mt-1">Adicione unidades para distribuir os créditos de geração.</p>
+                {onAddBeneficiary && (
+                  <Button variant="outline" size="sm" className="mt-3" onClick={onAddBeneficiary}>
+                    <Plus className="w-4 h-4 mr-1" /> Adicionar Beneficiária
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-2">
                 {enrichedBeneficiaries.map((ben) => {
                   const isMax = maxBen?.id === ben.id;
                   const isMin = minBen?.id === ben.id;
+                  const ucCode = ben.ucInfo?.codigo_uc;
+                  const fullName = ben.ucInfo?.nome || "UC desconhecida";
 
                   return (
                     <div
                       key={ben.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors hover:bg-muted/50 ${
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-colors hover:bg-muted/50 ${
                         isMax ? "bg-success/5 border-success/20" : isMin ? "bg-warning/5 border-warning/20" : "bg-muted/30 border-border"
                       }`}
                     >
                       <Building2 className="w-4 h-4 text-info shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {ben.ucInfo?.nome || "UC desconhecida"}
-                          </p>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p className="text-sm font-medium text-foreground truncate max-w-[180px] sm:max-w-[260px]">
+                                {fullName}
+                              </p>
+                            </TooltipTrigger>
+                            <TooltipContent side="top"><p>{fullName}</p></TooltipContent>
+                          </Tooltip>
                           {isMax && (
                             <Badge variant="outline" className="text-[10px] h-4 px-1 border-success/30 text-success bg-success/10">
                               <Crown className="w-2.5 h-2.5 mr-0.5" /> Maior
@@ -310,11 +337,13 @@ export function GdEnergyNetworkCard({
                             </Badge>
                           )}
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
-                          <span className="font-mono">{ben.allocPercent.toFixed(1)}%</span>
-                          <span>·</span>
+                        {ucCode && (
+                          <p className="text-[11px] font-mono text-muted-foreground mt-0.5">{ucCode}</p>
+                        )}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-1">
+                          <span className="font-mono font-semibold text-foreground">{ben.allocPercent.toFixed(1)}%</span>
+                          <span className="text-border">·</span>
                           <span>
-                            Recebe:{" "}
                             {ben.actualReceived != null ? (
                               <span className="font-medium text-foreground">{formatDecimalBR(ben.actualReceived, 0)} kWh</span>
                             ) : (
@@ -323,7 +352,7 @@ export function GdEnergyNetworkCard({
                           </span>
                           {ben.economyR$ != null && (
                             <>
-                              <span>·</span>
+                              <span className="text-border">·</span>
                               <span className="font-medium text-success">
                                 {formatBRL(ben.economyR$)}
                               </span>
@@ -331,14 +360,49 @@ export function GdEnergyNetworkCard({
                           )}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs gap-1 shrink-0"
-                        onClick={() => navigate(buildUcDetailPath(ben.uc_beneficiaria_id, { tab: "overview" }))}
-                      >
-                        Abrir <ArrowRight className="w-3 h-3" />
-                      </Button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => navigate(buildUcDetailPath(ben.uc_beneficiaria_id, { tab: "overview" }))}
+                            >
+                              <Building2 className="w-3.5 h-3.5 text-primary" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Abrir UC</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => navigate(buildUcDetailPath(ben.uc_beneficiaria_id, { tab: "gd" }))}
+                            >
+                              <Users className="w-3.5 h-3.5 text-info" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Ver energia GD</TooltipContent>
+                        </Tooltip>
+                        {onDeleteBeneficiary && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => { e.stopPropagation(); onDeleteBeneficiary(ben.id); }}
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Remover</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -376,6 +440,40 @@ export function GdEnergyNetworkCard({
                   {" da energia gerada está sendo aproveitada pelas beneficiárias."}
                 </p>
               </div>
+            )}
+
+            {/* ─── Group management footer ─── */}
+            {(onAddBeneficiary || onEditDistribution || onRenameGroup || onNewGroup || onDeleteGroup) && (
+              <>
+                <Separator />
+                <div className="flex flex-wrap gap-2">
+                  {onAddBeneficiary && (
+                    <Button variant="outline" size="sm" onClick={onAddBeneficiary}>
+                      <Plus className="w-4 h-4 mr-1" /> Adicionar Beneficiária
+                    </Button>
+                  )}
+                  {beneficiaries.length > 0 && onEditDistribution && (
+                    <Button variant="outline" size="sm" onClick={onEditDistribution}>
+                      <PieChart className="w-4 h-4 mr-1" /> Ajustar distribuição
+                    </Button>
+                  )}
+                  {onRenameGroup && (
+                    <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={onRenameGroup}>
+                      <Edit className="w-3 h-3" /> Renomear
+                    </Button>
+                  )}
+                  {onNewGroup && (
+                    <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={onNewGroup}>
+                      <Plus className="w-3 h-3" /> Novo Grupo
+                    </Button>
+                  )}
+                  {onDeleteGroup && (
+                    <Button variant="ghost" size="sm" className="text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={onDeleteGroup}>
+                      <Trash2 className="w-3 h-3" /> Excluir Grupo
+                    </Button>
+                  )}
+                </div>
+              </>
             )}
           </>
         )}
