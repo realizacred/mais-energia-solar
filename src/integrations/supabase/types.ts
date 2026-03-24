@@ -25793,6 +25793,10 @@ export type Database = {
         Args: { p_projeto_id: string }
         Returns: undefined
       }
+      set_proposta_principal: {
+        Args: { _deal_id: string; _proposta_id: string }
+        Returns: undefined
+      }
       sm_match_clients_to_leads: {
         Args: { p_tenant_id: string }
         Returns: number

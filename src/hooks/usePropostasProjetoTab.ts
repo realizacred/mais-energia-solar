@@ -173,19 +173,11 @@ export function useSetPropostaPrincipal() {
 
   return useMutation({
     mutationFn: async ({ propostaId, dealId }: { propostaId: string; dealId: string }) => {
-      // Remove principal from all other proposals in this deal
-      await (supabase as any)
-        .from("propostas_nativas")
-        .update({ is_principal: false })
-        .eq("deal_id", dealId)
-        .neq("id", propostaId);
-
-      // Set this one as principal
-      const { error } = await (supabase as any)
-        .from("propostas_nativas")
-        .update({ is_principal: true })
-        .eq("id", propostaId);
-
+      // Atomic RPC — single transaction, no race condition
+      const { error } = await supabase.rpc("set_proposta_principal", {
+        _deal_id: dealId,
+        _proposta_id: propostaId,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
