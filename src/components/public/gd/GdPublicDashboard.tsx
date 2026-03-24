@@ -27,6 +27,7 @@ import {
 } from "@/services/energia/gdPercentageService";
 import { GdFlowExplanation } from "./GdFlowExplanation";
 import { GdSuggestionCard } from "./GdSuggestionCard";
+import { GdSmartTips } from "./GdSmartTips";
 import type { PublicGdData } from "@/hooks/usePublicGdData";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -336,7 +337,15 @@ export function GdPublicDashboard({ gdData, isLoading, brandPrimary }: GdPublicD
         </Card>
       )}
 
-      {/* 4. Suggestion + Comparison */}
+      {/* 4. Smart Tips (data-driven, no simulation) */}
+      {calculation?.result && (
+        <GdSmartTips
+          result={calculation.result}
+          groupName={group_name}
+        />
+      )}
+
+      {/* 5. Detailed Suggestion + Comparison */}
       {calculation?.suggestion && calculation?.comparison && (
         <GdSuggestionCard
           suggestion={calculation.suggestion}

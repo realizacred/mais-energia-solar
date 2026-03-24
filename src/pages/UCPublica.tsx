@@ -6,6 +6,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { usePublicGdData } from "@/hooks/usePublicGdData";
 import { GdPublicDashboard } from "@/components/public/gd/GdPublicDashboard";
+import { PortalValueHeader } from "@/components/public/PortalValueHeader";
+import { PortalSavingsHighlight } from "@/components/public/PortalSavingsHighlight";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -425,6 +427,14 @@ export default function UCPublica() {
             </div>
           </Card>
 
+          {/* ═══ COMMERCIAL VALUE HEADER ═══ */}
+          <PortalValueHeader
+            unitName={resolved.unit_name}
+            codigoUc={resolved.codigo_uc}
+            hasGd={gdData?.has_gd ?? false}
+            totalSavingsYear={stats?.totalEconomia}
+          />
+
           {/* ═══ METER READINGS (03 & 103) ═══ */}
           {(resolved.ultima_leitura_kwh_03 != null || resolved.ultima_leitura_kwh_103 != null) && (
             <Card className="border-l-[3px] border-l-info">
@@ -682,6 +692,21 @@ export default function UCPublica() {
               brandPrimary={brandPrimary}
             />
           )}
+
+          {/* ═══ SAVINGS HIGHLIGHT ═══ */}
+          {latestInvoice && (() => {
+            const comp = Number(latestInvoice.compensated_kwh || 0);
+            const savings = Number(latestInvoice.estimated_savings_brl || 0);
+            const economia = savings > 0 ? savings : comp * tarifa;
+            const monthIdx = (latestInvoice.reference_month ?? 1) - 1;
+            return (
+              <PortalSavingsHighlight
+                savingsBrl={economia}
+                monthLabel={`${MONTHS_FULL[monthIdx]} ${latestInvoice.reference_year}`}
+                compensatedKwh={comp}
+              />
+            );
+          })()}
 
           {/* ═══ ECONOMY SECTION ═══ */}
           <div className="flex items-center justify-between flex-wrap gap-2">
