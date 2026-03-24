@@ -14640,6 +14640,44 @@ export type Database = {
           },
         ]
       }
+      proposal_message_config: {
+        Row: {
+          blocks_config: Json
+          created_at: string
+          defaults: Json
+          id: string
+          templates: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          blocks_config?: Json
+          created_at?: string
+          defaults?: Json
+          id?: string
+          templates?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          blocks_config?: Json
+          created_at?: string
+          defaults?: Json
+          id?: string
+          templates?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_message_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_variables: {
         Row: {
           created_at: string
