@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { formatBRLCompact as formatBRL, formatBRLCompact as formatBRLCard } from "@/lib/formatters";
+import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { getEtiquetaConfig } from "@/lib/etiquetas";
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -15,15 +15,11 @@ interface Props {
   onCreateProjeto?: (ownerId: string) => void;
 }
 
-// formatBRL & formatBRLCard imported at file top from @/lib/formatters
-
 const formatKwp = (v: number) => {
   if (!v) return "0";
   if (v >= 1_000) return `${(v / 1_000).toFixed(1).replace(".", ",")}`;
   return v.toFixed(2).replace(".", ",");
 };
-
-// Etiqueta config now from @/lib/etiquetas
 
 export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCreateProjeto }: Props) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -79,7 +75,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
               onDragLeave={handleDragLeave}
               onDrop={e => handleDrop(e, col.id)}
             >
-              {/* ── Column Header ── */}
+              {/* Column Header */}
               <div className="px-4 pt-4 pb-3 border-b border-border/40">
                 <h3 className="text-sm font-bold text-foreground leading-tight tracking-tight">
                   {col.nome}
@@ -101,22 +97,22 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
                 </div>
               </div>
 
-              {/* ── New Project Button ── */}
+              {/* New Project Button */}
               <div className="px-3 py-2">
                 <Button
                   variant="outline"
                   onClick={() => onCreateProjeto?.(col.id)}
-                  className="w-full h-9 rounded-xl border-2 border-dashed border-primary/30 text-xs font-medium text-primary/70 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all duration-200"
+                  className="w-full h-8 rounded-lg border border-dashed border-primary/30 text-xs font-medium text-primary/70 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all duration-200"
                 >
                   <Plus className="h-3.5 w-3.5 mr-1" />
                   Novo projeto
                 </Button>
               </div>
 
-              {/* ── Cards ── */}
-              <div className="px-3 pb-3 min-h-[120px] space-y-2.5 flex-1">
+              {/* Cards */}
+              <div className="px-3 pb-3 min-h-[80px] space-y-2 flex-1">
                 {col.deals.length === 0 && (
-                  <div className="flex items-center justify-center h-20 text-xs text-muted-foreground/50 italic">
+                  <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/50 italic">
                     Arraste projetos aqui
                   </div>
                 )}
@@ -158,45 +154,42 @@ function OwnerDealCard({ deal, isDragging, onDragStart, onClick }: OwnerDealCard
       onClick={onClick}
       className={cn(
         "relative bg-card rounded-lg border border-border/50 cursor-grab active:cursor-grabbing",
-        "hover:border-border transition-all duration-200 ease-out",
-        isDragging && "opacity-40 scale-95"
+        "hover:border-border transition-all duration-150",
+        isDragging && "opacity-30 scale-95"
       )}
-      style={{ boxShadow: isDragging ? "var(--shadow-lg)" : "var(--shadow-xs)" }}
+      style={{ boxShadow: isDragging ? "var(--shadow-md)" : "var(--shadow-xs)" }}
     >
-      <div className="p-3 space-y-1.5">
-        {/* Line 1: Name */}
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-semibold text-foreground leading-tight line-clamp-1 flex-1">
+      <div className="p-2.5 space-y-1">
+        {/* HEADER: Name + Value */}
+        <div className="flex items-start justify-between gap-1.5">
+          <p className="text-[12px] font-semibold text-foreground leading-tight line-clamp-1 flex-1">
             {deal.customer_name || deal.deal_title || "Sem nome"}
           </p>
-          {etiquetaCfg && (
-            <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded-md border shrink-0", etiquetaCfg.className)}>
-              {etiquetaCfg.short || etiquetaCfg.label}
+          <span className="text-[11px] font-bold text-foreground whitespace-nowrap tabular-nums shrink-0">
+            {deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
+          </span>
+        </div>
+
+        {/* SUBHEADER: Phone + kWp */}
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          {deal.customer_phone && (
+            <span className="flex items-center gap-0.5 font-mono truncate">
+              <Phone className="h-2.5 w-2.5 shrink-0" />
+              {deal.customer_phone}
             </span>
           )}
         </div>
 
-        {/* Line 2: Value */}
-        {deal.deal_value > 0 && (
-          <div className="flex items-center gap-1 text-xs">
-            <DollarSign className="h-3 w-3 text-success" />
-            <span className="font-semibold text-foreground">{formatBRLCard(deal.deal_value)}</span>
-          </div>
-        )}
-
-        {/* Line 3: Phone (compact) */}
-        {deal.customer_phone && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Phone className="h-3 w-3" />
-            <span className="font-mono">{deal.customer_phone}</span>
-          </div>
-        )}
-
-        {/* Line 4: Stage badge */}
-        <div className="pt-0.5">
-          <Badge variant="secondary" className="text-[10px] h-5 px-2 font-medium">
+        {/* STATUS: Stage + etiqueta */}
+        <div className="flex items-center gap-1">
+          <Badge variant="secondary" className="text-[9px] h-[16px] px-1.5 font-medium">
             {deal.stage_name}
           </Badge>
+          {etiquetaCfg && (
+            <span className={cn("text-[8px] font-medium px-1.5 py-px rounded border shrink-0", etiquetaCfg.className)}>
+              {etiquetaCfg.short || etiquetaCfg.label}
+            </span>
+          )}
         </div>
       </div>
     </div>
