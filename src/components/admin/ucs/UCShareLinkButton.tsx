@@ -187,246 +187,198 @@ export function UCShareLinkButton({ unitId }: Props) {
 
   const activeToken = tokens[0];
 
+  const hasAccess = portalUsers.length > 0 || !!activeToken;
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Share2 className="w-4 h-4" /> Portal do Cliente
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            {!activeToken && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs gap-1"
-                onClick={() => createToken.mutate()}
-                disabled={createToken.isPending}
-              >
-                <Link2 className="w-3.5 h-3.5" />
-                {createToken.isPending ? "Gerando..." : "Gerar Link"}
-              </Button>
-            )}
-            {portalUsers.length === 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs gap-1"
-                onClick={() => setShowCreateUser(true)}
-              >
-                <UserPlus className="w-3.5 h-3.5" /> Criar Login
-              </Button>
-            )}
+    <div className="space-y-4">
+      <Card className="border-l-[3px] border-l-primary">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-primary" /> Portal do Cliente
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Permita que o cliente acompanhe faturas, economia e energia com acesso seguro.
+              </p>
+            </div>
+            <Badge variant="outline" className={`text-xs ${hasAccess ? "border-success/30 text-success" : "border-warning/30 text-warning"}`}>
+              {portalUsers.length > 0 ? "Login ativo" : activeToken ? "Link ativo" : "Sem acesso"}
+            </Badge>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isLoading ? (
-          <div className="h-10 bg-muted/50 rounded animate-pulse" />
-        ) : (
-          <>
-            {/* === Link Público === */}
-            {activeToken ? (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Link público (sem login)</p>
-                <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-3 border border-border">
-                  <code className="text-xs text-muted-foreground flex-1 truncate">
-                    {getPublicUrl()}/uc/{activeToken.token}
-                  </code>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0 shrink-0"
-                    onClick={() => copyToClipboard(activeToken.token)}
-                  >
-                    {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-                  </Button>
-                  <a
-                    href={`${getPublicUrl()}/uc/${activeToken.token}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0"
-                  >
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </Button>
-                  </a>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoading ? (
+            <div className="h-10 bg-muted/50 rounded animate-pulse" />
+          ) : (
+            <>
+              {/* === Status Cards === */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border">
+                  {activeToken ? <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> : <XCircle className="w-4 h-4 text-muted-foreground shrink-0" />}
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-foreground">Link público</p>
+                    <p className="text-xs text-muted-foreground">
+                      {activeToken ? "Ativo — acesso sem login" : "Não gerado"}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    Criado em {formatDate(activeToken.created_at)}
-                    {activeToken.last_accessed_at && (
-                      <> · Último acesso: {formatDate(activeToken.last_accessed_at)}</>
-                    )}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs text-destructive hover:text-destructive gap-1"
-                    onClick={() => deleteToken.mutate(activeToken.id)}
-                    disabled={deleteToken.isPending}
-                  >
-                    <Trash2 className="w-3 h-3" /> Desativar
-                  </Button>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border">
+                  {portalUsers.length > 0 ? <CheckCircle2 className="w-4 h-4 text-success shrink-0" /> : <XCircle className="w-4 h-4 text-muted-foreground shrink-0" />}
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-foreground">Login com senha</p>
+                    <p className="text-xs text-muted-foreground">
+                      {portalUsers.length > 0
+                        ? portalUsers[0].last_login_at
+                          ? `Último login: ${formatDate(portalUsers[0].last_login_at)}`
+                          : "Criado — nunca acessou"
+                        : "Não configurado"}
+                    </p>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Gere um link para compartilhar o portal desta UC com o cliente. O cliente poderá visualizar faturas e economia sem precisar de login.
-              </p>
-            )}
 
-            {/* === Acesso com Login === */}
-            {(portalUsers.length > 0 || showCreateUser) && (
-              <>
-                <Separator />
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-muted-foreground">Acesso com login</p>
-                    {portalUsers.length > 0 && !showCreateUser && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 text-xs gap-1"
-                        onClick={() => setShowCreateUser(true)}
-                      >
-                        <UserPlus className="w-3 h-3" /> Novo acesso
-                      </Button>
-                    )}
+              {/* === Actions === */}
+              <div className="flex flex-wrap gap-2">
+                {!activeToken && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs gap-1"
+                    onClick={() => createToken.mutate()}
+                    disabled={createToken.isPending}
+                  >
+                    <Link2 className="w-3.5 h-3.5" />
+                    {createToken.isPending ? "Gerando..." : "Gerar Link Público"}
+                  </Button>
+                )}
+                {portalUsers.length === 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs gap-1"
+                    onClick={() => setShowCreateUser(true)}
+                  >
+                    <UserPlus className="w-3.5 h-3.5" /> Criar Login
+                  </Button>
+                )}
+              </div>
+
+              {/* === Link Público === */}
+              {activeToken && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Link público (sem login)</p>
+                  <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-3 border border-border">
+                    <code className="text-xs text-muted-foreground flex-1 truncate">
+                      {getPublicUrl()}/uc/{activeToken.token}
+                    </code>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 shrink-0" onClick={() => copyToClipboard(activeToken.token)}>
+                      {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+                    </Button>
+                    <a href={`${getPublicUrl()}/uc/${activeToken.token}`} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><ExternalLink className="w-3.5 h-3.5" /></Button>
+                    </a>
                   </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      Criado em {formatDate(activeToken.created_at)}
+                      {activeToken.last_accessed_at && <> · Último acesso: {formatDate(activeToken.last_accessed_at)}</>}
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive hover:text-destructive gap-1" onClick={() => deleteToken.mutate(activeToken.id)} disabled={deleteToken.isPending}>
+                      <Trash2 className="w-3 h-3" /> Desativar
+                    </Button>
+                  </div>
+                </div>
+              )}
 
-                  {/* List existing portal users */}
-                  {portalUsers.map((u) => (
-                    <div key={u.id} className="flex items-center gap-3 bg-muted/30 rounded-lg p-3 border border-border">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{u.email}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {u.last_login_at
-                            ? `Último login: ${formatDate(u.last_login_at)}`
-                            : "Nunca acessou"}
-                          {" · "}Criado em {formatDate(u.created_at)}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className={u.last_login_at ? "text-success border-success/20" : "text-warning border-warning/20"}>
-                        {u.last_login_at ? "Ativo" : "Pendente"}
-                      </Badge>
-
-                      {resetUserId === u.id ? (
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="password"
-                            placeholder="Nova senha"
-                            value={resetPassword}
-                            onChange={(e) => setResetPassword(e.target.value)}
-                            className="h-7 text-xs w-28"
-                          />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs"
-                            onClick={() => resetUserPassword.mutate({ userId: u.id, password: resetPassword })}
-                            disabled={!resetPassword || resetPassword.length < 6 || resetUserPassword.isPending}
-                          >
-                            OK
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setResetUserId(null)}>
-                            ✕
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs gap-1"
-                            onClick={() => setResetUserId(u.id)}
-                          >
-                            <KeyRound className="w-3 h-3" /> Resetar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs text-destructive hover:text-destructive gap-1"
-                            onClick={() => deactivateUser.mutate(u.id)}
-                            disabled={deactivateUser.isPending}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
+              {/* === Acesso com Login === */}
+              {(portalUsers.length > 0 || showCreateUser) && (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-muted-foreground">Acesso com login</p>
+                      {portalUsers.length > 0 && !showCreateUser && (
+                        <Button size="sm" variant="ghost" className="h-6 text-xs gap-1" onClick={() => setShowCreateUser(true)}>
+                          <UserPlus className="w-3 h-3" /> Novo acesso
+                        </Button>
                       )}
                     </div>
-                  ))}
 
-                  {/* Create new user form */}
-                  {showCreateUser && (
-                    <div className="bg-muted/20 rounded-lg p-4 border border-border space-y-3">
-                      <p className="text-xs font-medium text-foreground">Novo acesso para o cliente</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Email</Label>
-                          <Input
-                            type="email"
-                            placeholder="cliente@exemplo.com"
-                            value={newEmail}
-                            onChange={(e) => setNewEmail(e.target.value)}
-                            className="h-8 text-sm"
-                          />
+                    {portalUsers.map((u) => (
+                      <div key={u.id} className="flex items-center gap-3 bg-muted/30 rounded-lg p-3 border border-border">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{u.email}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {u.last_login_at ? `Último login: ${formatDate(u.last_login_at)}` : "Nunca acessou"}
+                            {" · "}Criado em {formatDate(u.created_at)}
+                          </p>
                         </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Senha</Label>
-                          <div className="relative">
-                            <Input
-                              type={showPassword ? "text" : "password"}
-                              placeholder="Mínimo 6 caracteres"
-                              value={newPassword}
-                              onChange={(e) => setNewPassword(e.target.value)}
-                              className="h-8 text-sm pr-8"
-                            />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              type="button"
-                              className="absolute right-0 top-0 h-8 w-8 p-0"
-                              onClick={() => setShowPassword(!showPassword)}
-                            >
-                              {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        <Badge variant="outline" className={u.last_login_at ? "text-success border-success/20" : "text-warning border-warning/20"}>
+                          {u.last_login_at ? "Ativo" : "Pendente"}
+                        </Badge>
+
+                        {resetUserId === u.id ? (
+                          <div className="flex items-center gap-1">
+                            <Input type="password" placeholder="Nova senha" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} className="h-7 text-xs w-28" />
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => resetUserPassword.mutate({ userId: u.id, password: resetPassword })} disabled={!resetPassword || resetPassword.length < 6 || resetUserPassword.isPending}>OK</Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setResetUserId(null)}>✕</Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setResetUserId(u.id)}>
+                              <KeyRound className="w-3 h-3" /> Resetar
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive gap-1" onClick={() => deactivateUser.mutate(u.id)} disabled={deactivateUser.isPending}>
+                              <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {showCreateUser && (
+                      <div className="bg-muted/20 rounded-lg p-4 border border-border space-y-3">
+                        <p className="text-xs font-medium text-foreground">Novo acesso para o cliente</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Email</Label>
+                            <Input type="email" placeholder="cliente@exemplo.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="h-8 text-sm" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Senha</Label>
+                            <div className="relative">
+                              <Input type={showPassword ? "text" : "password"} placeholder="Mínimo 6 caracteres" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="h-8 text-sm pr-8" />
+                              <Button variant="ghost" size="sm" type="button" className="absolute right-0 top-0 h-8 w-8 p-0" onClick={() => setShowPassword(!showPassword)}>
+                                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" className="text-xs" onClick={() => createPortalUser.mutate({ email: newEmail, password: newPassword })} disabled={!newEmail || newPassword.length < 6 || createPortalUser.isPending}>
+                            {createPortalUser.isPending ? "Criando..." : "Criar Acesso"}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-xs" onClick={() => { setShowCreateUser(false); setNewEmail(""); setNewPassword(""); }}>Cancelar</Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          O cliente acessa o portal em <strong>{getPublicUrl()}/uc/login</strong> usando este email e senha.
+                        </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => createPortalUser.mutate({ email: newEmail, password: newPassword })}
-                          disabled={!newEmail || newPassword.length < 6 || createPortalUser.isPending}
-                        >
-                          {createPortalUser.isPending ? "Criando..." : "Criar Acesso"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-xs"
-                          onClick={() => {
-                            setShowCreateUser(false);
-                            setNewEmail("");
-                            setNewPassword("");
-                          }}
-                        >
-                          Cancelar
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        O cliente acessa o portal em <strong>{getPublicUrl()}/uc/login</strong> usando este email e senha.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <SettingsHelpCard tips={[
+        "Use o portal para compartilhar acompanhamento de energia com o cliente de forma segura.",
+        "O link público permite acesso sem login — ideal para compartilhamento rápido.",
+        "O login com senha oferece mais segurança e registra quando o cliente acessou.",
+      ]} />
+    </div>
   );
 }
