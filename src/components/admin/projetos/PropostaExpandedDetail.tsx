@@ -1009,7 +1009,12 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-52">
+                {!p.is_principal && onSetPrincipal && (
+                  <DropdownMenuItem onClick={onSetPrincipal}>
+                    <Star className="h-3.5 w-3.5 mr-2 text-warning" /> Definir como principal
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => {
                   if (latestVersao) navigate(`/admin/propostas-nativas/${p.id}/versoes/${latestVersao.id}`);
                 }}>
@@ -1017,7 +1022,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => {
                   if (latestVersao) {
-                    // Edit mode: pass proposta_id + versao_id so wizard restores from snapshot
                     const params = new URLSearchParams({
                       proposta_id: p.id,
                       versao_id: latestVersao.id,
@@ -1026,7 +1030,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     if (customerId) params.set("customer_id", customerId);
                     navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
                   } else {
-                    // Fallback: no version yet, open as new with project context
                     const params = new URLSearchParams({ deal_id: dealId });
                     if (customerId) params.set("customer_id", customerId);
                     navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
@@ -1034,16 +1037,34 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 }}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-warning" /> Editar dimensionamento
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  toast({ title: "Clonar proposta", description: "Funcionalidade em desenvolvimento." });
-                }}>
-                  <Copy className="h-3.5 w-3.5 mr-2 text-info" /> Clonar proposta
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleDownloadPdf} disabled={!latestVersao?.output_pdf_path}>
+                  <Download className="h-3.5 w-3.5 mr-2 text-success" /> Baixar PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  if (latestVersao) navigate(`/admin/propostas-nativas/${p.id}/versoes/${latestVersao.id}?tab=arquivo`);
-                }}>
-                  <Download className="h-3.5 w-3.5 mr-2 text-success" /> Visualizar o PDF
+                {latestVersao?.output_docx_path && (
+                  <DropdownMenuItem onClick={handleDownloadPdf}>
+                    <Download className="h-3.5 w-3.5 mr-2 text-info" /> Baixar DOCX
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => copyLink(true)} disabled={!publicUrl}>
+                  <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Copiar link c/ rastreio
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => copyLink(false)} disabled={!publicUrl}>
+                  <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link s/ rastreio
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => {
+                  const params = new URLSearchParams({ deal_id: dealId });
+                  if (customerId) params.set("customer_id", customerId);
+                  navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+                }}>
+                  <Plus className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar nova proposta
+                </DropdownMenuItem>
+                {onArchive && p.status !== "arquivada" && (
+                  <DropdownMenuItem onClick={onArchive}>
+                    <FolderOpen className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Arquivar
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:text-destructive"
