@@ -31,8 +31,14 @@ interface Props {
   uc: UCRecord;
 }
 
+const CATEGORIA_GD_LABELS: Record<string, string> = {
+  gd1: "GD I",
+  gd2: "GD II",
+  gd3: "GD III",
+};
+
 type BeneficiaryWithGroup = GdBeneficiary & {
-  gd_groups: { id: string; nome: string; uc_geradora_id: string; status: string };
+  gd_groups: { id: string; nome: string; uc_geradora_id: string; status: string; categoria_gd: string | null };
 };
 
 export function UCGdTab({ uc }: Props) {
@@ -182,9 +188,16 @@ function BeneficiarySection({
                       Recebe <span className="font-mono font-medium text-foreground">{Number(relation.allocation_percent).toFixed(1)}%</span> dos créditos deste grupo
                     </p>
                   </div>
-                  <Badge variant="outline" className="text-xs border-info/20 text-info bg-info/10">
-                    Beneficiária ativa
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {relation.gd_groups?.categoria_gd && CATEGORIA_GD_LABELS[relation.gd_groups.categoria_gd] && (
+                      <Badge variant="outline" className="text-[10px] border-primary/20 text-primary bg-primary/5">
+                        {CATEGORIA_GD_LABELS[relation.gd_groups.categoria_gd]}
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="text-xs border-info/20 text-info bg-info/10">
+                      Beneficiária ativa
+                    </Badge>
+                  </div>
                 </div>
 
                 {/* Generator info */}
@@ -402,6 +415,11 @@ function GeneratorSection({
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {group.categoria_gd && CATEGORIA_GD_LABELS[group.categoria_gd] && (
+                <Badge variant="outline" className="text-xs border-primary/20 text-primary bg-primary/5">
+                  {CATEGORIA_GD_LABELS[group.categoria_gd]}
+                </Badge>
+              )}
               <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Grupo ativo</Badge>
               <Button
                 variant="ghost"
