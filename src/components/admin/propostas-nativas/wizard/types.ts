@@ -137,6 +137,19 @@ export interface PremissasData {
   vpl_taxa_desconto: number;
 }
 
+/** Categorias canônicas para itens do kit gerador. Manter em sync com CATEGORIAS em StepKit.tsx */
+export type KitCategoria =
+  | "modulo"
+  | "inversor"
+  | "bateria"
+  | "transformador"
+  | "estrutura"
+  | "string_box"
+  | "cabos"
+  | "conectores"
+  | "mao_obra"
+  | "outros";
+
 export interface KitItemRow {
   id: string;
   descricao: string;
@@ -145,10 +158,72 @@ export interface KitItemRow {
   potencia_w: number;
   quantidade: number;
   preco_unitario: number;
-  categoria: string;
+  categoria: KitCategoria;
   avulso: boolean;
   /** Referência ao produto de origem (modulos_solares.id, inversores_catalogo.id, etc.) para rastreabilidade do snapshot. */
   produto_ref?: string | null;
+}
+
+/** Rótulos legíveis para cada KitCategoria */
+export const KIT_CATEGORIA_LABELS: Record<KitCategoria, string> = {
+  modulo: "Módulo",
+  inversor: "Inversor",
+  bateria: "Bateria",
+  transformador: "Transformador",
+  estrutura: "Estrutura",
+  string_box: "String Box",
+  cabos: "Cabos",
+  conectores: "Conectores",
+  mao_obra: "Mão de obra",
+  outros: "Outros",
+};
+
+/** Arredonda para centavos — inline para evitar dependência circular com formatters */
+function _round(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+/** Calcula o preço final (custo base + margem − desconto) de forma canônica.
+ *  SSOT: toda lógica de pricing deve usar esta função. */
+export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], venda: VendaData): number {
+  const custoKit = _round(itens.reduce((s, i) => s + _round(i.quantidade * i.preco_unitario), 0));
+  const custoServicos = _round(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
+  const custoBase = _round(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
+  const margemValor = _round(custoBase * (venda.margem_percentual / 100));
+  const precoComMargem = _round(custoBase + margemValor);
+  return _round(precoComMargem - precoComMargem * (venda.desconto_percentual / 100));
+}
+
+/** Validação mínima do kit para governança do wizard */
+export interface KitValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export function validateKit(itens: KitItemRow[], potenciaKwp: number): KitValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const modulos = itens.filter(i => i.categoria === "modulo" && i.quantidade >= 1 && i.potencia_w > 0);
+  const inversores = itens.filter(i => i.categoria === "inversor");
+
+  if (modulos.length === 0) {
+    errors.push("Adicione pelo menos 1 módulo válido ao kit.");
+  }
+  if (potenciaKwp <= 0) {
+    errors.push("A potência total do sistema deve ser maior que zero.");
+  }
+  if (inversores.length === 0) {
+    warnings.push("Nenhum inversor adicionado — verifique antes de gerar a proposta.");
+  }
+
+  const itensPrecoZero = itens.filter(i => i.preco_unitario <= 0 && i.quantidade > 0);
+  if (itensPrecoZero.length > 0) {
+    warnings.push(`${itensPrecoZero.length} item(ns) com preço unitário R$ 0,00.`);
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
 }
 
 export interface KitData {

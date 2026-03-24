@@ -7,20 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { type KitItemRow, formatBRL } from "./types";
+import { type KitItemRow, type KitCategoria, KIT_CATEGORIA_LABELS, formatBRL } from "./types";
 
-const CATEGORIAS = [
-  { value: "modulo", label: "Módulo" },
-  { value: "inversor", label: "Inversor" },
-  { value: "bateria", label: "Bateria" },
-  { value: "transformador", label: "Transformador" },
-  { value: "estrutura", label: "Estrutura" },
-  { value: "string_box", label: "String Box" },
-  { value: "cabos", label: "Cabos" },
-  { value: "conectores", label: "Conectores" },
-  { value: "mao_obra", label: "Mão de obra" },
-  { value: "outros", label: "Outros" },
-];
+const CATEGORIAS: { value: KitCategoria; label: string }[] = Object.entries(KIT_CATEGORIA_LABELS).map(
+  ([value, label]) => ({ value: value as KitCategoria, label })
+);
 
 // Unified catalog types (modulos_solares + inversores_catalogo)
 interface CatalogoModuloUnificado {
@@ -58,7 +49,7 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
   const addItem = () => {
     onItensChange([...itens, {
       id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "",
-      potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: true,
+      potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo" as KitCategoria, avulso: true,
     }]);
   };
 
@@ -74,7 +65,8 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
     onItensChange([...itens, {
       id: crypto.randomUUID(), descricao: `${mod.fabricante} ${mod.modelo} ${potW}W`,
       fabricante: mod.fabricante, modelo: mod.modelo, potencia_w: potW,
-      quantidade: numPlacas, preco_unitario: 0, categoria: "modulo", avulso: false,
+      quantidade: numPlacas, preco_unitario: 0, categoria: "modulo" as KitCategoria, avulso: false,
+      produto_ref: mod.id,
     }]);
     toast({ title: `${mod.modelo} adicionado`, description: `${numPlacas} unidades` });
   };
@@ -84,7 +76,8 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
     onItensChange([...itens, {
       id: crypto.randomUUID(), descricao: `${inv.fabricante} ${inv.modelo} ${potKw.toFixed(1)}kW`,
       fabricante: inv.fabricante, modelo: inv.modelo, potencia_w: potKw * 1000,
-      quantidade: 1, preco_unitario: 0, categoria: "inversor", avulso: false,
+      quantidade: 1, preco_unitario: 0, categoria: "inversor" as KitCategoria, avulso: false,
+      produto_ref: inv.id,
     }]);
     toast({ title: `${inv.modelo} adicionado` });
   };
@@ -184,7 +177,12 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
             </div>
             <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin">
               {itens.map(item => (
-                <div key={item.id} className="p-2 rounded-lg bg-muted/30 border border-border/30 text-xs space-y-1">
+                <div key={item.id} className={cn(
+                  "p-2 rounded-lg bg-muted/30 border text-xs space-y-1",
+                  item.preco_unitario <= 0 && item.quantidade > 0
+                    ? "border-warning/60 bg-warning/5"
+                    : "border-border/30"
+                )}>
                   <div className="flex items-center justify-between gap-2">
                     <Input value={item.descricao} onChange={e => updateItem(item.id, "descricao", e.target.value)} placeholder="Descrição" className="h-7 text-xs flex-1" />
                     {itens.length > 1 && (
@@ -195,12 +193,15 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
                   </div>
                   <div className="grid grid-cols-3 gap-1">
                     <Input type="number" min={1} value={item.quantidade || ""} onChange={e => updateItem(item.id, "quantidade", Number(e.target.value))} placeholder="Qtd" className="h-7 text-xs" />
-                    <Input type="number" min={0} step={0.01} value={item.preco_unitario || ""} onChange={e => updateItem(item.id, "preco_unitario", Number(e.target.value))} placeholder="R$ unit." className="h-7 text-xs" />
+                    <Input type="number" min={0} step={0.01} value={item.preco_unitario || ""} onChange={e => updateItem(item.id, "preco_unitario", Number(e.target.value))} placeholder="R$ unit." className={cn("h-7 text-xs", item.preco_unitario <= 0 && "border-warning text-warning")} />
                     <Select value={item.categoria} onValueChange={v => updateItem(item.id, "categoria", v)}>
                       <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>{CATEGORIAS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
+                  {item.preco_unitario <= 0 && item.quantidade > 0 && (
+                    <p className="text-[10px] text-warning font-medium">⚠ Preço unitário zerado</p>
+                  )}
                   <div className="text-right text-[10px] text-muted-foreground">
                     Total: {formatBRL(item.quantidade * item.preco_unitario)}
                   </div>

@@ -35,7 +35,8 @@ import { StepCamposCustomizados } from "./wizard/StepCamposCustomizados";
 import { StepKitSelection } from "./wizard/StepKitSelection";
 import { StepAdicionais, type AdicionalItem } from "./wizard/StepAdicionais";
 import { StepServicos } from "./wizard/StepServicos";
-import { StepVenda, calcPrecoFinal } from "./wizard/StepVenda";
+import { StepVenda } from "./wizard/StepVenda";
+import { calcPrecoFinal, validateKit } from "./wizard/types";
 import { StepFinancialCenter } from "./wizard/StepFinancialCenter";
 import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
 import { useWizardPersistence, type WizardSnapshot, type PersistenceParams, type AtomicPersistResult } from "./wizard/hooks/useWizardPersistence";
@@ -836,7 +837,7 @@ export function ProposalWizard() {
 
   // Auto-sync potenciaKwp from kit items (modules) when items change
   useEffect(() => {
-    const modulosNoKit = itens.filter(i => i.categoria === "modulo" || i.categoria === "modulos");
+    const modulosNoKit = itens.filter(i => i.categoria === "modulo");
     if (modulosNoKit.length === 0) return;
     const potenciaFromKit = modulosNoKit.reduce(
       (s, m) => s + ((m.potencia_w || 0) * (m.quantidade || 1)) / 1000, 0
@@ -1265,7 +1266,7 @@ export function ProposalWizard() {
     [STEP_KEYS.LOCALIZACAO]: !!locEstado && !!locCidade && !!locTipoTelhado && !!locDistribuidoraId,
     [STEP_KEYS.UCS]: consumoTotal > 0 && grupoValidation.valid,
     [STEP_KEYS.CAMPOS_PRE]: true,
-    [STEP_KEYS.KIT]: itens.length > 0 && itens.some(i => i.descricao),
+    [STEP_KEYS.KIT]: itens.some(i => i.categoria === "modulo" && i.quantidade >= 1 && i.potencia_w > 0) && potenciaKwp > 0,
     [STEP_KEYS.ADICIONAIS]: true,
     [STEP_KEYS.SERVICOS]: true,
     [STEP_KEYS.VENDA]: venda.margem_percentual >= 0,
@@ -1805,10 +1806,32 @@ export function ProposalWizard() {
           <StepCamposCustomizados values={customFieldValues} onValuesChange={setCustomFieldValues} />
         ));
 
-      case STEP_KEYS.KIT:
+      case STEP_KEYS.KIT: {
+        const kitVal = validateKit(itens, potenciaKwp);
         return wrap("kit", (
-          <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} />
+          <div className="space-y-4">
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} />
+            {kitVal.warnings.length > 0 && (
+              <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
+                {kitVal.warnings.map((w, i) => (
+                  <p key={i} className="text-xs text-warning font-medium flex items-center gap-1.5">
+                    <span className="shrink-0">⚠</span> {w}
+                  </p>
+                ))}
+              </div>
+            )}
+            {kitVal.errors.length > 0 && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-1">
+                {kitVal.errors.map((e, i) => (
+                  <p key={i} className="text-xs text-destructive font-medium flex items-center gap-1.5">
+                    <span className="shrink-0">✕</span> {e}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
         ));
+      }
 
       case STEP_KEYS.ADICIONAIS:
         return wrap("adicionais", (

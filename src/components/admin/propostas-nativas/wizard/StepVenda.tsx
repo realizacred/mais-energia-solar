@@ -189,13 +189,5 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
     </div>
   );
 }
-
-/** Helper to calculate precoFinal from outside */
-export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], venda: VendaData): number {
-  const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
-  const custoServicos = roundCurrency(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
-  const custoBase = roundCurrency(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
-  const margemValor = roundCurrency(custoBase * (venda.margem_percentual / 100));
-  const precoComMargem = roundCurrency(custoBase + margemValor);
-  return roundCurrency(precoComMargem - precoComMargem * (venda.desconto_percentual / 100));
-}
+// calcPrecoFinal movido para types.ts (SSOT) — re-export para compatibilidade
+export { calcPrecoFinal } from "./types";

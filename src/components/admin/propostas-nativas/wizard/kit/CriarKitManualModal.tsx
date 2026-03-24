@@ -297,6 +297,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           id: crypto.randomUUID(), descricao: `${cat.fabricante} ${cat.modelo} ${cat.potencia_wp || 0}W`,
           fabricante: cat.fabricante, modelo: cat.modelo, potencia_w: cat.potencia_wp || 0,
           quantidade: m.quantidade, preco_unitario: 0, categoria: "modulo", avulso: false,
+          produto_ref: cat.id,
         });
       }
     });
@@ -316,6 +317,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           id: crypto.randomUUID(), descricao: `${cat.fabricante} ${cat.modelo} ${(cat.potencia_nominal_kw || 0).toFixed(1)}kW`,
           fabricante: cat.fabricante, modelo: cat.modelo, potencia_w: (cat.potencia_nominal_kw || 0) * 1000,
           quantidade: inv.quantidade, preco_unitario: 0, categoria: "inversor", avulso: false,
+          produto_ref: cat.id,
         });
       }
     });
