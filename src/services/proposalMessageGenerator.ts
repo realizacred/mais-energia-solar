@@ -3,15 +3,16 @@
  * 
  * Gera mensagens textuais da proposta para envio a cliente ou consultor.
  * Usa sistema de templates com placeholders {{var}} para permitir
- * configuração futura por tenant.
+ * configuração por tenant.
  * 
- * Arquitetura preparada para:
- * - templates por tenant (tabela futura: proposta_mensagem_templates)
- * - blocos configuráveis
+ * Arquitetura:
+ * - templates customizáveis por tenant (tabela: proposal_message_config)
+ * - blocos configuráveis (habilitado/desabilitado por tenant)
  * - estilos e canais configuráveis
  */
 
 import { formatBRL, formatNumberBR } from "@/lib/formatters";
+import type { BlockConfig } from "@/hooks/useProposalMessageConfig";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -56,8 +57,15 @@ export interface ProposalMessageContext {
   propostaCodigo: string | null;
 }
 
+export interface GenerateOptions {
+  /** Custom template override from tenant config */
+  customTemplate?: string;
+  /** Blocks config from tenant — controls which blocks appear */
+  blocksConfig?: Record<string, BlockConfig>;
+}
+
 // ─── Template Definitions ───────────────────────────
-// Default templates — future: load from DB per tenant
+// Default templates — overridden per tenant via proposal_message_config
 
 const TEMPLATES: Record<`${MessageMode}_${MessageStyle}`, string> = {
   cliente_curta: [
@@ -146,8 +154,25 @@ const TEMPLATES: Record<`${MessageMode}_${MessageStyle}`, string> = {
   ].join("\n"),
 };
 
+// ─── Block-to-bloco mapping ────────────────────────
+// Maps block config keys to the bloco_ keys used in templates
+
+const BLOCK_KEY_MAP: Record<string, string[]> = {
+  saudacao: [],
+  resumo_tecnico: ["bloco_inversor", "bloco_modulo_modelo", "bloco_telhado"],
+  consumo_geracao: ["bloco_economia"],
+  garantias: ["bloco_garantias"],
+  investimento: [],
+  pagamento: ["bloco_pagamento"],
+  itens_inclusos: ["bloco_itens_inclusos"],
+  servicos: ["bloco_servicos"],
+  oferta_especial: [],
+  link_proposta: ["bloco_link"],
+  validade: ["bloco_validade"],
+  assinatura: ["assinatura"],
+};
+
 // ─── Block Resolvers ────────────────────────────────
-// Each block is a named section that can be toggled on/off in future config
 
 function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
   const blocks: Record<string, string> = {};
@@ -246,7 +271,7 @@ function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
     blocks.bloco_servicos = "";
   }
 
-  // Garantias
+  // Garantias — now configurable via blocks_config
   blocks.bloco_garantias = [
     "✅ *Garantias:*",
     "• Módulos: 25 anos de performance",
@@ -275,15 +300,35 @@ function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
   return blocks;
 }
 
+/**
+ * Checks if a block is enabled for the given mode/style.
+ * If no blocksConfig provided, all blocks are considered enabled (system default).
+ */
+function isBlockEnabled(
+  blockKey: string,
+  mode: MessageMode,
+  style: MessageStyle,
+  blocksConfig?: Record<string, BlockConfig>,
+): boolean {
+  if (!blocksConfig) return true;
+  const cfg = blocksConfig[blockKey];
+  if (!cfg) return true; // unknown block = enabled by default
+  if (!cfg.enabled) return false;
+  // Check mode/style applicability
+  if (cfg.modes && cfg.modes.length > 0 && !cfg.modes.includes(mode)) return false;
+  if (cfg.styles && cfg.styles.length > 0 && !cfg.styles.includes(style)) return false;
+  return true;
+}
+
 // ─── Main Generator ─────────────────────────────────
 
 export function generateProposalMessage(
   ctx: ProposalMessageContext,
   mode: MessageMode,
   style: MessageStyle,
-  /** Future: custom template override from tenant config */
-  customTemplate?: string,
+  options?: GenerateOptions,
 ): string {
+  const { customTemplate, blocksConfig } = options || {};
   const templateKey = `${mode}_${style}` as const;
   const template = customTemplate || TEMPLATES[templateKey];
 
@@ -308,11 +353,22 @@ export function generateProposalMessage(
   // Resolve blocks
   const blocks = resolveBlocks(ctx);
 
+  // Apply blocks_config — zero out disabled blocks
+  if (blocksConfig) {
+    for (const [configKey, blocoKeys] of Object.entries(BLOCK_KEY_MAP)) {
+      if (!isBlockEnabled(configKey, mode, style, blocksConfig)) {
+        for (const bk of blocoKeys) {
+          blocks[bk] = "";
+        }
+      }
+    }
+  }
+
   // Merge all into replacement map
   const allVars = { ...vars, ...blocks };
 
   // Replace placeholders
-  let result = template.replace(/\{\{(\w+)\}\}/g, (match, key) => allVars[key] ?? match);
+  let result = template.replace(/\{\{(\w+)\}\}/g, (_match, key) => allVars[key] ?? "");
 
   // Clean up: remove consecutive empty lines (more than 2)
   result = result.replace(/\n{3,}/g, "\n\n").trim();
