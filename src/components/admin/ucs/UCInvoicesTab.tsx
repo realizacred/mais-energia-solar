@@ -822,7 +822,7 @@ export function UCInvoicesTab({ unitId }: Props) {
                     {isExpanded && (
                       <TableRow key={`${inv.id}-detail`} className="bg-muted/20 hover:bg-muted/20">
                         <TableCell colSpan={10} className="p-0">
-                          <InvoiceDetailPanel invoice={inv} raw={raw} />
+                          <InvoiceDetailPanel invoice={inv} raw={raw} unitId={unitId} />
                         </TableCell>
                       </TableRow>
                     )}
