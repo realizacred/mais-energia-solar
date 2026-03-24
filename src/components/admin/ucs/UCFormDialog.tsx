@@ -403,5 +403,13 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
         </div>
       </DialogContent>
     </Dialog>
+
+    <InlineClienteCreateModal
+      open={showCreateCliente}
+      onOpenChange={setShowCreateCliente}
+      existingClientes={clientes}
+      onCreated={(id) => setForm(f => ({ ...f, cliente_id: id }))}
+    />
+    </>
   );
 }
