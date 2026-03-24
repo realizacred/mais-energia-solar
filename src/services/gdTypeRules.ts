@@ -107,3 +107,25 @@ export const gdTypeRules = {
     return GD_TYPE_RULES[category].requiresSameTitular;
   },
 };
+
+/**
+ * Input interface for future GD simulation/calculation.
+ * Standardizes the data shape needed by gdEnergyEngine.
+ */
+export interface GdCalculationInput {
+  groupId: string;
+  categoriaGd: GdCategory;
+  referenceYear: number;
+  referenceMonth: number;
+  generationKwh: number;
+  generatorConsumptionKwh: number;
+  beneficiaries: Array<{
+    ucId: string;
+    allocationPercent: number;
+    consumedKwh: number;
+    priorBalanceKwh: number;
+    allowOverflowIn: boolean;
+    allowOverflowOut: boolean;
+    priorityOrder: number | null;
+  }>;
+}
