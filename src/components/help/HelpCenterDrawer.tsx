@@ -314,23 +314,11 @@ export function HelpCenterDrawer({ open: controlledOpen, onOpenChange }: HelpCen
             <div className="flex-1 min-h-0 flex flex-col">{innerContent}</div>
           </DialogContent>
         </Dialog>
-      </>
     );
   }
 
   // Mobile: Drawer
   return (
-    <>
-      <Button
-        variant="outline"
-        size="icon"
-        className="fixed bottom-6 right-6 h-12 w-12 rounded-full shadow-lg bg-card border-border hover:bg-accent z-40"
-        onClick={() => setOpen(true)}
-        aria-label="Central de Ajuda"
-      >
-        <HelpCircle className="w-5 h-5" />
-      </Button>
-
       <Drawer open={open} onOpenChange={(v) => (v ? setOpen(true) : handleFechar())}>
         <DrawerContent className="max-h-[85vh] flex flex-col">
           <DrawerHeader className="shrink-0 border-b border-border pb-3">
@@ -351,6 +339,5 @@ export function HelpCenterDrawer({ open: controlledOpen, onOpenChange }: HelpCen
           <div className="flex-1 min-h-0 flex flex-col">{innerContent}</div>
         </DrawerContent>
       </Drawer>
-    </>
   );
 }
