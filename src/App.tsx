@@ -33,6 +33,7 @@ const PropostaPublica = lazy(() => import("./pages/PropostaPublica"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const UCPublica = lazy(() => import("./pages/UCPublica"));
+const UCLogin = lazy(() => import("./pages/UCLogin"));
 const WaChannelPage = lazy(() => import("./pages/WaChannelPage"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const MessagingApp = lazy(() => import("./pages/MessagingApp"));
@@ -104,6 +105,7 @@ const App = () => (
               <Route path="/oauth/google/callback" element={<OAuthGoogleCallback />} />
               <Route path="/oauth/google-contacts/callback" element={<GoogleContactsCallbackPage />} />
               <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
+              <Route path="/uc/login" element={<UCLogin />} />
               <Route path="/uc/:token" element={<UCPublica />} />
 
               {/* Protected routes — tenant guard active */}
