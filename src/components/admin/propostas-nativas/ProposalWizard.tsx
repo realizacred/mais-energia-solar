@@ -1266,6 +1266,7 @@ export function ProposalWizard() {
     [STEP_KEYS.SERVICOS]: true,
     [STEP_KEYS.VENDA]: venda.margem_percentual >= 0,
     [STEP_KEYS.PAGAMENTO]: true,
+    [STEP_KEYS.RESUMO]: true,
     [STEP_KEYS.PROPOSTA]: grupoValidation.valid,
   };
 
@@ -1627,9 +1628,9 @@ export function ProposalWizard() {
 
   const goNext = () => {
     if (step >= activeSteps.length - 1) return;
-    // Intercept: when advancing FROM Pagamento → show pos-dimensionamento dialog
+    // Intercept: when advancing FROM Resumo → show pos-dimensionamento dialog
     const nextKey = activeSteps[step + 1]?.key;
-    if (currentStepKey === STEP_KEYS.PAGAMENTO && nextKey === STEP_KEYS.PROPOSTA) {
+    if (currentStepKey === STEP_KEYS.RESUMO && nextKey === STEP_KEYS.PROPOSTA) {
       // Auto-fill nome if empty
       if (!nomeProposta && (cliente.nome || selectedLead?.nome)) {
         setNomeProposta(cliente.nome || selectedLead?.nome || "");
