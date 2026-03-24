@@ -611,7 +611,7 @@ interface Props {
   onArchive?: () => void;
 }
 
-export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh }: Props) {
+export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
   const navigate = useNavigate();
   const latestVersao = p.versoes[0];
   const wpPrice = latestVersao?.valor_total && latestVersao?.potencia_kwp
