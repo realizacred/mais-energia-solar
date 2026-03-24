@@ -150,6 +150,21 @@ export const invoiceImportService = {
       const parsed = data?.data?.parsed;
       const invoiceId = data?.data?.invoice_id;
       const resolvedUnitId = data?.data?.unit_id;
+      const isDuplicate = data?.data?.duplicate === true;
+
+      if (isDuplicate) {
+        const refMonth = parsed?.mes_referencia ? this._extractMonth(parsed.mes_referencia) : null;
+        const refYear = parsed?.mes_referencia ? this._extractYear(parsed.mes_referencia) : null;
+        await this.updateJobItem(item.id, {
+          status: "duplicate",
+          unit_id: resolvedUnitId,
+          reference_year: refYear,
+          reference_month: refMonth,
+          invoice_id: invoiceId,
+          parser_summary_json: parsed,
+        } as any);
+        return { status: "duplicate" as ImportItemStatus };
+      }
 
       if (!invoiceId) {
         throw new Error("Os dados foram extraídos, mas a fatura não foi salva.");
