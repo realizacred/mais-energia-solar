@@ -2204,6 +2204,16 @@ export function ProposalWizard() {
         missingVariables={blockMissing}
         reason={blockReason}
       />
+
+      {/* Pre-generation gate modal */}
+      {gateValidation && (
+        <PreGenerationGateModal
+          open={showGateModal}
+          onOpenChange={setShowGateModal}
+          validation={gateValidation}
+          onConfirmGenerate={handleGenerate}
+        />
+      )}
     </div>
   );
 }
