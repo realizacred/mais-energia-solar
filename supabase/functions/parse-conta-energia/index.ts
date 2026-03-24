@@ -1719,7 +1719,7 @@ async function tryAiEnrichment(
     .eq('is_active', true)
     .maybeSingle();
 
-  // Fallback to LOVABLE_API_KEY if no tenant Gemini key
+  // Fallback to LOVABLE_API_KEY if no tenant Gemini key or if tenant provider fails
   const lovableKey = Deno.env.get('LOVABLE_API_KEY');
   const useGeminiDirect = !!keyRow?.api_key;
   const apiKey = keyRow?.api_key || lovableKey;
@@ -1759,8 +1759,63 @@ ${truncatedText}
 Responda APENAS com JSON válido, sem explicações.`;
 
   try {
-    let aiResult: Record<string, any> | null = null;
+    let aiResult: Record<string, unknown> | null = null;
     let modelUsed = '';
+
+    const parseAiJson = (content: string): Record<string, unknown> | null => {
+      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      if (!cleaned) return null;
+      const parsed = JSON.parse(cleaned);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed as Record<string, unknown>
+        : null;
+    };
+
+    const callLovableGateway = async () => {
+      if (!lovableKey) {
+        console.log('[parse-conta-energia] AI fallback skipped: LOVABLE_API_KEY unavailable for gateway fallback');
+        return false;
+      }
+
+      modelUsed = 'google/gemini-2.5-flash';
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      try {
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: modelUsed,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.1,
+            max_tokens: 500,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const errBody = await response.text();
+          console.error(`[parse-conta-energia] Gateway error ${response.status}: ${errBody.substring(0, 200)}`);
+          return false;
+        }
+
+        const gwData = await response.json();
+        const content = gwData.choices?.[0]?.message?.content;
+        if (!content) return false;
+
+        aiResult = parseAiJson(content);
+        return !!aiResult;
+      } finally {
+        clearTimeout(timeout);
+      }
+    };
 
     if (useGeminiDirect) {
       // Direct Gemini API call
@@ -1788,57 +1843,25 @@ Responda APENAS com JSON válido, sem explicações.`;
         if (!response.ok) {
           const errBody = await response.text();
           console.error(`[parse-conta-energia] Gemini error ${response.status}: ${errBody.substring(0, 200)}`);
-          return data;
-        }
-
-        const geminiData = await response.json();
-        const content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (content) {
-          aiResult = JSON.parse(content);
+          const recovered = await callLovableGateway();
+          if (!recovered) return data;
+        } else {
+          const geminiData = await response.json();
+          const content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (content) {
+            aiResult = parseAiJson(content);
+          }
+          if (!aiResult) {
+            const recovered = await callLovableGateway();
+            if (!recovered) return data;
+          }
         }
       } finally {
         clearTimeout(timeout);
       }
     } else {
-      // Lovable Gateway
-      modelUsed = 'google/gemini-2.5-flash';
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-
-      try {
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: modelUsed,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-            temperature: 0.1,
-            max_tokens: 500,
-          }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          console.error(`[parse-conta-energia] Gateway error ${response.status}`);
-          return data;
-        }
-
-        const gwData = await response.json();
-        const content = gwData.choices?.[0]?.message?.content;
-        if (content) {
-          // Strip markdown code fences if present
-          const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          aiResult = JSON.parse(cleaned);
-        }
-      } finally {
-        clearTimeout(timeout);
-      }
+      const recovered = await callLovableGateway();
+      if (!recovered) return data;
     }
 
     if (!aiResult || typeof aiResult !== 'object') {
