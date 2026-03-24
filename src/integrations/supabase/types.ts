@@ -1628,6 +1628,57 @@ export type Database = {
           },
         ]
       }
+      client_portal_users: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          is_active: boolean | null
+          last_login_at: string | null
+          password_hash: string
+          tenant_id: string
+          unit_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          is_active?: boolean | null
+          last_login_at?: string | null
+          password_hash: string
+          tenant_id?: string
+          unit_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          last_login_at?: string | null
+          password_hash?: string
+          tenant_id?: string
+          unit_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_users_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_users_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units_consumidoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           assinatura_url: string | null
@@ -24838,6 +24889,10 @@ export type Database = {
       cleanup_wa_followup_logs: { Args: never; Returns: undefined }
       cleanup_wa_health_checks: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }
+      client_portal_login: {
+        Args: { p_email: string; p_password: string }
+        Returns: Json
+      }
       clone_proposta_versao: {
         Args: { p_from_versao_id: string }
         Returns: Json
@@ -24860,6 +24915,10 @@ export type Database = {
           _title: string
         }
         Returns: string
+      }
+      create_client_portal_user: {
+        Args: { p_email: string; p_password: string; p_unit_id: string }
+        Returns: Json
       }
       create_irradiance_version: {
         Args: { _dataset_code: string; _metadata?: Json; _version_tag: string }
@@ -24906,6 +24965,7 @@ export type Database = {
       current_tenant_id: { Args: never; Returns: string }
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
       delete_seed_data: { Args: never; Returns: Json }
+      delete_uc_permanently: { Args: { p_unit_id: string }; Returns: Json }
       encrypt_secret: {
         Args: { plain: string; secret: string }
         Returns: string
@@ -25581,6 +25641,10 @@ export type Database = {
         Returns: undefined
       }
       require_tenant_id: { Args: { _user_id?: string }; Returns: string }
+      reset_client_portal_password: {
+        Args: { p_new_password: string; p_user_id: string }
+        Returns: Json
+      }
       reset_solar_data_layer: { Args: { _confirm: string }; Returns: Json }
       resolve_consultor_public: {
         Args: { _codigo: string }
