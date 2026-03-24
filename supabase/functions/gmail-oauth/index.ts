@@ -369,7 +369,10 @@ Deno.serve(async (req) => {
 
       // Get access token, refresh if needed
       let accessToken = account.credentials?.access_token;
-      const tokenExpiry = account.settings?.token_expiry || 0;
+      const rawTokenExpiry = account.settings?.token_expiry ?? account.credentials?.token_expiry;
+      const tokenExpiry = rawTokenExpiry
+        ? (typeof rawTokenExpiry === "number" ? rawTokenExpiry : new Date(rawTokenExpiry).getTime())
+        : 0;
 
       if (Date.now() > tokenExpiry - 60000 && account.credentials?.refresh_token) {
         const { clientId, clientSecret } = await resolveGoogleCredentials(adminClient, profile.tenant_id);
