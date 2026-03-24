@@ -545,6 +545,14 @@ function GeneratorSection({
               <Button
                 variant="ghost"
                 size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={() => { setNewGroupName(""); setNewGroupOpen(true); }}
+              >
+                <Plus className="w-3 h-3" /> Novo Grupo
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 className="h-7 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                 onClick={() => setDeleteGroupConfirm(true)}
               >
