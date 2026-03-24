@@ -40,23 +40,40 @@ function sourceLabel(source: string | null | undefined): string {
   return source;
 }
 
+type LastInvoiceStatus = {
+  status?: string | null;
+  parsing_status?: string | null;
+  created_at?: string | null;
+  last_parsed_at?: string | null;
+};
+
 function statusLabel(status: string | null | undefined): string {
   switch (status) {
     case "valid": return "Processada com sucesso";
-    case "received": return "Recebida e processada";
+    case "received": return "Recebida";
     case "divergent": return "Processada com divergências";
-    case "review": return "Aguardando revisão";
+    case "review":
+    case "pending_review": return "Aguardando revisão";
     case "failed": return "Falha no processamento";
     default: return status || "Desconhecido";
   }
 }
 
-function statusVariant(status: string | null | undefined): "success" | "destructive" | "warning" {
-  switch (status) {
-    case "valid":
-    case "received": return "success";
+function processingStatusLabel(invoice: LastInvoiceStatus): string {
+  switch (invoice.parsing_status) {
+    case "success": return "Processada com sucesso";
+    case "partial": return "Processada parcialmente";
+    case "failed": return "Falha no processamento";
+    default: return statusLabel(invoice.status);
+  }
+}
+
+function processingStatusVariant(invoice: LastInvoiceStatus): "success" | "destructive" | "warning" {
+  switch (invoice.parsing_status) {
+    case "success": return "success";
     case "failed": return "destructive";
-    default: return "warning";
+    default:
+      return invoice.status === "failed" ? "destructive" : "warning";
   }
 }
 
