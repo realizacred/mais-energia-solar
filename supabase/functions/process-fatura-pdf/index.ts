@@ -859,8 +859,9 @@ async function processInvoice(
       if (parsed.modalidade_tarifaria && (shouldOverwrite || !currentUc.modalidade_tarifaria)) {
         ucUpdate.modalidade_tarifaria = toTitleCase(parsed.modalidade_tarifaria);
       }
-      if (parsed.cliente_nome && (shouldOverwrite || !currentUc.nome)) {
-        ucUpdate.nome = toTitleCase(parsed.cliente_nome);
+      const sanitizedClienteName = sanitizeClientName(parsed.cliente_nome);
+      if (sanitizedClienteName && (shouldOverwrite || !currentUc.nome)) {
+        ucUpdate.nome = toTitleCase(sanitizedClienteName);
       }
       if (parsed.tipo_ligacao && (shouldOverwrite || !currentUc.tipo_ligacao)) {
         ucUpdate.tipo_ligacao = parsed.tipo_ligacao.toLowerCase();
