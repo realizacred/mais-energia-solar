@@ -36,7 +36,7 @@ import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 import { ProjetoInstalacaoTab } from "./ProjetoInstalacaoTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
-import { ProjetoChatTab } from "./ProjetoChatTab";
+import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
 import { useQuery } from "@tanstack/react-query";
 import { usePropostasProjetoTab, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
@@ -382,7 +382,7 @@ function ProjetoDetalheContent() {
             />
           )}
           {activeTab === "comunicacao" && (
-            <ProjetoChatTab customerId={deal.customer_id} customerPhone={customerPhone} />
+            <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />
           )}
           {activeTab === "propostas" && (
             <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} />
@@ -1853,11 +1853,14 @@ function DocumentosTab({ dealId, customerId }: { dealId: string; customerId: str
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
 
   return (
-    <div className="space-y-6">
-      <ProjetoDocChecklist dealId={dealId} />
+    <div className="space-y-5">
+      {/* BLOCO 1: Checklist (Pré-requisitos) */}
+      <section>
+        <ProjetoDocChecklist dealId={dealId} />
+      </section>
 
-      {/* Generated Documents */}
-      <div className="space-y-4">
+      {/* BLOCO 2: Documentos Gerados */}
+      <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
@@ -1871,24 +1874,24 @@ function DocumentosTab({ dealId, customerId }: { dealId: string; customerId: str
 
         {generatedDocs.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-              <FileText className="h-10 w-10 mb-3 opacity-30" />
-              <p className="font-medium">Nenhum documento gerado</p>
+            <CardContent className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <FileText className="h-8 w-8 mb-2 opacity-30" />
+              <p className="text-sm font-medium">Nenhum documento gerado</p>
               <p className="text-xs mt-1">Clique em "Gerar Documento" para criar a partir de um template</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {Object.entries(docsByCategory).map(([cat, docs]) => (
-              <div key={cat} className="space-y-1.5">
+              <div key={cat} className="space-y-1">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
                   {DOC_CATEGORY_LABELS[cat] || cat}
                 </h4>
                 {docs.map(doc => {
                   const statusCfg = DOC_STATUS_MAP[doc.status] || DOC_STATUS_MAP.draft;
                   return (
-                    <div key={doc.id} className="flex items-center gap-3 py-2.5 px-4 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
-                      <FileText className="h-5 w-5 text-primary shrink-0" />
+                    <div key={doc.id} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{doc.title}</p>
                         <p className="text-[10px] text-muted-foreground">
@@ -1905,14 +1908,14 @@ function DocumentosTab({ dealId, customerId }: { dealId: string; customerId: str
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* File uploads */}
-      <div className="space-y-4">
+      {/* BLOCO 3: Arquivos Anexados */}
+      <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <FolderOpen className="h-4 w-4 text-warning" />
-            Arquivos do Projeto
+            <Paperclip className="h-4 w-4 text-warning" />
+            Arquivos Anexados
           </h3>
           <div>
             <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
@@ -1925,17 +1928,17 @@ function DocumentosTab({ dealId, customerId }: { dealId: string; customerId: str
 
         {files.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-              <FolderOpen className="h-10 w-10 mb-3 opacity-30" />
-              <p className="font-medium">Nenhum arquivo</p>
+            <CardContent className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Paperclip className="h-8 w-8 mb-2 opacity-30" />
+              <p className="text-sm font-medium">Nenhum arquivo</p>
               <p className="text-xs mt-1">Faça upload de documentos relacionados ao projeto</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {files.map(f => (
-              <div key={f.name} className="flex items-center gap-3 py-2.5 px-4 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
-                <FileText className="h-5 w-5 text-primary shrink-0" />
+              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
+                <FileText className="h-4 w-4 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
                   <p className="text-[10px] text-muted-foreground">
@@ -1954,11 +1957,29 @@ function DocumentosTab({ dealId, customerId }: { dealId: string; customerId: str
             ))}
           </div>
         )}
-      </div>
+      </section>
+
+      {/* BLOCO 4: Variáveis do Documento */}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Activity className="h-4 w-4 text-info" />
+            Variáveis do Documento
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Dados usados para gerar contratos e documentos</p>
+        </div>
+        <VariableMapperPanel
+          dealId={dealId}
+          customerId={customerId}
+          onGenerateContract={() => {
+            toast({ title: "Geração de contrato", description: "Funcionalidade será conectada ao motor de documentos." });
+          }}
+        />
+      </section>
 
       {/* Generate Document Dialog */}
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Gerar documento</DialogTitle>
             <DialogDescription>Selecione um modelo para gerar o documento com os dados do projeto.</DialogDescription>
@@ -2009,16 +2030,6 @@ function DocumentosTab({ dealId, customerId }: { dealId: string; customerId: str
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Variáveis de Contrato (absorvido da antiga aba "Vínculo de Contrato") */}
-      <Separator className="my-2" />
-      <VariableMapperPanel
-        dealId={dealId}
-        customerId={customerId}
-        onGenerateContract={() => {
-          toast({ title: "Geração de contrato", description: "Funcionalidade será conectada ao motor de documentos." });
-        }}
-      />
     </div>
   );
 }
