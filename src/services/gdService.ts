@@ -2,6 +2,7 @@
  * gdService — Service for GD Groups & Beneficiaries validation logic.
  * SRP: Business rules for Geração Distribuída.
  */
+import { gdTypeRules, type GdCategory } from "@/services/gdTypeRules";
 
 export interface GdGroupInput {
   nome: string;
@@ -10,6 +11,7 @@ export interface GdGroupInput {
   cliente_id?: string | null;
   notes?: string | null;
   status?: string;
+  categoria_gd?: GdCategory | null;
 }
 
 export interface GdBeneficiaryInput {
@@ -64,7 +66,28 @@ export const gdService = {
     groupConcessionariaId: string,
     ucConcessionariaId: string | null
   ): boolean {
-    if (!ucConcessionariaId) return true; // UC without concessionária is allowed
+    if (!ucConcessionariaId) return true;
     return groupConcessionariaId === ucConcessionariaId;
+  },
+
+  /**
+   * Validate beneficiary count against GD type rules.
+   */
+  validateBeneficiaryCountForType(
+    categoriaGd: GdCategory | null | undefined,
+    activeBeneficiaryCount: number
+  ): { valid: boolean; message: string | null } {
+    if (!categoriaGd || !gdTypeRules.isValidCategory(categoriaGd)) {
+      return { valid: true, message: null };
+    }
+    return gdTypeRules.validateBeneficiaryCount(categoriaGd, activeBeneficiaryCount);
+  },
+
+  /**
+   * Get distribution type for a GD group's category.
+   */
+  getDistributionType(categoriaGd: GdCategory | null | undefined): "self" | "percentage" {
+    if (!categoriaGd || !gdTypeRules.isValidCategory(categoriaGd)) return "percentage";
+    return gdTypeRules.getDistributionType(categoriaGd);
   },
 };
