@@ -220,7 +220,7 @@ export function StageDealCard({
         </div>
 
         {/* DOC PROGRESS (compact) */}
-        {docTotal > 0 && (
+        {docTotal > 0 && docDone > 0 && (
           <div className="flex items-center gap-1.5">
             <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
               <div
