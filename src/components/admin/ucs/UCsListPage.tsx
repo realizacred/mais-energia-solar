@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UCFormDialog } from "./UCFormDialog";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { GDConsolidadoTab } from "./GDConsolidadoTab";
 
 const UC_TYPE_LABELS: Record<string, string> = {
   consumo: "Beneficiária",
