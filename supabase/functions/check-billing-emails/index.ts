@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
     // ── 1. Fetch active Gmail accounts directly (no dependency on unit_billing_email_settings) ──
     let gmailQuery = admin
       .from('gmail_accounts')
-      .select('id, credentials, settings, email, tenant_id, nome')
+      .select('id, credentials, settings, email, tenant_id, nome, gmail_label')
       .eq('is_active', true);
 
     if (bodyAccountId) {
@@ -338,10 +338,13 @@ Deno.serve(async (req) => {
           }
         }
 
-        // ── 3. Search messages ──
+        // ── 3. Search messages — use Gmail label if configured, otherwise inbox ──
+        const labelFilter = gmailAccount.gmail_label
+          ? `label:${gmailAccount.gmail_label}`
+          : 'in:inbox';
         const gmailQueryString = isManualVerification
-          ? 'in:inbox has:attachment filename:pdf newer_than:30d'
-          : 'is:unread has:attachment filename:pdf newer_than:7d';
+          ? `${labelFilter} has:attachment filename:pdf newer_than:30d`
+          : `${labelFilter} is:unread has:attachment filename:pdf newer_than:7d`;
         const pageSize = isManualVerification ? 50 : 30;
         const maxPages = isManualVerification ? 5 : 1;
 
@@ -447,7 +450,9 @@ Deno.serve(async (req) => {
               (h: any) => h.name.toLowerCase() === 'to' || h.name.toLowerCase() === 'delivered-to'
             )?.value || '';
 
-            if (!isKnownSender(fromHeader)) {
+            // When using a label filter, trust the label — skip sender check
+            // When no label, fall back to known sender filtering
+            if (!gmailAccount.gmail_label && !isKnownSender(fromHeader)) {
               console.log(`[check-billing-emails] Skipping unknown sender: ${fromHeader.substring(0, 60)}`);
               continue;
             }
