@@ -42,12 +42,12 @@ export function UCGdInfoCard({ ucId, ucName, ucCode }: Props) {
           <div className="flex flex-wrap gap-2">
             {asGenerator.length > 0 && (
               <Badge className="text-xs bg-primary/10 text-primary border-primary/20">
-                <Sun className="w-3 h-3 mr-1" /> Como geradora
+                <Sun className="w-3 h-3 mr-1" /> Geradora
               </Badge>
             )}
             {asBeneficiary.length > 0 && (
               <Badge variant="outline" className="text-xs border-info/20 text-info bg-info/10">
-                <Users className="w-3 h-3 mr-1" /> Como beneficiária
+                <Users className="w-3 h-3 mr-1" /> Beneficiária
               </Badge>
             )}
           </div>
@@ -58,9 +58,9 @@ export function UCGdInfoCard({ ucId, ucName, ucCode }: Props) {
             <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Esta UC como geradora</p>
+                  <p className="text-sm font-semibold text-foreground">UC Geradora</p>
                   <p className="text-xs text-muted-foreground">
-                    Esta unidade é a origem do grupo GD e distribui energia para outras beneficiárias.
+                    Esta unidade é a origem do grupo GD e distribui créditos para as beneficiárias.
                   </p>
                 </div>
                 <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -105,9 +105,9 @@ export function UCGdInfoCard({ ucId, ucName, ucCode }: Props) {
             <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Esta UC como beneficiária</p>
+                  <p className="text-sm font-semibold text-foreground">UC Beneficiária</p>
                   <p className="text-xs text-muted-foreground">
-                    Esta unidade recebe créditos de outro grupo GD e tem atalhos diretos para a geradora e para o grupo.
+                    Esta unidade recebe créditos de outro grupo GD.
                   </p>
                 </div>
                 <div className="w-9 h-9 rounded-lg bg-info/10 flex items-center justify-center shrink-0">

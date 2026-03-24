@@ -31,7 +31,7 @@ import { UCInvoicesTab } from "./UCInvoicesTab";
 import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
 import { UCShareLinkButton } from "./UCShareLinkButton";
-import { UCEnergySummary } from "./UCEnergySummary";
+
 import { UCMeterTab } from "./UCMeterTab";
 import { UCPlantLinksTab } from "./UCPlantLinksTab";
 import { UCOverviewTab } from "./UCOverviewTab";
@@ -409,7 +409,6 @@ export default function UCDetailPage() {
 
           {/* === GD === */}
           <TabsContent value="gd" className="space-y-6">
-            <UCEnergySummary ucId={id!} />
             <UCGdTab uc={uc} />
           </TabsContent>
 
