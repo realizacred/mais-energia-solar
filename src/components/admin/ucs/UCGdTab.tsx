@@ -67,31 +67,9 @@ export function UCGdTab({ uc }: Props) {
         />
       )}
 
-      {/* Beneficiary Section */}
+      {/* Beneficiary Section — with bidirectional navigation */}
       {beneficiaryOf.length > 0 && (
-        <Card className="border-l-[3px] border-l-muted">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="w-4 h-4 text-muted-foreground" /> Esta UC como Beneficiária
-            </CardTitle>
-            <CardDescription>Grupos GD onde esta UC recebe créditos</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2">
-              {beneficiaryOf.map((b) => (
-                <div key={b.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border">
-                  <Badge variant="outline" className="text-xs shrink-0">
-                    <Users className="w-3 h-3 mr-1" /> Beneficiária
-                  </Badge>
-                  <span className="text-sm text-foreground">{b.gd_groups?.nome}</span>
-                  <span className="text-xs text-muted-foreground font-mono ml-auto">
-                    {Number(b.allocation_percent).toFixed(2)}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <BeneficiarySection beneficiaryOf={beneficiaryOf} />
       )}
 
       {/* No GD participation */}
