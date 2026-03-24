@@ -30,27 +30,35 @@ interface StepAdicionaisProps {
 export type { AdicionalItem };
 
 function itensToKitCards(itens: KitItemRow[]): KitCardData[] {
-  const modItem = itens.find(i => i.categoria === "modulo");
-  const invItem = itens.find(i => i.categoria === "inversor");
-  if (!modItem && !invItem) return [];
+  const modItems = itens.filter(i => i.categoria === "modulo");
+  const invItems = itens.filter(i => i.categoria === "inversor");
+  if (modItems.length === 0 && invItems.length === 0) return [];
 
-  const moduloQtd = modItem?.quantidade || 0;
-  const moduloPotW = modItem?.potencia_w || 0;
-  const totalKwp = (moduloQtd * moduloPotW) / 1000;
-  const invPotKw = invItem ? (invItem.potencia_w || 0) / 1000 : 0;
+  const totalModQtd = modItems.reduce((s, m) => s + m.quantidade, 0);
+  const totalModKwp = modItems.reduce((s, m) => s + (m.potencia_w * m.quantidade) / 1000, 0);
+  const totalInvQtd = invItems.reduce((s, i) => s + i.quantidade, 0);
+  const totalInvKw = invItems.reduce((s, i) => s + (i.potencia_w * i.quantidade) / 1000, 0);
   const precoTotal = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-  const precoWp = totalKwp > 0 ? precoTotal / (totalKwp * 1000) : 0;
+  const precoWp = totalModKwp > 0 ? precoTotal / (totalModKwp * 1000) : 0;
+
+  // Build descriptors concatenating distinct items
+  const modDesc = modItems.length > 0
+    ? modItems.map(m => `${m.fabricante} ${m.modelo}`.trim()).filter(Boolean).join(" + ") || "—"
+    : "—";
+  const invDesc = invItems.length > 0
+    ? invItems.map(i => `${i.fabricante} ${i.modelo}`.trim()).filter(Boolean).join(" + ") || "—"
+    : "—";
 
   return [{
     id: "kit-fechado",
-    distribuidorNome: modItem?.fabricante || invItem?.fabricante || "",
-    moduloDescricao: modItem ? `${modItem.fabricante} ${modItem.modelo}`.trim() : "—",
-    moduloQtd,
-    moduloPotenciaKwp: totalKwp,
-    inversorDescricao: invItem ? `${invItem.fabricante} ${invItem.modelo}`.trim() : "—",
-    inversorQtd: invItem?.quantidade || 0,
-    inversorPotenciaKw: invPotKw * (invItem?.quantidade || 1),
-    topologia: "Inversor string",
+    distribuidorNome: modItems[0]?.fabricante || invItems[0]?.fabricante || "",
+    moduloDescricao: modDesc,
+    moduloQtd: totalModQtd,
+    moduloPotenciaKwp: totalModKwp,
+    inversorDescricao: invDesc,
+    inversorQtd: totalInvQtd,
+    inversorPotenciaKw: totalInvKw,
+    topologia: invItems.length > 0 ? "Kit configurado" : "Sem inversor",
     precoTotal,
     precoWp,
   }];
