@@ -1584,6 +1584,13 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
     return new Date(dealUpdatedAt).getTime() > new Date(latestVersao.gerado_em).getTime();
   })();
 
+  const isPropostaOutdated = (prop: any) => {
+    if (!dealUpdatedAt) return false;
+    const lv = prop.versoes?.[0];
+    if (!lv?.gerado_em) return false;
+    return new Date(dealUpdatedAt).getTime() > new Date(lv.gerado_em).getTime();
+  };
+
   const renderPropostaCard = (p: any, isPrin: boolean) => {
     return (
       <PropostaExpandedDetail
@@ -1595,7 +1602,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
         dealId={dealId}
         customerId={customerId}
         onRefresh={() => refetch()}
-        isOutdated={isPrin && isPrincipalOutdated}
+        isOutdated={isPropostaOutdated(p)}
         onSetPrincipal={() => setPrincipalMutation.mutate({ propostaId: p.id, dealId })}
         onArchive={() => arquivarMutation.mutate(p.id)}
       />
