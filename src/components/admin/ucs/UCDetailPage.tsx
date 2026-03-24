@@ -134,6 +134,24 @@ export default function UCDetailPage() {
 
   const solarPlantId = activePlant?.legacy_plant_id ?? null;
 
+  // Fetch GD group categoria for generators (fallback when uc.categoria_gd is null)
+  const isGenerator = uc?.papel_gd === "geradora" || uc?.tipo_uc === "gd_geradora";
+  const { data: gdGroupForGenerator } = useQuery({
+    queryKey: ["gd_group_categoria_for_uc", id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("gd_groups")
+        .select("categoria_gd")
+        .eq("uc_geradora_id", id!)
+        .eq("status", "active")
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!id && isGenerator,
+    staleTime: 1000 * 60 * 5,
+  });
+  const resolvedCategoriaGd = uc?.categoria_gd || gdGroupForGenerator?.categoria_gd || null;
+
   const { data: credits = [] } = useUnitCredits(id ?? null);
   const deleteCredit = useDeleteUnitCredit();
 
