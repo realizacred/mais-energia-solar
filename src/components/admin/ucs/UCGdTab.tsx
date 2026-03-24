@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { buildUcDetailPath } from "./ucNavigation";
 import { GdHelpCard } from "./GdHelpCard";
 import { GdEnergyNetworkCard } from "./GdEnergyNetworkCard";
+import { EditDistributionModal } from "./EditDistributionModal";
 
 interface Props {
   uc: UCRecord;
