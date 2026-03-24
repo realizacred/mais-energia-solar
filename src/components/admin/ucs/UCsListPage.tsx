@@ -513,6 +513,12 @@ export default function UCsListPage() {
           )}
         </>
       )}
+        </TabsContent>
+
+        <TabsContent value="gd" className="mt-0">
+          <GDConsolidadoTab />
+        </TabsContent>
+      </Tabs>
 
       <UCFormDialog
         open={dialogOpen}
