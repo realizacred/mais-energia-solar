@@ -247,6 +247,7 @@ function GeneratorSection({
   const [editGroupName, setEditGroupName] = useState("");
   const [newGroupOpen, setNewGroupOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const [editDistOpen, setEditDistOpen] = useState(false);
 
   async function handleCreateGroup() {
     try {
