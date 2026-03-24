@@ -118,7 +118,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
     queryFn: async () => {
       const { data } = await supabase
         .from("unit_invoices")
-        .select("id, created_at, reference_month, reference_year, status, source")
+        .select("id, created_at, last_parsed_at, reference_month, reference_year, status, parsing_status, source")
         .eq("unit_id", unitId)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -243,9 +243,9 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
     ? `${MONTH_NAMES[(lastInvoice.reference_month ?? 1) - 1]}/${lastInvoice.reference_year} (via ${sourceLabel(lastInvoice.source)})`
     : null;
 
-  const lastInvoiceStatusLabel = lastInvoice ? statusLabel(lastInvoice.status) : null;
-  const lastInvoiceDate = lastInvoice?.created_at
-    ? formatDate(lastInvoice.created_at)
+  const lastInvoiceStatusLabel = lastInvoice ? processingStatusLabel(lastInvoice) : null;
+  const lastInvoiceDate = (lastInvoice?.last_parsed_at || lastInvoice?.created_at)
+    ? formatDate(lastInvoice.last_parsed_at || lastInvoice.created_at)
     : null;
 
   return (
@@ -301,7 +301,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
             <div className="p-3 rounded-lg bg-muted/20 border border-border space-y-1">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-foreground">Detalhes do último processamento</p>
-                <StatusBadge variant={statusVariant(lastInvoice.status)} dot className="text-xs">
+                <StatusBadge variant={processingStatusVariant(lastInvoice)} dot className="text-xs">
                   {lastInvoiceStatusLabel}
                 </StatusBadge>
               </div>
