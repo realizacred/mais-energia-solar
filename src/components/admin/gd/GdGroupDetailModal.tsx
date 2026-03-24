@@ -25,6 +25,7 @@ import { GdBeneficiaryFormModal } from "./GdBeneficiaryFormModal";
 import { formatDate } from "@/lib/dateUtils";
 import { GdEnergyMonthly } from "./GdEnergyMonthly";
 import { GdEnergyReport } from "./GdEnergyReport";
+import { GdDecisionDashboard } from "./GdDecisionDashboard";
 
 interface Props {
   open: boolean;
@@ -300,6 +301,27 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                     <p className="text-xs font-medium text-muted-foreground mb-1">Observações</p>
                     <p className="text-sm text-foreground">{group.notes}</p>
                   </div>
+                )}
+
+                {/* GD Decision Dashboard */}
+                {group && activeBens.length > 0 && (
+                  <GdDecisionDashboard
+                    generationKwh={0}
+                    generatorUc={{
+                      ucId: group.uc_geradora_id,
+                      label: ucGeradora ? `${ucGeradora.codigo_uc} — ${ucGeradora.nome}` : "Geradora",
+                      consumedKwh: 0,
+                    }}
+                    beneficiaries={activeBens.map((b) => {
+                      const uc = ucMap.get(b.uc_beneficiaria_id);
+                      return {
+                        ucId: b.uc_beneficiaria_id,
+                        label: uc ? `${uc.codigo_uc} — ${uc.nome}` : b.uc_beneficiaria_id.slice(0, 8),
+                        allocationPercent: Number(b.allocation_percent),
+                        consumedKwh: 0,
+                      };
+                    })}
+                  />
                 )}
 
                 {/* Energy Monthly Section */}
