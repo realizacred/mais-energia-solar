@@ -133,6 +133,21 @@ export function GdPublicDashboard({ gdData, isLoading, brandPrimary }: GdPublicD
     return total;
   }, [latestGenInvoice, beneficiaries]);
 
+  // Early returns AFTER all hooks
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-48 w-full rounded-lg" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    );
+  }
+
+  if (!hasGd) return null;
+
   return (
     <div className="space-y-4">
       {/* Section header */}
