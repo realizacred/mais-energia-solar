@@ -22,6 +22,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { format, subDays, parseISO } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
 
 interface Props {
