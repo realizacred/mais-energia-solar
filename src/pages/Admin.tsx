@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
-import { Menu, ShieldAlert } from "lucide-react";
+import { Menu, ShieldAlert, HelpCircle } from "lucide-react";
 import { SistemaInstallBanner } from "@/components/pwa/SistemaInstallBanner";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
@@ -395,6 +395,7 @@ export default function Admin() {
   const [hasAccess, setHasAccess] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Resolve tenant for onboarding check
   useEffect(() => {
@@ -533,6 +534,15 @@ export default function Admin() {
             <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
               <span className="hidden md:inline-flex"><HeaderSearch /></span>
               <span className="hidden sm:inline-flex"><HelpDropdown /></span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-md"
+                onClick={() => setHelpOpen(true)}
+                aria-label="Central de Ajuda"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
               <NotificationsDropdown />
               <AgendaSheet />
               <div className="h-4 w-px bg-border/40 mx-0.5 sm:mx-1 hidden sm:block" />
@@ -752,7 +762,7 @@ export default function Admin() {
             </Suspense>
           </main>
         </SidebarInset>
-        <HelpCenterDrawer />
+        <HelpCenterDrawer open={helpOpen} onOpenChange={setHelpOpen} />
       </div>
       </TourProvider>
     </SidebarProvider>
