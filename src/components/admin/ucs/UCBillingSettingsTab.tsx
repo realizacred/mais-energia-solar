@@ -48,14 +48,11 @@ function statusLabel(status: string | null | undefined): string {
   }
 }
 
-function statusVariant(status: string | null | undefined): "success" | "destructive" | "warning" | "default" {
+function statusVariant(status: string | null | undefined): "success" | "destructive" | "warning" {
   switch (status) {
     case "valid": return "success";
     case "failed": return "destructive";
-    case "divergent":
-    case "review":
-    case "received": return "warning";
-    default: return "default";
+    default: return "warning";
   }
 }
 
