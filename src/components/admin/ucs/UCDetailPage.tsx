@@ -352,30 +352,31 @@ export default function UCDetailPage() {
                   <Sun className="w-3.5 h-3.5 text-success shrink-0" />
                   <div className="min-w-0">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Papel GD</p>
-                    <p className="text-sm font-semibold text-foreground">{PAPEL_GD_LABELS[uc.papel_gd] || uc.papel_gd || "Nenhum"}</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {PAPEL_GD_LABELS[uc.papel_gd] || uc.papel_gd || "Nenhum"}
+                      {uc.categoria_gd && (
+                        <span className="text-muted-foreground font-normal text-xs ml-1.5">
+                          ({CATEGORIA_GD_LABELS[uc.categoria_gd] || uc.categoria_gd})
+                        </span>
+                      )}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Cadastro details — inline in hero */}
-              {(enderecoStr || uc.email_fatura || uc.categoria_gd) && (
-                <div className="mt-3 pt-3 border-t border-primary/10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1.5 text-sm">
+              {(enderecoStr || uc.email_fatura) && (
+                <div className="mt-3 pt-3 border-t border-primary/10 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
                   {enderecoStr && (
-                    <div className="flex gap-1.5 min-w-0">
+                    <div className="flex gap-1.5 min-w-0 sm:col-span-2">
                       <span className="text-muted-foreground shrink-0">Endereço:</span>
-                      <span className="text-foreground truncate">{enderecoStr}</span>
+                      <span className="text-foreground">{enderecoStr}</span>
                     </div>
                   )}
                   {uc.email_fatura && (
                     <div className="flex gap-1.5 min-w-0">
                       <span className="text-muted-foreground shrink-0">E-mail Fatura:</span>
                       <span className="text-foreground truncate">{uc.email_fatura}</span>
-                    </div>
-                  )}
-                  {uc.categoria_gd && (
-                    <div className="flex gap-1.5 min-w-0">
-                      <span className="text-muted-foreground shrink-0">Categoria GD:</span>
-                      <span className="text-foreground">{CATEGORIA_GD_LABELS[uc.categoria_gd] || uc.categoria_gd}</span>
                     </div>
                   )}
                   {uc.observacoes && (
