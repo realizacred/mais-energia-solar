@@ -1,4 +1,5 @@
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
+import { useClienteHasRecebimento } from "@/hooks/useClienteRecebimento";
 import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
 import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
