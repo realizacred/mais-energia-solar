@@ -16,7 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Archive, Edit, Building2, AlertTriangle, ChevronLeft, ChevronRight, Zap, ShieldAlert, CheckCircle2, ArchiveIcon, ChevronDown, ChevronRight as ChevronRightIcon, Sun, Users, CornerDownRight } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Search, Archive, Edit, Building2, AlertTriangle, ChevronLeft, ChevronRight, Zap, ShieldAlert, CheckCircle2, ArchiveIcon, ChevronDown, ChevronRight as ChevronRightIcon, Sun, Users, CornerDownRight, GitBranch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UCFormDialog } from "./UCFormDialog";
 import { cn } from "@/lib/utils";
