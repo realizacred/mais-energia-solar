@@ -1282,6 +1282,39 @@ export function ProposalWizard() {
 
   const canCurrentStep = canAdvance[currentStepKey] ?? true;
 
+  // ─── Pre-generation: run canonical validation and show gate modal
+  const handlePreGenerate = () => {
+    const validation = validatePropostaFinal({
+      cliente,
+      selectedLead,
+      ucs,
+      itens,
+      servicos,
+      venda,
+      pagamentoOpcoes,
+      potenciaKwp,
+      precoFinal,
+      geracaoMensalKwh: geracaoMensalEstimada,
+      consumoTotal,
+      locEstado,
+      locCidade,
+      locDistribuidoraNome: locDistribuidoraNome,
+      templateSelecionado,
+    });
+
+    console.debug("[ProposalWizard] Pre-generation validation:", validation);
+
+    // If perfectly clean — skip modal, go straight to generate
+    if (validation.canGenerate && !validation.needsConfirmation) {
+      handleGenerate();
+      return;
+    }
+
+    // Show gate modal for errors or warnings
+    setGateValidation(validation);
+    setShowGateModal(true);
+  };
+
   // ─── Generate (with enforcement gate)
   const handleGenerate = async () => {
     if (!selectedLead) {
