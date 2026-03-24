@@ -145,6 +145,7 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
       dias_antecedencia_alerta: parseInt(form.dias_antecedencia_alerta, 10) || 1,
       canal_notificacao: form.canal_notificacao,
       servico_fatura_ativo: form.servico_fatura_ativo,
+      gmail_label: form.gmail_label || null,
     } as any),
     onSuccess: () => {
       commitBaseline();
