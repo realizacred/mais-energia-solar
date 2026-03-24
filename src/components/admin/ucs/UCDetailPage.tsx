@@ -409,6 +409,7 @@ export default function UCDetailPage() {
 
           {/* === GD === */}
           <TabsContent value="gd" className="space-y-6">
+            <UCEnergySummary ucId={id!} />
             <UCGdTab uc={uc} />
           </TabsContent>
 
