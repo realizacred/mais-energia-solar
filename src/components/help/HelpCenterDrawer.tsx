@@ -64,8 +64,15 @@ const CATEGORIAS = [
   { id: "whatsapp", label: "WhatsApp", icon: MessageSquare },
 ] as const;
 
-export function HelpCenterDrawer() {
-  const [open, setOpen] = useState(false);
+interface HelpCenterDrawerProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function HelpCenterDrawer({ open: controlledOpen, onOpenChange }: HelpCenterDrawerProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null);
   const [tutorialAberto, setTutorialAberto] = useState<Tutorial | null>(null);
   const [busca, setBusca] = useState("");
@@ -289,17 +296,6 @@ export function HelpCenterDrawer() {
 
   if (isDesktop) {
     return (
-      <>
-        <Button
-          variant="outline"
-          size="icon"
-          className="fixed bottom-6 right-6 h-12 w-12 rounded-full shadow-lg bg-card border-border hover:bg-accent z-40"
-          onClick={() => setOpen(true)}
-          aria-label="Central de Ajuda"
-        >
-          <HelpCircle className="w-5 h-5" />
-        </Button>
-
         <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : handleFechar())}>
           <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[80vh]">
             <DialogHeader className="shrink-0 p-5 pb-3 border-b border-border flex flex-row items-center gap-3">
