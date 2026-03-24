@@ -249,6 +249,32 @@ export default function ExtractionCenterPage() {
         </Card>
       </div>
 
+      {/* Per-concessionária breakdown */}
+      {stats?.byConcessionaria && Object.keys(stats.byConcessionaria).length > 0 && (
+        <Card className="border-border bg-card shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-sm font-semibold text-foreground mb-3">Taxa por Concessionária (30d)</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Object.entries(stats.byConcessionaria)
+                .sort(([, a], [, b]) => b.total - a.total)
+                .map(([code, s]) => {
+                  const rate = s.total > 0 ? Math.round((s.success / s.total) * 100) : 0;
+                  const rateColor = rate >= 80 ? "text-success" : rate >= 50 ? "text-warning" : "text-destructive";
+                  return (
+                    <div key={code} className="rounded-lg border border-border p-3 space-y-1">
+                      <p className="text-xs font-mono font-medium text-foreground uppercase">{code}</p>
+                      <p className={`text-lg font-bold ${rateColor}`}>{rate}%</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {s.success} ok · {s.partial} parcial · {s.failed} falha · {s.total} total
+                      </p>
+                    </div>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
