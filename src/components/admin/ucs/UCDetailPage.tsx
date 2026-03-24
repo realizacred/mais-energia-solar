@@ -444,38 +444,7 @@ export default function UCDetailPage() {
 
           {/* === CONFIGURAÇÕES TAB === */}
           <TabsContent value="config" className="space-y-6">
-            {/* Cadastro — apenas campos que NÃO estão no hero header */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Cadastro</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {enderecoStr && (
-                  <div className="flex gap-1">
-                    <span className="text-muted-foreground min-w-[120px]">Endereço:</span>
-                    <span>{enderecoStr}</span>
-                  </div>
-                )}
-                {uc.email_fatura && (
-                  <div className="flex gap-1">
-                    <span className="text-muted-foreground min-w-[120px]">E-mail Fatura:</span>
-                    <span>{uc.email_fatura}</span>
-                  </div>
-                )}
-                {uc.observacoes && (
-                  <div className="flex gap-1">
-                    <span className="text-muted-foreground min-w-[120px]">Observações:</span>
-                    <span>{uc.observacoes}</span>
-                  </div>
-                )}
-                {uc.categoria_gd && (
-                  <div className="flex gap-1">
-                    <span className="text-muted-foreground min-w-[120px]">Categoria GD:</span>
-                    <span>{CATEGORIA_GD_LABELS[uc.categoria_gd] || uc.categoria_gd}</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* Cadastro info moved to hero header */}
 
             {/* Recebimento de Faturas — unificado */}
             <UCBillingSettingsTab unitId={uc.id} leituraAutomaticaEmail={uc.leitura_automatica_email} />
