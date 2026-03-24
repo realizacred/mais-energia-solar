@@ -21,6 +21,7 @@ import { Sun, Users, Plus, Trash2, Loader2, AlertCircle, ExternalLink } from "lu
 import { useGdGroupByGenerator, useGdBeneficiaries, useGdBeneficiariesByUC, useSaveGdBeneficiary, useDeleteGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
 import { useSaveGdGroup, type GdGroup } from "@/hooks/useGdGroups";
 import { unitService, type UCRecord } from "@/services/unitService";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -142,7 +143,7 @@ function BeneficiarySection({ beneficiaryOf }: { beneficiaryOf: (GdBeneficiary &
                       onClick={() => navigate(`/admin/ucs/${b.gd_groups.uc_geradora_id}?tab=gd`)}
                     >
                       <Sun className="w-3 h-3 text-primary" />
-                      {genUc ? `Ver geradora: ${genUc.nome}` : "Ver UC Geradora"}
+                      {genUc ? `Ver geradora: ${(genUc as any).nome}` : "Ver UC Geradora"}
                       <ExternalLink className="w-3 h-3" />
                     </Button>
                   )}
