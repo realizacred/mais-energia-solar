@@ -368,12 +368,16 @@ function GeneratorSection({
   const qc = useQueryClient();
   const navigate = useNavigate();
   const saveGroup = useSaveGdGroup();
+  const deleteGroup = useDeleteGdGroup();
   const deleteBeneficiary = useDeleteGdBeneficiary();
 
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [groupName, setGroupName] = useState(uc.nome);
   const [addBenOpen, setAddBenOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(false);
+  const [editGroupOpen, setEditGroupOpen] = useState(false);
+  const [editGroupName, setEditGroupName] = useState("");
 
   async function handleCreateGroup() {
     try {
