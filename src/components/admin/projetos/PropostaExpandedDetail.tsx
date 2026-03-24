@@ -21,6 +21,7 @@ import { formatBRL, formatNumberBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 
 // ─── Types ──────────────────────────────────────────
 
