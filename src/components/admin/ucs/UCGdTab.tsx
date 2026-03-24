@@ -378,6 +378,8 @@ function GeneratorSection({
   const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(false);
   const [editGroupOpen, setEditGroupOpen] = useState(false);
   const [editGroupName, setEditGroupName] = useState("");
+  const [newGroupOpen, setNewGroupOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
 
   async function handleCreateGroup() {
     try {
@@ -435,6 +437,31 @@ function GeneratorSection({
       toast({ title: "Erro", description: err?.message, variant: "destructive" });
     }
   }, [group, editGroupName, saveGroup, uc.id, qc, toast]);
+
+  const handleCreateNewGroup = useCallback(async () => {
+    if (!newGroupName.trim()) return;
+    try {
+      // Deactivate current group (keep history)
+      if (group) {
+        await saveGroup.mutateAsync({ id: group.id, status: "inactive" });
+      }
+      // Create new active group
+      await saveGroup.mutateAsync({
+        nome: newGroupName,
+        uc_geradora_id: uc.id,
+        concessionaria_id: uc.concessionaria_id || "",
+        cliente_id: uc.cliente_id,
+        status: "active",
+      });
+      qc.invalidateQueries({ queryKey: ["gd_groups", "by_generator", uc.id] });
+      qc.invalidateQueries({ queryKey: ["gd_groups"] });
+      toast({ title: "Novo grupo GD criado!", description: group ? "O grupo anterior foi desativado." : undefined });
+      setNewGroupOpen(false);
+      setNewGroupName("");
+    } catch (err: any) {
+      toast({ title: "Erro", description: err?.message, variant: "destructive" });
+    }
+  }, [group, newGroupName, saveGroup, uc, qc, toast]);
 
   if (!group) {
     return (
@@ -514,6 +541,14 @@ function GeneratorSection({
                 onClick={() => { setEditGroupName(group.nome); setEditGroupOpen(true); }}
               >
                 <Edit className="w-3 h-3" /> Renomear
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={() => { setNewGroupName(""); setNewGroupOpen(true); }}
+              >
+                <Plus className="w-3 h-3" /> Novo Grupo
               </Button>
               <Button
                 variant="ghost"
@@ -723,6 +758,44 @@ function GeneratorSection({
             <Button onClick={handleEditGroup} disabled={saveGroup.isPending || !editGroupName.trim()}>
               {saveGroup.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create New Group (replace current) */}
+      <Dialog open={newGroupOpen} onOpenChange={setNewGroupOpen}>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Plus className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">Novo Grupo GD</DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">O grupo atual será desativado e mantido no histórico</p>
+            </div>
+          </DialogHeader>
+          <div className="p-5 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome do novo grupo</Label>
+              <Input value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="Ex: Grupo Residencial 2026" />
+            </div>
+            <div className="p-3 rounded-lg bg-warning/10 border border-warning/20 text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-warning" /> Grupo atual será desativado
+              </p>
+              <p>O grupo <span className="font-medium text-foreground">"{group.nome}"</span> com {beneficiaries.length} beneficiária(s) será marcado como inativo. Os dados históricos serão preservados.</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border text-xs text-muted-foreground space-y-1">
+              <p><span className="font-medium text-foreground">UC Geradora:</span> {uc.nome} ({uc.codigo_uc})</p>
+              <p><span className="font-medium text-foreground">Concessionária:</span> {uc.concessionaria_nome || "Não definida"}</p>
+            </div>
+          </div>
+          <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            <Button variant="outline" onClick={() => setNewGroupOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateNewGroup} disabled={saveGroup.isPending || !newGroupName.trim()}>
+              {saveGroup.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Criar Novo Grupo
             </Button>
           </DialogFooter>
         </DialogContent>
