@@ -95,6 +95,7 @@ const IntelligenceConfigPage = lazy(() => import("@/components/admin/intelligenc
 const IntelligenceMetricsPage = lazy(() => import("@/components/admin/intelligence").then(m => ({ default: m.IntelligenceMetricsPage })));
 const IntelligenceAlertsPage = lazy(() => import("@/components/admin/intelligence").then(m => ({ default: m.IntelligenceAlertsPage })));
 const EngenhariaFinanceiraConfig = lazy(() => import("@/components/admin/EngenhariaFinanceiraConfig").then(m => ({ default: m.EngenhariaFinanceiraConfig })));
+const ProposalMessageConfigPage = lazy(() => import("@/pages/admin/ProposalMessageConfigPage"));
 const CommercialDirectorDashboard = lazy(() => import("@/components/admin/director").then(m => ({ default: m.CommercialDirectorDashboard })));
 const ConsultorDashboard = lazy(() => import("@/pages/ConsultorDashboard"));
 
@@ -670,6 +671,7 @@ export default function Admin() {
                 <Route path="config" element={<CalculadoraConfig />} />
                 <Route path="conf-solar" element={<ConfSolarPage />} />
                 <Route path="variaveis-sistema" element={<VariaveisSystemPage />} />
+                <Route path="mensagens-proposta" element={<Suspense fallback={<LoadingSpinner />}><ProposalMessageConfigPage /></Suspense>} />
                 <Route path="premissas" element={<PremissasPage />} />
                 <Route path="irradiancia" element={<Navigate to="/admin/meteorologia" replace />} />
                 <Route path="insumos-irradiacao" element={<Navigate to="/admin/meteorologia" replace />} />
