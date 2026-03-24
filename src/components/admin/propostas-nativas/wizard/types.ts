@@ -178,16 +178,52 @@ export const KIT_CATEGORIA_LABELS: Record<KitCategoria, string> = {
   outros: "Outros",
 };
 
+/** Arredonda para centavos — inline para evitar dependência circular com formatters */
+function _round(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
 /** Calcula o preço final (custo base + margem − desconto) de forma canônica.
  *  SSOT: toda lógica de pricing deve usar esta função. */
 export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], venda: VendaData): number {
-  const { roundCurrency } = require("@/lib/formatters");
-  const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
-  const custoServicos = roundCurrency(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
-  const custoBase = roundCurrency(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
-  const margemValor = roundCurrency(custoBase * (venda.margem_percentual / 100));
-  const precoComMargem = roundCurrency(custoBase + margemValor);
-  return roundCurrency(precoComMargem - precoComMargem * (venda.desconto_percentual / 100));
+  const custoKit = _round(itens.reduce((s, i) => s + _round(i.quantidade * i.preco_unitario), 0));
+  const custoServicos = _round(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
+  const custoBase = _round(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
+  const margemValor = _round(custoBase * (venda.margem_percentual / 100));
+  const precoComMargem = _round(custoBase + margemValor);
+  return _round(precoComMargem - precoComMargem * (venda.desconto_percentual / 100));
+}
+
+/** Validação mínima do kit para governança do wizard */
+export interface KitValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export function validateKit(itens: KitItemRow[], potenciaKwp: number): KitValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const modulos = itens.filter(i => i.categoria === "modulo" && i.quantidade >= 1 && i.potencia_w > 0);
+  const inversores = itens.filter(i => i.categoria === "inversor");
+
+  if (modulos.length === 0) {
+    errors.push("Adicione pelo menos 1 módulo válido ao kit.");
+  }
+  if (potenciaKwp <= 0) {
+    errors.push("A potência total do sistema deve ser maior que zero.");
+  }
+  if (inversores.length === 0) {
+    warnings.push("Nenhum inversor adicionado — verifique antes de gerar a proposta.");
+  }
+
+  const itensPrecoZero = itens.filter(i => i.preco_unitario <= 0 && i.quantidade > 0);
+  if (itensPrecoZero.length > 0) {
+    warnings.push(`${itensPrecoZero.length} item(ns) com preço unitário R$ 0,00.`);
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
 }
 
 export interface KitData {
