@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, ArrowRight, Building2, GitBranch, Loader2, Plus, Sun, Trash2, Users, Edit } from "lucide-react";
+import { AlertCircle, ArrowRight, Building2, GitBranch, Loader2, PieChart, Plus, Sun, Trash2, Users, Edit } from "lucide-react";
 import { useGdGroupByGenerator, useGdBeneficiaries, useGdBeneficiariesByUC, useSaveGdBeneficiary, useDeleteGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
 import { useSaveGdGroup, useDeleteGdGroup, type GdGroup } from "@/hooks/useGdGroups";
 import { useUCsList, type UCOption } from "@/hooks/useFormSelects";
