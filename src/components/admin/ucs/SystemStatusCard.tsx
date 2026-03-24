@@ -1,11 +1,12 @@
 /**
  * SystemStatusCard — Top-level operational dashboard for UC settings.
- * Shows real status of: Faturas, Alertas, Portal, Cobrança.
+ * Shows real status + quick actions for: Faturas, Alertas, Portal, Cobrança.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Activity,
   CheckCircle2,
@@ -15,6 +16,10 @@ import {
   Bell,
   Share2,
   DollarSign,
+  Settings,
+  Play,
+  UserPlus,
+  Send,
 } from "lucide-react";
 import { formatDate } from "@/lib/dateUtils";
 
@@ -22,17 +27,25 @@ interface Props {
   unitId: string;
   leituraAutomaticaEmail?: boolean;
   servicoCobrancaAtivo?: boolean;
+  onNavigateToSection?: (section: string) => void;
 }
 
 const STALE = 1000 * 60 * 5;
 
 type StatusLevel = "ok" | "warning" | "error" | "inactive";
 
+interface ModuleAction {
+  label: string;
+  icon: React.ReactNode;
+  section: string;
+}
+
 interface ModuleStatus {
   label: string;
   status: StatusLevel;
   detail: string;
   icon: React.ReactNode;
+  action?: ModuleAction;
 }
 
 function statusIcon(s: StatusLevel) {
@@ -61,7 +74,7 @@ function statusBadgeClass(s: StatusLevel) {
   }
 }
 
-export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobrancaAtivo }: Props) {
+export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobrancaAtivo, onNavigateToSection }: Props) {
   // Last invoice
   const { data: lastInvoice } = useQuery({
     queryKey: ["system_status_invoice", unitId],
@@ -152,6 +165,13 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
     return "inactive";
   })();
 
+  const faturaAction: ModuleAction | undefined = (() => {
+    if (faturaStatus === "inactive") return { label: "Configurar", icon: <Settings className="w-3 h-3" />, section: "billing-settings" };
+    if (faturaStatus === "warning") return { label: "Testar", icon: <Play className="w-3 h-3" />, section: "billing-test" };
+    if (faturaStatus === "error") return { label: "Ver erro", icon: <AlertTriangle className="w-3 h-3" />, section: "billing-settings" };
+    return undefined;
+  })();
+
   modules.push({
     label: "Faturas",
     status: faturaStatus,
@@ -162,6 +182,7 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
       return "Não configurado";
     })(),
     icon: <Mail className="w-3.5 h-3.5 text-primary" />,
+    action: faturaAction,
   });
 
   // 2. Alertas
@@ -180,12 +201,23 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
         : `Ativo desde ${formatDate(lastAlert.created_at)}`
       : "Sem alertas — sistema normal",
     icon: <Bell className="w-3.5 h-3.5 text-primary" />,
+    action: !lastAlert
+      ? { label: "Configurar", icon: <Settings className="w-3 h-3" />, section: "alert-settings" }
+      : undefined,
   });
 
   // 3. Portal
   const portalStatus: StatusLevel = (() => {
     if (portalUsers.length > 0 || tokens.length > 0) return "ok";
     return "inactive";
+  })();
+
+  const portalAction: ModuleAction | undefined = (() => {
+    if (portalStatus === "inactive") return { label: "Criar acesso", icon: <UserPlus className="w-3 h-3" />, section: "portal-create" };
+    const hasLogin = portalUsers.length > 0;
+    const neverAccessed = hasLogin && !portalUsers[0]?.last_login_at;
+    if (neverAccessed) return { label: "Enviar acesso", icon: <Send className="w-3 h-3" />, section: "portal-send" };
+    return undefined;
   })();
 
   modules.push({
@@ -195,13 +227,14 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
       const parts: string[] = [];
       if (portalUsers.length > 0) {
         const loginUser = portalUsers[0];
-        parts.push(loginUser.last_login_at ? `Login ativo — último: ${formatDate(loginUser.last_login_at)}` : "Login criado — nunca acessou");
+        parts.push(loginUser.last_login_at ? `Último acesso: ${formatDate(loginUser.last_login_at)}` : "Login criado — nunca acessou");
       }
       if (tokens.length > 0) parts.push("Link público ativo");
       if (parts.length === 0) return "Sem acesso configurado";
       return parts.join(" · ");
     })(),
     icon: <Share2 className="w-3.5 h-3.5 text-primary" />,
+    action: portalAction,
   });
 
   // 4. Cobrança
@@ -210,6 +243,9 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
     status: servicoCobrancaAtivo ? "ok" : "inactive",
     detail: servicoCobrancaAtivo ? "Serviço ativo" : "Não configurado",
     icon: <DollarSign className="w-3.5 h-3.5 text-primary" />,
+    action: !servicoCobrancaAtivo
+      ? { label: "Configurar", icon: <Settings className="w-3 h-3" />, section: "billing-plan" }
+      : undefined,
   });
 
   // Global status
@@ -253,18 +289,31 @@ export function SystemStatusCard({ unitId, leituraAutomaticaEmail, servicoCobran
           {modules.map((mod) => (
             <div
               key={mod.label}
-              className="flex items-start gap-2.5 p-3 rounded-lg bg-muted/30 border border-border"
+              className="flex flex-col gap-2 p-3 rounded-lg bg-muted/30 border border-border"
             >
-              {statusIcon(mod.status)}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  {mod.icon}
-                  <p className="text-xs font-semibold text-foreground">{mod.label}</p>
+              <div className="flex items-start gap-2.5">
+                {statusIcon(mod.status)}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    {mod.icon}
+                    <p className="text-xs font-semibold text-foreground">{mod.label}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    {mod.detail}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  {mod.detail}
-                </p>
               </div>
+              {mod.action && onNavigateToSection && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-7 text-xs gap-1.5 mt-auto"
+                  onClick={() => onNavigateToSection(mod.action!.section)}
+                >
+                  {mod.action.icon}
+                  {mod.action.label}
+                </Button>
+              )}
             </div>
           ))}
         </div>
