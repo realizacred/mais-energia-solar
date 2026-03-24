@@ -31,7 +31,6 @@ import { UCInvoicesTab } from "./UCInvoicesTab";
 import { UCFormDialog } from "./UCFormDialog";
 import { AddCreditDialog } from "./AddCreditDialog";
 import { UCShareLinkButton } from "./UCShareLinkButton";
-import { UCGdInfoCard } from "./UCGdInfoCard";
 import { UCEnergySummary } from "./UCEnergySummary";
 import { UCMeterTab } from "./UCMeterTab";
 import { UCPlantLinksTab } from "./UCPlantLinksTab";
@@ -338,11 +337,7 @@ export default function UCDetailPage() {
         </div>
       </div>
 
-      {/* GD Info + Energy Summary */}
-      <div className="mx-4 md:mx-6 mt-3 grid gap-3 xl:grid-cols-2">
-        <UCGdInfoCard ucId={id!} ucName={uc.nome} ucCode={uc.codigo_uc} />
-        <UCEnergySummary ucId={id!} />
-      </div>
+      {/* GD cards removed — info is now inside the GD tab */}
 
       {/* Tabs — reorganized into 6 groups */}
       <div className="p-4 md:p-6 space-y-4">
@@ -414,6 +409,7 @@ export default function UCDetailPage() {
 
           {/* === GD === */}
           <TabsContent value="gd" className="space-y-6">
+            <UCEnergySummary ucId={id!} />
             <UCGdTab uc={uc} />
           </TabsContent>
 
