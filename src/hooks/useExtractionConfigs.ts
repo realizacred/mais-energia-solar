@@ -211,11 +211,23 @@ export function useExtractionRunStats() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("invoice_extraction_runs")
-        .select("status, strategy_used")
+        .select("status, strategy_used, concessionaria_code")
         .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
       if (error) throw error;
 
       const runs = data || [];
+
+      // Per-concessionária breakdown
+      const byConc: Record<string, { total: number; success: number; partial: number; failed: number }> = {};
+      for (const r of runs) {
+        const code = r.concessionaria_code || "unknown";
+        if (!byConc[code]) byConc[code] = { total: 0, success: 0, partial: 0, failed: 0 };
+        byConc[code].total++;
+        if (r.status === "success") byConc[code].success++;
+        else if (r.status === "partial") byConc[code].partial++;
+        else if (r.status === "failed") byConc[code].failed++;
+      }
+
       return {
         total: runs.length,
         success: runs.filter(r => r.status === "success").length,
@@ -223,6 +235,7 @@ export function useExtractionRunStats() {
         failed: runs.filter(r => r.status === "failed").length,
         nativeUsed: runs.filter(r => r.strategy_used === "native").length,
         providerUsed: runs.filter(r => r.strategy_used === "provider").length,
+        byConcessionaria: byConc,
       };
     },
     staleTime: STALE_TIME,
