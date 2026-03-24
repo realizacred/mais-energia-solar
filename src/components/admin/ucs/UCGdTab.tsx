@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle, ArrowLeft, Building2, GitBranch, Loader2, MoveRight, Plus, Sun, Trash2, Users, Edit } from "lucide-react";
 import { useGdGroupByGenerator, useGdBeneficiaries, useGdBeneficiariesByUC, useSaveGdBeneficiary, useDeleteGdBeneficiary, type GdBeneficiary } from "@/hooks/useGdBeneficiaries";
-import { useSaveGdGroup, type GdGroup } from "@/hooks/useGdGroups";
+import { useSaveGdGroup, useDeleteGdGroup, type GdGroup } from "@/hooks/useGdGroups";
 import { useUCsList, type UCOption } from "@/hooks/useFormSelects";
 import { type UCRecord } from "@/services/unitService";
 import { useQueryClient } from "@tanstack/react-query";
