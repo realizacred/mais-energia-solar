@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -86,32 +85,15 @@ export function UCGdTab({ uc }: Props) {
         )}
       </div>
 
-      {/* ─── Generator Section ─── */}
+      {/* ─── Generator Section (unified card + modals) ─── */}
       {isGenerator && (
-        <>
-          {/* Energy Network Card — only when group exists */}
-          {activeGroup && (
-            <GdEnergyNetworkCard
-              groupId={activeGroup.id}
-              groupName={activeGroup.nome}
-              generatorUcId={uc.id}
-              generatorName={uc.nome}
-              generatorCodigo={uc.codigo_uc}
-              beneficiaries={beneficiaries}
-              allUcs={allUcs}
-              tarifaMedia={(uc as any).tarifa_media_kwh ?? null}
-              categoriaGd={activeGroup.categoria_gd}
-            />
-          )}
-
-          <GeneratorSection
-            uc={uc}
-            group={activeGroup}
-            beneficiaries={beneficiaries}
-            loadingBenefs={loadingBenefs}
-            allUcs={allUcs}
-          />
-        </>
+        <GeneratorSection
+          uc={uc}
+          group={activeGroup}
+          beneficiaries={beneficiaries}
+          loadingBenefs={loadingBenefs}
+          allUcs={allUcs}
+        />
       )}
 
       {/* ─── Beneficiary Section ─── */}
@@ -410,157 +392,24 @@ function GeneratorSection({
 
   return (
     <>
-      <Card className="border-l-[3px] border-l-primary">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="space-y-1">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Sun className="w-4 h-4 text-primary" /> Grupo GD — {group.nome}
-              </CardTitle>
-              <CardDescription>
-                Gerencie beneficiárias e alocação de créditos deste grupo.
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {group.categoria_gd && CATEGORIA_GD_LABELS[group.categoria_gd] && (
-                <Badge variant="outline" className="text-xs border-primary/20 text-primary bg-primary/5">
-                  {CATEGORIA_GD_LABELS[group.categoria_gd]}
-                </Badge>
-              )}
-              <Badge className="text-xs bg-primary/10 text-primary border-primary/20">Grupo ativo</Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs gap-1"
-                onClick={() => { setEditGroupName(group.nome); setEditGroupOpen(true); }}
-              >
-                <Edit className="w-3 h-3" /> Renomear
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs gap-1"
-                onClick={() => { setNewGroupName(""); setNewGroupOpen(true); }}
-              >
-                <Plus className="w-3 h-3" /> Novo Grupo
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={() => setDeleteGroupConfirm(true)}
-              >
-                <Trash2 className="w-3 h-3" /> Excluir Grupo
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0 space-y-4">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="Grupo GD" value={group.nome} />
-            <MetricCard label="UC geradora" value={uc.nome} subtitle={uc.codigo_uc} />
-            <MetricCard label="Beneficiárias" value={String(beneficiaries.length)} />
-            <MetricCard
-              label="Alocação total"
-              value={`${totalAllocation.toFixed(2)}%`}
-              tone={totalAllocation > 100 ? "destructive" : "default"}
-              subtitle={totalAllocation > 100 ? "Ajuste necessário: soma acima de 100%." : undefined}
-            />
-          </div>
-
-          {loadingBenefs ? (
-            <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-12 w-full rounded-lg" />)}
-            </div>
-          ) : beneficiaries.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center mx-auto">
-                <Users className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium text-foreground">Nenhuma beneficiária conectada</p>
-              <p className="text-xs text-muted-foreground">Adicione beneficiárias para este grupo ficar operacional e navegável.</p>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="font-semibold text-foreground">UC Beneficiária</TableHead>
-                    <TableHead className="font-semibold text-foreground text-right">Alocação (%)</TableHead>
-                    <TableHead className="font-semibold text-foreground">Status</TableHead>
-                    <TableHead className="font-semibold text-foreground">Navegação</TableHead>
-                    <TableHead className="w-[50px]" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {beneficiaries.map((item) => {
-                    const beneficiaryUc = allUcs.find((candidate) => candidate.id === item.uc_beneficiaria_id);
-                    const beneficiaryOverviewPath = buildUcDetailPath(item.uc_beneficiaria_id, {
-                      tab: "overview",
-                    });
-                    const beneficiaryGdPath = buildUcDetailPath(item.uc_beneficiaria_id, {
-                      tab: "gd",
-                    });
-
-                    return (
-                      <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
-                        <TableCell className="align-middle">
-                          <div className="space-y-1">
-                            <p className="font-medium text-foreground">{beneficiaryUc?.nome || "UC desconhecida"}</p>
-                            <p className="text-xs font-mono text-muted-foreground">{beneficiaryUc?.codigo_uc || "—"}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-sm align-middle">
-                          {Number(item.allocation_percent).toFixed(2)}%
-                        </TableCell>
-                        <TableCell className="align-middle">
-                          <Badge variant={item.is_active ? "default" : "secondary"} className="text-xs">
-                            {item.is_active ? "Ativa" : "Inativa"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="align-middle">
-                          <div className="flex flex-wrap gap-2">
-                            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(beneficiaryOverviewPath)}>
-                              <Building2 className="w-3 h-3" /> Abrir UC
-                            </Button>
-                            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate(beneficiaryGdPath)}>
-                              <Users className="w-3 h-3" /> Ver energia GD
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-middle">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setDeleteTarget(item.id);
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAddBenOpen(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Adicionar Beneficiária
-            </Button>
-            {beneficiaries.length > 0 && (
-              <Button variant="outline" size="sm" onClick={() => setEditDistOpen(true)}>
-                <PieChart className="w-4 h-4 mr-1" /> Ajustar distribuição
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Unified GD card — energy network + management */}
+      <GdEnergyNetworkCard
+        groupId={group.id}
+        groupName={group.nome}
+        generatorUcId={uc.id}
+        generatorName={uc.nome}
+        generatorCodigo={uc.codigo_uc}
+        beneficiaries={beneficiaries}
+        allUcs={allUcs}
+        tarifaMedia={(uc as any).tarifa_media_kwh ?? null}
+        categoriaGd={group.categoria_gd}
+        onAddBeneficiary={() => setAddBenOpen(true)}
+        onEditDistribution={() => setEditDistOpen(true)}
+        onRenameGroup={() => { setEditGroupName(group.nome); setEditGroupOpen(true); }}
+        onNewGroup={() => { setNewGroupName(""); setNewGroupOpen(true); }}
+        onDeleteGroup={() => setDeleteGroupConfirm(true)}
+        onDeleteBeneficiary={(id) => setDeleteTarget(id)}
+      />
 
       <AddBeneficiaryDialog
         open={addBenOpen}
