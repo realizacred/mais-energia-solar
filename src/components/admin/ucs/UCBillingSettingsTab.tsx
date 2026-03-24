@@ -23,6 +23,8 @@ import { Mail, Lock, Info, Eye, EyeOff, CalendarClock, Bell, Settings2, Send, Ph
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { formatDateTime, formatDate } from "@/lib/dateUtils";
 import { SettingsHelpCard } from "./SettingsHelpCard";
+import { getEdgeFunctionAuthHeaders } from "@/lib/edgeFunctionAuth";
+import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
 
 interface Props {
   unitId: string;
@@ -64,18 +66,25 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
   const [showPassword, setShowPassword] = useState(false);
 
   // Fetch Gmail labels from connected accounts
-  const { data: gmailLabels = [], isLoading: labelsLoading } = useQuery({
+  const { data: gmailLabels = [], isLoading: labelsLoading, error: labelsError } = useQuery({
     queryKey: ["gmail_labels"],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return [];
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const resp = await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?action=list_labels`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      if (!resp.ok) return [];
-      const result = await resp.json();
-      return (result.labels || []) as { id: string; name: string }[];
+      try {
+        const headers = await getEdgeFunctionAuthHeaders();
+        const resp = await fetch(`${supabaseUrl}/functions/v1/gmail-oauth?action=list_labels`, {
+          headers,
+        });
+        const result = await resp.json().catch(() => ({}));
+
+        if (!resp.ok || result?.error) {
+          throw new Error(result?.error || `HTTP ${resp.status}`);
+        }
+
+        return (result.labels || []) as { id: string; name: string }[];
+      } catch (error) {
+        throw new Error(await parseEdgeFunctionError(error, "Erro ao carregar marcadores do Gmail"));
+      }
     },
     staleTime: 1000 * 60 * 10,
   });
@@ -421,10 +430,14 @@ export function UCBillingSettingsTab({ unitId, leituraAutomaticaEmail }: Props) 
                     <Input
                       value={form.gmail_label}
                       onChange={(e) => setForm(f => ({ ...f, gmail_label: e.target.value }))}
-                      placeholder={labelsLoading ? "Carregando marcadores..." : "Ex: ENERGISA/UC-970915"}
+                      placeholder={labelsLoading ? "Carregando marcadores..." : labelsError ? "Falha ao carregar marcadores" : "Ex: ENERGISA/UC-970915"}
                     />
                   )}
-                  <p className="text-xs text-muted-foreground">Marcador no Gmail para filtrar os e-mails desta UC. Crie o marcador no Gmail e ele aparecerá aqui.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {labelsError
+                      ? "Não foi possível listar os marcadores da conta Gmail agora. Se a conta estiver conectada, tente salvar e testar novamente."
+                      : "Marcador no Gmail para filtrar os e-mails desta UC. Crie o marcador no Gmail e ele aparecerá aqui."}
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">
