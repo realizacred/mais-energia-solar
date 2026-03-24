@@ -438,6 +438,31 @@ function GeneratorSection({
     }
   }, [group, editGroupName, saveGroup, uc.id, qc, toast]);
 
+  const handleCreateNewGroup = useCallback(async () => {
+    if (!newGroupName.trim()) return;
+    try {
+      // Deactivate current group (keep history)
+      if (group) {
+        await saveGroup.mutateAsync({ id: group.id, status: "inactive" });
+      }
+      // Create new active group
+      await saveGroup.mutateAsync({
+        nome: newGroupName,
+        uc_geradora_id: uc.id,
+        concessionaria_id: uc.concessionaria_id || "",
+        cliente_id: uc.cliente_id,
+        status: "active",
+      });
+      qc.invalidateQueries({ queryKey: ["gd_groups", "by_generator", uc.id] });
+      qc.invalidateQueries({ queryKey: ["gd_groups"] });
+      toast({ title: "Novo grupo GD criado!", description: group ? "O grupo anterior foi desativado." : undefined });
+      setNewGroupOpen(false);
+      setNewGroupName("");
+    } catch (err: any) {
+      toast({ title: "Erro", description: err?.message, variant: "destructive" });
+    }
+  }, [group, newGroupName, saveGroup, uc, qc, toast]);
+
   if (!group) {
     return (
       <>
