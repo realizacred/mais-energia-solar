@@ -199,7 +199,7 @@ export default function ProposalMessageConfigPage() {
     setTimeout(() => setCopiedPlaceholder(null), 2000);
   }, []);
 
-  if (isLoading) {
+  if (isLoading || rolesLoading) {
     return (
       <div className="p-4 md:p-6 space-y-6">
         <Skeleton className="h-10 w-64" />
@@ -207,6 +207,20 @@ export default function ProposalMessageConfigPage() {
           <Skeleton className="h-96 w-full" />
           <Skeleton className="h-96 w-full" />
         </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="p-4 md:p-6 flex flex-col items-center justify-center min-h-[400px] text-center">
+        <div className="w-14 h-14 rounded-xl bg-destructive/10 flex items-center justify-center mb-4">
+          <ShieldAlert className="w-7 h-7 text-destructive" />
+        </div>
+        <h2 className="text-lg font-bold text-foreground mb-1">Acesso restrito</h2>
+        <p className="text-sm text-muted-foreground max-w-md">
+          Apenas administradores podem configurar os templates e blocos das mensagens da proposta.
+        </p>
       </div>
     );
   }
