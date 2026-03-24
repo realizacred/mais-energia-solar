@@ -2,7 +2,7 @@
  * GdGroupDetailModal — Detail view of a GD Group with beneficiaries.
  * §25-S1: w-[90vw] mandatory.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import { formatDate } from "@/lib/dateUtils";
 import { GdEnergyMonthly } from "./GdEnergyMonthly";
 import { GdEnergyReport } from "./GdEnergyReport";
 import { GdDecisionDashboard } from "./GdDecisionDashboard";
+import { useGdDashboardData } from "@/hooks/useGdDashboardData";
 
 interface Props {
   open: boolean;
@@ -303,24 +304,14 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
                   </div>
                 )}
 
-                {/* GD Decision Dashboard */}
+                {/* GD Decision Dashboard — wired with real data */}
                 {group && activeBens.length > 0 && (
-                  <GdDecisionDashboard
-                    generationKwh={0}
-                    generatorUc={{
-                      ucId: group.uc_geradora_id,
-                      label: ucGeradora ? `${ucGeradora.codigo_uc} — ${ucGeradora.nome}` : "Geradora",
-                      consumedKwh: 0,
-                    }}
-                    beneficiaries={activeBens.map((b) => {
-                      const uc = ucMap.get(b.uc_beneficiaria_id);
-                      return {
-                        ucId: b.uc_beneficiaria_id,
-                        label: uc ? `${uc.codigo_uc} — ${uc.nome}` : b.uc_beneficiaria_id.slice(0, 8),
-                        allocationPercent: Number(b.allocation_percent),
-                        consumedKwh: 0,
-                      };
-                    })}
+                  <GdDashboardWithData
+                    groupId={group.id}
+                    ucGeradoraId={group.uc_geradora_id}
+                    ucGeradoraLabel={ucGeradora ? `${ucGeradora.codigo_uc} — ${ucGeradora.nome}` : "Geradora"}
+                    activeBens={activeBens}
+                    ucMap={ucMap}
                   />
                 )}
 
@@ -347,5 +338,71 @@ export function GdGroupDetailModal({ open, onOpenChange, groupId }: Props) {
         existingBeneficiaries={beneficiaries}
       />
     </Dialog>
+  );
+}
+
+// ─── Sub-component: Dashboard with real data ────────────────────
+
+function GdDashboardWithData({
+  groupId,
+  ucGeradoraId,
+  ucGeradoraLabel,
+  activeBens,
+  ucMap,
+}: {
+  groupId: string;
+  ucGeradoraId: string;
+  ucGeradoraLabel: string;
+  activeBens: GdBeneficiary[];
+  ucMap: Map<string, any>;
+}) {
+  const now = new Date();
+  // Use Brasília time for current month
+  const brNow = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const year = brNow.getFullYear();
+  const month = brNow.getMonth() + 1;
+
+  const benUcIds = useMemo(() => activeBens.map((b) => b.uc_beneficiaria_id), [activeBens]);
+
+  const { data: dashData, isLoading } = useGdDashboardData({
+    groupId,
+    ucGeradoraId,
+    beneficiaryUcIds: benUcIds,
+    year,
+    month,
+  });
+
+  const generationKwh = dashData?.generation.value ?? 0;
+  const generatorConsumption = dashData?.generatorConsumption.value ?? 0;
+
+  const beneficiaries = useMemo(() => {
+    return activeBens.map((b) => {
+      const uc = ucMap.get(b.uc_beneficiaria_id);
+      const benData = dashData?.beneficiaryConsumption.find((bc) => bc.ucId === b.uc_beneficiaria_id);
+      return {
+        ucId: b.uc_beneficiaria_id,
+        label: uc ? `${uc.codigo_uc} — ${uc.nome}` : b.uc_beneficiaria_id.slice(0, 8),
+        allocationPercent: Number(b.allocation_percent),
+        consumedKwh: benData?.resolved.value ?? 0,
+      };
+    });
+  }, [activeBens, ucMap, dashData]);
+
+  return (
+    <GdDecisionDashboard
+      generationKwh={generationKwh}
+      generatorUc={{
+        ucId: ucGeradoraId,
+        label: ucGeradoraLabel,
+        consumedKwh: generatorConsumption,
+      }}
+      beneficiaries={beneficiaries}
+      dataSources={dashData ? {
+        generation: dashData.generation,
+        generatorConsumption: dashData.generatorConsumption,
+        beneficiaryConsumption: dashData.beneficiaryConsumption,
+      } : null}
+      isLoadingData={isLoading}
+    />
   );
 }
