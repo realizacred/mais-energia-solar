@@ -215,6 +215,24 @@ Deno.serve(async (req) => {
       }).eq("id", versao_id).eq("tenant_id", tenantId),
     ]);
 
+    // ── 6b. PROPOSAL EVENT: proposta_enviada ────────────────
+    adminClient.from("proposal_events").insert({
+      proposta_id,
+      tipo: "proposta_enviada",
+      payload: {
+        versao_id,
+        canal: canalFinal,
+        token: aceiteToken.token,
+        public_url: publicUrl,
+        valor_total: versao.valor_total,
+        potencia_kwp: versao.potencia_kwp,
+      },
+      user_id: userId,
+      tenant_id: tenantId,
+    }).then(({ error: evtErr }) => {
+      if (evtErr) console.warn("[proposal-send] Event insert failed:", evtErr.message);
+    });
+
     // ── 7. TIMELINE EVENT (project_events) ──────────────────
     if (proposta.deal_id) {
       adminClient.from("project_events").insert({
