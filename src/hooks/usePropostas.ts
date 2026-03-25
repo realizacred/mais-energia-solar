@@ -13,6 +13,17 @@ import { toast } from "@/hooks/use-toast";
 
 const STALE_TIME = 1000 * 60 * 5; // 5 min
 const QUERY_KEY = "propostas-listagem" as const;
+const PAGE_SIZE = 50;
+
+export interface PropostaFilters {
+  status?: string;
+  consultorId?: string;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+  offset?: number;
+}
 
 export interface Proposta {
   id: string;
@@ -63,49 +74,75 @@ export interface PropostaFormData {
  * Fetch via RPC proposal_list — single server-side query.
  * No manual joins, no snapshot fallback, no N+1.
  */
-async function fetchPropostas(): Promise<Proposta[]> {
-  const { data, error } = await supabase.rpc("proposal_list" as any, { p_limit: 200 });
+export interface PropostaListResult {
+  propostas: Proposta[];
+  total: number;
+}
+
+async function fetchPropostas(filters: PropostaFilters = {}): Promise<PropostaListResult> {
+  const params: Record<string, any> = {
+    p_limit: filters.limit || PAGE_SIZE,
+    p_offset: filters.offset || 0,
+  };
+  if (filters.status) params.p_status = filters.status;
+  if (filters.consultorId) params.p_consultor_id = filters.consultorId;
+  if (filters.search) params.p_search = filters.search;
+  if (filters.dateFrom) params.p_date_from = filters.dateFrom;
+  if (filters.dateTo) params.p_date_to = filters.dateTo;
+
+  const { data, error } = await supabase.rpc("proposal_list" as any, params);
   if (error) throw error;
 
-  const rows = (data as any[]) || [];
-  return rows.map((r: any): Proposta => ({
-    id: r.id,
-    nome: r.nome || "Proposta",
-    status: r.status,
-    cliente_nome: r.cliente_nome || null,
-    cliente_celular: r.cliente_celular || null,
-    cliente_cidade: r.cliente_cidade || null,
-    cliente_estado: r.cliente_estado || null,
-    cliente_email: r.cliente_email || null,
-    potencia_kwp: r.potencia_kwp != null ? Number(r.potencia_kwp) : null,
-    numero_modulos: null, // Not in read model — detail only
-    modelo_modulo: null,
-    modelo_inversor: null,
-    preco_total: r.preco_total != null ? Number(r.preco_total) : null,
-    economia_mensal: r.economia_mensal != null ? Number(r.economia_mensal) : null,
-    geracao_mensal_kwh: r.geracao_mensal_kwh != null ? Number(r.geracao_mensal_kwh) : null,
-    payback_anos: r.payback_anos != null ? Number(r.payback_anos) : null,
-    distribuidora: null, // Not in read model — detail only
-    link_pdf: r.link_pdf || null,
-    expiration_date: null,
-    generated_at: r.generated_at || null,
-    created_at: r.created_at,
-    vendedor_id: r.vendedor_id || null,
-    vendedor: r.consultor_nome ? { nome: r.consultor_nome } : null,
-  }));
+  const result = data as any;
+  const rows = result?.data || [];
+  const total = result?.total || 0;
+
+  return {
+    total,
+    propostas: rows.map((r: any): Proposta => ({
+      id: r.id,
+      nome: r.nome || "Proposta",
+      status: r.status,
+      cliente_nome: r.cliente_nome || null,
+      cliente_celular: r.cliente_celular || null,
+      cliente_cidade: r.cliente_cidade || null,
+      cliente_estado: r.cliente_estado || null,
+      cliente_email: r.cliente_email || null,
+      potencia_kwp: r.potencia_kwp != null ? Number(r.potencia_kwp) : null,
+      numero_modulos: null,
+      modelo_modulo: null,
+      modelo_inversor: null,
+      preco_total: r.preco_total != null ? Number(r.preco_total) : null,
+      economia_mensal: r.economia_mensal != null ? Number(r.economia_mensal) : null,
+      geracao_mensal_kwh: r.geracao_mensal_kwh != null ? Number(r.geracao_mensal_kwh) : null,
+      payback_anos: r.payback_anos != null ? Number(r.payback_anos) : null,
+      distribuidora: null,
+      link_pdf: r.link_pdf || null,
+      expiration_date: null,
+      generated_at: r.generated_at || null,
+      created_at: r.created_at,
+      vendedor_id: r.vendedor_id || null,
+      vendedor: r.consultor_nome ? { nome: r.consultor_nome } : null,
+    })),
+  };
 }
 
 /**
  * Hook para listar propostas via RPC proposal_list.
+ * Suporta filtros e paginação server-side.
  */
-export function usePropostas() {
+export function usePropostas(filters: PropostaFilters = {}) {
   const queryClient = useQueryClient();
+  const filtersKey = JSON.stringify(filters);
 
-  const { data: propostas = [], isLoading: loading } = useQuery({
-    queryKey: [QUERY_KEY],
-    queryFn: fetchPropostas,
+  const { data, isLoading: loading } = useQuery({
+    queryKey: [QUERY_KEY, filtersKey],
+    queryFn: () => fetchPropostas(filters),
     staleTime: STALE_TIME,
   });
+
+  const propostas = data?.propostas ?? [];
+  const total = data?.total ?? 0;
 
   const createMutation = useMutation({
     mutationFn: async (data: PropostaFormData) => {
