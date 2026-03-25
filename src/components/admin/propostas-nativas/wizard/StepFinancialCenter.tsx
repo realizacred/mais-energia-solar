@@ -149,7 +149,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
   const openEditModal = () => {
     setEditMode("margem");
-    setEditValue(margemPercent.toFixed(2));
+    setEditValue((Number(margemPercent) || 0).toFixed(2));
     setShowEditModal(true);
   };
 
@@ -395,7 +395,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </span>
                       <span className="text-right text-muted-foreground">
-                        {rowPercent.toFixed(2)}%
+                        {(Number(rowPercent) || 0).toFixed(2)}%
                       </span>
                     </>
                   ) : (
@@ -505,7 +505,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
             )}>
               <span className="w-6" />
               <span />
-              <span className="text-muted-foreground">Margem (Markup {margemPercent.toFixed(2)}%)</span>
+              <span className="text-muted-foreground">Margem (Markup {(Number(margemPercent) || 0).toFixed(2)}%)</span>
               <span />
               <span className="text-right font-medium">
                 {margemValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -575,7 +575,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
               className="text-xs h-8"
               onClick={() => {
                 setEditMode("margem");
-                setEditValue(margemPercent.toFixed(2));
+                setEditValue((Number(margemPercent) || 0).toFixed(2));
               }}
             >
               Margem
@@ -586,7 +586,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
               className="text-xs h-8"
               onClick={() => {
                 setEditMode("preco");
-                setEditValue(precoVenda.toFixed(2));
+                setEditValue((Number(precoVenda) || 0).toFixed(2));
               }}
             >
               Preço total do projeto
