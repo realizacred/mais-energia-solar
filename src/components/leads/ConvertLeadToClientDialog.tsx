@@ -490,7 +490,9 @@ export function ConvertLeadToClientDialog({
         .eq("nome", "Aguardando Documentação")
         .maybeSingle();
 
-      if (!aguardandoStatus) {
+      let resolvedStatus = aguardandoStatus;
+
+      if (!resolvedStatus) {
         // Try alternative name
         const { data: altStatus } = await supabase
           .from("lead_status")
@@ -507,11 +509,10 @@ export function ConvertLeadToClientDialog({
           setSavingAsLead(false);
           return;
         }
-        // Use the alternative found
-        Object.assign(aguardandoStatus || {}, altStatus);
+        resolvedStatus = altStatus;
       }
 
-      const statusId = aguardandoStatus?.id;
+      const statusId = resolvedStatus.id;
 
       const missing: string[] = [];
       if (!form.getValues("email")) missing.push("E-mail");
@@ -616,16 +617,19 @@ export function ConvertLeadToClientDialog({
       return;
     }
 
-    // Validate payment composition
-    const paymentErrors = validateComposition(paymentItems, valorVenda);
-    if (paymentErrors.length > 0) {
-      toast({
-        title: "Composição de pagamento inválida",
-        description: paymentErrors[0],
-        variant: "destructive",
-      });
-      setCurrentStep(2); // Navigate to payment step
-      return;
+    // Validate payment composition — skip if no sale value defined (no simulation/proposal selected)
+    const hasPaymentData = paymentItems.some(item => item.valor_base > 0);
+    if (valorVenda > 0 || hasPaymentData) {
+      const paymentErrors = validateComposition(paymentItems, valorVenda);
+      if (paymentErrors.length > 0) {
+        toast({
+          title: "Composição de pagamento inválida",
+          description: paymentErrors[0],
+          variant: "destructive",
+        });
+        setCurrentStep(2); // Navigate to payment step
+        return;
+      }
     }
 
     if (!navigator.onLine) {
