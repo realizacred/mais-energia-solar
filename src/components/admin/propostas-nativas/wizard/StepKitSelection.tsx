@@ -27,6 +27,7 @@ import { KitCard, type KitCardData } from "./kit/KitCard";
 import { CriarKitManualModal, type KitMeta } from "./kit/CriarKitManualModal";
 import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
 import { EditarLayoutModal } from "./kit/EditarLayoutModal";
+import { MesAMesDialog } from "./uc/UCModals";
 
 interface CatalogoModuloUnificado {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
@@ -1099,37 +1100,31 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
           <Button size="sm" onClick={() => onOpenChange(false)} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
         </div>
 
-        <Dialog open={topoMesAMes.open} onOpenChange={o => setTopoMesAMes({ ...topoMesAMes, open: o })}>
-          <DialogContent className="w-[90vw] max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Fator de Geração — {TOPOLOGIA_LABELS[topoMesAMes.topo] || topoMesAMes.topo} — Mês a mês</DialogTitle>
-            </DialogHeader>
-            <MesAMesFatorContent
-              values={(() => {
-                const cfg = getTopoConfig(topoMesAMes.topo);
-                const meses = cfg.fator_geracao_meses || {};
-                const hasValues = Object.values(meses).some(v => v > 0);
-                if (!hasValues && cfg.fator_geracao > 0) {
-                  const PESOS_IRRADIACAO = [1.23, 1.27, 1.06, 0.92, 0.77, 0.73, 0.76, 0.92, 1.0, 1.06, 1.03, 1.21];
-                  const soma = PESOS_IRRADIACAO.reduce((a, b) => a + b, 0);
-                  const norm = PESOS_IRRADIACAO.map(p => p * 12 / soma);
-                  return Object.fromEntries(MESES.map((m, i) => [m, Math.round(cfg.fator_geracao * norm[i] * 100) / 100]));
-                }
-                return meses;
-              })()}
-              onSave={(values) => {
-                const vals = Object.values(values).filter(v => v > 0);
-                const media = vals.length > 0
-                  ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100
-                  : getTopoConfig(topoMesAMes.topo).fator_geracao;
-                updateTopoConfig(topoMesAMes.topo, "fator_geracao_meses", values);
-                updateTopoConfig(topoMesAMes.topo, "fator_geracao", media);
-                setTopoMesAMes({ ...topoMesAMes, open: false });
-              }}
-              onClose={() => setTopoMesAMes({ ...topoMesAMes, open: false })}
-            />
-          </DialogContent>
-        </Dialog>
+        <MesAMesDialog
+          open={topoMesAMes.open}
+          onOpenChange={o => setTopoMesAMes({ ...topoMesAMes, open: o })}
+          title={`Fator de Geração — ${TOPOLOGIA_LABELS[topoMesAMes.topo] || topoMesAMes.topo}`}
+          values={(() => {
+            const cfg = getTopoConfig(topoMesAMes.topo);
+            const meses = cfg.fator_geracao_meses || {};
+            const hasValues = Object.values(meses).some(v => Number(v) > 0);
+            if (!hasValues && cfg.fator_geracao > 0) {
+              const PESOS_IRRADIACAO = [1.23, 1.27, 1.06, 0.92, 0.77, 0.73, 0.76, 0.92, 1.0, 1.06, 1.03, 1.21];
+              const soma = PESOS_IRRADIACAO.reduce((a, b) => a + b, 0);
+              const norm = PESOS_IRRADIACAO.map(p => p * 12 / soma);
+              return Object.fromEntries(MESES.map((m, i) => [m, Math.round(cfg.fator_geracao * norm[i] * 100) / 100]));
+            }
+            return meses;
+          })()}
+          onSave={(values) => {
+            const vals = Object.values(values).map(v => Number(v)).filter(v => v > 0);
+            const media = vals.length > 0
+              ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100
+              : getTopoConfig(topoMesAMes.topo).fator_geracao;
+            updateTopoConfig(topoMesAMes.topo, "fator_geracao_meses", values);
+            updateTopoConfig(topoMesAMes.topo, "fator_geracao", media);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
