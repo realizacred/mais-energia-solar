@@ -71,7 +71,7 @@ export function useSendProposalMessage() {
       if (data && !data.success) throw new Error(data.error || "Erro no envio");
       return data;
     },
-    onSuccess: (_data, variables) => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: ["proposal-message-logs", variables.proposta_id] });
     },
   });
