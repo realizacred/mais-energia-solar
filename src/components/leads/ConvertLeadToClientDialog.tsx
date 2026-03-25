@@ -235,13 +235,19 @@ export function ConvertLeadToClientDialog({
     const loadEquipment = async () => {
       if (!navigator.onLine) return;
       
-      const [disjuntoresRes, transformadoresRes] = await Promise.all([
-        supabase.from("disjuntores").select("id, amperagem, descricao, ativo").eq("ativo", true).order("amperagem"),
-        supabase.from("transformadores").select("id, potencia_kva, descricao, ativo").eq("ativo", true).order("potencia_kva"),
-      ]);
+      try {
+        const [disjuntoresRes, transformadoresRes] = await Promise.all([
+          supabase.from("disjuntores").select("id, amperagem, descricao, ativo").eq("ativo", true).order("amperagem"),
+          supabase.from("transformadores").select("id, potencia_kva, descricao, ativo").eq("ativo", true).order("potencia_kva"),
+        ]);
 
-      if (disjuntoresRes.data) setDisjuntores(disjuntoresRes.data);
-      if (transformadoresRes.data) setTransformadores(transformadoresRes.data);
+        if (disjuntoresRes.data) setDisjuntores(disjuntoresRes.data);
+        if (transformadoresRes.data) setTransformadores(transformadoresRes.data);
+        if (disjuntoresRes.error) console.warn("[ConvertLead] disjuntores error:", disjuntoresRes.error);
+        if (transformadoresRes.error) console.warn("[ConvertLead] transformadores error:", transformadoresRes.error);
+      } catch (err) {
+        console.error("[ConvertLead] loadEquipment crash:", err);
+      }
     };
 
     loadEquipment();
@@ -252,13 +258,21 @@ export function ConvertLeadToClientDialog({
     const loadSimulacoes = async () => {
       if (!lead || !navigator.onLine) return;
       
-      const { data } = await supabase
-        .from("simulacoes")
-        .select("id, potencia_recomendada_kwp, investimento_estimado, economia_mensal, consumo_kwh, created_at")
-        .eq("lead_id", lead.id)
-        .order("created_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("simulacoes")
+          .select("id, potencia_recomendada_kwp, investimento_estimado, economia_mensal, consumo_kwh, created_at")
+          .eq("lead_id", lead.id)
+          .order("created_at", { ascending: false });
 
-      if (data) setSimulacoes(data);
+        if (error) {
+          console.warn("[ConvertLead] simulacoes error:", error);
+          return;
+        }
+        if (data) setSimulacoes(data);
+      } catch (err) {
+        console.error("[ConvertLead] loadSimulacoes crash:", err);
+      }
     };
 
     if (open && lead) {
