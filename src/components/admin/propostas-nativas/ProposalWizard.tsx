@@ -1777,6 +1777,8 @@ export function ProposalWizard() {
               onGhiSeriesChange={setLocGhiSeries}
               onLatitudeChange={setLocLatitude}
               onMapSnapshotsChange={setMapSnapshots}
+              skipPoa={locSkipPoa}
+              onSkipPoaChange={setLocSkipPoa}
               clienteData={cliente}
               projectAddress={projectAddress}
               onProjectAddressChange={setProjectAddress}
@@ -1837,6 +1839,7 @@ export function ProposalWizard() {
               irradiacao={locIrradiacao}
               ghiSeries={locGhiSeries}
               latitude={locLatitude}
+              somenteGhi={locSkipPoa}
             />
           </>
         ));
@@ -1850,7 +1853,7 @@ export function ProposalWizard() {
         const kitVal = validateKit(itens, potenciaKwp);
         return wrap("kit", (
           <div className="space-y-4">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} />
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} />
             {kitVal.warnings.length > 0 && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
                 {kitVal.warnings.map((w, i) => (
