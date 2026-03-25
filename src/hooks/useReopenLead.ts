@@ -34,7 +34,7 @@ export function useReopenLead(onSuccess?: () => void) {
       // Deactivate or delete client if exists
       if (clienteId) {
         const depChecks = await Promise.all([
-          supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", clienteId),
+          supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", clienteId).neq("status", "excluida"),
           supabase.from("projetos").select("id", { count: "exact", head: true }).eq("cliente_id", clienteId),
           supabase.from("deals").select("id", { count: "exact", head: true }).eq("customer_id", clienteId),
         ]);
