@@ -62,6 +62,7 @@ interface Props {
   irradiacao?: number;
   latitude?: number | null;
   ghiSeries?: Record<string, number> | null;
+  somenteGhi?: boolean;
 }
 
 type TabType = "customizado" | "fechado" | "manual" | "catalogo";
@@ -103,7 +104,7 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardDat
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries, somenteGhi }: Props) {
   // If returning to this step with a kit already restored, auto-switch to "manual" tab
   const [tab, setTab] = useState<TabType>(() => {
     if (manualKitsProp.length > 0) return "manual";
