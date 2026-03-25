@@ -407,8 +407,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="p-5 pb-4 border-b border-border shrink-0">
           <DialogTitle className="text-base">{title}</DialogTitle>
         </DialogHeader>
 
