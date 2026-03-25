@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { transposeToTiltedPlane } from "@/services/solar-transposition";
 import { formatDate } from "@/lib/dateUtils";
 import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
