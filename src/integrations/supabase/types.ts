@@ -20525,6 +20525,7 @@ export type Database = {
           inflacao_energetica: number
           kg_co2_por_kwh: number
           margem_potencia_ideal: number
+          other_losses_percent: number | null
           outros_encargos_atual: number
           outros_encargos_novo: number
           percentual_economia: number
@@ -20533,7 +20534,9 @@ export type Database = {
           perda_eficiencia_tradicional: number
           preco_demanda: number
           preco_demanda_geracao: number
+          shading_loss_percent: number | null
           sobredimensionamento_padrao: number
+          soiling_loss_percent: number | null
           sombreamento_config: Json
           tarifa: number
           tarifa_te_fora_ponta: number
@@ -20588,6 +20591,7 @@ export type Database = {
           inflacao_energetica?: number
           kg_co2_por_kwh?: number
           margem_potencia_ideal?: number
+          other_losses_percent?: number | null
           outros_encargos_atual?: number
           outros_encargos_novo?: number
           percentual_economia?: number
@@ -20596,7 +20600,9 @@ export type Database = {
           perda_eficiencia_tradicional?: number
           preco_demanda?: number
           preco_demanda_geracao?: number
+          shading_loss_percent?: number | null
           sobredimensionamento_padrao?: number
+          soiling_loss_percent?: number | null
           sombreamento_config?: Json
           tarifa?: number
           tarifa_te_fora_ponta?: number
@@ -20651,6 +20657,7 @@ export type Database = {
           inflacao_energetica?: number
           kg_co2_por_kwh?: number
           margem_potencia_ideal?: number
+          other_losses_percent?: number | null
           outros_encargos_atual?: number
           outros_encargos_novo?: number
           percentual_economia?: number
@@ -20659,7 +20666,9 @@ export type Database = {
           perda_eficiencia_tradicional?: number
           preco_demanda?: number
           preco_demanda_geracao?: number
+          shading_loss_percent?: number | null
           sobredimensionamento_padrao?: number
+          soiling_loss_percent?: number | null
           sombreamento_config?: Json
           tarifa?: number
           tarifa_te_fora_ponta?: number
