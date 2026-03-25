@@ -38,6 +38,8 @@ interface Props {
   ghiSeries?: Record<string, number> | null;
   /** Site latitude for transposition */
   latitude?: number | null;
+  /** Skip POA transposition — use raw GHI */
+  somenteGhi?: boolean;
 }
 
 type ActiveTab = "ucs" | "pre";
@@ -46,7 +48,7 @@ type PreSubTab = "premissas" | "equipamentos";
 export function StepConsumptionIntelligence({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
-  irradiacao, ghiSeries, latitude,
+  irradiacao, ghiSeries, latitude, somenteGhi,
 }: Props) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
   
@@ -91,8 +93,9 @@ export function StepConsumptionIntelligence({
       latitude,
       tilt_deg: pd.inclinacao ?? 10,
       azimuth_deviation_deg: pd.desvio_azimutal ?? 0,
+      somente_ghi: somenteGhi,
     });
-  }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal]);
+  }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal, somenteGhi]);
 
   // ─── Derive fator_geracao from POA irradiation ──────────
   // fator_geracao = POA_avg × 30 × (desempenho / 100)
