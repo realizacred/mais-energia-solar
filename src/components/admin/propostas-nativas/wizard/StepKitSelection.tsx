@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { transposeToTiltedPlane } from "@/services/solar-transposition";
+import { calcFatorGeracao } from "@/services/solar/fatorGeracaoService";
 import { formatDate } from "@/lib/dateUtils";
 import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -879,49 +879,21 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
   pdRef.current = pd;
   const [topoMesAMes, setTopoMesAMes] = useState<{ open: boolean; topo: string }>({ open: false, topo: "tradicional" });
 
-  // Recalculate effective irradiance (POA) when tilt/azimuth change
+  // Recalculate fator_geracao via SSOT service when tilt/azimuth change
   const recalcFatorGeracao = useCallback((updatedPd: PreDimensionamentoData) => {
     if (!irradiacao || irradiacao <= 0) return updatedPd;
-
-    const tilt = updatedPd.inclinacao ?? 10;
-    const azimuthDev = updatedPd.desvio_azimutal ?? 0;
-
-    const ghi: Record<string, number> = ghiSeries
-      ? {
-          m01: ghiSeries.m01 ?? irradiacao, m02: ghiSeries.m02 ?? irradiacao,
-          m03: ghiSeries.m03 ?? irradiacao, m04: ghiSeries.m04 ?? irradiacao,
-          m05: ghiSeries.m05 ?? irradiacao, m06: ghiSeries.m06 ?? irradiacao,
-          m07: ghiSeries.m07 ?? irradiacao, m08: ghiSeries.m08 ?? irradiacao,
-          m09: ghiSeries.m09 ?? irradiacao, m10: ghiSeries.m10 ?? irradiacao,
-          m11: ghiSeries.m11 ?? irradiacao, m12: ghiSeries.m12 ?? irradiacao,
-        }
-      : {
-          m01: irradiacao, m02: irradiacao, m03: irradiacao, m04: irradiacao,
-          m05: irradiacao, m06: irradiacao, m07: irradiacao, m08: irradiacao,
-          m09: irradiacao, m10: irradiacao, m11: irradiacao, m12: irradiacao,
-        };
-
-    let effectiveIrrad = irradiacao;
-    if (latitude != null) {
-      try {
-        const result = transposeToTiltedPlane({
-          ghi: ghi as any,
-          latitude,
-          tilt_deg: tilt,
-          azimuth_deviation_deg: azimuthDev,
-        });
-        effectiveIrrad = result.poa_annual_avg;
-      } catch (e) {
-        console.warn("[PremissasModal] POA transposition failed:", e);
-      }
-    }
-
-    if (effectiveIrrad <= 0) return updatedPd;
 
     const configs = { ...updatedPd.topologia_configs };
     for (const topo of ["tradicional", "microinversor", "otimizador"]) {
       const cfg = configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo];
-      const newFator = Math.round(effectiveIrrad * 30 * (cfg.desempenho / 100) * 100) / 100;
+      const newFator = calcFatorGeracao({
+        ghiSeries: ghiSeries as Record<string, number> | null | undefined,
+        ghiMediaAnual: irradiacao,
+        latitude,
+        tilt_deg: updatedPd.inclinacao ?? 10,
+        azimuth_deviation_deg: updatedPd.desvio_azimutal ?? 0,
+        desempenho: cfg.desempenho,
+      });
       configs[topo] = { ...cfg, fator_geracao: newFator };
     }
 
