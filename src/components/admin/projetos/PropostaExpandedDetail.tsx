@@ -879,7 +879,39 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  // Send proposal
+  // Download DOCX
+  const handleDownloadDocx = async () => {
+    try {
+      const docxPath = latestVersao?.output_docx_path;
+      if (!docxPath) {
+        toast({ title: "DOCX não disponível", variant: "destructive" });
+        return;
+      }
+      const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(docxPath, 3600);
+      if (!data?.signedUrl) {
+        toast({ title: "Erro ao obter URL do DOCX", variant: "destructive" });
+        return;
+      }
+      const resp = await fetch(data.signedUrl);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeName = (p.codigo || p.titulo || "proposta")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9-]+/g, "_")
+        .replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+      a.download = `Proposta_${safeName}_v${latestVersao?.versao_numero || 1}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "DOCX baixado!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao baixar DOCX", description: e.message, variant: "destructive" });
+    }
+  };
+
   const handleSend = async (canal: "link" | "whatsapp") => {
     if (!p.id || !latestVersao?.id) return;
     setSending(true);
