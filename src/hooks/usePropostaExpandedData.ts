@@ -50,7 +50,7 @@ export function usePropostaExpandedUcs(versaoId: string | null, enabled: boolean
         .eq("versao_id", versaoId)
         .order("ordem");
       if (error) throw error;
-      return (data as UCDetailData[]) || [];
+      return (data as unknown as UCDetailData[]) || [];
     },
     staleTime: STALE_TIME,
     enabled: !!versaoId && enabled,
