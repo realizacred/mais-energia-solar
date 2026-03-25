@@ -300,7 +300,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     setDeleting(true);
     try {
       const propRes = deal.customer_id
-        ? await supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", deal.customer_id)
+        ? await supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", deal.customer_id).neq("status", "excluida")
         : { count: 0 };
       const histRes = await supabase.from("deal_stage_history").select("id", { count: "exact", head: true }).eq("deal_id", deal.id);
       const checkRes = await supabase.from("checklists_instalador").select("id", { count: "exact", head: true }).eq("projeto_id", deal.id);
