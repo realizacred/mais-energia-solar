@@ -111,10 +111,15 @@ export function computeSummary(items: PaymentItemInput[], valorVenda: number): C
     const { valor_juros, valor_com_juros } = calculateInterest(item);
     total_alocado += item.valor_base;
 
-    if (item.juros_responsavel === "cliente") {
+    // Defensive: if interest exists but responsavel is "nao_aplica", treat as "cliente"
+    const effectiveResponsavel = valor_juros > 0 && item.juros_responsavel === "nao_aplica"
+      ? "cliente"
+      : item.juros_responsavel;
+
+    if (effectiveResponsavel === "cliente") {
       total_juros_cliente += valor_juros;
       total_pago_cliente += valor_com_juros;
-    } else if (item.juros_responsavel === "empresa") {
+    } else if (effectiveResponsavel === "empresa") {
       total_juros_empresa += valor_juros;
       total_pago_cliente += item.valor_base;
     } else {
