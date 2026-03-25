@@ -1369,7 +1369,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               <AlertDialogTitle>Excluir proposta</AlertDialogTitle>
             </div>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.
+              Esta proposta será removida da listagem. O histórico de envios e visualizações será preservado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
