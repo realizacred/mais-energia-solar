@@ -488,11 +488,30 @@ export function ConvertLeadToClientDialog({
         .from("lead_status")
         .select("id")
         .eq("nome", "Aguardando Documentação")
-        .single();
+        .maybeSingle();
 
       if (!aguardandoStatus) {
-        throw new Error("Status 'Aguardando Documentação' não encontrado.");
+        // Try alternative name
+        const { data: altStatus } = await supabase
+          .from("lead_status")
+          .select("id")
+          .ilike("nome", "%aguardando%document%")
+          .maybeSingle();
+        
+        if (!altStatus) {
+          toast({
+            title: "Configuração necessária",
+            description: "O status 'Aguardando Documentação' não existe. Peça ao administrador para criá-lo na configuração de status.",
+            variant: "destructive",
+          });
+          setSavingAsLead(false);
+          return;
+        }
+        // Use the alternative found
+        Object.assign(aguardandoStatus || {}, altStatus);
       }
+
+      const statusId = aguardandoStatus?.id;
 
       const missing: string[] = [];
       if (!form.getValues("email")) missing.push("E-mail");
