@@ -342,8 +342,12 @@ export function useOfflineConversionSync() {
       if (pending.length > 0) {
         toast({
           title: "Conexão restabelecida! 📶",
-          description: `${pending.length} conversão(ões) pendente(s). Clique para sincronizar.`,
+          description: `${pending.length} conversão(ões) pendente(s). Sincronizando...`,
         });
+        // Auto-sync after short delay for stable connection
+        setTimeout(() => {
+          syncAllConversions();
+        }, 2000);
       }
     };
 
@@ -361,7 +365,7 @@ export function useOfflineConversionSync() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [loadPendingConversions]);
+  }, [loadPendingConversions, syncAllConversions]);
 
   return {
     isOnline,
@@ -374,4 +378,42 @@ export function useOfflineConversionSync() {
     removeConversion,
     refreshPending: loadPendingConversions,
   };
+}
+
+// ─── Equipment cache helpers (reusable) ──────────────────────
+
+const EQUIPMENT_CACHE_KEY = "offline_equipment_cache";
+
+export interface CachedEquipment {
+  disjuntores: { id: string; amperagem: number; descricao: string | null }[];
+  transformadores: { id: string; potencia_kva: number; descricao: string | null }[];
+  cachedAt: string;
+}
+
+export function getCachedEquipment(): CachedEquipment | null {
+  try {
+    const stored = localStorage.getItem(EQUIPMENT_CACHE_KEY);
+    if (!stored) return null;
+    const parsed: CachedEquipment = JSON.parse(stored);
+    // Cache valid for 24h
+    const age = Date.now() - new Date(parsed.cachedAt).getTime();
+    if (age > 24 * 60 * 60 * 1000) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function setCachedEquipment(
+  disjuntores: CachedEquipment["disjuntores"],
+  transformadores: CachedEquipment["transformadores"]
+) {
+  try {
+    localStorage.setItem(
+      EQUIPMENT_CACHE_KEY,
+      JSON.stringify({ disjuntores, transformadores, cachedAt: new Date().toISOString() })
+    );
+  } catch {
+    // localStorage full — ignore
+  }
 }
