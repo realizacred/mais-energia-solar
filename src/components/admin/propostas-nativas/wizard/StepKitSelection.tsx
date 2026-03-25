@@ -710,9 +710,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
 /* ── Manual Kit Card (grid/list matching reference) ── */
 
-function ManualKitCard({ entry, viewMode, onSelect, onEdit, onDelete }: {
+function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete }: {
   entry: { card: KitCardData; itens: KitItemRow[] };
   viewMode: "grid" | "list";
+  isSelected?: boolean;
   onSelect: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -721,7 +722,12 @@ function ManualKitCard({ entry, viewMode, onSelect, onEdit, onDelete }: {
 
   if (viewMode === "list") {
     return (
-      <div className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary/30 transition-all bg-card">
+      <div className={cn(
+        "flex items-center gap-4 p-4 rounded-xl border-2 transition-all bg-card",
+        isSelected
+          ? "border-primary shadow-md ring-2 ring-primary/20"
+          : "border-border/40 hover:border-primary/30"
+      )}>
         <div className="w-20 h-16 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
           <span className="text-[10px] font-bold text-muted-foreground uppercase text-center leading-tight px-1">
             {card.distribuidorNome || "—"}
