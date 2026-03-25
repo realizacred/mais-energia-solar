@@ -246,11 +246,19 @@ Deno.serve(async (req) => {
         .eq("status", "pendente");
     }
 
-    // 7. Log event in proposal_events
+    // 7. Log event in proposal_events (standardized type names)
+    const eventTypeMap: Record<string, string> = {
+      aceita: "proposta_aceita",
+      recusada: "proposta_recusada",
+      enviada: "proposta_enviada",
+      vista: "proposta_visualizada",
+    };
+    const eventType = eventTypeMap[new_status] || new_status;
+
     try {
       await admin.from("proposal_events").insert({
         proposta_id: proposta_id,
-        tipo: new_status,
+        tipo: eventType,
         payload: {
           previous_status: currentStatus,
           new_status,
@@ -263,7 +271,6 @@ Deno.serve(async (req) => {
       });
     } catch (evtErr) {
       console.error("Erro ao registrar evento:", evtErr);
-      // Non-blocking — transition already succeeded
     }
 
     return new Response(
