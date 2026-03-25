@@ -10,7 +10,7 @@ import { createEmptyItem } from "@/services/paymentComposition/types";
 import { validateComposition } from "@/services/paymentComposition/calculator";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
-import { formatCEP } from "@/lib/validations";
+
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { supabase } from "@/integrations/supabase/client";
