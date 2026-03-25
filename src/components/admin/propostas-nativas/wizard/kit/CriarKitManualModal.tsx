@@ -88,6 +88,42 @@ export interface KitMeta {
 
 const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
 
+/** Searchable equipment combo (Popover + Command) */
+interface SearchableOption { value: string; label: string; searchText: string }
+function SearchableEquipSelect({ value, onValueChange, options, placeholder, emptyText, className }: {
+  value: string; onValueChange: (v: string) => void;
+  options: SearchableOption[]; placeholder: string; emptyText: string; className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedLabel = options.find(o => o.value === value)?.label;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" aria-expanded={open}
+          className={cn("h-8 text-xs justify-between font-normal", !value && "text-muted-foreground", className)}>
+          <span className="truncate">{selectedLabel || placeholder}</span>
+          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={placeholder} className="h-8 text-xs" />
+          <CommandList className="max-h-[200px]">
+            <CommandEmpty className="text-xs py-3">{emptyText}</CommandEmpty>
+            {options.map(o => (
+              <CommandItem key={o.value} value={o.searchText} onSelect={() => { onValueChange(o.value); setOpen(false); }}
+                className="text-xs">
+                <Check className={cn("mr-1.5 h-3 w-3 shrink-0", value === o.value ? "opacity-100" : "opacity-0")} />
+                <span className="truncate">{o.label}</span>
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function createEmptyModulo(): ModuloEntry {
   return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
 }
