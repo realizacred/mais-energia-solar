@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   MapPin, User, Zap, Package, Box, Wrench, DollarSign, CreditCard,
-  SunMedium, TrendingUp, BarChart3, Phone, Mail, Building2,
+  SunMedium, TrendingUp, BarChart3, Phone, Mail, Building2, Percent,
+  Banknote, Clock, ArrowDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +39,16 @@ interface StepResumoProps {
   custoComissao: number;
   descontoPercentual: number;
   // Pagamento
-  pagamentoOpcoes: Array<{ nome: string; tipo: string; num_parcelas: number; valor_parcela: number; entrada: number }>;
+  pagamentoOpcoes: Array<{
+    nome: string;
+    tipo: string;
+    num_parcelas: number;
+    valor_parcela: number;
+    entrada: number;
+    taxa_mensal?: number;
+    valor_financiado?: number;
+    carencia_meses?: number;
+  }>;
 }
 
 function formatBRL(v: number) {
@@ -54,6 +64,15 @@ function SectionHeader({ icon: Icon, label }: { icon: any; label: string }) {
       <h3 className="text-sm font-bold text-foreground">{label}</h3>
     </div>
   );
+}
+
+function getTipoLabel(tipo: string): string {
+  switch (tipo) {
+    case "a_vista": return "À Vista";
+    case "financiamento": return "Financiamento";
+    case "parcelado": return "Parcelado";
+    default: return tipo.replace(/_/g, " ");
+  }
 }
 
 export function StepResumo({
@@ -181,7 +200,7 @@ export function StepResumo({
             </CardContent>
           </Card>
 
-          {/* Kit */}
+          {/* Kit — mostra itens SEM preço individual, apenas total do kit */}
           <Card className="border-border/40 shadow-sm">
             <CardContent className="p-4">
               <SectionHeader icon={Package} label="Kit Gerador" />
@@ -200,7 +219,7 @@ export function StepResumo({
                   ))}
                   <Separator className="my-2" />
                   <div className="flex justify-between text-sm font-semibold">
-                    <span className="text-muted-foreground">Total Kit</span>
+                    <span className="text-muted-foreground">Valor do Kit</span>
                     <span className="text-foreground">{formatBRL(custoKit)}</span>
                   </div>
                 </div>
@@ -220,10 +239,7 @@ export function StepResumo({
                   {adicionais.map((item, i) => (
                     <div key={i} className="flex items-center justify-between text-sm">
                       <span className="truncate text-foreground">{item.descricao}</span>
-                      <div className="text-right shrink-0 ml-2">
-                        <span className="text-muted-foreground">{item.quantidade}× </span>
-                        <span className="font-medium text-foreground">{formatBRL(item.preco_unitario)}</span>
-                      </div>
+                      <span className="text-muted-foreground shrink-0 ml-2">{item.quantidade}×</span>
                     </div>
                   ))}
                   <Separator className="my-2" />
@@ -263,12 +279,12 @@ export function StepResumo({
             </Card>
           )}
 
-          {/* Venda */}
+          {/* Financeiro — consolidado */}
           <Card className="border-border/40 shadow-sm">
             <CardContent className="p-4">
               <SectionHeader icon={DollarSign} label="Financeiro" />
               <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-                <span className="text-muted-foreground">Custo Kit</span>
+                <span className="text-muted-foreground">Valor do Kit</span>
                 <span className="font-medium text-foreground text-right">{formatBRL(custoKit)}</span>
                 {custoAdicionais > 0 && (
                   <>
@@ -305,24 +321,96 @@ export function StepResumo({
             </CardContent>
           </Card>
 
-          {/* Pagamento */}
+          {/* Pagamento — melhorado */}
           {pagamentoOpcoes.length > 0 && (
             <Card className="border-border/40 shadow-sm">
               <CardContent className="p-4">
-                <SectionHeader icon={CreditCard} label="Pagamento" />
+                <SectionHeader icon={CreditCard} label="Condições de Pagamento" />
                 <div className="space-y-3">
-                  {pagamentoOpcoes.map((op, i) => (
-                    <div key={i} className="rounded-lg border border-border/50 p-3 bg-muted/20">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-sm text-foreground">{op.nome}</span>
-                        <Badge variant="outline" className="text-[9px] capitalize">{op.tipo.replace("_", " ")}</Badge>
+                  {pagamentoOpcoes.map((op, i) => {
+                    const totalFinanciado = op.num_parcelas > 0 && op.valor_parcela > 0
+                      ? op.num_parcelas * op.valor_parcela
+                      : 0;
+                    const totalGeral = (op.entrada || 0) + totalFinanciado;
+
+                    return (
+                      <div key={i} className="rounded-lg border border-border/50 p-3 bg-muted/20">
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold text-sm text-foreground">{op.nome}</span>
+                          <Badge variant="outline" className="text-[9px]">{getTipoLabel(op.tipo)}</Badge>
+                        </div>
+                        
+                        {/* Details grid */}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                          {op.entrada > 0 && (
+                            <>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <ArrowDown className="h-3 w-3 shrink-0" />
+                                <span>Entrada</span>
+                              </div>
+                              <span className="font-medium text-foreground text-right">{formatBRL(op.entrada)}</span>
+                            </>
+                          )}
+                          {op.num_parcelas > 0 && (
+                            <>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Clock className="h-3 w-3 shrink-0" />
+                                <span>Parcelas</span>
+                              </div>
+                              <span className="font-medium text-foreground text-right">
+                                {op.num_parcelas}× {formatBRL(op.valor_parcela)}
+                              </span>
+                            </>
+                          )}
+                          {(op.taxa_mensal ?? 0) > 0 && (
+                            <>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Percent className="h-3 w-3 shrink-0" />
+                                <span>Taxa mensal</span>
+                              </div>
+                              <span className="font-medium text-foreground text-right">
+                                {((op.taxa_mensal ?? 0) * 100).toFixed(2)}%
+                              </span>
+                            </>
+                          )}
+                          {(op.carencia_meses ?? 0) > 0 && (
+                            <>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Clock className="h-3 w-3 shrink-0" />
+                                <span>Carência</span>
+                              </div>
+                              <span className="font-medium text-foreground text-right">
+                                {op.carencia_meses} meses
+                              </span>
+                            </>
+                          )}
+                          {(op.valor_financiado ?? 0) > 0 && (
+                            <>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Banknote className="h-3 w-3 shrink-0" />
+                                <span>Financiado</span>
+                              </div>
+                              <span className="font-medium text-foreground text-right">
+                                {formatBRL(op.valor_financiado ?? 0)}
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Total */}
+                        {totalGeral > 0 && op.tipo !== "a_vista" && (
+                          <>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between text-xs font-semibold">
+                              <span className="text-muted-foreground">Total c/ juros</span>
+                              <span className="text-foreground">{formatBRL(totalGeral)}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        {op.entrada > 0 && <span>Entrada: {formatBRL(op.entrada)}</span>}
-                        {op.num_parcelas > 0 && <span>{op.num_parcelas}× {formatBRL(op.valor_parcela)}</span>}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
