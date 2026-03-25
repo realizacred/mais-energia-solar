@@ -527,7 +527,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                       key={entry.card.id}
                       entry={entry}
                       viewMode={viewMode}
-                      onSelect={() => handleSelectManualKit(entry)}
+                      isSelected={selectedManualIdx === index}
+                      onSelect={() => handleSelectManualKit(entry, index)}
                       onEdit={() => handleEditManualKit(index)}
                       onDelete={() => handleDeleteManualKit(index)}
                     />
