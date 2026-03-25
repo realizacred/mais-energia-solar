@@ -929,7 +929,7 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
 
     // ── 10. GRANULAR PERSISTENCE (critical path) ────────────
     await adminClient.from("propostas_nativas")
-      .update({ status: "gerada", versao_atual: versao!.versao_numero })
+      .update({ status: "gerada", versao_atual: versaoNumero })
       .eq("id", propostaId).eq("tenant_id", tenantId);
 
     const granularOps = [];
