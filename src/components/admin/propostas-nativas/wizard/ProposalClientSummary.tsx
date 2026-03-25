@@ -117,9 +117,9 @@ export function ProposalClientSummary({ data }: { data: ProposalClientSummaryDat
             </div>
             <p className="text-xl font-bold text-foreground">
               {data.paybackAnos != null
-                ? `${data.paybackAnos.toFixed(1)} anos`
+                ? `${(Number(data.paybackAnos) || 0).toFixed(1)} anos`
                 : data.paybackMeses != null
-                ? `${Math.round(data.paybackMeses / 12 * 10) / 10} anos`
+                ? `${Math.round((Number(data.paybackMeses) || 0) / 12 * 10) / 10} anos`
                 : "—"}
             </p>
             {data.economiaMensal != null && data.economiaMensal > 0 && (
