@@ -28,6 +28,7 @@ import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
 import { ClonePropostaModal } from "./ClonePropostaModal";
 import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
+import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaAuditLogs, type UCDetailData } from "@/hooks/usePropostaExpandedData";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -91,14 +92,7 @@ interface SnapshotData {
   };
 }
 
-interface UCDetailData {
-  id: string;
-  nome: string;
-  consumo_mensal_kwh: number;
-  geracao_mensal_estimada: number | null;
-  tarifa_energia: number | null;
-  percentual_atendimento: number | null;
-}
+// UCDetailData imported from usePropostaExpandedData hook
 
 // ─── Status Badge ───────────────────────────────────
 const STATUS_MAP: Record<string, { label: string; cls: string; iconCls: string }> = {
@@ -458,10 +452,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
     : null;
 
-  // Expanded data
-  const [snapshot, setSnapshot] = useState<SnapshotData | null>(null);
-  const [ucsDetail, setUcsDetail] = useState<UCDetailData[]>([]);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  // §16: Queries in hooks — AP-01 fix
+  const versaoIds = p.versoes.map(v => v.id);
+  const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
+  const snapshot = snapshotData || null;
+  const { data: ucsDetail = [] } = usePropostaExpandedUcs(latestVersao?.id || null, isExpanded);
+  const { data: auditLogs = [] } = usePropostaAuditLogs(p.id, versaoIds, isExpanded);
+  const loadingDetail = !snapshotData && isExpanded && !!latestVersao?.id;
   const [activeTab, setActiveTab] = useState("resumo");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
@@ -469,7 +466,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [auditLogs, setAuditLogs] = useState<Array<{ id: string; acao: string; tabela: string; user_email: string | null; created_at: string }>>([]);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [recusaMotivo, setRecusaMotivo] = useState("");
   const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
@@ -580,40 +576,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  // Load expanded data when expanded
-  useEffect(() => {
-    if (!isExpanded || !latestVersao?.id) return;
-    setLoadingDetail(true);
-
-    const versaoIds = p.versoes.map(v => v.id);
-
-    Promise.all([
-      supabase
-        .from("proposta_versoes")
-        .select("snapshot")
-        .eq("id", latestVersao.id)
-        .single(),
-      supabase
-        .from("proposta_versao_ucs")
-        .select("id, nome, consumo_mensal_kwh, geracao_mensal_estimada, tarifa_energia, percentual_atendimento")
-        .eq("versao_id", latestVersao.id)
-        .order("ordem"),
-      // Audit logs for proposta + all versoes
-      supabase
-        .from("audit_logs")
-        .select("id, acao, tabela, user_email, created_at")
-        .or(`and(tabela.eq.propostas_nativas,registro_id.eq.${p.id}),and(tabela.eq.proposta_versoes,registro_id.in.(${versaoIds.join(",")}))`)
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]).then(([snapRes, ucsRes, auditRes]) => {
-      if (snapRes.data?.snapshot) {
-        setSnapshot(snapRes.data.snapshot as any);
-      }
-      setUcsDetail((ucsRes.data as UCDetailData[]) || []);
-      setAuditLogs((auditRes.data as any[]) || []);
-      setLoadingDetail(false);
-    });
-  }, [isExpanded, latestVersao?.id]);
+  // §16: Queries moved to hooks (usePropostaExpandedData) — AP-01 fix
 
   // Auto-populate publicUrl from public_slug
   useEffect(() => {

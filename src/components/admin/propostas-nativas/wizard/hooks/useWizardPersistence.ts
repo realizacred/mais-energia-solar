@@ -239,17 +239,26 @@ async function persistProposalAtomic(
         projeto_id: result.projeto_id,
       });
 
-      // If intent is active, update the freshly created version
-      if (setActive) {
-        const updateData: Record<string, any> = {
-          status: "generated",
-          gerado_em: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        await supabase
-          .from("proposta_versoes")
-          .update(updateData as any)
-          .eq("id", result.versao_id);
+      // If intent is active, update via RPC to avoid enum type mismatch
+      // (proposta_versoes.status is enum proposta_nativa_status, direct text update fails)
+      if (setActive && result.versao_id) {
+        const { error: rpcErr } = await supabase.rpc(
+          "proposal_create_version" as any,
+          {
+            p_proposta_id: result.proposta_id,
+            p_versao_id: result.versao_id,
+            p_snapshot: sanitized as any,
+            p_potencia_kwp: params.potenciaKwp,
+            p_valor_total: params.precoFinal,
+            p_economia_mensal: params.economiaMensal || null,
+            p_geracao_mensal: params.geracaoMensal || null,
+            p_grupo: params.snapshot?.grupo || null,
+            p_intent: "active",
+          },
+        );
+        if (rpcErr) {
+          console.warn("[persist] RPC active update after create failed:", rpcErr.message);
+        }
       }
 
       // Sync deal value + kwp so kanban projection reflects proposal data
