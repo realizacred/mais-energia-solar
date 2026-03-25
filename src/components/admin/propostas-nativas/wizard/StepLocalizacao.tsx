@@ -216,7 +216,7 @@ export function StepLocalizacao({
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-calculate distance when client coords change
+  // Auto-calculate distance when client coords or company coords become available
   useEffect(() => {
     if (geoLat == null || geoLon == null || !companyCoords.current) return;
     roadDistanceKm(companyCoords.current.lat, companyCoords.current.lon, geoLat, geoLon).then(d => {
