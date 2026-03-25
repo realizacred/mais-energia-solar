@@ -317,6 +317,9 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
                           if (v === "sem_juros") {
                             patch.juros_valor = 0;
                             patch.juros_responsavel = "nao_aplica";
+                          } else if (item.juros_responsavel === "nao_aplica") {
+                            // Auto-default: when interest is enabled, client pays by default
+                            patch.juros_responsavel = "cliente";
                           }
                           onUpdate(patch);
                         }}
