@@ -66,6 +66,9 @@ interface Props {
   onGhiSeriesChange?: (series: Record<string, number> | null) => void;
   onLatitudeChange?: (lat: number) => void;
   onMapSnapshotsChange?: (snapshots: string[]) => void;
+  /** Skip POA transposition — use raw GHI */
+  skipPoa?: boolean;
+  onSkipPoaChange?: (skip: boolean) => void;
   /** Client data for "same address" feature */
   clienteData?: ClienteData | null;
   /** Project address sync */
