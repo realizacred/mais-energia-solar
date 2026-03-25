@@ -34,6 +34,7 @@ import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { VariableMapperPanel } from "./VariableMapperPanel";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
+import { DocumentosTab } from "./DocumentosTab";
 import { ProjetoInstalacaoTab } from "./ProjetoInstalacaoTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
