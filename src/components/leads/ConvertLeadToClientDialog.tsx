@@ -960,15 +960,16 @@ export function ConvertLeadToClientDialog({
             const isDone = idx < currentStep;
             return (
               <div key={idx} className="flex items-center gap-1 flex-1 min-w-0">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => idx < currentStep && setCurrentStep(idx)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors w-full min-w-0 ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors w-full min-w-0 h-auto ${
                     isActive
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-primary/10 text-primary hover:bg-primary/15"
                       : isDone
                       ? "text-success cursor-pointer hover:bg-muted/50"
-                      : "text-muted-foreground"
+                      : "text-muted-foreground hover:bg-transparent"
                   }`}
                   disabled={idx > currentStep}
                 >
@@ -981,7 +982,7 @@ export function ConvertLeadToClientDialog({
                     <p className="text-xs font-semibold truncate">{step.label}</p>
                     <p className="text-[10px] text-muted-foreground truncate">{step.description}</p>
                   </div>
-                </button>
+                </Button>
                 {idx < STEPS.length - 1 && (
                   <div className={`w-4 h-px shrink-0 ${isDone ? "bg-success" : "bg-border"}`} />
                 )}
