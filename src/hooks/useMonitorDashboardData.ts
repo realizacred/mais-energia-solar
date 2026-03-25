@@ -1,27 +1,45 @@
 import { useQuery } from "@tanstack/react-query";
-import { getDashboardStats, listAlerts, listAllReadings, listPlantsWithHealth, listIntegrations } from "@/services/monitoring/monitorService";
+import { listAlerts, listAllReadings, listPlantsWithHealth, listIntegrations } from "@/services/monitoring/monitorService";
 import { getFinancials, getPerformanceRatios } from "@/services/monitoring/monitorFinancialService";
 import { isBrasiliaNight, getTodayBrasilia, getMonthStartBrasilia, getDaysAgoBrasilia } from "@/services/monitoring/plantStatusEngine";
 import { addMinutes } from "date-fns";
+import { useMemo } from "react";
 
 const STALE = 1000 * 60 * 2; // 2 min — monitoring data changes frequently
 const SYNC_INTERVAL_MIN = 15;
 const REFRESH = 1000 * 30; // 30s — dashboard operacional precisa refletir sync recente
 
 export function useMonitorDashboardData() {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ["monitor-dashboard-stats"],
-    queryFn: getDashboardStats,
-    staleTime: STALE,
-    refetchInterval: REFRESH,
-  });
-
-  const { data: plants = [] } = useQuery({
+  // Single source of truth — plants with health (no separate getDashboardStats call)
+  const { data: plants = [], isLoading } = useQuery({
     queryKey: ["monitor-plants-health"],
     queryFn: listPlantsWithHealth,
     staleTime: STALE,
     refetchInterval: REFRESH,
   });
+
+  // Derive stats directly from plants array — eliminates double fetch
+  const stats = useMemo(() => {
+    const plants_online = plants.filter(p => p.health?.status === "online").length;
+    const plants_offline = plants.filter(p => p.health?.status === "offline").length;
+    const plants_standby = plants.filter(p => p.health?.status === "standby").length;
+    const plants_alert = plants.filter(p => (p.health?.open_alerts_count || 0) > 0).length;
+    const total_plants = plants.length;
+    const energy_today_kwh = plants.reduce((s, p) => s + (p.health?.energy_today_kwh || 0), 0);
+    const energy_month_kwh = plants.reduce((s, p) => s + (p.health?.energy_month_kwh || 0), 0);
+    const current_power_kw = plants.reduce((s, p) => s + (p.health?.current_power_kw || 0), 0);
+
+    return {
+      plants_online,
+      plants_offline,
+      plants_standby,
+      plants_alert,
+      total_plants,
+      energy_today_kwh,
+      energy_month_kwh,
+      current_power_kw,
+    };
+  }, [plants]);
 
   const { data: openAlerts = [] } = useQuery({
     queryKey: ["monitor-alerts-open"],
@@ -38,9 +56,9 @@ export function useMonitorDashboardData() {
   });
 
   const { data: financials } = useQuery({
-    queryKey: ["monitor-financials", stats?.energy_today_kwh, stats?.energy_month_kwh],
-    queryFn: () => getFinancials(stats?.energy_today_kwh || 0, stats?.energy_month_kwh || 0),
-    enabled: !!stats,
+    queryKey: ["monitor-financials", stats.energy_today_kwh, stats.energy_month_kwh],
+    queryFn: () => getFinancials(stats.energy_today_kwh, stats.energy_month_kwh),
+    enabled: stats.total_plants > 0,
     staleTime: STALE,
   });
 
@@ -53,8 +71,14 @@ export function useMonitorDashboardData() {
     staleTime: STALE,
   });
 
+  // Stable queryKey based on plant identity+status, not just count
+  const prPlantsKey = useMemo(
+    () => plants.map(p => p.id + (p.health?.status ?? "")).join(","),
+    [plants]
+  );
+
   const { data: prData = [] } = useQuery({
-    queryKey: ["monitor-pr", plants.length, monthReadings.length],
+    queryKey: ["monitor-pr", prPlantsKey, monthReadings.length],
     queryFn: () => getPerformanceRatios(
       plants.map((p) => ({
         id: p.id, name: p.name, installed_power_kwp: p.installed_power_kwp,
@@ -74,10 +98,10 @@ export function useMonitorDashboardData() {
 
   // ─── Derived KPIs ───
   const totalPowerMwp = plants.reduce((s, p) => s + (p.installed_power_kwp || 0), 0) / 1000;
-  const totalEnergyTodayMwh = (stats?.energy_today_kwh || 0) / 1000;
-  const totalEnergyMonthMwh = (stats?.energy_month_kwh || 0) / 1000;
-  const activeCount = (stats?.plants_online || 0) + (stats?.plants_standby || 0);
-  const activePerc = stats?.total_plants ? ((activeCount / stats.total_plants) * 100).toFixed(0) : "0";
+  const totalEnergyTodayMwh = stats.energy_today_kwh / 1000;
+  const totalEnergyMonthMwh = stats.energy_month_kwh / 1000;
+  const activeCount = stats.plants_online + stats.plants_standby;
+  const activePerc = stats.total_plants ? ((activeCount / stats.total_plants) * 100).toFixed(0) : "0";
   const isNight = isBrasiliaNight();
   const alertCount = openAlerts.length;
 
@@ -92,9 +116,9 @@ export function useMonitorDashboardData() {
   const avgLng = plantsWithCoords.length > 0
     ? plantsWithCoords.reduce((s, p) => s + (p.lng || 0), 0) / plantsWithCoords.length : null;
 
-  const isGenerating = (stats?.energy_today_kwh || 0) > 0;
+  const isGenerating = stats.energy_today_kwh > 0;
   const isDaylight = !isBrasiliaNight();
-  const realCurrentPower = isDaylight ? (stats?.current_power_kw || 0) : 0;
+  const realCurrentPower = isDaylight ? stats.current_power_kw : 0;
 
   const lastSyncDate = integrations
     .filter((i: any) => i.last_sync_at)
