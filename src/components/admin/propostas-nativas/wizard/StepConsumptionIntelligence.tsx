@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { formatNumberBR } from "@/lib/formatters";
-import { transposeToTiltedPlane } from "@/services/solar-transposition";
-import type { IrradianceSeries } from "@/services/irradiance-provider";
+import { calcEffectiveIrrad, calcFatorGeracao } from "@/services/solar/fatorGeracaoService";
 import { distribuirConsumoPorIrradiacao, hasConsumoMesesPreenchido } from "@/lib/distribuirConsumoPorIrradiacao";
 import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -83,46 +82,16 @@ export function StepConsumptionIntelligence({
     }
   }, [uc1TipoTelhado, roofFactors, setPd]);
 
-  // ─── Effective irradiance — apply POA transposition when GHI series available ──
+  // ─── Effective irradiance — SSOT via fatorGeracaoService ──
   const effectiveIrrad = useMemo(() => {
     if (!irradiacao || irradiacao <= 0) return 0;
-
-    const tilt = pd.inclinacao ?? 10;
-    const azimuthDev = pd.desvio_azimutal ?? 0;
-
-    // Build GHI series: use monthly data if available, otherwise flat from average
-    const ghi: IrradianceSeries = ghiSeries
-      ? {
-          m01: ghiSeries.m01 ?? irradiacao, m02: ghiSeries.m02 ?? irradiacao,
-          m03: ghiSeries.m03 ?? irradiacao, m04: ghiSeries.m04 ?? irradiacao,
-          m05: ghiSeries.m05 ?? irradiacao, m06: ghiSeries.m06 ?? irradiacao,
-          m07: ghiSeries.m07 ?? irradiacao, m08: ghiSeries.m08 ?? irradiacao,
-          m09: ghiSeries.m09 ?? irradiacao, m10: ghiSeries.m10 ?? irradiacao,
-          m11: ghiSeries.m11 ?? irradiacao, m12: ghiSeries.m12 ?? irradiacao,
-        }
-      : {
-          m01: irradiacao, m02: irradiacao, m03: irradiacao, m04: irradiacao,
-          m05: irradiacao, m06: irradiacao, m07: irradiacao, m08: irradiacao,
-          m09: irradiacao, m10: irradiacao, m11: irradiacao, m12: irradiacao,
-        };
-
-    // Always apply POA transposition when we have latitude
-    if (latitude != null) {
-      try {
-        const result = transposeToTiltedPlane({
-          ghi,
-          latitude,
-          tilt_deg: tilt,
-          azimuth_deviation_deg: azimuthDev,
-        });
-        return result.poa_annual_avg;
-      } catch (e) {
-        console.warn("[StepConsumption] POA transposition failed, using GHI:", e);
-        return irradiacao;
-      }
-    }
-
-    return irradiacao;
+    return calcEffectiveIrrad({
+      ghiSeries: ghiSeries as Record<string, number> | null | undefined,
+      ghiMediaAnual: irradiacao,
+      latitude,
+      tilt_deg: pd.inclinacao ?? 10,
+      azimuth_deviation_deg: pd.desvio_azimutal ?? 0,
+    });
   }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal]);
 
   // ─── Derive fator_geracao from POA irradiation ──────────
