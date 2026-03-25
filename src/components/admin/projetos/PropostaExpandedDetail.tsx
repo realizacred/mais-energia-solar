@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useNavigate } from "react-router-dom";
+import { normalizeProposalSnapshot, type NormalizedProposalSnapshot } from "@/domain/proposal/normalizeProposalSnapshot";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
@@ -517,31 +518,34 @@ function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, 
 }
 
 function NativeDadosTab({ snapshot, latestVersao }: { snapshot: SnapshotData | null; latestVersao: VersaoData | undefined }) {
-  // Support both wizard snapshot (camelCase) and engine-enriched snapshot (snake_case/nested)
+  // §33: ALWAYS normalize snapshot before rendering — never read raw snapshot directly
+  const norm = normalizeProposalSnapshot(snapshot as Record<string, unknown> | null);
   const s = snapshot as any;
-  const uc0 = s?.ucs?.[0] || {};
 
   // Pre-dimensionamento: wizard uses preDimensionamento{}, engine puts data in ucs[0]
   const pre = s?.preDimensionamento || {};
-  const telhado = s?.locTipoTelhado || uc0?.tipo_telhado || "—";
+  const uc0 = norm.ucs[0];
+  const telhado = norm.locTipoTelhado || "—";
   const sistema = pre.sistema || "—";
-  const topologias = pre.topologias?.join(", ") || "—";
-  const inclinacao = pre.inclinacao ?? uc0?.inclinacao;
-  const desvioAzimutal = pre.desvio_azimutal ?? uc0?.desvio_azimutal;
+  const topologias = pre.topologias?.join?.(", ") || "—";
+  const inclinacao = uc0?.inclinacao ?? pre.inclinacao;
+  const desvioAzimutal = uc0?.desvio_azimutal ?? pre.desvio_azimutal;
   const sombreamento = pre.sombreamento || "—";
   const fatorGeracao = pre.fator_geracao || "—";
-  const desempenho = pre.desempenho ?? uc0?.taxa_desempenho;
+  const desempenho = uc0?.taxa_desempenho ?? pre.desempenho;
 
-  // Venda: same key in both formats
-  const venda = s?.venda || {};
+  // Adicionais & custom fields from raw (not in normalized)
   const adicionais = s?.adicionais || [];
   const customFields = s?.customFieldValues || s?.variaveis_custom || {};
 
-  // Serviços
-  const servicos = s?.servicos || pre?.servicos || [];
-
-  // Pagamento: wizard uses pagamentoOpcoes (camelCase), engine uses pagamento_opcoes (snake_case)
-  const opcoes = s?.pagamentoOpcoes || s?.pagamento_opcoes || [];
+  // Helper: safely render a value, preventing [object Object]
+  const safeStr = (val: unknown): string => {
+    if (val === null || val === undefined) return "—";
+    if (typeof val === "object") {
+      try { return JSON.stringify(val); } catch { return "—"; }
+    }
+    return String(val) || "—";
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-3">
@@ -564,11 +568,11 @@ function NativeDadosTab({ snapshot, latestVersao }: { snapshot: SnapshotData | n
       <div className="border rounded-lg p-4 space-y-4">
         <h4 className="text-sm font-bold text-foreground">Pós dimensionamento</h4>
         <div className="space-y-3">
-           <DadosField icon="dollar" label="Margem" value={venda.margem_percentual ? `${formatNumberBR(venda.margem_percentual)}%` : "—"} />
-           <DadosField icon="dollar" label="Desconto" value={venda.desconto_percentual ? `${formatNumberBR(venda.desconto_percentual)}%` : "—"} />
-          <DadosField icon="text" label="Observações" value={venda.observacoes || "—"} />
+           <DadosField icon="dollar" label="Margem" value={norm.venda.margem_percentual ? `${formatNumberBR(norm.venda.margem_percentual)}%` : "—"} />
+           <DadosField icon="dollar" label="Desconto" value={norm.venda.desconto_percentual ? `${formatNumberBR(norm.venda.desconto_percentual)}%` : "—"} />
+          <DadosField icon="text" label="Observações" value={norm.venda.observacoes || "—"} />
           {Object.entries(customFields).map(([key, val]) => (
-            <DadosField key={key} icon="text" label={key} value={String(val) || "—"} />
+            <DadosField key={key} icon="text" label={key} value={safeStr(val)} />
           ))}
           {adicionais.map((add: any, i: number) => (
             <DadosField key={i} icon="check" label={add.descricao || add.nome || `Adicional ${i + 1}`} value={add.valor ? formatBRL(add.valor) : add.incluso ? "Grátis" : "—"} />
@@ -579,15 +583,15 @@ function NativeDadosTab({ snapshot, latestVersao }: { snapshot: SnapshotData | n
       {/* Serviços */}
       <div className="border rounded-lg p-4 space-y-4">
         <h4 className="text-sm font-bold text-foreground">Serviços</h4>
-        {(!servicos || servicos.length === 0) ? (
+        {norm.servicos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
             <AlertCircle className="h-8 w-8 text-warning/50 mb-2" />
             <p className="text-xs">Nenhum serviço selecionado</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {servicos.map((sv: any, i: number) => (
-              <DadosField key={i} icon="check" label={sv.descricao || sv.nome} value={sv.valor ? formatBRL(sv.valor) : sv.incluso ? "Incluso" : "—"} />
+            {norm.servicos.map((sv, i) => (
+              <DadosField key={i} icon="check" label={sv.descricao || `Serviço ${i + 1}`} value={sv.valor ? formatBRL(sv.valor) : sv.incluso_no_preco ? "Incluso" : "—"} />
             ))}
           </div>
         )}
@@ -600,16 +604,16 @@ function NativeDadosTab({ snapshot, latestVersao }: { snapshot: SnapshotData | n
           <p className="text-xs font-bold text-primary">À vista</p>
           <p className="text-sm font-bold text-foreground">{formatBRL(latestVersao?.valor_total || 0)}</p>
         </div>
-        {opcoes.length === 0 ? (
+        {norm.pagamentoOpcoes.length === 0 ? (
           <p className="text-xs text-muted-foreground">Sem opções de financiamento</p>
         ) : (
-          opcoes.map((op: any, i: number) => (
+          norm.pagamentoOpcoes.map((op, i) => (
             <div key={i} className="pb-3 border-b border-border/30 last:border-0 space-y-0.5">
-              <p className="text-xs font-bold text-primary">{op.banco || op.nome || `Opção ${i + 1}`}</p>
-              {op.valor_parcela && <p className="text-[11px] text-muted-foreground">Valor da parcela: <span className="text-foreground font-medium">{formatBRL(op.valor_parcela)}</span></p>}
-              {(op.parcelas || op.num_parcelas) && <p className="text-[11px] text-muted-foreground">Parcelas: <span className="text-foreground font-medium">{op.parcelas || op.num_parcelas}x</span></p>}
-              {op.carencia_meses && <p className="text-[11px] text-muted-foreground">Carência: <span className="text-foreground font-medium">{op.carencia_meses} meses</span></p>}
-              {op.taxa_mensal && <p className="text-[11px] text-muted-foreground">Taxa: <span className="text-foreground font-medium">{op.taxa_mensal}% a.m.</span></p>}
+              <p className="text-xs font-bold text-primary">{op.nome || `Opção ${i + 1}`}</p>
+              {op.valor_parcela > 0 && <p className="text-[11px] text-muted-foreground">Valor da parcela: <span className="text-foreground font-medium">{formatBRL(op.valor_parcela)}</span></p>}
+              {op.num_parcelas > 0 && <p className="text-[11px] text-muted-foreground">Parcelas: <span className="text-foreground font-medium">{op.num_parcelas}x</span></p>}
+              {op.carencia_meses > 0 && <p className="text-[11px] text-muted-foreground">Carência: <span className="text-foreground font-medium">{op.carencia_meses} meses</span></p>}
+              {op.taxa_mensal > 0 && <p className="text-[11px] text-muted-foreground">Taxa: <span className="text-foreground font-medium">{(op.taxa_mensal * 100).toFixed(2)}% a.m.</span></p>}
             </div>
           ))
         )}
