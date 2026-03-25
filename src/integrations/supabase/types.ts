@@ -14777,6 +14777,54 @@ export type Database = {
           },
         ]
       }
+      proposal_followup_queue: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          proposta_id: string
+          status: string
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          proposta_id: string
+          status?: string
+          tenant_id: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          proposta_id?: string
+          status?: string
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_followup_queue_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_followup_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_message_config: {
         Row: {
           blocks_config: Json
@@ -25281,6 +25329,7 @@ export type Database = {
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
       delete_seed_data: { Args: never; Returns: Json }
       delete_uc_permanently: { Args: { p_unit_id: string }; Returns: Json }
+      detect_proposal_followups: { Args: never; Returns: Json }
       encrypt_secret: {
         Args: { plain: string; secret: string }
         Returns: string
