@@ -131,6 +131,7 @@ export function StepLocalizacao({
   // ── Company location for distance calculation ──
   const companyCoords = useRef<{ lat: number; lon: number } | null>(null);
   const companyGeocodedFor = useRef<string>("");
+  const [companyReady, setCompanyReady] = useState(false);
 
   // Fetch and geocode tenant location on mount
   useEffect(() => {
