@@ -80,8 +80,13 @@ export function computeItem(item: PaymentItemInput): PaymentItemComputed {
 
   // For client-paid interest, installments are based on valor_com_juros
   // For company-absorbed interest, client pays only valor_base
+  // Defensive: if interest exists but responsavel is "nao_aplica", treat as "cliente"
+  const hasInterest = valor_juros > 0;
+  const effectiveResponsavel = hasInterest && item.juros_responsavel === "nao_aplica"
+    ? "cliente"
+    : item.juros_responsavel;
   const valorParaParcelas =
-    item.juros_responsavel === "cliente" ? valor_com_juros : item.valor_base;
+    effectiveResponsavel === "cliente" ? valor_com_juros : item.valor_base;
 
   const parcelas_detalhes = generateInstallments(item, valorParaParcelas);
 
