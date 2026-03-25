@@ -195,10 +195,7 @@ export function StepResumo({
                         <Badge variant="outline" className="text-[9px] shrink-0 capitalize">{item.categoria}</Badge>
                         <span className="truncate text-foreground">{item.descricao}</span>
                       </div>
-                      <div className="text-right shrink-0 ml-2">
-                        <span className="text-muted-foreground">{item.quantidade}× </span>
-                        <span className="font-medium text-foreground">{formatBRL(item.preco_unitario)}</span>
-                      </div>
+                      <span className="text-muted-foreground shrink-0 ml-2">{item.quantidade}×</span>
                     </div>
                   ))}
                   <Separator className="my-2" />
