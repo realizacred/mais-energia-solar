@@ -222,7 +222,7 @@ export function StepLocalizacao({
     roadDistanceKm(companyCoords.current.lat, companyCoords.current.lon, geoLat, geoLon).then(d => {
       onDistanciaKmChange?.(Math.round(d * 10) / 10);
     });
-  }, [geoLat, geoLon]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [geoLat, geoLon, companyReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync address coords → geoLat/geoLon
   useEffect(() => {
