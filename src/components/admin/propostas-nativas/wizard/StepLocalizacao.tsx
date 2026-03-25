@@ -205,13 +205,8 @@ export function StepLocalizacao({
 
         if (lat !== null && lon !== null) {
           companyCoords.current = { lat, lon };
+          setCompanyReady(true);
           console.info("[StepLocalizacao] Tenant geocoded:", { lat, lon, cidade: tenant.cidade });
-          // If we already have client coords, calc distance now
-          if (geoLat != null && geoLon != null) {
-            roadDistanceKm(lat, lon, geoLat, geoLon).then(d => {
-              onDistanciaKmChange?.(Math.round(d * 10) / 10);
-            });
-          }
         } else {
           console.warn("[StepLocalizacao] Could not geocode tenant location:", addressQuery);
         }
