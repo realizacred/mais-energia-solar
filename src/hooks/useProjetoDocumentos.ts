@@ -16,6 +16,8 @@ export interface GeneratedDocRow {
   status: string;
   created_at: string;
   template_id: string;
+  docx_filled_path: string | null;
+  pdf_path: string | null;
   template_name?: string;
   template_categoria?: string;
 }
@@ -69,7 +71,7 @@ export function useProjetoDocumentosGerados(dealId: string) {
     queryFn: async () => {
       const { data: docs } = await supabase
         .from("generated_documents")
-        .select("id, title, status, created_at, template_id")
+        .select("id, title, status, created_at, template_id, docx_filled_path, pdf_path")
         .eq("deal_id", dealId)
         .order("created_at", { ascending: false });
 
@@ -182,35 +184,63 @@ export async function downloadArquivo(dealId: string, fileName: string) {
   }
 }
 
-/** Gerar documento a partir de template */
+/** Download generated document (DOCX or PDF) from document-files bucket */
+export async function downloadGeneratedDoc(filePath: string) {
+  try {
+    const { data, error } = await supabase.storage
+      .from("document-files")
+      .createSignedUrl(filePath, 300);
+    if (error) throw error;
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+  } catch (err: any) {
+    toast({ title: "Erro ao baixar", description: err.message, variant: "destructive" });
+  }
+}
+
+/** Gerar documento real a partir de template via Edge Function */
 export function useGerarDocumento(dealId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ templateId, templateNome }: { templateId: string; templateNome?: string }) => {
-      const tenantId = await getTenantId();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sessão inválida");
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const { data: { session } } = await supabase.auth.getSession();
 
-      const { error } = await supabase.from("generated_documents").insert({
-        tenant_id: tenantId,
-        deal_id: dealId,
-        template_id: templateId,
-        template_version: 1,
-        title: templateNome || "Documento",
-        status: "draft",
-        input_payload: {},
-        created_by: user.id,
-        updated_by: user.id,
+      if (!session?.access_token) throw new Error("Sessão inválida");
+
+      const url = `https://${projectId}.supabase.co/functions/v1/generate-document`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": anonKey,
+        },
+        body: JSON.stringify({
+          template_id: templateId,
+          deal_id: dealId,
+        }),
       });
-      if (error) throw error;
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao gerar documento");
+      }
+
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY_DOCS, dealId] });
-      toast({ title: "Documento criado", description: "O documento foi gerado como rascunho." });
+      toast({
+        title: "Documento gerado com sucesso!",
+        description: `${result.variables_count} variáveis resolvidas.`,
+      });
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao gerar", description: err.message, variant: "destructive" });
+      toast({ title: "Erro ao gerar documento", description: err.message, variant: "destructive" });
     },
   });
 }
