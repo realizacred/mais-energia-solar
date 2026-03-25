@@ -558,7 +558,7 @@ export function ConvertLeadToClientDialog({
         supabase
           .from("leads")
           .update({
-            status_id: aguardandoStatus.id,
+            status_id: statusId,
             cep: formData.cep || null,
             estado: formData.estado || lead.estado,
             cidade: formData.cidade || lead.cidade,
@@ -574,7 +574,7 @@ export function ConvertLeadToClientDialog({
           ? supabase
               .from("orcamentos")
               .update({
-                status_id: aguardandoStatus.id,
+                status_id: statusId,
                 ultimo_contato: nowIso,
                 updated_at: nowIso,
               })
