@@ -567,7 +567,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
                       <SelectContent>
                         {[...modulos]
-                          .sort((a, b) => (b.potencia_wp || 0) - (a.potencia_wp || 0))
+                          .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_wp || 0) - (a.potencia_wp || 0))
                           .map(cat => (
                           <SelectItem key={cat.id} value={cat.id}>
                             {cat.fabricante} {cat.modelo}{cat.potencia_wp ? ` (${cat.potencia_wp}W)` : ""}
@@ -645,7 +645,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       <SelectContent>
                         {filteredInversores.length > 0 ? (
                           [...filteredInversores]
-                            .sort((a, b) => (b.potencia_nominal_kw || 0) - (a.potencia_nominal_kw || 0))
+                            .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_nominal_kw || 0) - (a.potencia_nominal_kw || 0))
                             .map(cat => (
                             <SelectItem key={cat.id} value={cat.id}>
                               {cat.fabricante} {cat.modelo} ({(cat.potencia_nominal_kw || 0).toFixed(1)}kW)
