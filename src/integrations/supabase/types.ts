@@ -25607,10 +25607,7 @@ export type Database = {
           percentual_nao_compensado: number
         }[]
       }
-      get_hot_proposals: {
-        Args: { p_limit?: number; p_tenant_id: string }
-        Returns: Json
-      }
+      get_hot_proposals: { Args: { p_limit?: number }; Returns: Json }
       get_integration_key: {
         Args: { _service_key: string; _tenant_id?: string }
         Returns: string
@@ -25698,15 +25695,9 @@ export type Database = {
           peak_power_kw: number
         }[]
       }
-      get_proposal_funnel_metrics: {
-        Args: { p_days?: number; p_tenant_id: string }
-        Returns: Json
-      }
+      get_proposal_funnel_metrics: { Args: { p_days?: number }; Returns: Json }
       get_proposal_workspace: { Args: { p_versao_id: string }; Returns: Json }
-      get_proposals_by_vendor: {
-        Args: { p_days?: number; p_tenant_id: string }
-        Returns: Json
-      }
+      get_proposals_by_vendor: { Args: { p_days?: number }; Returns: Json }
       get_roof_types_by_consultor: {
         Args: { p_consultor_code: string }
         Returns: {
