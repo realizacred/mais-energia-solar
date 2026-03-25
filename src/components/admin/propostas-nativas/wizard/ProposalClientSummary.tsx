@@ -38,8 +38,10 @@ function formatBRL(v: number) {
  * Can be used in: ProposalDetail, public page, PDF preview.
  */
 export function ProposalClientSummary({ data }: { data: ProposalClientSummaryData }) {
-  const custoWp = data.potenciaKwp > 0
-    ? (data.precoFinal / data.potenciaKwp / 1000).toFixed(2)
+  const potKwp = Number(data.potenciaKwp) || 0;
+  const precoF = Number(data.precoFinal) || 0;
+  const custoWp = potKwp > 0
+    ? (precoF / potKwp / 1000).toFixed(2)
     : null;
 
   return (
@@ -73,7 +75,7 @@ export function ProposalClientSummary({ data }: { data: ProposalClientSummaryDat
               <Zap className="h-3.5 w-3.5" />
               Sistema
             </div>
-            <p className="text-xl font-bold text-foreground">{data.potenciaKwp.toFixed(2)} kWp</p>
+            <p className="text-xl font-bold text-foreground">{potKwp.toFixed(2)} kWp</p>
             {data.moduloQuantidade && data.moduloQuantidade > 0 && (
               <p className="text-[10px] text-muted-foreground mt-0.5">
                 {data.moduloQuantidade} módulos
@@ -115,9 +117,9 @@ export function ProposalClientSummary({ data }: { data: ProposalClientSummaryDat
             </div>
             <p className="text-xl font-bold text-foreground">
               {data.paybackAnos != null
-                ? `${data.paybackAnos.toFixed(1)} anos`
+                ? `${(Number(data.paybackAnos) || 0).toFixed(1)} anos`
                 : data.paybackMeses != null
-                ? `${Math.round(data.paybackMeses / 12 * 10) / 10} anos`
+                ? `${Math.round((Number(data.paybackMeses) || 0) / 12 * 10) / 10} anos`
                 : "—"}
             </p>
             {data.economiaMensal != null && data.economiaMensal > 0 && (

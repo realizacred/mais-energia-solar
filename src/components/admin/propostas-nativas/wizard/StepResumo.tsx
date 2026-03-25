@@ -100,7 +100,7 @@ export function StepResumo({
               <Zap className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-lg font-bold text-foreground leading-none">{potenciaKwp.toFixed(2)} kWp</p>
+              <p className="text-lg font-bold text-foreground leading-none">{(Number(potenciaKwp) || 0).toFixed(2)} kWp</p>
               <p className="text-[10px] text-muted-foreground">Potência</p>
             </div>
           </CardContent>
@@ -134,7 +134,7 @@ export function StepResumo({
             </div>
             <div>
               <p className="text-lg font-bold text-foreground leading-none">
-                {potenciaKwp > 0 ? `R$ ${(precoFinal / potenciaKwp / 1000).toFixed(2)}/Wp` : "—"}
+                {(Number(potenciaKwp) || 0) > 0 ? `R$ ${((Number(precoFinal) || 0) / (Number(potenciaKwp) || 1) / 1000).toFixed(2)}/Wp` : "—"}
               </p>
               <p className="text-[10px] text-muted-foreground">Custo/Wp</p>
             </div>
@@ -159,7 +159,7 @@ export function StepResumo({
                 <span className="text-muted-foreground">Distribuidora</span>
                 <span className="font-medium text-foreground">{distribuidoraNome || "—"}</span>
                 <span className="text-muted-foreground">Irradiação</span>
-                <span className="font-medium text-foreground">{irradiacao > 0 ? `${irradiacao.toFixed(2)} kWh/m²/dia` : "—"}</span>
+                <span className="font-medium text-foreground">{(Number(irradiacao) || 0) > 0 ? `${(Number(irradiacao) || 0).toFixed(2)} kWh/m²/dia` : "—"}</span>
               </div>
             </CardContent>
           </Card>
@@ -299,11 +299,11 @@ export function StepResumo({
                   </>
                 )}
                 <span className="text-muted-foreground">Margem</span>
-                <span className="font-medium text-foreground text-right">{margemPercentual.toFixed(1)}%</span>
+                <span className="font-medium text-foreground text-right">{(Number(margemPercentual) || 0).toFixed(1)}%</span>
                 {descontoPercentual > 0 && (
                   <>
                     <span className="text-muted-foreground">Desconto</span>
-                    <span className="font-medium text-destructive text-right">-{descontoPercentual.toFixed(1)}%</span>
+                    <span className="font-medium text-destructive text-right">-{(Number(descontoPercentual) || 0).toFixed(1)}%</span>
                   </>
                 )}
                 {custoComissao > 0 && (
