@@ -748,22 +748,18 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Select value={ot.selectedId} onValueChange={v => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, selectedId: v } : x))}>
-                      <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione um otimizador" /></SelectTrigger>
-                      <SelectContent>
-                        {otimizadores.length > 0 ? (
-                          otimizadores.map(cat => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.fabricante} {cat.modelo} ({cat.potencia_wp || 0}W)
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 text-xs text-muted-foreground">
-                            Nenhum otimizador cadastrado
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <SearchableEquipSelect
+                      value={ot.selectedId}
+                      onValueChange={v => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, selectedId: v } : x))}
+                      options={otimizadores.map(cat => ({
+                        value: cat.id,
+                        label: `${cat.fabricante} ${cat.modelo} (${cat.potencia_wp || 0}W)`,
+                        searchText: `${cat.fabricante} ${cat.modelo} ${cat.potencia_wp || ""}`,
+                      }))}
+                      placeholder="Buscar otimizador..."
+                      emptyText="Nenhum otimizador cadastrado"
+                      className="flex-1"
+                    />
                     <Input type="number" min="0" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
                   </div>
                 )}
