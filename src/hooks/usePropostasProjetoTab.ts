@@ -111,16 +111,20 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
                 potencia = modulos.reduce((s: number, m: any) => s + ((m.potencia_w || 0) * (m.quantidade || 1)) / 1000, 0);
               }
             }
-            // Fallback geração
-            let geracao = geracaoMap.get(v.id) || null;
-            if ((!geracao || geracao === 0) && snap?.ucs) {
+            // Fallback geração — priority: column > snapshot.tecnico > UCs > irradiação calc
+            let geracao: number | null = v.geracao_mensal > 0 ? v.geracao_mensal : null;
+            if (!geracao && snap?.tecnico?.geracao_estimada_kwh > 0) {
+              geracao = snap.tecnico.geracao_estimada_kwh;
+            }
+            if (!geracao) {
+              const fromMap = geracaoMap.get(v.id) || 0;
+              if (fromMap > 0) geracao = fromMap;
+            }
+            if (!geracao && snap?.ucs) {
               const totalGeracao = (snap.ucs as any[]).reduce((s: number, uc: any) => s + (uc.geracao_mensal_estimada || 0), 0);
               if (totalGeracao > 0) geracao = totalGeracao;
             }
-            if ((!geracao || geracao === 0) && v.geracao_mensal > 0) {
-              geracao = v.geracao_mensal;
-            }
-            if ((!geracao || geracao === 0) && potencia > 0 && snap?.locIrradiacao > 0) {
+            if (!geracao && potencia > 0 && snap?.locIrradiacao > 0) {
               geracao = Math.round(potencia * snap.locIrradiacao * 30 * 0.80);
             }
             return {
