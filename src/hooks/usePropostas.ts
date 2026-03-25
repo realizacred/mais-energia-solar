@@ -100,8 +100,8 @@ async function fetchPropostas(): Promise<Proposta[]> {
   }
 
   // 3) Get client/lead names for display
-  const clienteIds = [...new Set(nativas.filter((n: any) => n.cliente_id).map((n: any) => n.cliente_id))];
-  const leadIds = [...new Set(nativas.filter((n: any) => n.lead_id && !n.cliente_id).map((n: any) => n.lead_id))];
+  const clienteIds = [...new Set(nativas.filter((n: any) => n.cliente_id).map((n: any) => n.cliente_id))] as string[];
+  const leadIds = [...new Set(nativas.filter((n: any) => n.lead_id && !n.cliente_id).map((n: any) => n.lead_id))] as string[];
 
   const [clientesRes, leadsRes] = await Promise.all([
     clienteIds.length > 0

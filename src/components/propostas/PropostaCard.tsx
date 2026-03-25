@@ -154,8 +154,8 @@ interface PropostaCardProps {
 
 export function PropostaCard({ proposta, onOpenDetail, onWhatsApp }: PropostaCardProps) {
   const summary = useMemo(
-    () => extractProposalSummary(proposta.raw_payload),
-    [proposta.raw_payload]
+    () => extractProposalSummary(null),
+    []
   );
 
   const status = STATUS_MAP[proposta.status] ?? STATUS_MAP.pendente;
