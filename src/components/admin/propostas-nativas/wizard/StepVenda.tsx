@@ -78,6 +78,11 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
           <div className="flex justify-between text-[10px] text-muted-foreground">
             <span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span>
           </div>
+          {hasHistory && suggested?.margem_percentual != null && (
+            <p className="text-xs text-muted-foreground mt-1">
+              💡 Margem média usada recentemente: {Math.round(suggested.margem_percentual * 10) / 10}%
+            </p>
+          )}
         </div>
 
         {/* Custos adicionais + desconto */}
