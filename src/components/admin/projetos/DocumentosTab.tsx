@@ -1,0 +1,296 @@
+import { useState, useRef, useMemo } from "react";
+import { FileText, Paperclip, Upload, Trash2, Download, Plus, Activity, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { SunLoader } from "@/components/loading/SunLoader";
+import { toast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/dateUtils";
+import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
+import { VariableMapperPanel } from "./VariableMapperPanel";
+import {
+  useProjetoArquivos,
+  useProjetoDocumentosGerados,
+  useDocTemplates,
+  useUploadArquivo,
+  useDeletarArquivo,
+  useGerarDocumento,
+  downloadArquivo,
+  type GeneratedDocRow,
+} from "@/hooks/useProjetoDocumentos";
+
+// ─── Constants ────────────────────────────────────
+const DOC_STATUS_MAP: Record<string, { label: string; color: string }> = {
+  draft: { label: "Rascunho", color: "bg-muted text-muted-foreground" },
+  generated: { label: "Gerado", color: "bg-info/10 text-info" },
+  sent_for_signature: { label: "Aguardando assinatura", color: "bg-warning/10 text-warning" },
+  signed: { label: "Assinado", color: "bg-success/10 text-success" },
+  cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive" },
+};
+
+const DOC_CATEGORY_LABELS: Record<string, string> = {
+  contrato: "Contratos",
+  procuracao: "Procurações",
+  proposta: "Propostas",
+  termo: "Termos",
+};
+
+// ─── Helpers ──────────────────────────────────────
+function formatSize(bytes: number | undefined) {
+  if (!bytes) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ─── Props ────────────────────────────────────────
+interface DocumentosTabProps {
+  dealId: string;
+  customerId: string | null;
+}
+
+// ─── Component ────────────────────────────────────
+export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
+  const [generateOpen, setGenerateOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // §16: Queries em hooks — AP-01 resolvido
+  const { data: files = [], isLoading: loadingFiles } = useProjetoArquivos(dealId);
+  const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
+  const { data: templates = [] } = useDocTemplates();
+
+  const uploadMutation = useUploadArquivo(dealId);
+  const deleteMutation = useDeletarArquivo(dealId);
+  const generateMutation = useGerarDocumento(dealId);
+
+  const loading = loadingFiles || loadingDocs;
+
+  // Group generated docs by category
+  const docsByCategory = useMemo(() => {
+    const groups: Record<string, GeneratedDocRow[]> = {};
+    for (const doc of generatedDocs) {
+      const cat = doc.template_categoria || "outro";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(doc);
+    }
+    return groups;
+  }, [generatedDocs]);
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    uploadMutation.mutate(fileList, {
+      onSettled: () => {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      },
+    });
+  };
+
+  const handleGenerate = () => {
+    if (!selectedTemplateId) return;
+    const tpl = templates.find(t => t.id === selectedTemplateId);
+    generateMutation.mutate(
+      { templateId: selectedTemplateId, templateNome: tpl?.nome },
+      {
+        onSuccess: () => {
+          setGenerateOpen(false);
+          setSelectedTemplateId("");
+        },
+      }
+    );
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
+
+  return (
+    <div className="space-y-5">
+      {/* BLOCO 1: Checklist (Pré-requisitos) */}
+      <section>
+        <ProjetoDocChecklist dealId={dealId} />
+      </section>
+
+      {/* BLOCO 2: Documentos Gerados */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            Documentos Gerados
+          </h3>
+          <Button size="sm" onClick={() => setGenerateOpen(true)} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            Gerar Documento
+          </Button>
+        </div>
+
+        {generatedDocs.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <FileText className="h-8 w-8 mb-2 opacity-30" />
+              <p className="text-sm font-medium">Nenhum documento gerado</p>
+              <p className="text-xs mt-1">Clique em "Gerar Documento" para criar a partir de um template</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {Object.entries(docsByCategory).map(([cat, docs]) => (
+              <div key={cat} className="space-y-1">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
+                  {DOC_CATEGORY_LABELS[cat] || cat}
+                </h4>
+                {docs.map(doc => {
+                  const statusCfg = DOC_STATUS_MAP[doc.status] || DOC_STATUS_MAP.draft;
+                  return (
+                    <div key={doc.id} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{doc.title}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {doc.template_name} • {formatDate(doc.created_at)}
+                        </p>
+                      </div>
+                      <Badge className={cn("text-[10px] h-5 px-1.5 border-0 shrink-0", statusCfg.color)}>
+                        {statusCfg.label}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* BLOCO 3: Arquivos Anexados */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Paperclip className="h-4 w-4 text-warning" />
+            Arquivos Anexados
+          </h3>
+          <div>
+            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadMutation.isPending} className="gap-1.5">
+              {uploadMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {uploadMutation.isPending ? "Enviando..." : "Upload"}
+            </Button>
+          </div>
+        </div>
+
+        {files.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Paperclip className="h-8 w-8 mb-2 opacity-30" />
+              <p className="text-sm font-medium">Nenhum arquivo</p>
+              <p className="text-xs mt-1">Faça upload de documentos relacionados ao projeto</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-1">
+            {files.map(f => (
+              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
+                <FileText className="h-4 w-4 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {formatSize(f.metadata?.size)} • {f.created_at ? formatDate(f.created_at) : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadArquivo(dealId, f.name)}>
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => deleteMutation.mutate(f.name)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* BLOCO 4: Variáveis do Documento */}
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Activity className="h-4 w-4 text-info" />
+            Variáveis do Documento
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Dados usados para gerar contratos e documentos</p>
+        </div>
+        <VariableMapperPanel
+          dealId={dealId}
+          customerId={customerId}
+          onGenerateContract={() => {
+            toast({ title: "Geração de contrato", description: "Funcionalidade será conectada ao motor de documentos." });
+          }}
+        />
+      </section>
+
+      {/* Generate Document Dialog */}
+      <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
+        <DialogContent className="w-[90vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle>Gerar documento</DialogTitle>
+            <DialogDescription>Selecione um modelo para gerar o documento com os dados do projeto.</DialogDescription>
+          </DialogHeader>
+          {templates.length === 0 ? (
+            <div className="py-6 text-center space-y-2">
+              <FileText className="h-10 w-10 mx-auto opacity-30" />
+              <p className="text-sm font-medium">Nenhum modelo de documento cadastrado</p>
+              <p className="text-xs text-muted-foreground">Cadastre templates em <strong>Configurações → Documentos</strong> para poder gerar documentos.</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label>Modelo <span className="text-destructive">*</span></Label>
+                  <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um modelo de documento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(
+                        templates.reduce<Record<string, typeof templates>>((acc, t) => {
+                          const cat = DOC_CATEGORY_LABELS[t.categoria] || t.categoria;
+                          if (!acc[cat]) acc[cat] = [];
+                          acc[cat].push(t);
+                          return acc;
+                        }, {})
+                      ).map(([cat, tpls]) => (
+                        <div key={cat}>
+                          <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</div>
+                          {tpls.map(t => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                          ))}
+                        </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setGenerateOpen(false)}>Cancelar</Button>
+                <Button onClick={handleGenerate} disabled={!selectedTemplateId || generateMutation.isPending}>
+                  {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                  Gerar
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
