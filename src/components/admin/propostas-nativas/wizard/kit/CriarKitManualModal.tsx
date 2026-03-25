@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Trash2, Sun, Cpu, Zap } from "lucide-react";
+import { Plus, Trash2, Sun, Cpu, Zap, Check, ChevronsUpDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { type KitItemRow, formatBRL } from "../types";
 
@@ -83,6 +87,42 @@ export interface KitMeta {
 }
 
 const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
+
+/** Searchable equipment combo (Popover + Command) */
+interface SearchableOption { value: string; label: string; searchText: string }
+function SearchableEquipSelect({ value, onValueChange, options, placeholder, emptyText, className }: {
+  value: string; onValueChange: (v: string) => void;
+  options: SearchableOption[]; placeholder: string; emptyText: string; className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedLabel = options.find(o => o.value === value)?.label;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" aria-expanded={open}
+          className={cn("h-8 text-xs justify-between font-normal", !value && "text-muted-foreground", className)}>
+          <span className="truncate">{selectedLabel || placeholder}</span>
+          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={placeholder} className="h-8 text-xs" />
+          <CommandList className="max-h-[200px]">
+            <CommandEmpty className="text-xs py-3">{emptyText}</CommandEmpty>
+            {options.map(o => (
+              <CommandItem key={o.value} value={o.searchText} onSelect={() => { onValueChange(o.value); setOpen(false); }}
+                className="text-xs">
+                <Check className={cn("mr-1.5 h-3 w-3 shrink-0", value === o.value ? "opacity-100" : "opacity-0")} />
+                <span className="truncate">{o.label}</span>
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function createEmptyModulo(): ModuloEntry {
   return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
@@ -403,12 +443,13 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="p-5 pb-4 border-b border-border shrink-0">
           <DialogTitle className="text-base">{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <ScrollArea className="flex-1 min-h-0">
+        <div className="p-5 space-y-4">
           {/* Header fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -563,18 +604,20 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Select value={m.selectedId} onValueChange={v => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, selectedId: v } : x))}>
-                      <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
-                      <SelectContent>
-                        {[...modulos]
-                          .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_wp || 0) - (a.potencia_wp || 0))
-                          .map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.fabricante} {cat.modelo}{cat.potencia_wp ? ` (${cat.potencia_wp}W)` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableEquipSelect
+                      value={m.selectedId}
+                      onValueChange={v => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, selectedId: v } : x))}
+                      options={[...modulos]
+                        .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_wp || 0) - (a.potencia_wp || 0))
+                        .map(cat => ({
+                          value: cat.id,
+                          label: `${cat.fabricante} ${cat.modelo}${cat.potencia_wp ? ` (${cat.potencia_wp}W)` : ""}`,
+                          searchText: `${cat.fabricante} ${cat.modelo} ${cat.potencia_wp || ""}`,
+                        }))}
+                      placeholder="Buscar módulo..."
+                      emptyText="Nenhum módulo encontrado"
+                      className="flex-1"
+                    />
                     <Input type="number" min="0" value={m.quantidade || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
                   </div>
                 )}
@@ -640,25 +683,20 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                   </>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Select value={inv.selectedId} onValueChange={v => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, selectedId: v } : x))}>
-                      <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
-                      <SelectContent>
-                        {filteredInversores.length > 0 ? (
-                          [...filteredInversores]
-                            .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_nominal_kw || 0) - (a.potencia_nominal_kw || 0))
-                            .map(cat => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.fabricante} {cat.modelo} ({(cat.potencia_nominal_kw || 0).toFixed(1)}kW)
-                              {cat.tipo && <span className="text-muted-foreground ml-1">• {cat.tipo}</span>}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 text-xs text-muted-foreground">
-                            Nenhum inversor encontrado para esta topologia/sistema
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <SearchableEquipSelect
+                      value={inv.selectedId}
+                      onValueChange={v => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, selectedId: v } : x))}
+                      options={filteredInversores.length > 0 ? [...filteredInversores]
+                        .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_nominal_kw || 0) - (a.potencia_nominal_kw || 0))
+                        .map(cat => ({
+                          value: cat.id,
+                          label: `${cat.fabricante} ${cat.modelo} (${(cat.potencia_nominal_kw || 0).toFixed(1)}kW)${cat.tipo ? ` • ${cat.tipo}` : ""}`,
+                          searchText: `${cat.fabricante} ${cat.modelo} ${(cat.potencia_nominal_kw || 0).toFixed(1)} ${cat.tipo || ""}`,
+                        })) : []}
+                      placeholder="Buscar inversor..."
+                      emptyText="Nenhum inversor encontrado para esta topologia/sistema"
+                      className="flex-1"
+                    />
                     <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
                   </div>
                 )}
@@ -710,22 +748,18 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Select value={ot.selectedId} onValueChange={v => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, selectedId: v } : x))}>
-                      <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione um otimizador" /></SelectTrigger>
-                      <SelectContent>
-                        {otimizadores.length > 0 ? (
-                          otimizadores.map(cat => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.fabricante} {cat.modelo} ({cat.potencia_wp || 0}W)
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 text-xs text-muted-foreground">
-                            Nenhum otimizador cadastrado
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <SearchableEquipSelect
+                      value={ot.selectedId}
+                      onValueChange={v => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, selectedId: v } : x))}
+                      options={otimizadores.map(cat => ({
+                        value: cat.id,
+                        label: `${cat.fabricante} ${cat.modelo} (${cat.potencia_wp || 0}W)`,
+                        searchText: `${cat.fabricante} ${cat.modelo} ${cat.potencia_wp || ""}`,
+                      }))}
+                      placeholder="Buscar otimizador..."
+                      emptyText="Nenhum otimizador cadastrado"
+                      className="flex-1"
+                    />
                     <Input type="number" min="0" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
                   </div>
                 )}
@@ -782,19 +816,21 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between pt-3 border-t border-border/30">
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => onOpenChange(false)}>
-              Voltar
+        </div>
+        </ScrollArea>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30 shrink-0">
+          <Button variant="ghost" size="sm" className="text-xs" onClick={() => onOpenChange(false)}>
+            Voltar
+          </Button>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
+              Potência: {potenciaTotal.toFixed(2)} kWp
+            </Badge>
+            <Button size="sm" className="text-xs h-8" onClick={handleSave}>
+              Salvar
             </Button>
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
-                Potência: {potenciaTotal.toFixed(2)} kWp
-              </Badge>
-              <Button size="sm" className="text-xs h-8" onClick={handleSave}>
-                Salvar
-              </Button>
-            </div>
           </div>
         </div>
       </DialogContent>
