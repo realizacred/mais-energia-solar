@@ -1,8 +1,25 @@
 /**
- * Expected Yield Service — SSOT for client-facing generation estimates.
- * Separates engineering PR from client-friendly "expected yield" metric.
+ * Expected Yield Service — SSOT for monitoring generation estimates.
  *
- * Expected Yield = capacity_kwp × HSP × expected_factor
+ * ┌─────────────────────────────────────────────────────────────────────┐
+ * │ DIFERENÇA ENTRE PR DA PROPOSTA E PR DO MONITORAMENTO              │
+ * │                                                                     │
+ * │ PROPOSTA (fatorGeracaoService):                                     │
+ * │   fatorGeracao = POA × 30 × (taxa_desempenho / 100)                │
+ * │   → taxa_desempenho já INCLUI todas as perdas (sombreamento,        │
+ * │     sujeira, clipping, cabeamento, mismatch, etc.)                  │
+ * │   → É um número simplificado para o cliente (ex: 69.8%)            │
+ * │                                                                     │
+ * │ MONITORAMENTO (este service):                                       │
+ * │   expected_kwh = kWp × HSP × days × expected_factor                 │
+ * │   expected_factor = (1-shading) × (1-soiling) × (1-other_losses)    │
+ * │   → Perdas são SEPARADAS para diagnóstico individual                │
+ * │   → Permite identificar qual perda está afetando mais               │
+ * │                                                                     │
+ * │ Para reconciliar: use reconcilePR() abaixo.                         │
+ * └─────────────────────────────────────────────────────────────────────┘
+ *
+ * Expected Yield = capacity_kwp × HSP × days × expected_factor
  * expected_factor = (1 - shading) × (1 - soiling) × (1 - other_losses)
  */
 
