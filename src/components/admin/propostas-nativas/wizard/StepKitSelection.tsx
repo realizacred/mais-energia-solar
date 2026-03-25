@@ -113,6 +113,14 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const manualKits = onManualKitsChange ? manualKitsProp : localManualKits;
   const setManualKits = onManualKitsChange || setLocalManualKits;
   const [editingKitIndex, setEditingKitIndex] = useState<number | null>(null);
+  const [selectedManualIdx, setSelectedManualIdx] = useState<number | null>(() => {
+    // If returning with itens already set from a manual kit, detect which one
+    if (manualKitsProp.length > 0 && itens.length > 0) {
+      const idx = manualKitsProp.findIndex(mk => mk.itens.length === itens.length && mk.itens.every((mi, i) => mi.modelo === itens[i]?.modelo));
+      return idx >= 0 ? idx : null;
+    }
+    return null;
+  });
   const [showEditKitFechado, setShowEditKitFechado] = useState(false);
   const [showEditLayout, setShowEditLayout] = useState(false);
   const [showPremissas, setShowPremissas] = useState(false);
@@ -233,8 +241,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     toast({ title: "Kit selecionado", description: `${kit.moduloPotenciaKwp.toFixed(2)} kWp • ${kit.topologia}` });
   };
 
-  const handleSelectManualKit = (entry: { card: KitCardData; itens: KitItemRow[] }) => {
+  const handleSelectManualKit = (entry: { card: KitCardData; itens: KitItemRow[] }, index: number) => {
     onItensChange(entry.itens);
+    setSelectedManualIdx(index);
     toast({ title: "Kit selecionado", description: `${entry.card.moduloPotenciaKwp.toFixed(2)} kWp` });
   };
 
