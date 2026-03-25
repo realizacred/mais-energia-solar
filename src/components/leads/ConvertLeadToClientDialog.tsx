@@ -563,7 +563,7 @@ export function ConvertLeadToClientDialog({
           : Promise.resolve({ error: null } as any),
       ]);
 
-      if (leadUpdateError && orcUpdateError) throw leadUpdateError;
+      if (leadUpdateError || orcUpdateError) throw leadUpdateError || orcUpdateError;
 
       toast({
         title: "Lead atualizado!",
@@ -1307,7 +1307,38 @@ export function ConvertLeadToClientDialog({
                       disabled={loading || savingAsLead}
                       onClick={async () => {
                         const valid = await form.trigger();
-                        if (!valid) return;
+                        if (!valid) {
+                          // Find which step has errors and navigate there
+                          const errors = form.formState.errors;
+                          const step0Fields = ["nome", "telefone", "email", "cpf_cnpj", "cep", "estado", "cidade", "bairro", "rua", "numero", "complemento"] as const;
+                          const step1Fields = ["disjuntor_id", "transformador_id", "localizacao"] as const;
+                          
+                          const hasStep0Error = step0Fields.some(f => f in errors);
+                          const hasStep1Error = step1Fields.some(f => f in errors);
+                          
+                          if (hasStep0Error) {
+                            setCurrentStep(0);
+                            toast({
+                              title: "Dados incompletos",
+                              description: "Preencha os campos obrigatórios na etapa de Dados Pessoais.",
+                              variant: "destructive",
+                            });
+                          } else if (hasStep1Error) {
+                            setCurrentStep(1);
+                            toast({
+                              title: "Dados incompletos",
+                              description: "Preencha os campos obrigatórios na etapa Técnico & Docs.",
+                              variant: "destructive",
+                            });
+                          } else {
+                            toast({
+                              title: "Dados incompletos",
+                              description: "Verifique os campos obrigatórios em todas as etapas.",
+                              variant: "destructive",
+                            });
+                          }
+                          return;
+                        }
                         const data = form.getValues();
                         handleSubmit(data);
                       }}
