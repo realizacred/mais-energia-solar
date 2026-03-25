@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useNavigate } from "react-router-dom";
 import { ProposalSnapshotView } from "@/components/admin/propostas-nativas/ProposalSnapshotView";
-import { ProposalSnapshotView } from "@/components/admin/propostas-nativas/ProposalSnapshotView";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
