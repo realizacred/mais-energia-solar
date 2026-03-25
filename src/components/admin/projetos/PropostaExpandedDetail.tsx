@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useNavigate } from "react-router-dom";
-import { normalizeProposalSnapshot, type NormalizedProposalSnapshot } from "@/domain/proposal/normalizeProposalSnapshot";
+import { ProposalSnapshotView } from "@/components/admin/propostas-nativas/ProposalSnapshotView";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
@@ -433,194 +433,8 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   );
 }
 
-function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, publicUrl, validadeDate, handleRender, handleDownloadPdf, handleSend, copyPublicLink, copyTrackedLink, pdfSignedUrl, pdfLoading, pdfError }: {
-  snapshot: SnapshotData | null;
-  html: string | null;
-  rendering: boolean;
-  downloadingPdf: boolean;
-  sending: boolean;
-  publicUrl: string | null;
-  validadeDate: string | null;
-  handleRender: () => void;
-  handleDownloadPdf: () => void;
-  handleSend: (canal: "link" | "whatsapp") => void;
-  copyPublicLink: () => void;
-  copyTrackedLink: () => void;
-  pdfSignedUrl: string | null;
-  pdfLoading: boolean;
-  pdfError: boolean;
-}) {
-  // Priority: persisted PDF > runtime HTML > empty state
-  const hasPdf = !!pdfSignedUrl;
-  const hasHtml = !!html;
-  const hasContent = hasPdf || hasHtml;
-
-  return (
-    <>
-      <div className="flex gap-5 mt-3">
-        <div className="w-[220px] shrink-0 space-y-3">
-          <p className="text-sm font-bold text-foreground">Opções</p>
-          <Button size="sm" className="w-full justify-start gap-2 h-8 text-xs" onClick={handleRender} disabled={rendering}>
-            {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            {hasPdf ? "Gerar novo arquivo" : "Gerar arquivo"}
-          </Button>
-          <div className="space-y-1">
-            <Button variant="link" onClick={handleDownloadPdf} disabled={!hasPdf || downloadingPdf} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
-              <FileText className="h-3.5 w-3.5" />
-              {downloadingPdf ? "Baixando..." : "Baixar PDF"}
-            </Button>
-            <Button variant="link" onClick={copyTrackedLink} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
-              <Link2 className="h-3.5 w-3.5" /> Copiar link rastreável
-            </Button>
-            <Button variant="link" onClick={copyPublicLink} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
-              <Link2 className="h-3.5 w-3.5" /> Copiar link público
-            </Button>
-            {validadeDate && (
-              <div className="flex items-center gap-2 text-xs text-primary py-1">
-                <CalendarCheck className="h-3.5 w-3.5" /> Validade: {validadeDate}
-              </div>
-            )}
-          </div>
-          <div className="space-y-2 pt-1">
-            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-success text-success hover:bg-success/10" onClick={() => handleSend("whatsapp")} disabled={sending || !hasContent}>
-              <MessageCircle className="h-3.5 w-3.5" /> Enviar por whatsapp
-            </Button>
-            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-primary text-primary hover:bg-primary/10" disabled={!hasContent}>
-              <Mail className="h-3.5 w-3.5" /> Enviar por e-mail
-            </Button>
-          </div>
-        </div>
-        <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-muted/20">
-          {pdfLoading ? (
-            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin mb-3 text-primary" />
-              <p className="text-sm font-medium">Carregando PDF...</p>
-            </div>
-          ) : hasPdf ? (
-            <iframe src={pdfSignedUrl!} className="w-full h-[500px] border-0" title="Preview do PDF" />
-          ) : hasHtml ? (
-            <iframe srcDoc={html!} className="w-full h-[500px] border-0" title="Preview da proposta" sandbox="allow-same-origin" />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
-              <FileText className="h-10 w-10 opacity-20 mb-3" />
-              <p className="text-sm font-medium">Nenhum arquivo gerado</p>
-              <p className="text-xs mt-1">Clique em "Gerar arquivo" para criar o PDF da proposta</p>
-              <Button size="sm" variant="outline" className="mt-3 gap-1.5 text-xs" onClick={handleRender} disabled={rendering}>
-                {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                Gerar arquivo
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
-
-function NativeDadosTab({ snapshot, latestVersao }: { snapshot: SnapshotData | null; latestVersao: VersaoData | undefined }) {
-  // §33: ALWAYS normalize snapshot before rendering — never read raw snapshot directly
-  const norm = normalizeProposalSnapshot(snapshot as Record<string, unknown> | null);
-  const s = snapshot as any;
-
-  // Pre-dimensionamento: wizard uses preDimensionamento{}, engine puts data in ucs[0]
-  const pre = s?.preDimensionamento || {};
-  const uc0 = norm.ucs[0];
-  const telhado = norm.locTipoTelhado || "—";
-  const sistema = pre.sistema || "—";
-  const topologias = pre.topologias?.join?.(", ") || "—";
-  const inclinacao = uc0?.inclinacao ?? pre.inclinacao;
-  const desvioAzimutal = uc0?.desvio_azimutal ?? pre.desvio_azimutal;
-  const sombreamento = pre.sombreamento || "—";
-  const fatorGeracao = pre.fator_geracao || "—";
-  const desempenho = uc0?.taxa_desempenho ?? pre.desempenho;
-
-  // Adicionais & custom fields from raw (not in normalized)
-  const adicionais = s?.adicionais || [];
-  const customFields = s?.customFieldValues || s?.variaveis_custom || {};
-
-  // Helper: safely render a value, preventing [object Object]
-  const safeStr = (val: unknown): string => {
-    if (val === null || val === undefined) return "—";
-    if (typeof val === "object") {
-      try { return JSON.stringify(val); } catch { return "—"; }
-    }
-    return String(val) || "—";
-  };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-3">
-      {/* Pré dimensionamento */}
-      <div className="border rounded-lg p-4 space-y-4">
-        <h4 className="text-sm font-bold text-foreground">Pré dimensionamento</h4>
-        <div className="space-y-3">
-          <DadosField icon="check" label="Telhado" value={telhado} />
-          <DadosField icon="text" label="Topologia" value={topologias} />
-          <DadosField icon="text" label="Sistema" value={sistema} />
-          <DadosField icon="text" label="Inclinação" value={inclinacao != null ? `${inclinacao}°` : "—"} />
-          <DadosField icon="text" label="Desvio Azimutal" value={desvioAzimutal != null ? `${desvioAzimutal}°` : "—"} />
-          <DadosField icon="text" label="Sombreamento" value={sombreamento} />
-          <DadosField icon="text" label="Fator de Geração" value={fatorGeracao !== "—" ? `${fatorGeracao}` : "—"} />
-          <DadosField icon="text" label="Desempenho" value={desempenho != null ? `${desempenho}%` : "—"} />
-        </div>
-      </div>
-
-      {/* Pós dimensionamento */}
-      <div className="border rounded-lg p-4 space-y-4">
-        <h4 className="text-sm font-bold text-foreground">Pós dimensionamento</h4>
-        <div className="space-y-3">
-           <DadosField icon="dollar" label="Margem" value={norm.venda.margem_percentual ? `${formatNumberBR(norm.venda.margem_percentual)}%` : "—"} />
-           <DadosField icon="dollar" label="Desconto" value={norm.venda.desconto_percentual ? `${formatNumberBR(norm.venda.desconto_percentual)}%` : "—"} />
-          <DadosField icon="text" label="Observações" value={norm.venda.observacoes || "—"} />
-          {Object.entries(customFields).map(([key, val]) => (
-            <DadosField key={key} icon="text" label={key} value={safeStr(val)} />
-          ))}
-          {adicionais.map((add: any, i: number) => (
-            <DadosField key={i} icon="check" label={add.descricao || add.nome || `Adicional ${i + 1}`} value={add.valor ? formatBRL(add.valor) : add.incluso ? "Grátis" : "—"} />
-          ))}
-        </div>
-      </div>
-
-      {/* Serviços */}
-      <div className="border rounded-lg p-4 space-y-4">
-        <h4 className="text-sm font-bold text-foreground">Serviços</h4>
-        {norm.servicos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-            <AlertCircle className="h-8 w-8 text-warning/50 mb-2" />
-            <p className="text-xs">Nenhum serviço selecionado</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {norm.servicos.map((sv, i) => (
-              <DadosField key={i} icon="check" label={sv.descricao || `Serviço ${i + 1}`} value={sv.valor ? formatBRL(sv.valor) : sv.incluso_no_preco ? "Incluso" : "—"} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Formas de pagamento */}
-      <div className="border rounded-lg p-4 space-y-4">
-        <h4 className="text-sm font-bold text-foreground">Formas de pagamento</h4>
-        <div className="pb-3 border-b border-border/30">
-          <p className="text-xs font-bold text-primary">À vista</p>
-          <p className="text-sm font-bold text-foreground">{formatBRL(latestVersao?.valor_total || 0)}</p>
-        </div>
-        {norm.pagamentoOpcoes.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Sem opções de financiamento</p>
-        ) : (
-          norm.pagamentoOpcoes.map((op, i) => (
-            <div key={i} className="pb-3 border-b border-border/30 last:border-0 space-y-0.5">
-              <p className="text-xs font-bold text-primary">{op.nome || `Opção ${i + 1}`}</p>
-              {op.valor_parcela > 0 && <p className="text-[11px] text-muted-foreground">Valor da parcela: <span className="text-foreground font-medium">{formatBRL(op.valor_parcela)}</span></p>}
-              {op.num_parcelas > 0 && <p className="text-[11px] text-muted-foreground">Parcelas: <span className="text-foreground font-medium">{op.num_parcelas}x</span></p>}
-              {op.carencia_meses > 0 && <p className="text-[11px] text-muted-foreground">Carência: <span className="text-foreground font-medium">{op.carencia_meses} meses</span></p>}
-              {op.taxa_mensal > 0 && <p className="text-[11px] text-muted-foreground">Taxa: <span className="text-foreground font-medium">{(op.taxa_mensal * 100).toFixed(2)}% a.m.</span></p>}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
+// NativeArquivoTab and NativeDadosTab REMOVED — replaced by ProposalSnapshotView (SSOT)
+// PDF viewer is inlined directly in the tab content below.
 
 // ─── Main Component ──────────────────────────────────
 interface Props {
@@ -1314,31 +1128,81 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     {(snapshot as any)?.source === "legacy_import" ? (
                       <SmArquivoTab snapshot={snapshot as any} />
                     ) : (
-                      <NativeArquivoTab
-                        snapshot={snapshot}
-                        html={html}
-                        rendering={rendering}
-                        downloadingPdf={downloadingPdf}
-                        sending={sending}
-                        publicUrl={publicUrl}
-                        validadeDate={validadeDate}
-                        handleRender={handleRender}
-                        handleDownloadPdf={handleDownloadPdf}
-                        handleSend={handleSend}
-                        copyPublicLink={copyPublicLink}
-                        copyTrackedLink={copyTrackedLink}
-                        pdfSignedUrl={pdfSignedUrl}
-                        pdfLoading={pdfLoading}
-                        pdfError={pdfError}
-                      />
+                      <div className="flex gap-5 mt-3">
+                        {/* Left: Actions sidebar */}
+                        <div className="w-[220px] shrink-0 space-y-3">
+                          <p className="text-sm font-bold text-foreground">Opções</p>
+                          <Button size="sm" className="w-full justify-start gap-2 h-8 text-xs" onClick={handleRender} disabled={rendering}>
+                            {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                            {pdfSignedUrl ? "Gerar novo arquivo" : "Gerar arquivo"}
+                          </Button>
+                          <div className="space-y-1">
+                            <Button variant="link" onClick={handleDownloadPdf} disabled={!pdfSignedUrl || downloadingPdf} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
+                              <FileText className="h-3.5 w-3.5" />
+                              {downloadingPdf ? "Baixando..." : "Baixar PDF"}
+                            </Button>
+                            <Button variant="link" onClick={copyTrackedLink} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
+                              <Link2 className="h-3.5 w-3.5" /> Copiar link rastreável
+                            </Button>
+                            <Button variant="link" onClick={copyPublicLink} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
+                              <Link2 className="h-3.5 w-3.5" /> Copiar link público
+                            </Button>
+                            {validadeDate && (
+                              <div className="flex items-center gap-2 text-xs text-primary py-1">
+                                <CalendarCheck className="h-3.5 w-3.5" /> Validade: {validadeDate}
+                              </div>
+                            )}
+                          </div>
+                          <div className="space-y-2 pt-1">
+                            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-success text-success hover:bg-success/10" onClick={() => handleSend("whatsapp")} disabled={sending || (!pdfSignedUrl && !html)}>
+                              <MessageCircle className="h-3.5 w-3.5" /> Enviar por whatsapp
+                            </Button>
+                            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-primary text-primary hover:bg-primary/10" disabled={!pdfSignedUrl && !html}>
+                              <Mail className="h-3.5 w-3.5" /> Enviar por e-mail
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Right: PDF preview */}
+                        <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-muted/20">
+                          {pdfLoading ? (
+                            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
+                              <Loader2 className="h-6 w-6 animate-spin mb-3 text-primary" />
+                              <p className="text-sm font-medium">Carregando PDF...</p>
+                            </div>
+                          ) : pdfSignedUrl ? (
+                            <iframe src={pdfSignedUrl} className="w-full h-[500px] border-0" title="Preview do PDF" />
+                          ) : html ? (
+                            <iframe srcDoc={html} className="w-full h-[500px] border-0" title="Preview da proposta" sandbox="allow-same-origin" />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
+                              <FileText className="h-10 w-10 opacity-20 mb-3" />
+                              <p className="text-sm font-medium">Nenhum arquivo gerado</p>
+                              <p className="text-xs mt-1">Clique em "Gerar arquivo" para criar o PDF da proposta</p>
+                              <Button size="sm" variant="outline" className="mt-3 gap-1.5 text-xs" onClick={handleRender} disabled={rendering}>
+                                {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                                Gerar arquivo
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </TabsContent>
 
+                  {/* ─ Dados Tab — unified via ProposalSnapshotView (SSOT) ─ */}
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
                     {(snapshot as any)?.source === "legacy_import" ? (
                       <SmDadosTab snapshot={snapshot as any} latestVersao={latestVersao} />
                     ) : (
-                      <NativeDadosTab snapshot={snapshot} latestVersao={latestVersao} />
+                      <div className="mt-3">
+                        <ProposalSnapshotView
+                          snapshot={snapshot as Record<string, unknown> | null}
+                          valorTotal={latestVersao?.valor_total}
+                          geracaoMensal={latestVersao?.geracao_mensal ?? undefined}
+                          economiaMensal={latestVersao?.economia_mensal ?? undefined}
+                        />
+                      </div>
                     )}
                   </TabsContent>
 
