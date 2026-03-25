@@ -439,13 +439,13 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                 onClick={() => setTarifaDialogOpen(true)}
                 className="text-[10px] text-secondary hover:underline inline-flex items-center gap-0.5"
               >
-                Tarifa: R${uc.tarifa_distribuidora.toFixed(5).replace(".", ",")} <Pencil className="h-2.5 w-2.5" />
+                Tarifa: R${(Number(uc.tarifa_distribuidora) || 0).toFixed(5).replace(".", ",")} <Pencil className="h-2.5 w-2.5" />
               </button>
               <button
                 onClick={() => setTarifaDialogOpen(true)}
                 className="text-[10px] text-secondary hover:underline inline-flex items-center gap-0.5"
               >
-                {isGD3 ? "Tarifação" : "FioB"}: R${(isGD3 ? (uc.tarifa_tarifacao_fp || 0) : uc.tarifa_fio_b).toFixed(5).replace(".", ",")} <Pencil className="h-2.5 w-2.5" />
+                {isGD3 ? "Tarifação" : "FioB"}: R${(isGD3 ? (Number(uc.tarifa_tarifacao_fp) || 0) : (Number(uc.tarifa_fio_b) || 0)).toFixed(5).replace(".", ",")} <Pencil className="h-2.5 w-2.5" />
               </button>
             </div>
           </Section>

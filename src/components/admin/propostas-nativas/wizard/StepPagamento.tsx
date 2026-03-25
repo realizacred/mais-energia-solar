@@ -398,7 +398,7 @@ export function StepPagamento({
             <DollarSign className="h-4 w-4 text-success" />
             <span className="text-muted-foreground">Economia:</span>
             <span className="font-bold text-success">{formatBRL(economiaMensal)}</span>
-            <Badge className="text-[10px] h-5 px-1.5 bg-success/10 text-success border border-success/30">{economiaPercent.toFixed(2)}%</Badge>
+            <Badge className="text-[10px] h-5 px-1.5 bg-success/10 text-success border border-success/30">{(Number(economiaPercent) || 0).toFixed(2)}%</Badge>
             <Button variant="link" size="sm" onClick={() => setShowGastosModal(true)} className="text-primary text-xs p-0 h-auto hover:opacity-80">Ver mais</Button>
           </div>
           <div className="flex items-center gap-1.5">
@@ -464,7 +464,7 @@ export function StepPagamento({
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Taxa</Label>
-                    <p className="font-semibold mt-0.5">{op.taxa_mensal.toFixed(2)}%</p>
+                    <p className="font-semibold mt-0.5">{(Number(op.taxa_mensal) || 0).toFixed(2)}%</p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Carência</Label>
@@ -845,7 +845,7 @@ function FluxoCaixaModal({ open, onClose, paybackInfo }: {
           <div className="flex items-center gap-2 text-sm">
             <TrendingUp className="h-4 w-4 text-warning" />
             <span className="text-muted-foreground">Taxa Interna de Retorno:</span>
-            <span className="font-bold text-warning">{paybackInfo.tir.toFixed(2)}%</span>
+            <span className="font-bold text-warning">{(Number(paybackInfo.tir) || 0).toFixed(2)}%</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <DollarSign className="h-4 w-4 text-success" />
