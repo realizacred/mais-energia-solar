@@ -46,49 +46,45 @@ export interface HotProposal {
 }
 
 export function useProposalFunnel(days = 30) {
-  const { profile } = useAuth();
-  const tenantId = profile?.tenant_id;
+  const { user } = useAuth();
 
   const metrics = useQuery({
-    queryKey: ["proposal-funnel-metrics", tenantId, days],
+    queryKey: ["proposal-funnel-metrics", days],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_proposal_funnel_metrics" as any, {
-        p_tenant_id: tenantId,
         p_days: days,
       });
       if (error) throw error;
       return data as FunnelMetrics;
     },
     staleTime: STALE_TIME,
-    enabled: !!tenantId,
+    enabled: !!user,
   });
 
   const vendors = useQuery({
-    queryKey: ["proposal-vendors", tenantId, days],
+    queryKey: ["proposal-vendors", days],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_proposals_by_vendor" as any, {
-        p_tenant_id: tenantId,
         p_days: days,
       });
       if (error) throw error;
       return (data || []) as VendorMetrics[];
     },
     staleTime: STALE_TIME,
-    enabled: !!tenantId,
+    enabled: !!user,
   });
 
   const hotProposals = useQuery({
-    queryKey: ["proposal-hot", tenantId],
+    queryKey: ["proposal-hot"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_hot_proposals" as any, {
-        p_tenant_id: tenantId,
         p_limit: 10,
       });
       if (error) throw error;
       return (data || []) as HotProposal[];
     },
     staleTime: STALE_TIME,
-    enabled: !!tenantId,
+    enabled: !!user,
   });
 
   return { metrics, vendors, hotProposals };
