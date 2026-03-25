@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { formatIntegerBR } from "@/lib/formatters";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Info, CheckCircle2, AlertTriangle, Sun, Gauge, RefreshCw, DollarSign } from "lucide-react";
+import { Info, CheckCircle2, AlertTriangle, Sun, Gauge, RefreshCw, DollarSign, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
@@ -181,6 +181,81 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
           <div />
         </div>
       </SectionCard>
+
+      {/* Perdas do sistema (monitoramento) */}
+      <SectionCard icon={ShieldAlert} title="Perdas do sistema (monitoramento)" variant="neutral">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <NumField
+            label="Sombreamento"
+            suffix="%"
+            value={premises.shading_loss_percent ?? 8}
+            step="0.1"
+            tooltip="Perdas por sombreamento parcial dos módulos"
+            onChange={(v) => set("shading_loss_percent", Math.min(50, Math.max(0, v)))}
+          />
+          <NumField
+            label="Sujeira"
+            suffix="%"
+            value={premises.soiling_loss_percent ?? 5}
+            step="0.1"
+            tooltip="Perdas por acúmulo de poeira e sujeira nos módulos"
+            onChange={(v) => set("soiling_loss_percent", Math.min(30, Math.max(0, v)))}
+          />
+          <NumField
+            label="Outras perdas"
+            suffix="%"
+            value={premises.other_losses_percent ?? 12}
+            step="0.1"
+            tooltip="Perdas elétricas, temperatura, cabeamento e conexões"
+            onChange={(v) => set("other_losses_percent", Math.min(30, Math.max(0, v)))}
+          />
+        </div>
+
+        <TotalPerdasDisplay
+          shading={premises.shading_loss_percent ?? 8}
+          soiling={premises.soiling_loss_percent ?? 5}
+          other={premises.other_losses_percent ?? 12}
+        />
+
+        <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground mt-3">
+          <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <span>
+            Estas perdas são usadas no comparativo de desempenho das usinas no monitoramento.
+            O fator de geração das propostas já inclui estas perdas no percentual de desempenho configurado acima.
+          </span>
+        </p>
+      </SectionCard>
+    </div>
+  );
+}
+
+function TotalPerdasDisplay({ shading, soiling, other }: { shading: number; soiling: number; other: number }) {
+  const total = useMemo(() => {
+    const combined = 1 - (1 - shading / 100) * (1 - soiling / 100) * (1 - other / 100);
+    return Math.round(combined * 1000) / 10;
+  }, [shading, soiling, other]);
+
+  const variant = total < 20 ? "success" : total <= 35 ? "warning" : "destructive";
+  const label = total < 20 ? "Perdas normais" : total <= 35 ? "Perdas altas — revise o sistema" : "Perdas muito altas";
+
+  return (
+    <div className="flex items-center gap-3 mt-4 p-3 rounded-lg bg-muted/50 border border-border">
+      <div className="space-y-0.5">
+        <p className="text-xs font-medium text-muted-foreground">Total de perdas combinadas</p>
+        <p className="text-lg font-bold text-foreground">{total.toFixed(1)}%</p>
+      </div>
+      <Badge
+        variant="outline"
+        className={
+          variant === "success"
+            ? "bg-success/10 text-success border-success/30"
+            : variant === "warning"
+            ? "bg-warning/10 text-warning border-warning/30"
+            : "bg-destructive/10 text-destructive border-destructive/30"
+        }
+      >
+        {label}
+      </Badge>
     </div>
   );
 }

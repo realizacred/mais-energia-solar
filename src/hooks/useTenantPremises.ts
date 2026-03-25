@@ -61,6 +61,10 @@ export interface TenantPremises {
   fornecedor_filtro: string;
   // Sombreamento config
   sombreamento_config: SombreamentoConfig;
+  // Monitoring losses
+  shading_loss_percent: number;
+  soiling_loss_percent: number;
+  other_losses_percent: number;
   // Solar Brain fields (calculadora pública)
   percentual_economia: number;
   vida_util_sistema: number;
@@ -137,6 +141,10 @@ export const PREMISES_DEFAULTS: TenantPremises = {
   dod: 80.00,
   fornecedor_filtro: "escolher",
   sombreamento_config: { ...DEFAULT_SOMBREAMENTO_CONFIG },
+  // Monitoring losses
+  shading_loss_percent: 8,
+  soiling_loss_percent: 5,
+  other_losses_percent: 12,
   // Solar Brain fields
   percentual_economia: 90,
   vida_util_sistema: 25,
