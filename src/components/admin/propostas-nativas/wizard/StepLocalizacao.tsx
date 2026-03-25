@@ -131,6 +131,7 @@ export function StepLocalizacao({
   // ── Company location for distance calculation ──
   const companyCoords = useRef<{ lat: number; lon: number } | null>(null);
   const companyGeocodedFor = useRef<string>("");
+  const [companyReady, setCompanyReady] = useState(false);
 
   // Fetch and geocode tenant location on mount
   useEffect(() => {
@@ -204,13 +205,8 @@ export function StepLocalizacao({
 
         if (lat !== null && lon !== null) {
           companyCoords.current = { lat, lon };
+          setCompanyReady(true);
           console.info("[StepLocalizacao] Tenant geocoded:", { lat, lon, cidade: tenant.cidade });
-          // If we already have client coords, calc distance now
-          if (geoLat != null && geoLon != null) {
-            roadDistanceKm(lat, lon, geoLat, geoLon).then(d => {
-              onDistanciaKmChange?.(Math.round(d * 10) / 10);
-            });
-          }
         } else {
           console.warn("[StepLocalizacao] Could not geocode tenant location:", addressQuery);
         }
@@ -220,13 +216,13 @@ export function StepLocalizacao({
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-calculate distance when client coords change
+  // Auto-calculate distance when client coords or company coords become available
   useEffect(() => {
     if (geoLat == null || geoLon == null || !companyCoords.current) return;
     roadDistanceKm(companyCoords.current.lat, companyCoords.current.lon, geoLat, geoLon).then(d => {
       onDistanciaKmChange?.(Math.round(d * 10) / 10);
     });
-  }, [geoLat, geoLon]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [geoLat, geoLon, companyReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync address coords → geoLat/geoLon
   useEffect(() => {
