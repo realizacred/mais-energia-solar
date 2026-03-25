@@ -147,11 +147,13 @@ function normalizeGrupo(g: string | null | undefined): string | null {
   return null;
 }
 
+const SNAPSHOT_SCHEMA_VERSION = 2;
+
 function sanitizeSnapshot(snapshot: any): Record<string, unknown> {
   if (!snapshot) return snapshot;
    
   const { mapSnapshots, ...rest } = snapshot;
-  return { ...rest, grupo: normalizeGrupo(rest.grupo) };
+  return { ...rest, grupo: normalizeGrupo(rest.grupo), schema_version: SNAPSHOT_SCHEMA_VERSION };
 }
 
 function buildIntentKey(params: PersistenceParams, intent: SaveIntent): string {

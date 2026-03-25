@@ -3,6 +3,7 @@
  * 
  * Backend-driven status transitions for proposals.
  * Handles: status update, commission generation/cancellation, state validation.
+ * Includes: idempotency checks, event logging, transactional consistency.
  * Frontend MUST NOT handle commission logic anymore.
  */
 
@@ -62,6 +63,8 @@ Deno.serve(async (req) => {
       });
     }
 
+    const userId = claimsData.claims.sub as string;
+
     const body = await req.json();
     const { proposta_id, new_status, motivo, data: transitionDate } = body;
 
@@ -77,7 +80,7 @@ Deno.serve(async (req) => {
     // 1. Load current proposta
     const { data: proposta, error: pErr } = await admin
       .from("propostas_nativas")
-      .select("id, status, lead_id, cliente_id, projeto_id")
+      .select("id, status, lead_id, cliente_id, projeto_id, tenant_id")
       .eq("id", proposta_id)
       .single();
 
@@ -98,6 +101,29 @@ Deno.serve(async (req) => {
         }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // 2b. Idempotency check — prevent duplicate terminal transitions
+    if (["aceita", "recusada", "cancelada"].includes(new_status)) {
+      const { data: existingEvent } = await admin
+        .from("proposal_events")
+        .select("id")
+        .eq("proposta_id", proposta_id)
+        .eq("tipo", new_status)
+        .maybeSingle();
+
+      if (existingEvent) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            idempotent: true,
+            message: `Transição '${new_status}' já registrada anteriormente`,
+            previous_status: currentStatus,
+            new_status,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // 3. Build update payload
@@ -132,66 +158,78 @@ Deno.serve(async (req) => {
 
     let commission_pct: number | null = null;
 
-    // 5. Commission on accept
+    // 5. Commission on accept (with idempotency — check for existing commission)
     if (new_status === "aceita") {
       try {
-        // Find versão to get valor_total and potencia_kwp
-        const { data: versao } = await admin
-          .from("proposta_versoes")
-          .select("potencia_kwp, valor_total")
-          .eq("proposta_id", proposta_id)
-          .order("versao_numero", { ascending: false })
-          .limit(1)
-          .single();
+        // Check if commission already exists for this proposal
+        const { data: existingComm } = await admin
+          .from("comissoes")
+          .select("id")
+          .eq("projeto_id", proposta.projeto_id)
+          .neq("status", "cancelada")
+          .maybeSingle();
 
-        const valorTotal = versao?.valor_total || 0;
-        const potenciaKwp = versao?.potencia_kwp || 0;
-
-        if (proposta.lead_id && valorTotal > 0) {
-          const { data: lead } = await admin
-            .from("leads")
-            .select("consultor_id")
-            .eq("id", proposta.lead_id)
+        if (!existingComm) {
+          // Find versão to get valor_total and potencia_kwp
+          const { data: versao } = await admin
+            .from("proposta_versoes")
+            .select("potencia_kwp, valor_total")
+            .eq("proposta_id", proposta_id)
+            .order("versao_numero", { ascending: false })
+            .limit(1)
             .single();
 
-          const consultorId = lead?.consultor_id;
-          if (consultorId) {
-            const { data: plan } = await admin
-              .from("commission_plans")
-              .select("parameters")
-              .eq("is_active", true)
-              .limit(1)
-              .maybeSingle();
+          const valorTotal = versao?.valor_total || 0;
+          const potenciaKwp = versao?.potencia_kwp || 0;
 
-            const percentual = (plan?.parameters as any)?.percentual ?? 5;
+          if (proposta.lead_id && valorTotal > 0) {
+            const { data: lead } = await admin
+              .from("leads")
+              .select("consultor_id")
+              .eq("id", proposta.lead_id)
+              .single();
 
-            // Get cliente nome for description
-            let clienteNome = "Cliente";
-            if (proposta.cliente_id) {
-              const { data: cl } = await admin
-                .from("clientes")
-                .select("nome")
-                .eq("id", proposta.cliente_id)
-                .single();
-              clienteNome = cl?.nome || clienteNome;
+            const consultorId = lead?.consultor_id;
+            if (consultorId) {
+              const { data: plan } = await admin
+                .from("commission_plans")
+                .select("parameters")
+                .eq("is_active", true)
+                .limit(1)
+                .maybeSingle();
+
+              const percentual = (plan?.parameters as any)?.percentual ?? 5;
+
+              // Get cliente nome for description
+              let clienteNome = "Cliente";
+              if (proposta.cliente_id) {
+                const { data: cl } = await admin
+                  .from("clientes")
+                  .select("nome")
+                  .eq("id", proposta.cliente_id)
+                  .single();
+                clienteNome = cl?.nome || clienteNome;
+              }
+
+              const dtNow = new Date();
+              await admin.from("comissoes").insert({
+                consultor_id: consultorId,
+                cliente_id: proposta.cliente_id,
+                projeto_id: proposta.projeto_id || null,
+                descricao: `Proposta aceita - ${clienteNome} (${potenciaKwp}kWp)`,
+                valor_base: valorTotal,
+                percentual_comissao: percentual,
+                valor_comissao: (valorTotal * percentual) / 100,
+                mes_referencia: dtNow.getMonth() + 1,
+                ano_referencia: dtNow.getFullYear(),
+                status: "pendente",
+              });
+
+              commission_pct = percentual;
             }
-
-            const dtNow = new Date();
-            await admin.from("comissoes").insert({
-              consultor_id: consultorId,
-              cliente_id: proposta.cliente_id,
-              projeto_id: proposta.projeto_id || null,
-              descricao: `Proposta aceita - ${clienteNome} (${potenciaKwp}kWp)`,
-              valor_base: valorTotal,
-              percentual_comissao: percentual,
-              valor_comissao: (valorTotal * percentual) / 100,
-              mes_referencia: dtNow.getMonth() + 1,
-              ano_referencia: dtNow.getFullYear(),
-              status: "pendente",
-            });
-
-            commission_pct = percentual;
           }
+        } else {
+          console.log("Commission already exists for projeto, skipping (idempotent)");
         }
       } catch (commErr) {
         console.error("Erro ao gerar comissão:", commErr);
@@ -206,6 +244,26 @@ Deno.serve(async (req) => {
         .update({ status: "cancelada", observacoes: `Proposta ${new_status}` })
         .eq("projeto_id", proposta.projeto_id)
         .eq("status", "pendente");
+    }
+
+    // 7. Log event in proposal_events
+    try {
+      await admin.from("proposal_events").insert({
+        proposta_id: proposta_id,
+        tipo: new_status,
+        payload: {
+          previous_status: currentStatus,
+          new_status,
+          motivo: motivo || null,
+          commission_pct,
+          transition_date: transitionDate || now,
+        },
+        user_id: userId,
+        tenant_id: proposta.tenant_id,
+      });
+    } catch (evtErr) {
+      console.error("Erro ao registrar evento:", evtErr);
+      // Non-blocking — transition already succeeded
     }
 
     return new Response(

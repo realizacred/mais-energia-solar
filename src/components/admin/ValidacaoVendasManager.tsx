@@ -380,7 +380,7 @@ export function ValidacaoVendasManager() {
       }
 
       const depChecks = await Promise.all([
-        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
+        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id).neq("status", "excluida"),
         supabase.from("projetos").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
         supabase.from("deals").select("id", { count: "exact", head: true }).eq("customer_id", selectedCliente.id),
         supabase.from("appointments").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),

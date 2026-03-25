@@ -100,7 +100,7 @@ export function useCheckClienteDependencies() {
   return useMutation({
     mutationFn: async (clienteId: string) => {
       const depChecks = await Promise.all([
-        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", clienteId),
+        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", clienteId).neq("status", "excluida"),
         supabase.from("projetos").select("id", { count: "exact", head: true }).eq("cliente_id", clienteId),
         supabase.from("deals").select("id", { count: "exact", head: true }).eq("customer_id", clienteId),
         supabase.from("comissoes").select("id", { count: "exact", head: true }).eq("cliente_id", clienteId),

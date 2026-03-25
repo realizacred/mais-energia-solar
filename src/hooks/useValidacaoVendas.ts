@@ -137,7 +137,7 @@ export function useRejectVenda() {
 
       // Check dependencies
       const depChecks = await Promise.all([
-        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", params.clienteId),
+        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", params.clienteId).neq("status", "excluida"),
         supabase.from("projetos").select("id", { count: "exact", head: true }).eq("cliente_id", params.clienteId),
         supabase.from("deals").select("id", { count: "exact", head: true }).eq("customer_id", params.clienteId),
         supabase.from("appointments").select("id", { count: "exact", head: true }).eq("cliente_id", params.clienteId),
