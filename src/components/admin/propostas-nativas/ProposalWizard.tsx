@@ -2027,7 +2027,7 @@ export function ProposalWizard() {
                 <Zap className="h-3.5 w-3.5 text-primary" />
                 <div className="text-right">
                   <p className="text-[9px] text-muted-foreground leading-none">Potência Total</p>
-                  <p className="text-xs font-bold text-foreground">{potenciaKwp.toFixed(2)} kWp</p>
+                  <p className="text-xs font-bold text-foreground">{(Number(potenciaKwp) || 0).toFixed(2)} kWp</p>
                 </div>
               </div>
             )}
@@ -2049,7 +2049,7 @@ export function ProposalWizard() {
                     {formatBRL(precoFinal)}{" "}
                     {potenciaKwp > 0 && (
                       <span className="text-[9px] font-normal text-muted-foreground">
-                        R$ {(precoFinal / potenciaKwp / 1000).toFixed(2)}/Wp
+                        R$ {((Number(precoFinal) || 0) / (Number(potenciaKwp) || 1) / 1000).toFixed(2)}/Wp
                       </span>
                     )}
                   </p>

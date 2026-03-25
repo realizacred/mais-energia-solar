@@ -131,7 +131,7 @@ export function DialogPosDimensionamento({
                 </div>
                 <div className="flex items-center gap-2">
                   <Zap className="h-3.5 w-3.5 text-primary" />
-                  <span><span className="font-medium text-foreground">Potência:</span> {potenciaKwp.toFixed(2)} kWp</span>
+                  <span><span className="font-medium text-foreground">Potência:</span> {(Number(potenciaKwp) || 0).toFixed(2)} kWp</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-3.5 w-3.5 text-primary" />
