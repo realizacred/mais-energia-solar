@@ -14,12 +14,13 @@ import { cn } from "@/lib/utils";
 import {
   type KitItemRow, type LayoutArranjo, type PreDimensionamentoData, type TopologiaConfig,
   SOMBREAMENTO_OPTIONS, DESVIO_AZIMUTAL_OPTIONS, INCLINACAO_OPTIONS,
-  TOPOLOGIA_LABELS, DEFAULT_TOPOLOGIA_CONFIGS,
+  TOPOLOGIA_LABELS, DEFAULT_TOPOLOGIA_CONFIGS, MESES,
   formatBRL,
 } from "./types";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { fetchActiveKits, snapshotCatalogKitToKitItemRows, fetchKitsSummary, type CatalogKit, type CatalogKitSummary } from "@/services/kitCatalogService";
+import { formatNumberBR } from "@/lib/formatters";
 
 import { KitFilters, DEFAULT_FILTERS, type KitFiltersState } from "./kit/KitFilters";
 import { KitCard, type KitCardData } from "./kit/KitCard";
@@ -846,6 +847,21 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
 
 /* ── Premissas Modal ── */
 
+const MONTH_LABELS: Record<string, string> = {
+  jan: "Janeiro",
+  fev: "Fevereiro",
+  mar: "Março",
+  abr: "Abril",
+  mai: "Maio",
+  jun: "Junho",
+  jul: "Julho",
+  ago: "Agosto",
+  set: "Setembro",
+  out: "Outubro",
+  nov: "Novembro",
+  dez: "Dezembro",
+};
+
 function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange, consumoTotal, irradiacao, latitude, ghiSeries }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -860,6 +876,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
 }) {
   const pdRef = useRef(pd);
   pdRef.current = pd;
+  const [topoMesAMes, setTopoMesAMes] = useState<{ open: boolean; topo: string }>({ open: false, topo: "tradicional" });
 
   // Recalculate effective irradiance (POA) when tilt/azimuth change
   const recalcFatorGeracao = useCallback((updatedPd: PreDimensionamentoData) => {
@@ -868,7 +885,6 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
     const tilt = updatedPd.inclinacao ?? 10;
     const azimuthDev = updatedPd.desvio_azimutal ?? 0;
 
-    // Build GHI series
     const ghi: Record<string, number> = ghiSeries
       ? {
           m01: ghiSeries.m01 ?? irradiacao, m02: ghiSeries.m02 ?? irradiacao,
@@ -917,7 +933,6 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
 
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
     let updated = { ...pdRef.current, [field]: value };
-    // Recalculate fator_geracao when inclination or azimuth changes
     if (field === "inclinacao" || field === "desvio_azimutal") {
       updated = recalcFatorGeracao(updated);
     }
@@ -1039,7 +1054,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
-                        <Button variant="link" className="text-[10px] text-secondary hover:underline flex items-center gap-0.5 h-auto p-0">mês a mês <Pencil className="h-2.5 w-2.5" /></Button>
+                        <Button variant="link" onClick={() => setTopoMesAMes({ open: true, topo })} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5 h-auto p-0">mês a mês <Pencil className="h-2.5 w-2.5" /></Button>
                       </div>
                       <div className="relative">
                         <Input type="number" step="0.01" value={cfg.fator_geracao || ""} onChange={e => updateTopoConfig(topo, "fator_geracao", Number(e.target.value))} className="h-9 text-xs pr-16" />
