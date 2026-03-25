@@ -1,0 +1,2 @@
+ALTER TABLE public.propostas_nativas DROP CONSTRAINT chk_status;
+ALTER TABLE public.propostas_nativas ADD CONSTRAINT chk_status CHECK (status = ANY (ARRAY['rascunho','gerada','enviada','aceita','recusada','expirada','cancelada','arquivada','excluida','vista','perdida','ganha']));
