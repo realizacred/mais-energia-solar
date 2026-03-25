@@ -23,6 +23,7 @@ export function useMonitorDashboardData() {
     const plants_online = plants.filter(p => p.health?.status === "online").length;
     const plants_offline = plants.filter(p => p.health?.status === "offline").length;
     const plants_standby = plants.filter(p => p.health?.status === "standby").length;
+    const plants_alert = plants.filter(p => (p.health?.open_alerts_count || 0) > 0).length;
     const plants_unknown = plants.filter(p => !p.health?.status || p.health.status === "unknown").length;
     const total_plants = plants.length;
     const energy_today_kwh = plants.reduce((s, p) => s + (p.health?.energy_today_kwh || 0), 0);
@@ -34,6 +35,7 @@ export function useMonitorDashboardData() {
       plants_offline,
       plants_standby,
       plants_alert,
+      plants_unknown,
       total_plants,
       energy_today_kwh,
       energy_month_kwh,
