@@ -452,11 +452,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
     : null;
 
-  // Expanded data
-  const [snapshot, setSnapshot] = useState<SnapshotData | null>(null);
-  const [ucsDetail, setUcsDetail] = useState<UCDetailData[]>([]);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-  const [activeTab, setActiveTab] = useState("resumo");
+  // §16: Queries in hooks — AP-01 fix
+  const versaoIds = p.versoes.map(v => v.id);
+  const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
+  const snapshot = snapshotData || null;
+  const { data: ucsDetail = [] } = usePropostaExpandedUcs(latestVersao?.id || null, isExpanded);
+  const { data: auditLogs = [] } = usePropostaAuditLogs(p.id, versaoIds, isExpanded);
+  const loadingDetail = !snapshotData && isExpanded && !!latestVersao?.id;
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
