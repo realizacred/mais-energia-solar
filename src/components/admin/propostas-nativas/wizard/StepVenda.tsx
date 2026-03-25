@@ -158,7 +158,7 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
               <div>
                 <span className="text-base font-bold">Preço Final</span>
                 <span className="text-xs text-muted-foreground ml-2">
-                  Margem líq. {margemLiquida.toFixed(1)}%
+                  Margem líq. {(Number(margemLiquida) || 0).toFixed(1)}%
                 </span>
               </div>
               <span className="text-base font-bold text-primary">{formatBRL(precoFinal)}</span>
