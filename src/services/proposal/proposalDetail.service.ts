@@ -4,11 +4,15 @@
  * Service layer for ProposalDetail — all Supabase queries extracted.
  * §16: Queries NEVER in components — always in hooks/services.
  * §17: Business logic in src/services/.
+ * 
+ * Uses RPC get_proposal_workspace for single-call loading.
+ * Uses edge function proposal-transition for status changes.
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 
-// ─── Fetch versão + proposta + cliente + render + OS ──────
+// ─── Fetch via RPC (single call) ──────────────────────────
 
 export interface ProposalDetailData {
   versao: Record<string, any> | null;
@@ -20,151 +24,53 @@ export interface ProposalDetailData {
 }
 
 export async function fetchProposalDetail(versaoId: string): Promise<ProposalDetailData> {
-  // 1. Versão
-  const { data: v, error: vErr } = await supabase
-    .from("proposta_versoes")
-    .select("id, proposta_id, versao_numero, status, grupo, potencia_kwp, valor_total, economia_mensal, geracao_mensal, payback_meses, valido_ate, observacoes, snapshot, final_snapshot, snapshot_locked, finalized_at, public_slug, created_at, updated_at, gerado_em")
-    .eq("id", versaoId)
-    .single();
+  const { data, error } = await supabase.rpc("get_proposal_workspace" as any, {
+    p_versao_id: versaoId,
+  });
 
-  if (vErr || !v) return { versao: null, proposta: null, clienteNome: null, html: null, publicUrl: null, existingOs: null };
-
-  let proposta: Record<string, any> | null = null;
-  let clienteNome: string | null = null;
-
-  // 2. Proposta root
-  if (v.proposta_id) {
-    const { data: p } = await supabase
-      .from("propostas_nativas")
-      .select("id, titulo, codigo, status, origem, lead_id, cliente_id, projeto_id, deal_id, updated_at, status_visualizacao, primeiro_acesso_em, ultimo_acesso_em, total_aberturas")
-      .eq("id", v.proposta_id)
-      .single();
-    proposta = p;
-
-    // 3. Cliente nome
-    if (p?.cliente_id) {
-      const { data: c } = await supabase
-        .from("clientes")
-        .select("nome")
-        .eq("id", p.cliente_id)
-        .single();
-      clienteNome = c?.nome || null;
-    }
+  if (error) {
+    console.error("RPC get_proposal_workspace error:", error);
+    return { versao: null, proposta: null, clienteNome: null, html: null, publicUrl: null, existingOs: null };
   }
 
-  // 4. Render HTML
-  const { data: render } = await supabase
-    .from("proposta_renders")
-    .select("id, html, url")
-    .eq("versao_id", versaoId)
-    .eq("tipo", "html")
-    .maybeSingle();
+  const result = data as any;
 
-  // 5. OS existente
-  const { data: os } = await supabase
-    .from("os_instalacao" as any)
-    .select("id, numero_os, status")
-    .eq("versao_id", versaoId)
-    .maybeSingle();
+  if (result?.error === "versao_not_found") {
+    return { versao: null, proposta: null, clienteNome: null, html: null, publicUrl: null, existingOs: null };
+  }
 
   return {
-    versao: v,
-    proposta,
-    clienteNome,
-    html: render?.html || null,
-    publicUrl: render?.url || null,
-    existingOs: os || null,
+    versao: result?.versao || null,
+    proposta: result?.proposta || null,
+    clienteNome: result?.cliente_nome || null,
+    html: result?.html || null,
+    publicUrl: result?.public_url || null,
+    existingOs: result?.existing_os || null,
   };
 }
 
-// ─── Update proposta status ───────────────────────────────
+// ─── Transition status via edge function ──────────────────
 
-export async function updatePropostaStatus(
+export interface TransitionResult {
+  success: boolean;
+  previous_status: string;
+  new_status: string;
+  commission_pct: number | null;
+}
+
+export async function transitionProposalStatus(
   propostaId: string,
   newStatus: string,
   extra?: { motivo?: string; data?: string },
-) {
-  const updateData: Record<string, any> = { status: newStatus };
-
-  if (newStatus === "enviada") updateData.enviada_at = new Date().toISOString();
-  if (newStatus === "aceita") {
-    updateData.aceita_at = extra?.data || new Date().toISOString();
-    updateData.aceite_motivo = extra?.motivo || null;
-  }
-  if (newStatus === "recusada") {
-    updateData.recusada_at = extra?.data || new Date().toISOString();
-    updateData.recusa_motivo = extra?.motivo || null;
-  }
-  if (newStatus !== "aceita") {
-    updateData.aceita_at = null;
-    updateData.aceite_motivo = null;
-  }
-  if (newStatus !== "recusada") {
-    updateData.recusada_at = null;
-    updateData.recusa_motivo = null;
-  }
-
-  const { error } = await supabase
-    .from("propostas_nativas")
-    .update(updateData)
-    .eq("id", propostaId);
-  if (error) throw error;
-}
-
-// ─── Commission logic ─────────────────────────────────────
-
-export async function generateCommissionOnAccept(
-  propostaRaw: Record<string, any>,
-  clienteNome: string,
-  potenciaKwp: number,
-  valorTotal: number,
-) {
-  let consultorId: string | null = null;
-  if (propostaRaw.lead_id) {
-    const { data: lead } = await supabase
-      .from("leads")
-      .select("consultor_id")
-      .eq("id", propostaRaw.lead_id)
-      .single();
-    consultorId = lead?.consultor_id || null;
-  }
-
-  if (!consultorId || valorTotal <= 0) return null;
-
-  const { data: plan } = await supabase
-    .from("commission_plans")
-    .select("parameters")
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  const percentual = (plan?.parameters as any)?.percentual ?? 5;
-  const now = new Date();
-
-  await supabase.from("comissoes").insert({
-    consultor_id: consultorId,
-    cliente_id: propostaRaw.cliente_id,
-    projeto_id: propostaRaw.projeto_id || null,
-    descricao: `Proposta aceita - ${clienteNome} (${potenciaKwp}kWp)`,
-    valor_base: valorTotal,
-    percentual_comissao: percentual,
-    valor_comissao: (valorTotal * percentual) / 100,
-    mes_referencia: now.getMonth() + 1,
-    ano_referencia: now.getFullYear(),
-    status: "pendente",
+): Promise<TransitionResult> {
+  return invokeEdgeFunction<TransitionResult>("proposal-transition", {
+    body: {
+      proposta_id: propostaId,
+      new_status: newStatus,
+      motivo: extra?.motivo,
+      data: extra?.data,
+    },
   });
-
-  return percentual;
-}
-
-// ─── Cancel pending commissions ───────────────────────────
-
-export async function cancelPendingCommissions(projetoId: string, status: string) {
-  await supabase
-    .from("comissoes")
-    .update({ status: "cancelada", observacoes: `Proposta ${status}` })
-    .eq("projeto_id", projetoId)
-    .eq("status", "pendente");
 }
 
 // ─── Generate OS ──────────────────────────────────────────

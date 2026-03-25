@@ -48,18 +48,16 @@ export function getStatusConfig(status: string): StatusConfig {
 
 // ─── Transition Rules ─────────────────────────────────────
 
+// Re-export state machine helpers for backward compat
+export {
+  canTransition,
+  getNextStates,
+  canAcceptFromMachine as canAccept,
+  canRejectFromMachine as canReject,
+  canGenerateOsFromStatus as canGenerateOs,
+  canCancelFromMachine as canCancel,
+} from "./proposalStateMachine";
+
 export function isActionableStatus(status: string): boolean {
   return ["enviada", "gerada", "vista", "aceita", "recusada"].includes(status);
-}
-
-export function canAccept(status: string): boolean {
-  return isActionableStatus(status) && status !== "recusada";
-}
-
-export function canReject(status: string): boolean {
-  return isActionableStatus(status) && status !== "aceita";
-}
-
-export function canGenerateOs(status: string): boolean {
-  return ["aceita", "accepted"].includes(status);
 }
