@@ -153,9 +153,9 @@ export default function PropostaPublica() {
           .upload(path, blob, { contentType: "image/png", upsert: true });
 
         if (!uploadErr) {
-          const { data: urlData } = supabase.storage
-            .from("proposal-signatures").getPublicUrl(path);
-          assinaturaUrl = urlData?.publicUrl || null;
+          const { data: urlData } = await supabase.storage
+            .from("proposal-signatures").createSignedUrl(path, 60 * 60 * 24 * 365); // 1 year signed URL
+          assinaturaUrl = urlData?.signedUrl || null;
         }
       }
 
@@ -310,8 +310,9 @@ export default function PropostaPublica() {
             <iframe
               srcDoc={html}
               title="Proposta"
+              sandbox="allow-same-origin"
               className="w-full border-0"
-              style={{ height: 700 }}
+              style={{ minHeight: 500, height: "80vh", maxHeight: 900 }}
             />
           </div>
         </div>
@@ -323,7 +324,8 @@ export default function PropostaPublica() {
           <h3 className="text-base font-semibold mb-3 text-center">
             Escolha a melhor opção para você
           </h3>
-          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(cenarios.length, 3)}, 1fr)` }}>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+               style={{ gridTemplateColumns: cenarios.length <= 3 ? `repeat(${Math.min(cenarios.length, 3)}, 1fr)` : undefined }}>
             {cenarios.map(c => {
               const isSelected = c.id === selectedCenario;
               const tipoLabel = c.tipo === "a_vista" ? "À Vista" : c.tipo === "financiamento" ? "Financiamento" : "Parcelado";
@@ -353,23 +355,23 @@ export default function PropostaPublica() {
                     <p className="text-xs text-muted-foreground mt-1">+ Entrada: {formatBRL(c.entrada_valor)}</p>
                   )}
                   {c.taxa_juros_mensal > 0 && (
-                    <p className="text-xs text-muted-foreground">{c.taxa_juros_mensal.toFixed(2)}% a.m.</p>
+                    <p className="text-xs text-muted-foreground">{Number.isFinite(c.taxa_juros_mensal) ? c.taxa_juros_mensal.toFixed(2) : "0.00"}% a.m.</p>
                   )}
 
                   <div className="grid grid-cols-3 gap-1 mt-3 pt-3 border-t border-border/50">
                     <div className="text-center">
                       <Clock className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
-                      <p className="text-xs font-bold">{c.payback_meses}m</p>
+                      <p className="text-xs font-bold">{Number.isFinite(c.payback_meses) ? c.payback_meses : "—"}m</p>
                       <p className="text-[9px] text-muted-foreground">Payback</p>
                     </div>
                     <div className="text-center">
                       <TrendingUp className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
-                      <p className="text-xs font-bold">{c.tir_anual.toFixed(1)}%</p>
+                      <p className="text-xs font-bold">{Number.isFinite(c.tir_anual) ? c.tir_anual.toFixed(1) : "—"}%</p>
                       <p className="text-[9px] text-muted-foreground">TIR</p>
                     </div>
                     <div className="text-center">
                       <Zap className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
-                      <p className="text-xs font-bold">{formatBRL(c.roi_25_anos)}</p>
+                      <p className="text-xs font-bold">{Number.isFinite(c.roi_25_anos) ? formatBRL(c.roi_25_anos) : "—"}</p>
                       <p className="text-[9px] text-muted-foreground">ROI 25a</p>
                     </div>
                   </div>
@@ -422,7 +424,7 @@ export default function PropostaPublica() {
                         <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                           {op.entrada > 0 && <span>Entrada: {formatBRL(op.entrada)}</span>}
                           {op.num_parcelas > 0 && <span>{op.num_parcelas}x de {formatBRL(op.valor_parcela)}</span>}
-                          {op.taxa_mensal > 0 && <span>Taxa: {(op.taxa_mensal * 100).toFixed(2)}%</span>}
+                          {op.taxa_mensal > 0 && <span>Taxa: {((Number(op.taxa_mensal) || 0) < 1 ? ((Number(op.taxa_mensal) || 0) * 100).toFixed(2) : Number(op.taxa_mensal).toFixed(2))}%</span>}
                         </div>
                       </div>
                     ))}
@@ -453,7 +455,7 @@ export default function PropostaPublica() {
 
             <div className="space-y-2">
               <Label htmlFor="doc">CPF / CNPJ</Label>
-              <Input id="doc" value={documento} onChange={e => setDocumento(e.target.value)} placeholder="000.000.000-00" maxLength={20} />
+              <Input id="doc" value={documento} onChange={e => setDocumento(e.target.value)} placeholder="000.000.000-00 ou 00.000.000/0000-00" maxLength={20} inputMode="numeric" />
             </div>
 
             <div className="space-y-2">
