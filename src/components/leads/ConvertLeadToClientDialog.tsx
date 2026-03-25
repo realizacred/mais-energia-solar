@@ -200,23 +200,18 @@ export function ConvertLeadToClientDialog({
     [form]
   );
 
-  // Track online status
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
+  // Online status is now provided by useOfflineConversionSync
 
   // Load equipment options
   useEffect(() => {
     const loadEquipment = async () => {
+      // Try cache first for offline support
+      const cached = getCachedEquipment();
+      if (cached) {
+        setDisjuntores(cached.disjuntores);
+        setTransformadores(cached.transformadores);
+      }
+
       if (!navigator.onLine) return;
       
       try {
@@ -225,8 +220,16 @@ export function ConvertLeadToClientDialog({
           supabase.from("transformadores").select("id, potencia_kva, descricao, ativo").eq("ativo", true).order("potencia_kva"),
         ]);
 
-        if (disjuntoresRes.data) setDisjuntores(disjuntoresRes.data);
-        if (transformadoresRes.data) setTransformadores(transformadoresRes.data);
+        if (disjuntoresRes.data) {
+          setDisjuntores(disjuntoresRes.data);
+        }
+        if (transformadoresRes.data) {
+          setTransformadores(transformadoresRes.data);
+        }
+        // Cache for offline use
+        if (disjuntoresRes.data && transformadoresRes.data) {
+          setCachedEquipment(disjuntoresRes.data, transformadoresRes.data);
+        }
         if (disjuntoresRes.error) console.warn("[ConvertLead] disjuntores error:", disjuntoresRes.error);
         if (transformadoresRes.error) console.warn("[ConvertLead] transformadores error:", transformadoresRes.error);
       } catch (err) {
