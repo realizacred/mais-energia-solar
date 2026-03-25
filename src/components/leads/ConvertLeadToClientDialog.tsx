@@ -181,16 +181,7 @@ export function ConvertLeadToClientDialog({
   // Explicit subscription so programmatic setValue always reflects in the UI
   const localizacaoValue = useWatch({ control: form.control, name: "localizacao" });
 
-  // CEP lookup via useCepLookup
-  const { lookup: lookupCep } = useCepLookup();
-  const handleCEPBlur = useCallback(async (cepValue: string) => {
-    const result = await lookupCep(cepValue);
-    if (!result) return;
-    if (result.estado) form.setValue("estado", result.estado, { shouldValidate: true });
-    if (result.cidade) form.setValue("cidade", result.cidade, { shouldValidate: true });
-    if (result.bairro) form.setValue("bairro", result.bairro);
-    if (result.rua) form.setValue("rua", result.rua);
-  }, [form, lookupCep]);
+  // CEP lookup is handled internally by AddressFields component
 
   // Bridge AddressFields ↔ react-hook-form
   const addressValue: AddressData = {
