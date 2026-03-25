@@ -165,7 +165,7 @@ export function usePropostas() {
 
   const createMutation = useMutation({
     mutationFn: async (data: PropostaFormData) => {
-      // Create in propostas_nativas (minimal) + initial version
+      // Create propostas_nativas record
       const { data: proposta, error: pErr } = await (supabase as any)
         .from("propostas_nativas")
         .insert({
@@ -178,7 +178,7 @@ export function usePropostas() {
 
       if (pErr) throw pErr;
 
-      // Create initial version with snapshot
+      // Create initial version via RPC (SSOT)
       const snapshot = {
         clienteNome: data.cliente_nome,
         clienteCelular: data.cliente_celular,
@@ -191,21 +191,24 @@ export function usePropostas() {
         distribuidora: data.distribuidora,
       };
 
-      const { error: vErr } = await (supabase as any)
-        .from("proposta_versoes")
-        .insert({
-          proposta_id: proposta.id,
-          versao_numero: 1,
-          potencia_kwp: data.potencia_kwp || null,
-          valor_total: data.preco_total || null,
-          economia_mensal: data.economia_mensal || null,
-          geracao_mensal: data.geracao_mensal_kwh || null,
-          payback_meses: data.payback_anos ? Math.round(data.payback_anos * 12) : null,
-          snapshot,
-          status: "draft",
-        });
+      const { data: rpcResult, error: rpcErr } = await supabase.rpc(
+        "proposal_create_version" as any,
+        {
+          p_proposta_id: proposta.id,
+          p_versao_id: null,
+          p_snapshot: snapshot,
+          p_potencia_kwp: data.potencia_kwp || null,
+          p_valor_total: data.preco_total || null,
+          p_economia_mensal: data.economia_mensal || null,
+          p_geracao_mensal: data.geracao_mensal_kwh || null,
+          p_payback_meses: data.payback_anos ? Math.round(data.payback_anos * 12) : null,
+          p_intent: "wizard_save",
+        },
+      );
 
-      if (vErr) throw vErr;
+      if (rpcErr) throw rpcErr;
+      if ((rpcResult as any)?.error) throw new Error((rpcResult as any).error);
+
       return proposta;
     },
     onSuccess: () => {
@@ -219,12 +222,12 @@ export function usePropostas() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Soft delete — set status to 'excluida'
-      const { error } = await (supabase as any)
-        .from("propostas_nativas")
-        .update({ status: "excluida" })
-        .eq("id", id);
+      // Soft delete via SECURITY DEFINER RPC
+      const { data, error } = await supabase.rpc("proposal_delete" as any, {
+        p_proposta_id: id,
+      });
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
     },
     onSuccess: () => {
       toast({ title: "Proposta excluída" });
