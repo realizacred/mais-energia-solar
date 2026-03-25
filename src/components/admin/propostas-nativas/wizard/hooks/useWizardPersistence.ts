@@ -303,18 +303,31 @@ async function persistProposalAtomic(
       };
     }
 
-    // ── Check if version is locked (snapshot_locked = true) ──
-    // If locked, create a NEW version instead of trying to update
+    // ── Check if version needs branching ──
+    // Branch a NEW version if: snapshot_locked OR proposal was already sent/viewed/accepted
+    const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada"];
+
     const { data: currentVersion } = await supabase
       .from("proposta_versoes")
-      .select("snapshot_locked, versao_numero")
+      .select("snapshot_locked, versao_numero, status")
       .eq("id", effectiveVersaoId)
       .single();
 
-    const isLocked = currentVersion?.snapshot_locked === true;
+    // Also check the proposta-level status
+    const { data: propostaRow } = await supabase
+      .from("propostas_nativas")
+      .select("status")
+      .eq("id", effectivePropostaId)
+      .single();
 
-    if (isLocked) {
-      console.log("[persist] versão trancada — criando nova versão", effectiveVersaoId);
+    const isLocked = currentVersion?.snapshot_locked === true;
+    const propostaWasSent = SENT_STATUSES.includes(propostaRow?.status || "");
+    const versionWasGenerated = currentVersion?.status === "generated";
+    const needsBranch = isLocked || propostaWasSent || versionWasGenerated;
+
+    if (needsBranch) {
+      const reason = isLocked ? "snapshot_locked" : propostaWasSent ? `proposta_status_${propostaRow?.status}` : "version_generated";
+      console.log(`[persist] branching nova versão (motivo: ${reason})`, effectiveVersaoId);
       const nextNumero = (Number(currentVersion?.versao_numero) || 1) + 1;
 
       const insertData: Record<string, any> = {
@@ -349,6 +362,21 @@ async function persistProposalAtomic(
           message: "Erro ao criar nova versão da proposta",
         };
       }
+
+      // Log version_created event for auditability
+      try {
+        await (supabase as any).from("proposal_events").insert({
+          proposta_id: effectivePropostaId,
+          tipo: "version_created",
+          payload: {
+            versao_antiga_id: effectiveVersaoId,
+            versao_nova_id: newVer.id,
+            versao_numero: nextNumero,
+            motivo: reason,
+            intent,
+          },
+        });
+      } catch { /* non-blocking */ }
 
       // Sync deal
       const syncDealId2 = params.dealId;

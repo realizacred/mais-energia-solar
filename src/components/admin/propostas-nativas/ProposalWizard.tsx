@@ -276,6 +276,8 @@ export function ProposalWizard() {
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
+  // Track if editing a previously sent/generated proposal (will branch new version)
+  const [editingsentProposal, setEditingSentProposal] = useState(false);
   // Track async DB restore to block UI during loading (race condition fix)
   const [isRestoring, setIsRestoring] = useState(!!(propostaIdFromUrl && versaoIdFromUrl));
 
@@ -596,9 +598,15 @@ export function ProposalWizard() {
         try {
           const { data: propostaMeta } = await supabase
             .from("propostas_nativas")
-            .select("lead_id, deal_id, projeto_id, cliente_id")
+            .select("lead_id, deal_id, projeto_id, cliente_id, status")
             .eq("id", propostaIdFromUrl)
             .single();
+
+          // Detect if proposal was already sent/generated — will branch new version on save
+          const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada"];
+          if (propostaMeta?.status && SENT_STATUSES.includes(propostaMeta.status)) {
+            setEditingSentProposal(true);
+          }
 
           if (propostaMeta?.deal_id) {
             setProjectContext(prev => prev || { dealId: propostaMeta.deal_id!, customerId: propostaMeta.cliente_id || "" });
@@ -2058,6 +2066,16 @@ export function ProposalWizard() {
           <Link2 className="h-3.5 w-3.5 text-primary shrink-0" />
           <p className="text-[11px] font-medium text-primary">
             Proposta vinculada ao projeto — dados carregados automaticamente
+          </p>
+        </div>
+      )}
+
+      {/* Sent Proposal Warning Banner */}
+      {editingsentProposal && (
+        <div className="flex items-center gap-2 px-4 lg:px-6 py-2 border-b border-warning/30 bg-warning/10 shrink-0">
+          <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+          <p className="text-[11px] font-medium text-warning">
+            Essa proposta já foi enviada/gerada. Ao salvar, uma nova versão será criada com um novo link.
           </p>
         </div>
       )}
