@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useCepLookup } from "@/hooks/useCepLookup";
+
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,7 +10,7 @@ import { createEmptyItem } from "@/services/paymentComposition/types";
 import { validateComposition } from "@/services/paymentComposition/calculator";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
-import { formatCEP } from "@/lib/validations";
+
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { supabase } from "@/integrations/supabase/client";
@@ -181,16 +181,7 @@ export function ConvertLeadToClientDialog({
   // Explicit subscription so programmatic setValue always reflects in the UI
   const localizacaoValue = useWatch({ control: form.control, name: "localizacao" });
 
-  // CEP lookup via useCepLookup
-  const { lookup: lookupCep } = useCepLookup();
-  const handleCEPBlur = useCallback(async (cepValue: string) => {
-    const result = await lookupCep(cepValue);
-    if (!result) return;
-    if (result.estado) form.setValue("estado", result.estado, { shouldValidate: true });
-    if (result.cidade) form.setValue("cidade", result.cidade, { shouldValidate: true });
-    if (result.bairro) form.setValue("bairro", result.bairro);
-    if (result.rua) form.setValue("rua", result.rua);
-  }, [form, lookupCep]);
+  // CEP lookup is handled internally by AddressFields component
 
   // Bridge AddressFields ↔ react-hook-form
   const addressValue: AddressData = {
@@ -235,13 +226,19 @@ export function ConvertLeadToClientDialog({
     const loadEquipment = async () => {
       if (!navigator.onLine) return;
       
-      const [disjuntoresRes, transformadoresRes] = await Promise.all([
-        supabase.from("disjuntores").select("id, amperagem, descricao, ativo").eq("ativo", true).order("amperagem"),
-        supabase.from("transformadores").select("id, potencia_kva, descricao, ativo").eq("ativo", true).order("potencia_kva"),
-      ]);
+      try {
+        const [disjuntoresRes, transformadoresRes] = await Promise.all([
+          supabase.from("disjuntores").select("id, amperagem, descricao, ativo").eq("ativo", true).order("amperagem"),
+          supabase.from("transformadores").select("id, potencia_kva, descricao, ativo").eq("ativo", true).order("potencia_kva"),
+        ]);
 
-      if (disjuntoresRes.data) setDisjuntores(disjuntoresRes.data);
-      if (transformadoresRes.data) setTransformadores(transformadoresRes.data);
+        if (disjuntoresRes.data) setDisjuntores(disjuntoresRes.data);
+        if (transformadoresRes.data) setTransformadores(transformadoresRes.data);
+        if (disjuntoresRes.error) console.warn("[ConvertLead] disjuntores error:", disjuntoresRes.error);
+        if (transformadoresRes.error) console.warn("[ConvertLead] transformadores error:", transformadoresRes.error);
+      } catch (err) {
+        console.error("[ConvertLead] loadEquipment crash:", err);
+      }
     };
 
     loadEquipment();
@@ -252,13 +249,21 @@ export function ConvertLeadToClientDialog({
     const loadSimulacoes = async () => {
       if (!lead || !navigator.onLine) return;
       
-      const { data } = await supabase
-        .from("simulacoes")
-        .select("id, potencia_recomendada_kwp, investimento_estimado, economia_mensal, consumo_kwh, created_at")
-        .eq("lead_id", lead.id)
-        .order("created_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("simulacoes")
+          .select("id, potencia_recomendada_kwp, investimento_estimado, economia_mensal, consumo_kwh, created_at")
+          .eq("lead_id", lead.id)
+          .order("created_at", { ascending: false });
 
-      if (data) setSimulacoes(data);
+        if (error) {
+          console.warn("[ConvertLead] simulacoes error:", error);
+          return;
+        }
+        if (data) setSimulacoes(data);
+      } catch (err) {
+        console.error("[ConvertLead] loadSimulacoes crash:", err);
+      }
     };
 
     if (open && lead) {
@@ -946,15 +951,16 @@ export function ConvertLeadToClientDialog({
             const isDone = idx < currentStep;
             return (
               <div key={idx} className="flex items-center gap-1 flex-1 min-w-0">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => idx < currentStep && setCurrentStep(idx)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors w-full min-w-0 ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors w-full min-w-0 h-auto ${
                     isActive
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-primary/10 text-primary hover:bg-primary/15"
                       : isDone
                       ? "text-success cursor-pointer hover:bg-muted/50"
-                      : "text-muted-foreground"
+                      : "text-muted-foreground hover:bg-transparent"
                   }`}
                   disabled={idx > currentStep}
                 >
@@ -967,7 +973,7 @@ export function ConvertLeadToClientDialog({
                     <p className="text-xs font-semibold truncate">{step.label}</p>
                     <p className="text-[10px] text-muted-foreground truncate">{step.description}</p>
                   </div>
-                </button>
+                </Button>
                 {idx < STEPS.length - 1 && (
                   <div className={`w-4 h-px shrink-0 ${isDone ? "bg-success" : "bg-border"}`} />
                 )}
