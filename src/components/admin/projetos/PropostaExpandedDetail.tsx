@@ -576,40 +576,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  // Load expanded data when expanded
-  useEffect(() => {
-    if (!isExpanded || !latestVersao?.id) return;
-    setLoadingDetail(true);
-
-    const versaoIds = p.versoes.map(v => v.id);
-
-    Promise.all([
-      supabase
-        .from("proposta_versoes")
-        .select("snapshot")
-        .eq("id", latestVersao.id)
-        .single(),
-      supabase
-        .from("proposta_versao_ucs")
-        .select("id, nome, consumo_mensal_kwh, geracao_mensal_estimada, tarifa_energia, percentual_atendimento")
-        .eq("versao_id", latestVersao.id)
-        .order("ordem"),
-      // Audit logs for proposta + all versoes
-      supabase
-        .from("audit_logs")
-        .select("id, acao, tabela, user_email, created_at")
-        .or(`and(tabela.eq.propostas_nativas,registro_id.eq.${p.id}),and(tabela.eq.proposta_versoes,registro_id.in.(${versaoIds.join(",")}))`)
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]).then(([snapRes, ucsRes, auditRes]) => {
-      if (snapRes.data?.snapshot) {
-        setSnapshot(snapRes.data.snapshot as any);
-      }
-      setUcsDetail((ucsRes.data as UCDetailData[]) || []);
-      setAuditLogs((auditRes.data as any[]) || []);
-      setLoadingDetail(false);
-    });
-  }, [isExpanded, latestVersao?.id]);
+  // §16: Queries moved to hooks (usePropostaExpandedData) — AP-01 fix
 
   // Auto-populate publicUrl from public_slug
   useEffect(() => {
