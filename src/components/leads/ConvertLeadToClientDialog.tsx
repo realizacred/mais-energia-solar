@@ -989,13 +989,54 @@ export function ConvertLeadToClientDialog({
           })}
         </div>
 
-        {/* Offline indicator */}
-        {!isOnline && (
-          <div className="flex items-center gap-2 mx-5 mt-3 p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-foreground shrink-0">
-            <WifiOff className="w-4 h-4 text-warning shrink-0" />
-            <span>Modo offline — Os dados serão salvos localmente.</span>
+        {/* Offline status bar — same pattern as OfflineStatusBar in lead registration */}
+        <div className={`flex items-center justify-between gap-2 mx-5 mt-3 p-3 rounded-lg text-sm shrink-0 border ${
+          isOnline ? "bg-success/10 border-success/30" : "bg-warning/10 border-warning/30"
+        }`}>
+          <div className="flex items-center gap-2">
+            {isOnline ? (
+              <Wifi className="w-4 h-4 text-success shrink-0" />
+            ) : (
+              <WifiOff className="w-4 h-4 text-warning animate-pulse shrink-0" />
+            )}
+            <span className={`text-sm font-semibold ${isOnline ? "text-success" : "text-warning"}`}>
+              {isOnline ? "Online" : "Sem Internet"}
+            </span>
+            {offlinePendingCount > 0 && (
+              <>
+                <div className="w-px h-4 bg-border" />
+                <span className="text-xs text-muted-foreground">
+                  Pendentes:{" "}
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full text-[10px] font-bold bg-warning text-warning-foreground">
+                    {offlinePendingCount}
+                  </span>
+                </span>
+              </>
+            )}
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            {offlinePendingCount > 0 && isOnline && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => syncAllConversions()}
+                disabled={isOfflineSyncing}
+                className="gap-1.5 h-6 text-[10px] px-2"
+              >
+                {isOfflineSyncing ? (
+                  <><RefreshCw className="w-3 h-3 animate-spin" /> Sincronizando...</>
+                ) : (
+                  <><RefreshCw className="w-3 h-3" /> Sincronizar</>
+                )}
+              </Button>
+            )}
+            {!isOnline && (
+              <span className="text-[10px] text-warning font-medium">
+                Dados salvos localmente
+              </span>
+            )}
+          </div>
+        </div>
 
         {/* ── BODY — steps ── */}
         <Form {...form}>
