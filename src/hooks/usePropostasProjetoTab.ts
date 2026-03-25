@@ -203,11 +203,12 @@ export function useArquivarProposta() {
 
   return useMutation({
     mutationFn: async (propostaId: string) => {
-      const { error } = await supabase
-        .from("propostas_nativas")
-        .update({ status: "arquivada" } as any)
-        .eq("id", propostaId);
+      const { data, error } = await supabase.rpc("proposal_update_status" as any, {
+        p_proposta_id: propostaId,
+        p_new_status: "arquivada",
+      });
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
