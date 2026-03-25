@@ -25985,15 +25985,22 @@ export type Database = {
       preview_seed_data: { Args: never; Returns: Json }
       proposal_create_version: {
         Args: {
+          p_calc_hash?: string
           p_economia_mensal?: number
+          p_engine_version?: string
           p_geracao_mensal?: number
+          p_gerado_por?: string
           p_grupo?: string
+          p_idempotency_key?: string
           p_intent?: string
+          p_observacoes?: string
+          p_payback_meses?: number
           p_potencia_kwp?: number
           p_proposta_id: string
-          p_snapshot: Json
+          p_snapshot?: Json
+          p_validade_dias?: number
           p_valor_total?: number
-          p_versao_id: string
+          p_versao_id?: string
         }
         Returns: Json
       }
