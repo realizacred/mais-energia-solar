@@ -51,7 +51,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [editMode, setEditMode] = useState<"margem" | "preco">("margem");
   const [editValue, setEditValue] = useState("0");
   const [custosExtras, setCustosExtras] = useState<CustoRow[]>([]);
-  const [appliedSmartDefaults, setAppliedSmartDefaults] = useState(false);
+  // appliedSmartDefaults removed — history no longer auto-applies
   const [instalacaoEnabled, setInstalacaoEnabled] = useState(true);
   const [comissaoEnabled, setComissaoEnabled] = useState(true);
   const [instalacaoQtd, setInstalacaoQtd] = useState(1);

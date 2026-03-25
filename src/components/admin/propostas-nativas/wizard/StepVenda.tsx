@@ -24,7 +24,6 @@ interface StepVendaProps {
 export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp = 0 }: StepVendaProps) {
   const [loadedDefaults, setLoadedDefaults] = useState(false);
   const [descontoMax, setDescontoMax] = useState(100);
-  const [appliedSmartDefaults, setAppliedSmartDefaults] = useState(false);
 
   const { suggested, loading: loadingHistory, hasHistory } = usePricingDefaults(potenciaKwp);
 
