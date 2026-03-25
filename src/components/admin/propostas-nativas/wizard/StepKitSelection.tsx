@@ -919,6 +919,21 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
   const updateTopoConfig = (topo: string, field: keyof TopologiaConfig, value: any) => {
     const configs = { ...pd.topologia_configs };
     configs[topo] = { ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]), [field]: value };
+
+    // When desempenho changes, recalculate fator_geracao (match StepConsumptionIntelligence behavior)
+    if (field === "desempenho" && irradiacao && irradiacao > 0) {
+      const newDesempenho = value as number;
+      const newFator = calcFatorGeracao({
+        ghiSeries: ghiSeries as Record<string, number> | null | undefined,
+        ghiMediaAnual: irradiacao,
+        latitude,
+        tilt_deg: pd.inclinacao ?? 10,
+        azimuth_deviation_deg: pd.desvio_azimutal ?? 0,
+        desempenho: newDesempenho,
+      });
+      configs[topo] = { ...configs[topo], fator_geracao: newFator };
+    }
+
     const updated: PreDimensionamentoData = { ...pd, topologia_configs: configs };
     if (topo === "tradicional") {
       updated.desempenho = configs.tradicional.desempenho;
