@@ -566,8 +566,12 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     <Select value={m.selectedId} onValueChange={v => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, selectedId: v } : x))}>
                       <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
                       <SelectContent>
-                        {modulos.map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.fabricante} {cat.modelo} ({cat.potencia_wp}W)</SelectItem>
+                        {[...modulos]
+                          .sort((a, b) => (b.potencia_wp || 0) - (a.potencia_wp || 0))
+                          .map(cat => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.fabricante} {cat.modelo}{cat.potencia_wp ? ` (${cat.potencia_wp}W)` : ""}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -640,7 +644,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
                       <SelectContent>
                         {filteredInversores.length > 0 ? (
-                          filteredInversores.map(cat => (
+                          [...filteredInversores]
+                            .sort((a, b) => (b.potencia_nominal_kw || 0) - (a.potencia_nominal_kw || 0))
+                            .map(cat => (
                             <SelectItem key={cat.id} value={cat.id}>
                               {cat.fabricante} {cat.modelo} ({(cat.potencia_nominal_kw || 0).toFixed(1)}kW)
                               {cat.tipo && <span className="text-muted-foreground ml-1">• {cat.tipo}</span>}
