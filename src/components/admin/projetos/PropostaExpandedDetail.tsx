@@ -502,17 +502,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const updatePropostaStatus = async (newStatus: string, extra?: Record<string, any>) => {
     setUpdatingStatus(true);
     try {
-      const updateData: Record<string, any> = { status: newStatus };
-      if (newStatus === "aceita") updateData.aceita_at = new Date().toISOString();
-      if (newStatus === "recusada") {
-        updateData.recusada_at = new Date().toISOString();
-        updateData.recusa_motivo = extra?.motivo || null;
-      }
-      const { error } = await supabase
-        .from("propostas_nativas")
-        .update(updateData)
-        .eq("id", p.id);
+      // Use RPC for status transitions — tenant validation, state machine, and audit in backend
+      const { data: rpcResult, error } = await supabase.rpc("proposal_update_status" as any, {
+        p_proposta_id: p.id,
+        p_new_status: newStatus,
+        p_motivo: extra?.motivo || null,
+      });
       if (error) throw error;
+      if ((rpcResult as any)?.error) throw new Error((rpcResult as any).error);
 
       // ── Gerar comissão ao aceitar ──
       if (newStatus === "aceita" && latestVersao && customerId) {
