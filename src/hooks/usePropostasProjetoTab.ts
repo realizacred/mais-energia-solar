@@ -50,6 +50,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
       let query = (supabase as any)
         .from("propostas_nativas")
         .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at, is_principal, cliente_id, clientes(nome)")
+        .neq("status", "excluida")
         .order("created_at", { ascending: false })
         .limit(20);
 
