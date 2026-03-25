@@ -688,8 +688,23 @@ export function StepDocumento({
               <Calendar className="h-3.5 w-3.5" />
               Validade da proposta: {validade ? formatDate(validade + "T12:00:00") : "—"}
             </div>
+
+            {/* Button to go to finished proposal */}
+            {generationStatus === "ready" && (
+              <Separator className="my-2" />
+            )}
+            {generationStatus === "ready" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 border-primary text-primary hover:bg-primary/10"
+                onClick={onViewDetail}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Ir para proposta gerada
+              </Button>
+            )}
           </div>
-        </div>
 
         {/* Right: Preview — PDF real only, no HTML fallback */}
         <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
