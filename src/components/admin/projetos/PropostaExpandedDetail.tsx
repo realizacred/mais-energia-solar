@@ -641,7 +641,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [activeTab, setActiveTab] = useState("resumo");
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
