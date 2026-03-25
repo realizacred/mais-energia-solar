@@ -9517,6 +9517,7 @@ export type Database = {
           cor: string
           created_at: string
           id: string
+          is_system: boolean
           motivo_perda_obrigatorio: boolean | null
           nome: string
           ordem: number
@@ -9527,6 +9528,7 @@ export type Database = {
           cor?: string
           created_at?: string
           id?: string
+          is_system?: boolean
           motivo_perda_obrigatorio?: boolean | null
           nome: string
           ordem: number
@@ -9537,6 +9539,7 @@ export type Database = {
           cor?: string
           created_at?: string
           id?: string
+          is_system?: boolean
           motivo_perda_obrigatorio?: boolean | null
           nome?: string
           ordem?: number
