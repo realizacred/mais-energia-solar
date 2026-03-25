@@ -752,8 +752,14 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive" onClick={onDelete}>
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" className="gap-1 h-8 text-xs" onClick={onSelect}>
-            <Plus className="h-3 w-3" /> Selecionar
+          <Button
+            size="sm"
+            variant={isSelected ? "outline" : "default"}
+            className={cn("gap-1 h-8 text-xs", isSelected && "border-primary text-primary")}
+            onClick={onSelect}
+          >
+            {isSelected ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+            {isSelected ? "Selecionado" : "Selecionar"}
           </Button>
         </div>
       </div>
