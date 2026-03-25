@@ -303,137 +303,55 @@ async function persistProposalAtomic(
       };
     }
 
-    // ── Check if version needs branching ──
-    // Branch a NEW version if: snapshot_locked OR proposal was already sent/viewed/accepted
-    const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada"];
+    // ── Backend-driven versioning via RPC ──
+    console.log("[persist] chamando RPC proposal_create_version", {
+      proposta_id: effectivePropostaId,
+      versao_id: effectiveVersaoId,
+      intent,
+    });
 
-    const { data: currentVersion } = await supabase
-      .from("proposta_versoes")
-      .select("snapshot_locked, versao_numero, status")
-      .eq("id", effectiveVersaoId)
-      .single();
+    const { data: rpcResult, error: rpcErr } = await supabase.rpc(
+      "proposal_create_version" as any,
+      {
+        p_proposta_id: effectivePropostaId,
+        p_versao_id: effectiveVersaoId,
+        p_snapshot: sanitized as any,
+        p_potencia_kwp: params.potenciaKwp,
+        p_valor_total: params.precoFinal,
+        p_economia_mensal: params.economiaMensal || null,
+        p_geracao_mensal: params.geracaoMensal || null,
+        p_grupo: params.snapshot?.grupo || null,
+        p_intent: intent,
+      },
+    );
 
-    // Also check the proposta-level status
-    const { data: propostaRow } = await supabase
-      .from("propostas_nativas")
-      .select("status")
-      .eq("id", effectivePropostaId)
-      .single();
-
-    const isLocked = currentVersion?.snapshot_locked === true;
-    const propostaWasSent = SENT_STATUSES.includes(propostaRow?.status || "");
-    const versionWasGenerated = currentVersion?.status === "generated";
-    const needsBranch = isLocked || propostaWasSent || versionWasGenerated;
-
-    if (needsBranch) {
-      const reason = isLocked ? "snapshot_locked" : propostaWasSent ? `proposta_status_${propostaRow?.status}` : "version_generated";
-      console.log(`[persist] branching nova versão (motivo: ${reason})`, effectiveVersaoId);
-      const nextNumero = (Number(currentVersion?.versao_numero) || 1) + 1;
-
-      const insertData: Record<string, any> = {
-        proposta_id: effectivePropostaId,
-        versao_numero: nextNumero,
-        potencia_kwp: params.potenciaKwp,
-        valor_total: params.precoFinal,
-        economia_mensal: params.economiaMensal || null,
-        geracao_mensal: params.geracaoMensal || null,
-        grupo: grupoNormalized,
-        snapshot: sanitized,
-        snapshot_locked: setActive,
-        status: setActive ? "generated" : "draft",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      if (setActive) {
-        insertData.gerado_em = new Date().toISOString();
-      }
-
-      const { data: newVer, error: insErr } = await supabase
-        .from("proposta_versoes")
-        .insert(insertData as any)
-        .select("id")
-        .single();
-
-      if (insErr) {
-        console.error("[persist] erro ao criar nova versão:", insErr.message);
-        return {
-          status: "error",
-          reason: insErr.message,
-          message: "Erro ao criar nova versão da proposta",
-        };
-      }
-
-      // Log version_created event for auditability
-      try {
-        await (supabase as any).from("proposal_events").insert({
-          proposta_id: effectivePropostaId,
-          tipo: "version_created",
-          payload: {
-            versao_antiga_id: effectiveVersaoId,
-            versao_nova_id: newVer.id,
-            versao_numero: nextNumero,
-            motivo: reason,
-            intent,
-          },
-        });
-      } catch { /* non-blocking */ }
-
-      // Sync deal
-      const syncDealId2 = params.dealId;
-      if (syncDealId2 && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
-        await supabase
-          .from("deals")
-          .update({
-            value: params.precoFinal,
-            kwp: params.potenciaKwp,
-            updated_at: new Date().toISOString(),
-          } as any)
-          .eq("id", syncDealId2);
-      }
-
-      return {
-        status: "success",
-        propostaId: effectivePropostaId,
-        versaoId: newVer.id,
-        newVersionCreated: true,
-        message: setActive ? "Nova versão gerada" : "Nova versão criada",
-      };
-    }
-
-    // ── Version is NOT locked — update in place ──
-    console.log("[persist] atualizando versão existente", effectiveVersaoId);
-
-    const updateData: Record<string, any> = {
-      potencia_kwp: params.potenciaKwp,
-      valor_total: params.precoFinal,
-      economia_mensal: params.economiaMensal || null,
-      geracao_mensal: params.geracaoMensal || null,
-      grupo: grupoNormalized,
-      snapshot: sanitized,
-      updated_at: new Date().toISOString(),
-      snapshot_locked: setActive,
-      finalized_at: null,
-    };
-    if (setActive) {
-      updateData.status = "generated";
-      updateData.gerado_em = new Date().toISOString();
-    } else {
-      updateData.status = "draft";
-    }
-
-    const { error: vErr } = await supabase
-      .from("proposta_versoes")
-      .update(updateData as any)
-      .eq("id", effectiveVersaoId);
-
-    if (vErr) {
-      console.error("[persist] erro ao atualizar versão:", vErr.message);
+    if (rpcErr) {
+      console.error("[persist] RPC proposal_create_version error:", rpcErr.message);
       return {
         status: "error",
-        reason: vErr.message,
-        message: "Erro ao atualizar proposta",
+        reason: rpcErr.message,
+        message: "Erro ao salvar versão da proposta",
       };
     }
+
+    const result = rpcResult as any;
+    if (result?.error) {
+      console.error("[persist] RPC retornou erro:", result.error);
+      return {
+        status: "error",
+        reason: result.error,
+        message: "Erro ao salvar versão da proposta",
+      };
+    }
+
+    const finalVersaoId = result.versao_id;
+    const newVersionCreated = result.new_version_created === true;
+
+    console.log("[persist] RPC resultado:", {
+      versao_id: finalVersaoId,
+      new_version_created: newVersionCreated,
+      reason: result.reason,
+    });
 
     // Sync deal value + kwp so kanban projection reflects proposal data
     const syncDealId = params.dealId;
@@ -451,9 +369,11 @@ async function persistProposalAtomic(
     return {
       status: "success",
       propostaId: effectivePropostaId,
-      versaoId: effectiveVersaoId,
-      newVersionCreated: false,
-      message: setActive ? "Proposta gerada" : "Proposta atualizada",
+      versaoId: finalVersaoId,
+      newVersionCreated,
+      message: newVersionCreated
+        ? (setActive ? "Nova versão gerada" : "Nova versão criada")
+        : (setActive ? "Proposta gerada" : "Proposta atualizada"),
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
