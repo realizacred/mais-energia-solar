@@ -769,16 +769,29 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
   // Grid card (similar to reference screenshot)
   return (
     <div
-      className="rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all flex flex-col justify-between min-h-[220px] cursor-pointer"
+      className={cn(
+        "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between min-h-[220px] cursor-pointer relative",
+        isSelected
+          ? "border-primary shadow-md ring-2 ring-primary/20"
+          : "border-border/40 hover:border-primary/30"
+      )}
       onClick={onSelect}
     >
+      {/* Selected badge */}
+      {isSelected && (
+        <div className="absolute top-2 right-2">
+          <Badge className="bg-primary text-primary-foreground text-[10px] gap-1">
+            <Check className="h-3 w-3" /> Selecionado
+          </Badge>
+        </div>
+      )}
       {/* Distributor header */}
       <div>
         <div className="mb-3 flex items-center justify-between">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
             {card.distribuidorNome || "Manual"}
           </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">KIT</span>
+          {!isSelected && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">KIT</span>}
         </div>
 
         {/* Module info */}
