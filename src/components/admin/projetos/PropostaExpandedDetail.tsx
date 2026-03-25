@@ -1415,6 +1415,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           }}
         />
       )}
+
+      {/* Clone modal */}
+      <ClonePropostaModal
+        open={cloneModalOpen}
+        onOpenChange={setCloneModalOpen}
+        propostaId={p.id}
+        propostaTitulo={p.titulo || p.codigo || `Proposta #${p.proposta_num}`}
+        dealId={dealId}
+        customerId={customerId}
+      />
     </>
   );
 }
