@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, useMemo, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
 import { useMotivosPerda } from "@/hooks/useDistribution";
 import { formatProjetoLabel } from "@/lib/format-entity-labels";
 import { toast } from "@/hooks/use-toast";
@@ -180,7 +181,31 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
   const [userNamesMap, setUserNamesMap] = useState<Map<string, string>>(new Map());
 
   // ── UI states ──
-  const [activeTab, setActiveTab] = useState<TabId>("gerenciamento");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab") as TabId | null;
+  const appliedTabRef = useRef(false);
+
+  const [activeTab, setActiveTabState] = useState<TabId>(
+    (tabFromUrl && ["gerenciamento", "comunicacao", "propostas", "documentos", "instalacao"].includes(tabFromUrl))
+      ? tabFromUrl
+      : "gerenciamento"
+  );
+
+  // Clear tab param from URL after applying (keep URL clean)
+  useEffect(() => {
+    if (tabFromUrl && !appliedTabRef.current) {
+      appliedTabRef.current = true;
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("tab");
+        return next;
+      }, { replace: true });
+    }
+  }, [tabFromUrl, setSearchParams]);
+
+  const setActiveTab = useCallback((tab: TabId) => {
+    setActiveTabState(tab);
+  }, []);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteBlocking, setDeleteBlocking] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
