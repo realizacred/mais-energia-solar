@@ -25,6 +25,8 @@ export interface CalcEffectiveIrradParams {
   tilt_deg: number;
   /** Azimuth deviation from ideal in degrees */
   azimuth_deviation_deg: number;
+  /** When true, skip POA transposition and return GHI average directly */
+  somente_ghi?: boolean;
 }
 
 export interface CalcFatorGeracaoParams extends CalcEffectiveIrradParams {
@@ -74,9 +76,18 @@ function buildGhiSeries(
  * Returns kWh/m²/day annual average.
  */
 export function calcEffectiveIrrad(params: CalcEffectiveIrradParams): number {
-  const { ghiSeries, ghiMediaAnual, latitude, tilt_deg, azimuth_deviation_deg } = params;
+  const { ghiSeries, ghiMediaAnual, latitude, tilt_deg, azimuth_deviation_deg, somente_ghi } = params;
 
   if (!ghiMediaAnual || ghiMediaAnual <= 0) return 0;
+
+  // Toggle "Só GHI": return GHI average directly, no transposition
+  if (somente_ghi) {
+    if (ghiSeries) {
+      const vals = MONTH_KEYS.map(k => ghiSeries[k]).filter(v => v != null && v > 0);
+      return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : ghiMediaAnual;
+    }
+    return ghiMediaAnual;
+  }
 
   const ghi = buildGhiSeries(ghiSeries, ghiMediaAnual);
 

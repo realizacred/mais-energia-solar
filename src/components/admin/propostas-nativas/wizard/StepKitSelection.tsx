@@ -62,6 +62,7 @@ interface Props {
   irradiacao?: number;
   latitude?: number | null;
   ghiSeries?: Record<string, number> | null;
+  somenteGhi?: boolean;
 }
 
 type TabType = "customizado" | "fechado" | "manual" | "catalogo";
@@ -103,7 +104,7 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardDat
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries, somenteGhi }: Props) {
   // If returning to this step with a kit already restored, auto-switch to "manual" tab
   const [tab, setTab] = useState<TabType>(() => {
     if (manualKitsProp.length > 0) return "manual";
@@ -693,6 +694,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           irradiacao={irradiacao}
           latitude={latitude}
           ghiSeries={ghiSeries}
+          somenteGhi={somenteGhi}
         />
       )}
 
@@ -863,7 +865,7 @@ const MONTH_LABELS: Record<string, string> = {
   dez: "Dezembro",
 };
 
-function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange, consumoTotal, irradiacao, latitude, ghiSeries }: {
+function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange, consumoTotal, irradiacao, latitude, ghiSeries, somenteGhi }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   pd: PreDimensionamentoData;
@@ -874,6 +876,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
   irradiacao?: number;
   latitude?: number | null;
   ghiSeries?: Record<string, number> | null;
+  somenteGhi?: boolean;
 }) {
   const pdRef = useRef(pd);
   pdRef.current = pd;
@@ -893,6 +896,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
         tilt_deg: updatedPd.inclinacao ?? 10,
         azimuth_deviation_deg: updatedPd.desvio_azimutal ?? 0,
         desempenho: cfg.desempenho,
+        somente_ghi: somenteGhi,
       });
       configs[topo] = { ...cfg, fator_geracao: newFator };
     }
@@ -902,7 +906,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
       topologia_configs: configs,
       fator_geracao: configs.tradicional?.fator_geracao ?? updatedPd.fator_geracao,
     };
-  }, [irradiacao, latitude, ghiSeries]);
+  }, [irradiacao, latitude, ghiSeries, somenteGhi]);
 
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
     let updated = { ...pdRef.current, [field]: value };
@@ -930,6 +934,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
         tilt_deg: pd.inclinacao ?? 10,
         azimuth_deviation_deg: pd.desvio_azimutal ?? 0,
         desempenho: newDesempenho,
+        somente_ghi: somenteGhi,
       });
       configs[topo] = { ...configs[topo], fator_geracao: newFator };
     }

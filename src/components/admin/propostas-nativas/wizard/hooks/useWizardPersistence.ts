@@ -12,6 +12,7 @@ export interface WizardSnapshot {
   locDistribuidoraNome: string;
   locIrradiacao: number;
   locGhiSeries: Record<string, number> | null;
+  locSkipPoa: boolean;
   locLatitude: number | null;
   distanciaKm: number;
   projectAddress: any;

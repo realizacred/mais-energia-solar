@@ -171,6 +171,7 @@ export function ProposalWizard() {
   const [locDistribuidoraNome, setLocDistribuidoraNome] = useState("");
   const [locIrradiacao, setLocIrradiacao] = useState<number>(0);
   const [locGhiSeries, setLocGhiSeries] = useState<Record<string, number> | null>(null);
+  const [locSkipPoa, setLocSkipPoa] = useState(true);
   const [locLatitude, setLocLatitude] = useState<number | null>(null);
   const [mapSnapshots, setMapSnapshots] = useState<string[]>([]);
   const [distanciaKm, setDistanciaKm] = useState<number>(0);
@@ -277,7 +278,7 @@ export function ProposalWizard() {
 
   const collectSnapshot = useCallback((): WizardSnapshot => ({
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
-    locIrradiacao, locGhiSeries, locLatitude, distanciaKm, projectAddress, mapSnapshots,
+    locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
     selectedLead, cliente, ucs, grupo, potenciaKwp,
     customFieldValues, premissas, preDimensionamento,
     itens, layouts, manualKits, adicionais, servicos, venda,
@@ -286,7 +287,7 @@ export function ProposalWizard() {
     geracaoMensalEstimada,
   }), [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
-    locIrradiacao, locGhiSeries, locLatitude, distanciaKm, projectAddress, mapSnapshots,
+    locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
     selectedLead, cliente, ucs, grupo, potenciaKwp,
     customFieldValues, premissas, preDimensionamento,
     itens, layouts, manualKits, adicionais, servicos, venda,
@@ -315,6 +316,7 @@ export function ProposalWizard() {
     if (s.locDistribuidoraNome != null) setLocDistribuidoraNome(s.locDistribuidoraNome);
     if (s.locIrradiacao != null) setLocIrradiacao(s.locIrradiacao);
     if (s.locGhiSeries != null) setLocGhiSeries(s.locGhiSeries);
+    if (s.locSkipPoa != null) setLocSkipPoa(s.locSkipPoa);
     if (s.locLatitude != null) setLocLatitude(s.locLatitude);
     if (s.distanciaKm != null) setDistanciaKm(s.distanciaKm);
     if (s.projectAddress != null) setProjectAddress(s.projectAddress);
@@ -1775,6 +1777,8 @@ export function ProposalWizard() {
               onGhiSeriesChange={setLocGhiSeries}
               onLatitudeChange={setLocLatitude}
               onMapSnapshotsChange={setMapSnapshots}
+              skipPoa={locSkipPoa}
+              onSkipPoaChange={setLocSkipPoa}
               clienteData={cliente}
               projectAddress={projectAddress}
               onProjectAddressChange={setProjectAddress}
@@ -1835,6 +1839,7 @@ export function ProposalWizard() {
               irradiacao={locIrradiacao}
               ghiSeries={locGhiSeries}
               latitude={locLatitude}
+              somenteGhi={locSkipPoa}
             />
           </>
         ));
@@ -1848,7 +1853,7 @@ export function ProposalWizard() {
         const kitVal = validateKit(itens, potenciaKwp);
         return wrap("kit", (
           <div className="space-y-4">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} />
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} />
             {kitVal.warnings.length > 0 && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
                 {kitVal.warnings.map((w, i) => (

@@ -66,6 +66,9 @@ interface Props {
   onGhiSeriesChange?: (series: Record<string, number> | null) => void;
   onLatitudeChange?: (lat: number) => void;
   onMapSnapshotsChange?: (snapshots: string[]) => void;
+  /** Skip POA transposition — use raw GHI */
+  skipPoa?: boolean;
+  onSkipPoaChange?: (skip: boolean) => void;
   /** Client data for "same address" feature */
   clienteData?: ClienteData | null;
   /** Project address sync */
@@ -90,6 +93,7 @@ export function StepLocalizacao({
   onEstadoChange, onCidadeChange, onTipoTelhadoChange, onDistribuidoraChange,
   onIrradiacaoChange, onGhiSeriesChange, onLatitudeChange,
   onMapSnapshotsChange,
+  skipPoa: skipPoaProp, onSkipPoaChange,
   clienteData, projectAddress, onProjectAddressChange,
   distanciaKm, onDistanciaKmChange,
 }: Props) {
@@ -101,9 +105,15 @@ export function StepLocalizacao({
   const [loadingIrrad, setLoadingIrrad] = useState(false);
   const [ghiSeries, setGhiSeries] = useState<Record<string, number> | null>(null);
   const [irradDialogOpen, setIrradDialogOpen] = useState(false);
-  const [skipPoa, setSkipPoa] = useState(true);
+  // Use lifted state if provided, fallback to local
+  const [localSkipPoa, setLocalSkipPoa] = useState(true);
+  const skipPoa = skipPoaProp ?? localSkipPoa;
+  const setSkipPoa = (v: boolean) => {
+    setLocalSkipPoa(v);
+    onSkipPoaChange?.(v);
+  };
 
-  // When skipPoa changes, propagate null or real series upstream
+  // When skipPoa changes, propagate ghiSeries upstream (null when skipPoa to signal raw GHI mode)
   useEffect(() => {
     onGhiSeriesChange?.(skipPoa ? null : ghiSeries);
   }, [skipPoa]); // eslint-disable-line react-hooks/exhaustive-deps
