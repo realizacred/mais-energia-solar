@@ -171,6 +171,7 @@ export function ProposalWizard() {
   const [locDistribuidoraNome, setLocDistribuidoraNome] = useState("");
   const [locIrradiacao, setLocIrradiacao] = useState<number>(0);
   const [locGhiSeries, setLocGhiSeries] = useState<Record<string, number> | null>(null);
+  const [locSkipPoa, setLocSkipPoa] = useState(true);
   const [locLatitude, setLocLatitude] = useState<number | null>(null);
   const [mapSnapshots, setMapSnapshots] = useState<string[]>([]);
   const [distanciaKm, setDistanciaKm] = useState<number>(0);
@@ -277,7 +278,7 @@ export function ProposalWizard() {
 
   const collectSnapshot = useCallback((): WizardSnapshot => ({
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
-    locIrradiacao, locGhiSeries, locLatitude, distanciaKm, projectAddress, mapSnapshots,
+    locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
     selectedLead, cliente, ucs, grupo, potenciaKwp,
     customFieldValues, premissas, preDimensionamento,
     itens, layouts, manualKits, adicionais, servicos, venda,
@@ -286,7 +287,7 @@ export function ProposalWizard() {
     geracaoMensalEstimada,
   }), [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
-    locIrradiacao, locGhiSeries, locLatitude, distanciaKm, projectAddress, mapSnapshots,
+    locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
     selectedLead, cliente, ucs, grupo, potenciaKwp,
     customFieldValues, premissas, preDimensionamento,
     itens, layouts, manualKits, adicionais, servicos, venda,
@@ -315,6 +316,7 @@ export function ProposalWizard() {
     if (s.locDistribuidoraNome != null) setLocDistribuidoraNome(s.locDistribuidoraNome);
     if (s.locIrradiacao != null) setLocIrradiacao(s.locIrradiacao);
     if (s.locGhiSeries != null) setLocGhiSeries(s.locGhiSeries);
+    if (s.locSkipPoa != null) setLocSkipPoa(s.locSkipPoa);
     if (s.locLatitude != null) setLocLatitude(s.locLatitude);
     if (s.distanciaKm != null) setDistanciaKm(s.distanciaKm);
     if (s.projectAddress != null) setProjectAddress(s.projectAddress);
