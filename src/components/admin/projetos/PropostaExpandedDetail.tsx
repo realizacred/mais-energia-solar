@@ -1137,7 +1137,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <Download className="h-3.5 w-3.5 mr-2 text-success" /> Baixar PDF
                 </DropdownMenuItem>
                 {latestVersao?.output_docx_path && (
-                  <DropdownMenuItem onClick={handleDownloadPdf}>
+                  <DropdownMenuItem onClick={handleDownloadDocx}>
                     <Download className="h-3.5 w-3.5 mr-2 text-info" /> Baixar DOCX
                   </DropdownMenuItem>
                 )}
