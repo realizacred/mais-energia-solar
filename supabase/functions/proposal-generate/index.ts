@@ -890,54 +890,42 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       propostaId = novaProposta.id;
     }
 
-    // ── 8. VERSÃO ATÔMICA via RPC ───────────────────────────
-    const { data: versaoNumero, error: rpcErr } = await adminClient.rpc(
-      "next_proposta_versao_numero", { _proposta_id: propostaId }
-    );
-    if (rpcErr || !versaoNumero) return jsonError(`Erro ao gerar número de versão: ${rpcErr?.message}`, 500);
-
-    // ── 9. INSERIR proposta_versoes ─────────────────────────
-    const { data: versao, error: versaoErr } = await adminClient
+    // ── 8. VERSÃO via RPC proposal_create_version (SSOT) ────
+    // Find latest existing version for this proposta (if any) for branching logic
+    const { data: latestVersao } = await adminClient
       .from("proposta_versoes")
-      .insert({
-        tenant_id: tenantId, proposta_id: propostaId,
-        versao_numero: versaoNumero, status: "generated",
-        grupo: backendGrupo, potencia_kwp: potenciaKwp,
-        valor_total: valorTotal,
-        economia_mensal: round2(economiaMensal),
-        geracao_mensal: round2(geracaoEstimada),
-        payback_meses: calcResult.paybackMeses,
-        validade_dias: 30,
-        valido_ate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
-        snapshot, snapshot_locked: true,
-        idempotency_key: body.idempotency_key,
-        observacoes: body.observacoes ?? null,
-        gerado_por: userId,
-        gerado_em: new Date().toISOString(),
-        calc_hash: hash,
-        engine_version: ENGINE_VERSION,
-      })
-      .select("id, versao_numero, valor_total, payback_meses, economia_mensal")
-      .single();
+      .select("id")
+      .eq("proposta_id", propostaId)
+      .order("versao_numero", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (versaoErr) {
-      if (versaoErr.code === "23505") {
-        const { data: dup } = await adminClient.from("proposta_versoes")
-          .select("id, proposta_id, versao_numero, valor_total, payback_meses, economia_mensal")
-          .eq("tenant_id", tenantId).eq("idempotency_key", body.idempotency_key).single();
-        if (dup) {
-          return jsonOk({
-            success: true, idempotent: true, proposta_id: dup.proposta_id,
-            versao_id: dup.id, versao_numero: dup.versao_numero,
-            valor_total: dup.valor_total, payback_meses: dup.payback_meses,
-            economia_mensal: dup.economia_mensal,
-          });
-        }
+    const { data: rpcResult, error: rpcErr } = await adminClient.rpc(
+      "proposal_create_version", {
+        p_proposta_id: propostaId,
+        p_versao_id: latestVersao?.id ?? null,
+        p_snapshot: snapshot,
+        p_potencia_kwp: potenciaKwp,
+        p_valor_total: valorTotal,
+        p_economia_mensal: round2(economiaMensal),
+        p_geracao_mensal: round2(geracaoEstimada),
+        p_grupo: backendGrupo,
+        p_intent: "active",
+        p_idempotency_key: body.idempotency_key,
+        p_calc_hash: hash,
+        p_engine_version: ENGINE_VERSION,
+        p_validade_dias: 30,
+        p_observacoes: body.observacoes ?? null,
+        p_gerado_por: userId,
+        p_payback_meses: calcResult.paybackMeses,
       }
-      return jsonError(`Erro ao criar versão: ${versaoErr.message}`, 500);
-    }
+    );
 
-    const versaoId = versao!.id;
+    if (rpcErr) return jsonError(`Erro ao criar versão: ${rpcErr.message}`, 500);
+    if (rpcResult?.error) return jsonError(`Erro ao criar versão: ${rpcResult.error}`, 500);
+
+    const versaoId = rpcResult.versao_id;
+    const versaoNumero = rpcResult.versao_numero;
 
     // ── 10. GRANULAR PERSISTENCE (critical path) ────────────
     await adminClient.from("propostas_nativas")
