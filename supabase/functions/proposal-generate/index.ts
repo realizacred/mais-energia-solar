@@ -928,8 +928,11 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     const versaoNumero = rpcResult.versao_numero;
 
     // ── 10. GRANULAR PERSISTENCE (critical path) ────────────
+    // NOTE: Do NOT promote status to "gerada" here. Status stays "rascunho"
+    // until the render step (proposal-render or template-preview) succeeds
+    // and confirms artifact persistence. Only update versao_atual.
     await adminClient.from("propostas_nativas")
-      .update({ status: "gerada", versao_atual: versaoNumero })
+      .update({ versao_atual: versaoNumero })
       .eq("id", propostaId).eq("tenant_id", tenantId);
 
     const granularOps = [];

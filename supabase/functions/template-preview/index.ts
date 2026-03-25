@@ -1435,6 +1435,17 @@ Deno.serve(async (req) => {
           console.error("[template-preview] Failed to update proposta_versoes:", updateErr.message);
         } else {
           console.log(`[template-preview] proposta_versoes ${latestVersao.id} updated with artifact paths`);
+
+          // ── PROMOTE STATUS: Only promote to "gerada" after artifact is persisted ──
+          const hasArtifact = !!(pdfBytes && !pdfConversionError) || (!docxUploadErr && docxStoragePath);
+          if (hasArtifact) {
+            await adminClient
+              .from("propostas_nativas")
+              .update({ status: "gerada" })
+              .eq("id", proposta_id)
+              .eq("tenant_id", tenantId);
+            console.log(`[template-preview] propostas_nativas ${proposta_id} status promoted to "gerada"`);
+          }
         }
       }
     }

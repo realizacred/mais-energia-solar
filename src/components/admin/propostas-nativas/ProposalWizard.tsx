@@ -106,19 +106,13 @@ const STEP_META: Record<string, { title: string; description: string }> = {
   [STEP_KEYS.PROPOSTA]: { title: "Gerar Proposta", description: "Revise os dados e gere o documento final da proposta comercial." },
 };
 
-const IDEM_KEY_PREFIX = "proposal_idem_";
-
-function getOrCreateIdempotencyKey(leadId: string): string {
-  const k = `${IDEM_KEY_PREFIX}${leadId}`;
-  const existing = localStorage.getItem(k);
-  if (existing) return existing;
-  const created = crypto.randomUUID();
-  localStorage.setItem(k, created);
-  return created;
-}
-
-function clearIdempotencyKey(leadId: string) {
-  localStorage.removeItem(`${IDEM_KEY_PREFIX}${leadId}`);
+/**
+ * Generate a NEW unique idempotency key for every generation attempt.
+ * Key includes leadId for traceability but is always unique (UUID).
+ * This prevents reuse of cached generation results when editing.
+ */
+function generateIdempotencyKey(_leadId: string): string {
+  return crypto.randomUUID();
 }
 
 function StepContent({ children }: { children: React.ReactNode }) {
@@ -1490,7 +1484,7 @@ export function ProposalWizard() {
       const isSyntheticLead = !!(selectedLead as any)?._synthetic;
       const realLeadId = isSyntheticLead ? undefined : selectedLead.id;
       const clienteIdForPayload = isSyntheticLead ? (selectedLead as any)._clienteId : undefined;
-      const idempotencyKey = getOrCreateIdempotencyKey(realLeadId || clienteIdForPayload || "no-lead");
+      const idempotencyKey = generateIdempotencyKey(realLeadId || clienteIdForPayload || "no-lead");
       const payload: GenerateProposalPayload = {
         lead_id: realLeadId || undefined,
         cliente_id: clienteIdForPayload,
@@ -1729,7 +1723,7 @@ export function ProposalWizard() {
   }, [result, pdfBlobUrl]);
 
   const handleNewVersion = () => {
-    if (selectedLead) clearIdempotencyKey(selectedLead.id);
+    // idempotency key is now generated fresh each time — no need to clear
     setResult(null);
     setHtmlPreview(null);
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
