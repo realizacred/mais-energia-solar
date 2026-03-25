@@ -26,6 +26,7 @@ import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/d
 import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
 import { ClonePropostaModal } from "./ClonePropostaModal";
+import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -640,7 +641,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [activeTab, setActiveTab] = useState("resumo");
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
@@ -816,23 +816,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   }, [isExpanded, activeTab, latestVersao?.id]);
 
-  // Delete handler — soft delete (preserves history)
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      const { error } = await (supabase as any)
-        .from("propostas_nativas")
-        .update({ status: "excluida", deleted_at: new Date().toISOString() })
-        .eq("id", p.id);
-      if (error) throw error;
-      toast({ title: "Proposta excluída" });
-      onRefresh();
-    } catch (e: any) {
-      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
-    } finally {
-      setDeleting(false);
-      setDeleteOpen(false);
-    }
+  // Delete handler — uses hook for AP-01 compliance
+  const { mutate: excluirProposta, isPending: deleting } = useExcluirProposta();
+  const handleDelete = () => {
+    excluirProposta(p.id, {
+      onSuccess: () => {
+        setDeleteOpen(false);
+        onRefresh();
+      },
+      onSettled: () => setDeleteOpen(false),
+    });
   };
 
   // Render proposal HTML
@@ -886,7 +879,39 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  // Send proposal
+  // Download DOCX
+  const handleDownloadDocx = async () => {
+    try {
+      const docxPath = latestVersao?.output_docx_path;
+      if (!docxPath) {
+        toast({ title: "DOCX não disponível", variant: "destructive" });
+        return;
+      }
+      const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(docxPath, 3600);
+      if (!data?.signedUrl) {
+        toast({ title: "Erro ao obter URL do DOCX", variant: "destructive" });
+        return;
+      }
+      const resp = await fetch(data.signedUrl);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeName = (p.codigo || p.titulo || "proposta")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9-]+/g, "_")
+        .replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+      a.download = `Proposta_${safeName}_v${latestVersao?.versao_numero || 1}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "DOCX baixado!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao baixar DOCX", description: e.message, variant: "destructive" });
+    }
+  };
+
   const handleSend = async (canal: "link" | "whatsapp") => {
     if (!p.id || !latestVersao?.id) return;
     setSending(true);
@@ -1144,7 +1169,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <Download className="h-3.5 w-3.5 mr-2 text-success" /> Baixar PDF
                 </DropdownMenuItem>
                 {latestVersao?.output_docx_path && (
-                  <DropdownMenuItem onClick={handleDownloadPdf}>
+                  <DropdownMenuItem onClick={handleDownloadDocx}>
                     <Download className="h-3.5 w-3.5 mr-2 text-info" /> Baixar DOCX
                   </DropdownMenuItem>
                 )}

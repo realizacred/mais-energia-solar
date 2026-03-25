@@ -214,3 +214,28 @@ export function useArquivarProposta() {
     },
   });
 }
+
+/**
+ * Mutation para excluir proposta (soft delete).
+ * Preserva histórico — marca status como 'excluida' e grava deleted_at.
+ */
+export function useExcluirProposta() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (propostaId: string) => {
+      const { error } = await (supabase as any)
+        .from("propostas_nativas")
+        .update({ status: "excluida", deleted_at: new Date().toISOString() })
+        .eq("id", propostaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast({ title: "Proposta excluída" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao excluir proposta", description: err.message, variant: "destructive" });
+    },
+  });
+}
