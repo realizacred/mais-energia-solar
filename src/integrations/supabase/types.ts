@@ -25649,6 +25649,7 @@ export type Database = {
           peak_power_kw: number
         }[]
       }
+      get_proposal_workspace: { Args: { p_versao_id: string }; Returns: Json }
       get_roof_types_by_consultor: {
         Args: { p_consultor_code: string }
         Returns: {
