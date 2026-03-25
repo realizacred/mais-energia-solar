@@ -1454,6 +1454,16 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const setPrincipalMutation = useSetPropostaPrincipal();
   const arquivarMutation = useArquivarProposta();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Reset expandedId if the expanded proposta no longer exists in the list (e.g. after deletion)
+  useEffect(() => {
+    if (expandedId && propostas.length > 0 && !propostas.find(p => p.id === expandedId)) {
+      setExpandedId(null);
+    }
+    if (expandedId && propostas.length === 0) {
+      setExpandedId(null);
+    }
+  }, [propostas, expandedId]);
   const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
 
@@ -1635,15 +1645,20 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
       )}
 
       {propostas.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-            <FileText className="h-10 w-10 mb-3 opacity-30" />
-            <p className="font-medium">Nenhuma proposta encontrada</p>
-            <p className="text-xs mt-1">
-              {customerId ? "Crie a primeira proposta para este cliente" : "Vincule um cliente ao projeto primeiro"}
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileText}
+          title="Nenhuma proposta encontrada"
+          description={customerId ? "Crie a primeira proposta para este cliente" : "Vincule um cliente ao projeto primeiro"}
+          action={customerId && !isClosed ? {
+            label: "Criar proposta",
+            onClick: () => {
+              const params = new URLSearchParams({ deal_id: dealId });
+              if (customerId) params.set("customer_id", customerId);
+              navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+            },
+            icon: Plus,
+          } : undefined}
+        />
       ) : (
         <div className="space-y-6">
           {principal && (

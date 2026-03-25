@@ -235,7 +235,13 @@ export function useExcluirProposta() {
       if (error) throw error;
     },
     onSuccess: () => {
+      // Invalidate all proposal-related queries to ensure consistent state
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["proposal-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["proposta-expanded-snapshot"] });
+      queryClient.invalidateQueries({ queryKey: ["proposta-expanded-ucs"] });
+      queryClient.invalidateQueries({ queryKey: ["proposta-audit-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] });
       toast({ title: "Proposta excluída" });
     },
     onError: (err: any) => {
