@@ -488,11 +488,30 @@ export function ConvertLeadToClientDialog({
         .from("lead_status")
         .select("id")
         .eq("nome", "Aguardando Documentação")
-        .single();
+        .maybeSingle();
 
       if (!aguardandoStatus) {
-        throw new Error("Status 'Aguardando Documentação' não encontrado.");
+        // Try alternative name
+        const { data: altStatus } = await supabase
+          .from("lead_status")
+          .select("id")
+          .ilike("nome", "%aguardando%document%")
+          .maybeSingle();
+        
+        if (!altStatus) {
+          toast({
+            title: "Configuração necessária",
+            description: "O status 'Aguardando Documentação' não existe. Peça ao administrador para criá-lo na configuração de status.",
+            variant: "destructive",
+          });
+          setSavingAsLead(false);
+          return;
+        }
+        // Use the alternative found
+        Object.assign(aguardandoStatus || {}, altStatus);
       }
+
+      const statusId = aguardandoStatus?.id;
 
       const missing: string[] = [];
       if (!form.getValues("email")) missing.push("E-mail");
@@ -539,7 +558,7 @@ export function ConvertLeadToClientDialog({
         supabase
           .from("leads")
           .update({
-            status_id: aguardandoStatus.id,
+            status_id: statusId,
             cep: formData.cep || null,
             estado: formData.estado || lead.estado,
             cidade: formData.cidade || lead.cidade,
@@ -555,7 +574,7 @@ export function ConvertLeadToClientDialog({
           ? supabase
               .from("orcamentos")
               .update({
-                status_id: aguardandoStatus.id,
+                status_id: statusId,
                 ultimo_contato: nowIso,
                 updated_at: nowIso,
               })
@@ -563,7 +582,7 @@ export function ConvertLeadToClientDialog({
           : Promise.resolve({ error: null } as any),
       ]);
 
-      if (leadUpdateError && orcUpdateError) throw leadUpdateError;
+      if (leadUpdateError || orcUpdateError) throw leadUpdateError || orcUpdateError;
 
       toast({
         title: "Lead atualizado!",
@@ -1307,7 +1326,38 @@ export function ConvertLeadToClientDialog({
                       disabled={loading || savingAsLead}
                       onClick={async () => {
                         const valid = await form.trigger();
-                        if (!valid) return;
+                        if (!valid) {
+                          // Find which step has errors and navigate there
+                          const errors = form.formState.errors;
+                          const step0Fields = ["nome", "telefone", "email", "cpf_cnpj", "cep", "estado", "cidade", "bairro", "rua", "numero", "complemento"] as const;
+                          const step1Fields = ["disjuntor_id", "transformador_id", "localizacao"] as const;
+                          
+                          const hasStep0Error = step0Fields.some(f => f in errors);
+                          const hasStep1Error = step1Fields.some(f => f in errors);
+                          
+                          if (hasStep0Error) {
+                            setCurrentStep(0);
+                            toast({
+                              title: "Dados incompletos",
+                              description: "Preencha os campos obrigatórios na etapa de Dados Pessoais.",
+                              variant: "destructive",
+                            });
+                          } else if (hasStep1Error) {
+                            setCurrentStep(1);
+                            toast({
+                              title: "Dados incompletos",
+                              description: "Preencha os campos obrigatórios na etapa Técnico & Docs.",
+                              variant: "destructive",
+                            });
+                          } else {
+                            toast({
+                              title: "Dados incompletos",
+                              description: "Verifique os campos obrigatórios em todas as etapas.",
+                              variant: "destructive",
+                            });
+                          }
+                          return;
+                        }
                         const data = form.getValues();
                         handleSubmit(data);
                       }}
