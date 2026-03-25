@@ -301,8 +301,77 @@ async function persistProposalAtomic(
       };
     }
 
-    // Always overwrite the existing version (unlock if locked)
-    console.log("[persist] atualizando versão existente (sobrescrevendo)", effectiveVersaoId);
+    // ── Check if version is locked (snapshot_locked = true) ──
+    // If locked, create a NEW version instead of trying to update
+    const { data: currentVersion } = await supabase
+      .from("proposta_versoes")
+      .select("snapshot_locked, versao_numero")
+      .eq("id", effectiveVersaoId)
+      .single();
+
+    const isLocked = currentVersion?.snapshot_locked === true;
+
+    if (isLocked) {
+      console.log("[persist] versão trancada — criando nova versão", effectiveVersaoId);
+      const nextNumero = (Number(currentVersion?.versao_numero) || 1) + 1;
+
+      const insertData: Record<string, any> = {
+        proposta_id: effectivePropostaId,
+        versao_numero: nextNumero,
+        potencia_kwp: params.potenciaKwp,
+        valor_total: params.precoFinal,
+        economia_mensal: params.economiaMensal || null,
+        geracao_mensal: params.geracaoMensal || null,
+        grupo: grupoNormalized,
+        snapshot: sanitized,
+        snapshot_locked: setActive,
+        status: setActive ? "generated" : "draft",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      if (setActive) {
+        insertData.gerado_em = new Date().toISOString();
+      }
+
+      const { data: newVer, error: insErr } = await supabase
+        .from("proposta_versoes")
+        .insert(insertData as any)
+        .select("id")
+        .single();
+
+      if (insErr) {
+        console.error("[persist] erro ao criar nova versão:", insErr.message);
+        return {
+          status: "error",
+          reason: insErr.message,
+          message: "Erro ao criar nova versão da proposta",
+        };
+      }
+
+      // Sync deal
+      const syncDealId2 = params.dealId;
+      if (syncDealId2 && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
+        await supabase
+          .from("deals")
+          .update({
+            value: params.precoFinal,
+            kwp: params.potenciaKwp,
+            updated_at: new Date().toISOString(),
+          } as any)
+          .eq("id", syncDealId2);
+      }
+
+      return {
+        status: "success",
+        propostaId: effectivePropostaId,
+        versaoId: newVer.id,
+        newVersionCreated: true,
+        message: setActive ? "Nova versão gerada" : "Nova versão criada",
+      };
+    }
+
+    // ── Version is NOT locked — update in place ──
+    console.log("[persist] atualizando versão existente", effectiveVersaoId);
 
     const updateData: Record<string, any> = {
       potencia_kwp: params.potenciaKwp,
@@ -312,7 +381,6 @@ async function persistProposalAtomic(
       grupo: grupoNormalized,
       snapshot: sanitized,
       updated_at: new Date().toISOString(),
-      // Unlock so it can be overwritten
       snapshot_locked: setActive,
       finalized_at: null,
     };
