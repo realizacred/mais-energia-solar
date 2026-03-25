@@ -102,7 +102,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
         versoes: (versoes || [])
           .filter((v: any) => v.proposta_id === p.id)
           .map((v: any) => {
-            const snap = v.snapshot as any;
+            const snap = (v.snapshot || {}) as Record<string, any>;
             // Fallback potência from snapshot
             let potencia = v.potencia_kwp;
             if ((!potencia || potencia === 0) && snap?.itens) {
