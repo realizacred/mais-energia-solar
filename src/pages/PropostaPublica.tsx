@@ -155,7 +155,7 @@ export default function PropostaPublica() {
 
         if (!uploadErr) {
           const { data: urlData } = await supabase.storage
-            .from("proposal-signatures").createSignedUrl(path, 60 * 60 * 24 * 365); // 1 year signed URL
+            .from("proposal-signatures").createSignedUrl(path, 60 * 60 * 24 * 7); // 7 days signed URL
           assinaturaUrl = urlData?.signedUrl || null;
         }
       }
