@@ -255,6 +255,7 @@ export function usePaybackEngine() {
     }
 
     // PASSO 1: kWh compensado (first year baseline)
+    // @TODO: Injeção de energia (Créditos futuros) não contemplada, refinar usando saldo de crédito mensal equivalente a calcSeries25
     const kwhCompensado = Math.min(input.geracaoMensalKwh, input.consumoMensal);
 
     // PASSO 2: Conta inevitável (fixa)
@@ -353,6 +354,10 @@ export function usePaybackEngine() {
       }
     }
 
+    // Guard Infinity: se payback nunca foi atingido, limitar a 31 anos (inviável)
+    const safePaybackAnos = (meses: number) =>
+      !isFinite(meses) ? 31 : meses / 12;
+
     return {
       conservador: {
         label: "Conservador",
@@ -360,8 +365,8 @@ export function usePaybackEngine() {
         custoFioB: conservadorCalc.custoFioB,
         contaInevitavel,
         economiaLiquida: conservadorCalc.economiaLiquida,
-        paybackMeses: conservadorCalc.paybackMeses,
-        paybackAnos: conservadorCalc.paybackMeses / 12,
+        paybackMeses: isFinite(conservadorCalc.paybackMeses) ? conservadorCalc.paybackMeses : 372,
+        paybackAnos: safePaybackAnos(conservadorCalc.paybackMeses),
         tarifaCompensavelLiquida: tarifaCompensavelConservadora,
         kwhCompensado,
         percentualFioB: percentualFioB * 100,
@@ -372,8 +377,8 @@ export function usePaybackEngine() {
         custoFioB: otimistaCalc.custoFioB,
         contaInevitavel,
         economiaLiquida: otimistaCalc.economiaLiquida,
-        paybackMeses: otimistaCalc.paybackMeses,
-        paybackAnos: otimistaCalc.paybackMeses / 12,
+        paybackMeses: isFinite(otimistaCalc.paybackMeses) ? otimistaCalc.paybackMeses : 372,
+        paybackAnos: safePaybackAnos(otimistaCalc.paybackMeses),
         tarifaCompensavelLiquida: tarifaCompensavelOtimista,
         kwhCompensado,
         percentualFioB: percentualFioB * 100,

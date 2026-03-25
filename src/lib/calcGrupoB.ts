@@ -154,6 +154,7 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
   const consumo_compensavel_kwh = Math.max(consumo_mensal_kwh - custo_disp_kwh, 0);
 
   // 3. Energia efetivamente compensada (limitada ao que foi gerado)
+  // @TODO: Injeção de energia (Créditos futuros) não contemplada, refinar usando saldo de crédito mensal equivalente a calcSeries25
   const energia_compensada_kwh = Math.min(geracao_mensal_kwh, consumo_compensavel_kwh);
 
   // 4. Resolver Fio B e nível de precisão
