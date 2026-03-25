@@ -92,14 +92,7 @@ interface SnapshotData {
   };
 }
 
-interface UCDetailData {
-  id: string;
-  nome: string;
-  consumo_mensal_kwh: number;
-  geracao_mensal_estimada: number | null;
-  tarifa_energia: number | null;
-  percentual_atendimento: number | null;
-}
+// UCDetailData imported from usePropostaExpandedData hook
 
 // ─── Status Badge ───────────────────────────────────
 const STATUS_MAP: Record<string, { label: string; cls: string; iconCls: string }> = {
