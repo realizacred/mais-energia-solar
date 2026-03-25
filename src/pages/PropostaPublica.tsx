@@ -15,6 +15,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ReactSignatureCanvas from "react-signature-canvas";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 
 type TokenData = {
   id: string;
