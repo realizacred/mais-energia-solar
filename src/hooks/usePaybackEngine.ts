@@ -257,6 +257,9 @@ export function usePaybackEngine() {
     // PASSO 1: kWh compensado (first year baseline)
     const kwhCompensado = Math.min(input.geracaoMensalKwh, input.consumoMensal);
 
+    // PASSO 2: Conta inevitável (fixa)
+    const contaInevitavel = custoDisponibilidade + taxasFixas;
+
     // ─── Helper: Iterative payback with degradation + tariff adjustment ───
     const calcIterativePayback = (tarifaCompensavel: number, fioBFraction: number): {
       paybackMeses: number;
@@ -328,13 +331,19 @@ export function usePaybackEngine() {
 
     const otimistaCalc = calcIterativePayback(tarifaCompensavelOtimista, percentualFioB);
 
-    // ─── Impacto Fio B ao longo dos anos ─────────────────────
+    // ─── Impacto Fio B ao longo dos anos (with degradation + reajuste) ───
     const fioBImpactoAnual: PaybackResult["fioBImpactoAnual"] = [];
     if (input.regime === "gd2") {
+      const degradacao = paybackConfig.degradacao_anual_painel / 100;
+      const reajuste = paybackConfig.reajuste_anual_tarifa / 100;
       for (let ano = 2023; ano <= 2033; ano++) {
+        const yearIndex = ano - anoAtual;
+        const geracaoFator = yearIndex >= 0 ? Math.pow(1 - degradacao, yearIndex) : 1;
+        const tarifaFator = yearIndex >= 0 ? Math.pow(1 + reajuste, yearIndex) : 1;
         const pct = getFioBPercentual(ano);
-        const custoFiob = kwhCompensado * tarifaFioB * pct;
-        const economiaAno = economiaBrutaOtimista - custoFiob - contaInevitavel;
+        const kwhComp = kwhCompensado * geracaoFator;
+        const custoFiob = kwhComp * tarifaFioB * tarifaFator * pct;
+        const economiaAno = (kwhComp * tarifaCompensavelOtimista * tarifaFator) - custoFiob - contaInevitavel;
         fioBImpactoAnual.push({
           ano,
           percentual: pct * 100,
@@ -347,24 +356,24 @@ export function usePaybackEngine() {
     return {
       conservador: {
         label: "Conservador",
-        economiaBruta: economiaBrutaConservadora,
-        custoFioB: custoFioBConservador,
+        economiaBruta: conservadorCalc.economiaBruta,
+        custoFioB: conservadorCalc.custoFioB,
         contaInevitavel,
-        economiaLiquida: economiaLiquidaConservadora,
-        paybackMeses: paybackMesesConservador,
-        paybackAnos: paybackMesesConservador / 12,
+        economiaLiquida: conservadorCalc.economiaLiquida,
+        paybackMeses: conservadorCalc.paybackMeses,
+        paybackAnos: conservadorCalc.paybackMeses / 12,
         tarifaCompensavelLiquida: tarifaCompensavelConservadora,
         kwhCompensado,
         percentualFioB: percentualFioB * 100,
       },
       otimista: {
         label: "Otimista",
-        economiaBruta: economiaBrutaOtimista,
-        custoFioB: custoFioBOtimista,
+        economiaBruta: otimistaCalc.economiaBruta,
+        custoFioB: otimistaCalc.custoFioB,
         contaInevitavel,
-        economiaLiquida: economiaLiquidaOtimista,
-        paybackMeses: paybackMesesOtimista,
-        paybackAnos: paybackMesesOtimista / 12,
+        economiaLiquida: otimistaCalc.economiaLiquida,
+        paybackMeses: otimistaCalc.paybackMeses,
+        paybackAnos: otimistaCalc.paybackMeses / 12,
         tarifaCompensavelLiquida: tarifaCompensavelOtimista,
         kwhCompensado,
         percentualFioB: percentualFioB * 100,
