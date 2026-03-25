@@ -865,7 +865,7 @@ const MONTH_LABELS: Record<string, string> = {
   dez: "Dezembro",
 };
 
-function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange, consumoTotal, irradiacao, latitude, ghiSeries }: {
+function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange, consumoTotal, irradiacao, latitude, ghiSeries, somenteGhi }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   pd: PreDimensionamentoData;
@@ -876,6 +876,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
   irradiacao?: number;
   latitude?: number | null;
   ghiSeries?: Record<string, number> | null;
+  somenteGhi?: boolean;
 }) {
   const pdRef = useRef(pd);
   pdRef.current = pd;
@@ -895,6 +896,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
         tilt_deg: updatedPd.inclinacao ?? 10,
         azimuth_deviation_deg: updatedPd.desvio_azimutal ?? 0,
         desempenho: cfg.desempenho,
+        somente_ghi: somenteGhi,
       });
       configs[topo] = { ...cfg, fator_geracao: newFator };
     }
@@ -904,7 +906,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
       topologia_configs: configs,
       fator_geracao: configs.tradicional?.fator_geracao ?? updatedPd.fator_geracao,
     };
-  }, [irradiacao, latitude, ghiSeries]);
+  }, [irradiacao, latitude, ghiSeries, somenteGhi]);
 
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
     let updated = { ...pdRef.current, [field]: value };
