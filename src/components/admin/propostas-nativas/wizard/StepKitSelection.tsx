@@ -14,18 +14,20 @@ import { cn } from "@/lib/utils";
 import {
   type KitItemRow, type LayoutArranjo, type PreDimensionamentoData, type TopologiaConfig,
   SOMBREAMENTO_OPTIONS, DESVIO_AZIMUTAL_OPTIONS, INCLINACAO_OPTIONS,
-  TOPOLOGIA_LABELS, DEFAULT_TOPOLOGIA_CONFIGS,
+  TOPOLOGIA_LABELS, DEFAULT_TOPOLOGIA_CONFIGS, MESES,
   formatBRL,
 } from "./types";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { fetchActiveKits, snapshotCatalogKitToKitItemRows, fetchKitsSummary, type CatalogKit, type CatalogKitSummary } from "@/services/kitCatalogService";
+import { formatNumberBR } from "@/lib/formatters";
 
 import { KitFilters, DEFAULT_FILTERS, type KitFiltersState } from "./kit/KitFilters";
 import { KitCard, type KitCardData } from "./kit/KitCard";
 import { CriarKitManualModal, type KitMeta } from "./kit/CriarKitManualModal";
 import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
 import { EditarLayoutModal } from "./kit/EditarLayoutModal";
+import { MesAMesDialog } from "./uc/UCModals";
 
 interface CatalogoModuloUnificado {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
@@ -846,6 +848,21 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
 
 /* ── Premissas Modal ── */
 
+const MONTH_LABELS: Record<string, string> = {
+  jan: "Janeiro",
+  fev: "Fevereiro",
+  mar: "Março",
+  abr: "Abril",
+  mai: "Maio",
+  jun: "Junho",
+  jul: "Julho",
+  ago: "Agosto",
+  set: "Setembro",
+  out: "Outubro",
+  nov: "Novembro",
+  dez: "Dezembro",
+};
+
 function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange, consumoTotal, irradiacao, latitude, ghiSeries }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -860,6 +877,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
 }) {
   const pdRef = useRef(pd);
   pdRef.current = pd;
+  const [topoMesAMes, setTopoMesAMes] = useState<{ open: boolean; topo: string }>({ open: false, topo: "tradicional" });
 
   // Recalculate effective irradiance (POA) when tilt/azimuth change
   const recalcFatorGeracao = useCallback((updatedPd: PreDimensionamentoData) => {
@@ -868,7 +886,6 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
     const tilt = updatedPd.inclinacao ?? 10;
     const azimuthDev = updatedPd.desvio_azimutal ?? 0;
 
-    // Build GHI series
     const ghi: Record<string, number> = ghiSeries
       ? {
           m01: ghiSeries.m01 ?? irradiacao, m02: ghiSeries.m02 ?? irradiacao,
@@ -917,7 +934,6 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
 
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
     let updated = { ...pdRef.current, [field]: value };
-    // Recalculate fator_geracao when inclination or azimuth changes
     if (field === "inclinacao" || field === "desvio_azimutal") {
       updated = recalcFatorGeracao(updated);
     }
@@ -1039,7 +1055,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
-                        <Button variant="link" className="text-[10px] text-secondary hover:underline flex items-center gap-0.5 h-auto p-0">mês a mês <Pencil className="h-2.5 w-2.5" /></Button>
+                        <Button variant="link" onClick={() => setTopoMesAMes({ open: true, topo })} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5 h-auto p-0">mês a mês <Pencil className="h-2.5 w-2.5" /></Button>
                       </div>
                       <div className="relative">
                         <Input type="number" step="0.01" value={cfg.fator_geracao || ""} onChange={e => updateTopoConfig(topo, "fator_geracao", Number(e.target.value))} className="h-9 text-xs pr-16" />
@@ -1083,6 +1099,32 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Voltar</Button>
           <Button size="sm" onClick={() => onOpenChange(false)} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
         </div>
+
+        <MesAMesDialog
+          open={topoMesAMes.open}
+          onOpenChange={o => setTopoMesAMes({ ...topoMesAMes, open: o })}
+          title={`Fator de Geração — ${TOPOLOGIA_LABELS[topoMesAMes.topo] || topoMesAMes.topo}`}
+          values={(() => {
+            const cfg = getTopoConfig(topoMesAMes.topo);
+            const meses = cfg.fator_geracao_meses || {};
+            const hasValues = Object.values(meses).some(v => Number(v) > 0);
+            if (!hasValues && cfg.fator_geracao > 0) {
+              const PESOS_IRRADIACAO = [1.23, 1.27, 1.06, 0.92, 0.77, 0.73, 0.76, 0.92, 1.0, 1.06, 1.03, 1.21];
+              const soma = PESOS_IRRADIACAO.reduce((a, b) => a + b, 0);
+              const norm = PESOS_IRRADIACAO.map(p => p * 12 / soma);
+              return Object.fromEntries(MESES.map((m, i) => [m, Math.round(cfg.fator_geracao * norm[i] * 100) / 100]));
+            }
+            return meses;
+          })()}
+          onSave={(values) => {
+            const vals = Object.values(values).map(v => Number(v)).filter(v => v > 0);
+            const media = vals.length > 0
+              ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100
+              : getTopoConfig(topoMesAMes.topo).fator_geracao;
+            updateTopoConfig(topoMesAMes.topo, "fator_geracao_meses", values);
+            updateTopoConfig(topoMesAMes.topo, "fator_geracao", media);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
