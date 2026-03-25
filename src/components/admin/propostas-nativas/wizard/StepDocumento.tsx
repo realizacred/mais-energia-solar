@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
   Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
-  AlertTriangle,
+  AlertTriangle, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -688,6 +688,22 @@ export function StepDocumento({
               <Calendar className="h-3.5 w-3.5" />
               Validade da proposta: {validade ? formatDate(validade + "T12:00:00") : "—"}
             </div>
+
+            {/* Button to go to finished proposal */}
+            {generationStatus === "ready" && (
+              <Separator className="my-2" />
+            )}
+            {generationStatus === "ready" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 border-primary text-primary hover:bg-primary/10"
+                onClick={onViewDetail}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Ir para proposta gerada
+              </Button>
+            )}
           </div>
         </div>
 
