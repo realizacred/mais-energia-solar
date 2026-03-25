@@ -16898,6 +16898,7 @@ export type Database = {
           created_by: string | null
           data_aceite_estimativa: string | null
           deal_id: string | null
+          deleted_at: string | null
           enviada_at: string | null
           enviada_por: string | null
           enviada_via: string | null
@@ -16948,6 +16949,7 @@ export type Database = {
           created_by?: string | null
           data_aceite_estimativa?: string | null
           deal_id?: string | null
+          deleted_at?: string | null
           enviada_at?: string | null
           enviada_por?: string | null
           enviada_via?: string | null
@@ -16998,6 +17000,7 @@ export type Database = {
           created_by?: string | null
           data_aceite_estimativa?: string | null
           deal_id?: string | null
+          deleted_at?: string | null
           enviada_at?: string | null
           enviada_por?: string | null
           enviada_via?: string | null
