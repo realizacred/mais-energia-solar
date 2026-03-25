@@ -568,18 +568,20 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Select value={m.selectedId} onValueChange={v => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, selectedId: v } : x))}>
-                      <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
-                      <SelectContent>
-                        {[...modulos]
-                          .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_wp || 0) - (a.potencia_wp || 0))
-                          .map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.fabricante} {cat.modelo}{cat.potencia_wp ? ` (${cat.potencia_wp}W)` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableEquipSelect
+                      value={m.selectedId}
+                      onValueChange={v => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, selectedId: v } : x))}
+                      options={[...modulos]
+                        .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_wp || 0) - (a.potencia_wp || 0))
+                        .map(cat => ({
+                          value: cat.id,
+                          label: `${cat.fabricante} ${cat.modelo}${cat.potencia_wp ? ` (${cat.potencia_wp}W)` : ""}`,
+                          searchText: `${cat.fabricante} ${cat.modelo} ${cat.potencia_wp || ""}`,
+                        }))}
+                      placeholder="Buscar módulo..."
+                      emptyText="Nenhum módulo encontrado"
+                      className="flex-1"
+                    />
                     <Input type="number" min="0" value={m.quantidade || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
                   </div>
                 )}
