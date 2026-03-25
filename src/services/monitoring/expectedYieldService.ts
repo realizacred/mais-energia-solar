@@ -91,3 +91,39 @@ export function calcExpectedYield(params: {
     deviation_percent: Math.round(deviationPercent * 10) / 10,
   };
 }
+
+// ─── Reconciliação Proposta ↔ Monitoramento ─────────────────────
+
+/**
+ * Reconcilia o PR da proposta (que já inclui perdas) com o modelo
+ * de perdas separadas do monitoramento.
+ *
+ * Na proposta: taxa_desempenho = PR_puro × (1-shading) × (1-soiling) × (1-other)
+ * Esta função extrai o PR "puro" para uso no monitoramento.
+ *
+ * Exemplo:
+ *   taxa_desempenho_proposta = 69.8%
+ *   shading = 8%, soiling = 5%, other = 12%
+ *   perdas_combinadas = 0.92 × 0.95 × 0.88 = 0.769
+ *   PR_puro = 69.8 / 0.769 = 90.77%
+ *
+ * @param pr_proposta_percent - Taxa de desempenho da proposta (ex: 69.8)
+ * @param shading_loss_percent - Perda por sombreamento (ex: 8)
+ * @param soiling_loss_percent - Perda por sujeira (ex: 5)
+ * @param other_losses_percent - Outras perdas (ex: 12)
+ * @returns PR puro em % (sem as perdas ambientais)
+ */
+export function reconcilePR(
+  pr_proposta_percent: number,
+  shading_loss_percent: number,
+  soiling_loss_percent: number,
+  other_losses_percent: number,
+): number {
+  const perdas = (1 - shading_loss_percent / 100)
+               * (1 - soiling_loss_percent / 100)
+               * (1 - other_losses_percent / 100);
+
+  if (perdas <= 0) return pr_proposta_percent;
+
+  return Math.round((pr_proposta_percent / 100 / perdas) * 100 * 100) / 100;
+}
