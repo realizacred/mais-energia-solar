@@ -2199,6 +2199,18 @@ export function ProposalWizard() {
                 Prosseguir
               </Button>
             )}
+            {isLastStep && (savedProjetoId || resolvedDealId) && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  const targetId = savedProjetoId || resolvedDealId;
+                  if (targetId) navigate(`/admin/projetos/${targetId}?tab=propostas`);
+                }}
+                className="gap-1.5 h-9 px-5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200"
+              >
+                Prosseguir
+              </Button>
+            )}
           </div>
         </div>
 
