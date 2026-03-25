@@ -254,30 +254,68 @@ export function usePaybackEngine() {
       resultAlertas.push("Recomendado configurar tarifa Fio B da concessionária para maior precisão.");
     }
 
-    // PASSO 1: kWh compensado
+    // PASSO 1: kWh compensado (first year baseline)
     const kwhCompensado = Math.min(input.geracaoMensalKwh, input.consumoMensal);
+
+    // ─── Helper: Iterative payback with degradation + tariff adjustment ───
+    const calcIterativePayback = (tarifaCompensavel: number, fioBFraction: number): {
+      paybackMeses: number;
+      economiaBruta: number;
+      custoFioB: number;
+      economiaLiquida: number;
+    } => {
+      const degradacao = paybackConfig.degradacao_anual_painel / 100; // e.g. 0.008
+      const reajuste = paybackConfig.reajuste_anual_tarifa / 100; // e.g. 0.05
+
+      // First-month values (for display / scenario summary)
+      const economiaBruta0 = kwhCompensado * tarifaCompensavel;
+      const custoFioB0 = input.regime === "gd1" ? 0 : kwhCompensado * tarifaFioB * fioBFraction;
+      const economiaLiquida0 = Math.max(0, economiaBruta0 - custoFioB0 - contaInevitavel);
+
+      // Iterative payback: month-by-month accumulation
+      let accumulated = 0;
+      const maxMonths = 30 * 12; // 30 years max
+      let paybackMeses = Infinity;
+
+      for (let m = 1; m <= maxMonths; m++) {
+        const yearIndex = Math.floor((m - 1) / 12);
+        // Apply degradation: generation decreases each year
+        const geracaoFator = Math.pow(1 - degradacao, yearIndex);
+        // Apply tariff increase: tariff increases each year
+        const tarifaFator = Math.pow(1 + reajuste, yearIndex);
+        // Update Fio B percentage for this year
+        const anoAtualIter = anoAtual + yearIndex;
+        const fioBPctIter = input.regime === "gd1" ? 0 : getFioBPercentual(anoAtualIter);
+
+        const kwhComp = kwhCompensado * geracaoFator;
+        const tarifaAdj = tarifaCompensavel * tarifaFator;
+        const fioBAdj = tarifaFioB * tarifaFator;
+
+        const econMes = kwhComp * tarifaAdj;
+        const fioBMes = input.regime === "gd1" ? 0 : kwhComp * fioBAdj * fioBPctIter;
+        const econLiq = Math.max(0, econMes - fioBMes - contaInevitavel);
+
+        accumulated += econLiq;
+        if (accumulated >= input.custoSistema && paybackMeses === Infinity) {
+          paybackMeses = m;
+          break;
+        }
+      }
+
+      return {
+        paybackMeses,
+        economiaBruta: economiaBruta0,
+        custoFioB: custoFioB0,
+        economiaLiquida: economiaLiquida0,
+      };
+    };
 
     // ─── Cenário CONSERVADOR ─────────────────────────────────
     // Assume sem isenção ICMS (pior caso), ICMS integral
     const icmsConservador = tributaria.aliquota_icms / 100;
     const tarifaCompensavelConservadora = input.tarifaKwh * (1 - icmsConservador);
 
-    // PASSO 2: Economia bruta conservadora
-    const economiaBrutaConservadora = kwhCompensado * tarifaCompensavelConservadora;
-
-    // PASSO 3: Custo Fio B
-    const custoFioBConservador = input.regime === "gd1" ? 0 : kwhCompensado * tarifaFioB * percentualFioB;
-
-    // PASSO 4: Conta inevitável
-    const contaInevitavel = custoDisponibilidade + taxasFixas;
-
-    // PASSO 5: Economia líquida conservadora
-    const economiaLiquidaConservadora = Math.max(0, economiaBrutaConservadora - custoFioBConservador - contaInevitavel);
-
-    // Payback conservador
-    const paybackMesesConservador = economiaLiquidaConservadora > 0
-      ? input.custoSistema / economiaLiquidaConservadora
-      : Infinity;
+    const conservadorCalc = calcIterativePayback(tarifaCompensavelConservadora, percentualFioB);
 
     // ─── Cenário OTIMISTA ────────────────────────────────────
     // Aplica isenção ICMS quando disponível
@@ -288,13 +326,7 @@ export function usePaybackEngine() {
     }
     const tarifaCompensavelOtimista = input.tarifaKwh * (1 - icmsOtimista);
 
-    const economiaBrutaOtimista = kwhCompensado * tarifaCompensavelOtimista;
-    const custoFioBOtimista = input.regime === "gd1" ? 0 : kwhCompensado * tarifaFioB * percentualFioB;
-    const economiaLiquidaOtimista = Math.max(0, economiaBrutaOtimista - custoFioBOtimista - contaInevitavel);
-
-    const paybackMesesOtimista = economiaLiquidaOtimista > 0
-      ? input.custoSistema / economiaLiquidaOtimista
-      : Infinity;
+    const otimistaCalc = calcIterativePayback(tarifaCompensavelOtimista, percentualFioB);
 
     // ─── Impacto Fio B ao longo dos anos ─────────────────────
     const fioBImpactoAnual: PaybackResult["fioBImpactoAnual"] = [];
