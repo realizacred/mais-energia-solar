@@ -260,6 +260,7 @@ export function usePropostas(filters: PropostaFilters = {}) {
 
   return {
     propostas,
+    total,
     loading,
     creating: createMutation.isPending,
     fetchPropostas: () => queryClient.invalidateQueries({ queryKey: [QUERY_KEY] }),
