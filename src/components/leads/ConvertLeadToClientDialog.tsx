@@ -851,16 +851,27 @@ export function ConvertLeadToClientDialog({
     }
   };
 
-  // Save conversion data locally for offline sync
+  // Save conversion data locally for offline sync — uses the existing hook
   const saveConversionOffline = (data: FormData) => {
     if (!lead) return;
 
     try {
-      const storedData = localStorage.getItem(OFFLINE_CONVERSION_KEY);
-      const conversions: OfflineConversion[] = storedData ? JSON.parse(storedData) : [];
+      const OFFLINE_KEY = "offline_lead_conversions";
+      const storedData = localStorage.getItem(OFFLINE_KEY);
+      const conversions: Array<{
+        leadId: string;
+        leadNome: string;
+        formData: FormData;
+        identidadeFiles: DocumentFile[];
+        comprovanteFiles: DocumentFile[];
+        beneficiariaFiles: DocumentFile[];
+        assinaturaFiles?: DocumentFile[];
+        savedAt: string;
+        synced?: boolean;
+      }> = storedData ? JSON.parse(storedData) : [];
 
       const existingIndex = conversions.findIndex(c => c.leadId === lead.id);
-      const newConversion: OfflineConversion = {
+      const newConversion = {
         leadId: lead.id,
         leadNome: lead.nome,
         formData: data,
@@ -878,7 +889,7 @@ export function ConvertLeadToClientDialog({
         conversions.push(newConversion);
       }
 
-      localStorage.setItem(OFFLINE_CONVERSION_KEY, JSON.stringify(conversions));
+      localStorage.setItem(OFFLINE_KEY, JSON.stringify(conversions));
 
       toast({
         title: "Salvo localmente! 📴",
