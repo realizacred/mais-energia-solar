@@ -815,11 +815,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   }, [isExpanded, activeTab, latestVersao?.id]);
 
-  // Delete handler
+  // Delete handler — soft delete (preserves history)
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const { error } = await supabase.from("propostas_nativas").delete().eq("id", p.id);
+      const { error } = await (supabase as any)
+        .from("propostas_nativas")
+        .update({ status: "excluida", deleted_at: new Date().toISOString() })
+        .eq("id", p.id);
       if (error) throw error;
       toast({ title: "Proposta excluída" });
       onRefresh();
@@ -906,14 +909,59 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  const copyLink = (withTracking: boolean) => {
-    if (!publicUrl) {
-      toast({ title: "Gere e envie a proposta primeiro", variant: "destructive" });
+  // Copy public link (slug-based, no tracking)
+  const copyPublicLink = () => {
+    const slug = latestVersao?.public_slug;
+    if (!slug) {
+      toast({ title: "Link público não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
       return;
     }
-    const url = withTracking ? publicUrl : publicUrl.replace(/\?.*$/, "");
+    const url = `${window.location.origin}/p/${slug}`;
     navigator.clipboard.writeText(url);
-    toast({ title: `Link ${withTracking ? "com" : "sem"} rastreio copiado!` });
+    toast({ title: "Link público copiado!" });
+  };
+
+  // Generate/copy tracked link (token-based)
+  const copyTrackedLink = async () => {
+    if (!p.id || !latestVersao?.id) return;
+    try {
+      // Try to find existing valid token
+      const { data: existingToken } = await (supabase as any)
+        .from("proposta_aceite_tokens")
+        .select("token")
+        .eq("proposta_id", p.id)
+        .eq("versao_id", latestVersao.id)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let token = existingToken?.token;
+
+      if (!token) {
+        // Generate new token
+        const { data: newToken, error } = await (supabase as any)
+          .from("proposta_aceite_tokens")
+          .insert({
+            proposta_id: p.id,
+            versao_id: latestVersao.id,
+            tenant_id: tenantCtx?.tenantId,
+            token: crypto.randomUUID(),
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+            tipo: "tracked",
+          })
+          .select("token")
+          .single();
+        if (error) throw error;
+        token = newToken.token;
+      }
+
+      const url = `${window.location.origin}/proposta/${token}`;
+      navigator.clipboard.writeText(url);
+      toast({ title: "Link rastreável copiado!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar link rastreável", description: e.message, variant: "destructive" });
+    }
   };
 
   const validadeDate = latestVersao ? (() => {
