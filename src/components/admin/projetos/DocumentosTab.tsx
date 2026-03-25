@@ -20,13 +20,15 @@ import {
   useDeletarArquivo,
   useGerarDocumento,
   downloadArquivo,
+  downloadGeneratedDoc,
   type GeneratedDocRow,
 } from "@/hooks/useProjetoDocumentos";
 
 // ─── Constants ────────────────────────────────────
 const DOC_STATUS_MAP: Record<string, { label: string; color: string }> = {
   draft: { label: "Rascunho", color: "bg-muted text-muted-foreground" },
-  generated: { label: "Gerado", color: "bg-info/10 text-info" },
+  generating: { label: "Gerando...", color: "bg-info/10 text-info" },
+  generated: { label: "Gerado", color: "bg-success/10 text-success" },
   sent_for_signature: { label: "Aguardando assinatura", color: "bg-warning/10 text-warning" },
   signed: { label: "Assinado", color: "bg-success/10 text-success" },
   cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive" },
@@ -144,6 +146,9 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
                 </h4>
                 {docs.map(doc => {
                   const statusCfg = DOC_STATUS_MAP[doc.status] || DOC_STATUS_MAP.draft;
+                  const hasDocx = !!doc.docx_filled_path;
+                  const hasPdf = !!doc.pdf_path;
+
                   return (
                     <div key={doc.id} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
                       <FileText className="h-4 w-4 text-primary shrink-0" />
@@ -152,6 +157,30 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
                         <p className="text-[10px] text-muted-foreground">
                           {doc.template_name} • {formatDate(doc.created_at)}
                         </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {hasDocx && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Baixar DOCX"
+                            onClick={() => downloadGeneratedDoc(doc.docx_filled_path!)}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {hasPdf && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Baixar PDF"
+                            onClick={() => downloadGeneratedDoc(doc.pdf_path!)}
+                          >
+                            <FileText className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                       <Badge className={cn("text-[10px] h-5 px-1.5 border-0 shrink-0", statusCfg.color)}>
                         {statusCfg.label}
@@ -282,9 +311,9 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setGenerateOpen(false)}>Cancelar</Button>
-                <Button onClick={handleGenerate} disabled={!selectedTemplateId || generateMutation.isPending}>
-                  {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                  Gerar
+                <Button onClick={handleGenerate} disabled={!selectedTemplateId || generateMutation.isPending} className="gap-1.5">
+                  {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                  {generateMutation.isPending ? "Gerando..." : "Gerar"}
                 </Button>
               </DialogFooter>
             </>
