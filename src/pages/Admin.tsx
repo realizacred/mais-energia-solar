@@ -153,6 +153,7 @@ const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
 const BillingFeaturesPage = lazy(() => import("@/components/admin/billing/BillingFeaturesPage"));
 const CommercialDashboardPage = lazy(() => import("@/components/admin/billing/CommercialDashboardPage"));
+const ProposalFunnelDashboard = lazy(() => import("@/components/admin/propostas-nativas/ProposalFunnelDashboard"));
 const SystemHealthPage = lazy(() => import("@/components/admin/SystemHealthPage"));
 const CronJobsPage = lazy(() => import("@/components/admin/CronJobsPage"));
 const AsaasIntegrationPage = lazy(() => import("@/pages/admin/AsaasIntegrationPage"));
@@ -734,6 +735,7 @@ export default function Admin() {
                 <Route path="planos" element={<ClientPlansPage />} />
                 <Route path="planos-servico" element={<PlanoServicoManager />} />
                 <Route path="dashboard-comercial" element={<CommercialDashboardPage />} />
+                <Route path="funil-propostas" element={<ProposalFunnelDashboard />} />
                 <Route path="pricing" element={<PricingDashboardPage />} />
                 
                 <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
