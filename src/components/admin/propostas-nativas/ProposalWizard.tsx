@@ -260,13 +260,16 @@ export function ProposalWizard() {
   }, [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
-  // Estimated generation (kWh/month) = potência * irradiação * 30 * PR(0.80)
+  // Estimated generation (kWh/month) = potência × irradiação × 30 × PR
+  // PR vem da taxa_desempenho da UC geradora (padrão 80%)
   const geracaoMensalEstimada = useMemo(() => {
     if (potenciaKwp > 0 && locIrradiacao > 0) {
-      return Math.round(potenciaKwp * locIrradiacao * 30 * 0.80);
+      const ucGeradora = ucs.find(u => u.is_geradora);
+      const pr = (ucGeradora?.taxa_desempenho ?? 80) / 100;
+      return Math.round(potenciaKwp * locIrradiacao * 30 * pr);
     }
     return 0;
-  }, [potenciaKwp, locIrradiacao]);
+  }, [potenciaKwp, locIrradiacao, ucs]);
 
   // ─── Persistence: save draft / update
   const { persistAtomic, saving } = useWizardPersistence();
