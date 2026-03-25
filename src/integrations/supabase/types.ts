@@ -26027,7 +26027,24 @@ export type Database = {
             Returns: Json
           }
       proposal_delete: { Args: { p_proposta_id: string }; Returns: Json }
-      proposal_list: { Args: { p_limit?: number }; Returns: Json }
+      proposal_list:
+        | { Args: { p_limit?: number }; Returns: Json }
+        | {
+            Args: {
+              p_consultor_id?: string
+              p_date_from?: string
+              p_date_to?: string
+              p_limit?: number
+              p_offset?: number
+              p_search?: string
+              p_status?: string
+            }
+            Returns: Json
+          }
+      proposal_update_status: {
+        Args: { p_motivo?: string; p_new_status: string; p_proposta_id: string }
+        Returns: Json
+      }
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
       purge_old_payloads: { Args: never; Returns: Json }
       refresh_dashboard_views: { Args: never; Returns: undefined }
