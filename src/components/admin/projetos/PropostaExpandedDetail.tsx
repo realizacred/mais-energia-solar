@@ -459,13 +459,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { data: ucsDetail = [] } = usePropostaExpandedUcs(latestVersao?.id || null, isExpanded);
   const { data: auditLogs = [] } = usePropostaAuditLogs(p.id, versaoIds, isExpanded);
   const loadingDetail = !snapshotData && isExpanded && !!latestVersao?.id;
+  const [activeTab, setActiveTab] = useState("resumo");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [auditLogs, setAuditLogs] = useState<Array<{ id: string; acao: string; tabela: string; user_email: string | null; created_at: string }>>([]);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [recusaMotivo, setRecusaMotivo] = useState("");
   const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
