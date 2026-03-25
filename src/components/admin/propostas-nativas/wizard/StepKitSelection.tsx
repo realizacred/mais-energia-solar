@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { transposeToTiltedPlane } from "@/services/solar-transposition";
 import { formatDate } from "@/lib/dateUtils";
 import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,9 @@ interface Props {
   consumoTotal?: number;
   manualKits?: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[];
   onManualKitsChange?: (kits: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[]) => void;
+  irradiacao?: number;
+  latitude?: number | null;
+  ghiSeries?: Record<string, number> | null;
 }
 
 type TabType = "customizado" | "fechado" | "manual" | "catalogo";
@@ -97,7 +101,7 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardDat
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries }: Props) {
   // If returning to this step with a kit already restored, auto-switch to "manual" tab
   const [tab, setTab] = useState<TabType>(() => {
     if (manualKitsProp.length > 0) return "manual";
@@ -684,6 +688,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           activeTab={premissasTab}
           onTabChange={setPremissasTab}
           consumoTotal={consumoTotalProp}
+          irradiacao={irradiacao}
+          latitude={latitude}
+          ghiSeries={ghiSeries}
         />
       )}
 
@@ -839,7 +846,7 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
 
 /* ── Premissas Modal ── */
 
-function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange, consumoTotal }: {
+function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange, consumoTotal, irradiacao, latitude, ghiSeries }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   pd: PreDimensionamentoData;
@@ -847,11 +854,74 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
   activeTab: "fator" | "sistema";
   onTabChange: (t: "fator" | "sistema") => void;
   consumoTotal: number;
+  irradiacao?: number;
+  latitude?: number | null;
+  ghiSeries?: Record<string, number> | null;
 }) {
   const pdRef = useRef(pd);
   pdRef.current = pd;
+
+  // Recalculate effective irradiance (POA) when tilt/azimuth change
+  const recalcFatorGeracao = useCallback((updatedPd: PreDimensionamentoData) => {
+    if (!irradiacao || irradiacao <= 0) return updatedPd;
+
+    const tilt = updatedPd.inclinacao ?? 10;
+    const azimuthDev = updatedPd.desvio_azimutal ?? 0;
+
+    // Build GHI series
+    const ghi: Record<string, number> = ghiSeries
+      ? {
+          m01: ghiSeries.m01 ?? irradiacao, m02: ghiSeries.m02 ?? irradiacao,
+          m03: ghiSeries.m03 ?? irradiacao, m04: ghiSeries.m04 ?? irradiacao,
+          m05: ghiSeries.m05 ?? irradiacao, m06: ghiSeries.m06 ?? irradiacao,
+          m07: ghiSeries.m07 ?? irradiacao, m08: ghiSeries.m08 ?? irradiacao,
+          m09: ghiSeries.m09 ?? irradiacao, m10: ghiSeries.m10 ?? irradiacao,
+          m11: ghiSeries.m11 ?? irradiacao, m12: ghiSeries.m12 ?? irradiacao,
+        }
+      : {
+          m01: irradiacao, m02: irradiacao, m03: irradiacao, m04: irradiacao,
+          m05: irradiacao, m06: irradiacao, m07: irradiacao, m08: irradiacao,
+          m09: irradiacao, m10: irradiacao, m11: irradiacao, m12: irradiacao,
+        };
+
+    let effectiveIrrad = irradiacao;
+    if (latitude != null) {
+      try {
+        const result = transposeToTiltedPlane({
+          ghi: ghi as any,
+          latitude,
+          tilt_deg: tilt,
+          azimuth_deviation_deg: azimuthDev,
+        });
+        effectiveIrrad = result.poa_annual_avg;
+      } catch (e) {
+        console.warn("[PremissasModal] POA transposition failed:", e);
+      }
+    }
+
+    if (effectiveIrrad <= 0) return updatedPd;
+
+    const configs = { ...updatedPd.topologia_configs };
+    for (const topo of ["tradicional", "microinversor", "otimizador"]) {
+      const cfg = configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo];
+      const newFator = Math.round(effectiveIrrad * 30 * (cfg.desempenho / 100) * 100) / 100;
+      configs[topo] = { ...cfg, fator_geracao: newFator };
+    }
+
+    return {
+      ...updatedPd,
+      topologia_configs: configs,
+      fator_geracao: configs.tradicional?.fator_geracao ?? updatedPd.fator_geracao,
+    };
+  }, [irradiacao, latitude, ghiSeries]);
+
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
-    setPd({ ...pdRef.current, [field]: value });
+    let updated = { ...pdRef.current, [field]: value };
+    // Recalculate fator_geracao when inclination or azimuth changes
+    if (field === "inclinacao" || field === "desvio_azimutal") {
+      updated = recalcFatorGeracao(updated);
+    }
+    setPd(updated);
   };
 
   const getTopoConfig = (topo: string): TopologiaConfig => {
