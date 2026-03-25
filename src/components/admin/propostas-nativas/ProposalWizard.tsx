@@ -1484,7 +1484,7 @@ export function ProposalWizard() {
       const isSyntheticLead = !!(selectedLead as any)?._synthetic;
       const realLeadId = isSyntheticLead ? undefined : selectedLead.id;
       const clienteIdForPayload = isSyntheticLead ? (selectedLead as any)._clienteId : undefined;
-      const idempotencyKey = getOrCreateIdempotencyKey(realLeadId || clienteIdForPayload || "no-lead");
+      const idempotencyKey = generateIdempotencyKey(realLeadId || clienteIdForPayload || "no-lead");
       const payload: GenerateProposalPayload = {
         lead_id: realLeadId || undefined,
         cliente_id: clienteIdForPayload,
@@ -1723,7 +1723,7 @@ export function ProposalWizard() {
   }, [result, pdfBlobUrl]);
 
   const handleNewVersion = () => {
-    if (selectedLead) clearIdempotencyKey(selectedLead.id);
+    // idempotency key is now generated fresh each time — no need to clear
     setResult(null);
     setHtmlPreview(null);
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
