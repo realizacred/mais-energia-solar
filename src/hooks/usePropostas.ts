@@ -146,18 +146,6 @@ export function usePropostas(filters: PropostaFilters = {}) {
 
   const createMutation = useMutation({
     mutationFn: async (data: PropostaFormData) => {
-      const { data: proposta, error: pErr } = await (supabase as any)
-        .from("propostas_nativas")
-        .insert({
-          titulo: data.nome,
-          status: "rascunho",
-          consultor_id: data.vendedor_id || null,
-        })
-        .select("id")
-        .single();
-
-      if (pErr) throw pErr;
-
       const snapshot = {
         clienteNome: data.cliente_nome,
         clienteCelular: data.cliente_celular,
@@ -170,25 +158,22 @@ export function usePropostas(filters: PropostaFilters = {}) {
         distribuidora: data.distribuidora,
       };
 
-      const { data: rpcResult, error: rpcErr } = await supabase.rpc(
-        "proposal_create_version" as any,
-        {
-          p_proposta_id: proposta.id,
-          p_versao_id: null,
-          p_snapshot: snapshot,
-          p_potencia_kwp: data.potencia_kwp || null,
-          p_valor_total: data.preco_total || null,
-          p_economia_mensal: data.economia_mensal || null,
-          p_geracao_mensal: data.geracao_mensal_kwh || null,
-          p_payback_meses: data.payback_anos ? Math.round(data.payback_anos * 12) : null,
-          p_intent: "wizard_save",
-        },
-      );
+      const { data: result, error } = await supabase.rpc("proposal_create" as any, {
+        p_titulo: data.nome || null,
+        p_consultor_id: data.vendedor_id || null,
+        p_snapshot: snapshot,
+        p_potencia_kwp: data.potencia_kwp || null,
+        p_valor_total: data.preco_total || null,
+        p_economia_mensal: data.economia_mensal || null,
+        p_geracao_mensal: data.geracao_mensal_kwh || null,
+        p_payback_meses: data.payback_anos ? Math.round(data.payback_anos * 12) : null,
+        p_intent: "wizard_save",
+      });
 
-      if (rpcErr) throw rpcErr;
-      if ((rpcResult as any)?.error) throw new Error((rpcResult as any).error);
+      if (error) throw error;
+      if ((result as any)?.error) throw new Error((result as any).error);
 
-      return proposta;
+      return { id: (result as any).proposta_id };
     },
     onSuccess: () => {
       toast({ title: "Proposta criada com sucesso!" });
