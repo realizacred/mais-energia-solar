@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { formatNumberBR } from "@/lib/formatters";
-import { calcEffectiveIrrad, calcFatorGeracao } from "@/services/solar/fatorGeracaoService";
+import { calcEffectiveIrrad } from "@/services/solar/fatorGeracaoService";
 import { distribuirConsumoPorIrradiacao, hasConsumoMesesPreenchido } from "@/lib/distribuirConsumoPorIrradiacao";
 import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
