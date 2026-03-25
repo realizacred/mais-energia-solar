@@ -1085,69 +1085,46 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     )}
                   </TabsContent>
 
-                  {/* ─ Arquivo Tab ─────────────── */}
+                  {/* ─ Arquivo Tab — uses same StepDocumento as the wizard (SSOT) ─ */}
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
                     {(snapshot as Record<string, any>)?.source === "legacy_import" ? (
                       <SmArquivoTab snapshot={snapshot as Record<string, any>} />
                     ) : (
-                      <div className="flex gap-5 mt-3">
-                        {/* Left: Actions sidebar */}
-                        <div className="w-[220px] shrink-0 space-y-3">
-                          <p className="text-sm font-bold text-foreground">Opções</p>
-                          <Button size="sm" className="w-full justify-start gap-2 h-8 text-xs" onClick={handleRender} disabled={rendering}>
-                            {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                            {pdfSignedUrl ? "Gerar novo arquivo" : "Gerar arquivo"}
-                          </Button>
-                          <div className="space-y-1">
-                            <Button variant="link" onClick={handleDownloadPdf} disabled={!pdfSignedUrl || downloadingPdf} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
-                              <FileText className="h-3.5 w-3.5" />
-                              {downloadingPdf ? "Baixando..." : "Baixar PDF"}
-                            </Button>
-                            <Button variant="link" onClick={copyTrackedLink} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
-                              <Link2 className="h-3.5 w-3.5" /> Copiar link rastreável
-                            </Button>
-                            <Button variant="link" onClick={copyPublicLink} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
-                              <Link2 className="h-3.5 w-3.5" /> Copiar link público
-                            </Button>
-                            {validadeDate && (
-                              <div className="flex items-center gap-2 text-xs text-primary py-1">
-                                <CalendarCheck className="h-3.5 w-3.5" /> Validade: {validadeDate}
-                              </div>
-                            )}
-                          </div>
-                          <div className="space-y-2 pt-1">
-                            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-success text-success hover:bg-success/10" onClick={() => handleSend("whatsapp")} disabled={sending || (!pdfSignedUrl && !html)}>
-                              <MessageCircle className="h-3.5 w-3.5" /> Enviar por whatsapp
-                            </Button>
-                            <Button size="sm" variant="outline" className="w-full justify-start gap-2 h-8 text-xs border-primary text-primary hover:bg-primary/10" disabled={!pdfSignedUrl && !html}>
-                              <Mail className="h-3.5 w-3.5" /> Enviar por e-mail
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Right: PDF preview */}
-                        <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-muted/20">
-                          {pdfLoading ? (
-                            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
-                              <Loader2 className="h-6 w-6 animate-spin mb-3 text-primary" />
-                              <p className="text-sm font-medium">Carregando PDF...</p>
-                            </div>
-                          ) : pdfSignedUrl ? (
-                            <iframe src={pdfSignedUrl} className="w-full h-[500px] border-0" title="Preview do PDF" />
-                          ) : html ? (
-                            <iframe srcDoc={html} className="w-full h-[500px] border-0" title="Preview da proposta" sandbox="allow-same-origin" />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
-                              <FileText className="h-10 w-10 opacity-20 mb-3" />
-                              <p className="text-sm font-medium">Nenhum arquivo gerado</p>
-                              <p className="text-xs mt-1">Clique em "Gerar arquivo" para criar o PDF da proposta</p>
-                              <Button size="sm" variant="outline" className="mt-3 gap-1.5 text-xs" onClick={handleRender} disabled={rendering}>
-                                {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                                Gerar arquivo
-                              </Button>
-                            </div>
-                          )}
-                        </div>
+                      <div className="mt-3">
+                        <StepDocumento
+                          clienteNome={p.cliente_nome || ""}
+                          empresaNome={(snapshot as any)?.clienteEmpresa || p.cliente_nome || ""}
+                          clienteTelefone={(snapshot as any)?.clienteCelular || ""}
+                          clienteEmail={(snapshot as any)?.clienteEmail || ""}
+                          potenciaKwp={latestVersao?.potencia_kwp || 0}
+                          geracaoMensalKwh={latestVersao?.geracao_mensal || 0}
+                          numUcs={((snapshot as any)?.ucs || []).length || 1}
+                          precoFinal={latestVersao?.valor_total || 0}
+                          templateSelecionado={templateSelecionado}
+                          onTemplateSelecionado={setTemplateSelecionado}
+                          generating={false}
+                          rendering={rendering}
+                          result={latestVersao ? {
+                            proposta_id: p.id,
+                            versao_id: latestVersao.id,
+                            success: true,
+                          } : null}
+                          htmlPreview={html}
+                          pdfBlobUrl={pdfSignedUrl}
+                          outputDocxPath={latestVersao?.output_docx_path || undefined}
+                          outputPdfPath={latestVersao?.output_pdf_path || undefined}
+                          generationStatus={
+                            pdfSignedUrl || latestVersao?.output_pdf_path ? "ready" :
+                            html ? "ready" : "idle"
+                          }
+                          generationError={null}
+                          missingVars={[]}
+                          onGenerate={handleRender}
+                          onNewVersion={() => {
+                            navigate(`/admin/propostas-nativas?edit=${p.id}`);
+                          }}
+                          onViewDetail={() => {}}
+                        />
                       </div>
                     )}
                   </TabsContent>
