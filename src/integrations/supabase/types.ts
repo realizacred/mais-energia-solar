@@ -3479,6 +3479,98 @@ export type Database = {
           },
         ]
       }
+      doc_checklist_items: {
+        Row: {
+          aceita_arquivo: boolean
+          ativo: boolean
+          created_at: string
+          icon: string | null
+          id: string
+          label: string
+          obrigatorio: boolean
+          ordem: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          aceita_arquivo?: boolean
+          ativo?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          label: string
+          obrigatorio?: boolean
+          ordem?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          aceita_arquivo?: boolean
+          ativo?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          label?: string
+          obrigatorio?: boolean
+          ordem?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doc_checklist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doc_checklist_status: {
+        Row: {
+          arquivo_path: string | null
+          concluido: boolean
+          deal_id: string
+          id: string
+          item_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          arquivo_path?: string | null
+          concluido?: boolean
+          deal_id: string
+          id?: string
+          item_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          arquivo_path?: string | null
+          concluido?: boolean
+          deal_id?: string
+          id?: string
+          item_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doc_checklist_status_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doc_checklist_status_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "doc_checklist_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_templates: {
         Row: {
           categoria: string
