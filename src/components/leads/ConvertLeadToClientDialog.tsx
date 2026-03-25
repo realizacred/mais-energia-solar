@@ -3,9 +3,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap, Wallet, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, Wifi, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap, Wallet, ChevronLeft, ChevronRight, Check, RefreshCw } from "lucide-react";
 import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
+import { useOfflineConversionSync, getCachedEquipment, setCachedEquipment } from "@/hooks/useOfflineConversionSync";
 import { createEmptyItem } from "@/services/paymentComposition/types";
 import { validateComposition } from "@/services/paymentComposition/calculator";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
@@ -43,21 +44,6 @@ import {
 } from "@/components/ui/form";
 import { DocumentUpload, DocumentFile, uploadDocumentFiles } from "./DocumentUpload";
 import type { Lead } from "@/types/lead";
-
-// Storage key for offline conversion data
-const OFFLINE_CONVERSION_KEY = "offline_lead_conversions";
-
-interface OfflineConversion {
-  leadId: string;
-  leadNome: string;
-  formData: FormData;
-  identidadeFiles: DocumentFile[];
-  comprovanteFiles: DocumentFile[];
-  beneficiariaFiles: DocumentFile[];
-  assinaturaFiles?: DocumentFile[];
-  savedAt: string;
-  synced?: boolean;
-}
 
 interface Disjuntor {
   id: string;
@@ -132,8 +118,15 @@ export function ConvertLeadToClientDialog({
   const [disjuntores, setDisjuntores] = useState<Disjuntor[]>([]);
   const [transformadores, setTransformadores] = useState<Transformador[]>([]);
   const [simulacoes, setSimulacoes] = useState<Simulacao[]>([]);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentStep, setCurrentStep] = useState(0);
+
+  // Offline sync hook
+  const {
+    isOnline,
+    pendingCount: offlinePendingCount,
+    isSyncing: isOfflineSyncing,
+    syncAllConversions,
+  } = useOfflineConversionSync();
   
   // Multiple files support with offline base64 storage
   const [identidadeFiles, setIdentidadeFiles] = useState<DocumentFile[]>([]);
@@ -207,23 +200,18 @@ export function ConvertLeadToClientDialog({
     [form]
   );
 
-  // Track online status
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
+  // Online status is now provided by useOfflineConversionSync
 
   // Load equipment options
   useEffect(() => {
     const loadEquipment = async () => {
+      // Try cache first for offline support
+      const cached = getCachedEquipment();
+      if (cached) {
+        setDisjuntores(cached.disjuntores);
+        setTransformadores(cached.transformadores);
+      }
+
       if (!navigator.onLine) return;
       
       try {
@@ -232,8 +220,16 @@ export function ConvertLeadToClientDialog({
           supabase.from("transformadores").select("id, potencia_kva, descricao, ativo").eq("ativo", true).order("potencia_kva"),
         ]);
 
-        if (disjuntoresRes.data) setDisjuntores(disjuntoresRes.data);
-        if (transformadoresRes.data) setTransformadores(transformadoresRes.data);
+        if (disjuntoresRes.data) {
+          setDisjuntores(disjuntoresRes.data);
+        }
+        if (transformadoresRes.data) {
+          setTransformadores(transformadoresRes.data);
+        }
+        // Cache for offline use
+        if (disjuntoresRes.data && transformadoresRes.data) {
+          setCachedEquipment(disjuntoresRes.data, transformadoresRes.data);
+        }
         if (disjuntoresRes.error) console.warn("[ConvertLead] disjuntores error:", disjuntoresRes.error);
         if (transformadoresRes.error) console.warn("[ConvertLead] transformadores error:", transformadoresRes.error);
       } catch (err) {
@@ -479,7 +475,7 @@ export function ConvertLeadToClientDialog({
     return missing;
   };
 
-  // Save as lead with "Aguardando Documentação" status
+  // Save as lead with "Aguardando Documentação" status — works offline
   const handleSaveAsLead = async () => {
     if (!lead) return;
 
@@ -489,36 +485,6 @@ export function ConvertLeadToClientDialog({
     setSavingAsLead(true);
 
     try {
-      const { data: aguardandoStatus } = await supabase
-        .from("lead_status")
-        .select("id")
-        .eq("nome", "Aguardando Documentação")
-        .maybeSingle();
-
-      let resolvedStatus = aguardandoStatus;
-
-      if (!resolvedStatus) {
-        // Try alternative name
-        const { data: altStatus } = await supabase
-          .from("lead_status")
-          .select("id")
-          .ilike("nome", "%aguardando%document%")
-          .maybeSingle();
-        
-        if (!altStatus) {
-          toast({
-            title: "Configuração necessária",
-            description: "O status 'Aguardando Documentação' não existe. Peça ao administrador para criá-lo na configuração de status.",
-            variant: "destructive",
-          });
-          setSavingAsLead(false);
-          return;
-        }
-        resolvedStatus = altStatus;
-      }
-
-      const statusId = resolvedStatus.id;
-
       const missing: string[] = [];
       if (!form.getValues("email")) missing.push("E-mail");
       if (!form.getValues("cpf_cnpj")) missing.push("CPF/CNPJ");
@@ -542,6 +508,7 @@ export function ConvertLeadToClientDialog({
 
       const formData = form.getValues();
 
+      // Always save partial data to localStorage (works offline)
       const partialData = {
         leadId: lead.id,
         formData: {
@@ -558,6 +525,46 @@ export function ConvertLeadToClientDialog({
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.setItem(storageKey, JSON.stringify(partialData));
 
+      // If offline, just save locally and exit
+      if (!navigator.onLine) {
+        toast({
+          title: "Salvo localmente! 📴",
+          description: `${lead.nome} foi salvo offline. Os dados serão sincronizados quando a conexão voltar.`,
+        });
+        onOpenChange(false);
+        onSuccess?.();
+        return;
+      }
+
+      // Online: persist to Supabase
+      const { data: aguardandoStatus } = await supabase
+        .from("lead_status")
+        .select("id")
+        .eq("nome", "Aguardando Documentação")
+        .maybeSingle();
+
+      let resolvedStatus = aguardandoStatus;
+
+      if (!resolvedStatus) {
+        const { data: altStatus } = await supabase
+          .from("lead_status")
+          .select("id")
+          .ilike("nome", "%aguardando%document%")
+          .maybeSingle();
+        
+        if (!altStatus) {
+          toast({
+            title: "Configuração necessária",
+            description: "O status 'Aguardando Documentação' não existe. Peça ao administrador para criá-lo na configuração de status.",
+            variant: "destructive",
+          });
+          setSavingAsLead(false);
+          return;
+        }
+        resolvedStatus = altStatus;
+      }
+
+      const statusId = resolvedStatus.id;
       const nowIso = new Date().toISOString();
 
       const [{ error: leadUpdateError }, { error: orcUpdateError }] = await Promise.all([
@@ -599,11 +606,32 @@ export function ConvertLeadToClientDialog({
       onSuccess?.();
     } catch (error: any) {
       console.error("Error saving lead:", error);
-      toast({
-        title: "Erro ao salvar",
-        description: error.message || "Não foi possível salvar o lead.",
-        variant: "destructive",
-      });
+      // If network error, save offline
+      if (!navigator.onLine || error?.message?.includes("fetch")) {
+        const formData = form.getValues();
+        const storageKey = `lead_conversion_${lead.id}`;
+        localStorage.setItem(storageKey, JSON.stringify({
+          leadId: lead.id,
+          formData,
+          identidadeFiles,
+          comprovanteFiles,
+          beneficiariaFiles,
+          paymentItems,
+          savedAt: new Date().toISOString(),
+        }));
+        toast({
+          title: "Salvo localmente! 📴",
+          description: "Falha na conexão. Os dados foram salvos e serão sincronizados automaticamente.",
+        });
+        onOpenChange(false);
+        onSuccess?.();
+      } else {
+        toast({
+          title: "Erro ao salvar",
+          description: error.message || "Não foi possível salvar o lead.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setSavingAsLead(false);
     }
@@ -855,16 +883,27 @@ export function ConvertLeadToClientDialog({
     }
   };
 
-  // Save conversion data locally for offline sync
+  // Save conversion data locally for offline sync — uses the existing hook
   const saveConversionOffline = (data: FormData) => {
     if (!lead) return;
 
     try {
-      const storedData = localStorage.getItem(OFFLINE_CONVERSION_KEY);
-      const conversions: OfflineConversion[] = storedData ? JSON.parse(storedData) : [];
+      const OFFLINE_KEY = "offline_lead_conversions";
+      const storedData = localStorage.getItem(OFFLINE_KEY);
+      const conversions: Array<{
+        leadId: string;
+        leadNome: string;
+        formData: FormData;
+        identidadeFiles: DocumentFile[];
+        comprovanteFiles: DocumentFile[];
+        beneficiariaFiles: DocumentFile[];
+        assinaturaFiles?: DocumentFile[];
+        savedAt: string;
+        synced?: boolean;
+      }> = storedData ? JSON.parse(storedData) : [];
 
       const existingIndex = conversions.findIndex(c => c.leadId === lead.id);
-      const newConversion: OfflineConversion = {
+      const newConversion = {
         leadId: lead.id,
         leadNome: lead.nome,
         formData: data,
@@ -882,7 +921,7 @@ export function ConvertLeadToClientDialog({
         conversions.push(newConversion);
       }
 
-      localStorage.setItem(OFFLINE_CONVERSION_KEY, JSON.stringify(conversions));
+      localStorage.setItem(OFFLINE_KEY, JSON.stringify(conversions));
 
       toast({
         title: "Salvo localmente! 📴",
@@ -982,13 +1021,54 @@ export function ConvertLeadToClientDialog({
           })}
         </div>
 
-        {/* Offline indicator */}
-        {!isOnline && (
-          <div className="flex items-center gap-2 mx-5 mt-3 p-3 bg-warning/10 border border-warning/30 rounded-lg text-sm text-foreground shrink-0">
-            <WifiOff className="w-4 h-4 text-warning shrink-0" />
-            <span>Modo offline — Os dados serão salvos localmente.</span>
+        {/* Offline status bar — same pattern as OfflineStatusBar in lead registration */}
+        <div className={`flex items-center justify-between gap-2 mx-5 mt-3 p-3 rounded-lg text-sm shrink-0 border ${
+          isOnline ? "bg-success/10 border-success/30" : "bg-warning/10 border-warning/30"
+        }`}>
+          <div className="flex items-center gap-2">
+            {isOnline ? (
+              <Wifi className="w-4 h-4 text-success shrink-0" />
+            ) : (
+              <WifiOff className="w-4 h-4 text-warning animate-pulse shrink-0" />
+            )}
+            <span className={`text-sm font-semibold ${isOnline ? "text-success" : "text-warning"}`}>
+              {isOnline ? "Online" : "Sem Internet"}
+            </span>
+            {offlinePendingCount > 0 && (
+              <>
+                <div className="w-px h-4 bg-border" />
+                <span className="text-xs text-muted-foreground">
+                  Pendentes:{" "}
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full text-[10px] font-bold bg-warning text-warning-foreground">
+                    {offlinePendingCount}
+                  </span>
+                </span>
+              </>
+            )}
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            {offlinePendingCount > 0 && isOnline && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => syncAllConversions()}
+                disabled={isOfflineSyncing}
+                className="gap-1.5 h-6 text-[10px] px-2"
+              >
+                {isOfflineSyncing ? (
+                  <><RefreshCw className="w-3 h-3 animate-spin" /> Sincronizando...</>
+                ) : (
+                  <><RefreshCw className="w-3 h-3" /> Sincronizar</>
+                )}
+              </Button>
+            )}
+            {!isOnline && (
+              <span className="text-[10px] text-warning font-medium">
+                Dados salvos localmente
+              </span>
+            )}
+          </div>
+        </div>
 
         {/* ── BODY — steps ── */}
         <Form {...form}>
