@@ -55,6 +55,11 @@ export interface SolarPremises {
 
   // Sombreamento config
   sombreamento_config: SombreamentoConfig;
+
+  // Monitoring losses (fallback for expected yield)
+  shading_loss_percent: number;
+  soiling_loss_percent: number;
+  other_losses_percent: number;
 }
 
 // ─── Safe Defaults ──────────────────────────────────
@@ -82,6 +87,9 @@ export const SOLAR_DEFAULTS: SolarPremises = {
   fase_tensao_rede: "bifasico_127_220",
   tipo_telhado_padrao: "metalico",
   sombreamento_config: { ...DEFAULT_SOMBREAMENTO_CONFIG },
+  shading_loss_percent: 8,
+  soiling_loss_percent: 5,
+  other_losses_percent: 12,
 };
 
 // ─── Query Key ──────────────────────────────────────
@@ -114,6 +122,9 @@ function mapRowToSolarPremises(row: Record<string, unknown>): SolarPremises {
     fase_tensao_rede: (row.fase_tensao_rede as string) ?? SOLAR_DEFAULTS.fase_tensao_rede,
     tipo_telhado_padrao: (row.tipo_telhado_padrao as string) ?? SOLAR_DEFAULTS.tipo_telhado_padrao,
     sombreamento_config: (row.sombreamento_config as SombreamentoConfig) ?? SOLAR_DEFAULTS.sombreamento_config,
+    shading_loss_percent: (row.shading_loss_percent as number) ?? SOLAR_DEFAULTS.shading_loss_percent,
+    soiling_loss_percent: (row.soiling_loss_percent as number) ?? SOLAR_DEFAULTS.soiling_loss_percent,
+    other_losses_percent: (row.other_losses_percent as number) ?? SOLAR_DEFAULTS.other_losses_percent,
   };
 }
 
@@ -132,7 +143,7 @@ export function useSolarPremises() {
           "base_irradiancia, grupo_tarifario, fase_tensao_rede, tipo_telhado_padrao, " +
           "taxa_desempenho_tradicional, taxa_desempenho_microinversor, taxa_desempenho_otimizador, " +
           "topologias, tipo_kits, considerar_kits_transformador, margem_potencia_ideal, " +
-          "sombreamento_config"
+          "sombreamento_config, shading_loss_percent, soiling_loss_percent, other_losses_percent"
         )
         .limit(1)
         .maybeSingle();

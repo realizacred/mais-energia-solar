@@ -38,8 +38,34 @@ export interface PlantPerformanceRatio {
   confidence_score: number;
 }
 
-/** Fetch tenant tariff from calculadora_config */
-async function getTenantTariff(): Promise<{ tarifa_kwh: number; kg_co2_per_kwh: number }> {
+/** Tenant-level config: tariff + default monitoring losses */
+interface TenantConfig {
+  tarifa_kwh: number;
+  kg_co2_per_kwh: number;
+  shading_loss_percent: number;
+  soiling_loss_percent: number;
+  other_losses_percent: number;
+}
+
+async function getTenantConfig(): Promise<TenantConfig> {
+  // Try tenant_premises first (SSOT)
+  const { data: tp } = await supabase
+    .from("tenant_premises")
+    .select("tarifa, kg_co2_por_kwh, shading_loss_percent, soiling_loss_percent, other_losses_percent")
+    .limit(1)
+    .maybeSingle();
+
+  if (tp) {
+    return {
+      tarifa_kwh: (tp as any)?.tarifa ?? 0.85,
+      kg_co2_per_kwh: (tp as any)?.kg_co2_por_kwh ?? 0.084,
+      shading_loss_percent: (tp as any)?.shading_loss_percent ?? 8,
+      soiling_loss_percent: (tp as any)?.soiling_loss_percent ?? 5,
+      other_losses_percent: (tp as any)?.other_losses_percent ?? 12,
+    };
+  }
+
+  // Fallback to calculadora_config
   const { data } = await supabase
     .from("calculadora_config")
     .select("tarifa_media_kwh, kg_co2_por_kwh")
@@ -49,6 +75,9 @@ async function getTenantTariff(): Promise<{ tarifa_kwh: number; kg_co2_per_kwh: 
   return {
     tarifa_kwh: (data as any)?.tarifa_media_kwh ?? 0.85,
     kg_co2_per_kwh: (data as any)?.kg_co2_por_kwh ?? 0.084,
+    shading_loss_percent: 8,
+    soiling_loss_percent: 5,
+    other_losses_percent: 12,
   };
 }
 
@@ -57,7 +86,7 @@ export async function getFinancials(
   energyTodayKwh: number,
   energyMonthKwh: number
 ): Promise<MonitorFinancials> {
-  const { tarifa_kwh, kg_co2_per_kwh } = await getTenantTariff();
+  const { tarifa_kwh, kg_co2_per_kwh } = await getTenantConfig();
 
   return {
     tarifa_kwh,
@@ -151,6 +180,9 @@ export async function getPerformanceRatios(
     }
   } catch { /* proceed without device adjustment */ }
 
+  // Fetch tenant-level losses as fallback
+  const tenantConfig = await getTenantConfig();
+
   const results: PlantPerformanceRatio[] = [];
 
   for (const p of plants) {
@@ -175,11 +207,11 @@ export async function getPerformanceRatios(
       }
     }
 
-    // Calculate expected factor from plant-specific losses
+    // Calculate expected factor: plant → tenant → hardcoded defaults
     const losses: Partial<PlantLosses> = {
-      shading_loss_percent: p.shading_loss_percent ?? undefined,
-      soiling_loss_percent: p.soiling_loss_percent ?? undefined,
-      other_losses_percent: p.other_losses_percent ?? undefined,
+      shading_loss_percent: p.shading_loss_percent ?? tenantConfig.shading_loss_percent,
+      soiling_loss_percent: p.soiling_loss_percent ?? tenantConfig.soiling_loss_percent,
+      other_losses_percent: p.other_losses_percent ?? tenantConfig.other_losses_percent,
     };
     const expectedFactor = calcExpectedFactor(losses);
 
