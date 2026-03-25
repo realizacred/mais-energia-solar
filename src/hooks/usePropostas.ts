@@ -3,7 +3,7 @@
  * §16: Queries só em hooks — NUNCA em componentes
  * §23: staleTime obrigatório
  * 
- * MIGRADO: propostas_sm_legado → propostas_nativas + proposta_versoes (SSOT)
+ * Read model via RPC proposal_list (single query, server-side joins).
  */
 
 import { useCallback } from "react";
@@ -60,99 +60,43 @@ export interface PropostaFormData {
 }
 
 /**
- * Fetch propostas from propostas_nativas joined with latest proposta_versoes.
- * Maps native fields to the legacy Proposta interface for backward compatibility.
+ * Fetch via RPC proposal_list — single server-side query.
+ * No manual joins, no snapshot fallback, no N+1.
  */
 async function fetchPropostas(): Promise<Proposta[]> {
-  // 1) Get all propostas_nativas that aren't deleted
-  const { data: nativas, error } = await (supabase as any)
-    .from("propostas_nativas")
-    .select(`
-      id, codigo, titulo, status, deal_id, lead_id, cliente_id,
-      consultor_id, created_at, updated_at,
-      consultor_ref:consultores(nome)
-    `)
-    .neq("status", "excluida")
-    .order("created_at", { ascending: false })
-    .limit(200);
-
+  const { data, error } = await supabase.rpc("proposal_list" as any, { p_limit: 200 });
   if (error) throw error;
-  if (!nativas || nativas.length === 0) return [];
 
-  // 2) Get latest version for each proposta
-  const propostaIds = nativas.map((n: any) => n.id);
-  const { data: versoes } = await (supabase as any)
-    .from("proposta_versoes")
-    .select(`
-      id, proposta_id, potencia_kwp, valor_total, economia_mensal,
-      geracao_mensal, payback_meses, snapshot, output_pdf_path,
-      gerado_em, created_at, public_slug
-    `)
-    .in("proposta_id", propostaIds)
-    .order("versao_numero", { ascending: false });
-
-  // Build a map: proposta_id → latest version
-  const latestVersionMap = new Map<string, any>();
-  for (const v of (versoes || [])) {
-    if (!latestVersionMap.has(v.proposta_id)) {
-      latestVersionMap.set(v.proposta_id, v);
-    }
-  }
-
-  // 3) Get client/lead names for display
-  const clienteIds = [...new Set(nativas.filter((n: any) => n.cliente_id).map((n: any) => n.cliente_id))] as string[];
-  const leadIds = [...new Set(nativas.filter((n: any) => n.lead_id && !n.cliente_id).map((n: any) => n.lead_id))] as string[];
-
-  const [clientesRes, leadsRes] = await Promise.all([
-    clienteIds.length > 0
-      ? supabase.from("clientes").select("id, nome, telefone, email, cidade, estado").in("id", clienteIds)
-      : Promise.resolve({ data: [] }),
-    leadIds.length > 0
-      ? (supabase as any).from("leads").select("id, nome, telefone, email, cidade, estado").in("id", leadIds)
-      : Promise.resolve({ data: [] }),
-  ]);
-
-  const clienteMap = new Map((clientesRes.data || []).map((c: any) => [c.id, c]));
-  const leadMap = new Map((leadsRes.data || []).map((l: any) => [l.id, l]));
-
-  // 4) Map to Proposta interface
-  return nativas.map((n: any): Proposta => {
-    const v = latestVersionMap.get(n.id);
-    const snapshot = v?.snapshot || {};
-    const cliente = n.cliente_id ? clienteMap.get(n.cliente_id) : null;
-    const lead = !cliente && n.lead_id ? leadMap.get(n.lead_id) : null;
-    const person = cliente || lead;
-
-    return {
-      id: n.id,
-      nome: n.titulo || n.codigo || "Proposta",
-      status: n.status,
-      cliente_nome: person?.nome || snapshot.clienteNome || snapshot.cliente_nome || null,
-      cliente_celular: person?.telefone || null,
-      cliente_cidade: person?.cidade || snapshot.locCidade || snapshot.loc_cidade || null,
-      cliente_estado: person?.estado || snapshot.locEstado || snapshot.loc_estado || null,
-      cliente_email: person?.email || null,
-      potencia_kwp: Number(v?.potencia_kwp) || null,
-      numero_modulos: Number(snapshot.moduloQtd ?? snapshot.modulo_qtd) || null,
-      modelo_modulo: snapshot.moduloModelo ?? snapshot.modulo_modelo ?? null,
-      modelo_inversor: snapshot.inversorModelo ?? snapshot.inversor_modelo ?? null,
-      preco_total: Number(v?.valor_total) || null,
-      economia_mensal: Number(v?.economia_mensal) || null,
-      geracao_mensal_kwh: Number(v?.geracao_mensal) || null,
-      payback_anos: v?.payback_meses ? Number(v.payback_meses) / 12 : null,
-      distribuidora: snapshot.locDistribuidoraNome ?? snapshot.distribuidora ?? null,
-      link_pdf: v?.output_pdf_path || null,
-      expiration_date: null,
-      generated_at: v?.gerado_em || null,
-      created_at: n.created_at,
-      vendedor_id: n.consultor_id || null,
-      vendedor: n.consultor_ref ? { nome: n.consultor_ref.nome } : null,
-    };
-  });
+  const rows = (data as any[]) || [];
+  return rows.map((r: any): Proposta => ({
+    id: r.id,
+    nome: r.nome || "Proposta",
+    status: r.status,
+    cliente_nome: r.cliente_nome || null,
+    cliente_celular: r.cliente_celular || null,
+    cliente_cidade: r.cliente_cidade || null,
+    cliente_estado: r.cliente_estado || null,
+    cliente_email: r.cliente_email || null,
+    potencia_kwp: r.potencia_kwp != null ? Number(r.potencia_kwp) : null,
+    numero_modulos: null, // Not in read model — detail only
+    modelo_modulo: null,
+    modelo_inversor: null,
+    preco_total: r.preco_total != null ? Number(r.preco_total) : null,
+    economia_mensal: r.economia_mensal != null ? Number(r.economia_mensal) : null,
+    geracao_mensal_kwh: r.geracao_mensal_kwh != null ? Number(r.geracao_mensal_kwh) : null,
+    payback_anos: r.payback_anos != null ? Number(r.payback_anos) : null,
+    distribuidora: null, // Not in read model — detail only
+    link_pdf: r.link_pdf || null,
+    expiration_date: null,
+    generated_at: r.generated_at || null,
+    created_at: r.created_at,
+    vendedor_id: r.vendedor_id || null,
+    vendedor: r.consultor_nome ? { nome: r.consultor_nome } : null,
+  }));
 }
 
 /**
- * Hook para listar propostas (agora baseado em propostas_nativas).
+ * Hook para listar propostas via RPC proposal_list.
  */
 export function usePropostas() {
   const queryClient = useQueryClient();
@@ -165,7 +109,6 @@ export function usePropostas() {
 
   const createMutation = useMutation({
     mutationFn: async (data: PropostaFormData) => {
-      // Create propostas_nativas record
       const { data: proposta, error: pErr } = await (supabase as any)
         .from("propostas_nativas")
         .insert({
@@ -178,7 +121,6 @@ export function usePropostas() {
 
       if (pErr) throw pErr;
 
-      // Create initial version via RPC (SSOT)
       const snapshot = {
         clienteNome: data.cliente_nome,
         clienteCelular: data.cliente_celular,
@@ -222,7 +164,6 @@ export function usePropostas() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Soft delete via SECURITY DEFINER RPC
       const { data, error } = await supabase.rpc("proposal_delete" as any, {
         p_proposta_id: id,
       });
