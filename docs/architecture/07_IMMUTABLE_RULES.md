@@ -38,8 +38,12 @@
 
 - Triggers de proteção impedem UPDATE e DELETE em `audit_logs`
 - INSERT direto em `audit_logs` é proibido (apenas via trigger com `app.audit_trigger_active`)
+- RPCs e Edge Functions NUNCA devem inserir em `audit_logs` diretamente
+- Auditoria é gerada automaticamente por triggers nas tabelas monitoradas
+- `proposal_events` e tabelas de log por módulo são permitidos como trilha funcional complementar
 - `super_admin_actions` registra TODA mutação administrativa
 - Before/after state DEVE ser capturado para ações sensíveis
+- Ver `docs/architecture/08_AUDIT_LOGS_PATTERN.md` para checklist completo
 
 **Motivo**: Trilha de auditoria é requisito legal (LGPD) e operacional.
 
