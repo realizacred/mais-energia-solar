@@ -51,7 +51,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [editMode, setEditMode] = useState<"margem" | "preco">("margem");
   const [editValue, setEditValue] = useState("0");
   const [custosExtras, setCustosExtras] = useState<CustoRow[]>([]);
-  const [appliedSmartDefaults, setAppliedSmartDefaults] = useState(false);
+  // appliedSmartDefaults removed — history no longer auto-applies
   const [instalacaoEnabled, setInstalacaoEnabled] = useState(true);
   const [comissaoEnabled, setComissaoEnabled] = useState(true);
   const [instalacaoQtd, setInstalacaoQtd] = useState(1);
@@ -61,7 +61,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [kitExpanded, setKitExpanded] = useState(false);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
 
-  // Load pricing defaults from config
+  // Load pricing defaults from config (SSOT for initial margin)
   useEffect(() => {
     if (loadedDefaults) return;
     supabase
@@ -73,37 +73,13 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         if (data) {
           const d = data as any;
           if (venda.margem_percentual === 20 && d.margem_minima_percent) {
+            console.debug("[StepFinancialCenter] Margem inicial aplicada:", d.margem_minima_percent, "| Origem: pricing_config");
             onVendaChange({ ...venda, margem_percentual: d.margem_minima_percent });
           }
         }
         setLoadedDefaults(true);
       });
   }, []);
-
-  // Auto-apply smart defaults from pricing history
-  useEffect(() => {
-    if (appliedSmartDefaults || !suggested || loadingHistory) return;
-    
-    const isUntouched = venda.custo_comissao === 0 && venda.custo_outros === 0;
-    if (!isUntouched) {
-      setAppliedSmartDefaults(true);
-      return;
-    }
-
-    const updates: Partial<VendaData> = {};
-    if (suggested.margem_percentual != null) updates.margem_percentual = Math.round(suggested.margem_percentual * 10) / 10;
-    if (suggested.custo_comissao != null) updates.custo_comissao = suggested.custo_comissao;
-    if (suggested.custo_outros != null) updates.custo_outros = suggested.custo_outros;
-
-    if (Object.keys(updates).length > 0) {
-      onVendaChange({ ...venda, ...updates });
-      toast({
-        title: "💡 Valores pré-preenchidos",
-        description: "Baseado na mediana das suas últimas propostas.",
-      });
-    }
-    setAppliedSmartDefaults(true);
-  }, [suggested, loadingHistory, appliedSmartDefaults]);
 
   // ── Calculations ──
 
@@ -288,6 +264,11 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
             </div>
           </div>
         </div>
+        {suggested?.margem_percentual != null && (
+          <p className="text-xs text-muted-foreground mt-2 px-1">
+            💡 Margem média usada recentemente: {Math.round(suggested.margem_percentual * 10) / 10}%
+          </p>
+        )}
       </div>
 
       {/* Cost Table */}

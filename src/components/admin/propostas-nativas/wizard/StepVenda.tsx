@@ -24,11 +24,10 @@ interface StepVendaProps {
 export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp = 0 }: StepVendaProps) {
   const [loadedDefaults, setLoadedDefaults] = useState(false);
   const [descontoMax, setDescontoMax] = useState(100);
-  const [appliedSmartDefaults, setAppliedSmartDefaults] = useState(false);
 
   const { suggested, loading: loadingHistory, hasHistory } = usePricingDefaults(potenciaKwp);
 
-  // Load pricing_config defaults once
+  // Load pricing_config defaults once (SSOT for initial margin)
   useEffect(() => {
     if (loadedDefaults) return;
     supabase
@@ -40,6 +39,7 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
         if (data) {
           const d = data as any;
           if (venda.margem_percentual === 20 && d.margem_minima_percent) {
+            console.debug("[StepVenda] Margem inicial aplicada:", d.margem_minima_percent, "| Origem: pricing_config");
             onVendaChange({
               ...venda,
               margem_percentual: d.margem_minima_percent,
@@ -50,31 +50,6 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
         setLoadedDefaults(true);
       });
   }, []);
-
-  // Auto-apply smart defaults from history when available (only once)
-  useEffect(() => {
-    if (appliedSmartDefaults || !suggested || loadingHistory) return;
-    
-    const isUntouched = venda.custo_comissao === 0 && venda.custo_outros === 0;
-    if (!isUntouched) {
-      setAppliedSmartDefaults(true);
-      return;
-    }
-
-    const updates: Partial<VendaData> = {};
-    if (suggested.margem_percentual != null) updates.margem_percentual = Math.round(suggested.margem_percentual * 10) / 10;
-    if (suggested.custo_comissao != null) updates.custo_comissao = suggested.custo_comissao;
-    if (suggested.custo_outros != null) updates.custo_outros = suggested.custo_outros;
-
-    if (Object.keys(updates).length > 0) {
-      onVendaChange({ ...venda, ...updates });
-      toast({
-        title: "💡 Valores pré-preenchidos",
-        description: "Baseado na mediana das suas últimas propostas.",
-      });
-    }
-    setAppliedSmartDefaults(true);
-  }, [suggested, loadingHistory, appliedSmartDefaults]);
 
   const update = (field: keyof VendaData, value: any) => {
     onVendaChange({ ...venda, [field]: value });
@@ -103,6 +78,11 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
           <div className="flex justify-between text-[10px] text-muted-foreground">
             <span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span>
           </div>
+          {hasHistory && suggested?.margem_percentual != null && (
+            <p className="text-xs text-muted-foreground mt-1">
+              💡 Margem média usada recentemente: {Math.round(suggested.margem_percentual * 10) / 10}%
+            </p>
+          )}
         </div>
 
         {/* Custos adicionais + desconto */}
