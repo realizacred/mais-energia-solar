@@ -26356,6 +26356,8 @@ export type Database = {
         | "accepted"
         | "rejected"
         | "expired"
+        | "excluida"
+        | "arquivada"
       servico_status:
         | "agendado"
         | "em_andamento"
@@ -26650,6 +26652,8 @@ export const Constants = {
         "accepted",
         "rejected",
         "expired",
+        "excluida",
+        "arquivada",
       ],
       servico_status: [
         "agendado",

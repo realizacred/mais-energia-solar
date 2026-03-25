@@ -311,9 +311,9 @@ export default function PropostaPublica() {
             <iframe
               srcDoc={html}
               title="Proposta"
-              sandbox="allow-same-origin"
+              sandbox="allow-same-origin allow-popups allow-scripts"
               className="w-full border-0"
-              style={{ minHeight: 500, height: "80vh", maxHeight: 900 }}
+              style={{ width: "100%", height: "clamp(400px, 70vh, 900px)" }}
             />
           </div>
         </div>
