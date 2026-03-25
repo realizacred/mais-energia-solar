@@ -113,6 +113,14 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const manualKits = onManualKitsChange ? manualKitsProp : localManualKits;
   const setManualKits = onManualKitsChange || setLocalManualKits;
   const [editingKitIndex, setEditingKitIndex] = useState<number | null>(null);
+  const [selectedManualIdx, setSelectedManualIdx] = useState<number | null>(() => {
+    // If returning with itens already set from a manual kit, detect which one
+    if (manualKitsProp.length > 0 && itens.length > 0) {
+      const idx = manualKitsProp.findIndex(mk => mk.itens.length === itens.length && mk.itens.every((mi, i) => mi.modelo === itens[i]?.modelo));
+      return idx >= 0 ? idx : null;
+    }
+    return null;
+  });
   const [showEditKitFechado, setShowEditKitFechado] = useState(false);
   const [showEditLayout, setShowEditLayout] = useState(false);
   const [showPremissas, setShowPremissas] = useState(false);
@@ -233,8 +241,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     toast({ title: "Kit selecionado", description: `${kit.moduloPotenciaKwp.toFixed(2)} kWp • ${kit.topologia}` });
   };
 
-  const handleSelectManualKit = (entry: { card: KitCardData; itens: KitItemRow[] }) => {
+  const handleSelectManualKit = (entry: { card: KitCardData; itens: KitItemRow[] }, index: number) => {
     onItensChange(entry.itens);
+    setSelectedManualIdx(index);
     toast({ title: "Kit selecionado", description: `${entry.card.moduloPotenciaKwp.toFixed(2)} kWp` });
   };
 
@@ -518,7 +527,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                       key={entry.card.id}
                       entry={entry}
                       viewMode={viewMode}
-                      onSelect={() => handleSelectManualKit(entry)}
+                      isSelected={selectedManualIdx === index}
+                      onSelect={() => handleSelectManualKit(entry, index)}
                       onEdit={() => handleEditManualKit(index)}
                       onDelete={() => handleDeleteManualKit(index)}
                     />
@@ -700,9 +710,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
 /* ── Manual Kit Card (grid/list matching reference) ── */
 
-function ManualKitCard({ entry, viewMode, onSelect, onEdit, onDelete }: {
+function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete }: {
   entry: { card: KitCardData; itens: KitItemRow[] };
   viewMode: "grid" | "list";
+  isSelected?: boolean;
   onSelect: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -711,7 +722,12 @@ function ManualKitCard({ entry, viewMode, onSelect, onEdit, onDelete }: {
 
   if (viewMode === "list") {
     return (
-      <div className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary/30 transition-all bg-card">
+      <div className={cn(
+        "flex items-center gap-4 p-4 rounded-xl border-2 transition-all bg-card",
+        isSelected
+          ? "border-primary shadow-md ring-2 ring-primary/20"
+          : "border-border/40 hover:border-primary/30"
+      )}>
         <div className="w-20 h-16 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
           <span className="text-[10px] font-bold text-muted-foreground uppercase text-center leading-tight px-1">
             {card.distribuidorNome || "—"}
@@ -736,8 +752,14 @@ function ManualKitCard({ entry, viewMode, onSelect, onEdit, onDelete }: {
           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive" onClick={onDelete}>
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" className="gap-1 h-8 text-xs" onClick={onSelect}>
-            <Plus className="h-3 w-3" /> Selecionar
+          <Button
+            size="sm"
+            variant={isSelected ? "outline" : "default"}
+            className={cn("gap-1 h-8 text-xs", isSelected && "border-primary text-primary")}
+            onClick={onSelect}
+          >
+            {isSelected ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+            {isSelected ? "Selecionado" : "Selecionar"}
           </Button>
         </div>
       </div>
@@ -747,16 +769,29 @@ function ManualKitCard({ entry, viewMode, onSelect, onEdit, onDelete }: {
   // Grid card (similar to reference screenshot)
   return (
     <div
-      className="rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all flex flex-col justify-between min-h-[220px] cursor-pointer"
+      className={cn(
+        "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between min-h-[220px] cursor-pointer relative",
+        isSelected
+          ? "border-primary shadow-md ring-2 ring-primary/20"
+          : "border-border/40 hover:border-primary/30"
+      )}
       onClick={onSelect}
     >
+      {/* Selected badge */}
+      {isSelected && (
+        <div className="absolute top-2 right-2">
+          <Badge className="bg-primary text-primary-foreground text-[10px] gap-1">
+            <Check className="h-3 w-3" /> Selecionado
+          </Badge>
+        </div>
+      )}
       {/* Distributor header */}
       <div>
         <div className="mb-3 flex items-center justify-between">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
             {card.distribuidorNome || "Manual"}
           </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">KIT</span>
+          {!isSelected && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">KIT</span>}
         </div>
 
         {/* Module info */}
