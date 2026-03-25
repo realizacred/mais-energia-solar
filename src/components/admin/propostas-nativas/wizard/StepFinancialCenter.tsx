@@ -264,6 +264,11 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
             </div>
           </div>
         </div>
+        {suggested?.margem_percentual != null && (
+          <p className="text-xs text-muted-foreground mt-2 px-1">
+            💡 Margem média usada recentemente: {Math.round(suggested.margem_percentual * 10) / 10}%
+          </p>
+        )}
       </div>
 
       {/* Cost Table */}
