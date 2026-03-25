@@ -905,6 +905,7 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
         grupo: backendGrupo, potencia_kwp: potenciaKwp,
         valor_total: valorTotal,
         economia_mensal: round2(economiaMensal),
+        geracao_mensal: round2(geracaoEstimada),
         payback_meses: calcResult.paybackMeses,
         validade_dias: 30,
         valido_ate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
@@ -963,6 +964,7 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
             concessionaria_id: uc.distribuidora_id || null,
             demanda_contratada_kw: uc.demanda_contratada || null,
             aliquota_icms: tributacao?.aliquota_icms ?? null,
+            geracao_mensal_estimada: i === 0 ? round2(geracaoEstimada) : null,
           }))
         )
       );
