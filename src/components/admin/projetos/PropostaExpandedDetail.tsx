@@ -426,7 +426,7 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   );
 }
 
-function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, publicUrl, validadeDate, handleRender, handleDownloadPdf, handleSend, copyLink, pdfSignedUrl, pdfLoading, pdfError }: {
+function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, publicUrl, validadeDate, handleRender, handleDownloadPdf, handleSend, copyPublicLink, copyTrackedLink, pdfSignedUrl, pdfLoading, pdfError }: {
   snapshot: SnapshotData | null;
   html: string | null;
   rendering: boolean;
@@ -437,7 +437,8 @@ function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, 
   handleRender: () => void;
   handleDownloadPdf: () => void;
   handleSend: (canal: "link" | "whatsapp") => void;
-  copyLink: (withTracking: boolean) => void;
+  copyPublicLink: () => void;
+  copyTrackedLink: () => void;
   pdfSignedUrl: string | null;
   pdfLoading: boolean;
   pdfError: boolean;
@@ -461,11 +462,11 @@ function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, 
               <FileText className="h-3.5 w-3.5" />
               {downloadingPdf ? "Baixando..." : "Baixar PDF"}
             </Button>
-            <Button variant="link" onClick={() => copyLink(true)} disabled={!publicUrl} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
-              <Link2 className="h-3.5 w-3.5" /> Copiar link com rastreio
+            <Button variant="link" onClick={copyTrackedLink} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
+              <Link2 className="h-3.5 w-3.5" /> Copiar link rastreável
             </Button>
-            <Button variant="link" onClick={() => copyLink(false)} disabled={!publicUrl} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
-              <Link2 className="h-3.5 w-3.5" /> Copiar link sem rastreio
+            <Button variant="link" onClick={copyPublicLink} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
+              <Link2 className="h-3.5 w-3.5" /> Copiar link público
             </Button>
             {validadeDate && (
               <div className="flex items-center gap-2 text-xs text-primary py-1">
