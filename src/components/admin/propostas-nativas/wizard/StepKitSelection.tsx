@@ -934,6 +934,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
         tilt_deg: pd.inclinacao ?? 10,
         azimuth_deviation_deg: pd.desvio_azimutal ?? 0,
         desempenho: newDesempenho,
+        somente_ghi: somenteGhi,
       });
       configs[topo] = { ...configs[topo], fator_geracao: newFator };
     }
