@@ -180,15 +180,18 @@ export function usePropostas() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await (supabase as any)
-        .from("propostas_nativas")
-        .update({ status })
-        .eq("id", id);
+    mutationFn: async ({ id, status, motivo }: { id: string; status: string; motivo?: string }) => {
+      const { data, error } = await supabase.rpc("proposal_update_status" as any, {
+        p_proposta_id: id,
+        p_new_status: status,
+        p_motivo: motivo || null,
+      });
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
     },
-    onSuccess: (_, { status }) => {
-      toast({ title: `Status atualizado para "${status}"` });
+    onSuccess: (result: any) => {
+      toast({ title: `Status atualizado para "${result.new_status}"` });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
     },
     onError: (err: any) => {
@@ -214,7 +217,7 @@ export function usePropostas() {
   );
 
   const updateStatus = useCallback(
-    (id: string, status: string) => updateStatusMutation.mutate({ id, status }),
+    (id: string, status: string, motivo?: string) => updateStatusMutation.mutate({ id, status, motivo }),
     [updateStatusMutation]
   );
 
