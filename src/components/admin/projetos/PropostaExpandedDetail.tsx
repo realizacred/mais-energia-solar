@@ -327,6 +327,8 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   wpPrice: string | null;
   buildSummaryRows: () => Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }>;
 }) {
+  const geracaoMensal = latestVersao?.geracao_mensal || (snapshot as any)?.geracaoMensalEstimada || 0;
+  const economiaMensal = latestVersao?.economia_mensal || 0;
   return (
     <div className="flex gap-5 mt-3">
       {/* Left: Unidades */}
