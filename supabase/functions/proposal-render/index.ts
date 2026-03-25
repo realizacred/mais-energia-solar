@@ -155,10 +155,20 @@ Deno.serve(async (req) => {
     }
 
     // ── PROMOTE STATUS: Only now that artifact is persisted, mark as "gerada" ──
-    await adminClient.from("propostas_nativas")
-      .update({ status: "gerada" })
-      .eq("id", versao.proposta_id)
-      .eq("tenant_id", tenantId);
+    await Promise.all([
+      adminClient.from("propostas_nativas")
+        .update({ status: "gerada" })
+        .eq("id", versao.proposta_id)
+        .eq("tenant_id", tenantId),
+      // Also update generation_status on the version for consistency with template-preview
+      adminClient.from("proposta_versoes")
+        .update({
+          generation_status: "ready",
+          generated_at: new Date().toISOString(),
+        })
+        .eq("id", versao.id)
+        .eq("tenant_id", tenantId),
+    ]);
 
     return jsonOk({ success: true, idempotent: false, render_id: render!.id, html, url: null });
   } catch (err) {
