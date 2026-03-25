@@ -809,7 +809,16 @@ function GerenciamentoTab({
             pipeline_removed: "Removido do funil",
             consultor_changed: "Consultor alterado",
             proposal_message_sent: "Mensagem da proposta enviada",
+            "proposal.sent": "Proposta enviada",
+            "proposal.accepted": "Proposta aceita pelo cliente",
+            "proposal.rejected": "Proposta recusada pelo cliente",
           };
+          const PROPOSAL_EVENT_TYPES = new Set([
+            "proposal_message_sent",
+            "proposal.sent",
+            "proposal.accepted",
+            "proposal.rejected",
+          ]);
           const VALUE_LABELS: Record<string, string> = {
             open: "Aberto",
             won: "Ganho",
@@ -820,13 +829,25 @@ function GerenciamentoTab({
             if (!v) return v;
             return VALUE_LABELS[v] || v;
           };
+          const buildSubtitle = (e: any): string | undefined => {
+            // For proposal events, show channel/metadata info
+            if (PROPOSAL_EVENT_TYPES.has(e.event_type) && e.metadata) {
+              const meta = typeof e.metadata === "string" ? JSON.parse(e.metadata) : e.metadata;
+              const canal = meta?.canal || meta?.channel;
+              const dest = meta?.destinatario_tipo || meta?.tipo;
+              const parts: string[] = [];
+              if (canal) parts.push(canal);
+              if (dest) parts.push(dest);
+              return parts.length > 0 ? parts.join(" • ") : undefined;
+            }
+            if (e.from_value && e.to_value) return `${translateValue(e.from_value)} → ${translateValue(e.to_value)}`;
+            return translateValue(e.to_value) || translateValue(e.from_value) || undefined;
+          };
           setProjectEventEntries(data.map((e: any) => ({
             id: `pe-${e.id}`,
-            type: "projeto" as const,
+            type: PROPOSAL_EVENT_TYPES.has(e.event_type) ? "proposta" as const : "projeto" as const,
             title: EVENT_LABELS[e.event_type] || e.event_type,
-            subtitle: e.from_value && e.to_value
-              ? `${translateValue(e.from_value)} → ${translateValue(e.to_value)}`
-              : translateValue(e.to_value) || translateValue(e.from_value) || undefined,
+            subtitle: buildSubtitle(e),
             date: formatDate(e.created_at),
           })));
         }
