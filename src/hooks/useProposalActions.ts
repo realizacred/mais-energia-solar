@@ -4,16 +4,15 @@
  * §17: Lógica de negócio em services, hooks orquestram
  * 
  * Hook com mutations para todas as ações da proposta.
+ * Status transitions are now backend-driven via edge function.
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { formatBRL } from "@/lib/formatters";
-import { renderProposal, sendProposal, type SendProposalPayload } from "@/services/proposalApi";
+import { renderProposal, sendProposal } from "@/services/proposalApi";
 import {
-  updatePropostaStatus as svcUpdateStatus,
-  generateCommissionOnAccept,
-  cancelPendingCommissions,
+  transitionProposalStatus,
   generateOs as svcGenerateOs,
   getOrCreateProposalToken,
   updateValidade as svcUpdateValidade,
@@ -33,43 +32,27 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
     qc.invalidateQueries({ queryKey: ["proposal-detail", versaoId] });
   };
 
-  // ─── Update Status ──────────────────────────────────────
+  // ─── Transition Status (backend-driven) ─────────────────
 
   const statusMutation = useMutation({
     mutationFn: async ({ newStatus, extra }: { newStatus: string; extra?: { motivo?: string; data?: string } }) => {
       if (!propostaRaw?.id) throw new Error("Proposta não carregada");
-      await svcUpdateStatus(propostaRaw.id, newStatus, extra);
-
-      // Commission on accept
-      if (newStatus === "aceita" && vm && propostaRaw.cliente_id) {
-        try {
-          const pct = await generateCommissionOnAccept(
-            propostaRaw,
-            vm.clienteNome,
-            vm.potenciaKwp,
-            vm.valorTotal,
-          );
-          if (pct) {
-            toast({ title: "Comissão gerada automaticamente!", description: `${pct}% sobre ${formatBRL(vm.valorTotal)}` });
-          }
-        } catch (comErr: any) {
-          console.error("Erro ao gerar comissão:", comErr);
-          toast({ title: "Proposta aceita, mas erro na comissão", description: comErr.message, variant: "destructive" });
-        }
-      }
-
-      // Cancel commissions on reject/cancel
-      if ((newStatus === "recusada" || newStatus === "cancelada") && propostaRaw.projeto_id) {
-        await cancelPendingCommissions(propostaRaw.projeto_id, newStatus);
-      }
-
-      return newStatus;
+      return transitionProposalStatus(propostaRaw.id, newStatus, extra);
     },
-    onSuccess: (newStatus) => {
+    onSuccess: (result) => {
       const labels: Record<string, string> = {
         aceita: "Aceita", recusada: "Recusada", enviada: "Enviada", cancelada: "Cancelada",
+        vista: "Vista", gerada: "Gerada",
       };
-      toast({ title: `Proposta marcada como "${labels[newStatus] || newStatus}"` });
+      toast({ title: `Proposta marcada como "${labels[result.new_status] || result.new_status}"` });
+
+      if (result.commission_pct && result.new_status === "aceita" && vm) {
+        toast({
+          title: "Comissão gerada automaticamente!",
+          description: `${result.commission_pct}% sobre ${formatBRL(vm.valorTotal)}`,
+        });
+      }
+
       invalidate();
     },
     onError: (err: Error) => {
