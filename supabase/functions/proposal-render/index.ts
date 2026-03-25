@@ -154,6 +154,12 @@ Deno.serve(async (req) => {
       return jsonError(`Erro ao salvar render: ${renderErr.message}`, 500);
     }
 
+    // ── PROMOTE STATUS: Only now that artifact is persisted, mark as "gerada" ──
+    await adminClient.from("propostas_nativas")
+      .update({ status: "gerada" })
+      .eq("id", versao.proposta_id)
+      .eq("tenant_id", tenantId);
+
     return jsonOk({ success: true, idempotent: false, render_id: render!.id, html, url: null });
   } catch (err) {
     console.error("[proposal-render] Error:", err);
