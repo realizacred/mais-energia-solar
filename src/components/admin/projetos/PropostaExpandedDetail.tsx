@@ -28,6 +28,7 @@ import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
 import { ClonePropostaModal } from "./ClonePropostaModal";
 import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
+import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaAuditLogs, type UCDetailData } from "@/hooks/usePropostaExpandedData";
 
 // ─── Types ──────────────────────────────────────────
 
