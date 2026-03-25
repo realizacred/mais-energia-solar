@@ -417,7 +417,8 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
       const { count } = await supabase
         .from("propostas_nativas")
         .select("id", { count: "exact", head: true })
-        .eq("deal_id", dealId);
+        .eq("deal_id", dealId)
+        .neq("status", "excluida");
       setPropostasCount(count || 0);
     };
     refreshCount();
