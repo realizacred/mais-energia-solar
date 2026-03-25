@@ -15,6 +15,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ReactSignatureCanvas from "react-signature-canvas";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 
 type TokenData = {
   id: string;
@@ -324,16 +325,16 @@ export default function PropostaPublica() {
           <h3 className="text-base font-semibold mb-3 text-center">
             Escolha a melhor opção para você
           </h3>
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-               style={{ gridTemplateColumns: cenarios.length <= 3 ? `repeat(${Math.min(cenarios.length, 3)}, 1fr)` : undefined }}>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {cenarios.map(c => {
               const isSelected = c.id === selectedCenario;
               const tipoLabel = c.tipo === "a_vista" ? "À Vista" : c.tipo === "financiamento" ? "Financiamento" : "Parcelado";
               return (
-                <button
+                <Button
                   key={c.id}
+                  variant="ghost"
                   onClick={() => setSelectedCenario(c.id)}
-                  className={`relative rounded-xl border-2 p-4 text-left transition-all ${
+                  className={`relative rounded-xl border-2 p-4 text-left transition-all h-auto block w-full ${
                     isSelected
                       ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20"
                       : "border-border hover:border-primary/40 bg-card"
@@ -381,7 +382,7 @@ export default function PropostaPublica() {
                       <CheckCircle2 className="h-5 w-5 text-primary" />
                     </div>
                   )}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -455,7 +456,7 @@ export default function PropostaPublica() {
 
             <div className="space-y-2">
               <Label htmlFor="doc">CPF / CNPJ</Label>
-              <Input id="doc" value={documento} onChange={e => setDocumento(e.target.value)} placeholder="000.000.000-00 ou 00.000.000/0000-00" maxLength={20} inputMode="numeric" />
+              <CpfCnpjInput id="doc" value={documento} onChange={setDocumento} label="" showValidation={false} />
             </div>
 
             <div className="space-y-2">
