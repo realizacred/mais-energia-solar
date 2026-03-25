@@ -475,7 +475,7 @@ export function ConvertLeadToClientDialog({
     return missing;
   };
 
-  // Save as lead with "Aguardando Documentação" status
+  // Save as lead with "Aguardando Documentação" status — works offline
   const handleSaveAsLead = async () => {
     if (!lead) return;
 
@@ -485,36 +485,6 @@ export function ConvertLeadToClientDialog({
     setSavingAsLead(true);
 
     try {
-      const { data: aguardandoStatus } = await supabase
-        .from("lead_status")
-        .select("id")
-        .eq("nome", "Aguardando Documentação")
-        .maybeSingle();
-
-      let resolvedStatus = aguardandoStatus;
-
-      if (!resolvedStatus) {
-        // Try alternative name
-        const { data: altStatus } = await supabase
-          .from("lead_status")
-          .select("id")
-          .ilike("nome", "%aguardando%document%")
-          .maybeSingle();
-        
-        if (!altStatus) {
-          toast({
-            title: "Configuração necessária",
-            description: "O status 'Aguardando Documentação' não existe. Peça ao administrador para criá-lo na configuração de status.",
-            variant: "destructive",
-          });
-          setSavingAsLead(false);
-          return;
-        }
-        resolvedStatus = altStatus;
-      }
-
-      const statusId = resolvedStatus.id;
-
       const missing: string[] = [];
       if (!form.getValues("email")) missing.push("E-mail");
       if (!form.getValues("cpf_cnpj")) missing.push("CPF/CNPJ");
@@ -538,6 +508,7 @@ export function ConvertLeadToClientDialog({
 
       const formData = form.getValues();
 
+      // Always save partial data to localStorage (works offline)
       const partialData = {
         leadId: lead.id,
         formData: {
@@ -554,6 +525,46 @@ export function ConvertLeadToClientDialog({
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.setItem(storageKey, JSON.stringify(partialData));
 
+      // If offline, just save locally and exit
+      if (!navigator.onLine) {
+        toast({
+          title: "Salvo localmente! 📴",
+          description: `${lead.nome} foi salvo offline. Os dados serão sincronizados quando a conexão voltar.`,
+        });
+        onOpenChange(false);
+        onSuccess?.();
+        return;
+      }
+
+      // Online: persist to Supabase
+      const { data: aguardandoStatus } = await supabase
+        .from("lead_status")
+        .select("id")
+        .eq("nome", "Aguardando Documentação")
+        .maybeSingle();
+
+      let resolvedStatus = aguardandoStatus;
+
+      if (!resolvedStatus) {
+        const { data: altStatus } = await supabase
+          .from("lead_status")
+          .select("id")
+          .ilike("nome", "%aguardando%document%")
+          .maybeSingle();
+        
+        if (!altStatus) {
+          toast({
+            title: "Configuração necessária",
+            description: "O status 'Aguardando Documentação' não existe. Peça ao administrador para criá-lo na configuração de status.",
+            variant: "destructive",
+          });
+          setSavingAsLead(false);
+          return;
+        }
+        resolvedStatus = altStatus;
+      }
+
+      const statusId = resolvedStatus.id;
       const nowIso = new Date().toISOString();
 
       const [{ error: leadUpdateError }, { error: orcUpdateError }] = await Promise.all([
@@ -595,11 +606,32 @@ export function ConvertLeadToClientDialog({
       onSuccess?.();
     } catch (error: any) {
       console.error("Error saving lead:", error);
-      toast({
-        title: "Erro ao salvar",
-        description: error.message || "Não foi possível salvar o lead.",
-        variant: "destructive",
-      });
+      // If network error, save offline
+      if (!navigator.onLine || error?.message?.includes("fetch")) {
+        const formData = form.getValues();
+        const storageKey = `lead_conversion_${lead.id}`;
+        localStorage.setItem(storageKey, JSON.stringify({
+          leadId: lead.id,
+          formData,
+          identidadeFiles,
+          comprovanteFiles,
+          beneficiariaFiles,
+          paymentItems,
+          savedAt: new Date().toISOString(),
+        }));
+        toast({
+          title: "Salvo localmente! 📴",
+          description: "Falha na conexão. Os dados foram salvos e serão sincronizados automaticamente.",
+        });
+        onOpenChange(false);
+        onSuccess?.();
+      } else {
+        toast({
+          title: "Erro ao salvar",
+          description: error.message || "Não foi possível salvar o lead.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setSavingAsLead(false);
     }
