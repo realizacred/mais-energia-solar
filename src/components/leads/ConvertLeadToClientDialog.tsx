@@ -3,9 +3,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap, Wallet, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, Wifi, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap, Wallet, ChevronLeft, ChevronRight, Check, RefreshCw } from "lucide-react";
 import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
+import { useOfflineConversionSync, getCachedEquipment, setCachedEquipment } from "@/hooks/useOfflineConversionSync";
 import { createEmptyItem } from "@/services/paymentComposition/types";
 import { validateComposition } from "@/services/paymentComposition/calculator";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
@@ -43,21 +44,6 @@ import {
 } from "@/components/ui/form";
 import { DocumentUpload, DocumentFile, uploadDocumentFiles } from "./DocumentUpload";
 import type { Lead } from "@/types/lead";
-
-// Storage key for offline conversion data
-const OFFLINE_CONVERSION_KEY = "offline_lead_conversions";
-
-interface OfflineConversion {
-  leadId: string;
-  leadNome: string;
-  formData: FormData;
-  identidadeFiles: DocumentFile[];
-  comprovanteFiles: DocumentFile[];
-  beneficiariaFiles: DocumentFile[];
-  assinaturaFiles?: DocumentFile[];
-  savedAt: string;
-  synced?: boolean;
-}
 
 interface Disjuntor {
   id: string;
