@@ -327,6 +327,8 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   wpPrice: string | null;
   buildSummaryRows: () => Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }>;
 }) {
+  const geracaoMensal = latestVersao?.geracao_mensal || (snapshot as any)?.geracaoMensalEstimada || 0;
+  const economiaMensal = latestVersao?.economia_mensal || 0;
   return (
     <div className="flex gap-5 mt-3">
       {/* Left: Unidades */}
@@ -346,12 +348,15 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
                     {uc.nome}
                     {uc.is_geradora && <span className="text-[9px] font-normal text-success ml-1">(Geradora)</span>}
                   </p>
-                  {uc.tarifa_distribuidora && uc.consumo_mensal && (
+                  {economiaMensal > 0 && (
                     <p className="text-[10px] text-muted-foreground">
-                      Economia: {formatBRL(uc.tarifa_distribuidora * uc.consumo_mensal * 0.7)} ({((uc.consumo_mensal > 0 ? 0.7 : 0) * 100).toFixed(0)}%)
+                      Economia: {formatBRL(economiaMensal)}{uc.consumo_mensal ? ` (${Math.round((economiaMensal / (uc.tarifa_distribuidora * uc.consumo_mensal)) * 100) || 0}%)` : ""}
                     </p>
                   )}
                   <p className="text-[10px] text-muted-foreground">Consumo Total: {uc.consumo_mensal} kWh</p>
+                  {uc.is_geradora && geracaoMensal > 0 && (
+                    <p className="text-[10px] text-muted-foreground">Geração Mensal: {geracaoMensal.toLocaleString("pt-BR")} kWh</p>
+                  )}
                 </div>
               </div>
             ))
