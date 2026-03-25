@@ -598,9 +598,15 @@ export function ProposalWizard() {
         try {
           const { data: propostaMeta } = await supabase
             .from("propostas_nativas")
-            .select("lead_id, deal_id, projeto_id, cliente_id")
+            .select("lead_id, deal_id, projeto_id, cliente_id, status")
             .eq("id", propostaIdFromUrl)
             .single();
+
+          // Detect if proposal was already sent/generated — will branch new version on save
+          const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada"];
+          if (propostaMeta?.status && SENT_STATUSES.includes(propostaMeta.status)) {
+            setEditingSentProposal(true);
+          }
 
           if (propostaMeta?.deal_id) {
             setProjectContext(prev => prev || { dealId: propostaMeta.deal_id!, customerId: propostaMeta.cliente_id || "" });
