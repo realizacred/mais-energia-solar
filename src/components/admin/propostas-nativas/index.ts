@@ -4,3 +4,4 @@ export { TemplatesManager } from "./TemplatesManager";
 export { VariaveisCustomManager } from "./VariaveisCustomManager";
 export { SmtpConfigCard } from "./SmtpConfigCard";
 export { ProposalViewsCard } from "./ProposalViewsCard";
+export { ProposalSnapshotView } from "./ProposalSnapshotView";
