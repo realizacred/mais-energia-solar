@@ -472,6 +472,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
   const [messageDrawerOpen, setMessageDrawerOpen] = useState(false);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [templateSelecionado, setTemplateSelecionado] = useState("");
 
   // PDF signed URL for persisted artifacts
   const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
