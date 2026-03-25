@@ -107,7 +107,7 @@ export function useCloneProposta() {
           economia_mensal: latestVersao.economia_mensal,
           geracao_mensal: latestVersao.geracao_mensal,
           payback_meses: latestVersao.payback_meses,
-          status: "rascunho",
+          status: "draft",
           output_pdf_path: null,
           output_docx_path: null,
           public_slug: null,
