@@ -787,19 +787,21 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between pt-3 border-t border-border/30">
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => onOpenChange(false)}>
-              Voltar
+        </div>
+        </ScrollArea>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30 shrink-0">
+          <Button variant="ghost" size="sm" className="text-xs" onClick={() => onOpenChange(false)}>
+            Voltar
+          </Button>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
+              Potência: {potenciaTotal.toFixed(2)} kWp
+            </Badge>
+            <Button size="sm" className="text-xs h-8" onClick={handleSave}>
+              Salvar
             </Button>
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
-                Potência: {potenciaTotal.toFixed(2)} kWp
-              </Badge>
-              <Button size="sm" className="text-xs h-8" onClick={handleSave}>
-                Salvar
-              </Button>
-            </div>
           </div>
         </div>
       </DialogContent>
