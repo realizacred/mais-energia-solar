@@ -683,25 +683,20 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                   </>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Select value={inv.selectedId} onValueChange={v => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, selectedId: v } : x))}>
-                      <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
-                      <SelectContent>
-                        {filteredInversores.length > 0 ? (
-                          [...filteredInversores]
-                            .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_nominal_kw || 0) - (a.potencia_nominal_kw || 0))
-                            .map(cat => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.fabricante} {cat.modelo} ({(cat.potencia_nominal_kw || 0).toFixed(1)}kW)
-                              {cat.tipo && <span className="text-muted-foreground ml-1">• {cat.tipo}</span>}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 text-xs text-muted-foreground">
-                            Nenhum inversor encontrado para esta topologia/sistema
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <SearchableEquipSelect
+                      value={inv.selectedId}
+                      onValueChange={v => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, selectedId: v } : x))}
+                      options={filteredInversores.length > 0 ? [...filteredInversores]
+                        .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_nominal_kw || 0) - (a.potencia_nominal_kw || 0))
+                        .map(cat => ({
+                          value: cat.id,
+                          label: `${cat.fabricante} ${cat.modelo} (${(cat.potencia_nominal_kw || 0).toFixed(1)}kW)${cat.tipo ? ` • ${cat.tipo}` : ""}`,
+                          searchText: `${cat.fabricante} ${cat.modelo} ${(cat.potencia_nominal_kw || 0).toFixed(1)} ${cat.tipo || ""}`,
+                        })) : []}
+                      placeholder="Buscar inversor..."
+                      emptyText="Nenhum inversor encontrado para esta topologia/sistema"
+                      className="flex-1"
+                    />
                     <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
                   </div>
                 )}
