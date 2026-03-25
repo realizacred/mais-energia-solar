@@ -694,6 +694,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           irradiacao={irradiacao}
           latitude={latitude}
           ghiSeries={ghiSeries}
+          somenteGhi={somenteGhi}
         />
       )}
 
