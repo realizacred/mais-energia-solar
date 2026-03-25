@@ -526,45 +526,119 @@ export function ProposalWizard() {
         } else if (rawSnapshot.engine_version || rawSnapshot.versao_schema) {
           // Engine-enriched snapshot — map back to wizard format
           const uc0 = (rawSnapshot.ucs as any[])?.[0] || {};
+          const tecnico = rawSnapshot.tecnico || {};
+          const fin = rawSnapshot.financeiro || {};
+          const vendaEngine = rawSnapshot.venda || {};
+          const premissasEngine = rawSnapshot.premissas || {};
+
+          // Map engine itens back to KitItemRow format (restore fabricante, modelo, avulso, id)
+          const engineItens = (rawSnapshot.itens || []).map((it: any) => ({
+            id: it.id || crypto.randomUUID(),
+            descricao: it.descricao || "",
+            fabricante: it.fabricante || "",
+            modelo: it.modelo || "",
+            potencia_w: Number(it.potencia_w) || 0,
+            quantidade: Number(it.quantidade) || 0,
+            preco_unitario: Number(it.preco_unitario) || 0,
+            categoria: it.categoria || "outros",
+            avulso: it.avulso ?? false,
+            produto_ref: it.produto_ref || null,
+          }));
+
+          // Map engine venda to wizard VendaData
+          const vendaMapped = {
+            custo_kit: Number(vendaEngine.custo_kit) || 0,
+            custo_instalacao: Number(vendaEngine.custo_instalacao) || 0,
+            custo_comissao: Number(vendaEngine.custo_comissao) || 0,
+            custo_outros: Number(vendaEngine.custo_outros) || 0,
+            margem_percentual: Number(vendaEngine.margem_percentual) || 0,
+            desconto_percentual: Number(vendaEngine.desconto_percentual) || 0,
+            observacoes: vendaEngine.observacoes || "",
+          };
+
+          // Map engine premissas to PremissasData
+          const premissasMapped = {
+            imposto: Number(premissasEngine.imposto) || 0,
+            inflacao_energetica: Number(premissasEngine.inflacao_energetica) || 6.5,
+            inflacao_ipca: Number(premissasEngine.inflacao_ipca) || 4.5,
+            perda_eficiencia_anual: Number(premissasEngine.perda_eficiencia_anual) || 0.5,
+            sobredimensionamento: Number(premissasEngine.sobredimensionamento) || 0,
+            troca_inversor_anos: Number(premissasEngine.troca_inversor_anos) || 15,
+            troca_inversor_custo: Number(premissasEngine.troca_inversor_custo) || 30,
+            vpl_taxa_desconto: Number(premissasEngine.vpl_taxa_desconto) || 10,
+          };
+
+          // Map engine pagamento opcoes
+          const pagOpcoes = (rawSnapshot.pagamento_opcoes || rawSnapshot.pagamentoOpcoes || []).map((p: any) => ({
+            id: p.id || crypto.randomUUID(),
+            nome: p.nome || "",
+            tipo: p.tipo || "a_vista",
+            valor_financiado: Number(p.valor_financiado) || 0,
+            entrada: Number(p.entrada) || 0,
+            taxa_mensal: Number(p.taxa_mensal) || 0,
+            carencia_meses: Number(p.carencia_meses) || 0,
+            num_parcelas: Number(p.num_parcelas) || 0,
+            valor_parcela: Number(p.valor_parcela) || 0,
+          }));
+
+          // Map engine servicos to wizard ServicoItem format
+          const servicosMapped = (rawSnapshot.servicos || []).map((sv: any) => ({
+            id: sv.id || crypto.randomUUID(),
+            descricao: sv.descricao || "",
+            categoria: sv.categoria || "instalacao",
+            valor: Number(sv.valor) || 0,
+            incluso_no_preco: sv.incluso_no_preco ?? true,
+          }));
+
           s = {
             locEstado: uc0.estado || "",
             locCidade: uc0.cidade || "",
             locTipoTelhado: uc0.tipo_telhado || "",
             locDistribuidoraId: uc0.distribuidora_id || "",
             locDistribuidoraNome: uc0.distribuidora || "",
-            locIrradiacao: rawSnapshot.tecnico?.irradiacao_media_kwp_mes || 0,
+            locIrradiacao: tecnico.irradiacao_media_kwp_mes || 0,
             locGhiSeries: null,
+            locSkipPoa: true,
             locLatitude: null,
             distanciaKm: uc0.distancia || 0,
             projectAddress: undefined,
             mapSnapshots: [],
+            selectedLead: null,
+            cliente: undefined as any,
             ucs: rawSnapshot.ucs || [],
-            grupo: rawSnapshot.ucs?.length > 1 ? "multi" : "B",
-            potenciaKwp: rawSnapshot.tecnico?.potencia_kwp || versao.potencia_kwp || 0,
-            itens: rawSnapshot.itens || [],
+            grupo: rawSnapshot.ucs?.length > 1 ? "multi" : (uc0.subgrupo?.startsWith("A") ? "A" : "B1"),
+            potenciaKwp: tecnico.potencia_kwp || versao.potencia_kwp || 0,
+            itens: engineItens,
             layouts: [],
             manualKits: [],
             adicionais: [],
-            servicos: rawSnapshot.servicos || [],
-            venda: rawSnapshot.venda || {},
-            premissas: rawSnapshot.premissas || null,
+            servicos: servicosMapped,
+            venda: vendaMapped,
+            premissas: premissasMapped,
             preDimensionamento: {
               sistema: "on_grid",
-              tipos_kit: [],
-              topologias: [],
-              inclinacao: uc0.inclinacao || 0,
-              desvio_azimutal: uc0.desvio_azimutal || 0,
-              desempenho: uc0.taxa_desempenho || 80,
+              tipos_kit: ["customizado"],
+              topologias: ["tradicional"],
+              inclinacao: Number(uc0.inclinacao) || 20,
+              desvio_azimutal: Number(uc0.desvio_azimutal) || 0,
+              desempenho: Number(uc0.taxa_desempenho) || 80,
               fator_geracao: 0,
+              fator_geracao_meses: {},
               sombreamento: "Nenhuma",
+              dod: 0,
               topologia_configs: {},
+              sobredimensionamento: Number(premissasEngine.sobredimensionamento) || 20,
+              margem_pot_ideal: 0,
+              considerar_transformador: true,
+              tipo_kit: "customizado",
             } as any,
-            pagamentoOpcoes: rawSnapshot.pagamento_opcoes || rawSnapshot.pagamentoOpcoes || [],
+            pagamentoOpcoes: pagOpcoes,
             customFieldValues: rawSnapshot.variaveis_custom || {},
             nomeProposta: "",
             descricaoProposta: "",
-            templateSelecionado: "",
+            templateSelecionado: rawSnapshot.inputs?.template_id || "",
             step: 0,
+            geracaoMensalEstimada: tecnico.geracao_estimada_kwh || fin.economia_mensal ? Math.round(tecnico.geracao_estimada_kwh || 0) : 0,
           } as any;
           console.log("[ProposalWizard] Normalized engine snapshot to wizard format");
         } else {
