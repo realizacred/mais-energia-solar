@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
-  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, Plus, FolderOpen, MessageSquareText
+  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, FolderOpen, MessageSquareText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
+import { ClonePropostaModal } from "./ClonePropostaModal";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -425,7 +426,7 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   );
 }
 
-function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, publicUrl, validadeDate, handleRender, handleDownloadPdf, handleSend, copyLink, pdfSignedUrl, pdfLoading, pdfError }: {
+function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, publicUrl, validadeDate, handleRender, handleDownloadPdf, handleSend, copyPublicLink, copyTrackedLink, pdfSignedUrl, pdfLoading, pdfError }: {
   snapshot: SnapshotData | null;
   html: string | null;
   rendering: boolean;
@@ -436,7 +437,8 @@ function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, 
   handleRender: () => void;
   handleDownloadPdf: () => void;
   handleSend: (canal: "link" | "whatsapp") => void;
-  copyLink: (withTracking: boolean) => void;
+  copyPublicLink: () => void;
+  copyTrackedLink: () => void;
   pdfSignedUrl: string | null;
   pdfLoading: boolean;
   pdfError: boolean;
@@ -460,11 +462,11 @@ function NativeArquivoTab({ snapshot, html, rendering, downloadingPdf, sending, 
               <FileText className="h-3.5 w-3.5" />
               {downloadingPdf ? "Baixando..." : "Baixar PDF"}
             </Button>
-            <Button variant="link" onClick={() => copyLink(true)} disabled={!publicUrl} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
-              <Link2 className="h-3.5 w-3.5" /> Copiar link com rastreio
+            <Button variant="link" onClick={copyTrackedLink} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
+              <Link2 className="h-3.5 w-3.5" /> Copiar link rastreável
             </Button>
-            <Button variant="link" onClick={() => copyLink(false)} disabled={!publicUrl} className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1 h-auto p-0 justify-start">
-              <Link2 className="h-3.5 w-3.5" /> Copiar link sem rastreio
+            <Button variant="link" onClick={copyPublicLink} className="flex items-center gap-2 text-xs text-primary hover:underline py-1 h-auto p-0 justify-start">
+              <Link2 className="h-3.5 w-3.5" /> Copiar link público
             </Button>
             {validadeDate && (
               <div className="flex items-center gap-2 text-xs text-primary py-1">
@@ -649,6 +651,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [recusaMotivo, setRecusaMotivo] = useState("");
   const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
   const [messageDrawerOpen, setMessageDrawerOpen] = useState(false);
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
 
   // PDF signed URL for persisted artifacts
   const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
@@ -813,11 +816,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   }, [isExpanded, activeTab, latestVersao?.id]);
 
-  // Delete handler
+  // Delete handler — soft delete (preserves history)
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const { error } = await supabase.from("propostas_nativas").delete().eq("id", p.id);
+      const { error } = await (supabase as any)
+        .from("propostas_nativas")
+        .update({ status: "excluida", deleted_at: new Date().toISOString() })
+        .eq("id", p.id);
       if (error) throw error;
       toast({ title: "Proposta excluída" });
       onRefresh();
@@ -904,14 +910,59 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  const copyLink = (withTracking: boolean) => {
-    if (!publicUrl) {
-      toast({ title: "Gere e envie a proposta primeiro", variant: "destructive" });
+  // Copy public link (slug-based, no tracking)
+  const copyPublicLink = () => {
+    const slug = latestVersao?.public_slug;
+    if (!slug) {
+      toast({ title: "Link público não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
       return;
     }
-    const url = withTracking ? publicUrl : publicUrl.replace(/\?.*$/, "");
+    const url = `${window.location.origin}/p/${slug}`;
     navigator.clipboard.writeText(url);
-    toast({ title: `Link ${withTracking ? "com" : "sem"} rastreio copiado!` });
+    toast({ title: "Link público copiado!" });
+  };
+
+  // Generate/copy tracked link (token-based)
+  const copyTrackedLink = async () => {
+    if (!p.id || !latestVersao?.id) return;
+    try {
+      // Try to find existing valid token
+      const { data: existingToken } = await (supabase as any)
+        .from("proposta_aceite_tokens")
+        .select("token")
+        .eq("proposta_id", p.id)
+        .eq("versao_id", latestVersao.id)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let token = existingToken?.token;
+
+      if (!token) {
+        // Generate new token
+        const { data: newToken, error } = await (supabase as any)
+          .from("proposta_aceite_tokens")
+          .insert({
+            proposta_id: p.id,
+            versao_id: latestVersao.id,
+            tenant_id: tenantCtx?.tenantId,
+            token: crypto.randomUUID(),
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+            tipo: "tracked",
+          })
+          .select("token")
+          .single();
+        if (error) throw error;
+        token = newToken.token;
+      }
+
+      const url = `${window.location.origin}/proposta/${token}`;
+      navigator.clipboard.writeText(url);
+      toast({ title: "Link rastreável copiado!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar link rastreável", description: e.message, variant: "destructive" });
+    }
   };
 
   const validadeDate = latestVersao ? (() => {
@@ -1097,22 +1148,18 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     <Download className="h-3.5 w-3.5 mr-2 text-info" /> Baixar DOCX
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={() => copyLink(true)} disabled={!publicUrl}>
-                  <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Copiar link c/ rastreio
+                <DropdownMenuItem onClick={copyPublicLink} disabled={!latestVersao?.public_slug}>
+                  <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => copyLink(false)} disabled={!publicUrl}>
-                  <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link s/ rastreio
+                <DropdownMenuItem onClick={copyTrackedLink} disabled={!latestVersao}>
+                  <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar/Copiar link rastreável
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)} disabled={!latestVersao}>
                   <MessageSquareText className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar mensagem
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => {
-                  const params = new URLSearchParams({ deal_id: dealId });
-                  if (customerId) params.set("customer_id", customerId);
-                  navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-                }}>
-                  <Plus className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar nova proposta
+                <DropdownMenuItem onClick={() => setCloneModalOpen(true)}>
+                  <Copy className="h-3.5 w-3.5 mr-2 text-primary" /> Clonar proposta
                 </DropdownMenuItem>
                 {onArchive && p.status !== "arquivada" && (
                   <DropdownMenuItem onClick={onArchive}>
@@ -1244,7 +1291,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         handleRender={handleRender}
                         handleDownloadPdf={handleDownloadPdf}
                         handleSend={handleSend}
-                        copyLink={copyLink}
+                        copyPublicLink={copyPublicLink}
+                        copyTrackedLink={copyTrackedLink}
                         pdfSignedUrl={pdfSignedUrl}
                         pdfLoading={pdfLoading}
                         pdfError={pdfError}
@@ -1321,7 +1369,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               <AlertDialogTitle>Excluir proposta</AlertDialogTitle>
             </div>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir esta proposta? Esta ação não pode ser desfeita.
+              Esta proposta será removida da listagem. O histórico de envios e visualizações será preservado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1367,6 +1415,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           }}
         />
       )}
+
+      {/* Clone modal */}
+      <ClonePropostaModal
+        open={cloneModalOpen}
+        onOpenChange={setCloneModalOpen}
+        propostaId={p.id}
+        propostaTitulo={p.titulo || p.codigo || `Proposta #${p.proposta_num}`}
+        dealId={dealId}
+        customerId={customerId}
+      />
     </>
   );
 }
