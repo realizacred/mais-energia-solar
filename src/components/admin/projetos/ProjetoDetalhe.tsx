@@ -856,24 +856,27 @@ function GerenciamentoTab({
     loadProjectEvents();
   }, [deal.id, formatDate]);
 
-  // Load proposal events for timeline
+  // Load proposal records for timeline
   useEffect(() => {
     async function loadPropostaEvents() {
       try {
-        const { data } = await supabase
+        const { data } = await (supabase as any)
           .from("propostas_nativas")
           .select("id, titulo, status, created_at, codigo")
-          .eq("projeto_id", deal.id)
+          .or(`deal_id.eq.${deal.id},projeto_id.eq.${deal.id}`)
+          .neq("status", "excluida")
           .order("created_at", { ascending: false })
           .limit(20);
         if (data && data.length > 0) {
           const PROPOSTA_STATUS: Record<string, string> = {
-            draft: "Rascunho", sent: "Enviada", accepted: "Aceita", rejected: "Rejeitada", expired: "Expirada",
+            draft: "Rascunho", rascunho: "Rascunho", gerada: "Gerada", sent: "Enviada", enviada: "Enviada",
+            accepted: "Aceita", aceita: "Aceita", rejected: "Rejeitada", recusada: "Recusada",
+            expired: "Expirada", expirada: "Expirada",
           };
           setPropostaEntries(data.map((p: any) => ({
             id: `prop-${p.id}`,
             type: "proposta" as const,
-            title: `Proposta: ${p.titulo}`,
+            title: `Proposta: ${p.titulo || p.codigo || "Sem título"}`,
             subtitle: `${p.codigo || "—"} • Status: ${PROPOSTA_STATUS[p.status] || p.status}`,
             date: formatDate(p.created_at),
           })));
