@@ -25983,6 +25983,34 @@ export type Database = {
       normalize_remote_jid: { Args: { raw_jid: string }; Returns: string }
       normalize_wa_jid: { Args: { raw_jid: string }; Returns: string }
       preview_seed_data: { Args: never; Returns: Json }
+      proposal_clone: {
+        Args: {
+          p_source_proposta_id: string
+          p_target_cliente_id?: string
+          p_target_deal_id?: string
+          p_titulo?: string
+        }
+        Returns: Json
+      }
+      proposal_create: {
+        Args: {
+          p_cliente_id?: string
+          p_consultor_id?: string
+          p_deal_id?: string
+          p_economia_mensal?: number
+          p_geracao_mensal?: number
+          p_intent?: string
+          p_lead_id?: string
+          p_payback_meses?: number
+          p_potencia_kwp?: number
+          p_projeto_id?: string
+          p_snapshot?: Json
+          p_template_id?: string
+          p_titulo?: string
+          p_valor_total?: number
+        }
+        Returns: Json
+      }
       proposal_create_version: {
         Args: {
           p_calc_hash?: string
