@@ -26,6 +26,7 @@ import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/d
 import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
 import { ClonePropostaModal } from "./ClonePropostaModal";
+import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -816,23 +817,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   }, [isExpanded, activeTab, latestVersao?.id]);
 
-  // Delete handler — soft delete (preserves history)
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      const { error } = await (supabase as any)
-        .from("propostas_nativas")
-        .update({ status: "excluida", deleted_at: new Date().toISOString() })
-        .eq("id", p.id);
-      if (error) throw error;
-      toast({ title: "Proposta excluída" });
-      onRefresh();
-    } catch (e: any) {
-      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
-    } finally {
-      setDeleting(false);
-      setDeleteOpen(false);
-    }
+  // Delete handler — uses hook for AP-01 compliance
+  const { mutate: excluirProposta, isPending: deleting } = useExcluirProposta();
+  const handleDelete = () => {
+    excluirProposta(p.id, {
+      onSuccess: () => {
+        setDeleteOpen(false);
+        onRefresh();
+      },
+      onSettled: () => setDeleteOpen(false),
+    });
   };
 
   // Render proposal HTML
