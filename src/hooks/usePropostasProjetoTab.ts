@@ -102,7 +102,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
         versoes: (versoes || [])
           .filter((v: any) => v.proposta_id === p.id)
           .map((v: any) => {
-            const snap = v.snapshot as any;
+            const snap = (v.snapshot || {}) as Record<string, any>;
             // Fallback potência from snapshot
             let potencia = v.potencia_kwp;
             if ((!potencia || potencia === 0) && snap?.itens) {
@@ -235,7 +235,13 @@ export function useExcluirProposta() {
       if (error) throw error;
     },
     onSuccess: () => {
+      // Invalidate all proposal-related queries to ensure consistent state
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["proposal-detail"] });
+      queryClient.invalidateQueries({ queryKey: ["proposta-expanded-snapshot"] });
+      queryClient.invalidateQueries({ queryKey: ["proposta-expanded-ucs"] });
+      queryClient.invalidateQueries({ queryKey: ["proposta-audit-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] });
       toast({ title: "Proposta excluída" });
     },
     onError: (err: any) => {

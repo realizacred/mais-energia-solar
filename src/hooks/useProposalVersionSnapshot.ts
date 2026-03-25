@@ -23,7 +23,7 @@ export function useProposalVersionSnapshot(versaoId: string | null) {
         .eq("id", versaoId)
         .single();
       if (error) throw error;
-      return (data?.snapshot as any) || {};
+      return (data?.snapshot as Record<string, unknown>) || {};
     },
     staleTime: STALE_TIME,
     enabled: !!versaoId,

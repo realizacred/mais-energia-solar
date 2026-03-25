@@ -322,7 +322,7 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   wpPrice: string | null;
   buildSummaryRows: () => Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }>;
 }) {
-  const geracaoMensal = latestVersao?.geracao_mensal || (snapshot as any)?.geracaoMensalEstimada || 0;
+  const geracaoMensal = latestVersao?.geracao_mensal || (snapshot as Record<string, any>)?.geracaoMensalEstimada || 0;
   const economiaMensal = latestVersao?.economia_mensal || 0;
   return (
     <div className="flex gap-5 mt-3">
@@ -777,7 +777,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   };
 
   const validadeDate = latestVersao ? (() => {
-    const snap = snapshot as any;
+    const snap = snapshot as Record<string, any>;
     if (snap?.validade_dias) {
       const d = new Date(latestVersao.created_at);
       d.setDate(d.getDate() + snap.validade_dias);
@@ -1079,8 +1079,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 <>
                   {/* ─ Resumo Tab ─────────────── */}
                   <TabsContent value="resumo" className="px-4 pb-4 mt-0">
-                    {(snapshot as any)?.source === "legacy_import" ? (
-                      <SmResumoTab snapshot={snapshot as any} latestVersao={latestVersao} wpPrice={wpPrice} />
+                    {(snapshot as Record<string, any>)?.source === "legacy_import" ? (
+                      <SmResumoTab snapshot={snapshot as Record<string, any>} latestVersao={latestVersao} wpPrice={wpPrice} />
                     ) : (
                       <NativeResumoTab snapshot={snapshot} ucsDetail={ucsDetail} latestVersao={latestVersao} wpPrice={wpPrice} buildSummaryRows={buildSummaryRows} />
                     )}
@@ -1088,8 +1088,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   {/* ─ Arquivo Tab ─────────────── */}
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
-                    {(snapshot as any)?.source === "legacy_import" ? (
-                      <SmArquivoTab snapshot={snapshot as any} />
+                    {(snapshot as Record<string, any>)?.source === "legacy_import" ? (
+                      <SmArquivoTab snapshot={snapshot as Record<string, any>} />
                     ) : (
                       <div className="flex gap-5 mt-3">
                         {/* Left: Actions sidebar */}
@@ -1155,8 +1155,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   {/* ─ Dados Tab — unified via ProposalSnapshotView (SSOT) ─ */}
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
-                    {(snapshot as any)?.source === "legacy_import" ? (
-                      <SmDadosTab snapshot={snapshot as any} latestVersao={latestVersao} />
+                    {(snapshot as Record<string, any>)?.source === "legacy_import" ? (
+                      <SmDadosTab snapshot={snapshot as Record<string, any>} latestVersao={latestVersao} />
                     ) : (
                       <div className="mt-3">
                         <ProposalSnapshotView
