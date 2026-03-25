@@ -1148,22 +1148,18 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     <Download className="h-3.5 w-3.5 mr-2 text-info" /> Baixar DOCX
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={() => copyLink(true)} disabled={!publicUrl}>
-                  <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Copiar link c/ rastreio
+                <DropdownMenuItem onClick={copyPublicLink} disabled={!latestVersao?.public_slug}>
+                  <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => copyLink(false)} disabled={!publicUrl}>
-                  <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link s/ rastreio
+                <DropdownMenuItem onClick={copyTrackedLink} disabled={!latestVersao}>
+                  <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar/Copiar link rastreável
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)} disabled={!latestVersao}>
                   <MessageSquareText className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar mensagem
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => {
-                  const params = new URLSearchParams({ deal_id: dealId });
-                  if (customerId) params.set("customer_id", customerId);
-                  navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-                }}>
-                  <Plus className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar nova proposta
+                <DropdownMenuItem onClick={() => setCloneModalOpen(true)}>
+                  <Copy className="h-3.5 w-3.5 mr-2 text-primary" /> Clonar proposta
                 </DropdownMenuItem>
                 {onArchive && p.status !== "arquivada" && (
                   <DropdownMenuItem onClick={onArchive}>
@@ -1295,7 +1291,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         handleRender={handleRender}
                         handleDownloadPdf={handleDownloadPdf}
                         handleSend={handleSend}
-                        copyLink={copyLink}
+                        copyPublicLink={copyPublicLink}
+                        copyTrackedLink={copyTrackedLink}
                         pdfSignedUrl={pdfSignedUrl}
                         pdfLoading={pdfLoading}
                         pdfError={pdfError}
