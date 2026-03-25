@@ -219,12 +219,12 @@ export function usePropostas() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Soft delete — set status to 'excluida'
-      const { error } = await (supabase as any)
-        .from("propostas_nativas")
-        .update({ status: "excluida" })
-        .eq("id", id);
+      // Soft delete via SECURITY DEFINER RPC
+      const { data, error } = await supabase.rpc("proposal_delete" as any, {
+        p_proposta_id: id,
+      });
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
     },
     onSuccess: () => {
       toast({ title: "Proposta excluída" });
