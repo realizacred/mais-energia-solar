@@ -55,6 +55,7 @@ export function BateriasManager() {
   const [editing, setEditing] = useState<Bateria | null>(null);
   const [deleting, setDeleting] = useState<Bateria | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [viewItem, setViewItem] = useState<Bateria | null>(null);
 
   const { data: baterias = [], isLoading } = useQuery({
     queryKey: ["baterias"],
