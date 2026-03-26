@@ -71,6 +71,12 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   const [generatingInvite, setGeneratingInvite] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // ── Search, filters, pagination ─────────────────────────
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("todos");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   const isNewVendedor = !editingVendedor;
   const isLinkingExistingUser = isNewVendedor && formData.tipoAcesso === "vincular";
   const isInviteFlow = isNewVendedor && formData.tipoAcesso === "convite";
