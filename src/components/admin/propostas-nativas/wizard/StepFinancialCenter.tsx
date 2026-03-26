@@ -98,7 +98,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       categoria: "KIT",
       item: kitLabel,
       quantidade: 1,
-      custoUnitario: custoKit,
+      custoUnitario: custoKitEfetivo,
       fixo: true,
       checked: true,
     });
@@ -129,7 +129,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     custosExtras.forEach(c => rows.push(c));
 
     return rows;
-  }, [custoKit, kitLabel, instalacaoQtd, instalacaoCusto, instalacaoEnabled, comissaoQtd, comissaoCusto, comissaoEnabled, custosExtras]);
+  }, [custoKitEfetivo, kitLabel, instalacaoQtd, instalacaoCusto, instalacaoEnabled, comissaoQtd, comissaoCusto, comissaoEnabled, custosExtras]);
 
   const custoTotal = roundCurrency(allRows.filter(r => r.checked).reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
   const margemPercent = venda.margem_percentual;
@@ -365,9 +365,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
                   {/* Qtd */}
                   <div className="text-center" onClick={e => e.stopPropagation()}>
-                    {isKit ? (
-                      <span>{row.quantidade}</span>
-                    ) : isExtra ? (
+                    {isExtra ? (
                       <Input
                         type="number"
                         min={1}
@@ -386,7 +384,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                           if (row.id === "comissao") setComissaoQtd(val);
                         }}
                         className="h-7 text-xs w-14 mx-auto text-center"
-                        disabled={!row.checked}
+                        disabled={isKit || !row.checked}
                       />
                     )}
                   </div>
@@ -403,29 +401,22 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                   ) : (
                     <>
                       <div className="text-right" onClick={e => e.stopPropagation()}>
-                        {isKit ? (
-                          <CurrencyInput
-                            value={row.custoUnitario}
-                            onChange={() => {}}
-                            prefix=""
-                            className="h-7 text-xs w-24 ml-auto text-right pointer-events-none opacity-70"
-                          />
-                        ) : (
-                          <CurrencyInput
-                            value={row.custoUnitario}
-                            onChange={(val) => {
-                              if (isExtra) {
-                                updateExtra(row.id, "custoUnitario", val);
-                              } else if (row.id === "instalacao") {
-                                setInstalacaoCusto(val);
-                              } else if (row.id === "comissao") {
-                                setComissaoCusto(val);
-                              }
-                            }}
-                            prefix=""
-                            className="h-7 text-xs w-24 ml-auto text-right"
-                          />
-                        )}
+                        <CurrencyInput
+                          value={row.custoUnitario}
+                          onChange={(val) => {
+                            if (isKit) {
+                              setKitCustoOverride(val);
+                            } else if (isExtra) {
+                              updateExtra(row.id, "custoUnitario", val);
+                            } else if (row.id === "instalacao") {
+                              setInstalacaoCusto(val);
+                            } else if (row.id === "comissao") {
+                              setComissaoCusto(val);
+                            }
+                          }}
+                          prefix=""
+                          className="h-7 text-xs w-24 ml-auto text-right"
+                        />
                       </div>
                       <span className="text-right font-medium">
                         {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
