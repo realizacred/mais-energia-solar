@@ -308,6 +308,10 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
           </SectionCollapsible>
 
           <SectionCollapsible title="📄 Datasheet">
+            <DatasheetUrlField
+              value={form.datasheet_url}
+              onChange={(v) => set("datasheet_url", v)}
+            />
             <DatasheetSection
               moduloId={modulo?.id}
               datasheetUrl={form.datasheet_url || null}
