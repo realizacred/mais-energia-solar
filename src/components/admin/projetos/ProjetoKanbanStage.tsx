@@ -434,24 +434,18 @@ function ResizableKanbanColumn({
     { key: "status", label: "Status da proposta" },
   ];
 
-  const currentVisibleFields = stage.card_visible_fields || ["valor_projeto", "potencia_kwp", "cidade"];
-
   const handleColorChange = async (color: string | null) => {
+    setStageColor(color);
     await supabase.from("pipeline_stages").update({ color } as any).eq("id", stage.id);
-    // Optimistic: mutate local stage
-    (stage as any).color = color;
-    setColorMenuOpen(false);
   };
 
   const handleToggleField = async (fieldKey: string) => {
-    const current = [...currentVisibleFields];
+    const current = [...visibleFields];
     const idx = current.indexOf(fieldKey);
     if (idx >= 0) current.splice(idx, 1);
     else current.push(fieldKey);
+    setVisibleFields(current);
     await supabase.from("pipeline_stages").update({ card_visible_fields: current } as any).eq("id", stage.id);
-    (stage as any).card_visible_fields = current;
-    setFieldsMenuOpen(prev => !prev); // force re-render
-    setFieldsMenuOpen(true);
   };
 
   const overdueCount = useMemo(() => {
