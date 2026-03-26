@@ -988,7 +988,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     <Download className="h-3.5 w-3.5 mr-2 text-info" /> Baixar DOCX
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={copyPublicLink} disabled={!latestVersao?.public_slug}>
+                <DropdownMenuItem onClick={copyPublicLink} disabled={!latestVersao}>
                   <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={copyTrackedLink} disabled={!latestVersao}>
