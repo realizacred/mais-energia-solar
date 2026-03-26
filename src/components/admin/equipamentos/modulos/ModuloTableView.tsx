@@ -268,7 +268,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
               <SortHeader label="Completude" field="completude" />
               <TableHead>Origem</TableHead>
               <TableHead>Ativo</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="w-[100px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
