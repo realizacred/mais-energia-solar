@@ -498,7 +498,13 @@ export function StepLocalizacao({
     setGeoStatus("localizado");
     onLatitudeChange?.(lat);
     fetchIrradiacao(lat, lon);
-  }, [fetchIrradiacao, onLatitudeChange]);
+    // Explicitly recalculate distance (useEffect may skip if coords unchanged)
+    if (companyCoords.current) {
+      roadDistanceKm(companyCoords.current.lat, companyCoords.current.lon, lat, lon).then(d => {
+        onDistanciaKmChange?.(Math.round(d * 10) / 10);
+      });
+    }
+  }, [fetchIrradiacao, onLatitudeChange, onDistanciaKmChange]);
 
   const handleEstadoChange = (v: string) => {
     onEstadoChange(v);
