@@ -101,14 +101,14 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="w-[90vw] max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base flex items-center gap-2">
             <LayoutGrid className="h-4 w-4 text-primary" /> Editar Layout dos Módulos
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-4 py-2">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 py-2">
           {arranjos.map((arranjo) => (
             <div key={arranjo.id} className="rounded-xl border-2 border-border/40 bg-card p-4 space-y-4">
               <div className="flex items-center justify-between">

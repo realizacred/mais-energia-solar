@@ -49,12 +49,12 @@ export function EditarKitFechadoModal({ open, onOpenChange, kits, onSave }: Edit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="w-[90vw] max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base">Editar kit fechado</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-4 py-2">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 py-2">
           {/* Badge kits selecionados */}
           {selected.length > 0 && (
             <div className="flex items-center gap-2">

@@ -556,7 +556,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
       {/* ── Edit Modal ── */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle className="text-base">Editar valor total</DialogTitle>
           </DialogHeader>

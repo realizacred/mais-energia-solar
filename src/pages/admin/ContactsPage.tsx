@@ -284,7 +284,7 @@ export function RecallDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[90vw] max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-success" />
@@ -423,7 +423,7 @@ function ContactEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-sm" onPointerDownOutside={(e) => e.stopPropagation()}>
+      <DialogContent className="w-[90vw] max-w-sm" onPointerDownOutside={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="h-4 w-4 text-muted-foreground" />

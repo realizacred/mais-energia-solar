@@ -56,7 +56,7 @@ export function WaTransferDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!isTransferring) onOpenChange(v); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[90vw] max-w-md">
         <DialogHeader>
           <DialogTitle>Transferir Conversa</DialogTitle>
         </DialogHeader>
@@ -106,7 +106,7 @@ export function WaAssignDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="w-[90vw] max-w-sm">
         <DialogHeader>
           <DialogTitle>Atribuir Conversa</DialogTitle>
         </DialogHeader>
@@ -270,7 +270,7 @@ export function WaLinkLeadDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="w-[90vw] max-w-sm">
         <DialogHeader>
           <DialogTitle>Vincular Lead</DialogTitle>
         </DialogHeader>

@@ -562,7 +562,7 @@ export function StepPagamento({
 
       {/* ═══ Modal: Novo Financiamento ═══ */}
       <Dialog open={showNovoFinanciamento} onOpenChange={setShowNovoFinanciamento}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="w-[90vw] max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-base font-bold">Novo financiamento</DialogTitle>
           </DialogHeader>
@@ -754,7 +754,7 @@ function GastosModal({ open, onClose, gastosData }: {
 }) {
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="w-[90vw] max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-base font-bold">Detalhes dos gastos</DialogTitle>
         </DialogHeader>
@@ -824,7 +824,7 @@ function FluxoCaixaModal({ open, onClose, paybackInfo }: {
 }) {
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="w-[90vw] max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-base font-bold">Detalhes do Fluxo de Caixa</DialogTitle>
         </DialogHeader>
@@ -871,7 +871,7 @@ function VariaveisModal({ open, onClose }: { open: boolean; onClose: () => void 
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[80vh]">
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="text-base font-bold">Variáveis</DialogTitle>
         </DialogHeader>

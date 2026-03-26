@@ -706,7 +706,7 @@ export function StepLocalizacao({
 
                 {/* Dialog Distância Manual */}
                 <Dialog open={distDialogOpen} onOpenChange={setDistDialogOpen}>
-                  <DialogContent className="max-w-xs">
+                  <DialogContent className="w-[90vw] max-w-xs">
                     <DialogHeader>
                       <DialogTitle className="text-sm flex items-center gap-2">
                         <Navigation className="h-4 w-4 text-primary" />
@@ -800,7 +800,7 @@ export function StepLocalizacao({
 
         {/* Snapshot preview dialog */}
         <Dialog open={snapshotPreviewIdx !== null} onOpenChange={() => setSnapshotPreviewIdx(null)}>
-          <DialogContent className="max-w-3xl p-2">
+          <DialogContent className="w-[90vw] max-w-3xl p-2">
             {snapshotPreviewIdx !== null && mapSnapshots[snapshotPreviewIdx] && (
               <div className="space-y-2">
                 <img
@@ -890,7 +890,7 @@ function IrradiacaoMensalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[90vw] max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold">
             Irradiação solar diária média mensal no plano horizontal (kWh/m².dia)

@@ -454,7 +454,7 @@ export function TemplatesManager() {
 
       {/* Dialog Form */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) cancelEdit(); }}>
-        <DialogContent className="max-w-[620px] p-6 gap-5">
+        <DialogContent className="w-[90vw] max-w-[620px] p-6 gap-5">
           <DialogHeader>
             <DialogTitle className="text-base font-bold">
               {editingId === "new" ? "Novo template" : "Editar template"}

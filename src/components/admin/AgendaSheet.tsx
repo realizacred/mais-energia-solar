@@ -54,7 +54,7 @@ export function AgendaSheet() {
           <p className="text-xs text-muted-foreground capitalize">{formattedDate}</p>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-2">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-4 py-2">
           <div className="relative">
             {/* Current time marker — real-time */}
             {isViewingToday && currentHour >= 8 && currentHour <= 20 && (

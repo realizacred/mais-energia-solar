@@ -234,7 +234,7 @@ export function GenerateFileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[480px]">
+      <DialogContent className="w-[90vw] max-w-[480px]">
         <DialogHeader>
           <DialogTitle className="text-base font-bold flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
