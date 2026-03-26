@@ -150,12 +150,13 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
 }
 
 // ═══════════════════════════════════════════════════════
-// Payment Item Card
+// Sortable Wrapper
 // ═══════════════════════════════════════════════════════
 
-interface PaymentItemCardProps {
+interface SortablePaymentItemProps {
   item: PaymentItemInput;
   index: number;
+  isFirst: boolean;
   expanded: boolean;
   onToggle: () => void;
   onUpdate: (patch: Partial<PaymentItemInput>) => void;
@@ -164,7 +165,59 @@ interface PaymentItemCardProps {
   configMap: Map<FormaPagamento, PaymentInterestConfig>;
 }
 
-function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, readOnly, configMap }: PaymentItemCardProps) {
+function SortablePaymentItem({ item, index, isFirst, expanded, onToggle, onUpdate, onRemove, readOnly, configMap }: SortablePaymentItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.85 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <PaymentItemCard
+        item={item}
+        index={index}
+        isFirst={isFirst}
+        expanded={expanded}
+        onToggle={onToggle}
+        onUpdate={onUpdate}
+        onRemove={onRemove}
+        readOnly={readOnly}
+        configMap={configMap}
+        dragListeners={listeners}
+      />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// Payment Item Card
+// ═══════════════════════════════════════════════════════
+
+interface PaymentItemCardProps {
+  item: PaymentItemInput;
+  index: number;
+  isFirst: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  onUpdate: (patch: Partial<PaymentItemInput>) => void;
+  onRemove: () => void;
+  readOnly: boolean;
+  configMap: Map<FormaPagamento, PaymentInterestConfig>;
+  dragListeners?: Record<string, any>;
+}
+
+function PaymentItemCard({ item, index, isFirst, expanded, onToggle, onUpdate, onRemove, readOnly, configMap, dragListeners }: PaymentItemCardProps) {
   const computed = useMemo(() => computeItem(item), [item]);
   const isParcelavel = FORMAS_PARCELAVEIS.includes(item.forma_pagamento);
   const hasJuros = FORMAS_COM_JUROS.includes(item.forma_pagamento);
