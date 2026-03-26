@@ -119,9 +119,14 @@ export function InversoresManager() {
         fabricante: form.fabricante.trim(),
         modelo: form.modelo.trim(),
         potencia_nominal_kw: parseFloat(form.potencia_nominal_kw),
+        potencia_maxima_kw: form.potencia_maxima_kw ? parseFloat(form.potencia_maxima_kw) : null,
         tipo: form.tipo,
         tensao_entrada_max_v: form.tensao_entrada_max_v ? parseInt(form.tensao_entrada_max_v) : null,
         corrente_entrada_max_a: form.corrente_entrada_max_a ? parseFloat(form.corrente_entrada_max_a) : null,
+        tensao_mppt_min_v: form.tensao_mppt_min_v ? parseInt(form.tensao_mppt_min_v) : null,
+        tensao_mppt_max_v: form.tensao_mppt_max_v ? parseInt(form.tensao_mppt_max_v) : null,
+        corrente_saida_a: form.corrente_saida_a ? parseFloat(form.corrente_saida_a) : null,
+        fator_potencia: form.fator_potencia ? parseFloat(form.fator_potencia) : null,
         mppt_count: form.mppt_count ? parseInt(form.mppt_count) : null,
         strings_por_mppt: form.strings_por_mppt ? parseInt(form.strings_por_mppt) : null,
         fases: form.fases,
@@ -132,6 +137,8 @@ export function InversoresManager() {
         dimensoes_mm: form.dimensoes_mm || null,
         wifi_integrado: form.wifi_integrado,
         ip_protection: form.ip_protection || null,
+        datasheet_url: form.datasheet_url || null,
+        status: form.status,
       },
     }, {
       onSuccess: () => {
@@ -153,9 +160,14 @@ export function InversoresManager() {
         title="Inversores"
         description={`${inversores.length} inversores cadastrados (${fabricantes.length} fabricantes)`}
         actions={
-          <Button onClick={() => openDialog()} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo Inversor
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setDistImportOpen(true)} className="gap-2">
+              <FileSpreadsheet className="w-4 h-4" /> CSV Distribuidora
+            </Button>
+            <Button onClick={() => openDialog()} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo Inversor
+            </Button>
+          </div>
         }
       />
 
