@@ -140,14 +140,14 @@ const INVERSOR_RANGES: Record<string, Range> = {
 };
 
 const OTIMIZADOR_RANGES: Record<string, Range> = {
-  potencia_wp: { min: 100, max: 3000 },
+  potencia_wp: { min: 50, max: 500 },
   tensao_entrada_max_v: { min: 20, max: 120 },
-  corrente_entrada_max_a: { min: 5, max: 30 },
+  corrente_entrada_max_a: { min: 1, max: 30 },
   tensao_saida_v: { min: 20, max: 120 },
-  corrente_saida_max_a: { min: 5, max: 30 },
-  eficiencia_percent: { min: 95, max: 99.9 },
+  corrente_saida_max_a: { min: 1, max: 30 },
+  eficiencia_percent: { min: 90, max: 99.9 },
   peso_kg: { min: 0.5, max: 10 },
-  garantia_anos: { min: 10, max: 30 },
+  garantia_anos: { min: 5, max: 30 },
 };
 
 const RANGES_MAP: Record<EquipmentType, Record<string, Range>> = {
@@ -202,7 +202,7 @@ serve(async (req) => {
     }
 
     if (!TABLE_MAP[equipment_type]) {
-      throw new Error("equipment_type inválido. Use: modulo, inversor, otimizador");
+      throw new Error(`equipment_type '${equipment_type}' não suportado. Tipos válidos: modulo, inversor, otimizador. Bateria ainda não é suportada para enriquecimento automático.`);
     }
 
     const supabase = createClient(
