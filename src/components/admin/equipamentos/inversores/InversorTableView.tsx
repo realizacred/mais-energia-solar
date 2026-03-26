@@ -220,7 +220,7 @@ export function InversorTableView({ inversores, onEdit, onDelete, onToggle }: Pr
               const statusColor = inv.status === "publicado" ? "bg-success/10 text-success border-success/20" : inv.status === "revisao" ? "bg-info/10 text-info border-info/20" : "bg-warning/10 text-warning border-warning/20";
               const statusLabel = inv.status === "publicado" ? "Publicado" : inv.status === "revisao" ? "Revisão" : "Rascunho";
               return (
-                <TableRow key={inv.id} className={selectedIds.has(inv.id) ? "bg-primary/5" : ""}>
+                <TableRow key={inv.id} className={`${selectedIds.has(inv.id) ? "bg-primary/5" : ""} ${!inv.ativo ? "opacity-50" : ""}`}>
                   <TableCell><Checkbox checked={selectedIds.has(inv.id)} onCheckedChange={() => toggleOne(inv.id)} /></TableCell>
                   <TableCell className="font-medium">{inv.fabricante}</TableCell>
                   <TableCell className="max-w-[200px] truncate">{inv.modelo}</TableCell>

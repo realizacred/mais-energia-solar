@@ -212,7 +212,7 @@ export function OtimizadorTableView({ otimizadores, onEdit, onDelete, onToggle }
               const statusColor = ot.status === "publicado" ? "bg-success/10 text-success border-success/20" : ot.status === "revisao" ? "bg-info/10 text-info border-info/20" : "bg-warning/10 text-warning border-warning/20";
               const statusLabel = ot.status === "publicado" ? "Publicado" : ot.status === "revisao" ? "Revisão" : "Rascunho";
               return (
-                <TableRow key={ot.id} className={selectedIds.has(ot.id) ? "bg-primary/5" : ""}>
+                <TableRow key={ot.id} className={`${selectedIds.has(ot.id) ? "bg-primary/5" : ""} ${!ot.ativo ? "opacity-50" : ""}`}>
                   <TableCell><Checkbox checked={selectedIds.has(ot.id)} onCheckedChange={() => toggleOne(ot.id)} /></TableCell>
                   <TableCell className="font-medium">{ot.fabricante}</TableCell>
                   <TableCell className="max-w-[200px] truncate">{ot.modelo}</TableCell>

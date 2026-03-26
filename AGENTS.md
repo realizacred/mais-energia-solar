@@ -1328,6 +1328,12 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 - A query de `config_tributaria_estado` e `concessionarias` permanece sob demanda (loadTributaria)
   pois depende de parâmetros dinâmicos (estado, concessionariaId) — isso é intencional
 
+### Itens inativos — feedback visual obrigatório
+- Cards e linhas de tabela com ativo=false DEVEM ter opacity-50 + grayscale (cards) ou opacity-50 (tabelas)
+- Nunca renderizar item inativo com aparência idêntica ao ativo
+- Badge "Inativo" deve estar sempre visível no card (não depender do toggle)
+- Regra se aplica a: ModuloCard, InversorCard (inline), OtimizadorCard (inline) e todos os TableViews
+
 ### Build — verificação obrigatória
 - Após qualquer alteração em componentes React, verificar se não há funções sem declaração
 - Nunca fechar um bloco de função prematuramente
