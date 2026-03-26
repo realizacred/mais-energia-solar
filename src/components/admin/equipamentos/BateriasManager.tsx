@@ -259,6 +259,9 @@ export function BateriasManager() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewItem(b)}>
+                      <Eye className="w-4 h-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(b)}>
                       <Pencil className="w-4 h-4" />
                     </Button>
