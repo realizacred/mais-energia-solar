@@ -127,7 +127,7 @@ export function CustomFieldsSettings() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const FIELD_COLS = "id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active" as const;
+      const FIELD_COLS = "id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active, visible_pipeline_ids, important_stage_ids, required_stage_ids" as const;
       const ACTIVITY_COLS = "id, title, ordem, visible_on_funnel, is_active, icon, pipeline_ids" as const;
       const [fieldsRes, actTypesRes] = await Promise.all([
         supabase.from("deal_custom_fields").select(FIELD_COLS).order("ordem"),
@@ -148,7 +148,12 @@ export function CustomFieldsSettings() {
     show_on_create: false, required_on_create: false,
     visible_on_funnel: false, important_on_funnel: false,
     required_on_funnel: false, required_on_proposal: false,
+    visibilityMode: "all" as "all" | "some",
+    visible_pipeline_ids: [] as string[],
+    important_stage_ids: [] as string[],
+    required_stage_ids: [] as string[],
   });
+  const [stages, setStages] = useState<StageInfo[]>([]);
   const [fieldWizardStep, setFieldWizardStep] = useState<"type" | "config">("type");
   const [optionsText, setOptionsText] = useState("");
 
