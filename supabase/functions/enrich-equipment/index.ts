@@ -41,7 +41,6 @@ function buildPrompt(type: EquipmentType, fabricante: string, modelo: string): {
   "largura_mm": number,
   "profundidade_mm": number,
   "peso_kg": number,
-  "area_m2": number,
   "tipo_celula": string,
   "bifacial": boolean,
   "tensao_sistema": string,
@@ -110,12 +109,18 @@ const MODULO_RANGES: Record<string, Range> = {
   largura_mm: { min: 500, max: 2000 },
   profundidade_mm: { min: 20, max: 60 },
   peso_kg: { min: 5, max: 50 },
-  area_m2: { min: 0.5, max: 6 },
   garantia_produto_anos: { min: 5, max: 30 },
   garantia_performance_anos: { min: 20, max: 40 },
   temp_coeff_pmax: { min: -0.6, max: -0.2 },
   temp_coeff_voc: { min: -0.5, max: -0.1 },
   temp_coeff_isc: { min: 0.01, max: 0.15 },
+};
+
+// Colunas geradas (GENERATED ALWAYS) — nunca incluir no UPDATE
+const GENERATED_COLUMNS: Record<EquipmentType, string[]> = {
+  modulo: ["area_m2"],
+  inversor: [],
+  otimizador: [],
 };
 
 const INVERSOR_RANGES: Record<string, Range> = {
@@ -261,13 +266,18 @@ serve(async (req) => {
       throw new Error("IA não retornou JSON válido");
     }
 
+    console.log(`[enrich-equipment] RAW da IA:`, JSON.stringify(parsed));
+
     // 6. Validate
     const validated = validateSpecs(parsed, equipment_type);
+
+    console.log(`[enrich-equipment] VALIDADO:`, JSON.stringify(validated));
 
     // 7. Count filled fields
     const fieldsFilled = Object.values(validated).filter(v => v !== null && v !== undefined).length;
 
-    // 8. Remove null fields to avoid overwriting existing data (unless force_refresh)
+    // 8. Remove null fields and generated columns
+    const generatedCols = GENERATED_COLUMNS[equipment_type] || [];
     const updatePayload: Record<string, unknown> = {
       datasheet_found_at: new Date().toISOString(),
       status: "revisao",
@@ -275,10 +285,10 @@ serve(async (req) => {
     };
 
     for (const [key, value] of Object.entries(validated)) {
+      if (generatedCols.includes(key)) continue; // skip generated columns
       if (value !== null && value !== undefined) {
         updatePayload[key] = value;
       } else if (force_refresh) {
-        // Only null out fields on force refresh
         updatePayload[key] = null;
       }
     }
