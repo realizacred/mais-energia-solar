@@ -238,6 +238,8 @@ export function normalizeProposalSnapshot(
 
   // Cliente — suporta camelCase e objeto aninhado
   const cliente = s.cliente || {};
+  // selectedLead — fallback from wizard snapshot (lead data saved alongside)
+  const lead = s.selectedLead || {};
 
   // Itens
   const rawItens = arr(s.itens);
