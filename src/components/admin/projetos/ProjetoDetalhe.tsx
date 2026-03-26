@@ -1261,19 +1261,21 @@ function GerenciamentoTab({
           </Card>
 
           {/* Card: Histórico / Timeline */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                </div>
                 Histórico
               </CardTitle>
-              <Button variant="ghost" size="sm" className="gap-1 text-xs h-7" onClick={() => setNoteDialogOpen(true)}>
+              <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => setNoteDialogOpen(true)}>
                 <Plus className="h-3 w-3" /> Nova nota
               </Button>
             </CardHeader>
             <CardContent className="p-4 pt-0">
               {/* Filter pills */}
-              <div className="flex items-center gap-1 mb-4">
+              <div className="flex items-center gap-1.5 mb-4 flex-wrap">
                 {TIMELINE_FILTERS.map(f => {
                   const isActive = timelineFilter === f.id;
                   const count = f.id === "todos" ? null :
@@ -1284,33 +1286,38 @@ function GerenciamentoTab({
                     f.id === "proposta" ? allEntries.filter(e => e.type === "proposta").length :
                     0;
                   return (
-                    <button
+                    <Button
                       key={f.id}
+                      variant={isActive ? "default" : "outline"}
+                      size="sm"
                       onClick={() => setTimelineFilter(f.id)}
                       className={cn(
-                        "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
-                        isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                        "h-7 text-xs gap-1 rounded-full px-3",
+                        !isActive && "border-border bg-card hover:bg-muted"
                       )}
                     >
                       {f.label}
                       {count !== null && count > 0 && (
-                        <span className={cn("text-[10px]", isActive ? "opacity-80" : "")}>{count}</span>
+                        <Badge variant="secondary" className={cn(
+                          "text-[9px] h-4 px-1 min-w-[16px] justify-center",
+                          isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                        )}>
+                          {count}
+                        </Badge>
                       )}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
 
               {/* Timeline */}
               {filteredEntries.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground border border-dashed border-border rounded-lg bg-muted/10">
                   <p className="text-sm">Nenhuma atividade nesta categoria</p>
                 </div>
               ) : (
                 <div className="relative">
-                  <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-border rounded-full" />
+                  <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-primary/30 via-border to-border rounded-full" />
                   <div className="space-y-3">
                     {filteredEntries.map(entry => (
                       <TimelineEntry
