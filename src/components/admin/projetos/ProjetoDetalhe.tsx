@@ -1867,18 +1867,17 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
     const lv = prop.versoes?.[0];
     if (!lv?.gerado_em) return false;
     // Only consider outdated if deal was updated AFTER proposal was generated
-    // AND snapshot-relevant fields differ (potencia/valor changed)
     const dealTime = new Date(dealSnapshotMeta.updated_at).getTime();
     const propTime = new Date(lv.gerado_em).getTime();
     if (dealTime <= propTime) return false;
-    // Check if snapshot-critical fields differ from deal
-    const snap = lv.snapshot || {};
-    const snapPotencia = Number(snap.potenciaKwp ?? snap.potencia_kwp ?? 0);
-    const snapValor = Number(snap.precoTotal ?? snap.preco_total ?? snap.valor_total ?? 0);
+    // Compare versao direct fields (potencia_kwp, valor_total) against deal
+    const versaoPotencia = Number(lv.potencia_kwp ?? 0);
+    const versaoValor = Number(lv.valor_total ?? 0);
     const dealPotencia = Number(dealSnapshotMeta.kwp ?? 0);
     const dealValor = Number(dealSnapshotMeta.value ?? 0);
     // Only mark as outdated if critical data actually changed
-    return Math.abs(snapPotencia - dealPotencia) > 0.01 || Math.abs(snapValor - dealValor) > 1;
+    if (dealPotencia === 0 && dealValor === 0) return false;
+    return Math.abs(versaoPotencia - dealPotencia) > 0.01 || Math.abs(versaoValor - dealValor) > 1;
   };
 
   // isPrincipalOutdated removed — staleness badge now shows inside each card individually
