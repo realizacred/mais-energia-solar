@@ -21,6 +21,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { BateriaViewModal } from "./baterias/BateriaViewModal";
 
 interface Bateria {
   id: string;
