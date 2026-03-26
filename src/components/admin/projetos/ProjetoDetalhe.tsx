@@ -1065,14 +1065,34 @@ function GerenciamentoTab({
     return allEntries;
   }, [allEntries, timelineFilter]);
 
+  const ENTRY_ICON_CONFIG: Record<string, { icon: React.ElementType; colorClass: string }> = {
+    funil: { icon: Zap, colorClass: "text-primary" },
+    nota: { icon: StickyNote, colorClass: "text-warning" },
+    documento: { icon: FolderOpen, colorClass: "text-info" },
+    atividade: { icon: Activity, colorClass: "text-success" },
+    projeto: { icon: Settings, colorClass: "text-secondary" },
+    proposta: { icon: FileText, colorClass: "text-primary" },
+    criacao: { icon: CalendarDays, colorClass: "text-success" },
+  };
+
   const getEntryIcon = (entry: UnifiedTimelineItem) => {
-    if (entry.type === "funil") return <Zap className="h-3 w-3 text-primary" />;
-    if (entry.type === "nota") return <StickyNote className="h-3 w-3 text-warning" />;
-    if (entry.type === "documento") return <FolderOpen className="h-3 w-3 text-info" />;
-    if (entry.type === "atividade") return <Activity className="h-3 w-3 text-success" />;
-    if (entry.type === "projeto") return <Settings className="h-3 w-3 text-secondary" />;
-    if (entry.type === "proposta") return <FileText className="h-3 w-3 text-primary" />;
-    return <CalendarDays className="h-3 w-3 text-secondary" />;
+    const cfg = ENTRY_ICON_CONFIG[entry.type] || ENTRY_ICON_CONFIG.criacao;
+    const Icon = cfg.icon;
+    return <Icon className={cn("h-3 w-3", cfg.colorClass)} />;
+  };
+
+  const getEntryBubbleClass = (entry: UnifiedTimelineItem) => {
+    if (entry.isCurrent) return "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/30";
+    if (entry.isFirst) return "bg-success/15 border-success/40 text-success";
+    const bgMap: Record<string, string> = {
+      funil: "bg-primary/10 border-primary/30 text-primary",
+      nota: "bg-warning/10 border-warning/30 text-warning",
+      documento: "bg-info/10 border-info/30 text-info",
+      atividade: "bg-success/10 border-success/30 text-success",
+      projeto: "bg-secondary/10 border-secondary/30 text-secondary",
+      proposta: "bg-primary/10 border-primary/30 text-primary",
+    };
+    return bgMap[entry.type] || "bg-card border-border text-muted-foreground";
   };
 
 
@@ -2000,18 +2020,14 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
 
 
 // ═══════════════════════════════════════════════════
-function TimelineEntry({ icon, title, subtitle, date, isCurrent, isFirst }: {
-  icon: React.ReactNode; title: string; subtitle?: string; date: string; isCurrent?: boolean; isFirst?: boolean;
+function TimelineEntry({ icon, title, subtitle, date, isCurrent, isFirst, bubbleClass }: {
+  icon: React.ReactNode; title: string; subtitle?: string; date: string; isCurrent?: boolean; isFirst?: boolean; bubbleClass?: string;
 }) {
   return (
-    <div className={cn(
-      "relative flex gap-3 pl-0 group",
-    )}>
+    <div className="relative flex gap-3 pl-0 group">
       <div className={cn(
-        "relative z-10 flex items-center justify-center w-6 h-6 rounded-full shrink-0 border-2 transition-transform group-hover:scale-110",
-        isCurrent ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/30"
-          : isFirst ? "bg-warning border-warning text-warning-foreground shadow-sm shadow-warning/20"
-          : "bg-card border-border text-muted-foreground"
+        "relative z-10 flex items-center justify-center w-7 h-7 rounded-full shrink-0 border-[1.5px] transition-all duration-200 group-hover:scale-110 group-hover:shadow-md",
+        bubbleClass || "bg-card border-border text-muted-foreground"
       )}>
         {icon}
       </div>
