@@ -972,10 +972,9 @@ function GerenciamentoTab({
         <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           {/* Card: Dados do Cliente */}
           <Card>
-            <CardHeader className="pb-0 flex flex-row items-center justify-between space-y-0 px-3 pt-3">
-              <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-secondary" />
-                Dados do Cliente
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 px-4 pt-3">
+              <CardTitle className="text-sm font-bold text-foreground">
+                Dados do cliente
               </CardTitle>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1007,7 +1006,7 @@ function GerenciamentoTab({
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
-            <CardContent className="px-3 pb-3 pt-0">
+            <CardContent className="px-4 pb-3 pt-0">
               <div className="space-y-1.5">
                 <ClientRow icon={User} label={customerName || "—"} />
                 <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} onEdit={!customerEmpresa ? () => openInlineEdit("empresa", "Nome da Empresa", customerEmpresa) : undefined} />
@@ -1402,8 +1401,9 @@ function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionI
       <Icon className={cn("h-3.5 w-3.5 shrink-0", iconColor)} />
       <span className={cn(
         "text-sm leading-snug flex-1 min-w-0 truncate",
+        isLink ? "text-primary underline underline-offset-2 text-xs cursor-pointer" : "",
         muted && !isLink ? "text-muted-foreground" : "",
-        isLink ? "text-muted-foreground/70 text-xs" : "font-medium text-foreground",
+        !muted && !isLink ? "font-medium text-foreground" : "",
       )}>
         {label}
       </span>
