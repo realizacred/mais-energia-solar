@@ -12,6 +12,7 @@
  */
 
 import { formatBRL, formatNumberBR } from "@/lib/formatters";
+import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
 import type { BlockConfig } from "@/hooks/useProposalMessageConfig";
 
 // ─── Types ──────────────────────────────────────────
@@ -278,7 +279,7 @@ function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
             parts.push(`${op.parcelas}x de ${formatBRL(op.valor_parcela)}`);
           }
           if (op.taxa_mensal && op.taxa_mensal > 0) {
-            parts.push(`Taxa: ${(op.taxa_mensal * 100).toFixed(2).replace('.', ',')}% a.m.`);
+            parts.push(`Taxa: ${formatTaxaMensal(op.taxa_mensal)} a.m.`);
           }
           if (op.carencia_meses && op.carencia_meses > 0) {
             parts.push(`Carência: ${op.carencia_meses} meses`);
