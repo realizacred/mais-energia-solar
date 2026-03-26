@@ -54,7 +54,7 @@ export function EditarKitFechadoModal({ open, onOpenChange, kits, onSave }: Edit
           <DialogTitle className="text-base">Editar kit fechado</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-4 py-2">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 py-2">
           {/* Badge kits selecionados */}
           {selected.length > 0 && (
             <div className="flex items-center gap-2">

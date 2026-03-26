@@ -108,7 +108,7 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-4 py-2">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 py-2">
           {arranjos.map((arranjo) => (
             <div key={arranjo.id} className="rounded-xl border-2 border-border/40 bg-card p-4 space-y-4">
               <div className="flex items-center justify-between">

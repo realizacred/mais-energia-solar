@@ -58,7 +58,7 @@ export function ProjetoEtapaManagerDialog({
             </p>
           </div>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto p-5 space-y-6 max-h-[70vh]">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-6 max-h-[70vh]">
           <ProjetoEtapaManager
             funilId={pipeline.id}
             funilNome={pipeline.name}
