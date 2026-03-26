@@ -43,6 +43,7 @@ interface CustomField {
   visible_pipeline_ids: string[];
   important_stage_ids: string[];
   required_stage_ids: string[];
+  icon: string | null;
 }
 
 interface StageInfo {
@@ -137,7 +138,7 @@ export function CustomFieldsSettings() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const FIELD_COLS = "id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active, visible_pipeline_ids, important_stage_ids, required_stage_ids" as const;
+      const FIELD_COLS = "id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active, visible_pipeline_ids, important_stage_ids, required_stage_ids, icon" as const;
       const ACTIVITY_COLS = "id, title, ordem, visible_on_funnel, is_active, icon, pipeline_ids" as const;
       const [fieldsRes, actTypesRes] = await Promise.all([
         supabase.from("deal_custom_fields").select(FIELD_COLS).order("ordem"),
@@ -162,6 +163,7 @@ export function CustomFieldsSettings() {
     visible_pipeline_ids: [] as string[],
     important_stage_ids: [] as string[],
     required_stage_ids: [] as string[],
+    icon: "" as string,
   });
   const [stages, setStages] = useState<StageInfo[]>([]);
   const [fieldWizardStep, setFieldWizardStep] = useState<"type" | "config">("type");
@@ -188,6 +190,7 @@ export function CustomFieldsSettings() {
         visible_pipeline_ids: vpids,
         important_stage_ids: field.important_stage_ids || [],
         required_stage_ids: field.required_stage_ids || [],
+        icon: field.icon || "",
       });
       const opts = field.options;
       if (opts && Array.isArray(opts)) {
@@ -207,6 +210,7 @@ export function CustomFieldsSettings() {
         visible_pipeline_ids: [],
         important_stage_ids: [],
         required_stage_ids: [],
+        icon: "",
       });
       setOptionsText("");
       setFieldWizardStep("type");
