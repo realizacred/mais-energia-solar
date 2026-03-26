@@ -713,9 +713,22 @@ export function StepDocumento({
             </Select>
           </div>
 
-          <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-xs text-primary hover:underline p-0 h-auto">
-            <Upload className="h-3.5 w-3.5" />
-            Fazer upload de arquivo doc
+          <input
+            ref={docxUploadRef}
+            type="file"
+            accept=".docx"
+            className="hidden"
+            onChange={handleDocxUpload}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline p-0 h-auto"
+            onClick={() => docxUploadRef.current?.click()}
+            disabled={uploadingDocx}
+          >
+            {uploadingDocx ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+            {uploadingDocx ? "Enviando..." : "Fazer upload de arquivo doc"}
           </Button>
 
           <Separator />
