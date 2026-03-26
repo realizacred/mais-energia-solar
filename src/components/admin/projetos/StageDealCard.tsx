@@ -70,6 +70,21 @@ function getInitials(name: string) {
     .join("");
 }
 
+const AVATAR_COLORS = [
+  "bg-primary/20 text-primary",
+  "bg-success/20 text-success",
+  "bg-info/20 text-info",
+  "bg-warning/20 text-warning",
+  "bg-secondary/20 text-secondary",
+  "bg-destructive/20 text-destructive",
+];
+
+function getAvatarColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
 export interface StageDealCardProps {
   deal: DealKanbanCard;
   isDragging: boolean;
@@ -357,8 +372,8 @@ export function StageDealCard({
               </span>
             )}
             <div className="w-px h-3 bg-border/40" />
-            <Avatar className="h-4 w-4 border border-border/40">
-              <AvatarFallback className="text-[7px] font-bold bg-muted text-muted-foreground">
+            <Avatar className="h-5 w-5 border border-border/40">
+              <AvatarFallback className={cn("text-[7px] font-bold", getAvatarColor(deal.owner_name))}>
                 {getInitials(deal.owner_name)}
               </AvatarFallback>
             </Avatar>
