@@ -642,36 +642,3 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   );
 }
 
-
-
-
-  if (!estado || cidades.length === 0) {
-    return (
-      <div className="space-y-2">
-        <Label htmlFor="cidade">Cidade</Label>
-        <Input
-          id="cidade"
-          value={cidade}
-          onChange={(e) => onCidadeChange(e.target.value)}
-          placeholder={isLoading ? "Carregando..." : "Digite a cidade"}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor="cidade">Cidade</Label>
-      <Select value={cidade} onValueChange={onCidadeChange}>
-        <SelectTrigger>
-          <SelectValue placeholder="Selecione a cidade" />
-        </SelectTrigger>
-        <SelectContent>
-          {cidades.map((c) => (
-            <SelectItem key={c} value={c}>{c}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
