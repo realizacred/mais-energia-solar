@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { formatProjetoLabel } from "@/lib/format-entity-labels";
 import { Badge } from "@/components/ui/badge";
 import { User, Zap, ChevronRight, Phone } from "lucide-react";
 import type { ProjetoItem, ProjetoEtapa } from "@/hooks/useProjetoPipeline";
 import { cn } from "@/lib/utils";
+import { TablePagination } from "@/components/ui-kit/TablePagination";
 
 interface Props {
   projetos: ProjetoItem[];
@@ -11,11 +13,11 @@ interface Props {
   onViewProjeto?: (projeto: ProjetoItem) => void;
 }
 
-// formatBRL imported at file top from @/lib/formatters
-
 // Etiqueta config now centralized in @/lib/etiquetas
 
 export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const etapaMap = new Map(etapas.map(e => [e.id, e]));
   const sortedEtapas = [...etapas].sort((a, b) => a.ordem - b.ordem);
 
@@ -28,14 +30,17 @@ export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
     );
   }
 
-  // Group by etapa
+  // Paginate projetos
+  const paginatedProjetos = projetos.slice((page - 1) * pageSize, page * pageSize);
+
+  // Group by etapa (paginated)
   const grouped = sortedEtapas.map(etapa => {
-    const items = projetos.filter(p => p.etapa_id === etapa.id);
+    const items = paginatedProjetos.filter(p => p.etapa_id === etapa.id);
     return { etapa, items };
   }).filter(g => g.items.length > 0);
 
   // Ungrouped (no etapa match)
-  const ungrouped = projetos.filter(p => !p.etapa_id || !etapaMap.has(p.etapa_id));
+  const ungrouped = paginatedProjetos.filter(p => !p.etapa_id || !etapaMap.has(p.etapa_id));
 
   return (
     <div className="space-y-4">
@@ -83,6 +88,18 @@ export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Pagination */}
+      {projetos.length > pageSize && (
+        <TablePagination
+          totalItems={projetos.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+          pageSizeOptions={[10, 25, 100]}
+        />
       )}
     </div>
   );

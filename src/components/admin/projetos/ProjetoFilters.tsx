@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check } from "lucide-react";
+import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +57,16 @@ export function ProjetoFilters({
   onEditEtapas, onCreateFunil, onReorderFunis,
   allowAllFunis,
 }: Props) {
-  const hasActive = filterConsultor !== "todos" || filterStatus !== "todos" || filterEtiquetas.length > 0 || searchTerm.length > 0;
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filterConsultor !== "todos") count++;
+    if (filterStatus !== "todos") count++;
+    if (filterEtiquetas.length > 0) count++;
+    if (searchTerm.length > 0) count++;
+    return count;
+  }, [filterConsultor, filterStatus, filterEtiquetas, searchTerm]);
+
+  const hasActive = activeFilterCount > 0;
 
   const activeFunis = funis.filter(f => f.ativo);
 
@@ -73,11 +82,13 @@ export function ProjetoFilters({
     <div className="space-y-3">
       <div className="flex flex-col xl:flex-row xl:items-end gap-3 xl:gap-4 flex-wrap">
         {/* Left: Funil | Lista toggle */}
-        <div className="flex items-center gap-3 sm:gap-4 shrink-0 overflow-x-auto">
-          <button
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0 overflow-x-auto">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onViewModeChange("kanban-consultor")}
             className={cn(
-              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap",
+              "gap-1.5 text-sm font-semibold border-b-2 rounded-none px-2 h-9",
               viewMode === "kanban-consultor"
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -85,11 +96,13 @@ export function ProjetoFilters({
           >
             <Users className="h-4 w-4" />
             Consultores
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onViewModeChange("kanban-etapa")}
             className={cn(
-              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap",
+              "gap-1.5 text-sm font-semibold border-b-2 rounded-none px-2 h-9",
               viewMode === "kanban-etapa"
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -97,11 +110,13 @@ export function ProjetoFilters({
           >
             <Filter className="h-4 w-4" />
             Funil
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onViewModeChange("lista")}
             className={cn(
-              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap",
+              "gap-1.5 text-sm font-semibold border-b-2 rounded-none px-2 h-9",
               viewMode === "lista"
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -109,7 +124,13 @@ export function ProjetoFilters({
           >
             <List className="h-4 w-4" />
             Lista
-          </button>
+          </Button>
+          {activeFilterCount > 0 && (
+            <Badge variant="outline" className="text-[10px] h-5 ml-1 bg-primary/10 text-primary border-primary/20">
+              <SlidersHorizontal className="h-3 w-3 mr-1" />
+              {activeFilterCount}
+            </Badge>
+          )}
         </div>
 
         {/* Right: Filters with labels above */}
@@ -122,50 +143,58 @@ export function ProjetoFilters({
             </label>
             <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none rounded-lg border border-border/60 bg-muted/40 p-0.5">
               {allowAllFunis && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => onFilterFunilChange("todos")}
                   className={cn(
-                    "px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap shrink-0",
+                    "px-3 h-7 text-xs font-medium rounded-md whitespace-nowrap shrink-0",
                     filterFunil === "todos"
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                   )}
                 >
                   Todos
-                </button>
+                </Button>
               )}
               {activeFunis.map(f => (
                 <div key={f.id} className="flex items-center shrink-0">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onFilterFunilChange(f.id)}
                     className={cn(
-                      "px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap",
+                      "px-3 h-7 text-xs font-medium rounded-md whitespace-nowrap",
                       filterFunil === f.id
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                     )}
                   >
                     {f.nome}
-                  </button>
+                  </Button>
                   {onEditEtapas && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 -ml-0.5"
                       onClick={(e) => { e.stopPropagation(); onEditEtapas(f.id); }}
-                      className="p-0.5 rounded hover:bg-muted transition-colors -ml-0.5"
                       title={`Editar etapas de "${f.nome}"`}
                     >
-                      <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground transition-colors" />
-                    </button>
+                      <Pencil className="h-3 w-3 text-muted-foreground" />
+                    </Button>
                   )}
                 </div>
               ))}
               {onCreateFunil && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
                   onClick={onCreateFunil}
-                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors shrink-0"
                   title="Criar novo funil"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               )}
             </div>
           </div>
