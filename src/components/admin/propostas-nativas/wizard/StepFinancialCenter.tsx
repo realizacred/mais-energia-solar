@@ -59,6 +59,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [instalacaoCusto, setInstalacaoCusto] = useState(instalacaoServico?.valor || 0);
   const [comissaoCusto, setComissaoCusto] = useState(comissaoServico?.valor || 0);
   const [kitExpanded, setKitExpanded] = useState(false);
+  const [kitCustoOverride, setKitCustoOverride] = useState<number | null>(null);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
 
   // Load pricing defaults from config (SSOT for initial margin)
@@ -84,6 +85,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   // ── Calculations ──
 
   const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
+  const custoKitEfetivo = kitCustoOverride !== null ? kitCustoOverride : custoKit;
   const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${(Number(potenciaKwp) || 0).toFixed(2)} kWp` : "Kit fotovoltaico";
 
   // Build all cost rows
@@ -96,7 +98,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       categoria: "KIT",
       item: kitLabel,
       quantidade: 1,
-      custoUnitario: custoKit,
+      custoUnitario: custoKitEfetivo,
       fixo: true,
       checked: true,
     });
@@ -127,7 +129,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     custosExtras.forEach(c => rows.push(c));
 
     return rows;
-  }, [custoKit, kitLabel, instalacaoQtd, instalacaoCusto, instalacaoEnabled, comissaoQtd, comissaoCusto, comissaoEnabled, custosExtras]);
+  }, [custoKitEfetivo, kitLabel, instalacaoQtd, instalacaoCusto, instalacaoEnabled, comissaoQtd, comissaoCusto, comissaoEnabled, custosExtras]);
 
   const custoTotal = roundCurrency(allRows.filter(r => r.checked).reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
   const margemPercent = venda.margem_percentual;
@@ -363,9 +365,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
                   {/* Qtd */}
                   <div className="text-center" onClick={e => e.stopPropagation()}>
-                    {isKit ? (
-                      <span>{row.quantidade}</span>
-                    ) : isExtra ? (
+                    {isExtra ? (
                       <Input
                         type="number"
                         min={1}
@@ -384,7 +384,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                           if (row.id === "comissao") setComissaoQtd(val);
                         }}
                         className="h-7 text-xs w-14 mx-auto text-center"
-                        disabled={!row.checked}
+                        disabled={isKit || !row.checked}
                       />
                     )}
                   </div>
@@ -401,29 +401,22 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                   ) : (
                     <>
                       <div className="text-right" onClick={e => e.stopPropagation()}>
-                        {isKit ? (
-                          <CurrencyInput
-                            value={row.custoUnitario}
-                            onChange={() => {}}
-                            prefix=""
-                            className="h-7 text-xs w-24 ml-auto text-right pointer-events-none opacity-70"
-                          />
-                        ) : (
-                          <CurrencyInput
-                            value={row.custoUnitario}
-                            onChange={(val) => {
-                              if (isExtra) {
-                                updateExtra(row.id, "custoUnitario", val);
-                              } else if (row.id === "instalacao") {
-                                setInstalacaoCusto(val);
-                              } else if (row.id === "comissao") {
-                                setComissaoCusto(val);
-                              }
-                            }}
-                            prefix=""
-                            className="h-7 text-xs w-24 ml-auto text-right"
-                          />
-                        )}
+                        <CurrencyInput
+                          value={row.custoUnitario}
+                          onChange={(val) => {
+                            if (isKit) {
+                              setKitCustoOverride(val);
+                            } else if (isExtra) {
+                              updateExtra(row.id, "custoUnitario", val);
+                            } else if (row.id === "instalacao") {
+                              setInstalacaoCusto(val);
+                            } else if (row.id === "comissao") {
+                              setComissaoCusto(val);
+                            }
+                          }}
+                          prefix=""
+                          className="h-7 text-xs w-24 ml-auto text-right"
+                        />
                       </div>
                       <span className="text-right font-medium">
                         {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
