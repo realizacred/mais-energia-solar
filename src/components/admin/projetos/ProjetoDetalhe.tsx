@@ -1232,7 +1232,7 @@ function GerenciamentoTab({
                   </Badge>
                 )}
               </CardTitle>
-              <Button size="sm" className="h-7 text-xs gap-1" onClick={() => setActivityDialogOpen(true)}>
+              <Button size="sm" className="h-7 text-xs gap-1" onClick={() => { setEditingActivityId(null); setActivityDialogOpen(true); }}>
                 <Plus className="h-3 w-3" /> Nova atividade
               </Button>
             </CardHeader>
