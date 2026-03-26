@@ -572,6 +572,9 @@ function GerenciamentoTab({
   const [teamMembers, setTeamMembers] = useState<Array<{ user_id: string; nome: string }>>([]);
   const [savingNote, setSavingNote] = useState(false);
   const [savingActivity, setSavingActivity] = useState(false);
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [deleteActivityDialogOpen, setDeleteActivityDialogOpen] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
   const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; created_by_name?: string }>>([]);
   const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string; assigned_to?: string | null }>>([]);
 
@@ -785,29 +788,50 @@ function GerenciamentoTab({
       const userId = userData?.user?.id;
       if (!userId) throw new Error("Usuário não autenticado");
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).single();
-      const { data, error } = await supabase.from("deal_activities").insert({
-        deal_id: deal.id,
-        title: activityTitle.trim(),
-        description: activityDescription.trim() || null,
-        activity_type: activityType as any,
-        due_date: activityDueDate || null,
-        assigned_to: activityAssignedTo || null,
-        tenant_id: (profile as any)?.tenant_id,
-        created_by: userId,
-      } as any).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
-      if (error) throw error;
-      if (data) {
-        setActivities(prev => [data as any, ...prev]);
-        setActivityTitle("");
-        setActivityDescription("");
-        setActivityDueDate("");
-        setActivityType("task");
-        setActivityAssignedTo("");
-        setActivityNotifySystem(true);
-        setActivityNotifyWa(false);
-        setActivityDialogOpen(false);
-        toast({ title: "Atividade criada", description: "A atividade foi salva com sucesso." });
+
+      if (editingActivityId) {
+        // Update existing activity
+        const { data, error } = await supabase.from("deal_activities").update({
+          title: activityTitle.trim(),
+          description: activityDescription.trim() || null,
+          activity_type: activityType as any,
+          due_date: activityDueDate || null,
+          assigned_to: activityAssignedTo || null,
+        } as any).eq("id", editingActivityId).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
+        if (error) throw error;
+        if (data) {
+          setActivities(prev => prev.map(a => a.id === editingActivityId ? (data as any) : a));
+          toast({ title: "Atividade atualizada", description: "A atividade foi salva com sucesso." });
+        }
+      } else {
+        // Insert new activity
+        const { data, error } = await supabase.from("deal_activities").insert({
+          deal_id: deal.id,
+          title: activityTitle.trim(),
+          description: activityDescription.trim() || null,
+          activity_type: activityType as any,
+          due_date: activityDueDate || null,
+          assigned_to: activityAssignedTo || null,
+          tenant_id: (profile as any)?.tenant_id,
+          created_by: userId,
+        } as any).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
+        if (error) throw error;
+        if (data) {
+          setActivities(prev => [data as any, ...prev]);
+          toast({ title: "Atividade criada", description: "A atividade foi salva com sucesso." });
+        }
       }
+
+      // Reset form
+      setEditingActivityId(null);
+      setActivityTitle("");
+      setActivityDescription("");
+      setActivityDueDate("");
+      setActivityType("task");
+      setActivityAssignedTo("");
+      setActivityNotifySystem(true);
+      setActivityNotifyWa(false);
+      setActivityDialogOpen(false);
     } catch (err: any) {
       toast({ title: "Erro ao salvar atividade", description: err.message, variant: "destructive" });
     } finally { setSavingActivity(false); }
@@ -820,6 +844,33 @@ function GerenciamentoTab({
       await supabase.from("deal_activities").update({ status: newStatus }).eq("id", activityId);
       setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: newStatus } : a));
     } catch { /* ignore */ }
+  };
+
+  // Edit activity — populate dialog with existing data
+  const handleEditActivity = (activity: typeof activities[0]) => {
+    setEditingActivityId(activity.id);
+    setActivityTitle(activity.title);
+    setActivityDescription(activity.description || "");
+    setActivityDueDate(activity.due_date ? activity.due_date.slice(0, 16) : "");
+    setActivityType(activity.activity_type || "task");
+    setActivityAssignedTo(activity.assigned_to || "");
+    setActivityDialogOpen(true);
+  };
+
+  // Delete activity
+  const handleDeleteActivity = async () => {
+    if (!activityToDelete) return;
+    try {
+      const { error } = await supabase.from("deal_activities").delete().eq("id", activityToDelete);
+      if (error) throw error;
+      setActivities(prev => prev.filter(a => a.id !== activityToDelete));
+      toast({ title: "Atividade excluída", description: "A atividade foi removida com sucesso." });
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+    } finally {
+      setActivityToDelete(null);
+      setDeleteActivityDialogOpen(false);
+    }
   };
 
   // Load document activity for timeline
@@ -1181,7 +1232,7 @@ function GerenciamentoTab({
                   </Badge>
                 )}
               </CardTitle>
-              <Button size="sm" className="h-7 text-xs gap-1" onClick={() => setActivityDialogOpen(true)}>
+              <Button size="sm" className="h-7 text-xs gap-1" onClick={() => { setEditingActivityId(null); setActivityDialogOpen(true); }}>
                 <Plus className="h-3 w-3" /> Nova atividade
               </Button>
             </CardHeader>
@@ -1235,9 +1286,8 @@ function GerenciamentoTab({
                               {a.title}
                             </p>
                             {/* Action buttons */}
-                            {!isDone && (
                               <div className="flex items-center gap-1 shrink-0">
-                                {(isCallType || isWaType) && telLink && (
+                                {!isDone && (isCallType || isWaType) && telLink && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <a href={telLink} className="inline-flex">
@@ -1249,7 +1299,7 @@ function GerenciamentoTab({
                                     <TooltipContent>Ligar para {customerName || "cliente"}</TooltipContent>
                                   </Tooltip>
                                 )}
-                                {(isCallType || isWaType) && waLink && (
+                                {!isDone && (isCallType || isWaType) && waLink && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex">
@@ -1261,7 +1311,7 @@ function GerenciamentoTab({
                                     <TooltipContent>WhatsApp para {customerName || "cliente"}</TooltipContent>
                                   </Tooltip>
                                 )}
-                                {isEmailType && customerEmail && (
+                                {!isDone && isEmailType && customerEmail && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <a href={`mailto:${customerEmail}`} className="inline-flex">
@@ -1273,8 +1323,26 @@ function GerenciamentoTab({
                                     <TooltipContent>Enviar e-mail para {customerEmail}</TooltipContent>
                                   </Tooltip>
                                 )}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                                      <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleEditActivity(a)}>
+                                      <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => { setActivityToDelete(a.id); setDeleteActivityDialogOpen(true); }}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
-                            )}
                           </div>
                           {a.description && (
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.description}</p>
@@ -1306,6 +1374,12 @@ function GerenciamentoTab({
                               <span className="text-[10px] flex items-center gap-1 text-muted-foreground">
                                 <User className="h-3 w-3" />
                                 {assignedName}
+                              </span>
+                            )}
+                            {a.created_at && (
+                              <span className="text-[10px] flex items-center gap-1 text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                Criada: {formatDateTime(a.created_at)}
                               </span>
                             )}
                             {(isCallType || isWaType) && customerPhone && (
@@ -1428,12 +1502,24 @@ function GerenciamentoTab({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: Nova Atividade */}
-      <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
-        <DialogContent className="max-w-md">
+      {/* Dialog: Nova/Editar Atividade */}
+      <Dialog open={activityDialogOpen} onOpenChange={(open) => {
+        setActivityDialogOpen(open);
+        if (!open) {
+          setEditingActivityId(null);
+          setActivityTitle("");
+          setActivityDescription("");
+          setActivityDueDate("");
+          setActivityType("task");
+          setActivityAssignedTo("");
+        }
+      }}>
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
-            <DialogTitle>Nova Atividade</DialogTitle>
-            <DialogDescription>Crie uma tarefa ou atividade para este projeto.</DialogDescription>
+            <DialogTitle>{editingActivityId ? "Editar Atividade" : "Nova Atividade"}</DialogTitle>
+            <DialogDescription>
+              {editingActivityId ? "Altere os dados da atividade." : "Crie uma tarefa ou atividade para este projeto."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -1494,42 +1580,65 @@ function GerenciamentoTab({
                 className="resize-none"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-medium flex items-center gap-1.5">
-                <Bell className="h-3.5 w-3.5" /> Notificar via
-              </Label>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={activityNotifySystem}
-                    onChange={e => setActivityNotifySystem(e.target.checked)}
-                    className="rounded border-border h-4 w-4 accent-primary"
-                  />
-                  Sistema
-                </label>
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={activityNotifyWa}
-                    onChange={e => setActivityNotifyWa(e.target.checked)}
-                    className="rounded border-border h-4 w-4 accent-primary"
-                  />
-                  WhatsApp
-                </label>
+            {!editingActivityId && (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium flex items-center gap-1.5">
+                  <Bell className="h-3.5 w-3.5" /> Notificar via
+                </Label>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={activityNotifySystem}
+                      onChange={e => setActivityNotifySystem(e.target.checked)}
+                      className="rounded border-border h-4 w-4 accent-primary"
+                    />
+                    Sistema
+                  </label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={activityNotifyWa}
+                      onChange={e => setActivityNotifyWa(e.target.checked)}
+                      className="rounded border-border h-4 w-4 accent-primary"
+                    />
+                    WhatsApp
+                  </label>
+                </div>
+                <p className="text-[10px] text-muted-foreground">O criador da atividade sempre será notificado.</p>
               </div>
-              <p className="text-[10px] text-muted-foreground">O criador da atividade sempre será notificado.</p>
-            </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setActivityDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSaveActivity} disabled={!activityTitle.trim() || savingActivity}>
               {savingActivity ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Criar atividade
+              {editingActivityId ? "Salvar" : "Criar atividade"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Confirmar exclusão de atividade */}
+      <AlertDialog open={deleteActivityDialogOpen} onOpenChange={setDeleteActivityDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir atividade</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta atividade? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteActivity}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
