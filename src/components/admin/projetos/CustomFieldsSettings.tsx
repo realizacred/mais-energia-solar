@@ -458,12 +458,24 @@ export function CustomFieldsSettings() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredFields.map((f, i) => (
+                      {filteredFields.map((f, i) => {
+                        const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+                        const CustomIcon = f.icon ? (icons as any)[toPascal(f.icon)] : null;
+                        const FallbackIcon = FIELD_TYPE_ICONS[normalizeFieldType(f.field_type)] || Type;
+                        const RowIcon = CustomIcon || FallbackIcon;
+                        return (
                         <tr key={f.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                           <td className="px-4 py-2.5">
                             <span className="text-xs text-muted-foreground">{i + 1}</span>
                           </td>
-                          <td className="px-4 py-2.5 font-medium">{f.title}</td>
+                          <td className="px-4 py-2.5 font-medium">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                                <RowIcon className="h-3.5 w-3.5 text-primary" />
+                              </div>
+                              {f.title}
+                            </div>
+                          </td>
                           <td className="px-4 py-2.5">
                             <button
                               type="button"
