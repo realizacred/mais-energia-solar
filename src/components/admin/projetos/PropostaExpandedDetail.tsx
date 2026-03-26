@@ -1194,7 +1194,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                           <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-primary/20" />
 
                           {auditLogs.map((log) => {
-                            const actionLabel = getAuditLabel(log.acao, log.tabela);
+                            const audit = getAuditMeta(log.acao, log.tabela);
                             const userName = log.user_email === "sistema"
                               ? "SISTEMA"
                               : log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
@@ -1205,8 +1205,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                               <div key={log.id} className="relative flex gap-3 pb-5 last:pb-0">
                                 {/* Timeline dot */}
                                 <div className="absolute -left-6 mt-1">
-                                  <div className="h-5 w-5 rounded-full bg-muted border-2 border-primary/30 flex items-center justify-center">
-                                    <div className="h-2 w-2 rounded-full bg-primary/60" />
+                                  <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", audit.dotClass)}>
+                                    {audit.icon}
                                   </div>
                                 </div>
 
@@ -1214,9 +1214,11 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold text-foreground">{userName}</p>
                                   <p className="text-[10px] text-muted-foreground">{dateStr} às {timeStr}</p>
-                                  <p className="text-xs text-primary mt-0.5 flex items-center gap-1.5">
-                                    <span className="h-4 w-4 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">P</span>
-                                    {actionLabel}
+                                  <p className="text-xs mt-0.5 flex items-center gap-1.5">
+                                    <span className={cn("h-4 w-4 rounded-full flex items-center justify-center shrink-0", audit.badgeClass)}>
+                                      {audit.icon}
+                                    </span>
+                                    <span className="text-foreground">{audit.label}</span>
                                   </p>
                                 </div>
                               </div>
