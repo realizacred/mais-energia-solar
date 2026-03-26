@@ -356,6 +356,8 @@ export function RecebimentosManager() {
     .filter((r) => r.status !== "quitado" && r.status !== "cancelado")
     .reduce((acc, r) => acc + r.valor_total - calcularTotalPago(r.pagamentos), 0);
 
+  const totalRecebido = recebimentos.reduce((acc, r) => acc + calcularTotalPago(r.pagamentos), 0);
+
 
   return (
     <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
