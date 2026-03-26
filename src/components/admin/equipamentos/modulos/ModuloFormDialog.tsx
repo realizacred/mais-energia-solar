@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
+import { FormModalTemplate, FormSection, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, AlertTriangle, LayoutGrid } from "lucide-react";
+import { AlertTriangle, LayoutGrid } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Modulo } from "./types";
 import { CELL_TYPES, TENSAO_SISTEMAS } from "./types";
@@ -122,21 +120,6 @@ function fromModulo(m: Modulo): FormData {
   };
 }
 
-function SectionCollapsible({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-sm font-semibold text-foreground hover:text-primary transition-colors">
-        {title}
-        <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-3 pb-3">
-        {children}
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}
-
 export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending }: Props) {
   const { toast } = useToast();
   const [form, setForm] = useState<FormData>(EMPTY);
@@ -192,18 +175,18 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
     });
   };
 
-  function FieldInput({ label, field, type = "text", step, placeholder, unit }: {
-    label: string; field: keyof FormData; type?: string; step?: string; placeholder?: string; unit?: string;
+  function FieldInput({ label, field, type = "text", step, placeholder, unit, required }: {
+    label: string; field: keyof FormData; type?: string; step?: string; placeholder?: string; unit?: string; required?: boolean;
   }) {
     const err = fieldError(field);
     return (
       <div className="space-y-1">
-        <Label className="text-xs">{label}{unit ? ` (${unit})` : ""}</Label>
+        <Label className="text-xs">{label}{unit ? ` (${unit})` : ""}{required ? " *" : ""}</Label>
         <Input
           type={type} step={step} placeholder={placeholder}
           value={form[field] as string}
           onChange={e => set(field, e.target.value)}
-           className={err?.type === "error" ? "border-destructive" : err?.type === "warning" ? "border-warning" : ""}
+          className={err?.type === "error" ? "border-destructive" : err?.type === "warning" ? "border-warning" : ""}
         />
         {err && (
           <p className={`text-xs flex items-center gap-1 ${err.type === "error" ? "text-destructive" : "text-warning"}`}>
@@ -224,138 +207,151 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
       onSubmit={handleSave}
       submitLabel={isPending ? "Salvando..." : "Salvar"}
       saving={isPending}
-      className="max-w-2xl"
+      className="max-w-4xl"
     >
-        <div className="space-y-1 divide-y">
-          <SectionCollapsible title="📋 Identificação" defaultOpen>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="sm:col-span-2">
-                <FieldInput label="Fabricante" field="fabricante" placeholder="Ex: Canadian Solar" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Coluna esquerda */}
+        <div className="space-y-5">
+          <FormSection title="Identificação">
+            <div className="space-y-3">
+              <FieldInput label="Fabricante" field="fabricante" placeholder="Ex: Canadian Solar" required />
+              <FieldInput label="Modelo" field="modelo" placeholder="Ex: CS7N-665MS" required />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Tipo Célula</Label>
+                  <Select value={form.tipo_celula} onValueChange={v => set("tipo_celula", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CELL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <FieldInput label="Nº de células" field="num_celulas" type="number" placeholder="144" />
               </div>
-              <div className="sm:col-span-2">
-                <FieldInput label="Modelo" field="modelo" placeholder="Ex: CS7N-665MS" />
-              </div>
-              <FieldInput label="Potência" field="potencia_wp" type="number" placeholder="665" unit="Wp" />
-              <div className="space-y-1">
-                <Label className="text-xs">Tipo Célula</Label>
-                <Select value={form.tipo_celula} onValueChange={v => set("tipo_celula", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CELL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <FieldInput label="Nº de células" field="num_celulas" type="number" placeholder="144" />
-              <div className="space-y-1">
-                <Label className="text-xs">Tensão do sistema</Label>
-                <Select value={form.tensao_sistema} onValueChange={v => set("tensao_sistema", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TENSAO_SISTEMAS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-3 pt-2">
-                <Switch checked={form.bifacial} onCheckedChange={v => set("bifacial", v)} />
-                <Label className="text-xs">Módulo Bifacial</Label>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Status</Label>
-                <Select value={form.status} onValueChange={v => set("status", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rascunho">Rascunho</SelectItem>
-                    <SelectItem value="revisao">Revisão</SelectItem>
-                    <SelectItem value="publicado">Publicado</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 pt-4">
+                  <Switch checked={form.bifacial} onCheckedChange={v => set("bifacial", v)} />
+                  <Label className="text-xs">Bifacial</Label>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Tensão do sistema</Label>
+                  <Select value={form.tensao_sistema} onValueChange={v => set("tensao_sistema", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TENSAO_SISTEMAS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </SectionCollapsible>
+          </FormSection>
 
-          <SectionCollapsible title="⚡ Elétrico (STC)">
+          <FormSection title="Potência & Eficiência">
+            <div className="grid grid-cols-2 gap-3">
+              <FieldInput label="Potência" field="potencia_wp" type="number" placeholder="665" unit="Wp" required />
+              <FieldInput label="Eficiência" field="eficiencia_percent" type="number" step="0.01" placeholder="22.50" unit="%" />
+            </div>
+          </FormSection>
+
+          <FormSection title="Elétrico DC (STC)">
             <div className="grid grid-cols-2 gap-3">
               <FieldInput label="Vmp" field="vmp_v" type="number" step="0.01" unit="V" />
               <FieldInput label="Imp" field="imp_a" type="number" step="0.01" unit="A" />
               <FieldInput label="Voc" field="voc_v" type="number" step="0.01" unit="V" />
               <FieldInput label="Isc" field="isc_a" type="number" step="0.01" unit="A" />
             </div>
-          </SectionCollapsible>
+          </FormSection>
+        </div>
 
-          <SectionCollapsible title="📐 Dimensões & Construção">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {/* Coluna direita */}
+        <div className="space-y-5">
+          <FormSection title="Físico">
+            <div className="grid grid-cols-2 gap-3">
               <FieldInput label="Comprimento" field="comprimento_mm" type="number" placeholder="2384" unit="mm" />
               <FieldInput label="Largura" field="largura_mm" type="number" placeholder="1303" unit="mm" />
               <FieldInput label="Profundidade" field="profundidade_mm" type="number" placeholder="35" unit="mm" />
               <FieldInput label="Peso" field="peso_kg" type="number" step="0.1" placeholder="37.0" unit="kg" />
-              <FieldInput label="Eficiência" field="eficiencia_percent" type="number" step="0.01" placeholder="22.50" unit="%" />
             </div>
-          </SectionCollapsible>
+          </FormSection>
 
-          <SectionCollapsible title="🌡️ Temperatura" defaultOpen={false}>
+          <FormSection title="Coeficientes Térmicos">
             <div className="grid grid-cols-3 gap-3">
               <FieldInput label="Coeff Pmax" field="temp_coeff_pmax" type="number" step="0.001" unit="%/°C" />
               <FieldInput label="Coeff Voc" field="temp_coeff_voc" type="number" step="0.001" unit="%/°C" />
               <FieldInput label="Coeff Isc" field="temp_coeff_isc" type="number" step="0.001" unit="%/°C" />
             </div>
-          </SectionCollapsible>
+          </FormSection>
 
-          <SectionCollapsible title="🛡️ Garantia" defaultOpen={false}>
-            <div className="grid grid-cols-2 gap-3">
-              <FieldInput label="Garantia Produto" field="garantia_produto_anos" type="number" unit="anos" />
-              <FieldInput label="Garantia Performance" field="garantia_performance_anos" type="number" unit="anos" />
-            </div>
-          </SectionCollapsible>
-
-          <SectionCollapsible title="📄 Datasheet">
-            <DatasheetUrlField
-              value={form.datasheet_url}
-              onChange={(v) => set("datasheet_url", v)}
-            />
-            <DatasheetSection
-              moduloId={modulo?.id}
-              datasheetUrl={form.datasheet_url || null}
-              datasheetSourceUrl={form.datasheet_source_url || null}
-              datasheetFoundAt={form.datasheet_found_at || null}
-              fabricante={form.fabricante}
-              modelo={form.modelo}
-              onDatasheetUploaded={(url) => {
-                set("datasheet_url", url);
-                set("datasheet_found_at", new Date().toISOString());
-              }}
-              onExtracted={(data) => {
-                const mapping: Record<string, keyof FormData> = {
-                  fabricante: "fabricante", modelo: "modelo",
-                  potencia_wp: "potencia_wp", tipo_celula: "tipo_celula",
-                  num_celulas: "num_celulas", tensao_sistema: "tensao_sistema",
-                  eficiencia_percent: "eficiencia_percent",
-                  comprimento_mm: "comprimento_mm", largura_mm: "largura_mm",
-                  profundidade_mm: "profundidade_mm", peso_kg: "peso_kg",
-                  vmp_v: "vmp_v", imp_a: "imp_a", voc_v: "voc_v", isc_a: "isc_a",
-                  temp_coeff_pmax: "temp_coeff_pmax", temp_coeff_voc: "temp_coeff_voc",
-                  temp_coeff_isc: "temp_coeff_isc",
-                  garantia_produto_anos: "garantia_produto_anos",
-                  garantia_performance_anos: "garantia_performance_anos",
-                };
-                setForm(prev => {
-                  const next = { ...prev };
-                  for (const [key, formKey] of Object.entries(mapping)) {
-                    const val = data[key];
-                    if (val != null && val !== "") {
-                      if (formKey === "bifacial") {
-                        (next as any)[formKey] = Boolean(val);
-                      } else {
-                        (next as any)[formKey] = String(val);
+          <FormSection title="Garantia & Datasheet">
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <FieldInput label="Garantia Produto" field="garantia_produto_anos" type="number" unit="anos" />
+                <FieldInput label="Garantia Performance" field="garantia_performance_anos" type="number" unit="anos" />
+              </div>
+              <DatasheetUrlField
+                value={form.datasheet_url}
+                onChange={(v) => set("datasheet_url", v)}
+              />
+              <DatasheetSection
+                moduloId={modulo?.id}
+                datasheetUrl={form.datasheet_url || null}
+                datasheetSourceUrl={form.datasheet_source_url || null}
+                datasheetFoundAt={form.datasheet_found_at || null}
+                fabricante={form.fabricante}
+                modelo={form.modelo}
+                onDatasheetUploaded={(url) => {
+                  set("datasheet_url", url);
+                  set("datasheet_found_at", new Date().toISOString());
+                }}
+                onExtracted={(data) => {
+                  const mapping: Record<string, keyof FormData> = {
+                    fabricante: "fabricante", modelo: "modelo",
+                    potencia_wp: "potencia_wp", tipo_celula: "tipo_celula",
+                    num_celulas: "num_celulas", tensao_sistema: "tensao_sistema",
+                    eficiencia_percent: "eficiencia_percent",
+                    comprimento_mm: "comprimento_mm", largura_mm: "largura_mm",
+                    profundidade_mm: "profundidade_mm", peso_kg: "peso_kg",
+                    vmp_v: "vmp_v", imp_a: "imp_a", voc_v: "voc_v", isc_a: "isc_a",
+                    temp_coeff_pmax: "temp_coeff_pmax", temp_coeff_voc: "temp_coeff_voc",
+                    temp_coeff_isc: "temp_coeff_isc",
+                    garantia_produto_anos: "garantia_produto_anos",
+                    garantia_performance_anos: "garantia_performance_anos",
+                  };
+                  setForm(prev => {
+                    const next = { ...prev };
+                    for (const [key, formKey] of Object.entries(mapping)) {
+                      const val = data[key];
+                      if (val != null && val !== "") {
+                        if (formKey === "bifacial") {
+                          (next as any)[formKey] = Boolean(val);
+                        } else {
+                          (next as any)[formKey] = String(val);
+                        }
                       }
                     }
-                  }
-                  if (data.bifacial != null) next.bifacial = Boolean(data.bifacial);
-                  return next;
-                });
-              }}
-            />
-          </SectionCollapsible>
+                    if (data.bifacial != null) next.bifacial = Boolean(data.bifacial);
+                    return next;
+                  });
+                }}
+              />
+            </div>
+          </FormSection>
+
+          <FormSection title="Status">
+            <div className="space-y-1">
+              <Label className="text-xs">Status</Label>
+              <Select value={form.status} onValueChange={v => set("status", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rascunho">Rascunho</SelectItem>
+                  <SelectItem value="revisao">Revisão</SelectItem>
+                  <SelectItem value="publicado">Publicado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </FormSection>
         </div>
+      </div>
     </FormModalTemplate>
   );
 }

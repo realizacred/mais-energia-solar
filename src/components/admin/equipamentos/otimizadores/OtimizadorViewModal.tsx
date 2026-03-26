@@ -67,7 +67,7 @@ export function OtimizadorViewModal({ otimizador: ot, open, onOpenChange }: Prop
           </div>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-y-auto max-h-[80vh] p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto max-h-[85vh] p-5">
           {/* Completude */}
           <div className="space-y-1.5 mb-4">
             <div className="flex items-center justify-between">
@@ -79,8 +79,9 @@ export function OtimizadorViewModal({ otimizador: ot, open, onOpenChange }: Prop
             <Progress value={completude} className="h-2" />
           </div>
 
-          <div className="flex flex-col md:flex-row md:gap-6">
-            <div className="flex flex-col gap-4 md:w-1/2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Coluna esquerda */}
+            <div className="flex flex-col gap-4">
               <Section title="Identificação">
                 <Field label="Fabricante" value={ot.fabricante} />
                 <Field label="Modelo" value={ot.modelo} />
@@ -94,7 +95,8 @@ export function OtimizadorViewModal({ otimizador: ot, open, onOpenChange }: Prop
               </Section>
             </div>
 
-            <div className="flex flex-col gap-4 md:w-1/2 mt-4 md:mt-0">
+            {/* Coluna direita */}
+            <div className="flex flex-col gap-4">
               <Section title="Saída">
                 <Field label="Tensão saída" value={ot.tensao_saida_v} unit=" V" />
                 <Field label="Corrente máx saída" value={ot.corrente_saida_max_a} unit=" A" />
