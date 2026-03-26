@@ -770,6 +770,26 @@ export function ProposalWizard() {
             }
           }
 
+          // Enrich cliente state if missing from snapshot
+          if (!s.cliente?.nome && propostaMeta?.cliente_id) {
+            const { data: cliEnrich } = await supabase
+              .from("clientes")
+              .select("nome, telefone, email, cpf_cnpj, empresa")
+              .eq("id", propostaMeta.cliente_id)
+              .maybeSingle();
+            if (cliEnrich?.nome) {
+              setCliente(prev => ({
+                ...prev,
+                nome: prev.nome || cliEnrich.nome || "",
+                celular: prev.celular || cliEnrich.telefone || "",
+                email: prev.email || cliEnrich.email || "",
+                cnpj_cpf: prev.cnpj_cpf || cliEnrich.cpf_cnpj || "",
+                empresa: prev.empresa || cliEnrich.empresa || "",
+              }));
+              console.log("[ProposalWizard] cliente enriched from DB:", propostaMeta.cliente_id);
+            }
+          }
+
           // Enrich projectAddress from cliente if still empty after snapshot restore
           if (!s.projectAddress && propostaMeta?.cliente_id) {
             const { data: cliAddr } = await supabase
