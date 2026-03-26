@@ -702,6 +702,16 @@ export function ComissoesManager() {
                     </TableBody>
                   </Table>
                 )}
+                {filteredComissoes.length > 0 && (
+                  <TablePagination
+                    totalItems={filteredComissoes.length}
+                    page={page}
+                    pageSize={pageSize}
+                    onPageChange={setPage}
+                    onPageSizeChange={setPageSize}
+                    pageSizeOptions={[10, 25, 50, 100]}
+                  />
+                )}
               </div>
           </SectionCard>
         </TabsContent>
