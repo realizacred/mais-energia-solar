@@ -157,24 +157,35 @@ export function CustomFieldsSettings() {
   const [fieldWizardStep, setFieldWizardStep] = useState<"type" | "config">("type");
   const [optionsText, setOptionsText] = useState("");
 
+  // Load pipelines and stages
+  useEffect(() => {
+    supabase.from("pipeline_stages").select("id, name, pipeline_id, position").order("position").then(({ data }) => {
+      if (data) setStages(data as StageInfo[]);
+    });
+  }, []);
+
   const openFieldDialog = (field?: CustomField) => {
     if (field) {
       setEditingField(field);
+      const vpids = field.visible_pipeline_ids || [];
       setFieldForm({
         title: field.title, field_key: field.field_key, field_type: field.field_type,
         field_context: field.field_context,
         show_on_create: field.show_on_create, required_on_create: field.required_on_create,
         visible_on_funnel: field.visible_on_funnel, important_on_funnel: field.important_on_funnel,
         required_on_funnel: field.required_on_funnel, required_on_proposal: field.required_on_proposal,
+        visibilityMode: vpids.length > 0 ? "some" : "all",
+        visible_pipeline_ids: vpids,
+        important_stage_ids: field.important_stage_ids || [],
+        required_stage_ids: field.required_stage_ids || [],
       });
-      // Parse existing options for select types
       const opts = field.options;
       if (opts && Array.isArray(opts)) {
         setOptionsText(opts.join("\n"));
       } else {
         setOptionsText("");
       }
-      setFieldWizardStep("config"); // Go straight to config when editing
+      setFieldWizardStep("config");
     } else {
       setEditingField(null);
       setFieldForm({
@@ -182,9 +193,13 @@ export function CustomFieldsSettings() {
         show_on_create: false, required_on_create: false,
         visible_on_funnel: false, important_on_funnel: false,
         required_on_funnel: false, required_on_proposal: false,
+        visibilityMode: "all",
+        visible_pipeline_ids: [],
+        important_stage_ids: [],
+        required_stage_ids: [],
       });
       setOptionsText("");
-      setFieldWizardStep("type"); // Start with type grid for new fields
+      setFieldWizardStep("type");
     }
     setFieldDialogOpen(true);
   };
