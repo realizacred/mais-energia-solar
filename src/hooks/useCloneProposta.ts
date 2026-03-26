@@ -27,14 +27,14 @@ export function useProjetosParaClone(enabled: boolean) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projetos" as any)
-        .select("id, nome, cliente_id, clientes(nome)")
-        .eq("ativo", true)
+        .select("id, codigo, potencia_kwp, cliente_id, clientes!projetos_cliente_id_fkey(nome)")
+        .not("status", "in", '("cancelado","concluido")')
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
       return (data || []).map((p: any): ProjetoOption => ({
         id: p.id,
-        nome: p.nome || "Sem nome",
+        nome: p.codigo ? `#${p.codigo}` : "Sem código",
         cliente_nome: p.clientes?.nome || null,
       }));
     },
