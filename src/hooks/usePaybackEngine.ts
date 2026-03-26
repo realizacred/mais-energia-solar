@@ -1,4 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
+/**
+ * usePaybackEngine — Motor iterativo de cálculo de Payback/ROI.
+ * §16: Queries só em hooks — §23: staleTime obrigatório.
+ *
+ * Migrado de useState+useEffect para useQuery (§16-S1).
+ * A lógica de cálculo NÃO foi alterada — apenas a origem dos dados.
+ */
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -35,9 +43,9 @@ export interface PaybackInput {
   estado: string;
   regime: RegimeCompensacao;
   tipoLigacao: TipoLigacao;
-  tarifaFioB?: number; // override from concessionaria
-  custoDisponibilidade?: number; // override from concessionaria
-  concessionariaId?: string; // when set, loads ICMS from concessionaria first
+  tarifaFioB?: number;
+  custoDisponibilidade?: number;
+  concessionariaId?: string;
 }
 
 export interface PaybackScenario {
@@ -85,68 +93,81 @@ const DEFAULT_TRIBUTARIA: ConfigTributaria = {
   observacoes: null,
 };
 
-// ─── Hook ───────────────────────────────────────────────────────
+const DEFAULT_FIOB: FioBEscalonamento[] = [
+  { ano: 2023, percentual_nao_compensado: 15 },
+  { ano: 2024, percentual_nao_compensado: 30 },
+  { ano: 2025, percentual_nao_compensado: 45 },
+  { ano: 2026, percentual_nao_compensado: 60 },
+  { ano: 2027, percentual_nao_compensado: 75 },
+  { ano: 2028, percentual_nao_compensado: 90 },
+];
+
+// ─── Query: payback_config (dados estáticos → 15 min) ───────────
+function usePaybackConfig() {
+  return useQuery({
+    queryKey: ["payback-config"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payback_config")
+        .select("id, custo_disponibilidade_monofasico, custo_disponibilidade_bifasico, custo_disponibilidade_trifasico, taxas_fixas_mensais, degradacao_anual_painel, reajuste_anual_tarifa, tarifa_fio_b_padrao")
+        .limit(1)
+        .single();
+
+      if (error || !data) return null;
+
+      return {
+        custo_disponibilidade_monofasico: Number(data.custo_disponibilidade_monofasico),
+        custo_disponibilidade_bifasico: Number(data.custo_disponibilidade_bifasico),
+        custo_disponibilidade_trifasico: Number(data.custo_disponibilidade_trifasico),
+        taxas_fixas_mensais: Number(data.taxas_fixas_mensais),
+        degradacao_anual_painel: Number(data.degradacao_anual_painel),
+        reajuste_anual_tarifa: Number(data.reajuste_anual_tarifa),
+        tarifa_fio_b_padrao: Number(data.tarifa_fio_b_padrao),
+      } as PaybackConfig;
+    },
+    staleTime: 1000 * 60 * 15, // 15 min — dados de configuração estáticos
+  });
+}
+
+// ─── Query: fio_b_escalonamento (dados estáticos → 15 min) ──────
+function useFioBEscalonamento() {
+  return useQuery({
+    queryKey: ["fio-b-escalonamento"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fio_b_escalonamento")
+        .select("id, ano, percentual_nao_compensado")
+        .order("ano", { ascending: true });
+
+      if (error || !data || data.length === 0) return null;
+
+      return data.map(f => ({
+        ano: f.ano,
+        percentual_nao_compensado: Number(f.percentual_nao_compensado),
+      })) as FioBEscalonamento[];
+    },
+    staleTime: 1000 * 60 * 15, // 15 min — dados de configuração estáticos
+  });
+}
+
+// ─── Hook principal ─────────────────────────────────────────────
 export function usePaybackEngine() {
-  const [paybackConfig, setPaybackConfig] = useState<PaybackConfig>(DEFAULT_PAYBACK_CONFIG);
-  const [fioBSchedule, setFioBSchedule] = useState<FioBEscalonamento[]>([]);
+  const { data: configData, isLoading: configLoading } = usePaybackConfig();
+  const { data: fioBData, isLoading: fioBLoading } = useFioBEscalonamento();
   const [tributariaCache, setTributariaCache] = useState<Record<string, ConfigTributaria>>({});
-  const [loading, setLoading] = useState(true);
-  const [alertas, setAlertas] = useState<string[]>([]);
 
-  useEffect(() => {
-    loadConfigurations();
-  }, []);
+  // Resolve config with fallback to defaults
+  const paybackConfig = configData ?? DEFAULT_PAYBACK_CONFIG;
+  const fioBSchedule = fioBData ?? DEFAULT_FIOB;
+  const loading = configLoading || fioBLoading;
 
-  const loadConfigurations = async () => {
+  // Build alertas based on data availability
+  const alertas = useMemo(() => {
     const alerts: string[] = [];
-
-    try {
-      // Load all configs in parallel
-      const [paybackRes, fioBRes] = await Promise.all([
-        supabase.from("payback_config").select("id, custo_disponibilidade_monofasico, custo_disponibilidade_bifasico, custo_disponibilidade_trifasico, taxas_fixas_mensais, degradacao_anual_painel, reajuste_anual_tarifa, tarifa_fio_b_padrao").limit(1).single(),
-        supabase.from("fio_b_escalonamento").select("id, ano, percentual_nao_compensado").order("ano", { ascending: true }),
-      ]);
-
-      if (paybackRes.data) {
-        setPaybackConfig({
-          custo_disponibilidade_monofasico: Number(paybackRes.data.custo_disponibilidade_monofasico),
-          custo_disponibilidade_bifasico: Number(paybackRes.data.custo_disponibilidade_bifasico),
-          custo_disponibilidade_trifasico: Number(paybackRes.data.custo_disponibilidade_trifasico),
-          taxas_fixas_mensais: Number(paybackRes.data.taxas_fixas_mensais),
-          degradacao_anual_painel: Number(paybackRes.data.degradacao_anual_painel),
-          reajuste_anual_tarifa: Number(paybackRes.data.reajuste_anual_tarifa),
-          tarifa_fio_b_padrao: Number(paybackRes.data.tarifa_fio_b_padrao),
-        });
-      } else {
-        alerts.push("Configuração de payback não encontrada. Usando valores padrão do mercado.");
-      }
-
-      if (fioBRes.data && fioBRes.data.length > 0) {
-        setFioBSchedule(fioBRes.data.map(f => ({
-          ano: f.ano,
-          percentual_nao_compensado: Number(f.percentual_nao_compensado),
-        })));
-      } else {
-        alerts.push("Escalonamento do Fio B não configurado. Usando valores padrão da Lei 14.300.");
-        setFioBSchedule([
-          { ano: 2023, percentual_nao_compensado: 15 },
-          { ano: 2024, percentual_nao_compensado: 30 },
-          { ano: 2025, percentual_nao_compensado: 45 },
-          { ano: 2026, percentual_nao_compensado: 60 },
-          { ano: 2027, percentual_nao_compensado: 75 },
-          { ano: 2028, percentual_nao_compensado: 90 },
-        ]);
-      }
-
-      setAlertas(alerts);
-    } catch (error) {
-      console.error("Erro ao carregar configurações de payback:", error);
-      alerts.push("Erro ao carregar configurações. Usando valores padrão do mercado.");
-      setAlertas(alerts);
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (!configData) alerts.push("Configuração de payback não encontrada. Usando valores padrão do mercado.");
+    if (!fioBData) alerts.push("Escalonamento do Fio B não configurado. Usando valores padrão da Lei 14.300.");
+    return alerts;
+  }, [configData, fioBData]);
 
   // Load tributária config from concessionária (if available) or state fallback
   const loadTributaria = async (estado: string, concessionariaId?: string): Promise<ConfigTributaria> => {
@@ -164,10 +185,8 @@ export function usePaybackEngine() {
           .single();
 
         if (concData) {
-          // If concessionária has its own ICMS values, use them
           const hasOwnIcms = concData.aliquota_icms != null || concData.possui_isencao_scee != null;
           if (hasOwnIcms) {
-            // Load state defaults for any NULL fields
             const stateConfig = await loadStateTributaria(concData.estado || estado);
             const config: ConfigTributaria = {
               aliquota_icms: concData.aliquota_icms != null ? Number(concData.aliquota_icms) : stateConfig.aliquota_icms,
@@ -220,10 +239,9 @@ export function usePaybackEngine() {
 
   // Get Fio B percentage for a given year
   const getFioBPercentual = (ano: number): number => {
-    // Find the matching or most recent year <= ano
     const sorted = [...fioBSchedule].sort((a, b) => b.ano - a.ano);
     const match = sorted.find(f => f.ano <= ano);
-    return match ? match.percentual_nao_compensado / 100 : 0.9; // default to 90% if beyond schedule
+    return match ? match.percentual_nao_compensado / 100 : 0.9;
   };
 
   // Get custo de disponibilidade by tipo_ligacao
@@ -237,7 +255,7 @@ export function usePaybackEngine() {
     }
   };
 
-  // ─── Core Calculation ─────────────────────────────────────────
+  // ─── Core Calculation (lógica 100% preservada) ────────────────
   const calcularPayback = async (input: PaybackInput): Promise<PaybackResult> => {
     const tributaria = await loadTributaria(input.estado, input.concessionariaId);
     const anoAtual = new Date().getFullYear();
@@ -249,45 +267,34 @@ export function usePaybackEngine() {
     const taxasFixas = paybackConfig.taxas_fixas_mensais;
     const resultAlertas = [...alertas];
 
-    // Check for missing data and add alerts
     if (!input.tarifaFioB || input.tarifaFioB === 0) {
       resultAlertas.push("Recomendado configurar tarifa Fio B da concessionária para maior precisão.");
     }
 
-    // PASSO 1: kWh compensado (first year baseline)
-    // @TODO: Injeção de energia (Créditos futuros) não contemplada, refinar usando saldo de crédito mensal equivalente a calcSeries25
     const kwhCompensado = Math.min(input.geracaoMensalKwh, input.consumoMensal);
-
-    // PASSO 2: Conta inevitável (fixa)
     const contaInevitavel = custoDisponibilidade + taxasFixas;
 
-    // ─── Helper: Iterative payback with degradation + tariff adjustment ───
     const calcIterativePayback = (tarifaCompensavel: number, fioBFraction: number): {
       paybackMeses: number;
       economiaBruta: number;
       custoFioB: number;
       economiaLiquida: number;
     } => {
-      const degradacao = paybackConfig.degradacao_anual_painel / 100; // e.g. 0.008
-      const reajuste = paybackConfig.reajuste_anual_tarifa / 100; // e.g. 0.05
+      const degradacao = paybackConfig.degradacao_anual_painel / 100;
+      const reajuste = paybackConfig.reajuste_anual_tarifa / 100;
 
-      // First-month values (for display / scenario summary)
       const economiaBruta0 = kwhCompensado * tarifaCompensavel;
       const custoFioB0 = input.regime === "gd1" ? 0 : kwhCompensado * tarifaFioB * fioBFraction;
       const economiaLiquida0 = Math.max(0, economiaBruta0 - custoFioB0 - contaInevitavel);
 
-      // Iterative payback: month-by-month accumulation
       let accumulated = 0;
-      const maxMonths = 30 * 12; // 30 years max
+      const maxMonths = 30 * 12;
       let paybackMeses = Infinity;
 
       for (let m = 1; m <= maxMonths; m++) {
         const yearIndex = Math.floor((m - 1) / 12);
-        // Apply degradation: generation decreases each year
         const geracaoFator = Math.pow(1 - degradacao, yearIndex);
-        // Apply tariff increase: tariff increases each year
         const tarifaFator = Math.pow(1 + reajuste, yearIndex);
-        // Update Fio B percentage for this year
         const anoAtualIter = anoAtual + yearIndex;
         const fioBPctIter = input.regime === "gd1" ? 0 : getFioBPercentual(anoAtualIter);
 
@@ -314,25 +321,21 @@ export function usePaybackEngine() {
       };
     };
 
-    // ─── Cenário CONSERVADOR ─────────────────────────────────
-    // Assume sem isenção ICMS (pior caso), ICMS integral
+    // Cenário CONSERVADOR
     const icmsConservador = tributaria.aliquota_icms / 100;
     const tarifaCompensavelConservadora = input.tarifaKwh * (1 - icmsConservador);
-
     const conservadorCalc = calcIterativePayback(tarifaCompensavelConservadora, percentualFioB);
 
-    // ─── Cenário OTIMISTA ────────────────────────────────────
-    // Aplica isenção ICMS quando disponível
+    // Cenário OTIMISTA
     let icmsOtimista = icmsConservador;
     if (tributaria.possui_isencao_scee) {
       const isencaoFator = tributaria.percentual_isencao / 100;
       icmsOtimista = icmsConservador * (1 - isencaoFator);
     }
     const tarifaCompensavelOtimista = input.tarifaKwh * (1 - icmsOtimista);
-
     const otimistaCalc = calcIterativePayback(tarifaCompensavelOtimista, percentualFioB);
 
-    // ─── Impacto Fio B ao longo dos anos (with degradation + reajuste) ───
+    // Impacto Fio B ao longo dos anos
     const fioBImpactoAnual: PaybackResult["fioBImpactoAnual"] = [];
     if (input.regime === "gd2") {
       const degradacao = paybackConfig.degradacao_anual_painel / 100;
@@ -354,7 +357,6 @@ export function usePaybackEngine() {
       }
     }
 
-    // Guard Infinity: se payback nunca foi atingido, limitar a 31 anos (inviável)
     const safePaybackAnos = (meses: number) =>
       !isFinite(meses) ? 31 : meses / 12;
 
