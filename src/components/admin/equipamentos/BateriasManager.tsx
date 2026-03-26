@@ -343,6 +343,8 @@ export function BateriasManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BateriaViewModal bateria={viewItem} open={!!viewItem} onOpenChange={v => !v && setViewItem(null)} />
     </div>
   );
 }
