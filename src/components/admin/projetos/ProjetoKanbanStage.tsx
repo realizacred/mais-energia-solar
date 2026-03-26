@@ -545,7 +545,7 @@ function ResizableKanbanColumn({
                     {CARD_FIELD_OPTIONS.map((f) => (
                       <label key={f.key} className="flex items-center gap-2 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
                         <Checkbox
-                          checked={currentVisibleFields.includes(f.key)}
+                          checked={visibleFields.includes(f.key)}
                           onCheckedChange={() => handleToggleField(f.key)}
                           className="h-3.5 w-3.5"
                         />
