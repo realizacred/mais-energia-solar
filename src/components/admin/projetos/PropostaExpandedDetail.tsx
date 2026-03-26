@@ -82,7 +82,9 @@ interface SnapshotData {
   }>;
   servicos?: Array<{
     descricao: string;
+    categoria?: string;
     valor: number;
+    incluso_no_preco?: boolean;
     incluso?: boolean;
   }>;
   venda?: {
@@ -884,12 +886,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     return null;
   })() : null;
 
-  // Build summary table from snapshot
+  // Build summary table from snapshot — SSOT: mirrors calcPrecoFinal logic from types.ts
   const buildSummaryRows = () => {
     if (!snapshot) return [];
     const rows: Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }> = [];
     const venda = snapshot.venda;
     const totalFinal = latestVersao?.valor_total || 0;
+    const servicos = snapshot.servicos || [];
 
     // Kit items
     const kitItems = snapshot.itens || [];
@@ -907,8 +910,34 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       });
     }
 
-    // Installation
-    if (venda?.custo_instalacao) {
+    // Serviços (native proposals store services as separate items)
+    const servicosInclusos = servicos.filter((s: any) => s.incluso_no_preco !== false);
+    for (const srv of servicosInclusos) {
+      if (srv.valor > 0) {
+        rows.push({
+          label: srv.descricao || srv.categoria || "Serviço",
+          qty: 1,
+          value: srv.valor,
+          pct: totalFinal > 0 ? (srv.valor / totalFinal) * 100 : 0,
+        });
+      }
+    }
+
+    // Serviços extras (não inclusos no preço) — mostrar como referência
+    const servicosExtras = servicos.filter((s: any) => s.incluso_no_preco === false);
+    for (const srv of servicosExtras) {
+      if (srv.valor > 0) {
+        rows.push({
+          label: `${srv.descricao || srv.categoria || "Serviço"} (Extra)`,
+          qty: 1,
+          value: srv.valor,
+          pct: totalFinal > 0 ? (srv.valor / totalFinal) * 100 : 0,
+        });
+      }
+    }
+
+    // Legacy: Installation from venda (only if no servicos present)
+    if (venda?.custo_instalacao && servicosInclusos.length === 0) {
       rows.push({
         label: "Instalação",
         qty: 1,
@@ -917,7 +946,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       });
     }
 
-    // Commission
+    // Commission (from venda)
     if (venda?.custo_comissao) {
       rows.push({
         label: "Comissão",
@@ -927,15 +956,47 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       });
     }
 
-    // Margin
+    // Outros custos (from venda)
+    if (venda?.custo_outros) {
+      rows.push({
+        label: "Outros Custos",
+        qty: 1,
+        value: venda.custo_outros,
+        pct: totalFinal > 0 ? (venda.custo_outros / totalFinal) * 100 : 0,
+      });
+    }
+
+    // Margin — calculate from cost base (matching calcPrecoFinal SSOT)
     const marginPct = venda?.margem_percentual || 0;
-    const marginValue = totalFinal > 0 ? totalFinal * marginPct / (100 + marginPct) : 0;
-    rows.push({
-      label: `Margem (Markup ${formatNumberBR(marginPct)}%)`,
-      qty: 1,
-      value: marginValue,
-      pct: totalFinal > 0 ? (marginValue / totalFinal) * 100 : 0,
-    });
+    if (marginPct > 0) {
+      const kitTotal = kitItems.reduce((s, i) => s + (i.preco_unitario * i.quantidade), 0);
+      const custoServicosInclusos = servicosInclusos.reduce((s: number, sv: any) => s + (sv.valor || 0), 0);
+      const custoBase = kitTotal + custoServicosInclusos + (venda?.custo_comissao || 0) + (venda?.custo_outros || 0);
+      const marginValue = custoBase * (marginPct / 100);
+      rows.push({
+        label: `Margem (Markup ${formatNumberBR(marginPct)}%)`,
+        qty: 1,
+        value: marginValue,
+        pct: totalFinal > 0 ? (marginValue / totalFinal) * 100 : 0,
+      });
+    }
+
+    // Desconto — show if applied
+    const descontoPct = venda?.desconto_percentual || 0;
+    if (descontoPct > 0) {
+      const kitTotal = kitItems.reduce((s, i) => s + (i.preco_unitario * i.quantidade), 0);
+      const custoServicosInclusos = servicosInclusos.reduce((s: number, sv: any) => s + (sv.valor || 0), 0);
+      const custoBase = kitTotal + custoServicosInclusos + (venda?.custo_comissao || 0) + (venda?.custo_outros || 0);
+      const margemVal = custoBase * (marginPct / 100);
+      const precoComMargem = custoBase + margemVal;
+      const descontoValue = precoComMargem * (descontoPct / 100);
+      rows.push({
+        label: `Desconto (−${formatNumberBR(descontoPct)}%)`,
+        qty: 1,
+        value: -descontoValue,
+        pct: totalFinal > 0 ? (-descontoValue / totalFinal) * 100 : 0,
+      });
+    }
 
     return rows;
   };
