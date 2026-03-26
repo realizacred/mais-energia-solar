@@ -286,7 +286,7 @@ export function InversoresManager() {
               const statusColor = inv.status === "publicado" ? "bg-success/10 text-success border-success/20" : inv.status === "revisao" ? "bg-info/10 text-info border-info/20" : "bg-warning/10 text-warning border-warning/20";
               const statusLabel = inv.status === "publicado" ? "Publicado" : inv.status === "revisao" ? "Revisão" : "Rascunho";
               return (
-                <Card key={inv.id} className="group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all">
+                <Card key={inv.id} className={`group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all ${!inv.ativo ? "opacity-50 grayscale" : ""}`}>
                   <div className="absolute top-3 right-3 flex gap-1 z-10">
                     <EnrichButton equipmentType="inversor" equipmentId={inv.id} />
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog(inv)} title="Editar"><Pencil className="w-4 h-4" /></Button>

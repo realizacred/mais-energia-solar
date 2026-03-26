@@ -252,7 +252,7 @@ export function OtimizadoresManager() {
               const statusColor = ot.status === "publicado" ? "bg-success/10 text-success border-success/20" : ot.status === "revisao" ? "bg-info/10 text-info border-info/20" : "bg-warning/10 text-warning border-warning/20";
               const statusLabel = ot.status === "publicado" ? "Publicado" : ot.status === "revisao" ? "Revisão" : "Rascunho";
               return (
-                <Card key={ot.id} className="group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all">
+                <Card key={ot.id} className={`group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all ${!ot.ativo ? "opacity-50 grayscale" : ""}`}>
                   <div className="absolute top-3 right-3 flex gap-1 z-10">
                     <EnrichButton equipmentType="otimizador" equipmentId={ot.id} />
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog(ot)} title="Editar"><Pencil className="w-4 h-4" /></Button>

@@ -25,7 +25,7 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle, comp
   const completude = calcCompletude(m);
 
   return (
-    <Card className="group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all">
+    <Card className={`group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all ${!m.ativo ? "opacity-50 grayscale" : ""}`}>
       {/* Action icons top-right */}
       <div className="absolute top-3 right-3 flex gap-1 z-10">
         <EnrichButton equipmentType="modulo" equipmentId={m.id} />

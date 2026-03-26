@@ -277,7 +277,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
               const global = isGlobal(m);
               const comp = completudeMap.get(m.id) ?? 0;
               return (
-                <TableRow key={m.id} className={selectedIds.has(m.id) ? "bg-primary/5" : ""}>
+                <TableRow key={m.id} className={`${selectedIds.has(m.id) ? "bg-primary/5" : ""} ${!m.ativo ? "opacity-50" : ""}`}>
                   <TableCell>
                     <Checkbox
                       checked={selectedIds.has(m.id)}
