@@ -1003,16 +1003,37 @@ export function StepDocumento({
   const renderEmailTab = () => (
     <div className="space-y-4">
       {/* Top bar */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="flex items-center gap-1.5 text-xs text-primary hover:underline p-0 h-auto"
-          onClick={() => setEditHtml(!editHtml)}
-        >
-          <Code className="h-3.5 w-3.5" />
-          {editHtml ? "Editar Visual" : "Editar HTML"}
-        </Button>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline p-0 h-auto"
+            onClick={() => setEditHtml(!editHtml)}
+          >
+            <Code className="h-3.5 w-3.5" />
+            {editHtml ? "Editar Visual" : "Editar HTML"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            disabled={!resolvedPublicUrl}
+            onClick={() => {
+              if (!resolvedPublicUrl) return;
+              const msgHtml = `<p>Olá ${clienteNome || ""},</p>` +
+                `<p>Segue o link de acesso para a sua proposta comercial de energia solar:</p>` +
+                `<p><a href="${resolvedPublicUrl}">${resolvedPublicUrl}</a></p>` +
+                `<p>Qualquer dúvida, estou à disposição!</p>`;
+              setEmailCorpo(msgHtml);
+              setEmailAssunto(`Proposta Comercial - Energia Solar${potenciaKwp > 0 ? ` ${potenciaKwp.toFixed(2)} kWp` : ""}`);
+              toast({ title: "Mensagem gerada com link da proposta ✉️" });
+            }}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Gerar mensagem
+          </Button>
+        </div>
 
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
