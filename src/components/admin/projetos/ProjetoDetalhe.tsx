@@ -788,29 +788,50 @@ function GerenciamentoTab({
       const userId = userData?.user?.id;
       if (!userId) throw new Error("Usuário não autenticado");
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).single();
-      const { data, error } = await supabase.from("deal_activities").insert({
-        deal_id: deal.id,
-        title: activityTitle.trim(),
-        description: activityDescription.trim() || null,
-        activity_type: activityType as any,
-        due_date: activityDueDate || null,
-        assigned_to: activityAssignedTo || null,
-        tenant_id: (profile as any)?.tenant_id,
-        created_by: userId,
-      } as any).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
-      if (error) throw error;
-      if (data) {
-        setActivities(prev => [data as any, ...prev]);
-        setActivityTitle("");
-        setActivityDescription("");
-        setActivityDueDate("");
-        setActivityType("task");
-        setActivityAssignedTo("");
-        setActivityNotifySystem(true);
-        setActivityNotifyWa(false);
-        setActivityDialogOpen(false);
-        toast({ title: "Atividade criada", description: "A atividade foi salva com sucesso." });
+
+      if (editingActivityId) {
+        // Update existing activity
+        const { data, error } = await supabase.from("deal_activities").update({
+          title: activityTitle.trim(),
+          description: activityDescription.trim() || null,
+          activity_type: activityType as any,
+          due_date: activityDueDate || null,
+          assigned_to: activityAssignedTo || null,
+        } as any).eq("id", editingActivityId).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
+        if (error) throw error;
+        if (data) {
+          setActivities(prev => prev.map(a => a.id === editingActivityId ? (data as any) : a));
+          toast({ title: "Atividade atualizada", description: "A atividade foi salva com sucesso." });
+        }
+      } else {
+        // Insert new activity
+        const { data, error } = await supabase.from("deal_activities").insert({
+          deal_id: deal.id,
+          title: activityTitle.trim(),
+          description: activityDescription.trim() || null,
+          activity_type: activityType as any,
+          due_date: activityDueDate || null,
+          assigned_to: activityAssignedTo || null,
+          tenant_id: (profile as any)?.tenant_id,
+          created_by: userId,
+        } as any).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
+        if (error) throw error;
+        if (data) {
+          setActivities(prev => [data as any, ...prev]);
+          toast({ title: "Atividade criada", description: "A atividade foi salva com sucesso." });
+        }
       }
+
+      // Reset form
+      setEditingActivityId(null);
+      setActivityTitle("");
+      setActivityDescription("");
+      setActivityDueDate("");
+      setActivityType("task");
+      setActivityAssignedTo("");
+      setActivityNotifySystem(true);
+      setActivityNotifyWa(false);
+      setActivityDialogOpen(false);
     } catch (err: any) {
       toast({ title: "Erro ao salvar atividade", description: err.message, variant: "destructive" });
     } finally { setSavingActivity(false); }
