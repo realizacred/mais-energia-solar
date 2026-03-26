@@ -566,6 +566,65 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
     );
   }
 
+  // ── Filtered & paginated data ────────────────────────────
+  const filteredVendedores = useMemo(() => {
+    return vendedores.filter((v) => {
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const matches =
+          v.nome.toLowerCase().includes(term) ||
+          v.telefone.includes(searchTerm) ||
+          v.email?.toLowerCase().includes(term);
+        if (!matches) return false;
+      }
+      if (filterStatus !== "todos") {
+        if (filterStatus === "ativo" && !v.ativo) return false;
+        if (filterStatus === "inativo" && v.ativo) return false;
+      }
+      return true;
+    });
+  }, [vendedores, searchTerm, filterStatus]);
+
+  const paginatedVendedores = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredVendedores.slice(start, start + pageSize);
+  }, [filteredVendedores, page, pageSize]);
+
+  const handleSearchChange = useCallback((v: string) => { setSearchTerm(v); setPage(1); }, []);
+  const handleFilterStatus = useCallback((v: string) => { setFilterStatus(v); setPage(1); }, []);
+
+  const activeFilterCount = (filterStatus !== "todos" ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterStatus("todos");
+    setPage(1);
+  };
+
+  const handleExportCSV = useCallback(() => {
+    if (filteredVendedores.length === 0) return;
+    const headers = ["Nome", "Telefone", "E-mail", "Código", "Comissão %", "Ativo", "Vinculado"];
+    const rows = filteredVendedores.map((v) => [
+      v.nome,
+      v.telefone,
+      v.email || "",
+      v.codigo,
+      String(v.percentual_comissao ?? 0),
+      v.ativo ? "Sim" : "Não",
+      v.user_id ? "Sim" : "Não",
+    ]);
+    const csvContent = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const ts = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
+    a.download = `consultores_${ts}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `${filteredVendedores.length} consultores exportados` });
+  }, [filteredVendedores, toast]);
+
   const activeCount = vendedores.filter(v => v.ativo).length;
   const inactiveCount = vendedores.filter(v => !v.ativo).length;
   const linkedCount = vendedores.filter(v => v.user_id).length;
