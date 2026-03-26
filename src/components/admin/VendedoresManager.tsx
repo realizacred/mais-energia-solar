@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
@@ -23,9 +23,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck } from "lucide-react";
+import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck, Download, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { SearchInput } from "@/components/ui-kit";
+import { TablePagination } from "@/components/ui-kit/TablePagination";
 
 interface Vendedor {
   id: string;
@@ -68,6 +70,12 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   const [inviteCopied, setInviteCopied] = useState(false);
   const [generatingInvite, setGeneratingInvite] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // ── Search, filters, pagination ─────────────────────────
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("todos");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const isNewVendedor = !editingVendedor;
   const isLinkingExistingUser = isNewVendedor && formData.tipoAcesso === "vincular";
@@ -548,6 +556,69 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
     return user?.nome;
   };
 
+  // ── Filtered & paginated data ────────────────────────────
+  const filteredVendedores = useMemo(() => {
+    return vendedores.filter((v) => {
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const matches =
+          v.nome.toLowerCase().includes(term) ||
+          v.telefone.includes(searchTerm) ||
+          v.email?.toLowerCase().includes(term);
+        if (!matches) return false;
+      }
+      if (filterStatus !== "todos") {
+        if (filterStatus === "ativo" && !v.ativo) return false;
+        if (filterStatus === "inativo" && v.ativo) return false;
+      }
+      return true;
+    });
+  }, [vendedores, searchTerm, filterStatus]);
+
+  const paginatedVendedores = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredVendedores.slice(start, start + pageSize);
+  }, [filteredVendedores, page, pageSize]);
+
+  const handleSearchChange = useCallback((v: string) => { setSearchTerm(v); setPage(1); }, []);
+  const handleFilterStatus = useCallback((v: string) => { setFilterStatus(v); setPage(1); }, []);
+
+  const activeFilterCount = (filterStatus !== "todos" ? 1 : 0);
+
+  const clearFilters = useCallback(() => {
+    setSearchTerm("");
+    setFilterStatus("todos");
+    setPage(1);
+  }, []);
+
+  const handleExportCSV = useCallback(() => {
+    if (filteredVendedores.length === 0) return;
+    const headers = ["Nome", "Telefone", "E-mail", "Código", "Comissão %", "Ativo", "Vinculado"];
+    const rows = filteredVendedores.map((v) => [
+      v.nome,
+      v.telefone,
+      v.email || "",
+      v.codigo,
+      String(v.percentual_comissao ?? 0),
+      v.ativo ? "Sim" : "Não",
+      v.user_id ? "Sim" : "Não",
+    ]);
+    const csvContent = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const ts = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
+    a.download = `consultores_${ts}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `${filteredVendedores.length} consultores exportados` });
+  }, [filteredVendedores, toast]);
+
+  const activeCount = vendedores.filter(v => v.ativo).length;
+  const inactiveCount = vendedores.filter(v => !v.ativo).length;
+  const linkedCount = vendedores.filter(v => v.user_id).length;
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -557,10 +628,6 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       </div>
     );
   }
-
-  const activeCount = vendedores.filter(v => v.ativo).length;
-  const inactiveCount = vendedores.filter(v => !v.ativo).length;
-  const linkedCount = vendedores.filter(v => v.user_id).length;
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
@@ -575,10 +642,43 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             <p className="text-sm text-muted-foreground">Gerencie consultores, links e acessos ao portal</p>
           </div>
         </div>
-        <Button onClick={openNewDialog} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Consultor
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={filteredVendedores.length === 0}>
+            <Download className="h-4 w-4 mr-1.5" />
+            Exportar CSV
+          </Button>
+          <Button onClick={openNewDialog} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Novo Consultor
+          </Button>
+        </div>
+      </div>
+
+      {/* Search & Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          value={searchTerm}
+          onChange={handleSearchChange}
+          placeholder="Buscar por nome, telefone ou e-mail..."
+        />
+        <Select value={filterStatus} onValueChange={handleFilterStatus}>
+          <SelectTrigger className="h-9 w-[120px] text-sm">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="ativo">Ativos</SelectItem>
+            <SelectItem value="inativo">Inativos</SelectItem>
+          </SelectContent>
+        </Select>
+        {activeFilterCount > 0 && (
+          <>
+            <Badge variant="secondary" className="text-xs">{activeFilterCount} filtro</Badge>
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs gap-1">
+              <X className="h-3 w-3" /> Limpar
+            </Button>
+          </>
+        )}
       </div>
 
       {/* §27 KPI Cards */}
@@ -630,15 +730,17 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       </div>
 
       {/* §4 Table */}
-      {vendedores.length === 0 ? (
+      {filteredVendedores.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Users className="w-10 h-10 text-muted-foreground/40 mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">Nenhum consultor cadastrado</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">Cadastre o primeiro consultor para começar</p>
-          <Button onClick={openNewDialog} variant="outline" className="mt-4 gap-2">
-            <Plus className="w-4 h-4" />
-            Cadastrar primeiro consultor
-          </Button>
+          <p className="text-sm font-medium text-muted-foreground">Nenhum consultor encontrado</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">{activeFilterCount > 0 ? "Tente ajustar os filtros" : "Cadastre o primeiro consultor para começar"}</p>
+          {activeFilterCount === 0 && (
+            <Button onClick={openNewDialog} variant="outline" className="mt-4 gap-2">
+              <Plus className="w-4 h-4" />
+              Cadastrar primeiro consultor
+            </Button>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">
@@ -656,7 +758,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               </TableRow>
             </TableHeader>
             <TableBody>
-              {vendedores.map((vendedor) => (
+              {paginatedVendedores.map((vendedor) => (
                 <TableRow key={vendedor.id} className={cn("hover:bg-muted/30 transition-colors", !vendedor.ativo && "opacity-50")}>
                   <TableCell className="font-medium text-foreground">{vendedor.nome}</TableCell>
                   <TableCell>
@@ -768,6 +870,14 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            totalItems={filteredVendedores.length}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
         </div>
       )}
 
