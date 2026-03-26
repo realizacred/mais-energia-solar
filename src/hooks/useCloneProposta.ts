@@ -34,7 +34,7 @@ export function useProjetosParaClone(enabled: boolean) {
       if (error) throw error;
       return (data || []).map((p: any): ProjetoOption => ({
         id: p.id,
-        nome: p.nome || "Sem nome",
+        nome: p.codigo ? `#${p.codigo}` : "Sem código",
         cliente_nome: p.clientes?.nome || null,
       }));
     },
