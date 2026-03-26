@@ -89,6 +89,18 @@ export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
           </div>
         </div>
       )}
+
+      {/* Pagination */}
+      {projetos.length > pageSize && (
+        <TablePagination
+          totalItems={projetos.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+          pageSizeOptions={[10, 25, 100]}
+        />
+      )}
     </div>
   );
 }
