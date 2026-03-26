@@ -196,13 +196,11 @@ export function useCustomFieldsAvailability() {
   useEffect(() => {
     supabase
       .from("deal_custom_fields")
-      .select("id, field_context, show_on_create")
+      .select("id")
       .eq("is_active", true)
+      .eq("field_context", "pre_dimensionamento")
       .then(({ data }) => {
-        const fields = data || [];
-        // Only show the step if there are fields visible on proposal creation
-        const visible = fields.filter(f => f.show_on_create !== false);
-        setHasCustomFieldsPre(visible.length > 0);
+        setHasCustomFieldsPre((data || []).length > 0);
         setLoadingCustomFields(false);
       });
   }, []);
