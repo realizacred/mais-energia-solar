@@ -171,31 +171,49 @@ export function StepLocalizacao({
         let lat: number | null = null;
         let lon: number | null = null;
 
-        // Try Google Maps Geocoding first (more reliable)
+        // Strategy 1: Use Google Maps JS Geocoder (available if Maps script loaded)
         try {
-          const { data: mapsConfig } = await supabase
-            .from("integration_configs")
-            .select("api_key, is_active")
-            .eq("service_key", "google_maps")
-            .eq("is_active", true)
-            .maybeSingle();
-
-          if (mapsConfig?.api_key) {
-            const query = encodeURIComponent(addressQuery);
-            const resp = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsConfig.api_key}&region=br`
-            );
-            const json = await resp.json();
-            if (json.status === "OK" && json.results?.[0]) {
-              lat = json.results[0].geometry.location.lat;
-              lon = json.results[0].geometry.location.lng;
+          if (typeof google !== "undefined" && google.maps?.Geocoder) {
+            const geocoder = new google.maps.Geocoder();
+            const result = await geocoder.geocode({ address: addressQuery, region: "br" });
+            if (result?.results?.[0]?.geometry?.location) {
+              lat = result.results[0].geometry.location.lat();
+              lon = result.results[0].geometry.location.lng();
             }
           }
         } catch (e) {
-          console.warn("[StepLocalizacao] Google geocode failed for tenant, trying Nominatim:", e);
+          console.warn("[StepLocalizacao] Google JS Geocoder failed for tenant:", e);
         }
 
-        // Fallback to Nominatim
+        // Strategy 2: Google Geocoding REST API
+        if (lat === null) {
+          try {
+            const { data: mapsConfig } = await supabase
+              .from("integration_configs")
+              .select("api_key, is_active")
+              .eq("service_key", "google_maps")
+              .eq("is_active", true)
+              .maybeSingle();
+
+            if (mapsConfig?.api_key) {
+              const query = encodeURIComponent(addressQuery);
+              const resp = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsConfig.api_key}&region=br`
+              );
+              const json = await resp.json();
+              if (json.status === "OK" && json.results?.[0]) {
+                lat = json.results[0].geometry.location.lat;
+                lon = json.results[0].geometry.location.lng;
+              } else {
+                console.warn("[StepLocalizacao] Google REST Geocode status:", json.status, json.error_message);
+              }
+            }
+          } catch (e) {
+            console.warn("[StepLocalizacao] Google REST geocode failed for tenant, trying Nominatim:", e);
+          }
+        }
+
+        // Strategy 3: Nominatim (fallback)
         if (lat === null) {
           try {
             const query = encodeURIComponent(addressQuery);
