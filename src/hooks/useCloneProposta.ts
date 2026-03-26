@@ -28,7 +28,7 @@ export function useProjetosParaClone(enabled: boolean) {
       const { data, error } = await supabase
         .from("projetos" as any)
         .select("id, codigo, potencia_kwp, cliente_id, clientes!projetos_cliente_id_fkey(nome)")
-        .in("status", ["em_andamento", "aguardando_aprovacao", "aprovado"])
+        .not("status", "in", '("cancelado","concluido")')
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
