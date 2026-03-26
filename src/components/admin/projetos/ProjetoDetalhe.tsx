@@ -1254,7 +1254,7 @@ function GerenciamentoTab({
                     const isDone = a.status === "done";
                     const assignedName = a.assigned_to ? (teamMembers.find(m => m.user_id === a.assigned_to)?.nome || null) : null;
                     const phoneForAction = customerPhone?.replace(/\D/g, "") || "";
-                    const waLink = phoneForAction ? `https://wa.me/${phoneForAction.startsWith("55") ? phoneForAction : `55${phoneForAction}`}` : "";
+                    
                     const telLink = phoneForAction ? `tel:+${phoneForAction.startsWith("55") ? phoneForAction : `55${phoneForAction}`}` : "";
                     const isCallType = a.activity_type === "call";
                     const isWaType = a.activity_type === "whatsapp" || a.activity_type === "follow_up";
