@@ -289,44 +289,50 @@ export function NovoProjetoModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-[1100px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
-        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+        {/* §25 Header: ícone + título */}
+        <DialogHeader className="flex flex-row items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <FolderPlus className="w-5 h-5 text-primary" />
+          </div>
           <div className="flex-1">
-            <DialogTitle className="text-lg font-bold text-foreground">Novo Projeto</DialogTitle>
+            <DialogTitle className="text-base font-bold text-foreground">Novo Projeto</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Preencha os dados do projeto e do cliente</p>
           </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
           <ScrollArea className="flex-1 min-h-0">
-            <div className="p-5 space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-bold text-primary">Projeto</h3>
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                      <Users className="w-4 h-4 text-muted-foreground" />
+            <div className="px-4 py-3.5">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-5 gap-y-4">
+                {/* ── Coluna 1: Projeto ── */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wide text-primary">Projeto</h3>
+                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                      <Users className="w-3 h-3 text-muted-foreground" />
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Nome do Projeto</Label>
-                    <Input placeholder="Nome do projeto" className="h-9" {...form.register("nomeProjeto")} />
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Nome do Projeto</Label>
+                    <Input placeholder="Nome do projeto" className="h-8 text-sm" {...form.register("nomeProjeto")} />
                     {form.formState.errors.nomeProjeto && <p className="text-xs text-destructive">{form.formState.errors.nomeProjeto.message}</p>}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Descrição</Label>
-                    <Textarea placeholder="Escreva aqui" className="min-h-[60px] resize-y" {...form.register("descricao")} />
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Descrição</Label>
+                    <Textarea placeholder="Escreva aqui" className="min-h-[52px] resize-y text-sm" {...form.register("descricao")} />
                     {form.formState.errors.descricao && <p className="text-xs text-destructive">{form.formState.errors.descricao.message}</p>}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Consultor responsável <span className="text-destructive">*</span></Label>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Consultor responsável <span className="text-destructive">*</span></Label>
                     <Controller
                       control={form.control}
                       name="consultorId"
                       render={({ field }) => (
                         <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="h-9">
+                          <SelectTrigger className="h-8 text-sm">
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                           <SelectContent>
@@ -338,23 +344,25 @@ export function NovoProjetoModal({
                       )}
                     />
                     {consultores.length > 0 && (
-                      <div className="flex items-center gap-1 pt-1 flex-wrap">
+                      <div className="flex items-center gap-1 pt-0.5 flex-wrap">
                         {consultores.slice(0, 8).map((c) => {
                           const active = form.watch("consultorId") === c.id;
                           return (
-                            <button
+                            <Button
                               key={c.id}
                               type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-full p-0"
                               onClick={() => handleConsultorAvatarClick(c.id)}
-                              className="rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
                               aria-label={`Selecionar ${c.nome}`}
                             >
-                              <Avatar className={cn("w-7 h-7 border-2 transition-all", active ? "border-primary ring-1 ring-primary" : "border-muted")}>
-                                <AvatarFallback className={cn("text-[10px] font-bold", active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                              <Avatar className={cn("w-6 h-6 border-2 transition-all", active ? "border-primary ring-1 ring-primary" : "border-muted")}>
+                                <AvatarFallback className={cn("text-[9px] font-bold", active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
                                   {c.nome.substring(0, 2).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                            </button>
+                            </Button>
                           );
                         })}
                       </div>
@@ -363,14 +371,14 @@ export function NovoProjetoModal({
                   </div>
 
                   {dynamicEtiquetas.length > 0 && (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-muted-foreground">Etiqueta</Label>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-medium text-muted-foreground">Etiqueta</Label>
                       <Controller
                         control={form.control}
                         name="etiquetaId"
                         render={({ field }) => (
                           <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger className="h-9">
+                            <SelectTrigger className="h-8 text-sm">
                               <SelectValue placeholder="Selecione uma opção" />
                             </SelectTrigger>
                             <SelectContent>
@@ -389,26 +397,27 @@ export function NovoProjetoModal({
                     </div>
                   )}
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Valor estimado (opcional)</Label>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Valor estimado (opcional)</Label>
                     <Controller
                       control={form.control}
                       name="valor"
                       render={({ field }) => (
-                        <CurrencyInput value={field.value || 0} onChange={field.onChange} className="h-9" />
+                        <CurrencyInput value={field.value || 0} onChange={field.onChange} className="h-8" />
                       )}
                     />
                   </div>
                 </div>
 
-                <div className="space-y-4 lg:col-span-1">
-                  <h3 className="text-sm font-bold text-foreground mb-1">Cliente</h3>
+                {/* ── Coluna 2: Cliente ── */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-foreground">Cliente</h3>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Nome do Cliente <span className="text-destructive">*</span></Label>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Nome do Cliente <span className="text-destructive">*</span></Label>
                     <Input
                       placeholder="Digite o nome do cliente"
-                      className={cn("h-9", form.formState.errors.clienteNome && "border-destructive")}
+                      className={cn("h-8 text-sm", form.formState.errors.clienteNome && "border-destructive")}
                       {...form.register("clienteNome", {
                         onChange: () => {
                           if (selectedCliente) setSelectedCliente(null);
@@ -418,19 +427,19 @@ export function NovoProjetoModal({
                     {form.formState.errors.clienteNome && <p className="text-xs text-destructive">{form.formState.errors.clienteNome.message}</p>}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Email do Cliente</Label>
-                    <Input placeholder="Digite o email do cliente" type="email" className="h-9" {...form.register("clienteEmail")} />
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Email do Cliente</Label>
+                    <Input placeholder="Digite o email do cliente" type="email" className="h-8 text-sm" {...form.register("clienteEmail")} />
                     {form.formState.errors.clienteEmail && <p className="text-xs text-destructive">{form.formState.errors.clienteEmail.message}</p>}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Nome da Empresa</Label>
-                    <Input placeholder="Digite o nome da empresa" className="h-9" {...form.register("clienteEmpresa")} />
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Nome da Empresa</Label>
+                    <Input placeholder="Digite o nome da empresa" className="h-8 text-sm" {...form.register("clienteEmpresa")} />
                     {form.formState.errors.clienteEmpresa && <p className="text-xs text-destructive">{form.formState.errors.clienteEmpresa.message}</p>}
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <Controller
                       control={form.control}
                       name="clienteCpfCnpj"
@@ -441,8 +450,8 @@ export function NovoProjetoModal({
                     {form.formState.errors.clienteCpfCnpj && <p className="text-xs text-destructive">{form.formState.errors.clienteCpfCnpj.message}</p>}
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Telefone Celular <span className="text-destructive">*</span></Label>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Telefone Celular <span className="text-destructive">*</span></Label>
                     <Controller
                       control={form.control}
                       name="clienteTelefone"
@@ -454,13 +463,14 @@ export function NovoProjetoModal({
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-foreground mb-1">Clientes similares</h3>
+                {/* ── Coluna 3: Clientes similares ── */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-foreground">Clientes similares</h3>
 
                   {similares.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">Nenhum cliente similar</p>
+                    <p className="text-xs text-muted-foreground py-1">Nenhum cliente similar</p>
                   ) : (
-                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
                       {similares.map((c) => (
                         <Button
                           key={c.id}
@@ -468,14 +478,14 @@ export function NovoProjetoModal({
                           variant="ghost"
                           onClick={() => handleSelectSimilar(c)}
                           className={cn(
-                            "w-full h-auto justify-start rounded-lg border p-3 text-left hover:bg-muted/50",
+                            "w-full h-auto justify-start rounded-lg border p-2.5 text-left hover:bg-muted/50",
                             selectedCliente?.id === c.id ? "border-primary bg-primary/5" : "border-border"
                           )}
                         >
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{c.nome}</p>
-                            <p className="text-xs text-muted-foreground truncate">{c.telefone}</p>
-                            {c.email && <p className="text-xs text-muted-foreground truncate">{c.email}</p>}
+                            <p className="text-xs font-medium text-foreground truncate">{c.nome}</p>
+                            <p className="text-[11px] text-muted-foreground truncate">{c.telefone}</p>
+                            {c.email && <p className="text-[11px] text-muted-foreground truncate">{c.email}</p>}
                           </div>
                         </Button>
                       ))}
@@ -483,22 +493,23 @@ export function NovoProjetoModal({
                   )}
 
                   {projetoExistenteQuery.data && (
-                    <div className="flex items-start gap-2.5 rounded-lg border border-warning/50 bg-warning/10 p-3">
-                      <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 rounded-lg border border-warning/50 bg-warning/10 p-2.5">
+                      <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-foreground">Projeto {projetoExistenteQuery.data.codigo || projetoExistenteQuery.data.id} já existe</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">Não é possível criar outro projeto enquanto houver um em andamento.</p>
+                        <p className="text-[11px] font-semibold text-foreground">Projeto {projetoExistenteQuery.data.codigo || projetoExistenteQuery.data.id} já existe</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Não é possível criar outro projeto enquanto houver um em andamento.</p>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-3 border-t border-border pt-5">
-                <h3 className="text-sm font-bold text-foreground">Endereço</h3>
+              {/* ── Endereço ── */}
+              <div className="space-y-2.5 border-t border-border pt-3.5 mt-4">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-foreground">Endereço</h3>
                 <AddressFields value={addressValue} onChange={handleAddressChange} />
                 {(form.formState.errors.cep || form.formState.errors.rua || form.formState.errors.numero || form.formState.errors.bairro || form.formState.errors.cidade || form.formState.errors.estado) && (
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {form.formState.errors.cep && <p className="text-xs text-destructive">{form.formState.errors.cep.message}</p>}
                     {form.formState.errors.rua && <p className="text-xs text-destructive">{form.formState.errors.rua.message}</p>}
                     {form.formState.errors.numero && <p className="text-xs text-destructive">{form.formState.errors.numero.message}</p>}
@@ -511,7 +522,7 @@ export function NovoProjetoModal({
             </div>
           </ScrollArea>
 
-          <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+          <DialogFooter className="flex justify-end gap-2 px-4 py-3 border-t border-border bg-muted/30 shrink-0">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>Fechar</Button>
             <Button type="submit" disabled={submitting || !!projetoExistenteQuery.data}>
               {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
