@@ -825,6 +825,33 @@ function GerenciamentoTab({
     } catch { /* ignore */ }
   };
 
+  // Edit activity — populate dialog with existing data
+  const handleEditActivity = (activity: typeof activities[0]) => {
+    setEditingActivityId(activity.id);
+    setActivityTitle(activity.title);
+    setActivityDescription(activity.description || "");
+    setActivityDueDate(activity.due_date ? activity.due_date.slice(0, 16) : "");
+    setActivityType(activity.activity_type || "task");
+    setActivityAssignedTo(activity.assigned_to || "");
+    setActivityDialogOpen(true);
+  };
+
+  // Delete activity
+  const handleDeleteActivity = async () => {
+    if (!activityToDelete) return;
+    try {
+      const { error } = await supabase.from("deal_activities").delete().eq("id", activityToDelete);
+      if (error) throw error;
+      setActivities(prev => prev.filter(a => a.id !== activityToDelete));
+      toast({ title: "Atividade excluída", description: "A atividade foi removida com sucesso." });
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+    } finally {
+      setActivityToDelete(null);
+      setDeleteActivityDialogOpen(false);
+    }
+  };
+
   // Load document activity for timeline
   useEffect(() => {
     async function loadDocEntries() {
