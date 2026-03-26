@@ -8,16 +8,21 @@ import { supabase } from "@/integrations/supabase/client";
 const STALE_TIME = 1000 * 60 * 5;
 const QUERY_KEY = "inversores-catalogo" as const;
 
-const SELECT_COLS = "id, tenant_id, fabricante, modelo, potencia_nominal_kw, tipo, fases, mppt_count, strings_por_mppt, tensao_entrada_max_v, tensao_saida_v, corrente_entrada_max_a, eficiencia_max_percent, peso_kg, dimensoes_mm, garantia_anos, ip_protection, wifi_integrado, ativo, created_at, updated_at";
+const SELECT_COLS = "id, tenant_id, fabricante, modelo, potencia_nominal_kw, potencia_maxima_kw, tipo, fases, mppt_count, strings_por_mppt, tensao_entrada_max_v, tensao_saida_v, corrente_entrada_max_a, tensao_mppt_min_v, tensao_mppt_max_v, corrente_saida_a, fator_potencia, eficiencia_max_percent, peso_kg, dimensoes_mm, garantia_anos, ip_protection, wifi_integrado, datasheet_url, status, ativo, created_at, updated_at";
 
 export interface Inversor {
   id: string;
   fabricante: string;
   modelo: string;
   potencia_nominal_kw: number;
+  potencia_maxima_kw: number | null;
   tipo: string;
   tensao_entrada_max_v: number | null;
   corrente_entrada_max_a: number | null;
+  tensao_mppt_min_v: number | null;
+  tensao_mppt_max_v: number | null;
+  corrente_saida_a: number | null;
+  fator_potencia: number | null;
   mppt_count: number | null;
   strings_por_mppt: number | null;
   fases: string;
@@ -28,6 +33,8 @@ export interface Inversor {
   dimensoes_mm: string | null;
   wifi_integrado: boolean | null;
   ip_protection: string | null;
+  datasheet_url: string | null;
+  status: string;
   ativo: boolean;
   tenant_id: string | null;
 }

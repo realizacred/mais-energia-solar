@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
-import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { InversorImportDialog } from "./inversores/InversorImportDialog";
 import {
   useInversoresCatalogo,
   useSalvarInversor,
@@ -30,12 +31,14 @@ import {
 // Inversor type imported from hook
 
 const EMPTY_FORM = {
-  fabricante: "", modelo: "", potencia_nominal_kw: "", tipo: "String",
+  fabricante: "", modelo: "", potencia_nominal_kw: "", potencia_maxima_kw: "", tipo: "String",
   tensao_entrada_max_v: "", corrente_entrada_max_a: "",
+  tensao_mppt_min_v: "", tensao_mppt_max_v: "", corrente_saida_a: "", fator_potencia: "1.0",
   mppt_count: "2", strings_por_mppt: "1", fases: "Monofásico",
   tensao_saida_v: "220", eficiencia_max_percent: "",
   garantia_anos: "5", peso_kg: "", dimensoes_mm: "",
   wifi_integrado: true, ip_protection: "IP65",
+  datasheet_url: "", status: "rascunho",
 };
 
 export function InversoresManager() {
@@ -45,6 +48,7 @@ export function InversoresManager() {
   const [filterFabricante, setFilterFabricante] = useState("all");
   const [filterTipo, setFilterTipo] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [distImportOpen, setDistImportOpen] = useState(false);
   const [editing, setEditing] = useState<Inversor | null>(null);
   const [deleting, setDeleting] = useState<Inversor | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -76,9 +80,14 @@ export function InversoresManager() {
       setForm({
         fabricante: inv.fabricante, modelo: inv.modelo,
         potencia_nominal_kw: String(inv.potencia_nominal_kw),
+        potencia_maxima_kw: inv.potencia_maxima_kw ? String(inv.potencia_maxima_kw) : "",
         tipo: inv.tipo,
         tensao_entrada_max_v: inv.tensao_entrada_max_v ? String(inv.tensao_entrada_max_v) : "",
         corrente_entrada_max_a: inv.corrente_entrada_max_a ? String(inv.corrente_entrada_max_a) : "",
+        tensao_mppt_min_v: inv.tensao_mppt_min_v ? String(inv.tensao_mppt_min_v) : "",
+        tensao_mppt_max_v: inv.tensao_mppt_max_v ? String(inv.tensao_mppt_max_v) : "",
+        corrente_saida_a: inv.corrente_saida_a ? String(inv.corrente_saida_a) : "",
+        fator_potencia: inv.fator_potencia ? String(inv.fator_potencia) : "1.0",
         mppt_count: inv.mppt_count ? String(inv.mppt_count) : "2",
         strings_por_mppt: inv.strings_por_mppt ? String(inv.strings_por_mppt) : "1",
         fases: inv.fases,
@@ -89,6 +98,8 @@ export function InversoresManager() {
         dimensoes_mm: inv.dimensoes_mm || "",
         wifi_integrado: inv.wifi_integrado ?? true,
         ip_protection: inv.ip_protection || "IP65",
+        datasheet_url: inv.datasheet_url || "",
+        status: inv.status || "rascunho",
       });
     } else {
       setEditing(null);
@@ -108,9 +119,14 @@ export function InversoresManager() {
         fabricante: form.fabricante.trim(),
         modelo: form.modelo.trim(),
         potencia_nominal_kw: parseFloat(form.potencia_nominal_kw),
+        potencia_maxima_kw: form.potencia_maxima_kw ? parseFloat(form.potencia_maxima_kw) : null,
         tipo: form.tipo,
         tensao_entrada_max_v: form.tensao_entrada_max_v ? parseInt(form.tensao_entrada_max_v) : null,
         corrente_entrada_max_a: form.corrente_entrada_max_a ? parseFloat(form.corrente_entrada_max_a) : null,
+        tensao_mppt_min_v: form.tensao_mppt_min_v ? parseInt(form.tensao_mppt_min_v) : null,
+        tensao_mppt_max_v: form.tensao_mppt_max_v ? parseInt(form.tensao_mppt_max_v) : null,
+        corrente_saida_a: form.corrente_saida_a ? parseFloat(form.corrente_saida_a) : null,
+        fator_potencia: form.fator_potencia ? parseFloat(form.fator_potencia) : null,
         mppt_count: form.mppt_count ? parseInt(form.mppt_count) : null,
         strings_por_mppt: form.strings_por_mppt ? parseInt(form.strings_por_mppt) : null,
         fases: form.fases,
@@ -121,6 +137,8 @@ export function InversoresManager() {
         dimensoes_mm: form.dimensoes_mm || null,
         wifi_integrado: form.wifi_integrado,
         ip_protection: form.ip_protection || null,
+        datasheet_url: form.datasheet_url || null,
+        status: form.status,
       },
     }, {
       onSuccess: () => {
@@ -142,9 +160,14 @@ export function InversoresManager() {
         title="Inversores"
         description={`${inversores.length} inversores cadastrados (${fabricantes.length} fabricantes)`}
         actions={
-          <Button onClick={() => openDialog()} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo Inversor
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setDistImportOpen(true)} className="gap-2">
+              <FileSpreadsheet className="w-4 h-4" /> CSV Distribuidora
+            </Button>
+            <Button onClick={() => openDialog()} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo Inversor
+            </Button>
+          </div>
         }
       />
 
@@ -360,6 +383,26 @@ export function InversoresManager() {
                 <Input type="number" value={form.tensao_saida_v} onChange={(e) => set("tensao_saida_v", e.target.value)} placeholder="220" />
               </div>
               <div className="space-y-1">
+                <Label>Corrente de Saída (A)</Label>
+                <Input type="number" step="0.1" value={form.corrente_saida_a} onChange={(e) => set("corrente_saida_a", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Tensão MPPT mín (V)</Label>
+                <Input type="number" value={form.tensao_mppt_min_v} onChange={(e) => set("tensao_mppt_min_v", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Tensão MPPT máx (V)</Label>
+                <Input type="number" value={form.tensao_mppt_max_v} onChange={(e) => set("tensao_mppt_max_v", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Potência Máxima (kW)</Label>
+                <Input type="number" step="0.01" value={form.potencia_maxima_kw} onChange={(e) => set("potencia_maxima_kw", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Fator de Potência</Label>
+                <Input type="number" step="0.01" value={form.fator_potencia} onChange={(e) => set("fator_potencia", e.target.value)} placeholder="1.0" />
+              </div>
+              <div className="space-y-1">
                 <Label>Eficiência Máx (%)</Label>
                 <Input type="number" step="0.01" value={form.eficiencia_max_percent} onChange={(e) => set("eficiencia_max_percent", e.target.value)} placeholder="98.40" />
               </div>
@@ -374,6 +417,21 @@ export function InversoresManager() {
               <div className="space-y-1">
                 <Label>Proteção IP</Label>
                 <Input value={form.ip_protection as string} onChange={(e) => set("ip_protection", e.target.value)} placeholder="IP65" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label>URL do Datasheet</Label>
+                <Input value={form.datasheet_url} onChange={(e) => set("datasheet_url", e.target.value)} placeholder="https://..." />
+              </div>
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => set("status", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rascunho">Rascunho</SelectItem>
+                    <SelectItem value="revisao">Em revisão</SelectItem>
+                    <SelectItem value="publicado">Publicado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
           </FormGrid>
         </FormModalTemplate>
@@ -395,6 +453,12 @@ export function InversoresManager() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <InversorImportDialog
+          open={distImportOpen}
+          onOpenChange={setDistImportOpen}
+          existingInversores={inversores}
+        />
       </div>
     </div>
   );
