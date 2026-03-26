@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
-import { Plus, Pencil, Trash2, Search, Zap, Globe, Building2, FileSpreadsheet } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Zap, Globe, Building2, FileSpreadsheet, Wand2 } from "lucide-react";
+import { EnrichButton } from "./shared/EnrichButton";
+import { BatchEnrichDialog } from "./shared/BatchEnrichDialog";
 import { useToast } from "@/hooks/use-toast";
 import { OtimizadorImportDialog } from "./otimizadores/OtimizadorImportDialog";
 import {
@@ -44,6 +46,7 @@ export function OtimizadoresManager() {
   const [filterFabricante, setFilterFabricante] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [distImportOpen, setDistImportOpen] = useState(false);
+  const [batchEnrichOpen, setBatchEnrichOpen] = useState(false);
   const [editing, setEditing] = useState<Otimizador | null>(null);
   const [deleting, setDeleting] = useState<Otimizador | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -137,6 +140,9 @@ export function OtimizadoresManager() {
         description={`${otimizadores.length} otimizadores cadastrados (${fabricantes.length} fabricantes)`}
         actions={
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setBatchEnrichOpen(true)} className="gap-2">
+              <Wand2 className="w-4 h-4" /> Buscar specs IA
+            </Button>
             <Button variant="outline" onClick={() => setDistImportOpen(true)} className="gap-2">
               <FileSpreadsheet className="w-4 h-4" /> CSV Distribuidora
             </Button>
@@ -255,6 +261,7 @@ export function OtimizadoresManager() {
                       <span className="text-xs text-muted-foreground">—</span>
                     ) : (
                       <div className="flex justify-end gap-1">
+                        <EnrichButton equipmentType="otimizador" equipmentId={ot.id} />
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(ot)}>
                           <Pencil className="w-4 h-4" />
                         </Button>
@@ -381,6 +388,12 @@ export function OtimizadoresManager() {
           open={distImportOpen}
           onOpenChange={setDistImportOpen}
           existingOtimizadores={otimizadores}
+        />
+        <BatchEnrichDialog
+          open={batchEnrichOpen}
+          onOpenChange={setBatchEnrichOpen}
+          equipmentType="otimizador"
+          draftIds={otimizadores.filter(o => o.status === "rascunho").map(o => o.id)}
         />
       </div>
     </div>
