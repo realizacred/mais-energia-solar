@@ -154,7 +154,7 @@ export function StageDealCard({
       )}
       style={borderStyle}
     >
-      <div className="p-2.5 space-y-1.5">
+      <div className="p-2 space-y-1">
         {/* HEADER: Name + Value */}
         <div className="flex items-start justify-between gap-1.5">
           <div className="min-w-0 flex-1">
@@ -276,7 +276,7 @@ export function StageDealCard({
         </div>
 
         {/* ACTIONS (inline, minimal — no separator bar) */}
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5">
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
