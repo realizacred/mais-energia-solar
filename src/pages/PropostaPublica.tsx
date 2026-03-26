@@ -56,6 +56,7 @@ export default function PropostaPublica() {
   const [loading, setLoading] = useState(true);
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
   const [html, setHtml] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [decision, setDecision] = useState<"aceita" | "recusada" | null>(null);
@@ -116,7 +117,7 @@ export default function PropostaPublica() {
         supabase.from("proposta_renders")
           .select("html").eq("versao_id", td.versao_id).eq("tipo", "html").maybeSingle(),
         supabase.from("proposta_versoes")
-          .select("id, valor_total, economia_mensal, payback_meses, potencia_kwp, snapshot")
+          .select("id, valor_total, economia_mensal, payback_meses, potencia_kwp, snapshot, output_pdf_path")
           .eq("id", td.versao_id).single(),
         (supabase as any).from("proposta_cenarios")
           .select("id, ordem, nome, tipo, is_default, preco_final, entrada_valor, num_parcelas, valor_parcela, taxa_juros_mensal, cet_anual, payback_meses, tir_anual, roi_25_anos, economia_primeiro_ano")
@@ -124,7 +125,16 @@ export default function PropostaPublica() {
       ]);
 
       if (renderRes.data?.html) setHtml(renderRes.data.html);
-      if (versaoRes.data) setVersaoData(versaoRes.data);
+      if (versaoRes.data) {
+        setVersaoData(versaoRes.data);
+        // If no HTML render but PDF exists, generate signed URL for PDF viewing
+        if (!renderRes.data?.html && versaoRes.data.output_pdf_path) {
+          const { data: signedData } = await supabase.storage
+            .from("proposta-documentos")
+            .createSignedUrl(versaoRes.data.output_pdf_path, 3600);
+          if (signedData?.signedUrl) setPdfUrl(signedData.signedUrl);
+        }
+      }
 
       const loadedCenarios = cenariosRes.data ?? [];
       setCenarios(loadedCenarios);
@@ -318,6 +328,20 @@ export default function PropostaPublica() {
               sandbox="allow-same-origin allow-popups allow-scripts"
               className="w-full border-0"
               style={{ width: "100%", height: "clamp(400px, 70vh, 900px)" }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* PDF Preview — when DOCX template was used (no HTML render) */}
+      {!html && pdfUrl && !isSimulacaoView && (
+        <div className="max-w-4xl mx-auto py-6 px-4">
+          <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+            <iframe
+              src={pdfUrl}
+              title="Proposta PDF"
+              className="w-full border-0"
+              style={{ width: "100%", height: "clamp(500px, 80vh, 1000px)" }}
             />
           </div>
         </div>
