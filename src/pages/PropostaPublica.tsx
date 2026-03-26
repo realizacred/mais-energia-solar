@@ -303,6 +303,7 @@ export default function PropostaPublica() {
   }
 
   const hasCenarios = cenarios.length > 0;
+  const pagamentoOpcoes = !hasCenarios ? (versaoData?.snapshot?.pagamento_opcoes || []) : [];
   const isSimulacaoView = viewMode === "simulacao";
 
   return (
