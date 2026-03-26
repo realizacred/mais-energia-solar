@@ -3,6 +3,7 @@ import { Globe, Building2, Trash2, Pencil, Eye, Download, ArrowUpDown, ArrowUp, 
 import { EnrichButton } from "../shared/EnrichButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
@@ -42,6 +43,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
   const [pageSize, setPageSize] = useState(25);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [editingCell, setEditingCell] = useState<{ id: string; field: "potencia_wp" | "eficiencia_percent"; value: string } | null>(null);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -137,6 +139,22 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
       { equipment_type: "modulo", ids },
       { onSuccess: () => setSelectedIds(new Set()) },
     );
+  };
+
+  const handleInlineSave = async (id: string, field: "potencia_wp" | "eficiencia_percent", rawValue: string) => {
+    const val = parseFloat(rawValue);
+    if (isNaN(val)) { setEditingCell(null); return; }
+    if (field === "potencia_wp" && (val < 50 || val > 1000)) {
+      toast({ title: "Potência deve ser entre 50 e 1000 W", variant: "destructive" }); return;
+    }
+    if (field === "eficiencia_percent" && (val < 10 || val > 30)) {
+      toast({ title: "Eficiência deve ser entre 10% e 30%", variant: "destructive" }); return;
+    }
+    const { error } = await supabase.from("modulos_solares").update({ [field]: val }).eq("id", id);
+    if (error) { toast({ title: "Erro ao salvar", variant: "destructive" }); return; }
+    queryClient.invalidateQueries({ queryKey: ["modulos-solares"] });
+    toast({ title: field === "potencia_wp" ? "Potência atualizada" : "Eficiência atualizada" });
+    setEditingCell(null);
   };
 
   const exportCSV = useCallback(() => {
