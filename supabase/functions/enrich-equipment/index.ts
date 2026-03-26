@@ -293,7 +293,7 @@ serve(async (req) => {
       }
     }
 
-    // 9. Update equipment
+    // 9. Update equipment (first pass — without datasheet storage URL)
     const { error: updateError } = await supabase
       .from(tableName)
       .update(updatePayload)
@@ -304,45 +304,73 @@ serve(async (req) => {
       throw new Error(`Erro ao atualizar: ${updateError.message}`);
     }
 
-    // 10. Log AI usage
-    // Get user from auth header if available
-    const authHeader = req.headers.get("authorization");
-    let userId = "system";
-    if (authHeader) {
+    // 9b. Download datasheet PDF and upload to Storage
+    let datasheet_uploaded = false;
+    const datasheetUrl = validated.datasheet_url as string | null;
+
+    if (datasheetUrl && typeof datasheetUrl === "string" && datasheetUrl.startsWith("http")) {
       try {
-        const userClient = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_ANON_KEY")!,
-          { global: { headers: { Authorization: authHeader } } }
-        );
-        const { data: { user } } = await userClient.auth.getUser();
-        if (user?.id) userId = user.id;
-      } catch { /* ignore */ }
+        console.log(`[enrich-equipment] Fetching datasheet: ${datasheetUrl}`);
+        const pdfRes = await fetch(datasheetUrl, {
+          signal: AbortSignal.timeout(15000),
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; EnrichBot/1.0)" },
+        });
+
+        if (pdfRes.ok) {
+          const contentType = pdfRes.headers.get("content-type") || "";
+          if (contentType.includes("application/pdf") || datasheetUrl.toLowerCase().endsWith(".pdf")) {
+            const pdfBuffer = await pdfRes.arrayBuffer();
+            if (pdfBuffer.byteLength > 0 && pdfBuffer.byteLength <= 20 * 1024 * 1024) {
+              const safeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+              const storagePath = `${equipment_type}/${safeName(equipment.fabricante)}_${safeName(equipment.modelo)}.pdf`;
+
+              const { error: uploadError } = await supabase.storage
+                .from("datasheets")
+                .upload(storagePath, pdfBuffer, {
+                  contentType: "application/pdf",
+                  upsert: true,
+                });
+
+              if (uploadError) {
+                console.warn(`[enrich-equipment] Upload error:`, uploadError.message);
+              } else {
+                const { data: publicUrlData } = supabase.storage
+                  .from("datasheets")
+                  .getPublicUrl(storagePath);
+
+                if (publicUrlData?.publicUrl) {
+                  // Update the datasheet_url with the storage URL
+                  await supabase
+                    .from(tableName)
+                    .update({
+                      datasheet_url: publicUrlData.publicUrl,
+                      datasheet_source_url: datasheetUrl,
+                    })
+                    .eq("id", equipment_id);
+
+                  datasheet_uploaded = true;
+                  console.log(`[enrich-equipment] PDF uploaded: ${storagePath} (${pdfBuffer.byteLength} bytes)`);
+                }
+              }
+            } else {
+              console.warn(`[enrich-equipment] PDF size out of range: ${pdfBuffer.byteLength} bytes`);
+            }
+          } else {
+            console.warn(`[enrich-equipment] Not a PDF content-type: ${contentType}`);
+            // Save URL as-is (fallback)
+            await supabase.from(tableName).update({ datasheet_url: datasheetUrl }).eq("id", equipment_id);
+          }
+        } else {
+          console.warn(`[enrich-equipment] Datasheet fetch failed: ${pdfRes.status}`);
+          await pdfRes.text(); // consume body
+          await supabase.from(tableName).update({ datasheet_url: datasheetUrl }).eq("id", equipment_id);
+        }
+      } catch (pdfErr: any) {
+        console.warn(`[enrich-equipment] PDF download error: ${pdfErr.message}`);
+        // Fallback: save URL as-is
+        await supabase.from(tableName).update({ datasheet_url: datasheetUrl }).eq("id", equipment_id);
+      }
     }
-
-    await supabase.from("ai_usage_logs").insert({
-      tenant_id,
-      user_id: userId,
-      function_name: "enrich-equipment",
-      provider: "lovable_gateway",
-      model: "google/gemini-2.5-flash",
-      prompt_tokens: usage.prompt_tokens,
-      completion_tokens: usage.completion_tokens,
-      total_tokens: usage.total_tokens,
-      estimated_cost_usd: (usage.prompt_tokens / 1000) * 0.00015 + (usage.completion_tokens / 1000) * 0.0006,
-      is_fallback: false,
-    });
-
-    console.log(`[enrich-equipment] Sucesso: ${fieldsFilled} campos preenchidos para ${equipment.fabricante} ${equipment.modelo}`);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        fields_filled: fieldsFilled,
-        equipment: `${equipment.fabricante} ${equipment.modelo}`,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (error) {
     console.error("[enrich-equipment] error:", error);
     return new Response(
