@@ -397,10 +397,10 @@ export function NovoProjetoModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">CNPJ/CPF</Label>
                   <CpfCnpjInput
                     value={clienteCpfCnpj}
                     onChange={setClienteCpfCnpj}
+                    label="CNPJ/CPF"
                   />
                 </div>
 
