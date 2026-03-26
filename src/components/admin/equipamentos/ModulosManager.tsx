@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload, FileSpreadsheet, Wand2 } from "lucide-react";
+import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload, FileSpreadsheet, Wand2, X, GitCompareArrows, Package, CheckCircle2, FileWarning, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -21,7 +22,9 @@ import { ModuloFormDialog } from "./modulos/ModuloFormDialog";
 import { ModuloImportDialog } from "./modulos/ModuloImportDialog";
 import { DistributorImportDialog } from "./modulos/DistributorImportDialog";
 import { ModuloTableView } from "./modulos/ModuloTableView";
+import { ModuloCompareModal } from "./modulos/ModuloCompareModal";
 import { BatchEnrichDialog } from "./shared/BatchEnrichDialog";
+import { calcCompletude } from "@/utils/calcCompletude";
 
 type ViewMode = "cards" | "table";
 
@@ -36,6 +39,8 @@ export function ModulosManager() {
   const [filterTipo, setFilterTipo] = useState<string>("all");
   const [filterBifacial, setFilterBifacial] = useState<string>("all");
   const [filterTensao, setFilterTensao] = useState<string>("all");
+  const [filterPotMin, setFilterPotMin] = useState<string>("");
+  const [filterPotMax, setFilterPotMax] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
 
   const [viewModulo, setViewModulo] = useState<Modulo | null>(null);
@@ -45,11 +50,40 @@ export function ModulosManager() {
   const [importOpen, setImportOpen] = useState(false);
   const [distImportOpen, setDistImportOpen] = useState(false);
   const [batchEnrichOpen, setBatchEnrichOpen] = useState(false);
+  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const fabricantes = useMemo(() => {
     const set = new Set(modulos.map((m) => m.fabricante));
     return Array.from(set).sort();
   }, [modulos]);
+
+  // Active filter count
+  const activeFilterCount = useMemo(() => {
+    let c = 0;
+    if (search) c++;
+    if (filterAtivo !== "all") c++;
+    if (filterFabricante !== "all") c++;
+    if (filterStatus !== "all") c++;
+    if (filterTipo !== "all") c++;
+    if (filterBifacial !== "all") c++;
+    if (filterTensao !== "all") c++;
+    if (filterPotMin) c++;
+    if (filterPotMax) c++;
+    return c;
+  }, [search, filterAtivo, filterFabricante, filterStatus, filterTipo, filterBifacial, filterTensao, filterPotMin, filterPotMax]);
+
+  const clearFilters = () => {
+    setSearch("");
+    setFilterAtivo("all");
+    setFilterFabricante("all");
+    setFilterStatus("all");
+    setFilterTipo("all");
+    setFilterBifacial("all");
+    setFilterTensao("all");
+    setFilterPotMin("");
+    setFilterPotMax("");
+  };
 
   const filtered = useMemo(() => modulos.filter((m) => {
     const q = search.toLowerCase();
@@ -60,8 +94,21 @@ export function ModulosManager() {
     const matchTipo = filterTipo === "all" || m.tipo_celula === filterTipo;
     const matchBifacial = filterBifacial === "all" || (filterBifacial === "sim" ? m.bifacial : !m.bifacial);
     const matchTensao = filterTensao === "all" || m.tensao_sistema === filterTensao;
-    return matchSearch && matchAtivo && matchFab && matchStatus && matchTipo && matchBifacial && matchTensao;
-  }), [modulos, search, filterAtivo, filterFabricante, filterStatus, filterTipo, filterBifacial, filterTensao]);
+    const potMin = filterPotMin ? parseInt(filterPotMin) : null;
+    const potMax = filterPotMax ? parseInt(filterPotMax) : null;
+    const matchPotMin = potMin == null || m.potencia_wp >= potMin;
+    const matchPotMax = potMax == null || m.potencia_wp <= potMax;
+    return matchSearch && matchAtivo && matchFab && matchStatus && matchTipo && matchBifacial && matchTensao && matchPotMin && matchPotMax;
+  }), [modulos, search, filterAtivo, filterFabricante, filterStatus, filterTipo, filterBifacial, filterTensao, filterPotMin, filterPotMax]);
+
+  // KPIs
+  const kpis = useMemo(() => {
+    const total = modulos.length;
+    const publicados = modulos.filter(m => m.status === "publicado").length;
+    const rascunhos = modulos.filter(m => m.status === "rascunho").length;
+    const completos = modulos.filter(m => calcCompletude(m) >= 80).length;
+    return { total, publicados, rascunhos, completos };
+  }, [modulos]);
 
   const isGlobal = (m: Modulo) => m.tenant_id === null;
 
@@ -74,6 +121,19 @@ export function ModulosManager() {
     });
   };
 
+  // Compare
+  const toggleCompare = (id: string, checked: boolean) => {
+    const next = new Set(compareIds);
+    if (checked && next.size < 3) next.add(id);
+    else next.delete(id);
+    setCompareIds(next);
+  };
+
+  const compareModulos = useMemo(() =>
+    modulos.filter(m => compareIds.has(m.id)),
+    [modulos, compareIds]
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -81,7 +141,12 @@ export function ModulosManager() {
         title="Módulos Fotovoltaicos"
         description={`${modulos.length} módulos cadastrados (${fabricantes.length} fabricantes)`}
         actions={
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="gap-1">
+                {activeFilterCount} filtro{activeFilterCount > 1 ? "s" : ""}
+              </Badge>
+            )}
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setBatchEnrichOpen(true)}>
               <Wand2 className="w-4 h-4" /> Buscar specs IA
             </Button>
@@ -97,6 +162,71 @@ export function ModulosManager() {
           </div>
         }
       />
+
+      {/* KPI Cards */}
+      {!isLoading && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="border-l-[3px] border-l-primary">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+                <Package className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground leading-none">{kpis.total}</p>
+                <p className="text-xs text-muted-foreground mt-1">Total módulos</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-[3px] border-l-success">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground leading-none">
+                  {kpis.publicados}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                    ({kpis.total ? Math.round((kpis.publicados / kpis.total) * 100) : 0}%)
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Publicados</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-[3px] border-l-warning">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+                <FileWarning className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground leading-none">
+                  {kpis.rascunhos}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                    ({kpis.total ? Math.round((kpis.rascunhos / kpis.total) * 100) : 0}%)
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Rascunhos</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-l-[3px] border-l-info">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-foreground leading-none">
+                  {kpis.completos}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                    ({kpis.total ? Math.round((kpis.completos / kpis.total) * 100) : 0}%)
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Specs completas (≥80%)</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="space-y-4">
         {/* Filters */}
@@ -114,7 +244,7 @@ export function ModulosManager() {
                 onClick={() => setViewMode("table")}><TableIcon className="w-4 h-4" /></Button>
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <Select value={filterFabricante} onValueChange={setFilterFabricante}>
               <SelectTrigger className="w-44"><SelectValue placeholder="Fabricante" /></SelectTrigger>
               <SelectContent>
@@ -162,6 +292,25 @@ export function ModulosManager() {
                 <SelectItem value="inativo">Inativos</SelectItem>
               </SelectContent>
             </Select>
+            <Input
+              type="number"
+              placeholder="Min W"
+              className="w-24 h-9"
+              value={filterPotMin}
+              onChange={(e) => setFilterPotMin(e.target.value)}
+            />
+            <Input
+              type="number"
+              placeholder="Max W"
+              className="w-24 h-9"
+              value={filterPotMax}
+              onChange={(e) => setFilterPotMax(e.target.value)}
+            />
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={clearFilters}>
+                <X className="w-3 h-3" /> Limpar filtros
+              </Button>
+            )}
           </div>
         </div>
 
@@ -201,6 +350,8 @@ export function ModulosManager() {
                 onView={() => setViewModulo(m)}
                 onEdit={() => openEdit(m)}
                 onToggle={(v) => toggleMutation.mutate({ id: m.id, ativo: v })}
+                compareSelected={compareIds.has(m.id)}
+                onCompareToggle={(checked) => toggleCompare(m.id, checked)}
               />
             ))}
           </div>
@@ -222,6 +373,15 @@ export function ModulosManager() {
         )}
       </div>
 
+      {/* Compare floating button */}
+      {compareIds.size >= 2 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <Button size="lg" className="gap-2 shadow-lg" onClick={() => setCompareOpen(true)}>
+            <GitCompareArrows className="w-4 h-4" /> Comparar ({compareIds.size})
+          </Button>
+        </div>
+      )}
+
       {/* Modals */}
       <ModuloViewModal modulo={viewModulo} open={!!viewModulo} onOpenChange={v => !v && setViewModulo(null)} />
       <ModuloFormDialog
@@ -238,6 +398,11 @@ export function ModulosManager() {
         onOpenChange={setBatchEnrichOpen}
         equipmentType="modulo"
         draftIds={modulos.filter(m => m.status === "rascunho" && !m.datasheet_found_at).map(m => m.id)}
+      />
+      <ModuloCompareModal
+        modulos={compareModulos}
+        open={compareOpen}
+        onOpenChange={(v) => { setCompareOpen(v); if (!v) setCompareIds(new Set()); }}
       />
 
       {/* Delete */}
