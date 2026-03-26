@@ -812,8 +812,14 @@ export function CustomFieldsSettings() {
               </div>
 
               {/* ── Card: Dados do Campo ── */}
-              <div className="rounded-lg border bg-card p-4 space-y-4">
-                <h4 className="text-sm font-semibold text-foreground">Dados do Campo</h4>
+              <div className="rounded-xl border bg-card overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
+                  <div className="w-6 h-6 rounded-md bg-info/15 flex items-center justify-center">
+                    <Type className="h-3.5 w-3.5 text-info" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-foreground">Dados do Campo</h4>
+                </div>
+                <div className="p-4 space-y-4">
 
                 {/* Title + Variable */}
                 <div className="grid grid-cols-2 gap-4">
