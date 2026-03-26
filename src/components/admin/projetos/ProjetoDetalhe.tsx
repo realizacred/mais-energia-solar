@@ -40,6 +40,7 @@ import { ProjetoInstalacaoTab } from "./ProjetoInstalacaoTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoOutrosCampos } from "./ProjetoOutrosCampos";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
+import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
 import { useQuery } from "@tanstack/react-query";
@@ -584,6 +585,60 @@ function GerenciamentoTab({
   const [inlineEditLabel, setInlineEditLabel] = useState<string>("");
   const [inlineEditValue, setInlineEditValue] = useState<string>("");
   const [savingInlineEdit, setSavingInlineEdit] = useState(false);
+
+  // ── Address edit dialog ──
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+  const [addressData, setAddressData] = useState<AddressData>({ cep: "", rua: "", numero: "", complemento: "", bairro: "", cidade: "", estado: "" });
+  const [savingAddress, setSavingAddress] = useState(false);
+
+  const openAddressDialog = async () => {
+    if (!deal.customer_id) return;
+    // Load current address from client
+    const { data } = await supabase
+      .from("clientes")
+      .select("cep, rua, numero, complemento, bairro, cidade, estado")
+      .eq("id", deal.customer_id)
+      .single();
+    if (data) {
+      setAddressData({
+        cep: data.cep || "",
+        rua: data.rua || "",
+        numero: data.numero || "",
+        complemento: data.complemento || "",
+        bairro: data.bairro || "",
+        cidade: data.cidade || "",
+        estado: data.estado || "",
+      });
+    }
+    setAddressDialogOpen(true);
+  };
+
+  const saveAddress = async () => {
+    if (!deal.customer_id) return;
+    setSavingAddress(true);
+    try {
+      const { error } = await supabase
+        .from("clientes")
+        .update({
+          cep: addressData.cep.trim() || null,
+          rua: addressData.rua.trim() || null,
+          numero: addressData.numero.trim() || null,
+          complemento: addressData.complemento.trim() || null,
+          bairro: addressData.bairro.trim() || null,
+          cidade: addressData.cidade.trim() || null,
+          estado: addressData.estado.trim() || null,
+        })
+        .eq("id", deal.customer_id);
+      if (error) throw error;
+      toast({ title: "Endereço atualizado!" });
+      setAddressDialogOpen(false);
+      onRefreshCustomer?.();
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingAddress(false);
+    }
+  };
 
   const openInlineEdit = (field: string, label: string, currentValue: string) => {
     setInlineEditField(field);
