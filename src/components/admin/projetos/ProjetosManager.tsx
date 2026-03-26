@@ -305,20 +305,46 @@ export function ProjetosManager() {
 
       {/* ── Main Tabs: Funil + Performance ── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="bg-muted/50 border border-border/40">
-          <TabsTrigger value="kanban" className="gap-1.5 text-xs">
-            <Layers className="h-4 w-4" />
-            <span className="hidden sm:inline">Funil</span>
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="gap-1.5 text-xs">
-            <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Performance</span>
-          </TabsTrigger>
-          <TabsTrigger value="etiquetas" className="gap-1.5 text-xs">
-            <Tag className="h-4 w-4" />
-            <span className="hidden sm:inline">Etiquetas</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <TabsList className="bg-muted/50 border border-border/40">
+            <TabsTrigger value="kanban" className="gap-1.5 text-xs">
+              <Layers className="h-4 w-4" />
+              <span className="hidden sm:inline">Funil</span>
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="gap-1.5 text-xs">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Performance</span>
+            </TabsTrigger>
+            <TabsTrigger value="etiquetas" className="gap-1.5 text-xs">
+              <Tag className="h-4 w-4" />
+              <span className="hidden sm:inline">Etiquetas</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Mini KPI chips */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
+              <FolderKanban className="h-3.5 w-3.5 text-primary" />
+              <span className="font-bold text-foreground">{kpiStats.total}</span>
+              <span className="text-muted-foreground hidden sm:inline">projetos</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
+              <Zap className="h-3.5 w-3.5 text-info" />
+              <span className="font-bold text-foreground">{kpiStats.emAndamento}</span>
+              <span className="text-muted-foreground hidden sm:inline">andamento</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
+              <FileCheck className="h-3.5 w-3.5 text-success" />
+              <span className="font-bold text-foreground">{kpiStats.concluidos}</span>
+              <span className="text-muted-foreground hidden sm:inline">ganhos</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
+              <Clock className="h-3.5 w-3.5 text-warning" />
+              <span className="font-bold text-foreground">{kpiStats.atrasados}</span>
+              <span className="text-muted-foreground hidden sm:inline">estagnados</span>
+            </div>
+          </div>
+        </div>
 
         <TabsContent value="kanban" className="space-y-4 mt-0">
           <div className="flex-1 min-w-0 space-y-4">
