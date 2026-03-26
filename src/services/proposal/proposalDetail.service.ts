@@ -133,9 +133,12 @@ export async function getOrCreateProposalToken(
 
   if ((existing as any)?.token) return (existing as any).token;
 
+  const { getCurrentTenantId } = await import("@/lib/getCurrentTenantId");
+  const { tenantId } = await getCurrentTenantId();
+
   const { data: created, error } = await supabase
     .from("proposta_aceite_tokens" as any)
-    .insert({ proposta_id: propostaId, versao_id: versaoId, tipo } as any)
+    .insert({ proposta_id: propostaId, versao_id: versaoId, tipo, tenant_id: tenantId } as any)
     .select("token")
     .single();
 
