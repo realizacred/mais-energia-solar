@@ -213,7 +213,8 @@ export function StepDocumento({
 
       toast({ title: "Template enviado com sucesso!" });
 
-      // Auto-select the new template & refresh list
+      // Refresh templates list & auto-select
+      await queryClient.invalidateQueries({ queryKey: ["proposta-templates-active"] });
       if (newTemplate?.id) {
         onTemplateSelecionado(newTemplate.id);
       }
