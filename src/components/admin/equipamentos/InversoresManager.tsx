@@ -470,7 +470,7 @@ export function InversoresManager() {
           open={batchEnrichOpen}
           onOpenChange={setBatchEnrichOpen}
           equipmentType="inversor"
-          draftIds={inversores.filter(i => i.status === "rascunho" && !i.datasheet_found_at).map(i => i.id)}
+          draftIds={inversores.filter(i => i.status === "rascunho").map(i => i.id)}
         />
       </div>
     </div>

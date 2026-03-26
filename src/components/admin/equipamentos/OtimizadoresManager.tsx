@@ -393,7 +393,7 @@ export function OtimizadoresManager() {
           open={batchEnrichOpen}
           onOpenChange={setBatchEnrichOpen}
           equipmentType="otimizador"
-          draftIds={otimizadores.filter(o => o.status === "rascunho" && !o.datasheet_found_at).map(o => o.id)}
+          draftIds={otimizadores.filter(o => o.status === "rascunho").map(o => o.id)}
         />
       </div>
     </div>
