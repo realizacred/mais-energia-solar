@@ -642,10 +642,16 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             <p className="text-sm text-muted-foreground">Gerencie consultores, links e acessos ao portal</p>
           </div>
         </div>
-        <Button onClick={openNewDialog} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Consultor
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={filteredVendedores.length === 0}>
+            <Download className="h-4 w-4 mr-1.5" />
+            Exportar CSV
+          </Button>
+          <Button onClick={openNewDialog} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Novo Consultor
+          </Button>
+        </div>
       </div>
 
       {/* §27 KPI Cards */}
