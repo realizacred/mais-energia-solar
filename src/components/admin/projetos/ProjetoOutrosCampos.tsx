@@ -18,6 +18,7 @@ import {
   ChevronUp, Paperclip, Upload, Pencil, Check, X, Loader2,
   Wifi, Package, Zap, MapPin, Settings, FileText, Type, CheckCircle,
 } from "lucide-react";
+import { ImportantFieldRow } from "./ImportantFieldRow";
 
 // ─── Types ────────────────────────────────────────
 interface ClienteExtra {
@@ -461,7 +462,6 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
 }
 
 // Reuse existing ImportantFieldRow directly
-import { ImportantFieldRow } from "./ImportantFieldRow";
 
 function ImportantFieldInline({ field, value, dealId, onSaved }: {
   field: { id: string; title: string; field_key: string; field_type: string; options: any };
