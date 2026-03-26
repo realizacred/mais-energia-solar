@@ -156,39 +156,21 @@ export function StepResumo({
         <Card className="border-border/40 shadow-sm">
           <CardContent className="p-4">
             <SectionHeader icon={User} label="Cliente" />
-            <div className="space-y-2">
-              <p className="font-semibold text-foreground text-base">{clienteNome || leadNome || "—"}</p>
-              <div className="space-y-1.5">
-                {clienteEmpresa && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Building2 className="h-3.5 w-3.5 shrink-0" />
-                    <span>{clienteEmpresa}</span>
-                  </div>
-                )}
-                {clienteCelular && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-3.5 w-3.5 shrink-0" />
-                    <span>{clienteCelular}</span>
-                  </div>
-                )}
-                {clienteEmail && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-3.5 w-3.5 shrink-0" />
-                    <span>{clienteEmail}</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <Badge variant="outline" className="text-[10px]">
-                  Grupo {grupo}
-                </Badge>
-                <Badge variant="outline" className="text-[10px]">
-                  {numUcs} UC{numUcs > 1 ? "s" : ""}
-                </Badge>
-                <Badge variant="outline" className="text-[10px]">
-                  Consumo: {consumoTotal.toLocaleString("pt-BR")} kWh
-                </Badge>
-              </div>
+            <div className="grid grid-cols-[auto_1fr] gap-y-2.5 gap-x-6 text-sm">
+              <span className="text-muted-foreground">Nome</span>
+              <span className="font-medium text-foreground">{clienteNome || leadNome || "—"}</span>
+              <span className="text-muted-foreground">Empresa</span>
+              <span className="font-medium text-foreground">{clienteEmpresa || "—"}</span>
+              <span className="text-muted-foreground">Telefone</span>
+              <span className="font-medium text-foreground">{clienteCelular || "—"}</span>
+              <span className="text-muted-foreground">E-mail</span>
+              <span className="font-medium text-foreground">{clienteEmail || "—"}</span>
+              <span className="text-muted-foreground">Grupo</span>
+              <span className="font-medium text-foreground">{grupo || "—"}</span>
+              <span className="text-muted-foreground">UCs</span>
+              <span className="font-medium text-foreground">{numUcs}</span>
+              <span className="text-muted-foreground">Consumo</span>
+              <span className="font-medium text-foreground">{consumoTotal > 0 ? `${consumoTotal.toLocaleString("pt-BR")} kWh` : "—"}</span>
             </div>
           </CardContent>
         </Card>
