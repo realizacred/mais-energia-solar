@@ -82,6 +82,7 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle, comp
             <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{m.tensao_sistema}</Badge>
           )}
           <Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge>
+          {!m.ativo && <Badge variant="muted" className="text-xs">Inativo</Badge>}
         </div>
 
         {/* Completude */}

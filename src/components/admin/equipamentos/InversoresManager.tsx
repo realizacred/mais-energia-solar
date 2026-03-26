@@ -313,6 +313,7 @@ export function InversoresManager() {
                       <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{inv.fases}</Badge>
                       {inv.mppt_count && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{inv.mppt_count} MPPTs</Badge>}
                       <Badge className={`text-xs ${statusColor}`}>{statusLabel}</Badge>
+                      {!inv.ativo && <Badge variant="muted" className="text-xs">Inativo</Badge>}
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">

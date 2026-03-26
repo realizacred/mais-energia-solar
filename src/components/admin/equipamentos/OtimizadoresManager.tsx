@@ -277,6 +277,7 @@ export function OtimizadoresManager() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {ot.compatibilidade && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{ot.compatibilidade}</Badge>}
                       <Badge className={`text-xs ${statusColor}`}>{statusLabel}</Badge>
+                      {!ot.ativo && <Badge variant="muted" className="text-xs">Inativo</Badge>}
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
