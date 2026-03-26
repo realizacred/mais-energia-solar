@@ -82,7 +82,9 @@ interface SnapshotData {
   }>;
   servicos?: Array<{
     descricao: string;
+    categoria?: string;
     valor: number;
+    incluso_no_preco?: boolean;
     incluso?: boolean;
   }>;
   venda?: {
