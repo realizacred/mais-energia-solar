@@ -740,6 +740,15 @@ export function StepDocumento({
               {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
               Copiar link sem rastreio
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+              onClick={handleCopySimulacaoLink}
+            >
+              {copiedSimulacao ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
+              Copiar link simulação financeira
+            </Button>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
