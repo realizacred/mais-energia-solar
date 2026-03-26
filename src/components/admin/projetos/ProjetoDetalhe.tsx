@@ -1070,7 +1070,7 @@ function GerenciamentoTab({
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
-            <CardContent className="px-4 pb-3 pt-0">
+            <CardContent className="px-4 pb-3 pt-1">
               <div className="space-y-1.5">
                 <ClientRow icon={User} label={customerName || "—"} />
                 <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} onEdit={!customerEmpresa ? () => openInlineEdit("empresa", "Nome da Empresa", customerEmpresa) : undefined} />
