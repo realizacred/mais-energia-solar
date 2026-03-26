@@ -203,7 +203,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
               )}
 
               {/* Cards — using StageDealCard for full visual richness */}
-              <div className="flex-1 px-2.5 pb-2.5 space-y-2.5 overflow-y-auto" style={{ maxHeight: "calc(100vh - 340px)" }}>
+              <div className="flex-1 px-2 pb-2 space-y-1.5 overflow-y-auto" style={{ maxHeight: "calc(100vh - 340px)" }}>
                 {col.deals.length === 0 ? (
                   <p className="text-[10px] text-muted-foreground/40 italic text-center py-6">Nenhum projeto</p>
                 ) : (
