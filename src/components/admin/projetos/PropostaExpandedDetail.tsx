@@ -922,7 +922,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                {!p.is_principal && onSetPrincipal && (
+                {!isPrincipal && onSetPrincipal && (
                   <DropdownMenuItem onClick={onSetPrincipal}>
                     <Star className="h-3.5 w-3.5 mr-2 text-warning" /> Definir como principal
                   </DropdownMenuItem>
