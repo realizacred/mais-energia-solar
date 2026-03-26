@@ -573,7 +573,7 @@ function GerenciamentoTab({
   const [savingNote, setSavingNote] = useState(false);
   const [savingActivity, setSavingActivity] = useState(false);
   const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; created_by_name?: string }>>([]);
-  const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string }>>([]);
+  const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string; assigned_to?: string | null }>>([]);
 
   // Custom fields marked as important
   const [importantFields, setImportantFields] = useState<Array<{ id: string; title: string; field_key: string; field_type: string; options: any }>>([]);
@@ -719,7 +719,7 @@ function GerenciamentoTab({
       try {
         const { data } = await supabase
           .from("deal_activities")
-          .select("id, title, description, activity_type, due_date, status, created_at")
+          .select("id, title, description, activity_type, due_date, status, created_at, assigned_to")
           .eq("deal_id", deal.id)
           .order("due_date", { ascending: true, nullsFirst: false })
           .limit(50);
@@ -794,7 +794,7 @@ function GerenciamentoTab({
         assigned_to: activityAssignedTo || null,
         tenant_id: (profile as any)?.tenant_id,
         created_by: userId,
-      } as any).select("id, title, description, activity_type, due_date, status, created_at").single();
+      } as any).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
       if (error) throw error;
       if (data) {
         setActivities(prev => [data as any, ...prev]);
@@ -1199,6 +1199,13 @@ function GerenciamentoTab({
                   {activities.map(a => {
                     const isOverdue = a.due_date && new Date(a.due_date) < new Date() && a.status !== "done";
                     const isDone = a.status === "done";
+                    const assignedName = a.assigned_to ? (teamMembers.find(m => m.user_id === a.assigned_to)?.nome || null) : null;
+                    const phoneForAction = customerPhone?.replace(/\D/g, "") || "";
+                    const waLink = phoneForAction ? `https://wa.me/${phoneForAction.startsWith("55") ? phoneForAction : `55${phoneForAction}`}` : "";
+                    const telLink = phoneForAction ? `tel:+${phoneForAction.startsWith("55") ? phoneForAction : `55${phoneForAction}`}` : "";
+                    const isCallType = a.activity_type === "call";
+                    const isWaType = a.activity_type === "whatsapp" || a.activity_type === "follow_up";
+                    const isEmailType = a.activity_type === "email";
                     return (
                       <div
                         key={a.id}
@@ -1223,19 +1230,64 @@ function GerenciamentoTab({
                           {isDone && <Check className="h-3 w-3 text-primary-foreground" />}
                         </button>
                         <div className="flex-1 min-w-0">
-                          <p className={cn("text-sm font-medium", isDone && "line-through text-muted-foreground")}>
-                            {a.title}
-                          </p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={cn("text-sm font-medium", isDone && "line-through text-muted-foreground")}>
+                              {a.title}
+                            </p>
+                            {/* Action buttons */}
+                            {!isDone && (
+                              <div className="flex items-center gap-1 shrink-0">
+                                {(isCallType || isWaType) && telLink && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <a href={telLink} className="inline-flex">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                          <Phone className="h-3.5 w-3.5 text-info" />
+                                        </Button>
+                                      </a>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Ligar para {customerName || "cliente"}</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {(isCallType || isWaType) && waLink && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                          <MessageSquare className="h-3.5 w-3.5 text-success" />
+                                        </Button>
+                                      </a>
+                                    </TooltipTrigger>
+                                    <TooltipContent>WhatsApp para {customerName || "cliente"}</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {isEmailType && customerEmail && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <a href={`mailto:${customerEmail}`} className="inline-flex">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                          <Mail className="h-3.5 w-3.5 text-warning" />
+                                        </Button>
+                                      </a>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Enviar e-mail para {customerEmail}</TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           {a.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{a.description}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.description}</p>
                           )}
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <Badge variant="outline" className={cn(
                               "text-[10px] h-5 font-medium",
                               a.activity_type === "call" && "border-info/30 text-info bg-info/10",
                               a.activity_type === "meeting" && "border-primary/30 text-primary bg-primary/10",
                               a.activity_type === "visit" && "border-success/30 text-success bg-success/10",
                               a.activity_type === "email" && "border-warning/30 text-warning bg-warning/10",
+                              a.activity_type === "whatsapp" && "border-success/30 text-success bg-success/10",
+                              a.activity_type === "follow_up" && "border-secondary/30 text-secondary bg-secondary/10",
                             )}>
                               {activityTypeLabels[a.activity_type] || a.activity_type}
                             </Badge>
@@ -1248,6 +1300,18 @@ function GerenciamentoTab({
                               )}>
                                 <CalendarDays className="h-3 w-3" />
                                 {formatDateTime(a.due_date)}
+                              </span>
+                            )}
+                            {assignedName && (
+                              <span className="text-[10px] flex items-center gap-1 text-muted-foreground">
+                                <User className="h-3 w-3" />
+                                {assignedName}
+                              </span>
+                            )}
+                            {(isCallType || isWaType) && customerPhone && (
+                              <span className="text-[10px] flex items-center gap-1 text-muted-foreground font-mono">
+                                <Phone className="h-3 w-3" />
+                                {customerPhone}
                               </span>
                             )}
                           </div>
