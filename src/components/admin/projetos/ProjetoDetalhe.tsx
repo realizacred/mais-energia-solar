@@ -794,7 +794,7 @@ function GerenciamentoTab({
         assigned_to: activityAssignedTo || null,
         tenant_id: (profile as any)?.tenant_id,
         created_by: userId,
-      } as any).select("id, title, description, activity_type, due_date, status, created_at").single();
+      } as any).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
       if (error) throw error;
       if (data) {
         setActivities(prev => [data as any, ...prev]);
