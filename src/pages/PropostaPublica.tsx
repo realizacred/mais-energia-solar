@@ -333,6 +333,20 @@ export default function PropostaPublica() {
         </div>
       )}
 
+      {/* PDF Preview — when DOCX template was used (no HTML render) */}
+      {!html && pdfUrl && !isSimulacaoView && (
+        <div className="max-w-4xl mx-auto py-6 px-4">
+          <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+            <iframe
+              src={pdfUrl}
+              title="Proposta PDF"
+              className="w-full border-0"
+              style={{ width: "100%", height: "clamp(500px, 80vh, 1000px)" }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── CENÁRIOS INTERATIVOS — only on simulacao view ── */}
       {hasCenarios && isSimulacaoView && (
         <div className="max-w-3xl mx-auto px-4 pb-4">
