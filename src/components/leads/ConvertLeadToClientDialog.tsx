@@ -1426,7 +1426,6 @@ export function ConvertLeadToClientDialog({
                       onClick={async () => {
                         const valid = await form.trigger();
                         if (!valid) {
-                          // Find which step has errors and navigate there
                           const errors = form.formState.errors;
                           const step0Fields = ["nome", "telefone", "email", "cpf_cnpj", "cep", "estado", "cidade", "bairro", "rua", "numero", "complemento"] as const;
                           const step1Fields = ["disjuntor_id", "transformador_id", "localizacao"] as const;
@@ -1457,6 +1456,14 @@ export function ConvertLeadToClientDialog({
                           }
                           return;
                         }
+
+                        // Check for missing documentation items
+                        const currentMissing = getMissingItems();
+                        if (currentMissing.length > 0) {
+                          setShowMissingDocsModal(true);
+                          return;
+                        }
+
                         const data = form.getValues();
                         handleSubmit(data);
                       }}
