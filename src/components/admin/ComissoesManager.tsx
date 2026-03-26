@@ -1,5 +1,5 @@
 import { formatBRL } from "@/lib/formatters/index";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ import {
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PageHeader } from "@/components/ui-kit";
+import { TablePagination } from "@/components/ui-kit/TablePagination";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PagamentosComissaoDialog } from "./PagamentosComissaoDialog";
@@ -116,6 +117,8 @@ export function ComissoesManager() {
   const [payDirectOpen, setPayDirectOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeView, setActiveView] = useState<"lista" | "relatorios">("lista");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Filters
   const currentDate = new Date();
@@ -241,6 +244,14 @@ export function ComissoesManager() {
         c.clientes?.nome?.toLowerCase().includes(term)
     );
   }, [comissoes, searchTerm]);
+
+  // Reset page on filter change
+  useEffect(() => { setPage(1); }, [searchTerm, filterMes, filterAno, filterVendedor, filterStatus, filterCliente]);
+
+  const paginatedComissoes = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredComissoes.slice(start, start + pageSize);
+  }, [filteredComissoes, page, pageSize]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -625,7 +636,7 @@ export function ComissoesManager() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredComissoes.map((comissao) => {
+                      {paginatedComissoes.map((comissao) => {
                         const valorPago = calcularValorPago(comissao);
                         const saldoRestante = calcularSaldoRestante(comissao);
                         return (
@@ -690,6 +701,16 @@ export function ComissoesManager() {
                       })}
                     </TableBody>
                   </Table>
+                )}
+                {filteredComissoes.length > 0 && (
+                  <TablePagination
+                    totalItems={filteredComissoes.length}
+                    page={page}
+                    pageSize={pageSize}
+                    onPageChange={setPage}
+                    onPageSizeChange={setPageSize}
+                    pageSizeOptions={[10, 25, 50, 100]}
+                  />
                 )}
               </div>
           </SectionCard>

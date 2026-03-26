@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +37,6 @@ import { Progress } from "@/components/ui/progress";
 import {
   DollarSign,
   Plus,
-  
   Edit,
   Trash2,
   Receipt,
@@ -46,6 +45,8 @@ import {
   Calendar,
   BarChart3,
   CalendarDays,
+  Download,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -55,6 +56,7 @@ import { RelatoriosFinanceiros } from "./recebimentos/RelatoriosFinanceiros";
 import { CalendarioPagamentos } from "./recebimentos/CalendarioPagamentos";
 import { ParcelasAtrasadasWidget } from "./widgets/ParcelasAtrasadasWidget";
 import { PageHeader, StatCard, EmptyState, LoadingState, SearchInput } from "@/components/ui-kit";
+import { TablePagination } from "@/components/ui-kit/TablePagination";
 
 interface Cliente {
   id: string;
@@ -121,6 +123,8 @@ export function RecebimentosManager() {
   const [pagamentosDialogOpen, setPagamentosDialogOpen] = useState(false);
   const [parcelasDialogOpen, setParcelasDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("lista");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const [formData, setFormData] = useState({
     cliente_id: "",
@@ -297,13 +301,55 @@ export function RecebimentosManager() {
     }).format(value);
   };
 
-  const filteredRecebimentos = recebimentos.filter((r) => {
-    const matchesSearch =
-      r.clientes?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredRecebimentos = useMemo(() => {
+    return recebimentos.filter((r) => {
+      const matchesSearch =
+        r.clientes?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || r.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [recebimentos, searchTerm, statusFilter]);
+
+  // Reset page on filter change
+  useEffect(() => { setPage(1); }, [searchTerm, statusFilter]);
+
+  const paginatedRecebimentos = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredRecebimentos.slice(start, start + pageSize);
+  }, [filteredRecebimentos, page, pageSize]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm) count++;
+    if (statusFilter !== "all") count++;
+    return count;
+  }, [searchTerm, statusFilter]);
+
+  const clearFilters = useCallback(() => {
+    setSearchTerm("");
+    setStatusFilter("all");
+  }, []);
+
+  const exportCSV = useCallback(() => {
+    const headers = ["Cliente", "Valor Total", "Pago", "Forma Acordada", "Status", "Data Acordo", "Parcelas"];
+    const rows = filteredRecebimentos.map((r) => [
+      r.clientes?.nome || "",
+      r.valor_total.toFixed(2),
+      calcularTotalPago(r.pagamentos).toFixed(2),
+      FORMAS_PAGAMENTO.find((f) => f.value === r.forma_pagamento_acordada)?.label || r.forma_pagamento_acordada,
+      STATUS_LABELS[r.status] || r.status,
+      r.data_acordo,
+      r.numero_parcelas.toString(),
+    ]);
+    const csvContent = [headers.join(";"), ...rows.map((row) => row.map((c) => `"${c}"`).join(";"))].join("\n");
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `recebimentos_${format(new Date(), "yyyy-MM-dd_HHmm")}.csv`;
+    link.click();
+    toast({ title: "CSV exportado com sucesso!" });
+  }, [filteredRecebimentos]);
 
   // Stats
   const totalPendente = recebimentos
@@ -311,6 +357,7 @@ export function RecebimentosManager() {
     .reduce((acc, r) => acc + r.valor_total - calcularTotalPago(r.pagamentos), 0);
 
   const totalRecebido = recebimentos.reduce((acc, r) => acc + calcularTotalPago(r.pagamentos), 0);
+
 
   return (
     <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -356,7 +403,7 @@ export function RecebimentosManager() {
 
       {/* Filters and Actions */}
       <div className="admin-toolbar">
-        <div className="flex flex-col sm:flex-row flex-1 gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row flex-1 gap-3 sm:gap-4 items-start sm:items-center">
           <SearchInput
               value={searchTerm}
               onChange={setSearchTerm}
@@ -375,7 +422,22 @@ export function RecebimentosManager() {
               <SelectItem value="cancelado">Cancelado</SelectItem>
             </SelectContent>
           </Select>
+          {activeFilterCount > 0 && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">{activeFilterCount} filtro{activeFilterCount > 1 ? "s" : ""}</Badge>
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 h-8 text-xs">
+                <X className="h-3 w-3" />
+                Limpar
+              </Button>
+            </div>
+          )}
         </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportCSV} disabled={filteredRecebimentos.length === 0} className="gap-1.5">
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
 
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
@@ -493,6 +555,7 @@ export function RecebimentosManager() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Table */}
@@ -519,7 +582,7 @@ export function RecebimentosManager() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRecebimentos.map((recebimento) => {
+              {paginatedRecebimentos.map((recebimento) => {
                 const totalPago = calcularTotalPago(recebimento.pagamentos);
                 const progresso = calcularProgresso(recebimento);
 
@@ -604,6 +667,14 @@ export function RecebimentosManager() {
             </TableBody>
           </Table>
           </div>
+          <TablePagination
+            totalItems={filteredRecebimentos.length}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
         </SectionCard>
       )}
         </TabsContent>
