@@ -193,25 +193,27 @@ export function StageDealCard({
         </div>
 
         {/* VALUE + TIME CARD */}
-        <div className="flex items-center rounded-md bg-muted/40 border border-border/50 divide-x divide-border/50 text-center">
-          <div className="flex-1 py-1 px-2">
-            <p className="text-[13px] font-bold text-foreground tabular-nums leading-none">
-              {deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
-            </p>
-            <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Valor</p>
+        {visibleFields.has("valor_projeto") && (
+          <div className="flex items-center rounded-md bg-muted/40 border border-border/50 divide-x divide-border/50 text-center">
+            <div className="flex-1 py-1 px-2">
+              <p className="text-[13px] font-bold text-foreground tabular-nums leading-none">
+                {deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
+              </p>
+              <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Valor</p>
+            </div>
+            <div className="flex-1 py-1 px-2">
+              <p className={cn(
+                "text-[13px] font-bold tabular-nums leading-none",
+                stagnation === "critical" ? "text-destructive" :
+                stagnation === "warning" ? "text-warning" :
+                "text-foreground"
+              )}>
+                {timeInStage}
+              </p>
+              <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Tempo</p>
+            </div>
           </div>
-          <div className="flex-1 py-1 px-2">
-            <p className={cn(
-              "text-[13px] font-bold tabular-nums leading-none",
-              stagnation === "critical" ? "text-destructive" :
-              stagnation === "warning" ? "text-warning" :
-              "text-foreground"
-            )}>
-              {timeInStage}
-            </p>
-            <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Tempo</p>
-          </div>
-        </div>
+        )}
 
         {/* STATUS + ETIQUETAS */}
         <div className="flex flex-wrap items-center gap-1">
