@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
 import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2, FileSpreadsheet, Wand2, X, GitCompareArrows, Package, CheckCircle2, FileWarning, Sparkles, LayoutGrid, Table as TableIcon, Eye, Zap } from "lucide-react";
 import { EnrichButton } from "./shared/EnrichButton";
+import { DatasheetUrlField } from "./shared/DatasheetUrlField";
 import { BatchEnrichDialog } from "./shared/BatchEnrichDialog";
 import { useToast } from "@/hooks/use-toast";
 import { InversorImportDialog } from "./inversores/InversorImportDialog";
