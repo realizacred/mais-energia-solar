@@ -25,6 +25,7 @@ type SortDir = "asc" | "desc";
 
 interface Props {
   inversores: Inversor[];
+  onView?: (i: Inversor) => void;
   onEdit: (i: Inversor) => void;
   onDelete: (i: Inversor) => void;
   onToggle: (id: string, ativo: boolean) => void;
@@ -34,7 +35,7 @@ function isGlobal(i: Inversor) { return i.tenant_id === null; }
 
 const formatPotencia = (kw: number) => kw < 1 ? `${(kw * 1000).toFixed(0)} W` : `${kw} kW`;
 
-export function InversorTableView({ inversores, onEdit, onDelete, onToggle }: Props) {
+export function InversorTableView({ inversores, onView, onEdit, onDelete, onToggle }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("fabricante");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -253,6 +254,7 @@ export function InversorTableView({ inversores, onEdit, onDelete, onToggle }: Pr
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <EnrichButton equipmentType="inversor" equipmentId={inv.id} />
+                      {onView && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(inv)}><Eye className="w-4 h-4" /></Button>}
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(inv)}><Pencil className="w-4 h-4" /></Button>
                       {!global && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(inv)}><Trash2 className="w-4 h-4" /></Button>}
                     </div>

@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { OtimizadorImportDialog } from "./otimizadores/OtimizadorImportDialog";
 import { OtimizadorTableView } from "./otimizadores/OtimizadorTableView";
 import { OtimizadorCompareModal } from "./otimizadores/OtimizadorCompareModal";
+import { OtimizadorViewModal } from "./otimizadores/OtimizadorViewModal";
 import {
   useOtimizadoresCatalogo, useSalvarOtimizador, useDeletarOtimizador, useToggleOtimizador, type Otimizador,
 } from "@/hooks/useOtimizadoresCatalogo";
@@ -58,6 +59,7 @@ export function OtimizadoresManager() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
+  const [viewItem, setViewItem] = useState<Otimizador | null>(null);
 
   const { data: otimizadores = [], isLoading } = useOtimizadoresCatalogo();
   const saveMutation = useSalvarOtimizador();
@@ -297,7 +299,7 @@ export function OtimizadoresManager() {
             listClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-1"
           />
         ) : (
-          <OtimizadorTableView otimizadores={filtered} onEdit={(o) => openDialog(o)} onDelete={(o) => setDeleting(o)} onToggle={(id, v) => toggleMutation.mutate({ id, ativo: v })} />
+          <OtimizadorTableView otimizadores={filtered} onView={(o) => setViewItem(o)} onEdit={(o) => openDialog(o)} onDelete={(o) => setDeleting(o)} onToggle={(id, v) => toggleMutation.mutate({ id, ativo: v })} />
         )}
 
         {!isLoading && filtered.length > 0 && <p className="text-xs text-muted-foreground text-right">{filtered.length} de {otimizadores.length} otimizadores</p>}
@@ -338,6 +340,7 @@ export function OtimizadoresManager() {
       <OtimizadorImportDialog open={distImportOpen} onOpenChange={setDistImportOpen} existingOtimizadores={otimizadores} />
       <BatchEnrichDialog open={batchEnrichOpen} onOpenChange={setBatchEnrichOpen} equipmentType="otimizador" draftIds={otimizadores.filter(o => o.status === "rascunho").map(o => o.id)} />
       <OtimizadorCompareModal otimizadores={compareOtimizadores} open={compareOpen} onOpenChange={(v) => { setCompareOpen(v); if (!v) setCompareIds(new Set()); }} />
+      <OtimizadorViewModal otimizador={viewItem} open={!!viewItem} onOpenChange={v => !v && setViewItem(null)} />
     </div>
   );
 }

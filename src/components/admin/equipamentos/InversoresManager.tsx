@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { InversorImportDialog } from "./inversores/InversorImportDialog";
 import { InversorTableView } from "./inversores/InversorTableView";
 import { InversorCompareModal } from "./inversores/InversorCompareModal";
+import { InversorViewModal } from "./inversores/InversorViewModal";
 import {
   useInversoresCatalogo, useSalvarInversor, useDeletarInversor, useToggleInversor, type Inversor,
 } from "@/hooks/useInversoresCatalogo";
@@ -61,6 +62,7 @@ export function InversoresManager() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
+  const [viewItem, setViewItem] = useState<Inversor | null>(null);
 
   const { data: inversores = [], isLoading } = useInversoresCatalogo();
   const saveMutation = useSalvarInversor();
@@ -333,7 +335,7 @@ export function InversoresManager() {
             listClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-1"
           />
         ) : (
-          <InversorTableView inversores={filtered} onEdit={(i) => openDialog(i)} onDelete={(i) => setDeleting(i)} onToggle={(id, v) => toggleMutation.mutate({ id, ativo: v })} />
+          <InversorTableView inversores={filtered} onView={(i) => setViewItem(i)} onEdit={(i) => openDialog(i)} onDelete={(i) => setDeleting(i)} onToggle={(id, v) => toggleMutation.mutate({ id, ativo: v })} />
         )}
 
         {!isLoading && filtered.length > 0 && <p className="text-xs text-muted-foreground text-right">{filtered.length} de {inversores.length} inversores</p>}
@@ -381,6 +383,7 @@ export function InversoresManager() {
       <InversorImportDialog open={distImportOpen} onOpenChange={setDistImportOpen} existingInversores={inversores} />
       <BatchEnrichDialog open={batchEnrichOpen} onOpenChange={setBatchEnrichOpen} equipmentType="inversor" draftIds={inversores.filter(i => i.status === "rascunho").map(i => i.id)} />
       <InversorCompareModal inversores={compareInversores} open={compareOpen} onOpenChange={(v) => { setCompareOpen(v); if (!v) setCompareIds(new Set()); }} />
+      <InversorViewModal inversor={viewItem} open={!!viewItem} onOpenChange={v => !v && setViewItem(null)} />
     </div>
   );
 }

@@ -1339,6 +1339,13 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 - Nunca fechar um bloco de função prematuramente
 - Após correção de bug, rodar `npm run build` e confirmar 0 erros antes de concluir
 
+### Modais de visualização — layout 2 colunas obrigatório
+- ViewModals de equipamentos DEVEM usar w-[90vw] max-w-4xl
+- Em md+: flex-row com 2 colunas (md:w-1/2 cada)
+- Em mobile: flex-col (coluna única)
+- Nunca usar max-w-2xl em ViewModal de equipamento — desperdiça espaço em desktop
+- max-h-[80vh] com overflow-y-auto no corpo para não ultrapassar a tela
+
 # =============================================================================
 # BLOCO 11 — REGRAS DE ESCOPO
 # =============================================================================
