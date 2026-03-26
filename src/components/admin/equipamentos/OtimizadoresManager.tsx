@@ -312,26 +312,55 @@ export function OtimizadoresManager() {
         </div>
       )}
 
-      <FormModalTemplate open={dialogOpen} onOpenChange={setDialogOpen} title={editing ? "Editar Otimizador" : "Novo Otimizador"} icon={Zap} subtitle="Cadastre ou edite um otimizador" onSubmit={handleSave} submitLabel={editing ? "Salvar" : "Cadastrar"} saving={saveMutation.isPending} className="max-w-2xl">
-        <FormGrid>
-          <div className="space-y-1 sm:col-span-2"><Label>Fabricante *</Label><Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: SolarEdge" /></div>
-          <div className="space-y-1 sm:col-span-2"><Label>Modelo *</Label><Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: P370" /></div>
-          <div className="space-y-1"><Label>Potência (Wp)</Label><Input type="number" value={form.potencia_wp} onChange={(e) => set("potencia_wp", e.target.value)} placeholder="370" /></div>
-          <div className="space-y-1"><Label>Tensão Entrada Máx (V)</Label><Input type="number" value={form.tensao_entrada_max_v} onChange={(e) => set("tensao_entrada_max_v", e.target.value)} placeholder="60" /></div>
-          <div className="space-y-1"><Label>Corrente Entrada Máx (A)</Label><Input type="number" step="0.1" value={form.corrente_entrada_max_a} onChange={(e) => set("corrente_entrada_max_a", e.target.value)} placeholder="11" /></div>
-          <div className="space-y-1"><Label>Tensão Saída (V)</Label><Input type="number" value={form.tensao_saida_v} onChange={(e) => set("tensao_saida_v", e.target.value)} placeholder="60" /></div>
-          <div className="space-y-1"><Label>Corrente Saída Máx (A)</Label><Input type="number" step="0.1" value={form.corrente_saida_max_a} onChange={(e) => set("corrente_saida_max_a", e.target.value)} placeholder="15" /></div>
-          <div className="space-y-1"><Label>Eficiência (%)</Label><Input type="number" step="0.01" value={form.eficiencia_percent} onChange={(e) => set("eficiencia_percent", e.target.value)} placeholder="99.50" /></div>
-          <div className="space-y-1 sm:col-span-2"><Label>Compatibilidade</Label><Input value={form.compatibilidade} onChange={(e) => set("compatibilidade", e.target.value)} placeholder="Ex: SolarEdge, Huawei" /></div>
-          <div className="space-y-1"><Label>Proteção IP</Label><Input value={form.ip_protection} onChange={(e) => set("ip_protection", e.target.value)} placeholder="IP65" /></div>
-          <div className="space-y-1"><Label>Dimensões (mm)</Label><Input value={form.dimensoes_mm} onChange={(e) => set("dimensoes_mm", e.target.value)} placeholder="130x130x32" /></div>
-          <div className="space-y-1"><Label>Peso (kg)</Label><Input type="number" step="0.1" value={form.peso_kg} onChange={(e) => set("peso_kg", e.target.value)} placeholder="1.2" /></div>
-          <div className="space-y-1"><Label>Garantia (anos)</Label><Input type="number" value={form.garantia_anos} onChange={(e) => set("garantia_anos", e.target.value)} placeholder="25" /></div>
-          <div className="space-y-1 sm:col-span-2">
-            <DatasheetUrlField value={form.datasheet_url} onChange={(v) => set("datasheet_url", v)} />
+      <FormModalTemplate open={dialogOpen} onOpenChange={setDialogOpen} title={editing ? "Editar Otimizador" : "Novo Otimizador"} icon={Zap} subtitle="Cadastre ou edite um otimizador" onSubmit={handleSave} submitLabel={editing ? "Salvar" : "Cadastrar"} saving={saveMutation.isPending} className="max-w-4xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-5">
+            <FormSection title="Identificação">
+              <div className="space-y-3">
+                <div className="space-y-1"><Label>Fabricante *</Label><Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: SolarEdge" /></div>
+                <div className="space-y-1"><Label>Modelo *</Label><Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: P370" /></div>
+                <div className="space-y-1"><Label>Compatibilidade</Label><Input value={form.compatibilidade} onChange={(e) => set("compatibilidade", e.target.value)} placeholder="Ex: SolarEdge, Huawei" /></div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Entrada">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label>Potência (Wp)</Label><Input type="number" value={form.potencia_wp} onChange={(e) => set("potencia_wp", e.target.value)} placeholder="370" /></div>
+                <div className="space-y-1"><Label>Tensão Entrada Máx (V)</Label><Input type="number" value={form.tensao_entrada_max_v} onChange={(e) => set("tensao_entrada_max_v", e.target.value)} placeholder="60" /></div>
+                <div className="space-y-1"><Label>Corrente Entrada Máx (A)</Label><Input type="number" step="0.1" value={form.corrente_entrada_max_a} onChange={(e) => set("corrente_entrada_max_a", e.target.value)} placeholder="11" /></div>
+              </div>
+            </FormSection>
           </div>
-          <div className="space-y-1"><Label>Status</Label><Select value={form.status} onValueChange={(v) => set("status", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="rascunho">Rascunho</SelectItem><SelectItem value="revisao">Em revisão</SelectItem><SelectItem value="publicado">Publicado</SelectItem></SelectContent></Select></div>
-        </FormGrid>
+
+          <div className="space-y-5">
+            <FormSection title="Saída">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label>Tensão Saída (V)</Label><Input type="number" value={form.tensao_saida_v} onChange={(e) => set("tensao_saida_v", e.target.value)} placeholder="60" /></div>
+                <div className="space-y-1"><Label>Corrente Saída Máx (A)</Label><Input type="number" step="0.1" value={form.corrente_saida_max_a} onChange={(e) => set("corrente_saida_max_a", e.target.value)} placeholder="15" /></div>
+                <div className="space-y-1"><Label>Eficiência (%)</Label><Input type="number" step="0.01" value={form.eficiencia_percent} onChange={(e) => set("eficiencia_percent", e.target.value)} placeholder="99.50" /></div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Físico">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label>Dimensões (mm)</Label><Input value={form.dimensoes_mm} onChange={(e) => set("dimensoes_mm", e.target.value)} placeholder="130x130x32" /></div>
+                <div className="space-y-1"><Label>Peso (kg)</Label><Input type="number" step="0.1" value={form.peso_kg} onChange={(e) => set("peso_kg", e.target.value)} placeholder="1.2" /></div>
+                <div className="space-y-1"><Label>Proteção IP</Label><Input value={form.ip_protection} onChange={(e) => set("ip_protection", e.target.value)} placeholder="IP65" /></div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Garantia & Datasheet">
+              <div className="space-y-3">
+                <div className="space-y-1"><Label>Garantia (anos)</Label><Input type="number" value={form.garantia_anos} onChange={(e) => set("garantia_anos", e.target.value)} placeholder="25" /></div>
+                <DatasheetUrlField value={form.datasheet_url} onChange={(v) => set("datasheet_url", v)} />
+              </div>
+            </FormSection>
+
+            <FormSection title="Status">
+              <div className="space-y-1"><Label>Status</Label><Select value={form.status} onValueChange={(v) => set("status", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="rascunho">Rascunho</SelectItem><SelectItem value="revisao">Em revisão</SelectItem><SelectItem value="publicado">Publicado</SelectItem></SelectContent></Select></div>
+            </FormSection>
+          </div>
+        </div>
       </FormModalTemplate>
 
       <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
