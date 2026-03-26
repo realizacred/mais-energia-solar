@@ -967,6 +967,18 @@ export function ConvertLeadToClientDialog({
     return true;
   };
 
+  /** Check if a visited step has all required fields filled */
+  const isStepComplete = (step: number): boolean => {
+    const v = form.getValues();
+    if (step === 0) {
+      return !!(v.nome && v.telefone && v.email && v.cpf_cnpj && v.estado && v.cidade && v.bairro && v.rua && v.numero);
+    }
+    if (step === 1) {
+      return !!(v.disjuntor_id && v.transformador_id && v.localizacao && identidadeFiles.length > 0 && comprovanteFiles.length > 0);
+    }
+    return true;
+  };
+
   const handleNext = () => {
     setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
@@ -998,6 +1010,9 @@ export function ConvertLeadToClientDialog({
             const StepIcon = step.icon;
             const isActive = idx === currentStep;
             const isDone = idx < currentStep;
+            const isVisited = idx < currentStep;
+            const stepComplete = isVisited && isStepComplete(idx);
+            const stepIncomplete = isVisited && !stepComplete;
             return (
               <div key={idx} className="flex items-center gap-1 flex-1 min-w-0">
                 <Button
@@ -1007,16 +1022,24 @@ export function ConvertLeadToClientDialog({
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors w-full min-w-0 h-auto ${
                     isActive
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : isDone
+                      : stepComplete
                       ? "text-success cursor-pointer hover:bg-muted/50"
+                      : stepIncomplete
+                      ? "text-warning cursor-pointer hover:bg-muted/50"
                       : "text-muted-foreground hover:bg-transparent"
                   }`}
                   disabled={idx > currentStep}
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                    isActive ? "bg-primary text-primary-foreground" : isDone ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : stepComplete
+                      ? "bg-success/10 text-success"
+                      : stepIncomplete
+                      ? "bg-warning/10 text-warning"
+                      : "bg-muted text-muted-foreground"
                   }`}>
-                    {isDone ? <Check className="w-3.5 h-3.5" /> : <StepIcon className="w-3.5 h-3.5" />}
+                    {stepComplete ? <Check className="w-3.5 h-3.5" /> : stepIncomplete ? <AlertTriangle className="w-3.5 h-3.5" /> : <StepIcon className="w-3.5 h-3.5" />}
                   </div>
                   <div className="min-w-0 text-left hidden sm:block">
                     <p className="text-xs font-semibold truncate">{step.label}</p>
@@ -1024,7 +1047,7 @@ export function ConvertLeadToClientDialog({
                   </div>
                 </Button>
                 {idx < STEPS.length - 1 && (
-                  <div className={`w-4 h-px shrink-0 ${isDone ? "bg-success" : "bg-border"}`} />
+                  <div className={`w-4 h-px shrink-0 ${stepComplete ? "bg-success" : stepIncomplete ? "bg-warning" : "bg-border"}`} />
                 )}
               </div>
             );
