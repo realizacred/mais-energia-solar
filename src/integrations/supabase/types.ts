@@ -5898,6 +5898,7 @@ export type Database = {
           id: string
           input_payload: Json | null
           lead_id: string | null
+          pdf_filled_path: string | null
           pdf_path: string | null
           projeto_id: string | null
           signature_provider: string | null
@@ -5921,6 +5922,7 @@ export type Database = {
           id?: string
           input_payload?: Json | null
           lead_id?: string | null
+          pdf_filled_path?: string | null
           pdf_path?: string | null
           projeto_id?: string | null
           signature_provider?: string | null
@@ -5944,6 +5946,7 @@ export type Database = {
           id?: string
           input_payload?: Json | null
           lead_id?: string | null
+          pdf_filled_path?: string | null
           pdf_path?: string | null
           projeto_id?: string | null
           signature_provider?: string | null
