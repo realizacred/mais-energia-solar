@@ -81,6 +81,7 @@ export interface StageDealCardProps {
   onTransfer?: (deal: DealKanbanCard) => void;
   onTag?: (deal: DealKanbanCard) => void;
   onSchedule?: (deal: DealKanbanCard) => void;
+  cardVisibleFields?: string[];
 }
 
 export function StageDealCard({
@@ -93,6 +94,7 @@ export function StageDealCard({
   onTransfer,
   onTag,
   onSchedule,
+  cardVisibleFields,
 }: StageDealCardProps) {
   const allEtiquetaCfgs = useMemo(() => {
     const cfgs: { label: string; short: string; cor: string; icon: string | null }[] = [];
