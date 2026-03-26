@@ -26,7 +26,7 @@ const TABLE_MAP: Record<EquipmentType, string> = {
 // ── Prompts ──────────────────────────────────────────────────────
 
 function buildPrompt(type: EquipmentType, fabricante: string, modelo: string): { system: string; user: string } {
-  const system = "Você é um especialista em energia solar. Busque as especificações técnicas do equipamento indicado. Retorne APENAS um JSON válido com os campos solicitados. Se não encontrar um valor, use null. Não invente dados.";
+  const system = "Você é um especialista em energia solar. Busque as especificações técnicas do equipamento indicado. Retorne APENAS um JSON válido com os campos solicitados. Se não encontrar um valor, use null. Não invente dados. IMPORTANTE: Para datasheet_url, forneça APENAS URLs que você tem certeza absoluta que existem e estão acessíveis publicamente. Se não tiver certeza da URL exata, retorne null. NUNCA invente ou adivinhe URLs de datasheet.";
 
   const specs: Record<EquipmentType, string> = {
     modulo: `{
