@@ -93,6 +93,8 @@ export function StepDocumento({
   const [emailAnexarPdf, setEmailAnexarPdf] = useState(false);
   const [editHtml, setEditHtml] = useState(false);
   const emailEditorRef = useRef<HTMLDivElement>(null);
+  const docxUploadRef = useRef<HTMLInputElement>(null);
+  const [uploadingDocx, setUploadingDocx] = useState(false);
 
   // Link copy state
   const [copiedTracker, setCopiedTracker] = useState(false);
