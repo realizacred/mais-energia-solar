@@ -25,6 +25,8 @@ export interface PipelineStage {
   probability: number;
   is_closed: boolean;
   is_won: boolean;
+  color?: string | null;
+  card_visible_fields?: string[] | null;
 }
 
 export interface DealKanbanCard {
@@ -105,7 +107,7 @@ export function useDealPipeline() {
         .order("created_at"),
       supabase
         .from("pipeline_stages")
-        .select("id, tenant_id, pipeline_id, name, position, probability, is_closed, is_won")
+        .select("id, tenant_id, pipeline_id, name, position, probability, is_closed, is_won, color, card_visible_fields")
         .order("position"),
       supabase
         .from("consultores")

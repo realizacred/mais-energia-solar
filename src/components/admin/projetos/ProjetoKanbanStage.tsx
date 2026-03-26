@@ -2,7 +2,8 @@ import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, Settings2, Clock, Eye, Workflow, Lock, Palette, ChevronDown, DollarSign, Filter, Search } from "lucide-react";
+import { Zap, Plus, Settings2, Clock, Eye, Lock, Palette, ChevronDown, DollarSign, Filter, Search, Check } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -414,6 +415,45 @@ function ResizableKanbanColumn({
   const { width: resizedWidth, onMouseDown } = useResizableColumn(280);
   const hasActiveAutomation = stageAutomations.length > 0;
   const hasRestriction = permission && permission !== "todos";
+  const [colorMenuOpen, setColorMenuOpen] = useState(false);
+  const [fieldsMenuOpen, setFieldsMenuOpen] = useState(false);
+
+  const STAGE_COLORS = [
+    { value: null, label: "Padrão" },
+    { value: "hsl(var(--primary))", label: "Primário" },
+    { value: "hsl(var(--success))", label: "Verde" },
+    { value: "hsl(var(--warning))", label: "Amarelo" },
+    { value: "hsl(var(--destructive))", label: "Vermelho" },
+    { value: "hsl(var(--info))", label: "Azul" },
+    { value: "hsl(var(--secondary))", label: "Secundário" },
+  ];
+
+  const CARD_FIELD_OPTIONS = [
+    { key: "valor_projeto", label: "Valor do projeto" },
+    { key: "potencia_kwp", label: "Potência (kWp)" },
+    { key: "cidade", label: "Cidade" },
+    { key: "status", label: "Status da proposta" },
+  ];
+
+  const currentVisibleFields = stage.card_visible_fields || ["valor_projeto", "potencia_kwp", "cidade"];
+
+  const handleColorChange = async (color: string | null) => {
+    await supabase.from("pipeline_stages").update({ color } as any).eq("id", stage.id);
+    // Optimistic: mutate local stage
+    (stage as any).color = color;
+    setColorMenuOpen(false);
+  };
+
+  const handleToggleField = async (fieldKey: string) => {
+    const current = [...currentVisibleFields];
+    const idx = current.indexOf(fieldKey);
+    if (idx >= 0) current.splice(idx, 1);
+    else current.push(fieldKey);
+    await supabase.from("pipeline_stages").update({ card_visible_fields: current } as any).eq("id", stage.id);
+    (stage as any).card_visible_fields = current;
+    setFieldsMenuOpen(prev => !prev); // force re-render
+    setFieldsMenuOpen(true);
+  };
 
   const overdueCount = useMemo(() => {
     return deals.filter(d => differenceInHours(new Date(), new Date(d.last_stage_change)) >= 72).length;
@@ -437,8 +477,7 @@ function ResizableKanbanColumn({
         onMouseDown={onMouseDown}
       />
 
-      {/* ── Column Header ── */}
-      <div className="px-3 pt-3 pb-2 border-b-2 border-primary/20">
+      <div className="px-3 pt-3 pb-2 border-b-2" style={{ borderColor: stage.color || "hsl(var(--primary) / 0.2)" }}>
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2 min-w-0">
             <h3 className="text-[11px] font-bold text-secondary leading-tight truncate uppercase tracking-wider">
@@ -472,16 +511,58 @@ function ResizableKanbanColumn({
                 <Settings2 className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 bg-popover">
+            <DropdownMenuContent align="end" className="w-56 bg-popover">
               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Visual</DropdownMenuLabel>
-              <DropdownMenuItem disabled className="text-xs gap-2">
-                <Palette className="h-3.5 w-3.5" />
-                Personalizar cor da etapa
+
+              {/* Color picker submenu */}
+              <DropdownMenuItem className="text-xs gap-2 p-0" onSelect={e => e.preventDefault()}>
+                <div className="w-full px-2 py-1.5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Cor da etapa</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {STAGE_COLORS.map((c) => (
+                      <Button
+                        key={c.label}
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-6 w-6 rounded-full border-2 p-0",
+                          stage.color === c.value ? "border-foreground" : "border-transparent"
+                        )}
+                        style={{ backgroundColor: c.value || "hsl(var(--muted))" }}
+                        onClick={() => handleColorChange(c.value)}
+                      >
+                        {stage.color === c.value && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </DropdownMenuItem>
-              <DropdownMenuItem disabled className="text-xs gap-2">
-                <Eye className="h-3.5 w-3.5" />
-                Campos visíveis no card
+
+              {/* Card visible fields */}
+              <DropdownMenuItem className="text-xs gap-2 p-0" onSelect={e => e.preventDefault()}>
+                <div className="w-full px-2 py-1.5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Campos visíveis no card</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {CARD_FIELD_OPTIONS.map((f) => (
+                      <label key={f.key} className="flex items-center gap-2 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
+                        <Checkbox
+                          checked={currentVisibleFields.includes(f.key)}
+                          onCheckedChange={() => handleToggleField(f.key)}
+                          className="h-3.5 w-3.5"
+                        />
+                        {f.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </DropdownMenuItem>
+
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Inteligência</DropdownMenuLabel>
               <DropdownMenuItem
@@ -490,15 +571,6 @@ function ResizableKanbanColumn({
               >
                 <Zap className="h-3.5 w-3.5" />
                 Configurar Automação
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled className="text-xs gap-2">
-                <Lock className="h-3.5 w-3.5" />
-                Permissões da etapa
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled className="text-xs gap-2">
-                <Workflow className="h-3.5 w-3.5" />
-                Construtor de Fluxos
-                <Badge variant="outline" className="text-[8px] h-4 px-1 ml-auto">BETA</Badge>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -559,6 +631,7 @@ function ResizableKanbanColumn({
             onClick={() => onViewProjeto?.(deal)}
             hasAutomation={hasActiveAutomation}
             dynamicEtiquetas={dynamicEtiquetas}
+            cardVisibleFields={stage.card_visible_fields || undefined}
           />
         ))}
       </div>

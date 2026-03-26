@@ -81,6 +81,7 @@ export interface StageDealCardProps {
   onTransfer?: (deal: DealKanbanCard) => void;
   onTag?: (deal: DealKanbanCard) => void;
   onSchedule?: (deal: DealKanbanCard) => void;
+  cardVisibleFields?: string[];
 }
 
 export function StageDealCard({
@@ -93,6 +94,7 @@ export function StageDealCard({
   onTransfer,
   onTag,
   onSchedule,
+  cardVisibleFields,
 }: StageDealCardProps) {
   const allEtiquetaCfgs = useMemo(() => {
     const cfgs: { label: string; short: string; cor: string; icon: string | null }[] = [];
@@ -118,6 +120,7 @@ export function StageDealCard({
   const timeInStage = getTimeInStage(deal.last_stage_change);
   const stagnation = getStagnationLevel(deal.last_stage_change);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const visibleFields = new Set(cardVisibleFields || ["valor_projeto", "potencia_kwp", "cidade"]);
 
   const DOC_KEYS = ["rg_cnh", "conta_luz", "iptu_imovel", "fotos", "autorizacao_art", "contrato_assinado"];
   const docTotal = deal.doc_checklist ? DOC_KEYS.length : 0;
@@ -174,39 +177,43 @@ export function StageDealCard({
           </div>
         </div>
 
-        {/* SUBHEADER: Location + kWp */}
+        {/* SUBHEADER: Location + kWp (field-aware) */}
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-          {(deal.customer_city || deal.customer_state) && (
+          {visibleFields.has("cidade") && (deal.customer_city || deal.customer_state) && (
             <span className="truncate">
               {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
             </span>
           )}
-          <span className="flex items-center gap-0.5 shrink-0 font-medium">
-            <Zap className="h-2.5 w-2.5 text-warning" />
-            {deal.deal_kwp > 0 ? `${deal.deal_kwp.toFixed(1).replace(".", ",")} kWp` : "— kWp"}
-          </span>
+          {visibleFields.has("potencia_kwp") && (
+            <span className="flex items-center gap-0.5 shrink-0 font-medium">
+              <Zap className="h-2.5 w-2.5 text-warning" />
+              {deal.deal_kwp > 0 ? `${deal.deal_kwp.toFixed(1).replace(".", ",")} kWp` : "— kWp"}
+            </span>
+          )}
         </div>
 
         {/* VALUE + TIME CARD */}
-        <div className="flex items-center rounded-md bg-muted/40 border border-border/50 divide-x divide-border/50 text-center">
-          <div className="flex-1 py-1 px-2">
-            <p className="text-[13px] font-bold text-foreground tabular-nums leading-none">
-              {deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
-            </p>
-            <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Valor</p>
+        {visibleFields.has("valor_projeto") && (
+          <div className="flex items-center rounded-md bg-muted/40 border border-border/50 divide-x divide-border/50 text-center">
+            <div className="flex-1 py-1 px-2">
+              <p className="text-[13px] font-bold text-foreground tabular-nums leading-none">
+                {deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
+              </p>
+              <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Valor</p>
+            </div>
+            <div className="flex-1 py-1 px-2">
+              <p className={cn(
+                "text-[13px] font-bold tabular-nums leading-none",
+                stagnation === "critical" ? "text-destructive" :
+                stagnation === "warning" ? "text-warning" :
+                "text-foreground"
+              )}>
+                {timeInStage}
+              </p>
+              <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Tempo</p>
+            </div>
           </div>
-          <div className="flex-1 py-1 px-2">
-            <p className={cn(
-              "text-[13px] font-bold tabular-nums leading-none",
-              stagnation === "critical" ? "text-destructive" :
-              stagnation === "warning" ? "text-warning" :
-              "text-foreground"
-            )}>
-              {timeInStage}
-            </p>
-            <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Tempo</p>
-          </div>
-        </div>
+        )}
 
         {/* STATUS + ETIQUETAS */}
         <div className="flex flex-wrap items-center gap-1">
