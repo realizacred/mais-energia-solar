@@ -31,6 +31,8 @@ interface StepResumoProps {
   grupo: string;
   // Kit
   itens: Array<{ descricao: string; quantidade: number; preco_unitario: number; categoria: string }>;
+  /** Override manual do custo do kit (do Centro Financeiro) */
+  custoKitOverride?: number | null;
   // Adicionais
   adicionais: Array<{ descricao: string; quantidade: number; preco_unitario: number }>;
   // Servicos
