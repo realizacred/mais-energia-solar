@@ -258,7 +258,7 @@ function resolveFromContext(
     if (key === "sistema_solar.inversor_fabricante") return s(inversor?.fabricante as string);
     if (key === "sistema_solar.inversor_fabricante_1") return s(inversor?.fabricante as string);
     if (key === "sistema_solar.inversor_modelo") return s(inversor?.modelo as string);
-    if (key === "sistema_solar.inversor_potencia_nominal") return inversor?.potencia ? `${inversor.potencia} W` : null;
+    if (key === "sistema_solar.inversor_potencia_nominal") return inversor?.potencia_w ? `${inversor.potencia_w} W` : null;
     if (key === "sistema_solar.inversor_quantidade") return s(inversor?.quantidade as string | number);
   }
 
