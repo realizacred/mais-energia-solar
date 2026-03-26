@@ -141,9 +141,21 @@ export function StageDealCard({
             ? "kanban-card--has-proposal"
             : "kanban-card--no-proposal";
 
-  const borderStyle = hasEtiquetaColor && !isWonLost && !stagnation
-    ? { borderLeftColor: etiquetaCfg.cor, borderLeftWidth: 3, borderLeftStyle: "solid" as const }
+  const topBarStyle = hasEtiquetaColor && !isWonLost && !stagnation
+    ? { background: `linear-gradient(90deg, ${etiquetaCfg.cor}, ${etiquetaCfg.cor}80)` }
     : undefined;
+
+  // Format time as Xh XXmin
+  function formatTimeInStage(lastChange: string) {
+    const hours = differenceInHours(new Date(), new Date(lastChange));
+    if (hours < 1) return "agora";
+    if (hours < 24) {
+      return `${hours}h 00min`;
+    }
+    const days = differenceInDays(new Date(), new Date(lastChange));
+    const remainingHours = hours - (days * 24);
+    return `${days * 24 + remainingHours}h`;
+  }
 
   const cardContent = (
     <div
@@ -151,15 +163,22 @@ export function StageDealCard({
       onDragStart={e => onDragStart(e, deal.deal_id)}
       onClick={onClick}
       className={cn(
-        "kanban-card group",
+        "kanban-card group max-w-[270px]",
         borderClass,
         isDragging && "kanban-card--dragging",
       )}
-      style={borderStyle}
     >
-      <div className="p-2 space-y-1">
-        {/* HEADER: Name + Num */}
-        <div className="flex items-start justify-between gap-1.5">
+      {/* Top gradient bar */}
+      <div className="kanban-card__top-bar" style={topBarStyle} />
+
+      <div className="px-3 pt-2 pb-2.5 space-y-2">
+        {/* HEADER: Avatar + Name + kWp badge */}
+        <div className="flex items-center gap-2.5">
+          <Avatar className="h-8 w-8 border border-border/40 shrink-0">
+            <AvatarFallback className="text-[10px] font-bold bg-muted text-muted-foreground">
+              {getInitials(deal.customer_name || deal.deal_title || "?")}
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
               <p className={cn(
@@ -174,77 +193,87 @@ export function StageDealCard({
                 </span>
               )}
             </div>
+            {visibleFields.has("cidade") && (deal.customer_city || deal.customer_state) && (
+              <p className="text-[10px] text-muted-foreground truncate leading-tight">
+                {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
+              </p>
+            )}
           </div>
-        </div>
-
-        {/* SUBHEADER: Location + kWp (field-aware) */}
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-          {visibleFields.has("cidade") && (deal.customer_city || deal.customer_state) && (
-            <span className="truncate">
-              {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
-            </span>
-          )}
-          {visibleFields.has("potencia_kwp") && (
-            <span className="flex items-center gap-0.5 shrink-0 font-medium">
-              <Zap className="h-2.5 w-2.5 text-warning" />
-              {deal.deal_kwp > 0 ? `${deal.deal_kwp.toFixed(1).replace(".", ",")} kWp` : "— kWp"}
-            </span>
+          {visibleFields.has("potencia_kwp") && deal.deal_kwp > 0 && (
+            <Badge variant="outline" className="shrink-0 text-[9px] h-[18px] px-1.5 font-semibold bg-success/10 text-success border-success/20 gap-0.5">
+              <Zap className="h-2.5 w-2.5" />
+              {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
+            </Badge>
           )}
         </div>
 
-        {/* VALUE + TIME CARD */}
+        {/* VALUE + TIME + STATUS — single compact row */}
         {visibleFields.has("valor_projeto") && (
-          <div className="flex items-center rounded-md bg-muted/40 border border-border/50 divide-x divide-border/50 text-center">
-            <div className="flex-1 py-1 px-2">
-              <p className="text-[13px] font-bold text-foreground tabular-nums leading-none">
+          <div className="flex items-center gap-0 rounded-lg bg-muted/30 border border-border/40 overflow-hidden">
+            <div className="flex-1 py-1.5 px-2 text-center">
+              <p className="text-[8px] text-muted-foreground uppercase tracking-wider mb-0.5">Valor</p>
+              <p className="text-[12px] font-bold text-foreground tabular-nums leading-none">
                 {deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
               </p>
-              <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Valor</p>
             </div>
-            <div className="flex-1 py-1 px-2">
+            <div className="w-px self-stretch bg-border/40" />
+            <div className="flex-1 py-1.5 px-2 text-center">
+              <p className="text-[8px] text-muted-foreground uppercase tracking-wider mb-0.5">Tempo</p>
               <p className={cn(
-                "text-[13px] font-bold tabular-nums leading-none",
+                "text-[12px] font-bold tabular-nums leading-none",
                 stagnation === "critical" ? "text-destructive" :
                 stagnation === "warning" ? "text-warning" :
                 "text-foreground"
               )}>
-                {timeInStage}
+                {formatTimeInStage(deal.last_stage_change)}
               </p>
-              <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Tempo</p>
             </div>
+            {propostaInfo && (
+              <>
+                <div className="w-px self-stretch bg-border/40" />
+                <div className="py-1.5 px-2 flex items-center justify-center">
+                  <Badge variant="outline" className={cn("text-[8px] h-[16px] px-1.5 font-medium border", propostaInfo.className)}>
+                    {propostaInfo.label}
+                  </Badge>
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {/* STATUS + ETIQUETAS */}
-        <div className="flex flex-wrap items-center gap-1">
-          {propostaInfo ? (
-            <Badge variant="outline" className={cn("text-[9px] h-[16px] px-1.5 font-medium border", propostaInfo.className)}>
-              {propostaInfo.label}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-[9px] h-[16px] px-1.5 font-medium text-muted-foreground border-border">
-              Sem proposta
-            </Badge>
-          )}
-          {allEtiquetaCfgs.map((et, i) => (
-            <TooltipProvider key={i} delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    className="inline-flex items-center gap-0.5 px-1.5 py-px rounded text-[8px] font-bold text-white"
-                    style={{ backgroundColor: et.cor }}
-                  >
-                    {et.icon && <span className="text-[9px]">{et.icon}</span>}
-                    {et.short || et.label}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">{et.label}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ))}
-        </div>
+        {/* ECONOMIA LINE */}
+        {deal.proposta_economia_mensal ? (
+          <div className="flex items-center justify-between px-0.5">
+            <span className="text-[10px] text-muted-foreground">Economia estimada</span>
+            <span className="text-[11px] font-semibold text-success tabular-nums">
+              {formatBRL(deal.proposta_economia_mensal)}/mês
+            </span>
+          </div>
+        ) : null}
 
-        {/* DOC PROGRESS (compact) */}
+        {/* ETIQUETAS */}
+        {allEtiquetaCfgs.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1">
+            {allEtiquetaCfgs.map((et, i) => (
+              <TooltipProvider key={i} delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="inline-flex items-center gap-0.5 px-1.5 py-px rounded text-[8px] font-bold text-white"
+                      style={{ backgroundColor: et.cor }}
+                    >
+                      {et.icon && <span className="text-[9px]">{et.icon}</span>}
+                      {et.short || et.label}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">{et.label}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))}
+          </div>
+        )}
+
+        {/* DOC PROGRESS */}
         {docTotal > 0 && docDone > 0 && (
           <div className="flex items-center gap-1.5">
             <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
@@ -262,87 +291,78 @@ export function StageDealCard({
           </div>
         )}
 
-        {/* METRICS LINE: economia + time */}
-        <div className="flex items-center justify-between text-[10px]">
-          <div className="flex items-center gap-2">
-            {deal.proposta_economia_mensal ? (
-              <span className="flex items-center gap-0.5 text-success font-medium">
-                <TrendingDown className="h-2.5 w-2.5" />
-                {formatBRL(deal.proposta_economia_mensal)}/mês
-              </span>
-            ) : null}
+        {/* FOOTER: Actions + Etiqueta badges */}
+        <div className="flex items-center justify-between pt-0.5 border-t border-border/30">
+          <div className="flex items-center gap-0.5">
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="action-icon-btn action-icon-btn--whatsapp"
+                    onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
+                    disabled={!deal.customer_phone}
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">WhatsApp</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="action-icon-btn action-icon-btn--phone"
+                    onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
+                    disabled={!deal.customer_phone}
+                  >
+                    <Phone className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">Ligar</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="action-icon-btn action-icon-btn--proposal"
+                    onClick={(e) => { e.stopPropagation(); onClick(); }}
+                  >
+                    <FileText className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">Propostas</TooltipContent>
+              </Tooltip>
+              {deal.notas?.trim() && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="action-icon-btn action-icon-btn--note">
+                      <StickyNote className="h-3 w-3" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs max-w-[250px]">
+                    <p className="whitespace-pre-wrap">{deal.notas}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </TooltipProvider>
+          </div>
+
+          {/* Owner + expected close */}
+          <div className="flex items-center gap-1.5">
             {deal.expected_close_date && (
               <span className={cn(
-                "flex items-center gap-0.5",
+                "flex items-center gap-0.5 text-[9px]",
                 isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"
               )}>
                 <Clock className="h-2.5 w-2.5" />
                 {formatDate(deal.expected_close_date)}
               </span>
             )}
-          </div>
-
-          {/* Owner avatar */}
-          <div className="flex items-center gap-1">
+            <div className="w-px h-3 bg-border/40" />
             <Avatar className="h-4 w-4 border border-border/40">
               <AvatarFallback className="text-[7px] font-bold bg-muted text-muted-foreground">
                 {getInitials(deal.owner_name)}
               </AvatarFallback>
             </Avatar>
           </div>
-        </div>
-
-        {/* ACTIONS (inline, minimal — no separator bar) */}
-        <div className="flex items-center gap-0.5">
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="action-icon-btn action-icon-btn--whatsapp"
-                  onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
-                  disabled={!deal.customer_phone}
-                >
-                  <MessageSquare className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">WhatsApp</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="action-icon-btn action-icon-btn--proposal"
-                  onClick={(e) => { e.stopPropagation(); onClick(); }}
-                >
-                  <FileText className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">Propostas</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="action-icon-btn action-icon-btn--phone"
-                  onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
-                  disabled={!deal.customer_phone}
-                >
-                  <Phone className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">Ligar</TooltipContent>
-            </Tooltip>
-            {deal.notas?.trim() && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="action-icon-btn action-icon-btn--note">
-                    <StickyNote className="h-3 w-3" />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent className="text-xs max-w-[250px]">
-                  <p className="whitespace-pre-wrap">{deal.notas}</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </TooltipProvider>
         </div>
       </div>
     </div>

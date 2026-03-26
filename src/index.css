@@ -635,44 +635,46 @@
 
   /* ===== KANBAN CARD STATUS BORDERS ===== */
   .kanban-card {
-    @apply bg-card rounded-lg cursor-grab active:cursor-grabbing;
-    @apply border border-border/60 transition-all duration-150 ease-out relative;
-    border-left: 4px solid transparent;
-    box-shadow: var(--shadow-xs);
+    @apply bg-card cursor-grab active:cursor-grabbing;
+    @apply border border-border/40 transition-all duration-150 ease-out relative overflow-hidden;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.04), 0 0 0 0.5px hsl(var(--border) / 0.5);
   }
   .kanban-card:hover {
-    @apply border-border;
-    box-shadow: var(--shadow-sm);
+    @apply border-border/60;
+    box-shadow: 0 4px 12px -2px hsl(var(--foreground) / 0.08), 0 0 0 0.5px hsl(var(--border) / 0.6);
   }
-  .kanban-card--won {
-    border-left-color: hsl(var(--success));
-    background: linear-gradient(90deg, hsl(var(--success) / 0.06) 0%, transparent 40%);
+  .kanban-card__top-bar {
+    height: 3px;
+    background: linear-gradient(90deg, hsl(var(--success)), hsl(var(--success) / 0.5));
+  }
+  .kanban-card--won .kanban-card__top-bar {
+    background: linear-gradient(90deg, hsl(var(--success)), hsl(var(--success) / 0.5));
+  }
+  .kanban-card--lost .kanban-card__top-bar {
+    background: linear-gradient(90deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.4));
   }
   .kanban-card--lost {
-    border-left-color: hsl(var(--destructive));
     @apply opacity-50;
   }
-  .kanban-card--stagnation-critical {
-    border-left-color: hsl(var(--destructive));
-    background: linear-gradient(90deg, hsl(var(--destructive) / 0.05) 0%, transparent 40%);
+  .kanban-card--stagnation-critical .kanban-card__top-bar {
+    background: linear-gradient(90deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.4));
   }
-  .kanban-card--stagnation-warning {
-    border-left-color: hsl(var(--warning));
-    background: linear-gradient(90deg, hsl(var(--warning) / 0.06) 0%, transparent 40%);
+  .kanban-card--stagnation-warning .kanban-card__top-bar {
+    background: linear-gradient(90deg, hsl(var(--warning)), hsl(var(--warning) / 0.5));
   }
-  .kanban-card--no-proposal {
-    border-left-color: hsl(var(--muted-foreground) / 0.6);
+  .kanban-card--no-proposal .kanban-card__top-bar {
+    background: linear-gradient(90deg, hsl(var(--muted-foreground) / 0.4), hsl(var(--muted-foreground) / 0.15));
   }
-  .kanban-card--has-proposal {
-    border-left-color: hsl(var(--primary));
-    background: linear-gradient(90deg, hsl(var(--primary) / 0.04) 0%, transparent 40%);
+  .kanban-card--has-proposal .kanban-card__top-bar {
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.4));
   }
-  .kanban-card--etiqueta {
+  .kanban-card--etiqueta .kanban-card__top-bar {
     /* color set inline via style prop */
   }
   .kanban-card--dragging {
     @apply opacity-30 scale-95;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 8px 24px -4px hsl(var(--foreground) / 0.12);
   }
 
   /* ===== ENHANCED SURFACE SYSTEM ===== */
