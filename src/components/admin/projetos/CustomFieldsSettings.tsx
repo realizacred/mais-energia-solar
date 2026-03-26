@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Plus, Trash2, GripVertical, Pencil, Settings2, Layers, Zap, AlertTriangle,
   Save, Loader2, LayoutGrid, ListOrdered, Type, Hash, DollarSign, Calendar,
-  CalendarClock, ListChecks, CheckSquare, FileText, ChevronLeft, HelpCircle,
+  CalendarClock, ListChecks, CheckSquare, FileText, ChevronLeft, ChevronDown, HelpCircle,
   Sliders, Copy, Landmark
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
