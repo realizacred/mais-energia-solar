@@ -38,6 +38,7 @@ import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 import { DocumentosTab } from "./DocumentosTab";
 import { ProjetoInstalacaoTab } from "./ProjetoInstalacaoTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
+import { ProjetoOutrosCampos } from "./ProjetoOutrosCampos";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
