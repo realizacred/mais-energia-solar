@@ -275,21 +275,13 @@ export function StageDealCard({
             )}
           </div>
 
-          {/* Owner + time in stage */}
+          {/* Owner avatar */}
           <div className="flex items-center gap-1">
             <Avatar className="h-4 w-4 border border-border/40">
               <AvatarFallback className="text-[7px] font-bold bg-muted text-muted-foreground">
                 {getInitials(deal.owner_name)}
               </AvatarFallback>
             </Avatar>
-            <span className={cn(
-              "text-[9px] tabular-nums font-medium",
-              stagnation === "critical" ? "text-destructive" :
-              stagnation === "warning" ? "text-warning" :
-              "text-muted-foreground"
-            )}>
-              {timeInStage}
-            </span>
           </div>
         </div>
 
