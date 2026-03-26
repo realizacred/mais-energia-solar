@@ -719,7 +719,7 @@ function GerenciamentoTab({
       try {
         const { data } = await supabase
           .from("deal_activities")
-          .select("id, title, description, activity_type, due_date, status, created_at")
+          .select("id, title, description, activity_type, due_date, status, created_at, assigned_to")
           .eq("deal_id", deal.id)
           .order("due_date", { ascending: true, nullsFirst: false })
           .limit(50);
