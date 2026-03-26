@@ -39,9 +39,13 @@ export interface ProposalMessageContext {
   validadeDias: number | null;
   pagamentoOpcoes: Array<{
     nome: string;
+    tipo?: string | null;
     entrada?: number | null;
     parcelas?: number | null;
     valor_parcela?: number | null;
+    taxa_mensal?: number | null;
+    valor_financiado?: number | null;
+    carencia_meses?: number | null;
   }>;
   itensInclusos: Array<{
     descricao: string;
