@@ -173,7 +173,7 @@ export function ProjectsSection() {
 
       {/* Lightbox Dialog */}
       <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden bg-background">
+        <DialogContent className="w-[90vw] max-w-3xl p-0 overflow-hidden bg-background">
           {selectedProject && (
             <div className="relative">
               <img

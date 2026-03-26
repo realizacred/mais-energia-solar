@@ -64,7 +64,7 @@ export function PostSaleNewUpsellDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="w-[90vw] max-w-lg">
         <DialogHeader>
           <DialogTitle>Nova Oportunidade de Upsell</DialogTitle>
         </DialogHeader>

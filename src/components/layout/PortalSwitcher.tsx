@@ -331,7 +331,7 @@ export function PortalSwitcher() {
 
       {/* Dialog for consultor selection */}
       <Dialog open={showConsultorDialog} onOpenChange={setShowConsultorDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Selecionar Consultor</DialogTitle>
             <DialogDescription>
@@ -358,7 +358,7 @@ export function PortalSwitcher() {
 
       {/* Dialog for instalador selection */}
       <Dialog open={showInstaladorDialog} onOpenChange={setShowInstaladorDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Selecionar Instalador</DialogTitle>
             <DialogDescription>

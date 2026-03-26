@@ -143,7 +143,7 @@ export function PostSaleVisitsList() {
 
       {/* Conclusion dialog */}
       <Dialog open={!!selectedVisit} onOpenChange={(o) => !o && setSelectedVisit(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Concluir visita</DialogTitle>
           </DialogHeader>

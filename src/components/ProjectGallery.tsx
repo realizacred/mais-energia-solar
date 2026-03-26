@@ -119,7 +119,7 @@ export default function ProjectGallery() {
 
         {/* Lightbox Dialog */}
         <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
-          <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogContent className="w-[90vw] max-w-3xl p-0 overflow-hidden">
             {selectedProject && (
               <div className="relative">
                 <img

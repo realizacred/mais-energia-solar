@@ -397,7 +397,7 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[90vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>Enviar Mensagem</DialogTitle>
             <DialogDescription>
