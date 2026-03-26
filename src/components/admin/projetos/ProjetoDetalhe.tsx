@@ -1097,7 +1097,7 @@ function GerenciamentoTab({
                   actionTooltip="Enviar e-mail"
                   onEdit={!customerEmail ? () => openInlineEdit("email", "E-mail", customerEmail) : undefined}
                 />
-                <ClientRow icon={MapPin} label={customerAddress || "Adicionar Cidade"} muted isLink={!customerAddress} onCopy={customerAddress ? () => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); } : undefined} onEdit={() => openAddressDialog()} />
+                <ClientRow icon={MapPin} label={customerAddress || "Adicionar Cidade"} muted isLink={!customerAddress} wrap onCopy={customerAddress ? () => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); } : undefined} onEdit={() => openAddressDialog()} />
               </div>
             </CardContent>
           </Card>
