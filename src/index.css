@@ -135,13 +135,13 @@
     --accent-foreground: 220 20% 92%;
 
     /* --- Semantic --- */
-    --destructive: 4 100% 60%;
+    --destructive: 0 90% 58%;
     --destructive-foreground: 0 0% 100%;
-    --success: 143 73% 48%;
+    --success: 152 80% 44%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 85% 52%;
+    --warning: 38 95% 55%;
     --warning-foreground: 0 0% 100%;
-    --info: 222 57% 41%;
+    --info: 222 75% 55%;
     --info-foreground: 0 0% 100%;
 
     /* --- Edges --- */
