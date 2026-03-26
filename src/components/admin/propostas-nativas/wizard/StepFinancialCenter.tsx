@@ -59,7 +59,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [instalacaoCusto, setInstalacaoCusto] = useState(instalacaoServico?.valor || 0);
   const [comissaoCusto, setComissaoCusto] = useState(comissaoServico?.valor || 0);
   const [kitExpanded, setKitExpanded] = useState(false);
-  const [kitCustoOverride, setKitCustoOverride] = useState<number | null>(null);
+  const [kitCustoOverride, setKitCustoOverride] = useState<number | null>(venda.custo_kit_override ?? null);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
 
   // Load pricing defaults from config (SSOT for initial margin)
@@ -406,6 +406,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                           onChange={(val) => {
                             if (isKit) {
                               setKitCustoOverride(val);
+                              onVendaChange({ ...venda, custo_kit_override: val > 0 ? val : null });
                             } else if (isExtra) {
                               updateExtra(row.id, "custoUnitario", val);
                             } else if (row.id === "instalacao") {

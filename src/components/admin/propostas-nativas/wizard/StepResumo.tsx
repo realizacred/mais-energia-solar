@@ -31,6 +31,8 @@ interface StepResumoProps {
   grupo: string;
   // Kit
   itens: Array<{ descricao: string; quantidade: number; preco_unitario: number; categoria: string }>;
+  /** Override manual do custo do kit (do Centro Financeiro) */
+  custoKitOverride?: number | null;
   // Adicionais
   adicionais: Array<{ descricao: string; quantidade: number; preco_unitario: number }>;
   // Servicos
@@ -90,11 +92,12 @@ export function StepResumo({
   estado, cidade, tipoTelhado, distribuidoraNome, irradiacao,
   clienteNome, clienteCelular, clienteEmail, clienteEmpresa, leadNome,
   potenciaKwp, consumoTotal, geracaoMensalKwh, numUcs, grupo,
-  itens, adicionais, servicos,
+  itens, custoKitOverride, adicionais, servicos,
   precoFinal, margemPercentual, custoComissao, descontoPercentual,
   pagamentoOpcoes,
 }: StepResumoProps) {
-  const custoKit = itens.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
+  const custoKitCalculado = itens.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
+  const custoKit = (custoKitOverride != null && custoKitOverride > 0) ? custoKitOverride : custoKitCalculado;
   const custoAdicionais = adicionais.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
   const custoServicos = servicos.reduce((s, i) => s + i.valor, 0);
 
