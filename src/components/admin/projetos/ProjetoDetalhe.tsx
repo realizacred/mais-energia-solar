@@ -1028,7 +1028,7 @@ function GerenciamentoTab({
         <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           {/* Card: Dados do Cliente */}
           <Card>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 px-4 pt-3">
+            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 px-4 pt-3">
               <CardTitle className="text-sm font-bold text-foreground">
                 Dados do cliente
               </CardTitle>
@@ -1070,7 +1070,7 @@ function GerenciamentoTab({
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
-            <CardContent className="px-4 pb-3 pt-0">
+            <CardContent className="px-4 pb-3 pt-1">
               <div className="space-y-1.5">
                 <ClientRow icon={User} label={customerName || "—"} />
                 <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} onEdit={!customerEmpresa ? () => openInlineEdit("empresa", "Nome da Empresa", customerEmpresa) : undefined} />
@@ -1097,7 +1097,7 @@ function GerenciamentoTab({
                   actionTooltip="Enviar e-mail"
                   onEdit={!customerEmail ? () => openInlineEdit("email", "E-mail", customerEmail) : undefined}
                 />
-                <ClientRow icon={MapPin} label={customerAddress || "Adicionar Cidade"} muted isLink={!customerAddress} onCopy={customerAddress ? () => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); } : undefined} onEdit={() => openAddressDialog()} />
+                <ClientRow icon={MapPin} label={customerAddress || "Adicionar Cidade"} muted isLink={!customerAddress} wrap onCopy={customerAddress ? () => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); } : undefined} onEdit={() => openAddressDialog()} />
               </div>
             </CardContent>
           </Card>
@@ -1473,11 +1473,12 @@ function GerenciamentoTab({
 // ═══════════════════════════════════════════════════
 // ─── Client Info Row ─────────────────────────────
 // ═══════════════════════════════════════════════════
-function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionIcon: ActionIcon, actionTooltip, onEdit }: {
+function ClientRow({ icon: Icon, label, muted, isLink, wrap, onCopy, onAction, actionIcon: ActionIcon, actionTooltip, onEdit }: {
   icon: typeof User;
   label: string;
   muted?: boolean;
   isLink?: boolean;
+  wrap?: boolean;
   onCopy?: () => void;
   onAction?: () => void;
   actionIcon?: typeof User;
@@ -1496,14 +1497,15 @@ function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionI
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 py-1 group",
+        "flex items-start gap-2.5 py-1 group",
         onEdit && "cursor-pointer hover:bg-muted/40 -mx-2 px-2 rounded-md transition-colors"
       )}
       onClick={onEdit}
     >
-      <Icon className={cn("h-3.5 w-3.5 shrink-0", iconColor)} />
+      <Icon className={cn("h-3.5 w-3.5 shrink-0 mt-0.5", iconColor)} />
       <span className={cn(
-        "text-sm leading-snug flex-1 min-w-0 truncate",
+        "text-sm leading-snug flex-1 min-w-0",
+        wrap ? "break-words" : "truncate",
         isLink ? "text-primary underline underline-offset-2 text-xs cursor-pointer" : "",
         muted && !isLink ? "text-muted-foreground" : "",
         !muted && !isLink ? "font-medium text-foreground" : "",
