@@ -393,8 +393,8 @@ export default function PropostaPublica() {
         </div>
       )}
 
-      {/* Financial Summary */}
-      {versaoData && (
+      {/* Financial Summary — only on simulacao view */}
+      {versaoData && isSimulacaoView && (
         <div className="max-w-lg mx-auto px-4 pb-4">
           <Card className="border-border/60">
             <CardContent className="py-4">
