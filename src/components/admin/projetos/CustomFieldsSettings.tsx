@@ -227,13 +227,14 @@ export function CustomFieldsSettings() {
       const options = OPTION_TYPES.includes(normalizedFieldType)
         ? optionsText.split("\n").map(s => s.trim()).filter(Boolean)
         : null;
-      const { visibilityMode, ...formRest } = fieldForm;
+      const { visibilityMode, icon, ...formRest } = fieldForm;
       const visible_on_funnel = visibilityMode === "all";
       const visible_pipeline_ids = visibilityMode === "some" ? formRest.visible_pipeline_ids : [];
       const payload = {
         ...formRest, field_type: normalizedFieldType, options, visible_on_funnel, visible_pipeline_ids,
         important_on_funnel: formRest.important_stage_ids.length > 0,
         required_on_funnel: formRest.required_stage_ids.length > 0,
+        icon: icon || null,
         tenant_id: (profile as any)?.tenant_id,
       };
 
