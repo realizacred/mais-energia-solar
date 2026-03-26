@@ -624,7 +624,7 @@ function ResizableKanbanColumn({
             onClick={() => onViewProjeto?.(deal)}
             hasAutomation={hasActiveAutomation}
             dynamicEtiquetas={dynamicEtiquetas}
-            cardVisibleFields={stage.card_visible_fields || undefined}
+            cardVisibleFields={visibleFields}
           />
         ))}
       </div>
@@ -659,8 +659,7 @@ function AutomationDialog({ stageId, pipelineId, sortedStages, getStageNameById,
 }) {
   if (!stageId || !pipelineId) return null;
   return (
-    <Dialog open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="pb-2 border-b border-border/40">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Zap className="h-4 w-4 text-primary" />
