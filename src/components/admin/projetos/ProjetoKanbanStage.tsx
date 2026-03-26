@@ -415,6 +415,45 @@ function ResizableKanbanColumn({
   const { width: resizedWidth, onMouseDown } = useResizableColumn(280);
   const hasActiveAutomation = stageAutomations.length > 0;
   const hasRestriction = permission && permission !== "todos";
+  const [colorMenuOpen, setColorMenuOpen] = useState(false);
+  const [fieldsMenuOpen, setFieldsMenuOpen] = useState(false);
+
+  const STAGE_COLORS = [
+    { value: null, label: "Padrão" },
+    { value: "hsl(var(--primary))", label: "Primário" },
+    { value: "hsl(var(--success))", label: "Verde" },
+    { value: "hsl(var(--warning))", label: "Amarelo" },
+    { value: "hsl(var(--destructive))", label: "Vermelho" },
+    { value: "hsl(var(--info))", label: "Azul" },
+    { value: "hsl(var(--secondary))", label: "Secundário" },
+  ];
+
+  const CARD_FIELD_OPTIONS = [
+    { key: "valor_projeto", label: "Valor do projeto" },
+    { key: "potencia_kwp", label: "Potência (kWp)" },
+    { key: "cidade", label: "Cidade" },
+    { key: "status", label: "Status da proposta" },
+  ];
+
+  const currentVisibleFields = stage.card_visible_fields || ["valor_projeto", "potencia_kwp", "cidade"];
+
+  const handleColorChange = async (color: string | null) => {
+    await supabase.from("pipeline_stages").update({ color } as any).eq("id", stage.id);
+    // Optimistic: mutate local stage
+    (stage as any).color = color;
+    setColorMenuOpen(false);
+  };
+
+  const handleToggleField = async (fieldKey: string) => {
+    const current = [...currentVisibleFields];
+    const idx = current.indexOf(fieldKey);
+    if (idx >= 0) current.splice(idx, 1);
+    else current.push(fieldKey);
+    await supabase.from("pipeline_stages").update({ card_visible_fields: current } as any).eq("id", stage.id);
+    (stage as any).card_visible_fields = current;
+    setFieldsMenuOpen(prev => !prev); // force re-render
+    setFieldsMenuOpen(true);
+  };
 
   const overdueCount = useMemo(() => {
     return deals.filter(d => differenceInHours(new Date(), new Date(d.last_stage_change)) >= 72).length;
