@@ -125,15 +125,30 @@ export function ValidacaoVendasManager() {
     setSelectedCliente(cliente);
     setLeadSimulacoes([]);
     setSelectedSimulacaoId("");
-    // Try to load payment composition pre-filled by consultant
+    // Try to load payment composition: DB first, localStorage fallback
     const leadId = cliente.lead_id;
     let prefilledItems: PaymentItemInput[] = [];
-    if (leadId) {
+    // 1) Try DB (source of truth)
+    try {
+      const { data: clienteData } = await supabase
+        .from("clientes")
+        .select("payment_composition")
+        .eq("id", cliente.id)
+        .maybeSingle() as any;
+      if (clienteData?.payment_composition && Array.isArray(clienteData.payment_composition)) {
+        prefilledItems = clienteData.payment_composition;
+        console.debug("[ValidacaoVendas] Loaded payment items from DB:", prefilledItems.length);
+      }
+    } catch (e) {
+      console.warn("[ValidacaoVendas] Could not load payment composition from DB:", e);
+    }
+    // 2) Fallback to localStorage
+    if (prefilledItems.length === 0 && leadId) {
       try {
         const stored = localStorage.getItem(`lead_payment_composition_${leadId}`);
         if (stored) {
           prefilledItems = JSON.parse(stored);
-          console.debug("[ValidacaoVendas] Loaded pre-filled payment items from consultant:", prefilledItems.length);
+          console.debug("[ValidacaoVendas] Loaded payment items from localStorage fallback:", prefilledItems.length);
         }
       } catch (e) {
         console.warn("[ValidacaoVendas] Could not parse stored payment composition:", e);
