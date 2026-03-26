@@ -193,9 +193,11 @@ export default function GoogleMapView({
 
     // Initialize DrawingManager
     if (window.google.maps.drawing?.DrawingManager) {
+      const computedPrimary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+      const primaryColor = computedPrimary ? `hsl(${computedPrimary})` : "hsl(var(--primary))";
       const sharedStyle = {
-        strokeColor: "#FF6600",
-        fillColor: "#FF6600",
+        strokeColor: primaryColor,
+        fillColor: primaryColor,
         fillOpacity: 0.15,
         strokeWeight: 2,
         editable: true,
