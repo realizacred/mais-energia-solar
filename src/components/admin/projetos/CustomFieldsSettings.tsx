@@ -514,72 +514,115 @@ export function CustomFieldsSettings() {
 
         {/* ═══ TAB: Tipos de Atividades ═══ */}
         <TabsContent value="atividades" className="space-y-4 mt-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Configure os tipos de atividade disponíveis nos projetos</p>
-            <Button size="sm" onClick={() => openActivityDialog()} className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" /> Novo Tipo
-            </Button>
-          </div>
-
-          <Card>
-            <CardContent className="p-0">
-              {activityTypes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <Zap className="h-8 w-8 mb-2 opacity-30" />
-                  <p className="text-sm font-medium">Nenhum tipo de atividade customizado</p>
-                  <p className="text-xs mt-1">Os tipos padrão do sistema serão usados</p>
-                </div>
-              ) : (
+          {/* Tipos padrão do sistema (read-only) */}
+          <div>
+            <p className="text-sm font-medium text-foreground mb-2">Tipos padrão do sistema</p>
+            <p className="text-xs text-muted-foreground mb-3">Estes tipos são nativos e não podem ser removidos.</p>
+            <Card>
+              <CardContent className="p-0">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/30">
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ordem</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Título</th>
-                      <th className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground">Visível nos funis</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ações</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Tipo</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Chave</th>
+                      <th className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {activityTypes.map((at, i) => {
-                      const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
-                      const AtIcon = at.icon ? (icons as any)[toPascal(at.icon)] : null;
-                      return (
-                        <tr key={at.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                          <td className="px-4 py-2.5">
-                            <div className="flex items-center gap-1.5">
-                              <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50" />
-                              <span className="text-xs text-muted-foreground">{i + 1}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-2.5 font-medium">
-                            <div className="flex items-center gap-2">
-                              {AtIcon && <AtIcon className="h-4 w-4 text-muted-foreground" />}
-                              {at.title}
-                            </div>
-                          </td>
-                          <td className="text-center px-4">
-                            <Badge variant={at.visible_on_funnel ? "default" : "secondary"} className="text-[10px]">
-                              {at.visible_on_funnel ? "Sim" : "Não"}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-2.5 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openActivityDialog(at)}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteActivity(at.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {[
+                      { key: "task", label: "Tarefa" },
+                      { key: "call", label: "Ligação" },
+                      { key: "meeting", label: "Reunião" },
+                      { key: "email", label: "E-mail" },
+                      { key: "visit", label: "Visita" },
+                      { key: "follow_up", label: "Follow-up" },
+                      { key: "other", label: "Outro" },
+                    ].map((t) => (
+                      <tr key={t.key} className="border-b last:border-0">
+                        <td className="px-4 py-2.5 font-medium text-foreground">{t.label}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground font-mono">{t.key}</td>
+                        <td className="text-center px-4">
+                          <Badge variant="soft-success" className="text-[10px]">Ativo</Badge>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tipos customizados */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Tipos customizados</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Adicione novos tipos de atividade específicos para seu negócio</p>
+              </div>
+              <Button size="sm" onClick={() => openActivityDialog()} className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> Novo Tipo
+              </Button>
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                {activityTypes.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                    <Zap className="h-6 w-6 mb-2 opacity-30" />
+                    <p className="text-xs">Nenhum tipo customizado cadastrado</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ordem</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Título</th>
+                        <th className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground">Visível nos funis</th>
+                        <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activityTypes.map((at, i) => {
+                        const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+                        const AtIcon = at.icon ? (icons as any)[toPascal(at.icon)] : null;
+                        return (
+                          <tr key={at.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                            <td className="px-4 py-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50" />
+                                <span className="text-xs text-muted-foreground">{i + 1}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2.5 font-medium">
+                              <div className="flex items-center gap-2">
+                                {AtIcon && <AtIcon className="h-4 w-4 text-muted-foreground" />}
+                                {at.title}
+                              </div>
+                            </td>
+                            <td className="text-center px-4">
+                              <Badge variant={at.visible_on_funnel ? "default" : "secondary"} className="text-[10px]">
+                                {at.visible_on_funnel ? "Sim" : "Não"}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-2.5 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openActivityDialog(at)}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteActivity(at.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* ═══ TAB: Motivos de Perda ═══ */}
