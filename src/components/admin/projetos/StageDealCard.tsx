@@ -177,17 +177,19 @@ export function StageDealCard({
           </div>
         </div>
 
-        {/* SUBHEADER: Location + kWp */}
+        {/* SUBHEADER: Location + kWp (field-aware) */}
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-          {(deal.customer_city || deal.customer_state) && (
+          {visibleFields.has("cidade") && (deal.customer_city || deal.customer_state) && (
             <span className="truncate">
               {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
             </span>
           )}
-          <span className="flex items-center gap-0.5 shrink-0 font-medium">
-            <Zap className="h-2.5 w-2.5 text-warning" />
-            {deal.deal_kwp > 0 ? `${deal.deal_kwp.toFixed(1).replace(".", ",")} kWp` : "— kWp"}
-          </span>
+          {visibleFields.has("potencia_kwp") && (
+            <span className="flex items-center gap-0.5 shrink-0 font-medium">
+              <Zap className="h-2.5 w-2.5 text-warning" />
+              {deal.deal_kwp > 0 ? `${deal.deal_kwp.toFixed(1).replace(".", ",")} kWp` : "— kWp"}
+            </span>
+          )}
         </div>
 
         {/* VALUE + TIME CARD */}
