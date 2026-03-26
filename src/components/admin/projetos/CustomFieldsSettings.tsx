@@ -893,6 +893,7 @@ export function CustomFieldsSettings() {
                     </p>
                   </div>
                 )}
+                </div>
               </div>
 
               {/* ── Card: Ícone do Campo ── */}
