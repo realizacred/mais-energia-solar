@@ -41,7 +41,7 @@ export function ModulosManager() {
   const [filterTensao, setFilterTensao] = useState<string>("all");
   const [filterPotMin, setFilterPotMin] = useState<string>("");
   const [filterPotMax, setFilterPotMax] = useState<string>("");
-  const [viewMode, setViewMode] = useState<ViewMode>("cards");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   const [viewModulo, setViewModulo] = useState<Modulo | null>(null);
   const [editModulo, setEditModulo] = useState<Modulo | null>(null);
