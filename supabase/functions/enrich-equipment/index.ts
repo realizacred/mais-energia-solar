@@ -41,7 +41,6 @@ function buildPrompt(type: EquipmentType, fabricante: string, modelo: string): {
   "largura_mm": number,
   "profundidade_mm": number,
   "peso_kg": number,
-  "area_m2": number,
   "tipo_celula": string,
   "bifacial": boolean,
   "tensao_sistema": string,
