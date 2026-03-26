@@ -1,4 +1,5 @@
-import { formatBRLInteger as formatBRL, formatKwp } from "@/lib/formatters";
+import { formatBRLInteger as formatBRL } from "@/lib/formatters";
+import { formatKwp } from "@/lib/formatters/index";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
