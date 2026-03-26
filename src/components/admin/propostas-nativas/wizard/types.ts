@@ -186,7 +186,10 @@ function _round(v: number): number {
 /** Calcula o preço final (custo base + margem − desconto) de forma canônica.
  *  SSOT: toda lógica de pricing deve usar esta função. */
 export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], venda: VendaData): number {
-  const custoKit = _round(itens.reduce((s, i) => s + _round(i.quantidade * i.preco_unitario), 0));
+  const custoKitCalculado = _round(itens.reduce((s, i) => s + _round(i.quantidade * i.preco_unitario), 0));
+  const custoKit = (venda.custo_kit_override != null && venda.custo_kit_override > 0)
+    ? _round(venda.custo_kit_override)
+    : custoKitCalculado;
   const custoServicos = _round(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
   const custoBase = _round(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
   const margemValor = _round(custoBase * (venda.margem_percentual / 100));
@@ -258,6 +261,8 @@ export interface VendaData {
   margem_percentual: number;
   desconto_percentual: number;
   observacoes: string;
+  /** Override manual do custo do kit no Centro Financeiro */
+  custo_kit_override?: number | null;
 }
 
 export interface PagamentoOpcao {
