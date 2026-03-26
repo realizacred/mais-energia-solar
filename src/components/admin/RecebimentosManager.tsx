@@ -123,6 +123,8 @@ export function RecebimentosManager() {
   const [pagamentosDialogOpen, setPagamentosDialogOpen] = useState(false);
   const [parcelasDialogOpen, setParcelasDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("lista");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const [formData, setFormData] = useState({
     cliente_id: "",
