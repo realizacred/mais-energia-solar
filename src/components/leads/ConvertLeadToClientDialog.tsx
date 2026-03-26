@@ -138,6 +138,7 @@ export function ConvertLeadToClientDialog({
   const [gettingLocation, setGettingLocation] = useState(false);
   const [showMissingDocsModal, setShowMissingDocsModal] = useState(false);
   const [paymentItems, setPaymentItems] = useState<PaymentItemInput[]>([createEmptyItem()]);
+  const [aguardandoStatusAvailable, setAguardandoStatusAvailable] = useState<boolean | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
