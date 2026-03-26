@@ -25,6 +25,7 @@ type SortDir = "asc" | "desc";
 
 interface Props {
   otimizadores: Otimizador[];
+  onView?: (o: Otimizador) => void;
   onEdit: (o: Otimizador) => void;
   onDelete: (o: Otimizador) => void;
   onToggle: (id: string, ativo: boolean) => void;
@@ -32,7 +33,7 @@ interface Props {
 
 function isGlobal(o: Otimizador) { return o.tenant_id === null; }
 
-export function OtimizadorTableView({ otimizadores, onEdit, onDelete, onToggle }: Props) {
+export function OtimizadorTableView({ otimizadores, onView, onEdit, onDelete, onToggle }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("fabricante");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -244,6 +245,7 @@ export function OtimizadorTableView({ otimizadores, onEdit, onDelete, onToggle }
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <EnrichButton equipmentType="otimizador" equipmentId={ot.id} />
+                      {onView && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(ot)}><Eye className="w-4 h-4" /></Button>}
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(ot)}><Pencil className="w-4 h-4" /></Button>
                       {!global && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(ot)}><Trash2 className="w-4 h-4" /></Button>}
                     </div>
