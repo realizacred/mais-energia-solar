@@ -1473,11 +1473,12 @@ function GerenciamentoTab({
 // ═══════════════════════════════════════════════════
 // ─── Client Info Row ─────────────────────────────
 // ═══════════════════════════════════════════════════
-function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionIcon: ActionIcon, actionTooltip, onEdit }: {
+function ClientRow({ icon: Icon, label, muted, isLink, wrap, onCopy, onAction, actionIcon: ActionIcon, actionTooltip, onEdit }: {
   icon: typeof User;
   label: string;
   muted?: boolean;
   isLink?: boolean;
+  wrap?: boolean;
   onCopy?: () => void;
   onAction?: () => void;
   actionIcon?: typeof User;
@@ -1496,14 +1497,15 @@ function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionI
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 py-1 group",
+        "flex items-start gap-2.5 py-1 group",
         onEdit && "cursor-pointer hover:bg-muted/40 -mx-2 px-2 rounded-md transition-colors"
       )}
       onClick={onEdit}
     >
-      <Icon className={cn("h-3.5 w-3.5 shrink-0", iconColor)} />
+      <Icon className={cn("h-3.5 w-3.5 shrink-0 mt-0.5", iconColor)} />
       <span className={cn(
-        "text-sm leading-snug flex-1 min-w-0 truncate",
+        "text-sm leading-snug flex-1 min-w-0",
+        wrap ? "break-words" : "truncate",
         isLink ? "text-primary underline underline-offset-2 text-xs cursor-pointer" : "",
         muted && !isLink ? "text-muted-foreground" : "",
         !muted && !isLink ? "font-medium text-foreground" : "",
