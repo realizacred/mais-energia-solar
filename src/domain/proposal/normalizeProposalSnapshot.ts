@@ -238,6 +238,8 @@ export function normalizeProposalSnapshot(
 
   // Cliente — suporta camelCase e objeto aninhado
   const cliente = s.cliente || {};
+  // selectedLead — fallback from wizard snapshot (lead data saved alongside)
+  const lead = s.selectedLead || {};
 
   // Itens
   const rawItens = arr(s.itens);
@@ -309,22 +311,22 @@ export function normalizeProposalSnapshot(
   }
 
   return {
-    // Localização
-    locEstado: str(s.locEstado ?? s.loc_estado),
-    locCidade: str(s.locCidade ?? s.loc_cidade),
-    locTipoTelhado: str(s.locTipoTelhado ?? s.loc_tipo_telhado),
+    // Localização — fallback: selectedLead data from wizard
+    locEstado: str(s.locEstado ?? s.loc_estado ?? lead.estado),
+    locCidade: str(s.locCidade ?? s.loc_cidade ?? lead.cidade),
+    locTipoTelhado: str(s.locTipoTelhado ?? s.loc_tipo_telhado ?? lead.tipo_telhado),
     locDistribuidoraNome: str(s.locDistribuidoraNome ?? s.loc_distribuidora_nome),
     locDistribuidoraId: str(s.locDistribuidoraId ?? s.loc_distribuidora_id),
     locIrradiacao: irradiacao,
     locLatitude: num(s.locLatitude ?? s.loc_latitude),
     locLongitude: num(s.locLongitude ?? s.loc_longitude),
 
-    // Cliente
-    clienteNome: str(cliente.nome ?? s.clienteNome ?? s.cliente_nome),
+    // Cliente — fallback chain: cliente obj → top-level camelCase → selectedLead
+    clienteNome: str(cliente.nome ?? s.clienteNome ?? s.cliente_nome ?? lead.nome),
     clienteEmpresa: str(cliente.empresa ?? s.clienteEmpresa ?? s.cliente_empresa),
-    clienteCelular: str(cliente.celular ?? s.clienteCelular ?? s.cliente_celular),
-    clienteEmail: str(cliente.email ?? s.clienteEmail ?? s.cliente_email),
-    clienteCpfCnpj: str(cliente.cnpj_cpf ?? s.clienteCpfCnpj ?? s.cliente_cpf_cnpj),
+    clienteCelular: str(cliente.celular ?? s.clienteCelular ?? s.cliente_celular ?? lead.telefone),
+    clienteEmail: str(cliente.email ?? s.clienteEmail ?? s.cliente_email ?? lead.email),
+    clienteCpfCnpj: str(cliente.cnpj_cpf ?? s.clienteCpfCnpj ?? s.cliente_cpf_cnpj ?? lead.cpf_cnpj),
 
     // Sistema
     potenciaKwp,
