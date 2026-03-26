@@ -582,7 +582,7 @@ export function RecebimentosManager() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRecebimentos.map((recebimento) => {
+              {paginatedRecebimentos.map((recebimento) => {
                 const totalPago = calcularTotalPago(recebimento.pagamentos);
                 const progresso = calcularProgresso(recebimento);
 
