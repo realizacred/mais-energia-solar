@@ -212,7 +212,7 @@ export function ProjetoOutrosCampos({ clienteId, dealId, importantFields, custom
                   Nenhum campo importante encontrado para esta etapa
                 </p>
               ) : (
-                <div className="space-y-1">
+                <div className="divide-y divide-border">
                   {importantFields.map((field) => (
                     <ImportantFieldInline
                       key={field.id}
