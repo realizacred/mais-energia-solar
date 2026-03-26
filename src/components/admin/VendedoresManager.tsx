@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
@@ -23,9 +23,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck } from "lucide-react";
+import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck, Download, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { SearchInput } from "@/components/ui-kit";
+import { TablePagination } from "@/components/ui-kit/TablePagination";
 
 interface Vendedor {
   id: string;
