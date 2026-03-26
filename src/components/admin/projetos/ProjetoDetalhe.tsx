@@ -1286,9 +1286,8 @@ function GerenciamentoTab({
                               {a.title}
                             </p>
                             {/* Action buttons */}
-                            {!isDone && (
                               <div className="flex items-center gap-1 shrink-0">
-                                {(isCallType || isWaType) && telLink && (
+                                {!isDone && (isCallType || isWaType) && telLink && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <a href={telLink} className="inline-flex">
@@ -1300,7 +1299,7 @@ function GerenciamentoTab({
                                     <TooltipContent>Ligar para {customerName || "cliente"}</TooltipContent>
                                   </Tooltip>
                                 )}
-                                {(isCallType || isWaType) && waLink && (
+                                {!isDone && (isCallType || isWaType) && waLink && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex">
@@ -1312,7 +1311,7 @@ function GerenciamentoTab({
                                     <TooltipContent>WhatsApp para {customerName || "cliente"}</TooltipContent>
                                   </Tooltip>
                                 )}
-                                {isEmailType && customerEmail && (
+                                {!isDone && isEmailType && customerEmail && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <a href={`mailto:${customerEmail}`} className="inline-flex">
@@ -1324,8 +1323,26 @@ function GerenciamentoTab({
                                     <TooltipContent>Enviar e-mail para {customerEmail}</TooltipContent>
                                   </Tooltip>
                                 )}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                                      <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleEditActivity(a)}>
+                                      <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => { setActivityToDelete(a.id); setDeleteActivityDialogOpen(true); }}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
-                            )}
                           </div>
                           {a.description && (
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{a.description}</p>
