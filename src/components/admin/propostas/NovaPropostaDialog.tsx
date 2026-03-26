@@ -224,7 +224,7 @@ export function NovaPropostaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="w-[90vw] max-w-4xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <FileText className="w-5 h-5 text-primary" />
@@ -235,7 +235,7 @@ export function NovaPropostaDialog({
           </div>
         </DialogHeader>
 
-        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
           {/* Nome da proposta */}
           <div className="space-y-1.5">
             <Label>Nome da Proposta *</Label>
@@ -288,37 +288,40 @@ export function NovaPropostaDialog({
                       Cadastros encontrados
                     </p>
                   </div>
-                  {phoneLookupResults.map((record) => (
-                    <button
+                     {phoneLookupResults.map((record) => (
+                    <Button
                       key={`${record.source}-${record.id}`}
                       type="button"
+                      variant="ghost"
                       onClick={() => applyRecord(record)}
-                      className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors border-b border-border/40 last:border-b-0"
+                      className="w-full text-left px-3 py-2 h-auto justify-start border-b border-border/40 last:border-b-0 rounded-none"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-foreground truncate">{record.nome}</p>
-                          <p className="text-[10px] text-muted-foreground">{record.telefone}</p>
+                      <div className="w-full">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">{record.nome}</p>
+                            <p className="text-[10px] text-muted-foreground">{record.telefone}</p>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[9px] shrink-0",
+                              record.source === "cliente"
+                                ? "bg-success/10 text-success border-success/20"
+                                : "bg-info/10 text-info border-info/20"
+                            )}
+                          >
+                            {record.source === "cliente" ? "Cliente" : "Lead"}
+                          </Badge>
                         </div>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[9px] shrink-0",
-                            record.source === "cliente"
-                              ? "bg-success/10 text-success border-success/20"
-                              : "bg-info/10 text-info border-info/20"
-                          )}
-                        >
-                          {record.source === "cliente" ? "Cliente" : "Lead"}
-                        </Badge>
+                        {(record.cidade || record.email) && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {[record.cidade, record.estado].filter(Boolean).join(", ")}
+                            {record.email && ` • ${record.email}`}
+                          </p>
+                        )}
                       </div>
-                      {(record.cidade || record.email) && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {[record.cidade, record.estado].filter(Boolean).join(", ")}
-                          {record.email && ` • ${record.email}`}
-                        </p>
-                      )}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
