@@ -1496,12 +1496,24 @@ function GerenciamentoTab({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: Nova Atividade */}
-      <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
-        <DialogContent className="max-w-md">
+      {/* Dialog: Nova/Editar Atividade */}
+      <Dialog open={activityDialogOpen} onOpenChange={(open) => {
+        setActivityDialogOpen(open);
+        if (!open) {
+          setEditingActivityId(null);
+          setActivityTitle("");
+          setActivityDescription("");
+          setActivityDueDate("");
+          setActivityType("task");
+          setActivityAssignedTo("");
+        }
+      }}>
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
-            <DialogTitle>Nova Atividade</DialogTitle>
-            <DialogDescription>Crie uma tarefa ou atividade para este projeto.</DialogDescription>
+            <DialogTitle>{editingActivityId ? "Editar Atividade" : "Nova Atividade"}</DialogTitle>
+            <DialogDescription>
+              {editingActivityId ? "Altere os dados da atividade." : "Crie uma tarefa ou atividade para este projeto."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -1562,42 +1574,65 @@ function GerenciamentoTab({
                 className="resize-none"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-medium flex items-center gap-1.5">
-                <Bell className="h-3.5 w-3.5" /> Notificar via
-              </Label>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={activityNotifySystem}
-                    onChange={e => setActivityNotifySystem(e.target.checked)}
-                    className="rounded border-border h-4 w-4 accent-primary"
-                  />
-                  Sistema
-                </label>
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={activityNotifyWa}
-                    onChange={e => setActivityNotifyWa(e.target.checked)}
-                    className="rounded border-border h-4 w-4 accent-primary"
-                  />
-                  WhatsApp
-                </label>
+            {!editingActivityId && (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium flex items-center gap-1.5">
+                  <Bell className="h-3.5 w-3.5" /> Notificar via
+                </Label>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={activityNotifySystem}
+                      onChange={e => setActivityNotifySystem(e.target.checked)}
+                      className="rounded border-border h-4 w-4 accent-primary"
+                    />
+                    Sistema
+                  </label>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={activityNotifyWa}
+                      onChange={e => setActivityNotifyWa(e.target.checked)}
+                      className="rounded border-border h-4 w-4 accent-primary"
+                    />
+                    WhatsApp
+                  </label>
+                </div>
+                <p className="text-[10px] text-muted-foreground">O criador da atividade sempre será notificado.</p>
               </div>
-              <p className="text-[10px] text-muted-foreground">O criador da atividade sempre será notificado.</p>
-            </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setActivityDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSaveActivity} disabled={!activityTitle.trim() || savingActivity}>
               {savingActivity ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Criar atividade
+              {editingActivityId ? "Salvar" : "Criar atividade"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Confirmar exclusão de atividade */}
+      <AlertDialog open={deleteActivityDialogOpen} onOpenChange={setDeleteActivityDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir atividade</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta atividade? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteActivity}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
