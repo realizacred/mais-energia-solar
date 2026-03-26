@@ -172,9 +172,6 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
       comprimento_mm: int(form.comprimento_mm),
       largura_mm: int(form.largura_mm),
       profundidade_mm: int(form.profundidade_mm),
-      area_m2: int(form.comprimento_mm) && int(form.largura_mm)
-        ? parseFloat(((int(form.comprimento_mm)! * int(form.largura_mm)!) / 1_000_000).toFixed(4))
-        : null,
       peso_kg: num(form.peso_kg),
       bifacial: form.bifacial,
       garantia_produto_anos: int(form.garantia_produto_anos),
