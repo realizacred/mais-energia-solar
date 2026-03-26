@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
   Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
-  AlertTriangle, ExternalLink, Sparkles,
+  AlertTriangle, ExternalLink, Sparkles, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -788,9 +788,21 @@ export function StepDocumento({
 
           {/* Generation status badge */}
           {generationStatus === "ready" && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-success/10 border border-success/20">
-              <Check className="h-3.5 w-3.5 text-success" />
-              <span className="text-xs font-medium text-success">Documento pronto</span>
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-success/10 border border-success/20">
+                <Check className="h-3.5 w-3.5 text-success" />
+                <span className="text-xs font-medium text-success">Documento pronto</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={onGenerate}
+                disabled={generating || rendering || !templateSelecionado}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Regenerar proposta
+              </Button>
             </div>
           )}
 
