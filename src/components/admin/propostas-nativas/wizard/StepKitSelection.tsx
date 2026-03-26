@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { calcFatorGeracao } from "@/services/solar/fatorGeracaoService";
+import { calcFatorGeracao, calcEffectiveIrrad } from "@/services/solar/fatorGeracaoService";
+import { DEFAULT_SOMBREAMENTO_CONFIG, type SombreamentoConfig } from "@/hooks/useTenantPremises";
 import { formatDate } from "@/lib/dateUtils";
 import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -886,6 +887,29 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
   pdRef.current = pd;
   const [topoMesAMes, setTopoMesAMes] = useState<{ open: boolean; topo: string }>({ open: false, topo: "tradicional" });
 
+  // Store base desempenho (without shading) for sombreamento recalc
+  const [baseDesempenho] = useState<Record<string, number>>(() => {
+    const base: Record<string, number> = {};
+    for (const topo of ["tradicional", "microinversor", "otimizador"]) {
+      const cfg = pd.topologia_configs?.[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo];
+      base[topo] = cfg.desempenho;
+    }
+    return base;
+  });
+
+  // Compute effective irradiance for fator_geracao calc
+  const effectiveIrrad = useMemo(() => {
+    if (!irradiacao || irradiacao <= 0) return 0;
+    return calcEffectiveIrrad({
+      ghiSeries: ghiSeries as Record<string, number> | null | undefined,
+      ghiMediaAnual: irradiacao,
+      latitude,
+      tilt_deg: pd.inclinacao ?? 10,
+      azimuth_deviation_deg: pd.desvio_azimutal ?? 0,
+      somente_ghi: somenteGhi,
+    });
+  }, [irradiacao, latitude, ghiSeries, somenteGhi, pd.inclinacao, pd.desvio_azimutal]);
+
   // Recalculate fator_geracao via SSOT service when tilt/azimuth change
   const recalcFatorGeracao = useCallback((updatedPd: PreDimensionamentoData) => {
     if (!irradiacao || irradiacao <= 0) return updatedPd;
@@ -912,7 +936,42 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
     };
   }, [irradiacao, latitude, ghiSeries, somenteGhi]);
 
+  // Apply sombreamento: adjusts desempenho per topology, then recalculates fator_geracao
+  const applySombreamento = useCallback((sombreamentoLevel: string, currentPd: PreDimensionamentoData) => {
+    const sombConfig: SombreamentoConfig = currentPd.sombreamento_config || DEFAULT_SOMBREAMENTO_CONFIG;
+    const levelKey = sombreamentoLevel === "Pouco" ? "pouco" : sombreamentoLevel === "Médio" ? "medio" : sombreamentoLevel === "Alto" ? "alto" : null;
+
+    const configs = { ...currentPd.topologia_configs };
+    for (const topo of ["tradicional", "microinversor", "otimizador"]) {
+      const baseD = baseDesempenho[topo] || (configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]).desempenho;
+      const lossPct = levelKey ? (sombConfig[levelKey] as any)?.[topo] ?? 0 : 0;
+      const factor = 1 - lossPct / 100;
+      const adjustedDesempenho = Math.round(baseD * factor * 100) / 100;
+      const adjustedFatorGeracao = effectiveIrrad > 0
+        ? Math.round(effectiveIrrad * 30 * (adjustedDesempenho / 100) * 100) / 100
+        : Math.round((configs[topo]?.fator_geracao || DEFAULT_TOPOLOGIA_CONFIGS[topo].fator_geracao) * factor * 100) / 100;
+      configs[topo] = {
+        ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]),
+        desempenho: adjustedDesempenho,
+        fator_geracao: adjustedFatorGeracao,
+      };
+    }
+
+    const updated: PreDimensionamentoData = {
+      ...currentPd,
+      sombreamento: sombreamentoLevel,
+      topologia_configs: configs,
+      desempenho: configs.tradicional?.desempenho ?? currentPd.desempenho,
+      fator_geracao: configs.tradicional?.fator_geracao ?? currentPd.fator_geracao,
+    };
+    setPd(updated);
+  }, [baseDesempenho, effectiveIrrad, setPd]);
+
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
+    if (field === "sombreamento") {
+      applySombreamento(value as string, pdRef.current);
+      return;
+    }
     let updated = { ...pdRef.current, [field]: value };
     if (field === "inclinacao" || field === "desvio_azimutal") {
       updated = recalcFatorGeracao(updated);
