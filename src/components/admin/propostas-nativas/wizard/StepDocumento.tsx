@@ -283,6 +283,7 @@ export function StepDocumento({
     }
   };
 
+  const [sendingWa, setSendingWa] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
 
   // ─── Send via proposalApi (§33 — centralizar chamadas de edge function) ───
