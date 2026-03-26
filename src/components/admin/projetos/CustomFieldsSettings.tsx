@@ -40,6 +40,16 @@ interface CustomField {
   required_on_funnel: boolean;
   required_on_proposal: boolean;
   is_active: boolean;
+  visible_pipeline_ids: string[];
+  important_stage_ids: string[];
+  required_stage_ids: string[];
+}
+
+interface StageInfo {
+  id: string;
+  name: string;
+  pipeline_id: string;
+  position: number;
 }
 
 interface ActivityType {
