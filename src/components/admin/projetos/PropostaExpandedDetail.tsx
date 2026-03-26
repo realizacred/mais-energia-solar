@@ -1267,8 +1267,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             geracao_mensal: latestVersao.geracao_mensal,
             public_slug: latestVersao.public_slug,
           }}
-          clienteTelefone={(snapshot as any)?.clienteCelular || null}
-          clienteEmail={(snapshot as any)?.clienteEmail || null}
+          clienteTelefone={(snapshot as any)?.clienteCelular || clienteContato?.telefone || null}
+          clienteEmail={(snapshot as any)?.clienteEmail || clienteContato?.email || null}
         />
       )}
 
