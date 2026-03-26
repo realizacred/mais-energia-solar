@@ -159,6 +159,70 @@ export function StepDocumento({
       setEmailCorpo(tpl.corpo_html || "");
     }
   };
+  // ─── DOCX Upload Handler ─────────────────────────────────
+  const handleDocxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".docx")) {
+      toast({ title: "Apenas arquivos .docx são aceitos", variant: "destructive" });
+      return;
+    }
+
+    const MAX_SIZE_MB = 50;
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      toast({ title: `Arquivo excede o limite de ${MAX_SIZE_MB}MB`, variant: "destructive" });
+      return;
+    }
+
+    setUploadingDocx(true);
+    try {
+      const { tenantId } = await getCurrentTenantId();
+      const fileName = `${tenantId}/${Date.now()}_${file.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("proposta-templates")
+        .upload(fileName, file, { contentType: file.type, upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("proposta-templates")
+        .getPublicUrl(fileName);
+
+      // Create template record
+      const templateNome = file.name.replace(/\.docx$/i, "").replace(/^\d+_/, "");
+      const { data: newTemplate, error: insertError } = await supabase
+        .from("proposta_templates")
+        .insert({
+          nome: templateNome,
+          descricao: `Upload via wizard - ${file.name}`,
+          grupo: "B",
+          categoria: "geral",
+          tipo: "docx",
+          file_url: urlData.publicUrl,
+          ativo: true,
+          tenant_id: tenantId,
+        })
+        .select("id")
+        .single();
+
+      if (insertError) throw insertError;
+
+      toast({ title: "Template enviado com sucesso!" });
+
+      // Auto-select the new template & refresh list
+      if (newTemplate?.id) {
+        onTemplateSelecionado(newTemplate.id);
+      }
+    } catch (err: any) {
+      console.error("[StepDocumento] Upload error:", err);
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingDocx(false);
+      if (docxUploadRef.current) docxUploadRef.current.value = "";
+    }
+  };
 
   const handleCopyLink = async (withTracker: boolean) => {
     const propostaId = result?.proposta_id;
