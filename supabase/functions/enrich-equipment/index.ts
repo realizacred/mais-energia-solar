@@ -266,13 +266,18 @@ serve(async (req) => {
       throw new Error("IA não retornou JSON válido");
     }
 
+    console.log(`[enrich-equipment] RAW da IA:`, JSON.stringify(parsed));
+
     // 6. Validate
     const validated = validateSpecs(parsed, equipment_type);
+
+    console.log(`[enrich-equipment] VALIDADO:`, JSON.stringify(validated));
 
     // 7. Count filled fields
     const fieldsFilled = Object.values(validated).filter(v => v !== null && v !== undefined).length;
 
-    // 8. Remove null fields to avoid overwriting existing data (unless force_refresh)
+    // 8. Remove null fields and generated columns
+    const generatedCols = GENERATED_COLUMNS[equipment_type] || [];
     const updatePayload: Record<string, unknown> = {
       datasheet_found_at: new Date().toISOString(),
       status: "revisao",
@@ -280,10 +285,10 @@ serve(async (req) => {
     };
 
     for (const [key, value] of Object.entries(validated)) {
+      if (generatedCols.includes(key)) continue; // skip generated columns
       if (value !== null && value !== undefined) {
         updatePayload[key] = value;
       } else if (force_refresh) {
-        // Only null out fields on force refresh
         updatePayload[key] = null;
       }
     }
