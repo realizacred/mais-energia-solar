@@ -464,7 +464,7 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
 // Reuse existing ImportantFieldRow directly
 
 function ImportantFieldInline({ field, value, dealId, onSaved }: {
-  field: { id: string; title: string; field_key: string; field_type: string; options: any };
+  field: { id: string; title: string; field_key: string; field_type: string; options: any; icon?: string | null };
   value: { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_date?: string | null } | undefined;
   dealId: string;
   onSaved: () => void;
