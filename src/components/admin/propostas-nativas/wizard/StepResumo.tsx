@@ -338,7 +338,7 @@ export function StepResumo({
   );
 }
 
-/* ── Expandable Payment Option ── */
+/* ── Modern Payment Option Card ── */
 function PaymentOptionItem({ op, defaultOpen }: {
   op: StepResumoProps["pagamentoOpcoes"][number];
   defaultOpen?: boolean;
@@ -350,10 +350,9 @@ function PaymentOptionItem({ op, defaultOpen }: {
     : 0;
   const totalGeral = (op.entrada || 0) + totalFinanciado;
 
-  // Summary line for collapsed state
-  const summaryParts: string[] = [];
-  if (op.entrada > 0) summaryParts.push(`Entrada ${formatBRL(op.entrada)}`);
-  if (op.num_parcelas > 0) summaryParts.push(`${op.num_parcelas}× ${formatBRL(op.valor_parcela)}`);
+  const tipoColor = getTipoBadgeColor(op.tipo);
+  const isFinanciamento = op.tipo === "financiamento";
+  const isAVista = op.tipo === "a_vista";
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -361,108 +360,137 @@ function PaymentOptionItem({ op, defaultOpen }: {
         <button
           type="button"
           className={cn(
-            "w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors",
-            "hover:bg-muted/40 cursor-pointer",
-            open ? "border-primary/30 bg-primary/5" : "border-border/50 bg-muted/20"
+            "w-full group rounded-xl border transition-all duration-200",
+            "hover:shadow-md cursor-pointer",
+            open
+              ? "border-primary/30 shadow-sm bg-card"
+              : "border-border/50 bg-card hover:border-primary/20"
           )}
         >
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-4 p-4">
+            {/* Icon */}
             <div className={cn(
-              "h-7 w-7 rounded-md flex items-center justify-center shrink-0",
-              getTipoBadgeColor(op.tipo).replace("text-", "bg-").split(" ")[0] || "bg-muted",
+              "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+              isAVista ? "bg-success/10" : isFinanciamento ? "bg-info/10" : "bg-warning/10",
             )}>
-              <CreditCard className="h-3.5 w-3.5 text-foreground" />
-            </div>
-            <div className="min-w-0">
-              <span className="font-semibold text-sm text-foreground block">{op.nome}</span>
-              {!open && summaryParts.length > 0 && (
-                <span className="text-[11px] text-muted-foreground truncate block">
-                  {summaryParts.join(" · ")}
-                </span>
+              {isAVista ? (
+                <Banknote className={cn("h-5 w-5", isAVista ? "text-success" : "text-info")} />
+              ) : (
+                <Building2 className={cn("h-5 w-5", isFinanciamento ? "text-info" : "text-warning")} />
               )}
             </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge variant="outline" className={cn("text-[9px]", getTipoBadgeColor(op.tipo))}>
-              {getTipoLabel(op.tipo)}
-            </Badge>
-            {open ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
+
+            {/* Name + summary */}
+            <div className="flex-1 min-w-0 text-left">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm text-foreground truncate">{op.nome}</span>
+                <Badge variant="outline" className={cn("text-[9px] shrink-0", tipoColor)}>
+                  {getTipoLabel(op.tipo)}
+                </Badge>
+              </div>
+              {!open && (
+                <div className="flex items-center gap-3 mt-1">
+                  {op.entrada > 0 && (
+                    <span className="text-[11px] text-muted-foreground">
+                      <ArrowDown className="h-2.5 w-2.5 inline mr-0.5" />
+                      {formatBRL(op.entrada)}
+                    </span>
+                  )}
+                  {op.num_parcelas > 0 && (
+                    <span className="text-[11px] text-muted-foreground">
+                      <Clock className="h-2.5 w-2.5 inline mr-0.5" />
+                      {op.num_parcelas}× {formatBRL(op.valor_parcela)}
+                    </span>
+                  )}
+                  {(op.taxa_mensal ?? 0) > 0 && (
+                    <span className="text-[11px] text-muted-foreground">
+                      <Percent className="h-2.5 w-2.5 inline mr-0.5" />
+                      {((op.taxa_mensal ?? 0) * 100).toFixed(2)}%
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Total value on right */}
+            <div className="text-right shrink-0">
+              <p className="text-sm font-bold text-foreground">
+                {isAVista ? formatBRL(op.entrada || op.valor_parcela) : totalGeral > 0 ? formatBRL(totalGeral) : formatBRL(op.valor_parcela)}
+              </p>
+              {!isAVista && op.num_parcelas > 0 && (
+                <p className="text-[10px] text-muted-foreground">{op.num_parcelas}× de {formatBRL(op.valor_parcela)}</p>
+              )}
+            </div>
+
+            {/* Chevron */}
+            <ChevronDown className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
+              open && "rotate-180"
+            )} />
           </div>
         </button>
       </CollapsibleTrigger>
+
       <CollapsibleContent>
-        <div className="rounded-b-lg border border-t-0 border-primary/20 bg-card px-4 py-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 text-xs">
+        <div className="mx-1 mb-1 rounded-b-xl border border-t-0 border-border/40 bg-muted/20 px-4 py-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {op.entrada > 0 && (
-              <div>
-                <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
-                  <ArrowDown className="h-3 w-3 shrink-0" />
-                  <span>Entrada</span>
-                </div>
-                <span className="font-semibold text-sm text-foreground">{formatBRL(op.entrada)}</span>
-              </div>
+              <MetricMini icon={ArrowDown} label="Entrada" value={formatBRL(op.entrada)} />
             )}
             {op.num_parcelas > 0 && (
-              <div>
-                <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
-                  <Clock className="h-3 w-3 shrink-0" />
-                  <span>Parcelas</span>
-                </div>
-                <span className="font-semibold text-sm text-foreground">
-                  {op.num_parcelas}× {formatBRL(op.valor_parcela)}
-                </span>
-              </div>
+              <MetricMini
+                icon={Clock}
+                label="Parcelas"
+                value={`${op.num_parcelas}× ${formatBRL(op.valor_parcela)}`}
+              />
             )}
             {(op.taxa_mensal ?? 0) > 0 && (
-              <div>
-                <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
-                  <Percent className="h-3 w-3 shrink-0" />
-                  <span>Taxa mensal</span>
-                </div>
-                <span className="font-semibold text-sm text-foreground">
-                  {((op.taxa_mensal ?? 0) * 100).toFixed(2)}%
-                </span>
-              </div>
+              <MetricMini
+                icon={Percent}
+                label="Taxa mensal"
+                value={`${((op.taxa_mensal ?? 0) * 100).toFixed(2)}%`}
+              />
             )}
             {(op.carencia_meses ?? 0) > 0 && (
-              <div>
-                <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
-                  <Clock className="h-3 w-3 shrink-0" />
-                  <span>Carência</span>
-                </div>
-                <span className="font-semibold text-sm text-foreground">
-                  {op.carencia_meses} meses
-                </span>
-              </div>
+              <MetricMini
+                icon={Clock}
+                label="Carência"
+                value={`${op.carencia_meses} meses`}
+              />
             )}
             {(op.valor_financiado ?? 0) > 0 && (
-              <div>
-                <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
-                  <Banknote className="h-3 w-3 shrink-0" />
-                  <span>Financiado</span>
-                </div>
-                <span className="font-semibold text-sm text-foreground">
-                  {formatBRL(op.valor_financiado ?? 0)}
-                </span>
-              </div>
+              <MetricMini
+                icon={Banknote}
+                label="Financiado"
+                value={formatBRL(op.valor_financiado ?? 0)}
+              />
             )}
           </div>
 
-          {totalGeral > 0 && op.tipo !== "a_vista" && (
+          {totalGeral > 0 && !isAVista && (
             <>
-              <Separator className="my-2.5" />
-              <div className="flex justify-between text-sm font-bold">
-                <span className="text-muted-foreground">Total c/ juros</span>
-                <span className="text-primary">{formatBRL(totalGeral)}</span>
+              <Separator className="my-3" />
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground font-medium">Total com juros</span>
+                <span className="text-sm font-bold text-primary">{formatBRL(totalGeral)}</span>
               </div>
             </>
           )}
         </div>
       </CollapsibleContent>
     </Collapsible>
+  );
+}
+
+/* ── Mini metric for expanded state ── */
+function MetricMini({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-1 text-muted-foreground">
+        <Icon className="h-3 w-3 shrink-0" />
+        <span className="text-[10px] font-medium uppercase tracking-wider">{label}</span>
+      </div>
+      <p className="text-sm font-semibold text-foreground">{value}</p>
+    </div>
   );
 }
