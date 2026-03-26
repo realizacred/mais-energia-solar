@@ -631,6 +631,7 @@ function ResizableKanbanColumn({
             onClick={() => onViewProjeto?.(deal)}
             hasAutomation={hasActiveAutomation}
             dynamicEtiquetas={dynamicEtiquetas}
+            cardVisibleFields={stage.card_visible_fields || undefined}
           />
         ))}
       </div>
