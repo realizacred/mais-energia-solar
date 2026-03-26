@@ -667,6 +667,14 @@ export function RecebimentosManager() {
             </TableBody>
           </Table>
           </div>
+          <TablePagination
+            totalItems={filteredRecebimentos.length}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
         </SectionCard>
       )}
         </TabsContent>
