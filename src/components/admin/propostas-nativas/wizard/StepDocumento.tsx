@@ -102,6 +102,7 @@ export function StepDocumento({
   const [copiedTracker, setCopiedTracker] = useState(false);
   const [copiedDirect, setCopiedDirect] = useState(false);
   const [copiedSimulacao, setCopiedSimulacao] = useState(false);
+  const [resolvedPublicUrl, setResolvedPublicUrl] = useState<string | null>(null);
 
   // Proposal validity
   const [validade, setValidade] = useState(() => {
