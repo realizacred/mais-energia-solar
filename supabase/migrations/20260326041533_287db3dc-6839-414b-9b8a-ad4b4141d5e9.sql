@@ -1,0 +1,1 @@
+ALTER TABLE public.deal_custom_fields ADD COLUMN IF NOT EXISTS icon text DEFAULT NULL;

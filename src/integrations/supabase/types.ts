@@ -3017,6 +3017,7 @@ export type Database = {
           field_context: string
           field_key: string
           field_type: string
+          icon: string | null
           id: string
           important_on_funnel: boolean | null
           important_stage_ids: string[] | null
@@ -3039,6 +3040,7 @@ export type Database = {
           field_context?: string
           field_key: string
           field_type?: string
+          icon?: string | null
           id?: string
           important_on_funnel?: boolean | null
           important_stage_ids?: string[] | null
@@ -3061,6 +3063,7 @@ export type Database = {
           field_context?: string
           field_key?: string
           field_type?: string
+          icon?: string | null
           id?: string
           important_on_funnel?: boolean | null
           important_stage_ids?: string[] | null
