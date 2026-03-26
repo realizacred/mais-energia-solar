@@ -1097,6 +1097,67 @@ function PremissasTabContent({ ctx }: { ctx: ReturnType<typeof useTenantPremises
   );
 }
 
+// ─── Stage Multi-Select ───
+function StageMultiSelect({ label, stages, pipelines, selectedIds, onChange }: {
+  label: string;
+  stages: StageInfo[];
+  pipelines: { id: string; name: string }[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const grouped = pipelines.map(p => ({
+    ...p,
+    stages: stages.filter(s => s.pipeline_id === p.id),
+  }));
+  const selectedNames = selectedIds.map(id => stages.find(s => s.id === id)?.name || "?");
+  const summary = selectedIds.length === 0 ? "Nenhum" : `Múltiplos (${selectedIds.length})`;
+
+  const toggle = (id: string) => {
+    onChange(selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]);
+  };
+  const toggleAll = (checked: boolean) => {
+    onChange(checked ? stages.map(s => s.id) : []);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium">{label}</Label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="w-full flex items-center justify-between h-9 px-3 border rounded-md bg-background text-sm text-foreground hover:bg-muted/30 transition-colors"
+        >
+          <span className="truncate">{summary}</span>
+          <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", open && "rotate-180")} />
+        </button>
+        {open && (
+          <div className="absolute z-50 mt-1 w-full bg-card border rounded-lg shadow-lg p-2 space-y-1 max-h-[200px] overflow-y-auto">
+            <label className="flex items-center gap-2 px-2 py-1 text-xs cursor-pointer hover:bg-muted/30 rounded">
+              <input type="checkbox" checked={selectedIds.length === stages.length && stages.length > 0}
+                onChange={e => toggleAll(e.target.checked)} className="accent-primary rounded" />
+              <span className="font-medium">Marcar todos</span>
+            </label>
+            <Separator />
+            {grouped.filter(g => g.stages.length > 0).map(g => (
+              <div key={g.id}>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase px-2 pt-1">{g.name}</p>
+                {g.stages.map(s => (
+                  <label key={s.id} className="flex items-center gap-2 px-2 py-1 text-xs cursor-pointer hover:bg-muted/30 rounded">
+                    <input type="checkbox" checked={selectedIds.includes(s.id)}
+                      onChange={() => toggle(s.id)} className="accent-primary rounded" />
+                    {s.name}
+                  </label>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
 // ─── Helpers ───
 function SwitchRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
