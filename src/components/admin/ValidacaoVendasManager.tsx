@@ -370,7 +370,13 @@ export function ValidacaoVendasManager() {
       setApprovalDialogOpen(false);
       setSelectedCliente(null);
       setPaymentItems([]);
-      // Clean up consultant-prefilled payment data
+      // Clean up consultant-prefilled payment data (DB + localStorage)
+      if (selectedCliente?.id) {
+        await supabase
+          .from("clientes")
+          .update({ payment_composition: null } as any)
+          .eq("id", selectedCliente.id);
+      }
       if (selectedCliente?.lead_id) {
         localStorage.removeItem(`lead_payment_composition_${selectedCliente.lead_id}`);
       }
