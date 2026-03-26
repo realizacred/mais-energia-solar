@@ -1733,7 +1733,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
     return Math.abs(snapPotencia - dealPotencia) > 0.01 || Math.abs(snapValor - dealValor) > 1;
   };
 
-  const isPrincipalOutdated = principal ? isPropostaOutdated(principal) : false;
+  // isPrincipalOutdated removed — staleness badge now shows inside each card individually
 
   const renderPropostaCard = (p: any, isPrin: boolean) => {
     return (
