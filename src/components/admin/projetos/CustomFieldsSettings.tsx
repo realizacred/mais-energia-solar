@@ -916,8 +916,14 @@ export function CustomFieldsSettings() {
 
               {/* ── Card: Comportamento (PROJETO context) ── */}
               {fieldForm.field_context === "projeto" && (
-                <div className="rounded-lg border bg-card p-4 space-y-4">
-                  <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
+                <div className="rounded-xl border bg-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
+                    <div className="w-6 h-6 rounded-md bg-warning/15 flex items-center justify-center">
+                      <Sliders className="h-3.5 w-3.5 text-warning" />
+                    </div>
+                    <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
+                  </div>
+                  <div className="p-4 space-y-4">
 
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium">Mostrar campo em novo projeto?</Label>
