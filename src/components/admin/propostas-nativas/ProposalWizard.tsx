@@ -2064,6 +2064,7 @@ export function ProposalWizard() {
             numUcs={ucs.length}
             grupo={grupo}
             itens={itens}
+            custoKitOverride={venda.custo_kit_override}
             adicionais={adicionais}
             servicos={servicos}
             precoFinal={precoFinal}
