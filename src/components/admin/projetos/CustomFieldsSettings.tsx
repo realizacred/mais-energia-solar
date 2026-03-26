@@ -911,6 +911,7 @@ export function CustomFieldsSettings() {
                     Remover ícone (usar padrão do tipo)
                   </Button>
                 )}
+                </div>
               </div>
 
               {/* ── Card: Comportamento (PROJETO context) ── */}
