@@ -245,6 +245,14 @@ export function ComissoesManager() {
     );
   }, [comissoes, searchTerm]);
 
+  // Reset page on filter change
+  useEffect(() => { setPage(1); }, [searchTerm, filterMes, filterAno, filterVendedor, filterStatus, filterCliente]);
+
+  const paginatedComissoes = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredComissoes.slice(start, start + pageSize);
+  }, [filteredComissoes, page, pageSize]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
