@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
   Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
@@ -18,9 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { sendProposal } from "@/services/proposalApi";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useProposalTemplates, useEmailTemplates } from "@/hooks/useProposalTemplates";
 import { formatBRL } from "./types";
 import { toast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 // ─── Types ────────────────────────────────────────────────
@@ -181,11 +183,13 @@ export function StepDocumento({
 
       // 2. Se não existe, criar novo
       if (!token) {
+        const { tenantId } = await getCurrentTenantId();
         const { data: created, error: createErr } = await supabase
           .from("proposta_aceite_tokens" as any)
           .insert({
             proposta_id: propostaId,
             versao_id: versaoId,
+            tenant_id: tenantId,
             tipo,
           } as any)
           .select("token")
@@ -684,26 +688,27 @@ export function StepDocumento({
               {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
               Copiar link sem rastreio
             </Button>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5" />
-              Validade da proposta: {validade ? formatDate(validade + "T12:00:00") : "—"}
-            </div>
-
-            {/* Button to go to finished proposal */}
-            {generationStatus === "ready" && (
-              <Separator className="my-2" />
-            )}
-            {generationStatus === "ready" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2 border-primary text-primary hover:bg-primary/10"
-                onClick={onViewDetail}
-              >
-                <ExternalLink className="h-4 w-4" />
-                Ir para proposta gerada
-              </Button>
-            )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                  Validade da proposta: {validade ? formatDate(validade + "T12:00:00") : "—"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-3" align="start">
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Alterar validade</Label>
+                <Input
+                  type="date"
+                  value={validade}
+                  onChange={(e) => setValidade(e.target.value)}
+                  className="h-8 text-xs w-44"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
