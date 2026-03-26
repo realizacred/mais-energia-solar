@@ -9,26 +9,17 @@ import {
   type CompositionSummary,
   FORMAS_PARCELAVEIS,
 } from "./types";
+import { resolveJuros } from "./resolveJuros";
 
 /**
  * Calculates interest for a single payment item.
+ * Delegates to resolveJuros (SSOT).
  */
 export function calculateInterest(item: PaymentItemInput): { valor_juros: number; valor_com_juros: number } {
-  if (item.juros_tipo === "sem_juros" || item.juros_valor <= 0) {
-    return { valor_juros: 0, valor_com_juros: item.valor_base };
-  }
-
-  let valor_juros: number;
-  if (item.juros_tipo === "percentual") {
-    valor_juros = round2(item.valor_base * (item.juros_valor / 100));
-  } else {
-    // valor_fixo
-    valor_juros = round2(item.juros_valor);
-  }
-
+  const resolved = resolveJuros(item);
   return {
-    valor_juros,
-    valor_com_juros: round2(item.valor_base + valor_juros),
+    valor_juros: resolved.valorJuros,
+    valor_com_juros: resolved.valorComJuros,
   };
 }
 
@@ -74,32 +65,23 @@ export function generateInstallments(item: PaymentItemInput, valorTotal: number)
 
 /**
  * Computes a full payment item with interest and installments.
+ * Uses resolveJuros (SSOT) for interest logic.
  */
 export function computeItem(item: PaymentItemInput): PaymentItemComputed {
-  const { valor_juros, valor_com_juros } = calculateInterest(item);
-
-  // For client-paid interest, installments are based on valor_com_juros
-  // For company-absorbed interest, client pays only valor_base
-  // Defensive: if interest exists but responsavel is "nao_aplica", treat as "cliente"
-  const hasInterest = valor_juros > 0;
-  const effectiveResponsavel = hasInterest && item.juros_responsavel === "nao_aplica"
-    ? "cliente"
-    : item.juros_responsavel;
-  const valorParaParcelas =
-    effectiveResponsavel === "cliente" ? valor_com_juros : item.valor_base;
-
-  const parcelas_detalhes = generateInstallments(item, valorParaParcelas);
+  const resolved = resolveJuros(item);
+  const parcelas_detalhes = generateInstallments(item, resolved.valorParaParcelas);
 
   return {
     ...item,
-    valor_juros,
-    valor_com_juros,
+    valor_juros: resolved.valorJuros,
+    valor_com_juros: resolved.valorComJuros,
     parcelas_detalhes,
   };
 }
 
 /**
  * Computes the full composition summary from a list of items.
+ * Uses resolveJuros (SSOT) — no inline logic duplication.
  */
 export function computeSummary(items: PaymentItemInput[], valorVenda: number): CompositionSummary {
   let total_alocado = 0;
@@ -108,19 +90,14 @@ export function computeSummary(items: PaymentItemInput[], valorVenda: number): C
   let total_pago_cliente = 0;
 
   for (const item of items) {
-    const { valor_juros, valor_com_juros } = calculateInterest(item);
+    const resolved = resolveJuros(item);
     total_alocado += item.valor_base;
 
-    // Defensive: if interest exists but responsavel is "nao_aplica", treat as "cliente"
-    const effectiveResponsavel = valor_juros > 0 && item.juros_responsavel === "nao_aplica"
-      ? "cliente"
-      : item.juros_responsavel;
-
-    if (effectiveResponsavel === "cliente") {
-      total_juros_cliente += valor_juros;
-      total_pago_cliente += valor_com_juros;
-    } else if (effectiveResponsavel === "empresa") {
-      total_juros_empresa += valor_juros;
+    if (resolved.effectiveResponsavel === "cliente") {
+      total_juros_cliente += resolved.valorJuros;
+      total_pago_cliente += resolved.valorComJuros;
+    } else if (resolved.effectiveResponsavel === "empresa") {
+      total_juros_empresa += resolved.valorJuros;
       total_pago_cliente += item.valor_base;
     } else {
       total_pago_cliente += item.valor_base;
@@ -163,6 +140,10 @@ export function validateComposition(
     }
     if (FORMAS_PARCELAVEIS.includes(item.forma_pagamento) && item.parcelas > 1 && !item.data_primeiro_vencimento) {
       errors.push(`Item ${i + 1}: informe a data do primeiro vencimento.`);
+    }
+    // Validate interest responsibility
+    if (item.juros_tipo !== "sem_juros" && item.juros_valor > 0 && item.juros_responsavel === "nao_aplica") {
+      errors.push(`Item ${i + 1}: defina quem paga os juros (cliente ou empresa).`);
     }
   }
 
