@@ -42,6 +42,7 @@ export function ModulosManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Modulo | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [distImportOpen, setDistImportOpen] = useState(false);
 
   const fabricantes = useMemo(() => {
     const set = new Set(modulos.map((m) => m.fabricante));
