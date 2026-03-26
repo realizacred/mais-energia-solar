@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { EnrichButton } from "../shared/EnrichButton";
 import type { Modulo } from "./types";
 import { STATUS_LABELS } from "./types";
+import { calcCompletude } from "@/utils/calcCompletude";
 
 interface Props {
   modulo: Modulo;
@@ -13,22 +16,11 @@ interface Props {
   onView: () => void;
   onEdit: () => void;
   onToggle: (ativo: boolean) => void;
+  compareSelected?: boolean;
+  onCompareToggle?: (checked: boolean) => void;
 }
 
-function calcCompletude(m: Modulo): number {
-  const fields = [
-    m.fabricante, m.modelo, m.potencia_wp, m.tipo_celula,
-    m.num_celulas, m.eficiencia_percent,
-    m.vmp_v, m.imp_a, m.voc_v, m.isc_a,
-    m.comprimento_mm, m.largura_mm, m.profundidade_mm, m.peso_kg,
-    m.temp_coeff_pmax, m.temp_coeff_voc, m.temp_coeff_isc,
-    m.garantia_produto_anos, m.garantia_performance_anos,
-  ];
-  const filled = fields.filter(v => v != null && v !== "").length;
-  return Math.round((filled / fields.length) * 100);
-}
-
-export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Props) {
+export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle, compareSelected, onCompareToggle }: Props) {
   const statusInfo = STATUS_LABELS[m.status] || STATUS_LABELS.rascunho;
   const completude = calcCompletude(m);
 
@@ -36,6 +28,7 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
     <Card className="group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all">
       {/* Action icons top-right */}
       <div className="absolute top-3 right-3 flex gap-1 z-10">
+        <EnrichButton equipmentType="modulo" equipmentId={m.id} />
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onView} title="Visualizar">
           <Eye className="w-4 h-4" />
         </Button>
@@ -43,6 +36,16 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
           <Pencil className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* Compare checkbox */}
+      {onCompareToggle && (
+        <div className="absolute top-3 left-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Checkbox
+            checked={compareSelected}
+            onCheckedChange={(v) => onCompareToggle(!!v)}
+          />
+        </div>
+      )}
 
       <CardContent className="pt-4 pb-3 px-4 space-y-3">
         {/* Header */}
