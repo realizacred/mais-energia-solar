@@ -1,5 +1,5 @@
 import { formatBRL } from "@/lib/formatters/index";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ import {
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PageHeader } from "@/components/ui-kit";
+import { TablePagination } from "@/components/ui-kit/TablePagination";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PagamentosComissaoDialog } from "./PagamentosComissaoDialog";
