@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload } from "lucide-react";
+import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload, FileSpreadsheet } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { ModuloCard } from "./modulos/ModuloCard";
 import { ModuloViewModal } from "./modulos/ModuloViewModal";
 import { ModuloFormDialog } from "./modulos/ModuloFormDialog";
 import { ModuloImportDialog } from "./modulos/ModuloImportDialog";
+import { DistributorImportDialog } from "./modulos/DistributorImportDialog";
 import { ModuloTableView } from "./modulos/ModuloTableView";
 
 type ViewMode = "cards" | "table";
@@ -41,6 +42,7 @@ export function ModulosManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Modulo | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [distImportOpen, setDistImportOpen] = useState(false);
 
   const fabricantes = useMemo(() => {
     const set = new Set(modulos.map((m) => m.fabricante));
@@ -78,6 +80,9 @@ export function ModulosManager() {
         description={`${modulos.length} módulos cadastrados (${fabricantes.length} fabricantes)`}
         actions={
           <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setDistImportOpen(true)}>
+              <FileSpreadsheet className="w-4 h-4" /> CSV Distribuidora
+            </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
               <Upload className="w-4 h-4" /> Importar
             </Button>
@@ -222,6 +227,7 @@ export function ModulosManager() {
         isPending={saveMutation.isPending}
       />
       <ModuloImportDialog open={importOpen} onOpenChange={setImportOpen} existingModulos={modulos} />
+      <DistributorImportDialog open={distImportOpen} onOpenChange={setDistImportOpen} existingModulos={modulos} />
 
       {/* Delete */}
       <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
