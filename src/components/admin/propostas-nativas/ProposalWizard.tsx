@@ -593,10 +593,20 @@ export function ProposalWizard() {
             locIrradiacao: tecnico.irradiacao_media_kwp_mes || 0,
             locGhiSeries: null,
             locSkipPoa: true,
-            locLatitude: null,
-            distanciaKm: uc0.distancia || 0,
-            projectAddress: undefined,
-            mapSnapshots: [],
+            locLatitude: rawSnapshot.locLatitude ?? (rawSnapshot.projectAddress?.lat != null ? rawSnapshot.projectAddress.lat : null),
+            distanciaKm: uc0.distancia || rawSnapshot.distanciaKm || 0,
+            projectAddress: rawSnapshot.projectAddress ?? (uc0.cidade ? {
+              cep: uc0.cep || "",
+              rua: uc0.rua || uc0.logradouro || "",
+              numero: uc0.numero || "",
+              bairro: uc0.bairro || "",
+              complemento: uc0.complemento || "",
+              cidade: uc0.cidade || "",
+              uf: uc0.estado || uc0.uf || "",
+              lat: rawSnapshot.projectAddress?.lat ?? null,
+              lon: rawSnapshot.projectAddress?.lon ?? null,
+            } : undefined),
+            mapSnapshots: rawSnapshot.mapSnapshots || [],
             selectedLead: null,
             cliente: undefined as any,
             ucs: rawSnapshot.ucs || [],
@@ -748,6 +758,29 @@ export function ProposalWizard() {
                   console.log("[ProposalWizard] Synthetic lead created from cliente:", cli.id);
                 }
               }
+            }
+          }
+
+          // Enrich projectAddress from cliente if still empty after snapshot restore
+          if (!s.projectAddress && propostaMeta?.cliente_id) {
+            const { data: cliAddr } = await supabase
+              .from("clientes")
+              .select("cep, rua, numero, bairro, complemento, cidade, estado")
+              .eq("id", propostaMeta.cliente_id)
+              .maybeSingle();
+            if (cliAddr && (cliAddr.cidade || cliAddr.rua || cliAddr.cep)) {
+              setProjectAddress({
+                cep: cliAddr.cep || "",
+                rua: cliAddr.rua || "",
+                numero: cliAddr.numero || "",
+                bairro: cliAddr.bairro || "",
+                complemento: cliAddr.complemento || "",
+                cidade: cliAddr.cidade || "",
+                uf: cliAddr.estado || "",
+                lat: null,
+                lon: null,
+              });
+              console.log("[ProposalWizard] projectAddress enriched from cliente:", propostaMeta.cliente_id);
             }
           }
         } catch (enrichErr) {
