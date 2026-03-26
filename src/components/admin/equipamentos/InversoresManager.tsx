@@ -453,6 +453,12 @@ export function InversoresManager() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <InversorImportDialog
+          open={distImportOpen}
+          onOpenChange={setDistImportOpen}
+          existingInversores={inversores}
+        />
       </div>
     </div>
   );
