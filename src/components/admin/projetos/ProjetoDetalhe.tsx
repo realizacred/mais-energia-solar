@@ -1376,6 +1376,12 @@ function GerenciamentoTab({
                                 {assignedName}
                               </span>
                             )}
+                            {a.created_at && (
+                              <span className="text-[10px] flex items-center gap-1 text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                Criada: {formatDateTime(a.created_at)}
+                              </span>
+                            )}
                             {(isCallType || isWaType) && customerPhone && (
                               <span className="text-[10px] flex items-center gap-1 text-muted-foreground font-mono">
                                 <Phone className="h-3 w-3" />
