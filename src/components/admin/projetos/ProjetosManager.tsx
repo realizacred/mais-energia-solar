@@ -357,28 +357,28 @@ export function ProjetosManager() {
                     <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2.5">Bordas dos cards</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full shrink-0 bg-success" />
-                        <span className="text-[11px] text-muted-foreground">Projeto ganho</span>
+                        <span className="w-1 h-5 rounded-full shrink-0 bg-success" />
+                        <span className="text-[11px] text-foreground font-medium">Projeto ganho</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full shrink-0 bg-destructive" />
-                        <span className="text-[11px] text-muted-foreground">Projeto perdido / estagnado +7d</span>
+                        <span className="w-1 h-5 rounded-full shrink-0 bg-destructive" />
+                        <span className="text-[11px] text-foreground font-medium">Projeto perdido / estagnado +7d</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full shrink-0 bg-warning" />
-                        <span className="text-[11px] text-muted-foreground">Estagnado +3 dias</span>
+                        <span className="w-1 h-5 rounded-full shrink-0 bg-warning" />
+                        <span className="text-[11px] text-foreground font-medium">Estagnado +3 dias</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full shrink-0 bg-muted-foreground" />
-                        <span className="text-[11px] text-muted-foreground">Sem proposta vinculada</span>
+                        <span className="w-1 h-5 rounded-full shrink-0 bg-muted-foreground/60" />
+                        <span className="text-[11px] text-foreground font-medium">Sem proposta vinculada</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full bg-primary shrink-0" />
-                        <span className="text-[11px] text-muted-foreground">Com proposta</span>
+                        <span className="w-1 h-5 rounded-full bg-primary shrink-0" />
+                        <span className="text-[11px] text-foreground font-medium">Com proposta</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full bg-accent shrink-0" />
-                        <span className="text-[11px] text-muted-foreground">Cor da etiqueta do projeto</span>
+                        <span className="w-1 h-5 rounded-full bg-accent shrink-0" />
+                        <span className="text-[11px] text-foreground font-medium">Cor da etiqueta do projeto</span>
                       </div>
                     </div>
                   </PopoverContent>
