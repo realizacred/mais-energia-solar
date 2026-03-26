@@ -125,7 +125,16 @@ export default function PropostaPublica() {
       ]);
 
       if (renderRes.data?.html) setHtml(renderRes.data.html);
-      if (versaoRes.data) setVersaoData(versaoRes.data);
+      if (versaoRes.data) {
+        setVersaoData(versaoRes.data);
+        // If no HTML render but PDF exists, generate signed URL for PDF viewing
+        if (!renderRes.data?.html && versaoRes.data.output_pdf_path) {
+          const { data: signedData } = await supabase.storage
+            .from("proposta-documentos")
+            .createSignedUrl(versaoRes.data.output_pdf_path, 3600);
+          if (signedData?.signedUrl) setPdfUrl(signedData.signedUrl);
+        }
+      }
 
       const loadedCenarios = cenariosRes.data ?? [];
       setCenarios(loadedCenarios);
