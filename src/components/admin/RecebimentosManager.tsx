@@ -301,20 +301,61 @@ export function RecebimentosManager() {
     }).format(value);
   };
 
-  const filteredRecebimentos = recebimentos.filter((r) => {
-    const matchesSearch =
-      r.clientes?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredRecebimentos = useMemo(() => {
+    return recebimentos.filter((r) => {
+      const matchesSearch =
+        r.clientes?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || r.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [recebimentos, searchTerm, statusFilter]);
+
+  // Reset page on filter change
+  useEffect(() => { setPage(1); }, [searchTerm, statusFilter]);
+
+  const paginatedRecebimentos = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredRecebimentos.slice(start, start + pageSize);
+  }, [filteredRecebimentos, page, pageSize]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm) count++;
+    if (statusFilter !== "all") count++;
+    return count;
+  }, [searchTerm, statusFilter]);
+
+  const clearFilters = useCallback(() => {
+    setSearchTerm("");
+    setStatusFilter("all");
+  }, []);
+
+  const exportCSV = useCallback(() => {
+    const headers = ["Cliente", "Valor Total", "Pago", "Forma Acordada", "Status", "Data Acordo", "Parcelas"];
+    const rows = filteredRecebimentos.map((r) => [
+      r.clientes?.nome || "",
+      r.valor_total.toFixed(2),
+      calcularTotalPago(r.pagamentos).toFixed(2),
+      FORMAS_PAGAMENTO.find((f) => f.value === r.forma_pagamento_acordada)?.label || r.forma_pagamento_acordada,
+      STATUS_LABELS[r.status] || r.status,
+      r.data_acordo,
+      r.numero_parcelas.toString(),
+    ]);
+    const csvContent = [headers.join(";"), ...rows.map((row) => row.map((c) => `"${c}"`).join(";"))].join("\n");
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `recebimentos_${format(new Date(), "yyyy-MM-dd_HHmm")}.csv`;
+    link.click();
+    toast({ title: "CSV exportado com sucesso!" });
+  }, [filteredRecebimentos]);
 
   // Stats
   const totalPendente = recebimentos
     .filter((r) => r.status !== "quitado" && r.status !== "cancelado")
     .reduce((acc, r) => acc + r.valor_total - calcularTotalPago(r.pagamentos), 0);
 
-  const totalRecebido = recebimentos.reduce((acc, r) => acc + calcularTotalPago(r.pagamentos), 0);
 
   return (
     <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
