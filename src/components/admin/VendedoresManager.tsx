@@ -556,16 +556,6 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
     return user?.nome;
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 w-full rounded-lg" />
-        ))}
-      </div>
-    );
-  }
-
   // ── Filtered & paginated data ────────────────────────────
   const filteredVendedores = useMemo(() => {
     return vendedores.filter((v) => {
@@ -595,11 +585,11 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
   const activeFilterCount = (filterStatus !== "todos" ? 1 : 0);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchTerm("");
     setFilterStatus("todos");
     setPage(1);
-  };
+  }, []);
 
   const handleExportCSV = useCallback(() => {
     if (filteredVendedores.length === 0) return;
@@ -628,6 +618,16 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   const activeCount = vendedores.filter(v => v.ativo).length;
   const inactiveCount = vendedores.filter(v => !v.ativo).length;
   const linkedCount = vendedores.filter(v => v.user_id).length;
+
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-14 w-full rounded-lg" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
