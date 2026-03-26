@@ -807,47 +807,70 @@ export function CustomFieldsSettings() {
                     <Label className="text-xs font-medium">Visibilidade em funis?</Label>
                     <div className="flex gap-4">
                       <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                        <input type="radio" name="fieldVis" checked={fieldForm.visible_on_funnel}
-                          onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: true }))}
+                        <input type="radio" name="fieldVis" checked={fieldForm.visibilityMode === "all"}
+                          onChange={() => setFieldForm(p => ({ ...p, visibilityMode: "all", visible_pipeline_ids: [] }))}
                           className="accent-primary" />
                         Todos
                       </label>
                       <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                        <input type="radio" name="fieldVis" checked={!fieldForm.visible_on_funnel}
-                          onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: false }))}
+                        <input type="radio" name="fieldVis" checked={fieldForm.visibilityMode === "some"}
+                          onChange={() => setFieldForm(p => ({ ...p, visibilityMode: "some" }))}
                           className="accent-primary" />
-                        Nenhum
+                        Alguns
                       </label>
                     </div>
                   </div>
 
+                  {/* Pipeline selector when "Alguns" */}
+                  {fieldForm.visibilityMode === "some" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Funil</Label>
+                      <Select onValueChange={v => {
+                        if (!fieldForm.visible_pipeline_ids.includes(v)) {
+                          setFieldForm(p => ({ ...p, visible_pipeline_ids: [...p.visible_pipeline_ids, v] }));
+                        }
+                      }}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
+                        <SelectContent>
+                          {pipelines.filter(p => !fieldForm.visible_pipeline_ids.includes(p.id)).map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {fieldForm.visible_pipeline_ids.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {fieldForm.visible_pipeline_ids.map(pid => {
+                            const p = pipelines.find(pp => pp.id === pid);
+                            return p ? (
+                              <Badge key={pid} variant="default" className="gap-1 text-xs">
+                                {p.name}
+                                <button type="button" onClick={() => setFieldForm(prev => ({
+                                  ...prev, visible_pipeline_ids: prev.visible_pipeline_ids.filter(x => x !== pid)
+                                }))} className="ml-0.5 hover:text-destructive">×</button>
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Stage multi-select for important/required */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Importante no funil:</Label>
-                      <Select
-                        value={fieldForm.important_on_funnel ? "sim" : "nenhum"}
-                        onValueChange={v => setFieldForm(p => ({ ...p, important_on_funnel: v === "sim" }))}
-                      >
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="nenhum">Nenhum</SelectItem>
-                          <SelectItem value="sim">Sim</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Obrigatório no funil:</Label>
-                      <Select
-                        value={fieldForm.required_on_funnel ? "sim" : "nenhum"}
-                        onValueChange={v => setFieldForm(p => ({ ...p, required_on_funnel: v === "sim" }))}
-                      >
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="nenhum">Nenhum</SelectItem>
-                          <SelectItem value="sim">Sim</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <StageMultiSelect
+                      label="Campo importante em etapa do funil:"
+                      stages={stages}
+                      pipelines={pipelines}
+                      selectedIds={fieldForm.important_stage_ids}
+                      onChange={ids => setFieldForm(p => ({ ...p, important_stage_ids: ids }))}
+                    />
+                    <StageMultiSelect
+                      label="Campo obrigatório em etapa do funil:"
+                      stages={stages}
+                      pipelines={pipelines}
+                      selectedIds={fieldForm.required_stage_ids}
+                      onChange={ids => setFieldForm(p => ({ ...p, required_stage_ids: ids }))}
+                    />
                   </div>
                 </div>
               )}
