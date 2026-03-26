@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
   Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
-  AlertTriangle, ExternalLink,
+  AlertTriangle, ExternalLink, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,6 +102,7 @@ export function StepDocumento({
   const [copiedTracker, setCopiedTracker] = useState(false);
   const [copiedDirect, setCopiedDirect] = useState(false);
   const [copiedSimulacao, setCopiedSimulacao] = useState(false);
+  const [resolvedPublicUrl, setResolvedPublicUrl] = useState<string | null>(null);
 
   // Proposal validity
   const [validade, setValidade] = useState(() => {
@@ -127,13 +128,62 @@ export function StepDocumento({
     }
   }, [emailTemplatesData, selectedEmailTemplate]);
 
-  // Update WA message when result is available
+  // Auto-resolve tracked link when result is available
   useEffect(() => {
-    if (result) {
-      const link = result.link_rastreio || result.link_publico || "";
-      setWaMensagem(`Olá,\nSegue o link de acesso para a sua proposta comercial:\n${link}`);
-    }
-  }, [result]);
+    if (!result?.proposta_id || !result?.versao_id) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Try to get existing tracked token
+        const { data: existing } = await supabase
+          .from("proposta_aceite_tokens" as any)
+          .select("token")
+          .eq("proposta_id", result.proposta_id)
+          .eq("versao_id", result.versao_id)
+          .eq("tipo", "tracked")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        let token = (existing as any)?.token as string | undefined;
+
+        // Create if not exists
+        if (!token) {
+          const { tenantId } = await getCurrentTenantId();
+          const { data: created } = await supabase
+            .from("proposta_aceite_tokens" as any)
+            .insert({
+              proposta_id: result.proposta_id,
+              versao_id: result.versao_id,
+              tenant_id: tenantId,
+              tipo: "tracked",
+            } as any)
+            .select("token")
+            .single();
+          token = (created as any)?.token;
+        }
+
+        if (cancelled) return;
+
+        const url = token ? `${window.location.origin}/proposta/${token}` : "";
+        setResolvedPublicUrl(url);
+
+        // Set WA default message with link
+        setWaMensagem(
+          `Olá ${clienteNome || ""},\n\n` +
+          `Segue o link de acesso para a sua proposta comercial de energia solar:\n\n` +
+          `${url}\n\n` +
+          `Qualquer dúvida, estou à disposição!`
+        );
+      } catch (err) {
+        console.warn("[StepDocumento] Erro ao resolver link público:", err);
+        setWaMensagem(`Olá,\nSegue a sua proposta comercial de energia solar.`);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [result?.proposta_id, result?.versao_id, clienteNome]);
 
   // Update WA destinatario when prop changes
   useEffect(() => {
@@ -953,16 +1003,37 @@ export function StepDocumento({
   const renderEmailTab = () => (
     <div className="space-y-4">
       {/* Top bar */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="flex items-center gap-1.5 text-xs text-primary hover:underline p-0 h-auto"
-          onClick={() => setEditHtml(!editHtml)}
-        >
-          <Code className="h-3.5 w-3.5" />
-          {editHtml ? "Editar Visual" : "Editar HTML"}
-        </Button>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline p-0 h-auto"
+            onClick={() => setEditHtml(!editHtml)}
+          >
+            <Code className="h-3.5 w-3.5" />
+            {editHtml ? "Editar Visual" : "Editar HTML"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            disabled={!resolvedPublicUrl}
+            onClick={() => {
+              if (!resolvedPublicUrl) return;
+              const msgHtml = `<p>Olá ${clienteNome || ""},</p>` +
+                `<p>Segue o link de acesso para a sua proposta comercial de energia solar:</p>` +
+                `<p><a href="${resolvedPublicUrl}">${resolvedPublicUrl}</a></p>` +
+                `<p>Qualquer dúvida, estou à disposição!</p>`;
+              setEmailCorpo(msgHtml);
+              setEmailAssunto(`Proposta Comercial - Energia Solar${potenciaKwp > 0 ? ` ${potenciaKwp.toFixed(2)} kWp` : ""}`);
+              toast({ title: "Mensagem gerada com link da proposta ✉️" });
+            }}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Gerar mensagem
+          </Button>
+        </div>
 
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
