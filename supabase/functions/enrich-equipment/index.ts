@@ -371,6 +371,46 @@ serve(async (req) => {
         await supabase.from(tableName).update({ datasheet_url: datasheetUrl }).eq("id", equipment_id);
       }
     }
+
+    // 10. Log AI usage
+    const authHeader = req.headers.get("authorization");
+    let userId = "system";
+    if (authHeader) {
+      try {
+        const userClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const { data: { user } } = await userClient.auth.getUser();
+        if (user?.id) userId = user.id;
+      } catch { /* ignore */ }
+    }
+
+    await supabase.from("ai_usage_logs").insert({
+      tenant_id,
+      user_id: userId,
+      function_name: "enrich-equipment",
+      provider: "lovable_gateway",
+      model: "google/gemini-2.5-flash",
+      prompt_tokens: usage.prompt_tokens,
+      completion_tokens: usage.completion_tokens,
+      total_tokens: usage.total_tokens,
+      estimated_cost_usd: (usage.prompt_tokens / 1000) * 0.00015 + (usage.completion_tokens / 1000) * 0.0006,
+      is_fallback: false,
+    });
+
+    console.log(`[enrich-equipment] Sucesso: ${fieldsFilled} campos preenchidos para ${equipment.fabricante} ${equipment.modelo}, datasheet_uploaded=${datasheet_uploaded}`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        fields_filled: fieldsFilled,
+        equipment: `${equipment.fabricante} ${equipment.modelo}`,
+        datasheet_uploaded,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
     console.error("[enrich-equipment] error:", error);
     return new Response(
