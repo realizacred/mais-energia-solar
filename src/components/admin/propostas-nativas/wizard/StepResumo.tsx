@@ -334,10 +334,165 @@ export function StepResumo({
   );
 }
 
-/* ── Modern Payment Option Card ── */
-function PaymentOptionItem({ op, defaultOpen }: {
-  op: StepResumoProps["pagamentoOpcoes"][number];
+/* ── Grouped Payment List ── */
+type PaymentOp = StepResumoProps["pagamentoOpcoes"][number];
+
+function PaymentGroupedList({ opcoes, precoBase }: { opcoes: PaymentOp[]; precoBase: number }) {
+  // Separate "à vista" from financing/installment options
+  const aVistaOps = opcoes.filter(op => op.tipo === "a_vista");
+  const financingOps = opcoes.filter(op => op.tipo !== "a_vista");
+
+  // Group financing by entity name (nome field)
+  const entityGroups = new Map<string, PaymentOp[]>();
+  for (const op of financingOps) {
+    const entity = op.nome || "Outros";
+    if (!entityGroups.has(entity)) entityGroups.set(entity, []);
+    entityGroups.get(entity)!.push(op);
+  }
+
+  return (
+    <div className="space-y-2">
+      {/* À Vista options — shown individually */}
+      {aVistaOps.map((op, i) => (
+        <PaymentOptionItem key={`av-${i}`} op={op} defaultOpen={i === 0} precoBase={precoBase} />
+      ))}
+
+      {/* Grouped financing by entity */}
+      {Array.from(entityGroups.entries()).map(([entity, ops]) => (
+        <EntityPaymentGroup key={entity} entity={entity} options={ops} precoBase={precoBase} />
+      ))}
+    </div>
+  );
+}
+
+/* ── Entity Group (e.g. Santander, BV Financeira) ── */
+function EntityPaymentGroup({ entity, options, precoBase }: {
+  entity: string;
+  options: PaymentOp[];
+  precoBase: number;
+}) {
+  const [open, setOpen] = useState(false);
+
+  // Sort by num_parcelas ascending
+  const sorted = [...options].sort((a, b) => a.num_parcelas - b.num_parcelas);
+
+  // Summary: range of installments
+  const minParcelas = sorted[0]?.num_parcelas || 0;
+  const maxParcelas = sorted[sorted.length - 1]?.num_parcelas || 0;
+  const minValorParcela = Math.min(...sorted.map(o => o.valor_parcela));
+  const maxValorParcela = Math.max(...sorted.map(o => o.valor_parcela));
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "w-full group rounded-xl border transition-all duration-200",
+            "hover:shadow-md cursor-pointer",
+            open
+              ? "border-primary/30 shadow-sm bg-card"
+              : "border-border/50 bg-card hover:border-primary/20"
+          )}
+        >
+          <div className="flex items-center gap-4 p-4">
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 bg-info/10">
+              <Building2 className="h-5 w-5 text-info" />
+            </div>
+
+            <div className="flex-1 min-w-0 text-left">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm text-foreground truncate">{entity}</span>
+                <Badge variant="outline" className="text-[9px] shrink-0 bg-info/10 text-info border-info/20">
+                  Financiamento
+                </Badge>
+                <Badge variant="outline" className="text-[9px] shrink-0 bg-muted text-muted-foreground">
+                  {options.length} {options.length === 1 ? "opção" : "opções"}
+                </Badge>
+              </div>
+              {!open && (
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-[11px] text-muted-foreground">
+                    <Clock className="h-2.5 w-2.5 inline mr-0.5" />
+                    {minParcelas === maxParcelas ? `${minParcelas}×` : `${minParcelas}× a ${maxParcelas}×`}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {formatBRL(minValorParcela)} – {formatBRL(maxValorParcela)}/mês
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <ChevronDown className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
+              open && "rotate-180"
+            )} />
+          </div>
+        </button>
+      </CollapsibleTrigger>
+
+      <CollapsibleContent>
+        <div className="mx-1 mb-1 rounded-b-xl border border-t-0 border-border/40 bg-muted/10 p-2 space-y-1.5">
+          {sorted.map((op, i) => {
+            const totalFinanciado = op.num_parcelas > 0 && op.valor_parcela > 0
+              ? op.num_parcelas * op.valor_parcela
+              : 0;
+            const totalGeral = (op.entrada || 0) + totalFinanciado;
+            const ganho = totalGeral > 0 ? totalGeral - precoBase : 0;
+
+            return (
+              <div key={i} className="rounded-lg border border-border/30 bg-card p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-left">
+                      <p className="text-xs font-semibold text-foreground">
+                        {op.num_parcelas}× de {formatBRL(op.valor_parcela)}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {(op.taxa_mensal ?? 0) > 0 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            <Percent className="h-2.5 w-2.5 inline mr-0.5" />
+                            {((op.taxa_mensal ?? 0) * 100).toFixed(2)}% a.m.
+                          </span>
+                        )}
+                        {op.entrada > 0 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            <ArrowDown className="h-2.5 w-2.5 inline mr-0.5" />
+                            Entrada: {formatBRL(op.entrada)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-foreground">{formatBRL(totalGeral)}</p>
+                    {ganho > 0 && (
+                      <p className="text-[10px] text-success font-medium">
+                        +{formatBRL(ganho)} de ganho
+                      </p>
+                    )}
+                    {ganho < 0 && (
+                      <p className="text-[10px] text-destructive font-medium">
+                        {formatBRL(ganho)} abaixo
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+/* ── Single Payment Option (used for À Vista) ── */
+function PaymentOptionItem({ op, defaultOpen, precoBase }: {
+  op: PaymentOp;
   defaultOpen?: boolean;
+  precoBase: number;
 }) {
   const [open, setOpen] = useState(defaultOpen ?? false);
 
@@ -347,7 +502,6 @@ function PaymentOptionItem({ op, defaultOpen }: {
   const totalGeral = (op.entrada || 0) + totalFinanciado;
 
   const tipoColor = getTipoBadgeColor(op.tipo);
-  const isFinanciamento = op.tipo === "financiamento";
   const isAVista = op.tipo === "a_vista";
 
   return (
@@ -364,19 +518,13 @@ function PaymentOptionItem({ op, defaultOpen }: {
           )}
         >
           <div className="flex items-center gap-4 p-4">
-            {/* Icon */}
             <div className={cn(
               "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-              isAVista ? "bg-success/10" : isFinanciamento ? "bg-info/10" : "bg-warning/10",
+              isAVista ? "bg-success/10" : "bg-warning/10",
             )}>
-              {isAVista ? (
-                <Banknote className={cn("h-5 w-5", isAVista ? "text-success" : "text-info")} />
-              ) : (
-                <Building2 className={cn("h-5 w-5", isFinanciamento ? "text-info" : "text-warning")} />
-              )}
+              <Banknote className={cn("h-5 w-5", isAVista ? "text-success" : "text-warning")} />
             </div>
 
-            {/* Name + summary */}
             <div className="flex-1 min-w-0 text-left">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-sm text-foreground truncate">{op.nome}</span>
@@ -384,41 +532,14 @@ function PaymentOptionItem({ op, defaultOpen }: {
                   {getTipoLabel(op.tipo)}
                 </Badge>
               </div>
-              {!open && (
-                <div className="flex items-center gap-3 mt-1">
-                  {op.entrada > 0 && (
-                    <span className="text-[11px] text-muted-foreground">
-                      <ArrowDown className="h-2.5 w-2.5 inline mr-0.5" />
-                      {formatBRL(op.entrada)}
-                    </span>
-                  )}
-                  {op.num_parcelas > 0 && (
-                    <span className="text-[11px] text-muted-foreground">
-                      <Clock className="h-2.5 w-2.5 inline mr-0.5" />
-                      {op.num_parcelas}× {formatBRL(op.valor_parcela)}
-                    </span>
-                  )}
-                  {(op.taxa_mensal ?? 0) > 0 && (
-                    <span className="text-[11px] text-muted-foreground">
-                      <Percent className="h-2.5 w-2.5 inline mr-0.5" />
-                      {((op.taxa_mensal ?? 0) * 100).toFixed(2)}%
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
 
-            {/* Total value on right */}
             <div className="text-right shrink-0">
               <p className="text-sm font-bold text-foreground">
                 {isAVista ? formatBRL(op.entrada || op.valor_parcela) : totalGeral > 0 ? formatBRL(totalGeral) : formatBRL(op.valor_parcela)}
               </p>
-              {!isAVista && op.num_parcelas > 0 && (
-                <p className="text-[10px] text-muted-foreground">{op.num_parcelas}× de {formatBRL(op.valor_parcela)}</p>
-              )}
             </div>
 
-            {/* Chevron */}
             <ChevronDown className={cn(
               "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
               open && "rotate-180"
@@ -440,20 +561,6 @@ function PaymentOptionItem({ op, defaultOpen }: {
                 value={`${op.num_parcelas}× ${formatBRL(op.valor_parcela)}`}
               />
             )}
-            {(op.taxa_mensal ?? 0) > 0 && (
-              <MetricMini
-                icon={Percent}
-                label="Taxa mensal"
-                value={`${((op.taxa_mensal ?? 0) * 100).toFixed(2)}%`}
-              />
-            )}
-            {(op.carencia_meses ?? 0) > 0 && (
-              <MetricMini
-                icon={Clock}
-                label="Carência"
-                value={`${op.carencia_meses} meses`}
-              />
-            )}
             {(op.valor_financiado ?? 0) > 0 && (
               <MetricMini
                 icon={Banknote}
@@ -462,16 +569,6 @@ function PaymentOptionItem({ op, defaultOpen }: {
               />
             )}
           </div>
-
-          {totalGeral > 0 && !isAVista && (
-            <>
-              <Separator className="my-3" />
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground font-medium">Total com juros</span>
-                <span className="text-sm font-bold text-primary">{formatBRL(totalGeral)}</span>
-              </div>
-            </>
-          )}
         </div>
       </CollapsibleContent>
     </Collapsible>
