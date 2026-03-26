@@ -39,7 +39,7 @@ interface TransformadorOption { id: string; nome: string; }
 interface Props {
   clienteId: string | null;
   dealId: string;
-  importantFields: Array<{ id: string; title: string; field_key: string; field_type: string; options: any }>;
+  importantFields: Array<{ id: string; title: string; field_key: string; field_type: string; options: any; icon?: string | null }>;
   customFieldValues: Record<string, { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_date?: string | null }>;
   onReloadImportant: () => void;
 }
