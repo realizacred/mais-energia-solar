@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { VirtuosoGrid } from "react-virtuoso";
 import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload, FileSpreadsheet, Wand2, X, GitCompareArrows, Package, CheckCircle2, FileWarning, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -341,20 +342,26 @@ export function ModulosManager() {
             </Button>
           </div>
         ) : viewMode === "cards" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {filtered.map(m => (
-              <ModuloCard
-                key={m.id}
-                modulo={m}
-                isGlobal={isGlobal(m)}
-                onView={() => setViewModulo(m)}
-                onEdit={() => openEdit(m)}
-                onToggle={(v) => toggleMutation.mutate({ id: m.id, ativo: v })}
-                compareSelected={compareIds.has(m.id)}
-                onCompareToggle={(checked) => toggleCompare(m.id, checked)}
-              />
-            ))}
-          </div>
+          <VirtuosoGrid
+            style={{ height: "calc(100vh - 320px)" }}
+            totalCount={filtered.length}
+            itemContent={(index) => {
+              const m = filtered[index];
+              return (
+                <ModuloCard
+                  key={m.id}
+                  modulo={m}
+                  isGlobal={isGlobal(m)}
+                  onView={() => setViewModulo(m)}
+                  onEdit={() => openEdit(m)}
+                  onToggle={(v) => toggleMutation.mutate({ id: m.id, ativo: v })}
+                  compareSelected={compareIds.has(m.id)}
+                  onCompareToggle={(checked) => toggleCompare(m.id, checked)}
+                />
+              );
+            }}
+            listClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-1"
+          />
         ) : (
           <ModuloTableView
             modulos={filtered}
