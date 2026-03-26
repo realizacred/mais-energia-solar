@@ -227,6 +227,7 @@ export function ModulosManager() {
         isPending={saveMutation.isPending}
       />
       <ModuloImportDialog open={importOpen} onOpenChange={setImportOpen} existingModulos={modulos} />
+      <DistributorImportDialog open={distImportOpen} onOpenChange={setDistImportOpen} existingModulos={modulos} />
 
       {/* Delete */}
       <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
