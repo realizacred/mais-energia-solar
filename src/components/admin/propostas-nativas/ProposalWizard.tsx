@@ -760,6 +760,29 @@ export function ProposalWizard() {
               }
             }
           }
+
+          // Enrich projectAddress from cliente if still empty after snapshot restore
+          if (!s.projectAddress && propostaMeta?.cliente_id) {
+            const { data: cliAddr } = await supabase
+              .from("clientes")
+              .select("cep, rua, numero, bairro, complemento, cidade, estado")
+              .eq("id", propostaMeta.cliente_id)
+              .maybeSingle();
+            if (cliAddr && (cliAddr.cidade || cliAddr.rua || cliAddr.cep)) {
+              setProjectAddress({
+                cep: cliAddr.cep || "",
+                rua: cliAddr.rua || "",
+                numero: cliAddr.numero || "",
+                bairro: cliAddr.bairro || "",
+                complemento: cliAddr.complemento || "",
+                cidade: cliAddr.cidade || "",
+                uf: cliAddr.estado || "",
+                lat: null,
+                lon: null,
+              });
+              console.log("[ProposalWizard] projectAddress enriched from cliente:", propostaMeta.cliente_id);
+            }
+          }
         } catch (enrichErr) {
           console.warn("[ProposalWizard] Failed to enrich lead/deal from propostas_nativas:", enrichErr);
         }
