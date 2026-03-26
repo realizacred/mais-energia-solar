@@ -1637,12 +1637,16 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
 
-  // Fetch deal updated_at for staleness detection
-  const { data: dealUpdatedAt } = useQuery({
-    queryKey: ["deal-updated-at", dealId],
+  // Fetch deal snapshot-relevant fields for staleness detection
+  const { data: dealSnapshotMeta } = useQuery({
+    queryKey: ["deal-snapshot-meta", dealId],
     queryFn: async () => {
-      const { data } = await supabase.from("deals").select("updated_at").eq("id", dealId).single();
-      return data?.updated_at || null;
+      const { data } = await supabase
+        .from("deals")
+        .select("kwp, value, updated_at")
+        .eq("id", dealId)
+        .single();
+      return data || null;
     },
     staleTime: 1000 * 60 * 5,
     enabled: !!dealId,
@@ -1711,13 +1715,25 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const outras = propostas.filter(p => p.id !== principal?.id);
 
   const isPropostaOutdated = (prop: any) => {
-    if (!dealUpdatedAt) return false;
+    if (!dealSnapshotMeta) return false;
     const lv = prop.versoes?.[0];
     if (!lv?.gerado_em) return false;
-    return new Date(dealUpdatedAt).getTime() > new Date(lv.gerado_em).getTime();
+    // Only consider outdated if deal was updated AFTER proposal was generated
+    // AND snapshot-relevant fields differ (potencia/valor changed)
+    const dealTime = new Date(dealSnapshotMeta.updated_at).getTime();
+    const propTime = new Date(lv.gerado_em).getTime();
+    if (dealTime <= propTime) return false;
+    // Check if snapshot-critical fields differ from deal
+    const snap = lv.snapshot || {};
+    const snapPotencia = Number(snap.potenciaKwp ?? snap.potencia_kwp ?? 0);
+    const snapValor = Number(snap.precoTotal ?? snap.preco_total ?? snap.valor_total ?? 0);
+    const dealPotencia = Number(dealSnapshotMeta.kwp ?? 0);
+    const dealValor = Number(dealSnapshotMeta.value ?? 0);
+    // Only mark as outdated if critical data actually changed
+    return Math.abs(snapPotencia - dealPotencia) > 0.01 || Math.abs(snapValor - dealValor) > 1;
   };
 
-  const isPrincipalOutdated = principal ? isPropostaOutdated(principal) : false;
+  // isPrincipalOutdated removed — staleness badge now shows inside each card individually
 
   const renderPropostaCard = (p: any, isPrin: boolean) => {
     return (
@@ -1833,12 +1849,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
         <div className="space-y-6">
           {principal && (
             <div>
-              {isPrincipalOutdated && (
-                <div className="flex items-center gap-2 mb-3 py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning">
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                  <span>O projeto foi atualizado após esta proposta. Gere uma nova proposta, se necessário.</span>
-                </div>
-              )}
               {renderPropostaCard(principal, true)}
             </div>
           )}
