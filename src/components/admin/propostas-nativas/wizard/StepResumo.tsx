@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   MapPin, User, Zap, Package, Box, Wrench, DollarSign, CreditCard,
-  SunMedium, TrendingUp, BarChart3, Phone, Mail, Building2, Percent,
-  Banknote, Clock, ArrowDown,
+  SunMedium, TrendingUp, Phone, Mail, Building2, Percent,
+  Banknote, Clock, ArrowDown, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -75,6 +77,15 @@ function getTipoLabel(tipo: string): string {
   }
 }
 
+function getTipoBadgeColor(tipo: string): string {
+  switch (tipo) {
+    case "a_vista": return "bg-success/10 text-success border-success/20";
+    case "financiamento": return "bg-info/10 text-info border-info/20";
+    case "parcelado": return "bg-warning/10 text-warning border-warning/20";
+    default: return "";
+  }
+}
+
 export function StepResumo({
   estado, cidade, tipoTelhado, distribuidoraNome, irradiacao,
   clienteNome, clienteCelular, clienteEmail, clienteEmpresa, leadNome,
@@ -86,9 +97,6 @@ export function StepResumo({
   const custoKit = itens.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
   const custoAdicionais = adicionais.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
   const custoServicos = servicos.reduce((s, i) => s + i.valor, 0);
-
-  const moduloItem = itens.find(i => i.categoria === "modulo");
-  const inversorItem = itens.find(i => i.categoria === "inversor");
 
   return (
     <div className="space-y-4">
@@ -142,65 +150,73 @@ export function StepResumo({
         </Card>
       </div>
 
+      {/* Client + Location side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left column */}
-        <div className="space-y-4">
-          {/* Location */}
-          <Card className="border-border/40 shadow-sm">
-            <CardContent className="p-4">
-              <SectionHeader icon={MapPin} label="Localização" />
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
-                <span className="text-muted-foreground">Estado</span>
-                <span className="font-medium text-foreground">{estado}</span>
-                <span className="text-muted-foreground">Cidade</span>
-                <span className="font-medium text-foreground">{cidade}</span>
-                <span className="text-muted-foreground">Telhado</span>
-                <span className="font-medium text-foreground">{tipoTelhado || "—"}</span>
-                <span className="text-muted-foreground">Distribuidora</span>
-                <span className="font-medium text-foreground">{distribuidoraNome || "—"}</span>
-                <span className="text-muted-foreground">Irradiação</span>
-                <span className="font-medium text-foreground">{(Number(irradiacao) || 0) > 0 ? `${(Number(irradiacao) || 0).toFixed(2)} kWh/m²/dia` : "—"}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Client */}
-          <Card className="border-border/40 shadow-sm">
-            <CardContent className="p-4">
-              <SectionHeader icon={User} label="Cliente" />
-              <div className="space-y-2">
-                <p className="font-semibold text-foreground">{clienteNome || leadNome || "—"}</p>
+        {/* Client — FIRST */}
+        <Card className="border-border/40 shadow-sm">
+          <CardContent className="p-4">
+            <SectionHeader icon={User} label="Cliente" />
+            <div className="space-y-2">
+              <p className="font-semibold text-foreground text-base">{clienteNome || leadNome || "—"}</p>
+              <div className="space-y-1.5">
                 {clienteEmpresa && (
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Building2 className="h-3.5 w-3.5" /> {clienteEmpresa}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Building2 className="h-3.5 w-3.5 shrink-0" />
+                    <span>{clienteEmpresa}</span>
                   </div>
                 )}
                 {clienteCelular && (
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Phone className="h-3.5 w-3.5" /> {clienteCelular}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="h-3.5 w-3.5 shrink-0" />
+                    <span>{clienteCelular}</span>
                   </div>
                 )}
                 {clienteEmail && (
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Mail className="h-3.5 w-3.5" /> {clienteEmail}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    <span>{clienteEmail}</span>
                   </div>
                 )}
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline" className="text-[10px]">
-                    Grupo {grupo}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px]">
-                    {numUcs} UC{numUcs > 1 ? "s" : ""}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px]">
-                    Consumo: {consumoTotal.toLocaleString("pt-BR")} kWh
-                  </Badge>
-                </div>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <Badge variant="outline" className="text-[10px]">
+                  Grupo {grupo}
+                </Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  {numUcs} UC{numUcs > 1 ? "s" : ""}
+                </Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  Consumo: {consumoTotal.toLocaleString("pt-BR")} kWh
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Kit — mostra itens SEM preço individual, apenas total do kit */}
+        {/* Location — SECOND */}
+        <Card className="border-border/40 shadow-sm">
+          <CardContent className="p-4">
+            <SectionHeader icon={MapPin} label="Localização" />
+            <div className="grid grid-cols-[auto_1fr] gap-y-2.5 gap-x-6 text-sm">
+              <span className="text-muted-foreground">Estado</span>
+              <span className="font-medium text-foreground">{estado || "—"}</span>
+              <span className="text-muted-foreground">Cidade</span>
+              <span className="font-medium text-foreground">{cidade || "—"}</span>
+              <span className="text-muted-foreground">Telhado</span>
+              <span className="font-medium text-foreground">{tipoTelhado || "—"}</span>
+              <span className="text-muted-foreground">Distribuidora</span>
+              <span className="font-medium text-foreground">{distribuidoraNome || "—"}</span>
+              <span className="text-muted-foreground">Irradiação</span>
+              <span className="font-medium text-foreground">{(Number(irradiacao) || 0) > 0 ? `${(Number(irradiacao) || 0).toFixed(2)} kWh/m²/dia` : "—"}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left column */}
+        <div className="space-y-4">
+          {/* Kit */}
           <Card className="border-border/40 shadow-sm">
             <CardContent className="p-4">
               <SectionHeader icon={Package} label="Kit Gerador" />
@@ -226,10 +242,7 @@ export function StepResumo({
               )}
             </CardContent>
           </Card>
-        </div>
 
-        {/* Right column */}
-        <div className="space-y-4">
           {/* Adicionais */}
           {adicionais.length > 0 && (
             <Card className="border-border/40 shadow-sm">
@@ -251,7 +264,10 @@ export function StepResumo({
               </CardContent>
             </Card>
           )}
+        </div>
 
+        {/* Right column */}
+        <div className="space-y-4">
           {/* Serviços */}
           {servicos.length > 0 && (
             <Card className="border-border/40 shadow-sm">
@@ -279,7 +295,7 @@ export function StepResumo({
             </Card>
           )}
 
-          {/* Financeiro — consolidado */}
+          {/* Financeiro */}
           <Card className="border-border/40 shadow-sm">
             <CardContent className="p-4">
               <SectionHeader icon={DollarSign} label="Financeiro" />
@@ -320,103 +336,151 @@ export function StepResumo({
               </div>
             </CardContent>
           </Card>
-
-          {/* Pagamento — melhorado */}
-          {pagamentoOpcoes.length > 0 && (
-            <Card className="border-border/40 shadow-sm">
-              <CardContent className="p-4">
-                <SectionHeader icon={CreditCard} label="Condições de Pagamento" />
-                <div className="space-y-3">
-                  {pagamentoOpcoes.map((op, i) => {
-                    const totalFinanciado = op.num_parcelas > 0 && op.valor_parcela > 0
-                      ? op.num_parcelas * op.valor_parcela
-                      : 0;
-                    const totalGeral = (op.entrada || 0) + totalFinanciado;
-
-                    return (
-                      <div key={i} className="rounded-lg border border-border/50 p-3 bg-muted/20">
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold text-sm text-foreground">{op.nome}</span>
-                          <Badge variant="outline" className="text-[9px]">{getTipoLabel(op.tipo)}</Badge>
-                        </div>
-                        
-                        {/* Details grid */}
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                          {op.entrada > 0 && (
-                            <>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <ArrowDown className="h-3 w-3 shrink-0" />
-                                <span>Entrada</span>
-                              </div>
-                              <span className="font-medium text-foreground text-right">{formatBRL(op.entrada)}</span>
-                            </>
-                          )}
-                          {op.num_parcelas > 0 && (
-                            <>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Clock className="h-3 w-3 shrink-0" />
-                                <span>Parcelas</span>
-                              </div>
-                              <span className="font-medium text-foreground text-right">
-                                {op.num_parcelas}× {formatBRL(op.valor_parcela)}
-                              </span>
-                            </>
-                          )}
-                          {(op.taxa_mensal ?? 0) > 0 && (
-                            <>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Percent className="h-3 w-3 shrink-0" />
-                                <span>Taxa mensal</span>
-                              </div>
-                              <span className="font-medium text-foreground text-right">
-                                {((op.taxa_mensal ?? 0) * 100).toFixed(2)}%
-                              </span>
-                            </>
-                          )}
-                          {(op.carencia_meses ?? 0) > 0 && (
-                            <>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Clock className="h-3 w-3 shrink-0" />
-                                <span>Carência</span>
-                              </div>
-                              <span className="font-medium text-foreground text-right">
-                                {op.carencia_meses} meses
-                              </span>
-                            </>
-                          )}
-                          {(op.valor_financiado ?? 0) > 0 && (
-                            <>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Banknote className="h-3 w-3 shrink-0" />
-                                <span>Financiado</span>
-                              </div>
-                              <span className="font-medium text-foreground text-right">
-                                {formatBRL(op.valor_financiado ?? 0)}
-                              </span>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Total */}
-                        {totalGeral > 0 && op.tipo !== "a_vista" && (
-                          <>
-                            <Separator className="my-2" />
-                            <div className="flex justify-between text-xs font-semibold">
-                              <span className="text-muted-foreground">Total c/ juros</span>
-                              <span className="text-foreground">{formatBRL(totalGeral)}</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
+
+      {/* Pagamento — full width, expandable */}
+      {pagamentoOpcoes.length > 0 && (
+        <Card className="border-border/40 shadow-sm">
+          <CardContent className="p-4">
+            <SectionHeader icon={CreditCard} label="Condições de Pagamento" />
+            <div className="space-y-2">
+              {pagamentoOpcoes.map((op, i) => (
+                <PaymentOptionItem key={i} op={op} defaultOpen={i === 0} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
+  );
+}
+
+/* ── Expandable Payment Option ── */
+function PaymentOptionItem({ op, defaultOpen }: {
+  op: StepResumoProps["pagamentoOpcoes"][number];
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+
+  const totalFinanciado = op.num_parcelas > 0 && op.valor_parcela > 0
+    ? op.num_parcelas * op.valor_parcela
+    : 0;
+  const totalGeral = (op.entrada || 0) + totalFinanciado;
+
+  // Summary line for collapsed state
+  const summaryParts: string[] = [];
+  if (op.entrada > 0) summaryParts.push(`Entrada ${formatBRL(op.entrada)}`);
+  if (op.num_parcelas > 0) summaryParts.push(`${op.num_parcelas}× ${formatBRL(op.valor_parcela)}`);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors",
+            "hover:bg-muted/40 cursor-pointer",
+            open ? "border-primary/30 bg-primary/5" : "border-border/50 bg-muted/20"
+          )}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={cn(
+              "h-7 w-7 rounded-md flex items-center justify-center shrink-0",
+              getTipoBadgeColor(op.tipo).replace("text-", "bg-").split(" ")[0] || "bg-muted",
+            )}>
+              <CreditCard className="h-3.5 w-3.5 text-foreground" />
+            </div>
+            <div className="min-w-0">
+              <span className="font-semibold text-sm text-foreground block">{op.nome}</span>
+              {!open && summaryParts.length > 0 && (
+                <span className="text-[11px] text-muted-foreground truncate block">
+                  {summaryParts.join(" · ")}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className={cn("text-[9px]", getTipoBadgeColor(op.tipo))}>
+              {getTipoLabel(op.tipo)}
+            </Badge>
+            {open ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="rounded-b-lg border border-t-0 border-primary/20 bg-card px-4 py-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 text-xs">
+            {op.entrada > 0 && (
+              <div>
+                <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+                  <ArrowDown className="h-3 w-3 shrink-0" />
+                  <span>Entrada</span>
+                </div>
+                <span className="font-semibold text-sm text-foreground">{formatBRL(op.entrada)}</span>
+              </div>
+            )}
+            {op.num_parcelas > 0 && (
+              <div>
+                <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+                  <Clock className="h-3 w-3 shrink-0" />
+                  <span>Parcelas</span>
+                </div>
+                <span className="font-semibold text-sm text-foreground">
+                  {op.num_parcelas}× {formatBRL(op.valor_parcela)}
+                </span>
+              </div>
+            )}
+            {(op.taxa_mensal ?? 0) > 0 && (
+              <div>
+                <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+                  <Percent className="h-3 w-3 shrink-0" />
+                  <span>Taxa mensal</span>
+                </div>
+                <span className="font-semibold text-sm text-foreground">
+                  {((op.taxa_mensal ?? 0) * 100).toFixed(2)}%
+                </span>
+              </div>
+            )}
+            {(op.carencia_meses ?? 0) > 0 && (
+              <div>
+                <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+                  <Clock className="h-3 w-3 shrink-0" />
+                  <span>Carência</span>
+                </div>
+                <span className="font-semibold text-sm text-foreground">
+                  {op.carencia_meses} meses
+                </span>
+              </div>
+            )}
+            {(op.valor_financiado ?? 0) > 0 && (
+              <div>
+                <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+                  <Banknote className="h-3 w-3 shrink-0" />
+                  <span>Financiado</span>
+                </div>
+                <span className="font-semibold text-sm text-foreground">
+                  {formatBRL(op.valor_financiado ?? 0)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {totalGeral > 0 && op.tipo !== "a_vista" && (
+            <>
+              <Separator className="my-2.5" />
+              <div className="flex justify-between text-sm font-bold">
+                <span className="text-muted-foreground">Total c/ juros</span>
+                <span className="text-primary">{formatBRL(totalGeral)}</span>
+              </div>
+            </>
+          )}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
