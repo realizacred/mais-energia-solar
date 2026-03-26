@@ -1,7 +1,7 @@
 import { formatBRL } from "@/lib/formatters";
 import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock, XCircle, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,8 @@ type CenarioData = {
 
 export default function PropostaPublica() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const viewMode = searchParams.get("view"); // "simulacao" = financial only
   const [loading, setLoading] = useState(true);
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
   const [html, setHtml] = useState<string | null>(null);
@@ -302,11 +304,12 @@ export default function PropostaPublica() {
 
   const hasCenarios = cenarios.length > 0;
   const pagamentoOpcoes = !hasCenarios ? (versaoData?.snapshot?.pagamento_opcoes || []) : [];
+  const isSimulacaoView = viewMode === "simulacao";
 
   return (
     <div className="min-h-screen bg-muted/30">
-      {/* Proposal Preview */}
-      {html && (
+      {/* Proposal Preview — hidden on simulacao view */}
+      {html && !isSimulacaoView && (
         <div className="max-w-4xl mx-auto py-6 px-4">
           <div className="bg-card rounded-xl shadow-sm overflow-hidden">
             <iframe
@@ -320,8 +323,8 @@ export default function PropostaPublica() {
         </div>
       )}
 
-      {/* ── CENÁRIOS INTERATIVOS ──────────────────────── */}
-      {hasCenarios && (
+      {/* ── CENÁRIOS INTERATIVOS — only on simulacao view ── */}
+      {hasCenarios && isSimulacaoView && (
         <div className="max-w-3xl mx-auto px-4 pb-4">
           <h3 className="text-base font-semibold mb-3 text-center">
             Escolha a melhor opção para você
@@ -390,8 +393,8 @@ export default function PropostaPublica() {
         </div>
       )}
 
-      {/* Financial Summary */}
-      {versaoData && (
+      {/* Financial Summary — only on simulacao view */}
+      {versaoData && isSimulacaoView && (
         <div className="max-w-lg mx-auto px-4 pb-4">
           <Card className="border-border/60">
             <CardContent className="py-4">
