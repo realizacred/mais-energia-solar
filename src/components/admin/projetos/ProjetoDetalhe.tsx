@@ -1028,7 +1028,7 @@ function GerenciamentoTab({
         <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           {/* Card: Dados do Cliente */}
           <Card>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 px-4 pt-3">
+            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 px-4 pt-3">
               <CardTitle className="text-sm font-bold text-foreground">
                 Dados do cliente
               </CardTitle>
