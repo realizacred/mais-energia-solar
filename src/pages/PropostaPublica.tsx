@@ -51,6 +51,8 @@ type CenarioData = {
 
 export default function PropostaPublica() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const viewMode = searchParams.get("view"); // "simulacao" = financial only
   const [loading, setLoading] = useState(true);
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
   const [html, setHtml] = useState<string | null>(null);
