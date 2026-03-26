@@ -737,16 +737,29 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  // Copy public link (slug-based, no tracking)
-  const copyPublicLink = () => {
-    const slug = latestVersao?.public_slug;
-    if (!slug) {
+  // Copy public link (token-based, no tracking)
+  const copyPublicLink = async () => {
+    if (!p.id || !latestVersao?.id) {
       toast({ title: "Link público não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
       return;
     }
-    const url = `${window.location.origin}/p/${slug}`;
-    navigator.clipboard.writeText(url);
-    toast({ title: "Link público copiado!" });
+    try {
+      const slug = latestVersao?.public_slug;
+      if (slug) {
+        const url = `${window.location.origin}/p/${slug}`;
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Link público copiado!" });
+        return;
+      }
+      // Fallback: create/get a public token
+      const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
+      const token = await getOrCreateProposalToken(p.id, latestVersao.id, "public");
+      const url = `${window.location.origin}/proposta/${token}`;
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Link público copiado!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar link público", description: e.message, variant: "destructive" });
+    }
   };
 
   // Generate/copy tracked link (token-based)
@@ -975,7 +988,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     <Download className="h-3.5 w-3.5 mr-2 text-info" /> Baixar DOCX
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={copyPublicLink} disabled={!latestVersao?.public_slug}>
+                <DropdownMenuItem onClick={copyPublicLink} disabled={!latestVersao}>
                   <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={copyTrackedLink} disabled={!latestVersao}>
