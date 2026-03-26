@@ -855,11 +855,18 @@ export function ConvertLeadToClientDialog({
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.removeItem(storageKey);
 
-      // Persist payment composition for admin approval
-      if (paymentItems.length > 0) {
+      // Persist payment composition to DB (source of truth) + localStorage (cache)
+      if (paymentItems.length > 0 && cliente) {
+        const compositionJson = JSON.stringify(paymentItems);
+        // Save to DB
+        await supabase
+          .from("clientes")
+          .update({ payment_composition: paymentItems } as any)
+          .eq("id", cliente.id);
+        // Keep localStorage as cache/fallback
         localStorage.setItem(
           `lead_payment_composition_${lead.id}`,
-          JSON.stringify(paymentItems)
+          compositionJson
         );
       }
 

@@ -1709,6 +1709,7 @@ export type Database = {
           numero: string | null
           numero_placas: number | null
           observacoes: string | null
+          payment_composition: Json | null
           potencia_kwp: number | null
           rua: string | null
           simulacao_aceita_id: string | null
@@ -1748,6 +1749,7 @@ export type Database = {
           numero?: string | null
           numero_placas?: number | null
           observacoes?: string | null
+          payment_composition?: Json | null
           potencia_kwp?: number | null
           rua?: string | null
           simulacao_aceita_id?: string | null
@@ -1787,6 +1789,7 @@ export type Database = {
           numero?: string | null
           numero_placas?: number | null
           observacoes?: string | null
+          payment_composition?: Json | null
           potencia_kwp?: number | null
           rua?: string | null
           simulacao_aceita_id?: string | null
