@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
@@ -8,8 +8,15 @@ import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FormModalTemplate, FormSection, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -39,15 +46,14 @@ import {
   FileText,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
-import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
-import { useCepLookup } from "@/hooks/useCepLookup";
+import { formatPhone } from "@/lib/validations";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
+import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
-import { PageHeader, EmptyState, LoadingState, SearchInput } from "@/components/ui-kit";
+import { PageHeader, EmptyState, LoadingState, SearchInput, Spinner } from "@/components/ui-kit";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
   useClientes,
