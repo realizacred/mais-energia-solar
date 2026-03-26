@@ -19,6 +19,7 @@ import { ModuloCard } from "./modulos/ModuloCard";
 import { ModuloViewModal } from "./modulos/ModuloViewModal";
 import { ModuloFormDialog } from "./modulos/ModuloFormDialog";
 import { ModuloImportDialog } from "./modulos/ModuloImportDialog";
+import { DistributorImportDialog } from "./modulos/DistributorImportDialog";
 import { ModuloTableView } from "./modulos/ModuloTableView";
 
 type ViewMode = "cards" | "table";
