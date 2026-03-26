@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,15 @@ interface LeadViewDialogProps {
   lead: Lead | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+function InfoField({ label, value }: { label: string; value: string | number | null | undefined }) {
+  return (
+    <div>
+      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
+      <p className="text-sm font-medium text-foreground mt-0.5">{value || "—"}</p>
+    </div>
+  );
 }
 
 export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps) {
@@ -44,187 +54,176 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+      <DialogContent className="w-[90vw] max-w-4xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* §25 HEADER */}
-        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <User className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1">
             <DialogTitle className="text-base font-semibold text-foreground">
-              Detalhes do Lead
+              {lead.nome}
             </DialogTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Informações completas do lead
-            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              {lead.lead_code && (
+                <Badge variant="outline" className="font-mono text-xs">{lead.lead_code}</Badge>
+              )}
+              <p className="text-xs text-muted-foreground">Detalhes completos do lead</p>
+            </div>
           </div>
         </DialogHeader>
 
-        {/* §25 BODY */}
-        <div className="p-5 space-y-5 flex-1 min-h-0 overflow-y-auto">
-          {lead.lead_code && (
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="font-mono text-sm px-3 py-1">
-                {lead.lead_code}
-              </Badge>
-            </div>
-          )}
-
-          {/* Dados pessoais */}
-          <div className="space-y-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Dados pessoais
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Nome</p>
-                <p className="font-medium text-sm">{lead.nome}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Telefone</p>
-                <p className="font-medium text-sm">{formatPhoneBR(lead.telefone)}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-border" />
-
-          {/* Endereço */}
-          <div className="space-y-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Endereço
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground">CEP</p>
-                <p className="font-medium text-sm">{lead.cep || "-"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Cidade/Estado</p>
-                <p className="font-medium text-sm">
-                  {lead.cidade}, {lead.estado}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Bairro</p>
-                <p className="font-medium text-sm">{lead.bairro || "-"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Rua</p>
-                <p className="font-medium text-sm">{lead.rua || "-"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Número</p>
-                <p className="font-medium text-sm">{lead.numero || "-"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Complemento</p>
-                <p className="font-medium text-sm">{lead.complemento || "-"}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-border" />
-
-          {/* Imóvel */}
-          <div className="space-y-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Imóvel e Consumo
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Área</p>
-                <p className="font-medium text-sm">{lead.area}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Tipo de Telhado</p>
-                <p className="font-medium text-sm">{lead.tipo_telhado}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Rede</p>
-                <p className="font-medium text-sm">{lead.rede_atendimento}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Consumo Médio</p>
-                <p className="font-medium text-sm">{lead.media_consumo} kWh</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Consumo Previsto</p>
-                <p className="font-medium text-sm">{lead.consumo_previsto} kWh</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Data de Cadastro</p>
-                <p className="font-medium text-sm">
-                  {format(new Date(lead.created_at), "dd/MM/yyyy 'às' HH:mm", {
-                    locale: ptBR,
-                  })}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {lead.observacoes && (
-            <>
-              <div className="border-t border-border" />
-              <div className="space-y-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Observações</p>
-                <p className="font-medium text-sm">{lead.observacoes}</p>
-              </div>
-            </>
-          )}
-
-          {/* Arquivos Anexados */}
-          {lead.arquivos_urls && lead.arquivos_urls.length > 0 && (
-            <>
-              <div className="border-t border-border" />
-              <div className="space-y-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Arquivos Anexados ({lead.arquivos_urls.length})
-                </p>
-                <div className="space-y-2">
-                  {lead.arquivos_urls.map((filePath, index) => {
-                    const fileName = filePath.split("/").pop() || `Arquivo ${index + 1}`;
-                    const isImage = /\.(jpg|jpeg|png)$/i.test(fileName);
-
-                    return (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          {isImage ? (
-                            <Image className="w-5 h-5 text-primary" />
-                          ) : (
-                            <FileText className="w-5 h-5 text-destructive" />
-                          )}
-                          <span className="text-sm font-medium truncate">{fileName}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenFile(filePath)}
-                          className="flex items-center gap-1 text-primary hover:text-primary"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Abrir
-                        </Button>
-                      </div>
-                    );
-                  })}
+        {/* §25 BODY — 2 columns */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-5">
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Left Column */}
+              <div className="flex-1 space-y-5">
+                {/* IDENTIFICAÇÃO */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Identificação
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InfoField label="Nome" value={lead.nome} />
+                    <InfoField label="Telefone" value={formatPhoneBR(lead.telefone)} />
+                    <InfoField label="Consultor" value={lead.consultor_nome || lead.consultor} />
+                    <InfoField label="Origem" value={lead.area} />
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
 
-          {/* Histórico de Alterações */}
-          <div className="border-t border-border" />
-          <div className="space-y-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-              <History className="w-3.5 h-3.5" /> Histórico de Alterações
-            </p>
-            <LeadAuditHistory leadId={lead.id} />
+                <div className="border-t border-border" />
+
+                {/* ENDEREÇO */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Endereço
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InfoField label="CEP" value={lead.cep} />
+                    <InfoField label="Cidade / Estado" value={[lead.cidade, lead.estado].filter(Boolean).join(", ")} />
+                    <InfoField label="Bairro" value={lead.bairro} />
+                    <InfoField label="Rua" value={lead.rua} />
+                    <InfoField label="Número" value={lead.numero} />
+                    <InfoField label="Complemento" value={lead.complemento} />
+                  </div>
+                </div>
+
+                {/* Arquivos Anexados */}
+                {lead.arquivos_urls && lead.arquivos_urls.length > 0 && (
+                  <>
+                    <div className="border-t border-border" />
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Arquivos Anexados ({lead.arquivos_urls.length})
+                      </p>
+                      <div className="space-y-2">
+                        {lead.arquivos_urls.map((filePath, index) => {
+                          const fileName = filePath.split("/").pop() || `Arquivo ${index + 1}`;
+                          const isImage = /\.(jpg|jpeg|png)$/i.test(fileName);
+                          return (
+                            <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                {isImage ? (
+                                  <Image className="w-5 h-5 text-primary" />
+                                ) : (
+                                  <FileText className="w-5 h-5 text-destructive" />
+                                )}
+                                <span className="text-sm font-medium truncate">{fileName}</span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenFile(filePath)}
+                                className="flex items-center gap-1 text-primary hover:text-primary"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                                Abrir
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Right Column */}
+              <div className="flex-1 space-y-5">
+                {/* IMÓVEL E CONSUMO */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Imóvel e Consumo
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InfoField label="Tipo de Telhado" value={lead.tipo_telhado} />
+                    <InfoField label="Rede" value={lead.rede_atendimento} />
+                    <InfoField label="Consumo Médio" value={lead.media_consumo ? `${lead.media_consumo} kWh` : null} />
+                    <InfoField label="Consumo Previsto" value={lead.consumo_previsto ? `${lead.consumo_previsto} kWh` : null} />
+                  </div>
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* HISTÓRICO */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Histórico
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InfoField
+                      label="Criado em"
+                      value={format(new Date(lead.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    />
+                    <InfoField
+                      label="Atualizado em"
+                      value={lead.updated_at ? format(new Date(lead.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : null}
+                    />
+                    <InfoField
+                      label="Último contato"
+                      value={lead.ultimo_contato ? format(new Date(lead.ultimo_contato), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : null}
+                    />
+                    <InfoField
+                      label="Próxima ação"
+                      value={lead.proxima_acao}
+                    />
+                  </div>
+                </div>
+
+                {/* OBSERVAÇÕES */}
+                {lead.observacoes && (
+                  <>
+                    <div className="border-t border-border" />
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observações</p>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{lead.observacoes}</p>
+                    </div>
+                  </>
+                )}
+
+                {/* Valor estimado */}
+                {lead.valor_estimado != null && lead.valor_estimado > 0 && (
+                  <>
+                    <div className="border-t border-border" />
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Negócio</p>
+                      <InfoField label="Valor Estimado" value={`R$ ${lead.valor_estimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Audit History — full width below */}
+            <div className="border-t border-border mt-5 pt-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-3">
+                <History className="w-3.5 h-3.5" /> Histórico de Alterações
+              </p>
+              <LeadAuditHistory leadId={lead.id} />
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

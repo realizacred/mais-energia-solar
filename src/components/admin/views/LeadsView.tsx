@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
-import { Users, Download } from "lucide-react";
+import { Users, Download, UserPlus, TrendingUp, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -33,6 +33,7 @@ export function LeadsView() {
   const [filterVisto, setFilterVisto] = useState("nao_visto");
   const [filterVendedor, setFilterVendedor] = useState("todos");
   const [filterEstado, setFilterEstado] = useState("todos");
+  const [filterStatus, setFilterStatus] = useState("todos");
   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoDisplayItem | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -44,7 +45,7 @@ export function LeadsView() {
   // Reset page when filters change
   useEffect(() => {
     setPage(0);
-  }, [searchTerm, filterVisto, filterVendedor, filterEstado, setPage]);
+  }, [searchTerm, filterVisto, filterVendedor, filterEstado, filterStatus, setPage]);
 
   useEffect(() => {
     let filtered = orcamentos.filter(
@@ -75,13 +76,48 @@ export function LeadsView() {
       filtered = filtered.filter((orc) => orc.estado === filterEstado);
     }
 
+    if (filterStatus !== "todos") {
+      filtered = filtered.filter((orc) => orc.status_id === filterStatus);
+    }
+
     setFilteredOrcamentos(filtered);
-  }, [searchTerm, orcamentos, filterVisto, filterVendedor, filterEstado]);
+  }, [searchTerm, orcamentos, filterVisto, filterVendedor, filterEstado, filterStatus]);
+
+  // KPI calculations from local data
+  const kpis = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const novosEsteMes = orcamentos.filter((orc) => {
+      const d = new Date(orc.created_at);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).length;
+
+    const convertidoStatus = statuses.find(s => s.nome === "Convertido");
+    const aguardandoStatus = statuses.find(s => s.nome === "Aguardando Validação");
+    const convertidos = orcamentos.filter(
+      (orc) => (convertidoStatus && orc.status_id === convertidoStatus.id) || (aguardandoStatus && orc.status_id === aguardandoStatus.id)
+    ).length;
+
+    const emNegociacaoStatus = statuses.find(s => s.nome === "Em Negociação" || s.nome === "Em negociação");
+    const emNegociacao = emNegociacaoStatus
+      ? orcamentos.filter((orc) => orc.status_id === emNegociacaoStatus.id).length
+      : 0;
+
+    return {
+      total: totalCount,
+      novosEsteMes,
+      emNegociacao,
+      convertidos,
+    };
+  }, [orcamentos, statuses, totalCount]);
 
   const handleClearFilters = () => {
     setFilterVisto("todos");
     setFilterVendedor("todos");
     setFilterEstado("todos");
+    setFilterStatus("todos");
   };
 
   const handleDelete = async () => {
@@ -135,7 +171,6 @@ export function LeadsView() {
   };
 
   const handleLeadFromWidget = useCallback((lead: any) => {
-    // Try to find the matching orcamento in the already-loaded list
     const match = orcamentos.find(
       (orc) => orc.lead_id === lead.id || orc.id === lead.id
     );
@@ -143,43 +178,48 @@ export function LeadsView() {
       setSelectedOrcamento(match);
       setIsViewOpen(true);
     } else {
-      // Fallback: open convert dialog with partial data
       setLeadToConvert(lead as Lead);
       setIsConvertOpen(true);
     }
   }, [orcamentos]);
 
-  const handleExportExcel = async () => {
+  const handleExportFiltered = () => {
     try {
-      toast.info("Exportando leads...");
-      const { data: leads, error } = await supabase
-        .from("leads")
-        .select("nome, telefone, email, cidade, estado, consultor, media_consumo, created_at, ultimo_contato")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-
-      const rows = (leads || []).map((l: any) => ({
-        Nome: l.nome || "",
-        Telefone: l.telefone || "",
-        "E-mail": l.email || "",
-        Cidade: l.cidade || "",
-        Estado: l.estado || "",
-        Consultor: l.consultor || "",
-        "Consumo Médio": l.media_consumo ?? "",
-        "Criado em": l.created_at ? new Date(l.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "",
-        "Último contato": l.ultimo_contato ? new Date(l.ultimo_contato).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "",
+      toast.info("Exportando leads filtrados...");
+      const rows = filteredOrcamentos.map((orc) => ({
+        Código: orc.lead_code || "",
+        Nome: orc.nome || "",
+        Telefone: orc.telefone || "",
+        Cidade: orc.cidade || "",
+        Estado: orc.estado || "",
+        Consultor: orc.vendedor_nome || orc.vendedor || "",
+        "Consumo Médio": orc.media_consumo ?? "",
+        "Criado em": orc.created_at ? new Date(orc.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "",
       }));
 
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Leads");
       const today = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `leads-export-${today}.xlsx`);
+      XLSX.writeFile(wb, `leads-filtrados-${today}.xlsx`);
       toast.success(`${rows.length} leads exportados!`);
     } catch (err: any) {
       toast.error(err?.message || "Erro ao exportar");
     }
+  };
+
+  const KPI_CARDS = [
+    { label: "Total de Leads", value: kpis.total, icon: Users, variant: "primary" as const },
+    { label: "Novos este mês", value: kpis.novosEsteMes, icon: UserPlus, variant: "info" as const },
+    { label: "Em negociação", value: kpis.emNegociacao, icon: TrendingUp, variant: "warning" as const },
+    { label: "Convertidos", value: kpis.convertidos, icon: ShoppingCart, variant: "success" as const },
+  ];
+
+  const VARIANT_CLASSES: Record<string, string> = {
+    primary: "border-l-primary bg-primary/10 text-primary",
+    info: "border-l-info bg-info/10 text-info",
+    warning: "border-l-warning bg-warning/10 text-warning",
+    success: "border-l-success bg-success/10 text-success",
   };
 
   return (
@@ -189,12 +229,35 @@ export function LeadsView() {
         title="Leads"
         description="Gerencie os orçamentos e leads recebidos"
         actions={
-          <Button variant="outline" size="sm" onClick={handleExportExcel}>
+          <Button variant="outline" size="sm" onClick={handleExportFiltered}>
             <Download className="w-4 h-4 mr-2" />
-            Exportar Excel
+            Exportar Filtrados
           </Button>
         }
       />
+
+      {/* §27 KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {KPI_CARDS.map((kpi) => {
+          const Icon = kpi.icon;
+          const classes = VARIANT_CLASSES[kpi.variant];
+          return (
+            <Card key={kpi.label} className={`border-l-[3px] ${classes.split(" ")[0]} bg-card shadow-sm`}>
+              <CardContent className="flex items-center gap-4 p-5">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${classes.split(" ").slice(1).join(" ")}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
+                    {kpi.value.toLocaleString("pt-BR")}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{kpi.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
 
       {/* Notification Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
@@ -220,8 +283,11 @@ export function LeadsView() {
             onFilterVendedorChange={setFilterVendedor}
             filterEstado={filterEstado}
             onFilterEstadoChange={setFilterEstado}
+            filterStatus={filterStatus}
+            onFilterStatusChange={setFilterStatus}
             vendedores={filters.vendedores}
             estados={filters.estados}
+            statuses={statuses}
             onClearFilters={handleClearFilters}
           />
         </CardHeader>
@@ -249,7 +315,7 @@ export function LeadsView() {
         </CardContent>
       </Card>
 
-      {/* Pagination — hide when filters produce no results */}
+      {/* Pagination */}
       {totalPages > 1 && filteredOrcamentos.length > 0 && (
         <div className="flex items-center justify-between mt-4">
           <Button

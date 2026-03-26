@@ -1,6 +1,7 @@
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -9,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { VendedorFilter } from "@/hooks/useLeads";
+import type { LeadStatus } from "@/types/lead";
 
 interface LeadFiltersProps {
   searchTerm: string;
@@ -19,8 +21,11 @@ interface LeadFiltersProps {
   onFilterVendedorChange: (value: string) => void;
   filterEstado: string;
   onFilterEstadoChange: (value: string) => void;
+  filterStatus: string;
+  onFilterStatusChange: (value: string) => void;
   vendedores: VendedorFilter[];
   estados: string[];
+  statuses: LeadStatus[];
   onClearFilters: () => void;
 }
 
@@ -33,14 +38,19 @@ export function LeadFilters({
   onFilterVendedorChange,
   filterEstado,
   onFilterEstadoChange,
+  filterStatus,
+  onFilterStatusChange,
   vendedores,
   estados,
+  statuses,
   onClearFilters,
 }: LeadFiltersProps) {
-  const hasActiveFilters =
-    filterVisto !== "todos" ||
-    filterVendedor !== "todos" ||
-    filterEstado !== "todos";
+  const activeCount = [
+    filterVisto !== "todos" ? 1 : 0,
+    filterVendedor !== "todos" ? 1 : 0,
+    filterEstado !== "todos" ? 1 : 0,
+    filterStatus !== "todos" ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -54,20 +64,45 @@ export function LeadFilters({
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 pt-2 border-t">
+      <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Filter className="w-4 h-4" />
-          <span>Filtros:</span>
+          <span>Filtros</span>
+          {activeCount > 0 && (
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs px-1.5 py-0 h-5">
+              {activeCount}
+            </Badge>
+          )}
         </div>
 
         <Select value={filterVisto} onValueChange={onFilterVistoChange}>
           <SelectTrigger className="w-[140px] h-9">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder="Visualização" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
             <SelectItem value="visto">Vistos</SelectItem>
             <SelectItem value="nao_visto">Não Vistos</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterStatus} onValueChange={onFilterStatusChange}>
+          <SelectTrigger className="w-[160px] h-9">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Status</SelectItem>
+            {statuses.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: s.cor }}
+                  />
+                  {s.nome}
+                </div>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -100,13 +135,14 @@ export function LeadFilters({
           </SelectContent>
         </Select>
 
-        {hasActiveFilters && (
+        {activeCount > 0 && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onClearFilters}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground gap-1.5"
           >
+            <X className="w-3.5 h-3.5" />
             Limpar filtros
           </Button>
         )}
