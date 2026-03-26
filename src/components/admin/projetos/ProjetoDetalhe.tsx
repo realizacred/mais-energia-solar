@@ -1643,7 +1643,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
     queryFn: async () => {
       const { data } = await supabase
         .from("deals")
-        .select("potencia_kwp, valor_projeto, updated_at")
+        .select("kwp, value, updated_at")
         .eq("id", dealId)
         .single();
       return data || null;
@@ -1727,8 +1727,8 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
     const snap = lv.snapshot || {};
     const snapPotencia = Number(snap.potenciaKwp ?? snap.potencia_kwp ?? 0);
     const snapValor = Number(snap.precoTotal ?? snap.preco_total ?? snap.valor_total ?? 0);
-    const dealPotencia = Number(dealSnapshotMeta.potencia_kwp ?? 0);
-    const dealValor = Number(dealSnapshotMeta.valor_projeto ?? 0);
+    const dealPotencia = Number(dealSnapshotMeta.kwp ?? 0);
+    const dealValor = Number(dealSnapshotMeta.value ?? 0);
     // Only mark as outdated if critical data actually changed
     return Math.abs(snapPotencia - dealPotencia) > 0.01 || Math.abs(snapValor - dealValor) > 1;
   };
