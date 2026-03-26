@@ -203,7 +203,7 @@ export function StageDealCard({
                 {deal.customer_name || deal.deal_title || "Sem nome"}
               </p>
               {deal.deal_num != null && (
-                <span className="text-[9px] font-mono text-muted-foreground/60 shrink-0">
+                <span className="text-[10px] font-mono font-medium text-muted-foreground shrink-0">
                   #{deal.deal_num}
                 </span>
               )}
