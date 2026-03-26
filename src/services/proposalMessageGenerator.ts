@@ -278,7 +278,7 @@ function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
             parts.push(`${op.parcelas}x de ${formatBRL(op.valor_parcela)}`);
           }
           if (op.taxa_mensal && op.taxa_mensal > 0) {
-            parts.push(`Taxa: ${formatNumberBR(op.taxa_mensal * 100, 2)}% a.m.`);
+            parts.push(`Taxa: ${(op.taxa_mensal * 100).toFixed(2).replace('.', ',')}% a.m.`);
           }
           if (op.carencia_meses && op.carencia_meses > 0) {
             parts.push(`Carência: ${op.carencia_meses} meses`);
