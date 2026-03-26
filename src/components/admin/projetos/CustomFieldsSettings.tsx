@@ -897,9 +897,14 @@ export function CustomFieldsSettings() {
               </div>
 
               {/* ── Card: Ícone do Campo ── */}
-              <div className="rounded-lg border bg-card p-4 space-y-3">
-                <h4 className="text-sm font-semibold text-foreground">Ícone do Campo</h4>
-                <p className="text-[11px] text-muted-foreground">Escolha um ícone para identificar visualmente este campo no detalhe do projeto.</p>
+              <div className="rounded-xl border bg-card overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
+                  <div className="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center">
+                    <Layers className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-foreground">Ícone do Campo</h4>
+                </div>
+                <div className="p-4 space-y-3">
                 <IconPicker selected={fieldForm.icon} onSelect={icon => setFieldForm(p => ({ ...p, icon }))} />
                 {fieldForm.icon && (
                   <Button variant="ghost" size="sm" onClick={() => setFieldForm(p => ({ ...p, icon: "" }))} className="text-xs text-muted-foreground">
