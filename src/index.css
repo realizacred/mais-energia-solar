@@ -44,13 +44,13 @@
     --accent-foreground: 216 75% 13%;
 
     /* --- Semantic (vivid, high-contrast) --- */
-    --destructive: 0 84% 50%;
+    --destructive: 0 90% 48%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 72% 40%;
+    --success: 152 82% 36%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 100% 50%;
+    --warning: 38 100% 48%;
     --warning-foreground: 0 0% 100%;
-    --info: 215 90% 52%;
+    --info: 215 95% 50%;
     --info-foreground: 0 0% 100%;
 
     /* --- Edges --- */
@@ -637,7 +637,7 @@
   .kanban-card {
     @apply bg-card rounded-lg cursor-grab active:cursor-grabbing;
     @apply border border-border/60 transition-all duration-150 ease-out relative;
-    border-left: 3px solid transparent;
+    border-left: 4px solid transparent;
     box-shadow: var(--shadow-xs);
   }
   .kanban-card:hover {
@@ -646,6 +646,7 @@
   }
   .kanban-card--won {
     border-left-color: hsl(var(--success));
+    background: linear-gradient(90deg, hsl(var(--success) / 0.06) 0%, transparent 40%);
   }
   .kanban-card--lost {
     border-left-color: hsl(var(--destructive));
@@ -653,15 +654,18 @@
   }
   .kanban-card--stagnation-critical {
     border-left-color: hsl(var(--destructive));
+    background: linear-gradient(90deg, hsl(var(--destructive) / 0.05) 0%, transparent 40%);
   }
   .kanban-card--stagnation-warning {
     border-left-color: hsl(var(--warning));
+    background: linear-gradient(90deg, hsl(var(--warning) / 0.06) 0%, transparent 40%);
   }
   .kanban-card--no-proposal {
-    border-left-color: hsl(var(--muted-foreground));
+    border-left-color: hsl(var(--muted-foreground) / 0.6);
   }
   .kanban-card--has-proposal {
     border-left-color: hsl(var(--primary));
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.04) 0%, transparent 40%);
   }
   .kanban-card--etiqueta {
     /* color set inline via style prop */
