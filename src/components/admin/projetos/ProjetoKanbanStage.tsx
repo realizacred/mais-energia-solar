@@ -237,18 +237,17 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
               { key: "overdue", label: "⚠ Atrasados" },
               { key: "proposta", label: "📄 C/ Proposta" },
             ].map(f => (
-              <button
+              <Button
                 key={f.key}
+                variant={mobileFilterStatus === f.key ? "default" : "outline"}
                 onClick={() => setMobileFilterStatus(f.key)}
                 className={cn(
-                  "shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors",
-                  mobileFilterStatus === f.key
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground border-border/60 hover:border-border"
+                  "shrink-0 px-3 py-1.5 h-auto rounded-full text-[11px] font-medium",
+                  mobileFilterStatus !== f.key && "text-muted-foreground border-border/60"
                 )}
               >
                 {f.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
