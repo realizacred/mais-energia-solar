@@ -236,7 +236,17 @@ function PaymentItemCard({ item, index, isFirst, expanded, onToggle, onUpdate, o
           className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/30 transition-colors"
           onClick={onToggle}
         >
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Drag handle */}
+            {!readOnly && (
+              <div
+                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted/50 shrink-0 touch-none"
+                {...dragListeners}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <GripVertical className="w-4 h-4 text-muted-foreground" />
+              </div>
+            )}
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <span className="text-xs font-bold text-primary">{index + 1}</span>
             </div>
@@ -245,6 +255,11 @@ function PaymentItemCard({ item, index, isFirst, expanded, onToggle, onUpdate, o
                 <span className="text-sm font-semibold text-foreground">
                   {FORMA_PAGAMENTO_LABELS[item.forma_pagamento]}
                 </span>
+                {isFirst && (
+                  <Badge variant="outline" className="text-[10px] h-4 bg-primary/10 text-primary border-primary/20">
+                    Obrigatório
+                  </Badge>
+                )}
                 {item.entrada && (
                   <Badge variant="outline" className="text-[10px] h-4 bg-success/10 text-success border-success/20">
                     Entrada
@@ -262,7 +277,7 @@ function PaymentItemCard({ item, index, isFirst, expanded, onToggle, onUpdate, o
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-sm font-bold text-primary">{formatBRL(computed.valor_com_juros)}</span>
-            {!readOnly && (
+            {!readOnly && !isFirst && (
               <Button
                 variant="ghost"
                 size="icon"
