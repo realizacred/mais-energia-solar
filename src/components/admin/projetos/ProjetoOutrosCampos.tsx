@@ -460,14 +460,14 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
   );
 }
 
-// ─── Inline important field (simplified) ──────────
+// Reuse existing ImportantFieldRow directly
+import { ImportantFieldRow } from "./ImportantFieldRow";
+
 function ImportantFieldInline({ field, value, dealId, onSaved }: {
   field: { id: string; title: string; field_key: string; field_type: string; options: any };
   value: { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_date?: string | null } | undefined;
   dealId: string;
   onSaved: () => void;
 }) {
-  // Delegate to existing ImportantFieldRow
-  const { ImportantFieldRow } = require("./ImportantFieldRow");
   return <ImportantFieldRow field={field} value={value} dealId={dealId} onSaved={onSaved} showSeparator={false} />;
 }
