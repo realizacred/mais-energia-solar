@@ -109,12 +109,18 @@ const MODULO_RANGES: Record<string, Range> = {
   largura_mm: { min: 500, max: 2000 },
   profundidade_mm: { min: 20, max: 60 },
   peso_kg: { min: 5, max: 50 },
-  area_m2: { min: 0.5, max: 6 },
   garantia_produto_anos: { min: 5, max: 30 },
   garantia_performance_anos: { min: 20, max: 40 },
   temp_coeff_pmax: { min: -0.6, max: -0.2 },
   temp_coeff_voc: { min: -0.5, max: -0.1 },
   temp_coeff_isc: { min: 0.01, max: 0.15 },
+};
+
+// Colunas geradas (GENERATED ALWAYS) — nunca incluir no UPDATE
+const GENERATED_COLUMNS: Record<EquipmentType, string[]> = {
+  modulo: ["area_m2"],
+  inversor: [],
+  otimizador: [],
 };
 
 const INVERSOR_RANGES: Record<string, Range> = {
