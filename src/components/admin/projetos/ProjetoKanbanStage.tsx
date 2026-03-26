@@ -477,8 +477,7 @@ function ResizableKanbanColumn({
         onMouseDown={onMouseDown}
       />
 
-      {/* ── Column Header ── */}
-      <div className="px-3 pt-3 pb-2 border-b-2 border-primary/20">
+      <div className="px-3 pt-3 pb-2 border-b-2" style={{ borderColor: stage.color || "hsl(var(--primary) / 0.2)" }}>
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2 min-w-0">
             <h3 className="text-[11px] font-bold text-secondary leading-tight truncate uppercase tracking-wider">
