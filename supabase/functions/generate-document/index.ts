@@ -390,7 +390,7 @@ Deno.serve(async (req) => {
 
     const clienteId = projeto?.cliente_id;
 
-    const [clienteRes, tenantRes, propostaRes] = await Promise.all([
+    const [clienteRes, tenantRes, propostaRes, brandRes, contratoCountRes] = await Promise.all([
       clienteId
         ? supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle()
         : Promise.resolve({ data: null }),
@@ -428,7 +428,22 @@ Deno.serve(async (req) => {
           }
           return r;
         }),
+      // Brand settings (representante legal)
+      supabase
+        .from("brand_settings")
+        .select("representante_legal, representante_cpf, representante_cargo")
+        .eq("tenant_id", tenantId)
+        .maybeSingle(),
+      // Count existing generated documents for contrato.numero
+      supabase
+        .from("generated_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId),
     ]);
+
+    // Generate contrato number (zero-padded sequential)
+    const contratoCount = (contratoCountRes.count ?? 0) + 1;
+    const contratoNumero = String(contratoCount).padStart(4, "0");
 
     // 4. Build variable context
     const variables = buildContext(
@@ -436,6 +451,8 @@ Deno.serve(async (req) => {
       projeto,
       tenantRes.data,
       propostaRes.data,
+      brandRes.data,
+      contratoNumero,
     );
 
     console.log(`[generate-document] Variables resolved: ${Object.keys(variables).length} keys`);
