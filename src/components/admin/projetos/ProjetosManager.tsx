@@ -155,6 +155,20 @@ export function ProjetosManager() {
     return deals.reduce((sum, d) => sum + (d.deal_value || 0), 0);
   }, [deals]);
 
+  const totalKwp = useMemo(() => {
+    return deals.reduce((sum, d) => sum + (d.deal_kwp || 0), 0);
+  }, [deals]);
+
+  const totalPropostasAceitas = useMemo(() => {
+    return deals
+      .filter(d => d.proposta_status === "aceita" || d.proposta_status === "Gerada")
+      .reduce((sum, d) => sum + (d.deal_value || 0), 0);
+  }, [deals]);
+
+  const qtdPropostasAceitas = useMemo(() => {
+    return deals.filter(d => d.proposta_status === "aceita" || d.proposta_status === "Gerada").length;
+  }, [deals]);
+
   // ── Detail View ──
    if (selectedDealId) {
     return (
