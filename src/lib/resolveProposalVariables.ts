@@ -251,6 +251,58 @@ function resolveFromContext(
   if (key === "entrada.tensao_rede") return s(uc1?.tensao_rede);
   if (key === "entrada.tipo_sistema") return s(ctx.kit?.tipo_sistema);
 
+  // ── Área útil (AP-15: espelhar resolveEntrada.ts do backend) ──
+  if (key === "entrada.area_util" || key === "sistema_solar.area_util") {
+    const uc1Val = ctx.ucs?.[0] as unknown as Record<string, unknown> | undefined;
+    const snapVal = ctx.finalSnapshot as Record<string, unknown> | undefined;
+    const areaRaw = snapVal?.area_util ?? uc1Val?.area_util ?? snapVal?.area_util_m2 ?? uc1Val?.area_util_m2;
+    if (areaRaw != null && Number(areaRaw) > 0) return fmtNumber(Number(areaRaw), 1);
+    // Fallback: calcular a partir das dimensões do módulo × quantidade
+    const kitI = (ctx.kit as any)?.itens as Array<Record<string, unknown>> | undefined;
+    if (kitI) {
+      const mod = kitI.find((i) => {
+        const cat = String(i.categoria || i.tipo || "").toLowerCase();
+        return cat.includes("modulo") || cat.includes("painel") || cat.includes("placa");
+      });
+      if (mod) {
+        const dim = String(mod.dimensoes_mm || mod.dimensoes || "");
+        const parts = dim.split(/[xX×]/);
+        if (parts.length >= 2) {
+          const compM = Number(parts[0]) / 1000;
+          const largM = Number(parts[1]) / 1000;
+          if (compM > 0 && largM > 0) {
+            const qty = Number(mod.quantidade ?? ctx.numeroPlacas ?? 0);
+            return fmtNumber(compM * largM * qty, 1);
+          }
+        }
+      }
+    }
+    return null;
+  }
+  if (key === "sistema_solar.area_necessaria") {
+    // area_necessaria = area_util dos módulos (mesmo cálculo, diferente semântica no template)
+    const kitI2 = (ctx.kit as any)?.itens as Array<Record<string, unknown>> | undefined;
+    if (kitI2) {
+      const mod = kitI2.find((i) => {
+        const cat = String(i.categoria || i.tipo || "").toLowerCase();
+        return cat.includes("modulo") || cat.includes("painel") || cat.includes("placa");
+      });
+      if (mod) {
+        const dim = String(mod.dimensoes_mm || mod.dimensoes || "");
+        const parts = dim.split(/[xX×]/);
+        if (parts.length >= 2) {
+          const compM = Number(parts[0]) / 1000;
+          const largM = Number(parts[1]) / 1000;
+          if (compM > 0 && largM > 0) {
+            const qty = Number(mod.quantidade ?? ctx.numeroPlacas ?? 0);
+            return fmtNumber(compM * largM * qty, 1);
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   // ── Sistema Solar — Equipamentos ──
   if (key === "sistema_solar.potencia_sistema") return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
   if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
