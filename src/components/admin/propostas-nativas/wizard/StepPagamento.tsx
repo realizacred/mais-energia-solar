@@ -43,13 +43,14 @@ interface StepPagamentoProps {
   premissas?: PremissasData;
   potenciaKwp?: number;
   irradiacao?: number;
+  geracaoMensalKwh?: number;
 }
 
 const DEFAULT_PARCELAS = [12, 24, 36, 48];
 
 export function StepPagamento({
   opcoes, onOpcoesChange, bancos, loadingBancos, precoFinal,
-  ucs = [], premissas, potenciaKwp = 0, irradiacao = 0,
+  ucs = [], premissas, potenciaKwp = 0, irradiacao = 0, geracaoMensalKwh = 0,
 }: StepPagamentoProps) {
   const [activeTab, setActiveTab] = useState<"pagamento" | "fluxo">("pagamento");
   const [showGastosModal, setShowGastosModal] = useState(false);
@@ -175,9 +176,9 @@ export function StepPagamento({
 
   // ─── Derived metrics (aligned with calc-engine.ts)
   const prem = premissas || { inflacao_energetica: 9.5, perda_eficiencia_anual: 0.5, vpl_taxa_desconto: 10, imposto: 0, inflacao_ipca: 4.5, sobredimensionamento: 0, troca_inversor_anos: 15, troca_inversor_custo: 30 };
-  // Geração anual: potência × irradiação × 365 × PR(0.80) — aligned with engine
-  const geracaoMensalKwh = potenciaKwp * (irradiacao || 4.5) * 30 * 0.80;
-  const geracaoAnualBase = geracaoMensalKwh * 12;
+  const geracaoMensalCalculada = potenciaKwp * (irradiacao || 4.5) * 30 * 0.80;
+  const geracaoMensalBase = geracaoMensalKwh > 0 ? geracaoMensalKwh : geracaoMensalCalculada;
+  const geracaoAnualBase = geracaoMensalBase * 12;
   const ucGeradora = ucs.find(u => u.is_geradora) || ucs[0];
   const tarifaBase = ucGeradora?.tarifa_distribuidora || 1.10;
   const custoDisp = ucGeradora?.custo_disponibilidade_valor || 54.81;

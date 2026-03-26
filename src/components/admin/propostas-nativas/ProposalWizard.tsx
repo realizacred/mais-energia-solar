@@ -254,16 +254,25 @@ export function ProposalWizard() {
   }, [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
-  // Estimated generation (kWh/month) = potência × irradiação × 30 × PR
-  // PR vem da taxa_desempenho da UC geradora (padrão 80%)
+  const topologiaAtiva = preDimensionamento.topologias?.[0] || "tradicional";
+  const fatorGeracaoAtivo =
+    preDimensionamento.topologia_configs?.[topologiaAtiva]?.fator_geracao ??
+    preDimensionamento.fator_geracao ??
+    0;
+
+  // Estimated generation (kWh/month) — prefer SSOT from premissas/topologia
   const geracaoMensalEstimada = useMemo(() => {
-    if (potenciaKwp > 0 && locIrradiacao > 0) {
+    if (potenciaKwp <= 0) return 0;
+    if (fatorGeracaoAtivo > 0) {
+      return Math.round(potenciaKwp * fatorGeracaoAtivo);
+    }
+    if (locIrradiacao > 0) {
       const ucGeradora = ucs.find(u => u.is_geradora);
       const pr = (ucGeradora?.taxa_desempenho ?? 80) / 100;
       return Math.round(potenciaKwp * locIrradiacao * 30 * pr);
     }
     return 0;
-  }, [potenciaKwp, locIrradiacao, ucs]);
+  }, [potenciaKwp, fatorGeracaoAtivo, locIrradiacao, ucs]);
 
   // ─── Persistence: save draft / update
   const { persistAtomic, saving } = useWizardPersistence();
@@ -937,11 +946,10 @@ export function ProposalWizard() {
     ucs,
     premissas,
     potenciaKwp,
-    geracaoMensal: potenciaKwp > 0 && locIrradiacao > 0
-      ? Math.round(potenciaKwp * locIrradiacao * 30 * 0.80) : undefined,
+    geracaoMensal: geracaoMensalEstimada > 0 ? geracaoMensalEstimada : undefined,
     precoTotal: precoFinal ?? 0,
     consultorNome: undefined, // filled by backend
-  }), [cliente, selectedLead, ucs, premissas, potenciaKwp, locIrradiacao, precoFinal, locCidade, locEstado]);
+  }), [cliente, selectedLead, ucs, premissas, potenciaKwp, geracaoMensalEstimada, precoFinal, locCidade, locEstado]);
 
   const enforcement = useProposalEnforcement(resolverContext);
 
@@ -2014,7 +2022,7 @@ export function ProposalWizard() {
 
       case STEP_KEYS.PAGAMENTO:
         return wrap("pagamento", (
-          <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} ucs={ucs} premissas={premissas} potenciaKwp={potenciaKwp} irradiacao={locIrradiacao} />
+          <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} ucs={ucs} premissas={premissas} potenciaKwp={potenciaKwp} irradiacao={locIrradiacao} geracaoMensalKwh={geracaoMensalEstimada} />
         ));
 
       case STEP_KEYS.RESUMO:
