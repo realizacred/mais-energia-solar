@@ -1637,12 +1637,16 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
 
-  // Fetch deal updated_at for staleness detection
-  const { data: dealUpdatedAt } = useQuery({
-    queryKey: ["deal-updated-at", dealId],
+  // Fetch deal snapshot-relevant fields for staleness detection
+  const { data: dealSnapshotMeta } = useQuery({
+    queryKey: ["deal-snapshot-meta", dealId],
     queryFn: async () => {
-      const { data } = await supabase.from("deals").select("updated_at").eq("id", dealId).single();
-      return data?.updated_at || null;
+      const { data } = await supabase
+        .from("deals")
+        .select("potencia_kwp, valor_projeto, updated_at")
+        .eq("id", dealId)
+        .single();
+      return data || null;
     },
     staleTime: 1000 * 60 * 5,
     enabled: !!dealId,
