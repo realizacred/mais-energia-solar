@@ -136,6 +136,7 @@ export function ConvertLeadToClientDialog({
   const [assinaturaFiles, setAssinaturaFiles] = useState<DocumentFile[]>([]);
   
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [showMissingDocsModal, setShowMissingDocsModal] = useState(false);
   const [paymentItems, setPaymentItems] = useState<PaymentItemInput[]>([createEmptyItem()]);
 
   const form = useForm<FormData>({
