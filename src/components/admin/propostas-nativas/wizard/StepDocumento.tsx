@@ -128,13 +128,62 @@ export function StepDocumento({
     }
   }, [emailTemplatesData, selectedEmailTemplate]);
 
-  // Update WA message when result is available
+  // Auto-resolve tracked link when result is available
   useEffect(() => {
-    if (result) {
-      const link = result.link_rastreio || result.link_publico || "";
-      setWaMensagem(`Olá,\nSegue o link de acesso para a sua proposta comercial:\n${link}`);
-    }
-  }, [result]);
+    if (!result?.proposta_id || !result?.versao_id) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Try to get existing tracked token
+        const { data: existing } = await supabase
+          .from("proposta_aceite_tokens" as any)
+          .select("token")
+          .eq("proposta_id", result.proposta_id)
+          .eq("versao_id", result.versao_id)
+          .eq("tipo", "tracked")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        let token = (existing as any)?.token as string | undefined;
+
+        // Create if not exists
+        if (!token) {
+          const { tenantId } = await getCurrentTenantId();
+          const { data: created } = await supabase
+            .from("proposta_aceite_tokens" as any)
+            .insert({
+              proposta_id: result.proposta_id,
+              versao_id: result.versao_id,
+              tenant_id: tenantId,
+              tipo: "tracked",
+            } as any)
+            .select("token")
+            .single();
+          token = (created as any)?.token;
+        }
+
+        if (cancelled) return;
+
+        const url = token ? `${window.location.origin}/proposta/${token}` : "";
+        setResolvedPublicUrl(url);
+
+        // Set WA default message with link
+        setWaMensagem(
+          `Olá ${clienteNome || ""},\n\n` +
+          `Segue o link de acesso para a sua proposta comercial de energia solar:\n\n` +
+          `${url}\n\n` +
+          `Qualquer dúvida, estou à disposição!`
+        );
+      } catch (err) {
+        console.warn("[StepDocumento] Erro ao resolver link público:", err);
+        setWaMensagem(`Olá,\nSegue a sua proposta comercial de energia solar.`);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [result?.proposta_id, result?.versao_id, clienteNome]);
 
   // Update WA destinatario when prop changes
   useEffect(() => {
