@@ -914,19 +914,22 @@ export function CustomFieldsSettings() {
                 </div>
               )}
 
-              <DialogFooter>
+            </>
+          )}
+          </div>
+
+          {/* Footers outside scroll area */}
+          {fieldWizardStep === "config" && (
+              <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
                 <Button variant="ghost" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
                 <Button onClick={handleSaveField} disabled={!fieldForm.title.trim() || !fieldForm.field_key.trim() || saving}>
                   {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                   {editingField ? "Salvar" : "Cadastrar"}
                 </Button>
               </DialogFooter>
-            </>
           )}
-
-          {/* Footer for step 1 */}
           {fieldWizardStep === "type" && (
-            <DialogFooter>
+            <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
               <Button variant="ghost" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
             </DialogFooter>
           )}
