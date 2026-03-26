@@ -25,7 +25,7 @@ import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
-import { Loader2, AlertTriangle, Users } from "lucide-react";
+import { Loader2, AlertTriangle, Users, FolderPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useClientes, useSalvarCliente, type ClienteRow } from "@/hooks/useClientes";
