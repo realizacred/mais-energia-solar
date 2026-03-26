@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Plus, Trash2, GripVertical, Pencil, Settings2, Layers, Zap, AlertTriangle,
   Save, Loader2, LayoutGrid, ListOrdered, Type, Hash, DollarSign, Calendar,
-  CalendarClock, ListChecks, CheckSquare, FileText, ChevronLeft, HelpCircle,
+  CalendarClock, ListChecks, CheckSquare, FileText, ChevronLeft, ChevronDown, HelpCircle,
   Sliders, Copy, Landmark
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -40,6 +40,16 @@ interface CustomField {
   required_on_funnel: boolean;
   required_on_proposal: boolean;
   is_active: boolean;
+  visible_pipeline_ids: string[];
+  important_stage_ids: string[];
+  required_stage_ids: string[];
+}
+
+interface StageInfo {
+  id: string;
+  name: string;
+  pipeline_id: string;
+  position: number;
 }
 
 interface ActivityType {
@@ -117,7 +127,7 @@ export function CustomFieldsSettings() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const FIELD_COLS = "id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active" as const;
+      const FIELD_COLS = "id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active, visible_pipeline_ids, important_stage_ids, required_stage_ids" as const;
       const ACTIVITY_COLS = "id, title, ordem, visible_on_funnel, is_active, icon, pipeline_ids" as const;
       const [fieldsRes, actTypesRes] = await Promise.all([
         supabase.from("deal_custom_fields").select(FIELD_COLS).order("ordem"),
@@ -138,28 +148,44 @@ export function CustomFieldsSettings() {
     show_on_create: false, required_on_create: false,
     visible_on_funnel: false, important_on_funnel: false,
     required_on_funnel: false, required_on_proposal: false,
+    visibilityMode: "all" as "all" | "some",
+    visible_pipeline_ids: [] as string[],
+    important_stage_ids: [] as string[],
+    required_stage_ids: [] as string[],
   });
+  const [stages, setStages] = useState<StageInfo[]>([]);
   const [fieldWizardStep, setFieldWizardStep] = useState<"type" | "config">("type");
   const [optionsText, setOptionsText] = useState("");
+
+  // Load pipelines and stages
+  useEffect(() => {
+    supabase.from("pipeline_stages").select("id, name, pipeline_id, position").order("position").then(({ data }) => {
+      if (data) setStages(data as StageInfo[]);
+    });
+  }, []);
 
   const openFieldDialog = (field?: CustomField) => {
     if (field) {
       setEditingField(field);
+      const vpids = field.visible_pipeline_ids || [];
       setFieldForm({
         title: field.title, field_key: field.field_key, field_type: field.field_type,
         field_context: field.field_context,
         show_on_create: field.show_on_create, required_on_create: field.required_on_create,
         visible_on_funnel: field.visible_on_funnel, important_on_funnel: field.important_on_funnel,
         required_on_funnel: field.required_on_funnel, required_on_proposal: field.required_on_proposal,
+        visibilityMode: vpids.length > 0 ? "some" : "all",
+        visible_pipeline_ids: vpids,
+        important_stage_ids: field.important_stage_ids || [],
+        required_stage_ids: field.required_stage_ids || [],
       });
-      // Parse existing options for select types
       const opts = field.options;
       if (opts && Array.isArray(opts)) {
         setOptionsText(opts.join("\n"));
       } else {
         setOptionsText("");
       }
-      setFieldWizardStep("config"); // Go straight to config when editing
+      setFieldWizardStep("config");
     } else {
       setEditingField(null);
       setFieldForm({
@@ -167,9 +193,13 @@ export function CustomFieldsSettings() {
         show_on_create: false, required_on_create: false,
         visible_on_funnel: false, important_on_funnel: false,
         required_on_funnel: false, required_on_proposal: false,
+        visibilityMode: "all",
+        visible_pipeline_ids: [],
+        important_stage_ids: [],
+        required_stage_ids: [],
       });
       setOptionsText("");
-      setFieldWizardStep("type"); // Start with type grid for new fields
+      setFieldWizardStep("type");
     }
     setFieldDialogOpen(true);
   };
@@ -182,7 +212,15 @@ export function CustomFieldsSettings() {
       const options = OPTION_TYPES.includes(fieldForm.field_type)
         ? optionsText.split("\n").map(s => s.trim()).filter(Boolean)
         : null;
-      const payload = { ...fieldForm, options, tenant_id: (profile as any)?.tenant_id };
+      const { visibilityMode, ...formRest } = fieldForm;
+      const visible_on_funnel = visibilityMode === "all";
+      const visible_pipeline_ids = visibilityMode === "some" ? formRest.visible_pipeline_ids : [];
+      const payload = {
+        ...formRest, options, visible_on_funnel, visible_pipeline_ids,
+        important_on_funnel: formRest.important_stage_ids.length > 0,
+        required_on_funnel: formRest.required_stage_ids.length > 0,
+        tenant_id: (profile as any)?.tenant_id,
+      };
 
       if (editingField) {
         const { error } = await supabase.from("deal_custom_fields").update(payload).eq("id", editingField.id);
@@ -392,9 +430,9 @@ export function CustomFieldsSettings() {
                           <>
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Novo projeto</th>
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrig. criar</th>
-                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Funil</th>
-                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Importante</th>
-                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrig. funil</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Visíveis nos funis</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Importante no funil</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório no funil</th>
                           </>
                         )}
                         {(contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
@@ -433,8 +471,21 @@ export function CustomFieldsSettings() {
                             <>
                               <td className="text-center px-2"><SwitchCell value={f.show_on_create} fieldId={f.id} column="show_on_create" onUpdate={loadAll} /></td>
                               <td className="text-center px-2"><SwitchCell value={f.required_on_create} fieldId={f.id} column="required_on_create" onUpdate={loadAll} /></td>
-                              <td className="text-center px-2"><SwitchCell value={f.visible_on_funnel} fieldId={f.id} column="visible_on_funnel" onUpdate={loadAll} /></td>
-                              <td className="text-center px-2"><SwitchCell value={f.important_on_funnel} fieldId={f.id} column="important_on_funnel" onUpdate={loadAll} /></td>
+                              <td className="text-center px-2 text-xs text-muted-foreground">
+                                {(f.visible_pipeline_ids?.length > 0)
+                                  ? f.visible_pipeline_ids.map(pid => pipelines.find(p => p.id === pid)?.name || "?").join(", ")
+                                  : f.visible_on_funnel ? "Todos" : "Nenhum"}
+                              </td>
+                              <td className="text-center px-2 text-xs text-muted-foreground">
+                                {(f.important_stage_ids?.length > 0)
+                                  ? f.important_stage_ids.map(sid => stages.find(s => s.id === sid)?.name || "?").join(", ")
+                                  : "Nenhum"}
+                              </td>
+                              <td className="text-center px-2 text-xs text-muted-foreground">
+                                {(f.required_stage_ids?.length > 0)
+                                  ? f.required_stage_ids.map(sid => stages.find(s => s.id === sid)?.name || "?").join(", ")
+                                  : "Nenhum"}
+                              </td>
                               <td className="text-center px-2"><SwitchCell value={f.required_on_funnel} fieldId={f.id} column="required_on_funnel" onUpdate={loadAll} /></td>
                             </>
                           )}
@@ -769,47 +820,70 @@ export function CustomFieldsSettings() {
                     <Label className="text-xs font-medium">Visibilidade em funis?</Label>
                     <div className="flex gap-4">
                       <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                        <input type="radio" name="fieldVis" checked={fieldForm.visible_on_funnel}
-                          onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: true }))}
+                        <input type="radio" name="fieldVis" checked={fieldForm.visibilityMode === "all"}
+                          onChange={() => setFieldForm(p => ({ ...p, visibilityMode: "all", visible_pipeline_ids: [] }))}
                           className="accent-primary" />
                         Todos
                       </label>
                       <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                        <input type="radio" name="fieldVis" checked={!fieldForm.visible_on_funnel}
-                          onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: false }))}
+                        <input type="radio" name="fieldVis" checked={fieldForm.visibilityMode === "some"}
+                          onChange={() => setFieldForm(p => ({ ...p, visibilityMode: "some" }))}
                           className="accent-primary" />
-                        Nenhum
+                        Alguns
                       </label>
                     </div>
                   </div>
 
+                  {/* Pipeline selector when "Alguns" */}
+                  {fieldForm.visibilityMode === "some" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Funil</Label>
+                      <Select onValueChange={v => {
+                        if (!fieldForm.visible_pipeline_ids.includes(v)) {
+                          setFieldForm(p => ({ ...p, visible_pipeline_ids: [...p.visible_pipeline_ids, v] }));
+                        }
+                      }}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
+                        <SelectContent>
+                          {pipelines.filter(p => !fieldForm.visible_pipeline_ids.includes(p.id)).map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {fieldForm.visible_pipeline_ids.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {fieldForm.visible_pipeline_ids.map(pid => {
+                            const p = pipelines.find(pp => pp.id === pid);
+                            return p ? (
+                              <Badge key={pid} variant="default" className="gap-1 text-xs">
+                                {p.name}
+                                <button type="button" onClick={() => setFieldForm(prev => ({
+                                  ...prev, visible_pipeline_ids: prev.visible_pipeline_ids.filter(x => x !== pid)
+                                }))} className="ml-0.5 hover:text-destructive">×</button>
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Stage multi-select for important/required */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Importante no funil:</Label>
-                      <Select
-                        value={fieldForm.important_on_funnel ? "sim" : "nenhum"}
-                        onValueChange={v => setFieldForm(p => ({ ...p, important_on_funnel: v === "sim" }))}
-                      >
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="nenhum">Nenhum</SelectItem>
-                          <SelectItem value="sim">Sim</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Obrigatório no funil:</Label>
-                      <Select
-                        value={fieldForm.required_on_funnel ? "sim" : "nenhum"}
-                        onValueChange={v => setFieldForm(p => ({ ...p, required_on_funnel: v === "sim" }))}
-                      >
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="nenhum">Nenhum</SelectItem>
-                          <SelectItem value="sim">Sim</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <StageMultiSelect
+                      label="Campo importante em etapa do funil:"
+                      stages={stages}
+                      pipelines={pipelines}
+                      selectedIds={fieldForm.important_stage_ids}
+                      onChange={ids => setFieldForm(p => ({ ...p, important_stage_ids: ids }))}
+                    />
+                    <StageMultiSelect
+                      label="Campo obrigatório em etapa do funil:"
+                      stages={stages}
+                      pipelines={pipelines}
+                      selectedIds={fieldForm.required_stage_ids}
+                      onChange={ids => setFieldForm(p => ({ ...p, required_stage_ids: ids }))}
+                    />
                   </div>
                 </div>
               )}
@@ -1019,6 +1093,68 @@ function PremissasTabContent({ ctx }: { ctx: ReturnType<typeof useTenantPremises
       {subTab !== "area-telhado" && subTab !== "tributacao" && (
         <PremissasFooter isDirty={ctx.isDirty} saving={ctx.saving} onSave={ctx.save} onCancel={ctx.reset} />
       )}
+    </div>
+  );
+}
+
+// ─── Stage Multi-Select ───
+function StageMultiSelect({ label, stages, pipelines, selectedIds, onChange }: {
+  label: string;
+  stages: StageInfo[];
+  pipelines: { id: string; name: string }[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const grouped = pipelines.map(p => ({
+    ...p,
+    stages: stages.filter(s => s.pipeline_id === p.id),
+  }));
+  const selectedNames = selectedIds.map(id => stages.find(s => s.id === id)?.name || "?");
+  const summary = selectedIds.length === 0 ? "Nenhum" : `Múltiplos (${selectedIds.length})`;
+
+  const toggle = (id: string) => {
+    onChange(selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]);
+  };
+  const toggleAll = (checked: boolean) => {
+    onChange(checked ? stages.map(s => s.id) : []);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium">{label}</Label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="w-full flex items-center justify-between h-9 px-3 border rounded-md bg-background text-sm text-foreground hover:bg-muted/30 transition-colors"
+        >
+          <span className="truncate">{summary}</span>
+          <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", open && "rotate-180")} />
+        </button>
+        {open && (
+          <div className="absolute z-50 mt-1 w-full bg-card border rounded-lg shadow-lg p-2 space-y-1 max-h-[200px] overflow-y-auto">
+            <label className="flex items-center gap-2 px-2 py-1 text-xs cursor-pointer hover:bg-muted/30 rounded">
+              <input type="checkbox" checked={selectedIds.length === stages.length && stages.length > 0}
+                onChange={e => toggleAll(e.target.checked)} className="accent-primary rounded" />
+              <span className="font-medium">Marcar todos</span>
+            </label>
+            <Separator />
+            {grouped.filter(g => g.stages.length > 0).map(g => (
+              <div key={g.id}>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase px-2 pt-1">{g.name}</p>
+                {g.stages.map(s => (
+                  <label key={s.id} className="flex items-center gap-2 px-2 py-1 text-xs cursor-pointer hover:bg-muted/30 rounded">
+                    <input type="checkbox" checked={selectedIds.includes(s.id)}
+                      onChange={() => toggle(s.id)} className="accent-primary rounded" />
+                    {s.name}
+                  </label>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
