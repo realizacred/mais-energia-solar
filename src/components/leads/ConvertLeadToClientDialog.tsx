@@ -4,6 +4,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, Wifi, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap, Wallet, ChevronLeft, ChevronRight, Check, RefreshCw } from "lucide-react";
+import { MissingDocsConfirmModal } from "./MissingDocsConfirmModal";
 import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import { useOfflineConversionSync, getCachedEquipment, setCachedEquipment } from "@/hooks/useOfflineConversionSync";
@@ -135,6 +136,7 @@ export function ConvertLeadToClientDialog({
   const [assinaturaFiles, setAssinaturaFiles] = useState<DocumentFile[]>([]);
   
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [showMissingDocsModal, setShowMissingDocsModal] = useState(false);
   const [paymentItems, setPaymentItems] = useState<PaymentItemInput[]>([createEmptyItem()]);
 
   const form = useForm<FormData>({
@@ -972,6 +974,7 @@ export function ConvertLeadToClientDialog({
   const handleBack = () => setCurrentStep((s) => Math.max(s - 1, 0));
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
       <DialogContent className="w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* ── HEADER §25 ─────────────────────────────────────── */}
@@ -1424,7 +1427,6 @@ export function ConvertLeadToClientDialog({
                       onClick={async () => {
                         const valid = await form.trigger();
                         if (!valid) {
-                          // Find which step has errors and navigate there
                           const errors = form.formState.errors;
                           const step0Fields = ["nome", "telefone", "email", "cpf_cnpj", "cep", "estado", "cidade", "bairro", "rua", "numero", "complemento"] as const;
                           const step1Fields = ["disjuntor_id", "transformador_id", "localizacao"] as const;
@@ -1455,6 +1457,14 @@ export function ConvertLeadToClientDialog({
                           }
                           return;
                         }
+
+                        // Check for missing documentation items
+                        const currentMissing = getMissingItems();
+                        if (currentMissing.length > 0) {
+                          setShowMissingDocsModal(true);
+                          return;
+                        }
+
                         const data = form.getValues();
                         handleSubmit(data);
                       }}
@@ -1473,5 +1483,19 @@ export function ConvertLeadToClientDialog({
         </Form>
       </DialogContent>
     </Dialog>
+
+    <MissingDocsConfirmModal
+      open={showMissingDocsModal}
+      onOpenChange={setShowMissingDocsModal}
+      missingItems={missingItems}
+      leadNome={lead.nome}
+      onSaveAsPending={() => {
+        setShowMissingDocsModal(false);
+        handleSaveAsLead();
+      }}
+      onBack={() => setShowMissingDocsModal(false)}
+      isSaving={savingAsLead}
+    />
+    </>
   );
 }
