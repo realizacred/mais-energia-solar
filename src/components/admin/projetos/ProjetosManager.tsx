@@ -242,20 +242,39 @@ export function ProjetosManager() {
         title="Projetos"
         description="Acompanhe cada projeto da documentação à vistoria"
         actions={
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={() => { setDefaultConsultorId(undefined); setDefaultStageId(undefined); setDefaultModalPipelineId(undefined); setNovoProjetoOpen(true); }}
-                className="gap-1.5 font-semibold"
-              >
-                <Plus className="h-4 w-4" />
-                Novo Projeto
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Criar novo projeto de instalação</TooltipContent>
-          </Tooltip>
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={deals.length === 0}>
+                  <Download className="h-4 w-4 mr-1.5" />
+                  Exportar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exportar projetos filtrados em CSV</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => { setDefaultConsultorId(undefined); setDefaultStageId(undefined); setDefaultModalPipelineId(undefined); setNovoProjetoOpen(true); }}
+                  className="gap-1.5 font-semibold"
+                >
+                  <Plus className="h-4 w-4" />
+                  Novo Projeto
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Criar novo projeto de instalação</TooltipContent>
+            </Tooltip>
+          </div>
         }
       />
+
+      {/* KPI Dashboard */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={FolderKanban} label="Total de projetos" value={kpiStats.total} color="primary" />
+        <StatCard icon={Zap} label="Em andamento" value={kpiStats.emAndamento} color="info" />
+        <StatCard icon={FileCheck} label="Concluídos (Ganhos)" value={kpiStats.concluidos} color="success" />
+        <StatCard icon={Clock} label="Estagnados (+7 dias)" value={kpiStats.atrasados} color="warning" />
+      </div>
 
       {/* ── Novo Projeto Modal ── */}
       <NovoProjetoModal
