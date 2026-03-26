@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
@@ -8,8 +8,15 @@ import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FormModalTemplate, FormSection, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -39,15 +46,14 @@ import {
   FileText,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
-import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
-import { useCepLookup } from "@/hooks/useCepLookup";
+import { formatPhone } from "@/lib/validations";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
+import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
-import { PageHeader, EmptyState, LoadingState, SearchInput } from "@/components/ui-kit";
+import { PageHeader, EmptyState, LoadingState, SearchInput, Spinner } from "@/components/ui-kit";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
   useClientes,
@@ -81,7 +87,6 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   useClientesRealtime();
 
   const { hasPermission } = useUserPermissions();
-  const { lookup: lookupCep } = useCepLookup();
   const canDeleteClients = hasPermission("delete_clients");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
@@ -299,206 +304,164 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
           placeholder="Buscar por nome, telefone ou CPF..."
         />
 
-        <FormModalTemplate
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) resetForm();
-          }}
-          title={editingCliente ? "Editar Cliente" : "Novo Cliente"}
-          icon={Users}
-          subtitle="Cadastre ou edite um cliente"
-          onSubmit={handleSubmit}
-          submitLabel={editingCliente ? "Salvar" : "Cadastrar"}
-          saving={saving}
-          className="w-[90vw] max-w-2xl"
-          asForm
-        >
-              {/* Vincular Lead */}
-              <div className="space-y-2">
-                <Label>Vincular a um Lead</Label>
-                <Select
-                  value={formData.lead_id}
-                  onValueChange={(value) => {
-                    setFormData({ ...formData, lead_id: value });
-                    const lead = leads.find((l) => l.id === value);
-                    if (lead && !formData.nome) {
-                      setFormData({
-                        ...formData,
-                        lead_id: value,
-                        nome: lead.nome,
-                        telefone: lead.telefone,
-                      });
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um lead (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {leads.map((lead) => (
-                      <SelectItem key={lead.id} value={lead.id}>
-                        {lead.lead_code} - {lead.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+          <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+            {/* §25 Header */}
+            <DialogHeader className="flex flex-row items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 text-primary" />
               </div>
-
-              {/* Dados Pessoais */}
-              <FormSection title="Dados pessoais">
-                <FormGrid>
-                  <div className="space-y-2">
-                    <Label htmlFor="nome">Nome *</Label>
-                    <Input
-                      id="nome"
-                      value={formData.nome}
-                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="telefone">Telefone *</Label>
-                    <PhoneInput
-                      id="telefone"
-                      value={formData.telefone}
-                      onChange={(raw) => setFormData({ ...formData, telefone: raw })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-mail</Label>
-                    <EmailInput
-                      id="email"
-                      value={formData.email}
-                      onChange={(v) => setFormData({ ...formData, email: v })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
-                    <CpfCnpjInput
-                      id="cpf_cnpj"
-                      value={formData.cpf_cnpj}
-                      onChange={(v) => setFormData({ ...formData, cpf_cnpj: v })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="data_nascimento">Data de Nascimento</Label>
-                    <Input
-                      id="data_nascimento"
-                      type="date"
-                      value={formData.data_nascimento}
-                      onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
-                    />
-                  </div>
-                </FormGrid>
-              </FormSection>
-
-              {/* Endereço */}
-              <FormSection title="Endereço">
-                <FormGrid>
-                  <div className="space-y-2">
-                    <Label htmlFor="cep">CEP</Label>
-                    <Input
-                      id="cep"
-                      value={formData.cep}
-                      onChange={async (e) => {
-                        const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
-                        setFormData({ ...formData, cep: raw });
-                        if (raw.length === 8) {
-                          const result = await lookupCep(raw);
-                          if (result) {
-                            setFormData(prev => ({
-                              ...prev,
-                              rua: result.rua || prev.rua,
-                              bairro: result.bairro || prev.bairro,
-                              cidade: result.cidade || prev.cidade,
-                              estado: result.estado || prev.estado,
-                              complemento: result.complemento || prev.complemento,
-                            }));
-                          }
-                        }
-                      }}
-                      placeholder="00000000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="estado">Estado</Label>
-                    <Select
-                      value={formData.estado}
-                      onValueChange={(value) => setFormData({ ...formData, estado: value, cidade: "" })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ESTADOS_BRASIL.map((est) => (
-                          <SelectItem key={est.sigla} value={est.sigla}>
-                            {est.sigla}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <CidadeSelect estado={formData.estado} cidade={formData.cidade} onCidadeChange={(v) => setFormData({ ...formData, cidade: v })} />
-                  <div className="space-y-2">
-                    <Label htmlFor="bairro">Bairro</Label>
-                    <Input
-                      id="bairro"
-                      value={formData.bairro}
-                      onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="rua">Rua</Label>
-                    <Input
-                      id="rua"
-                      value={formData.rua}
-                      onChange={(e) => setFormData({ ...formData, rua: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="numero">Número</Label>
-                    <Input
-                      id="numero"
-                      value={formData.numero}
-                      onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="complemento">Complemento</Label>
-                    <Input
-                      id="complemento"
-                      value={formData.complemento}
-                      onChange={(e) => setFormData({ ...formData, complemento: e.target.value })}
-                    />
-                  </div>
-                </FormGrid>
-              </FormSection>
-
-              {/* Observações */}
-              <div className="space-y-2">
-                <Label htmlFor="observacoes">Observações</Label>
-                <Textarea
-                  id="observacoes"
-                  value={formData.observacoes}
-                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                  rows={3}
-                />
+              <div className="flex-1">
+                <DialogTitle className="text-base font-bold text-foreground">
+                  {editingCliente ? "Editar Cliente" : "Novo Cliente"}
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Cadastre ou edite um cliente</p>
               </div>
+            </DialogHeader>
 
-              {/* Documentos (somente no modo edição) */}
-              {editingCliente && (
-                <FormSection title="Documentos">
-                  <ClienteDocumentUpload
-                    clienteId={editingCliente.id}
-                    documents={editDocuments}
-                    onDocumentsChange={(updated) => {
-                      setEditDocuments(updated);
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="px-4 py-3.5 space-y-4">
+                {/* Vincular Lead */}
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-medium text-muted-foreground">Vincular a um Lead</Label>
+                  <Select
+                    value={formData.lead_id}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, lead_id: value });
+                      const lead = leads.find((l) => l.id === value);
+                      if (lead && !formData.nome) {
+                        setFormData({
+                          ...formData,
+                          lead_id: value,
+                          nome: lead.nome,
+                          telefone: lead.telefone,
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Selecione um lead (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leads.map((lead) => (
+                        <SelectItem key={lead.id} value={lead.id}>
+                          {lead.lead_code} - {lead.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Dados Pessoais */}
+                <div className="space-y-2.5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Dados pessoais</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-medium text-muted-foreground">Nome <span className="text-destructive">*</span></Label>
+                      <Input
+                        value={formData.nome}
+                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                        className="h-8 text-sm"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-medium text-muted-foreground">Telefone <span className="text-destructive">*</span></Label>
+                      <PhoneInput
+                        value={formData.telefone}
+                        onChange={(raw) => setFormData({ ...formData, telefone: raw })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-medium text-muted-foreground">E-mail</Label>
+                      <EmailInput
+                        value={formData.email}
+                        onChange={(v) => setFormData({ ...formData, email: v })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-medium text-muted-foreground">CPF/CNPJ</Label>
+                      <CpfCnpjInput
+                        value={formData.cpf_cnpj}
+                        onChange={(v) => setFormData({ ...formData, cpf_cnpj: v })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-medium text-muted-foreground">Data de Nascimento</Label>
+                      <Input
+                        type="date"
+                        value={formData.data_nascimento}
+                        onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Endereço — usa AddressFields (RB-09) */}
+                <div className="space-y-2.5 border-t border-border pt-3.5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Endereço</p>
+                  <AddressFields
+                    value={{
+                      cep: formData.cep,
+                      rua: formData.rua,
+                      numero: formData.numero,
+                      complemento: formData.complemento,
+                      bairro: formData.bairro,
+                      cidade: formData.cidade,
+                      estado: formData.estado,
+                    }}
+                    onChange={(addr) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        cep: addr.cep,
+                        rua: addr.rua,
+                        numero: addr.numero,
+                        complemento: addr.complemento,
+                        bairro: addr.bairro,
+                        cidade: addr.cidade,
+                        estado: addr.estado,
+                      }));
                     }}
                   />
-                </FormSection>
-              )}
-        </FormModalTemplate>
+                </div>
+
+                {/* Observações */}
+                <div className="space-y-1 border-t border-border pt-3.5">
+                  <Label className="text-[11px] font-medium text-muted-foreground">Observações</Label>
+                  <Textarea
+                    value={formData.observacoes}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    rows={2}
+                    className="text-sm min-h-[48px] resize-y"
+                  />
+                </div>
+
+                {/* Documentos (somente no modo edição) */}
+                {editingCliente && (
+                  <div className="space-y-2.5 border-t border-border pt-3.5">
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Documentos</p>
+                    <ClienteDocumentUpload
+                      clienteId={editingCliente.id}
+                      documents={editDocuments}
+                      onDocumentsChange={(updated) => {
+                        setEditDocuments(updated);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            <DialogFooter className="flex justify-end gap-2 px-4 py-3 border-t border-border bg-muted/30 shrink-0">
+              <Button type="button" variant="ghost" onClick={() => { setDialogOpen(false); resetForm(); }} disabled={saving}>Cancelar</Button>
+              <Button onClick={handleSubmit} disabled={saving}>
+                {saving && <Spinner size="sm" className="mr-1.5" />}
+                {saving ? "Salvando..." : editingCliente ? "Salvar" : "Cadastrar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {loading ? (
@@ -679,36 +642,3 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   );
 }
 
-function CidadeSelect({ estado, cidade, onCidadeChange }: { estado: string; cidade: string; onCidadeChange: (v: string) => void }) {
-  const { cidades, isLoading } = useCidadesPorEstado(estado);
-
-  if (!estado || cidades.length === 0) {
-    return (
-      <div className="space-y-2">
-        <Label htmlFor="cidade">Cidade</Label>
-        <Input
-          id="cidade"
-          value={cidade}
-          onChange={(e) => onCidadeChange(e.target.value)}
-          placeholder={isLoading ? "Carregando..." : "Digite a cidade"}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor="cidade">Cidade</Label>
-      <Select value={cidade} onValueChange={onCidadeChange}>
-        <SelectTrigger>
-          <SelectValue placeholder="Selecione a cidade" />
-        </SelectTrigger>
-        <SelectContent>
-          {cidades.map((c) => (
-            <SelectItem key={c} value={c}>{c}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
