@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check } from "lucide-react";
+import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +57,16 @@ export function ProjetoFilters({
   onEditEtapas, onCreateFunil, onReorderFunis,
   allowAllFunis,
 }: Props) {
-  const hasActive = filterConsultor !== "todos" || filterStatus !== "todos" || filterEtiquetas.length > 0 || searchTerm.length > 0;
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filterConsultor !== "todos") count++;
+    if (filterStatus !== "todos") count++;
+    if (filterEtiquetas.length > 0) count++;
+    if (searchTerm.length > 0) count++;
+    return count;
+  }, [filterConsultor, filterStatus, filterEtiquetas, searchTerm]);
+
+  const hasActive = activeFilterCount > 0;
 
   const activeFunis = funis.filter(f => f.ativo);
 
