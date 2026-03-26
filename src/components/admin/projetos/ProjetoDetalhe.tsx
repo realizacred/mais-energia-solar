@@ -1952,8 +1952,14 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
                   <div className="flex items-center gap-4 flex-1 min-w-0 text-[11px]">
                     <div className="shrink-0">
                       <span className="text-muted-foreground">Consumo </span>
-                      <span className="font-semibold text-foreground">{orc.consumo_previsto || orc.media_consumo || 0} kWh</span>
+                      <span className="font-semibold text-foreground">{orc.media_consumo || 0} kWh</span>
                     </div>
+                    {orc.consumo_previsto > 0 && (
+                      <div className="shrink-0">
+                        <span className="text-muted-foreground">Geração Prev. </span>
+                        <span className="font-semibold text-success">{orc.consumo_previsto} kWh</span>
+                      </div>
+                    )}
                     <div className="shrink-0">
                       <span className="text-muted-foreground">Telhado </span>
                       <span className="font-semibold text-foreground truncate">{orc.tipo_telhado || "—"}</span>
