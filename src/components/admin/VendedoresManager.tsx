@@ -758,7 +758,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               </TableRow>
             </TableHeader>
             <TableBody>
-              {vendedores.map((vendedor) => (
+              {paginatedVendedores.map((vendedor) => (
                 <TableRow key={vendedor.id} className={cn("hover:bg-muted/30 transition-colors", !vendedor.ativo && "opacity-50")}>
                   <TableCell className="font-medium text-foreground">{vendedor.nome}</TableCell>
                   <TableCell>
@@ -870,6 +870,14 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            totalItems={filteredVendedores.length}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
         </div>
       )}
 
