@@ -12030,11 +12030,19 @@ export type Database = {
           corrente_entrada_max_a: number | null
           corrente_saida_max_a: number | null
           created_at: string
+          datasheet_found_at: string | null
+          datasheet_source_url: string | null
+          datasheet_url: string | null
+          dimensoes_mm: string | null
           eficiencia_percent: number | null
           fabricante: string
+          garantia_anos: number | null
           id: string
+          ip_protection: string | null
           modelo: string
+          peso_kg: number | null
           potencia_wp: number | null
+          status: string
           tenant_id: string | null
           tensao_entrada_max_v: number | null
           tensao_saida_v: number | null
@@ -12046,11 +12054,19 @@ export type Database = {
           corrente_entrada_max_a?: number | null
           corrente_saida_max_a?: number | null
           created_at?: string
+          datasheet_found_at?: string | null
+          datasheet_source_url?: string | null
+          datasheet_url?: string | null
+          dimensoes_mm?: string | null
           eficiencia_percent?: number | null
           fabricante: string
+          garantia_anos?: number | null
           id?: string
+          ip_protection?: string | null
           modelo: string
+          peso_kg?: number | null
           potencia_wp?: number | null
+          status?: string
           tenant_id?: string | null
           tensao_entrada_max_v?: number | null
           tensao_saida_v?: number | null
@@ -12062,11 +12078,19 @@ export type Database = {
           corrente_entrada_max_a?: number | null
           corrente_saida_max_a?: number | null
           created_at?: string
+          datasheet_found_at?: string | null
+          datasheet_source_url?: string | null
+          datasheet_url?: string | null
+          dimensoes_mm?: string | null
           eficiencia_percent?: number | null
           fabricante?: string
+          garantia_anos?: number | null
           id?: string
+          ip_protection?: string | null
           modelo?: string
+          peso_kg?: number | null
           potencia_wp?: number | null
+          status?: string
           tenant_id?: string | null
           tensao_entrada_max_v?: number | null
           tensao_saida_v?: number | null
