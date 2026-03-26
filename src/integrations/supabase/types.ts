@@ -12619,6 +12619,8 @@ export type Database = {
       }
       pipeline_stages: {
         Row: {
+          card_visible_fields: string[] | null
+          color: string | null
           created_at: string
           id: string
           is_closed: boolean
@@ -12630,6 +12632,8 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          card_visible_fields?: string[] | null
+          color?: string | null
           created_at?: string
           id?: string
           is_closed?: boolean
@@ -12641,6 +12645,8 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          card_visible_fields?: string[] | null
+          color?: string | null
           created_at?: string
           id?: string
           is_closed?: boolean
