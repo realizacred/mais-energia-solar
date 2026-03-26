@@ -406,6 +406,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                           onChange={(val) => {
                             if (isKit) {
                               setKitCustoOverride(val);
+                              onVendaChange({ ...venda, custo_kit_override: val > 0 ? val : null });
                             } else if (isExtra) {
                               updateExtra(row.id, "custoUnitario", val);
                             } else if (row.id === "instalacao") {
