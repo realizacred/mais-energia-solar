@@ -4,6 +4,20 @@
  * saves the filled DOCX to storage, and updates generated_documents.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
+import {
+  withRetry,
+  fetchWithTimeout,
+  isCircuitOpen,
+  recordFailure,
+  resetCircuit,
+  sanitizeError,
+  updateHealthCache,
+  type CircuitBreakerState,
+} from "../_shared/error-utils.ts";
+
+// In-memory circuit breaker state (resets per cold start)
+let circuitState: CircuitBreakerState = { failures: 0, last_failure_at: null, open_until: null };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -342,7 +356,102 @@ Deno.serve(async (req) => {
 
     console.log(`[generate-document] DOCX saved to: ${docxPath}`);
 
-    // 7. Update or insert generated_documents record
+    // 7. Convert DOCX to PDF via Gotenberg (same pattern as docx-to-pdf)
+    let pdfPath: string | null = null;
+
+    if (isCircuitOpen(circuitState)) {
+      console.warn("[generate-document] Circuit breaker OPEN — skipping PDF conversion");
+    } else {
+      try {
+        // Encode DOCX to base64 for Gotenberg
+        let docxBase64 = "";
+        const chunkSize = 32768;
+        for (let i = 0; i < filledDocx.length; i += chunkSize) {
+          const chunk = filledDocx.subarray(i, i + chunkSize);
+          docxBase64 += String.fromCharCode(...chunk);
+        }
+        docxBase64 = btoa(docxBase64);
+
+        // Build multipart form for Gotenberg
+        const formData = new FormData();
+        const blob = new Blob([filledDocx], {
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        });
+        formData.append("files", blob, `${safeName}.docx`);
+        formData.append("landscape", "false");
+        formData.append("nativePageRanges", "1-");
+        formData.append("losslessImageCompression", "true");
+        formData.append("reduceImageResolution", "false");
+        formData.append("quality", "100");
+        formData.append("exportFormFields", "false");
+        formData.append("skipEmptyPages", "true");
+
+        const GOTENBERG_URL = await resolveGotenbergUrl(supabase, tenantId);
+        const conversionUrl = `${GOTENBERG_URL}/forms/libreoffice/convert`;
+        console.log(`[generate-document] Sending to Gotenberg: ${conversionUrl}`);
+
+        const response = await withRetry(
+          async () => {
+            const res = await fetchWithTimeout(
+              conversionUrl,
+              { method: "POST", body: formData },
+              90000,
+            );
+            if (!res.ok) {
+              const errorText = await res.text();
+              throw new Error(`Gotenberg ${res.status}: ${errorText}`);
+            }
+            return res;
+          },
+          {
+            maxRetries: 2,
+            baseDelayMs: 1000,
+            onRetry: (attempt, err) => {
+              console.warn(`[generate-document] PDF retry ${attempt}/2: ${sanitizeError(err)}`);
+            },
+          },
+        ).catch((err) => {
+          circuitState = recordFailure(circuitState);
+          console.error(`[generate-document] PDF conversion failed. Circuit: failures=${circuitState.failures}`);
+          updateHealthCache(supabase, "gotenberg", "down", {
+            error_message: sanitizeError(err),
+            metadata: { circuit_state: circuitState },
+          });
+          throw err;
+        });
+
+        // Success — reset circuit
+        if (circuitState.failures > 0) {
+          circuitState = resetCircuit();
+          updateHealthCache(supabase, "gotenberg", "up", {});
+        }
+
+        const pdfBuffer = await response.arrayBuffer();
+        const pdfBytes = new Uint8Array(pdfBuffer);
+        console.log(`[generate-document] PDF generated: ${pdfBytes.length} bytes`);
+
+        // Upload PDF to same bucket, same path structure
+        pdfPath = docxPath.replace(/\.docx$/, ".pdf");
+        const { error: pdfUploadErr } = await supabase.storage
+          .from("document-files")
+          .upload(pdfPath, pdfBytes, {
+            contentType: "application/pdf",
+            upsert: false,
+          });
+
+        if (pdfUploadErr) {
+          console.error("[generate-document] PDF upload error:", pdfUploadErr);
+          pdfPath = null; // Don't fail the whole operation
+        } else {
+          console.log(`[generate-document] PDF saved to: ${pdfPath}`);
+        }
+      } catch (pdfErr: any) {
+        console.error("[generate-document] PDF conversion error (non-fatal):", pdfErr?.message);
+        // PDF conversion is non-fatal — DOCX was already saved
+      }
+    }
+
+    // 8. Update or insert generated_documents record
     const docRecord: Record<string, any> = {
       tenant_id: tenantId,
       deal_id: deal_id,
@@ -351,6 +460,7 @@ Deno.serve(async (req) => {
       title: template.nome,
       status: "generated",
       docx_filled_path: docxPath,
+      pdf_filled_path: pdfPath,
       input_payload: variables,
       updated_by: userId,
     };
@@ -361,7 +471,6 @@ Deno.serve(async (req) => {
     let docId = generated_doc_id;
 
     if (docId) {
-      // Update existing record
       const { error: updErr } = await supabase
         .from("generated_documents")
         .update({
@@ -374,7 +483,6 @@ Deno.serve(async (req) => {
         console.error("[generate-document] Update error:", updErr);
       }
     } else {
-      // Insert new
       docRecord.created_by = userId;
       const { data: inserted, error: insErr } = await supabase
         .from("generated_documents")
@@ -399,6 +507,7 @@ Deno.serve(async (req) => {
         success: true,
         document_id: docId,
         docx_path: docxPath,
+        pdf_path: pdfPath,
         variables_count: Object.keys(variables).length,
       }),
       { headers: jsonHeaders },
