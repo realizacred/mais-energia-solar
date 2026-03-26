@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Search, Battery } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Battery, Eye } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -283,58 +283,43 @@ export function BateriasManager() {
         onSubmit={handleSave}
         submitLabel={editing ? "Salvar" : "Cadastrar"}
         saving={saveMutation.isPending}
-        className="max-w-2xl"
+        className="max-w-4xl"
       >
-        <FormGrid>
-            <div className="space-y-1 sm:col-span-2">
-              <Label>Fabricante *</Label>
-              <Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: UNIPOWER" />
-            </div>
-            <div className="space-y-1 sm:col-span-2">
-              <Label>Modelo *</Label>
-              <Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: UPLFP48-100 3U" />
-            </div>
-            <div className="space-y-1">
-              <Label>Tipo Bateria</Label>
-              <Input value={form.tipo_bateria} onChange={(e) => set("tipo_bateria", e.target.value)} placeholder="Baterias de Íon-Lítio" />
-            </div>
-            <div className="space-y-1">
-              <Label>Energia (kWh)</Label>
-              <Input type="number" step="0.1" value={form.energia_kwh} onChange={(e) => set("energia_kwh", e.target.value)} placeholder="5" />
-            </div>
-            <div className="space-y-1">
-              <Label>Dimensões (mm)</Label>
-              <Input value={form.dimensoes_mm} onChange={(e) => set("dimensoes_mm", e.target.value)} placeholder="390x442x140mm" />
-            </div>
-            <div className="space-y-1">
-              <Label>Tensão Operação (V)</Label>
-              <Input value={form.tensao_operacao_v} onChange={(e) => set("tensao_operacao_v", e.target.value)} placeholder="42 ~ 54" />
-            </div>
-            <div className="space-y-1">
-              <Label>Tensão Carga (V)</Label>
-              <Input type="number" step="0.1" value={form.tensao_carga_v} onChange={(e) => set("tensao_carga_v", e.target.value)} placeholder="0" />
-            </div>
-            <div className="space-y-1">
-              <Label>Tensão Nominal (V)</Label>
-              <Input type="number" value={form.tensao_nominal_v} onChange={(e) => set("tensao_nominal_v", e.target.value)} placeholder="48" />
-            </div>
-            <div className="space-y-1">
-              <Label>Potência Máx. Saída (kW)</Label>
-              <Input type="number" step="0.1" value={form.potencia_max_saida_kw} onChange={(e) => set("potencia_max_saida_kw", e.target.value)} placeholder="0" />
-            </div>
-            <div className="space-y-1">
-              <Label>Corrente Máx. Descarga (A)</Label>
-              <Input type="number" value={form.corrente_max_descarga_a} onChange={(e) => set("corrente_max_descarga_a", e.target.value)} placeholder="100" />
-            </div>
-            <div className="space-y-1">
-              <Label>Corrente Máx. Carga (A)</Label>
-              <Input type="number" value={form.corrente_max_carga_a} onChange={(e) => set("corrente_max_carga_a", e.target.value)} placeholder="100" />
-            </div>
-            <div className="space-y-1">
-              <Label>Correntes Recomendadas (A)</Label>
-              <Input value={form.correntes_recomendadas_a} onChange={(e) => set("correntes_recomendadas_a", e.target.value)} placeholder="Opcional" />
-            </div>
-        </FormGrid>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-5">
+            <FormSection title="Identificação">
+              <div className="space-y-3">
+                <div className="space-y-1"><Label>Fabricante *</Label><Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: UNIPOWER" /></div>
+                <div className="space-y-1"><Label>Modelo *</Label><Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: UPLFP48-100 3U" /></div>
+                <div className="space-y-1"><Label>Tipo Bateria</Label><Input value={form.tipo_bateria} onChange={(e) => set("tipo_bateria", e.target.value)} placeholder="Baterias de Íon-Lítio" /></div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Energia">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label>Energia (kWh)</Label><Input type="number" step="0.1" value={form.energia_kwh} onChange={(e) => set("energia_kwh", e.target.value)} placeholder="5" /></div>
+                <div className="space-y-1"><Label>Tensão Nominal (V)</Label><Input type="number" value={form.tensao_nominal_v} onChange={(e) => set("tensao_nominal_v", e.target.value)} placeholder="48" /></div>
+                <div className="space-y-1"><Label>Tensão Operação (V)</Label><Input value={form.tensao_operacao_v} onChange={(e) => set("tensao_operacao_v", e.target.value)} placeholder="42 ~ 54" /></div>
+                <div className="space-y-1"><Label>Tensão Carga (V)</Label><Input type="number" step="0.1" value={form.tensao_carga_v} onChange={(e) => set("tensao_carga_v", e.target.value)} placeholder="0" /></div>
+              </div>
+            </FormSection>
+          </div>
+
+          <div className="space-y-5">
+            <FormSection title="Potência & Correntes">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label>Potência Máx. Saída (kW)</Label><Input type="number" step="0.1" value={form.potencia_max_saida_kw} onChange={(e) => set("potencia_max_saida_kw", e.target.value)} placeholder="0" /></div>
+                <div className="space-y-1"><Label>Corrente Máx. Descarga (A)</Label><Input type="number" value={form.corrente_max_descarga_a} onChange={(e) => set("corrente_max_descarga_a", e.target.value)} placeholder="100" /></div>
+                <div className="space-y-1"><Label>Corrente Máx. Carga (A)</Label><Input type="number" value={form.corrente_max_carga_a} onChange={(e) => set("corrente_max_carga_a", e.target.value)} placeholder="100" /></div>
+                <div className="space-y-1"><Label>Correntes Recomendadas (A)</Label><Input value={form.correntes_recomendadas_a} onChange={(e) => set("correntes_recomendadas_a", e.target.value)} placeholder="Opcional" /></div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Físico">
+              <div className="space-y-1"><Label>Dimensões (mm)</Label><Input value={form.dimensoes_mm} onChange={(e) => set("dimensoes_mm", e.target.value)} placeholder="390x442x140mm" /></div>
+            </FormSection>
+          </div>
+        </div>
       </FormModalTemplate>
 
       <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
