@@ -1168,11 +1168,18 @@ function GerenciamentoTab({
         {/* ── RIGHT WORK AREA (70%) ── */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-4">
           {/* Card: Atividades */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Activity className="h-4 w-4 text-warning" />
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-warning/15 flex items-center justify-center">
+                  <Zap className="h-3.5 w-3.5 text-warning" />
+                </div>
                 Atividades a fazer
+                {activities.filter(a => a.status !== "done").length > 0 && (
+                  <Badge className="bg-warning/15 text-warning border-warning/30 text-[10px] h-5 px-1.5">
+                    {activities.filter(a => a.status !== "done").length}
+                  </Badge>
+                )}
               </CardTitle>
               <Button size="sm" className="h-7 text-xs gap-1" onClick={() => setActivityDialogOpen(true)}>
                 <Plus className="h-3 w-3" /> Nova atividade
@@ -1180,57 +1187,74 @@ function GerenciamentoTab({
             </CardHeader>
             <CardContent className="p-4 pt-0">
               {activities.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <AlertCircle className="w-10 h-10 text-muted-foreground/40 mb-3" />
-                  <p className="text-sm font-medium text-muted-foreground">Nenhuma atividade encontrada</p>
+                <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-border rounded-lg bg-muted/20">
+                  <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                    <CalendarDays className="w-5 h-5 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground">Nenhuma atividade</p>
                   <p className="text-xs text-muted-foreground/70 mt-1">Crie uma atividade para acompanhar este projeto</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {activities.map(a => (
-                    <div
-                      key={a.id}
-                      className={cn(
-                        "flex items-start gap-3 p-3 rounded-lg border transition-colors",
-                        a.status === "done" ? "bg-muted/30 border-border/40" : "bg-card border-border hover:bg-muted/20"
-                      )}
-                    >
-                      <button
-                        onClick={() => handleToggleActivity(a.id, a.status)}
+                  {activities.map(a => {
+                    const isOverdue = a.due_date && new Date(a.due_date) < new Date() && a.status !== "done";
+                    const isDone = a.status === "done";
+                    return (
+                      <div
+                        key={a.id}
                         className={cn(
-                          "mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors",
-                          a.status === "done"
-                            ? "bg-primary border-primary"
-                            : "border-muted-foreground/40 hover:border-primary"
+                          "flex items-start gap-3 p-3 rounded-lg border transition-all",
+                          isDone
+                            ? "bg-muted/20 border-border/30 opacity-60"
+                            : isOverdue
+                              ? "bg-destructive/5 border-destructive/20 hover:bg-destructive/10"
+                              : "bg-card border-border hover:border-primary/30 hover:shadow-sm"
                         )}
                       >
-                        {a.status === "done" && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p className={cn("text-sm font-medium", a.status === "done" && "line-through text-muted-foreground")}>
-                          {a.title}
-                        </p>
-                        {a.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{a.description}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <Badge variant="outline" className="text-[10px] h-5">
-                            {activityTypeLabels[a.activity_type] || a.activity_type}
-                          </Badge>
-                          {a.due_date && (
-                            <span className={cn(
-                              "text-[10px]",
-                              new Date(a.due_date) < new Date() && a.status !== "done"
-                                ? "text-destructive font-medium"
-                                : "text-muted-foreground"
-                            )}>
-                              {formatDateTime(a.due_date)}
-                            </span>
+                        <button
+                          onClick={() => handleToggleActivity(a.id, a.status)}
+                          className={cn(
+                            "mt-0.5 h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all",
+                            isDone
+                              ? "bg-success border-success"
+                              : "border-muted-foreground/30 hover:border-primary hover:scale-110"
                           )}
+                        >
+                          {isDone && <Check className="h-3 w-3 text-primary-foreground" />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn("text-sm font-medium", isDone && "line-through text-muted-foreground")}>
+                            {a.title}
+                          </p>
+                          {a.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{a.description}</p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline" className={cn(
+                              "text-[10px] h-5 font-medium",
+                              a.activity_type === "call" && "border-info/30 text-info bg-info/10",
+                              a.activity_type === "meeting" && "border-primary/30 text-primary bg-primary/10",
+                              a.activity_type === "visit" && "border-success/30 text-success bg-success/10",
+                              a.activity_type === "email" && "border-warning/30 text-warning bg-warning/10",
+                            )}>
+                              {activityTypeLabels[a.activity_type] || a.activity_type}
+                            </Badge>
+                            {a.due_date && (
+                              <span className={cn(
+                                "text-[10px] flex items-center gap-1",
+                                isOverdue
+                                  ? "text-destructive font-semibold"
+                                  : "text-muted-foreground"
+                              )}>
+                                <CalendarDays className="h-3 w-3" />
+                                {formatDateTime(a.due_date)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
