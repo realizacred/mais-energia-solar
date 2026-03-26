@@ -91,11 +91,21 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
       </AnimatePresence>
 
       {/* ── Add Button ── */}
-      {!readOnly && (
-        <Button variant="outline" size="sm" className="w-full border-dashed" onClick={addItem}>
-          <Plus className="w-4 h-4 mr-2" /> Adicionar forma de pagamento
-        </Button>
-      )}
+      {!readOnly && (() => {
+        const lastItem = items[items.length - 1];
+        const lastItemConfigured = !lastItem || (lastItem.valor_base > 0);
+        return (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full border-dashed"
+            onClick={addItem}
+            disabled={!lastItemConfigured}
+          >
+            <Plus className="w-4 h-4 mr-2" /> Adicionar forma de pagamento
+          </Button>
+        );
+      })()}
 
       {/* ── Summary Panel ── */}
       <CompositionSummaryPanel summary={summary} errors={errors} />
