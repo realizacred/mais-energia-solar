@@ -97,6 +97,7 @@ export function StepDocumento({
   // Link copy state
   const [copiedTracker, setCopiedTracker] = useState(false);
   const [copiedDirect, setCopiedDirect] = useState(false);
+  const [copiedSimulacao, setCopiedSimulacao] = useState(false);
 
   // Proposal validity
   const [validade, setValidade] = useState(() => {
