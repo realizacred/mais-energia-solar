@@ -166,7 +166,7 @@ export function useCriarChecklist() {
           projeto_id: projetoId,
           instalador_id: userId,
           template_id: templateId,
-          status: "pendente",
+          status: "agendado",
           tenant_id: tenantId,
         } as any)
         .select("id, template_id, status, fase_atual, data_agendada, data_inicio, data_fim, observacoes, assinatura_instalador_url, assinatura_cliente_url, created_at")
@@ -351,7 +351,7 @@ export function useFinalizarChecklist() {
       const { error } = await supabase
         .from("checklists_instalador")
         .update({
-          status: "concluido",
+          status: "finalizado",
           data_fim: new Date().toISOString(),
           assinatura_instalador_url: instUrl,
           assinatura_cliente_url: cliUrl,
