@@ -457,10 +457,51 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   // §16: Queries in hooks — AP-01 fix
   const versaoIds = p.versoes.map(v => v.id);
   const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
-  const snapshot = snapshotData || null;
   const { data: ucsDetail = [] } = usePropostaExpandedUcs(latestVersao?.id || null, isExpanded);
   const { data: auditLogs = [] } = usePropostaAuditLogs(p.id, versaoIds, isExpanded);
   const loadingDetail = !snapshotData && isExpanded && !!latestVersao?.id;
+
+  // Fallback: buscar dados do lead quando snapshot não tiver dados de cliente/localização
+  // Isso acontece quando o snapshot foi sobrescrito pelo engine output (V3/V4+)
+  const snapshotMissingClientData = snapshotData && !snapshotData.cliente && !snapshotData.clienteNome && !snapshotData.locCidade;
+  const { data: leadFallbackData } = useQuery({
+    queryKey: ["lead-fallback-for-snapshot", p.id],
+    queryFn: async () => {
+      const { data: propData } = await supabase
+        .from("propostas_nativas")
+        .select("lead_id")
+        .eq("id", p.id)
+        .maybeSingle();
+      if (!propData?.lead_id) return null;
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("nome, telefone, cidade, estado")
+        .eq("id", propData.lead_id)
+        .maybeSingle();
+      return lead;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!snapshotMissingClientData && isExpanded,
+  });
+
+  // Enrich snapshot with lead data when engine schema overwrote client/location data
+  const snapshot = (() => {
+    if (!snapshotData) return null;
+    if (!snapshotMissingClientData) return snapshotData;
+    // Inject client/location fallback from lead + proposta metadata
+    return {
+      ...snapshotData,
+      cliente: {
+        nome: p.cliente_nome || leadFallbackData?.nome || "",
+        celular: leadFallbackData?.telefone || "",
+        email: "",
+        empresa: "",
+        cnpj_cpf: "",
+      },
+      locCidade: leadFallbackData?.cidade || "",
+      locEstado: leadFallbackData?.estado || "",
+    };
+  })();
 
   // Fallback: buscar telefone/email do cliente quando snapshot não tiver
   const { data: clienteContato } = useQuery({
