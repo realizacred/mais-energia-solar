@@ -6,8 +6,11 @@ import { cleanupLegacyServiceWorkers, debugServiceWorkers } from "./lib/sw-clean
 import App from "./App.tsx";
 import "./index.css";
 
-// 1. Remove legacy SWs BEFORE anything else (passive & active cleanup)
-cleanupLegacyServiceWorkers();
+const isLovablePreview = typeof window !== "undefined" && window.location.hostname.includes("lovableproject.com");
+
+// 1. Remove stale/legacy SWs BEFORE anything else.
+// In Lovable preview we disable cached SW responses to avoid serving old UI after edits.
+cleanupLegacyServiceWorkers({ aggressive: isLovablePreview });
 
 // 2. Aplicar manifest correto baseado na rota ANTES de qualquer coisa
 applyRouteManifest();

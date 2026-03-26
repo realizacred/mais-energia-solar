@@ -1,11 +1,23 @@
 /**
- * Active cleanup: remove any legacy service workers (e.g. push-sw.js)
- * before the VitePWA service worker takes control.
- *
- * Run this ONCE in main.tsx before React mounts.
+ * Active cleanup: remove stale or legacy service workers before React mounts.
+ * In Lovable preview we aggressively disable SW/cache to avoid stale UI.
  */
-export async function cleanupLegacyServiceWorkers() {
+async function clearBrowserCaches() {
+  if (!("caches" in window)) return;
+
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+    console.log(`[SW Cleanup] Cleared caches: ${keys.length}`);
+  } catch (err) {
+    console.warn("[SW Cleanup] Failed to clear caches:", err);
+  }
+}
+
+export async function cleanupLegacyServiceWorkers(options?: { aggressive?: boolean }) {
   if (!("serviceWorker" in navigator)) return;
+
+  const aggressive = options?.aggressive === true;
 
   try {
     const registrations = await navigator.serviceWorker.getRegistrations();
@@ -13,19 +25,22 @@ export async function cleanupLegacyServiceWorkers() {
     for (const reg of registrations) {
       const scriptURL = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || "";
 
-      // Unregister anything that is NOT the VitePWA worker (sw.js)
       const isLegacy =
         scriptURL.includes("push-sw.js") ||
         scriptURL.includes("firebase-messaging-sw") ||
         scriptURL.includes("OneSignal");
 
-      if (isLegacy) {
+      if (aggressive || isLegacy) {
         const ok = await reg.unregister();
-        console.log(`[SW Cleanup] Unregistered legacy SW: ${scriptURL} → ${ok}`);
+        console.log(`[SW Cleanup] Unregistered SW: ${scriptURL || reg.scope} → ${ok}`);
       }
     }
+
+    if (aggressive) {
+      await clearBrowserCaches();
+    }
   } catch (err) {
-    console.warn("[SW Cleanup] Failed to clean legacy SWs:", err);
+    console.warn("[SW Cleanup] Failed to clean service workers:", err);
   }
 }
 
