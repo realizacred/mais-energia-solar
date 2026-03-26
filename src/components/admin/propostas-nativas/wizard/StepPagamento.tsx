@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL } from "./types";
+import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
 import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
 
 // ─── Types ────────────────────────────────────────────────
@@ -666,16 +667,7 @@ export function StepPagamento({
               const parcelas = parseInt(novoPrazo) || 0;
               const taxa = parseFloat(novoTaxa) || 0;
               const principal = Math.max(0, precoFinal - entradaVal);
-              let prestacao = 0;
-              if (parcelas > 0 && principal > 0) {
-                if (taxa <= 0) {
-                  prestacao = principal / parcelas;
-                } else {
-                  const r = taxa / 100;
-                  const fator = Math.pow(1 + r, parcelas);
-                  prestacao = principal * (r * fator) / (fator - 1);
-                }
-              }
+              const prestacao = calcularPrestacao(principal, taxa, parcelas);
               return (
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">Prestação</Label>
