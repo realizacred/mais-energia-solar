@@ -43,6 +43,7 @@ interface CustomField {
   visible_pipeline_ids: string[];
   important_stage_ids: string[];
   required_stage_ids: string[];
+  icon: string | null;
 }
 
 interface StageInfo {
@@ -137,7 +138,7 @@ export function CustomFieldsSettings() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const FIELD_COLS = "id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active, visible_pipeline_ids, important_stage_ids, required_stage_ids" as const;
+      const FIELD_COLS = "id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active, visible_pipeline_ids, important_stage_ids, required_stage_ids, icon" as const;
       const ACTIVITY_COLS = "id, title, ordem, visible_on_funnel, is_active, icon, pipeline_ids" as const;
       const [fieldsRes, actTypesRes] = await Promise.all([
         supabase.from("deal_custom_fields").select(FIELD_COLS).order("ordem"),
@@ -162,6 +163,7 @@ export function CustomFieldsSettings() {
     visible_pipeline_ids: [] as string[],
     important_stage_ids: [] as string[],
     required_stage_ids: [] as string[],
+    icon: "" as string,
   });
   const [stages, setStages] = useState<StageInfo[]>([]);
   const [fieldWizardStep, setFieldWizardStep] = useState<"type" | "config">("type");
@@ -188,6 +190,7 @@ export function CustomFieldsSettings() {
         visible_pipeline_ids: vpids,
         important_stage_ids: field.important_stage_ids || [],
         required_stage_ids: field.required_stage_ids || [],
+        icon: field.icon || "",
       });
       const opts = field.options;
       if (opts && Array.isArray(opts)) {
@@ -207,6 +210,7 @@ export function CustomFieldsSettings() {
         visible_pipeline_ids: [],
         important_stage_ids: [],
         required_stage_ids: [],
+        icon: "",
       });
       setOptionsText("");
       setFieldWizardStep("type");
@@ -223,13 +227,14 @@ export function CustomFieldsSettings() {
       const options = OPTION_TYPES.includes(normalizedFieldType)
         ? optionsText.split("\n").map(s => s.trim()).filter(Boolean)
         : null;
-      const { visibilityMode, ...formRest } = fieldForm;
+      const { visibilityMode, icon, ...formRest } = fieldForm;
       const visible_on_funnel = visibilityMode === "all";
       const visible_pipeline_ids = visibilityMode === "some" ? formRest.visible_pipeline_ids : [];
       const payload = {
         ...formRest, field_type: normalizedFieldType, options, visible_on_funnel, visible_pipeline_ids,
         important_on_funnel: formRest.important_stage_ids.length > 0,
         required_on_funnel: formRest.required_stage_ids.length > 0,
+        icon: icon || null,
         tenant_id: (profile as any)?.tenant_id,
       };
 
@@ -453,12 +458,24 @@ export function CustomFieldsSettings() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredFields.map((f, i) => (
+                      {filteredFields.map((f, i) => {
+                        const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+                        const CustomIcon = f.icon ? (icons as any)[toPascal(f.icon)] : null;
+                        const FallbackIcon = FIELD_TYPE_ICONS[normalizeFieldType(f.field_type)] || Type;
+                        const RowIcon = CustomIcon || FallbackIcon;
+                        return (
                         <tr key={f.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                           <td className="px-4 py-2.5">
                             <span className="text-xs text-muted-foreground">{i + 1}</span>
                           </td>
-                          <td className="px-4 py-2.5 font-medium">{f.title}</td>
+                          <td className="px-4 py-2.5 font-medium">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                                <RowIcon className="h-3.5 w-3.5 text-primary" />
+                              </div>
+                              {f.title}
+                            </div>
+                          </td>
                           <td className="px-4 py-2.5">
                             <button
                               type="button"
@@ -510,7 +527,8 @@ export function CustomFieldsSettings() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -847,6 +865,18 @@ export function CustomFieldsSettings() {
                       <span className="text-foreground/70">Opção 1 · Opção 2 · Opção 3</span>
                     </p>
                   </div>
+                )}
+              </div>
+
+              {/* ── Card: Ícone do Campo ── */}
+              <div className="rounded-lg border bg-card p-4 space-y-3">
+                <h4 className="text-sm font-semibold text-foreground">Ícone do Campo</h4>
+                <p className="text-[11px] text-muted-foreground">Escolha um ícone para identificar visualmente este campo no detalhe do projeto.</p>
+                <IconPicker selected={fieldForm.icon} onSelect={icon => setFieldForm(p => ({ ...p, icon }))} />
+                {fieldForm.icon && (
+                  <Button variant="ghost" size="sm" onClick={() => setFieldForm(p => ({ ...p, icon: "" }))} className="text-xs text-muted-foreground">
+                    Remover ícone (usar padrão do tipo)
+                  </Button>
                 )}
               </div>
 

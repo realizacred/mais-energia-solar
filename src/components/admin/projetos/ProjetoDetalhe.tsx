@@ -581,7 +581,7 @@ function GerenciamentoTab({
   const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string; assigned_to?: string | null }>>([]);
 
   // Custom fields marked as important
-  const [importantFields, setImportantFields] = useState<Array<{ id: string; title: string; field_key: string; field_type: string; options: any }>>([]);
+  const [importantFields, setImportantFields] = useState<Array<{ id: string; title: string; field_key: string; field_type: string; options: any; icon?: string | null }>>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_date?: string | null }>>({});
 
   // ── Inline edit popup for client fields ──
@@ -677,7 +677,7 @@ function GerenciamentoTab({
     try {
       const { data: fields } = await supabase
         .from("deal_custom_fields")
-        .select("id, title, field_key, field_type, options, important_stage_ids")
+        .select("id, title, field_key, field_type, options, important_stage_ids, icon")
         .eq("is_active", true)
         .eq("field_context", "projeto")
         .eq("important_on_funnel", true)
