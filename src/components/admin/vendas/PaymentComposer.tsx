@@ -1,6 +1,23 @@
 import { useState, useCallback, useMemo } from "react";
-import { Plus, Trash2, CreditCard, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Receipt } from "lucide-react";
+import { Plus, Trash2, CreditCard, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Receipt, GripVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +62,20 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
   const summary = useMemo(() => computeSummary(items, valorVenda), [items, valorVenda]);
   const errors = useMemo(() => validateComposition(items, valorVenda), [items, valorVenda]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = items.findIndex((i) => i.id === active.id);
+      const newIndex = items.findIndex((i) => i.id === over.id);
+      onChange(arrayMove(items, oldIndex, newIndex));
+    }
+  }, [items, onChange]);
+
   const addItem = useCallback(() => {
     const newItem = createEmptyItem();
     // Set remaining value as default
@@ -73,22 +104,27 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
 
   return (
     <div className="space-y-4">
-      {/* ── Items List ── */}
-      <AnimatePresence mode="popLayout">
-        {items.map((item, idx) => (
-          <PaymentItemCard
-            key={item.id}
-            item={item}
-            index={idx}
-            expanded={expandedItems.has(item.id)}
-            onToggle={() => toggleExpand(item.id)}
-            onUpdate={(patch) => updateItem(item.id, patch)}
-            onRemove={() => removeItem(item.id)}
-            readOnly={readOnly}
-            configMap={configMap}
-          />
-        ))}
-      </AnimatePresence>
+      {/* ── Items List with DnD ── */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+          <AnimatePresence mode="popLayout">
+            {items.map((item, idx) => (
+              <SortablePaymentItem
+                key={item.id}
+                item={item}
+                index={idx}
+                isFirst={idx === 0}
+                expanded={expandedItems.has(item.id)}
+                onToggle={() => toggleExpand(item.id)}
+                onUpdate={(patch) => updateItem(item.id, patch)}
+                onRemove={() => removeItem(item.id)}
+                readOnly={readOnly}
+                configMap={configMap}
+              />
+            ))}
+          </AnimatePresence>
+        </SortableContext>
+      </DndContext>
 
       {/* ── Add Button ── */}
       {!readOnly && (() => {
@@ -114,12 +150,13 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
 }
 
 // ═══════════════════════════════════════════════════════
-// Payment Item Card
+// Sortable Wrapper
 // ═══════════════════════════════════════════════════════
 
-interface PaymentItemCardProps {
+interface SortablePaymentItemProps {
   item: PaymentItemInput;
   index: number;
+  isFirst: boolean;
   expanded: boolean;
   onToggle: () => void;
   onUpdate: (patch: Partial<PaymentItemInput>) => void;
@@ -128,7 +165,59 @@ interface PaymentItemCardProps {
   configMap: Map<FormaPagamento, PaymentInterestConfig>;
 }
 
-function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, readOnly, configMap }: PaymentItemCardProps) {
+function SortablePaymentItem({ item, index, isFirst, expanded, onToggle, onUpdate, onRemove, readOnly, configMap }: SortablePaymentItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.85 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <PaymentItemCard
+        item={item}
+        index={index}
+        isFirst={isFirst}
+        expanded={expanded}
+        onToggle={onToggle}
+        onUpdate={onUpdate}
+        onRemove={onRemove}
+        readOnly={readOnly}
+        configMap={configMap}
+        dragListeners={listeners}
+      />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// Payment Item Card
+// ═══════════════════════════════════════════════════════
+
+interface PaymentItemCardProps {
+  item: PaymentItemInput;
+  index: number;
+  isFirst: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+  onUpdate: (patch: Partial<PaymentItemInput>) => void;
+  onRemove: () => void;
+  readOnly: boolean;
+  configMap: Map<FormaPagamento, PaymentInterestConfig>;
+  dragListeners?: Record<string, any>;
+}
+
+function PaymentItemCard({ item, index, isFirst, expanded, onToggle, onUpdate, onRemove, readOnly, configMap, dragListeners }: PaymentItemCardProps) {
   const computed = useMemo(() => computeItem(item), [item]);
   const isParcelavel = FORMAS_PARCELAVEIS.includes(item.forma_pagamento);
   const hasJuros = FORMAS_COM_JUROS.includes(item.forma_pagamento);
@@ -147,7 +236,17 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
           className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/30 transition-colors"
           onClick={onToggle}
         >
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Drag handle */}
+            {!readOnly && (
+              <div
+                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted/50 shrink-0 touch-none"
+                {...dragListeners}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <GripVertical className="w-4 h-4 text-muted-foreground" />
+              </div>
+            )}
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <span className="text-xs font-bold text-primary">{index + 1}</span>
             </div>
@@ -156,6 +255,11 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
                 <span className="text-sm font-semibold text-foreground">
                   {FORMA_PAGAMENTO_LABELS[item.forma_pagamento]}
                 </span>
+                {isFirst && (
+                  <Badge variant="outline" className="text-[10px] h-4 bg-primary/10 text-primary border-primary/20">
+                    Obrigatório
+                  </Badge>
+                )}
                 {item.entrada && (
                   <Badge variant="outline" className="text-[10px] h-4 bg-success/10 text-success border-success/20">
                     Entrada
@@ -173,7 +277,7 @@ function PaymentItemCard({ item, index, expanded, onToggle, onUpdate, onRemove, 
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-sm font-bold text-primary">{formatBRL(computed.valor_com_juros)}</span>
-            {!readOnly && (
+            {!readOnly && !isFirst && (
               <Button
                 variant="ghost"
                 size="icon"

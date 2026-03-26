@@ -138,6 +138,7 @@ export function ConvertLeadToClientDialog({
   const [gettingLocation, setGettingLocation] = useState(false);
   const [showMissingDocsModal, setShowMissingDocsModal] = useState(false);
   const [paymentItems, setPaymentItems] = useState<PaymentItemInput[]>([createEmptyItem()]);
+  const [aguardandoStatusAvailable, setAguardandoStatusAvailable] = useState<boolean | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -240,6 +241,23 @@ export function ConvertLeadToClientDialog({
     };
 
     loadEquipment();
+
+    // Check if "Aguardando Documentação" status exists
+    const checkAguardandoStatus = async () => {
+      if (!navigator.onLine) return;
+      try {
+        const { data: status } = await supabase
+          .from("lead_status")
+          .select("id")
+          .or("nome.eq.Aguardando Documentação,nome.ilike.%aguardando%document%")
+          .limit(1)
+          .maybeSingle();
+        setAguardandoStatusAvailable(!!status);
+      } catch {
+        setAguardandoStatusAvailable(false);
+      }
+    };
+    checkAguardandoStatus();
   }, []);
 
   // Load simulations for this lead
@@ -1435,8 +1453,18 @@ export function ConvertLeadToClientDialog({
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={handleSaveAsLead}
-                      disabled={loading || savingAsLead}
+                      onClick={() => {
+                        if (aguardandoStatusAvailable === false) {
+                          toast({
+                            title: "Status não configurado",
+                            description: "O status 'Aguardando Documentação' não existe. Peça ao administrador para criá-lo na configuração de status.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        handleSaveAsLead();
+                      }}
+                      disabled={loading || savingAsLead || aguardandoStatusAvailable === false}
                     >
                       {savingAsLead ? (
                         <><Spinner size="sm" /> Salvando...</>
