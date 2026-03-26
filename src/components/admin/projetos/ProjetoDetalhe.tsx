@@ -1039,19 +1039,27 @@ function GerenciamentoTab({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem><Eye className="h-3.5 w-3.5 mr-2" />Ver ficha completa</DropdownMenuItem>
-                  <DropdownMenuItem><Pencil className="h-3.5 w-3.5 mr-2" />Editar cliente</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => customerPhone && navigator.clipboard.writeText(customerPhone)}>
-                    <Copy className="h-3.5 w-3.5 mr-2" />Copiar telefone
+                  <DropdownMenuItem onClick={() => navigate("/admin/clientes")}>
+                    <Eye className="h-3.5 w-3.5 mr-2" />Ver ficha completa
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => customerEmail && navigator.clipboard.writeText(customerEmail)}>
-                    <Copy className="h-3.5 w-3.5 mr-2" />Copiar e-mail
+                  <DropdownMenuItem onClick={() => openAddressDialog()}>
+                    <Pencil className="h-3.5 w-3.5 mr-2" />Editar cliente
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {customerPhone && (
-                    <DropdownMenuItem onClick={() => navigate("/admin/catalogo-integracoes?tab=automacao")}>
-                      <Send className="h-3.5 w-3.5 mr-2" />Abrir WhatsApp interno
+                    <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(customerPhone); toast({ title: "Telefone copiado" }); }}>
+                      <Copy className="h-3.5 w-3.5 mr-2" />Copiar telefone
+                    </DropdownMenuItem>
+                  )}
+                  {customerEmail && (
+                    <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(customerEmail); toast({ title: "E-mail copiado" }); }}>
+                      <Copy className="h-3.5 w-3.5 mr-2" />Copiar e-mail
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  {customerPhone && (
+                    <DropdownMenuItem onClick={() => navigate("/admin/inbox")}>
+                      <MessageSquare className="h-3.5 w-3.5 mr-2" />Abrir WhatsApp interno
                     </DropdownMenuItem>
                   )}
                   {customerEmail && (
