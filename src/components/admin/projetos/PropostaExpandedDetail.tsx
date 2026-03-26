@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
@@ -149,14 +150,33 @@ function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; lates
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-foreground">Unidade (Geradora)</p>
-              {snapshot.economia_mensal_percent && (
-                <p className="text-[10px] text-muted-foreground">
-                  Economia: {formatBRL((snapshot.tarifa_distribuidora || 0) * (snapshot.consumo_mensal || 0) * (snapshot.economia_mensal_percent / 100))} ({formatNumberBR(snapshot.economia_mensal_percent)}%)
-                </p>
+              {snapshot.economia_mensal_percent != null && snapshot.economia_mensal_percent > 0 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className="text-[10px] text-muted-foreground cursor-help underline decoration-dotted">
+                        Economia: {formatBRL((snapshot.tarifa_distribuidora || 0) * (snapshot.consumo_mensal || 0) * (snapshot.economia_mensal_percent / 100))} ({formatNumberBR(snapshot.economia_mensal_percent)}%)
+                      </p>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3">
+                      <p className="font-semibold">Como é calculada a economia:</p>
+                      <p>Tarifa × Consumo × (% Economia / 100)</p>
+                      <p className="text-muted-foreground">
+                        {formatBRL(snapshot.tarifa_distribuidora || 0)}/kWh × {snapshot.consumo_mensal || 0} kWh × {formatNumberBR(snapshot.economia_mensal_percent)}%
+                      </p>
+                      <p className="text-muted-foreground">A % representa quanto do consumo será compensado pela geração solar.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
               <p className="text-[10px] text-muted-foreground">
                 Consumo Total: {snapshot.consumo_mensal || 0} kWh
               </p>
+              {(snapshot.energy_generation || snapshot.geracao_mensal) && (
+                <p className="text-[10px] text-muted-foreground">
+                  Geração Mensal: {formatNumberBR(Number(snapshot.energy_generation || snapshot.geracao_mensal || 0))} kWh
+                </p>
+              )}
             </div>
           </div>
         </div>

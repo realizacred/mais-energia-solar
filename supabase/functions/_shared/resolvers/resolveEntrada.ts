@@ -110,6 +110,9 @@ export function resolveEntrada(
   set("custo_disponibilidade_kwh", snap.custo_disponibilidade_kwh ?? uc1.custo_disponibilidade_kwh);
   set("custo_disponibilidade_kwh_uc1", uc1.custo_disponibilidade_kwh);
 
+  // ── Área útil ──
+  set("area_util", snap.area_util ?? uc1.area_util ?? tecnico.area_util ?? snap.area_util_m2 ?? uc1.area_util_m2);
+
   // ── Topologia ──
   set("topologia", snap.topologia);
   set("fator_simultaneidade", snap.fator_simultaneidade);
