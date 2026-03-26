@@ -116,7 +116,7 @@ export function FormModalTemplate({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] ${className || ""}`}>
+      <DialogContent className={`w-[90vw] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] ${className || ""}`}>
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           {Icon && (
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">

@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Cpu, Globe, Building2, FileText, ExternalLink } from "lucide-react";
+import { Cpu, Globe, Building2, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -68,7 +68,7 @@ export function InversorViewModal({ inversor: inv, open, onOpenChange }: Props) 
           </div>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-y-auto max-h-[80vh] p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto max-h-[85vh] p-5">
           {/* Completude */}
           <div className="space-y-1.5 mb-4">
             <div className="flex items-center justify-between">
@@ -80,8 +80,9 @@ export function InversorViewModal({ inversor: inv, open, onOpenChange }: Props) 
             <Progress value={completude} className="h-2" />
           </div>
 
-          <div className="flex flex-col md:flex-row md:gap-6">
-            <div className="flex flex-col gap-4 md:w-1/2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Coluna esquerda */}
+            <div className="flex flex-col gap-4">
               <Section title="Identificação">
                 <Field label="Fabricante" value={inv.fabricante} />
                 <Field label="Modelo" value={inv.modelo} />
@@ -102,7 +103,8 @@ export function InversorViewModal({ inversor: inv, open, onOpenChange }: Props) 
               </Section>
             </div>
 
-            <div className="flex flex-col gap-4 md:w-1/2 mt-4 md:mt-0">
+            {/* Coluna direita */}
+            <div className="flex flex-col gap-4">
               <Section title="Saída AC">
                 <Field label="Potência nominal" value={inv.potencia_nominal_kw} unit=" kW" />
                 <Field label="Potência máxima" value={inv.potencia_maxima_kw} unit=" kW" />

@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
-import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
+import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/FormModalTemplate";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -349,32 +349,73 @@ export function InversoresManager() {
       )}
 
       {/* Form Dialog */}
-      <FormModalTemplate open={dialogOpen} onOpenChange={setDialogOpen} title={editing ? "Editar Inversor" : "Novo Inversor"} icon={Cpu} subtitle="Cadastre ou edite um inversor" onSubmit={handleSave} submitLabel={editing ? "Salvar" : "Cadastrar"} saving={saveMutation.isPending} className="max-w-2xl">
-        <FormGrid>
-          <div className="space-y-1 sm:col-span-2"><Label>Fabricante *</Label><Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: Growatt" /></div>
-          <div className="space-y-1 sm:col-span-2"><Label>Modelo *</Label><Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: MOD 10KTL3-XH" /></div>
-          <div className="space-y-1"><Label>Potência Nominal (kW) *</Label><Input type="number" step="0.01" value={form.potencia_nominal_kw} onChange={(e) => set("potencia_nominal_kw", e.target.value)} placeholder="10.00" /></div>
-          <div className="space-y-1"><Label>Tipo *</Label><Select value={form.tipo} onValueChange={(v) => set("tipo", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="String">String</SelectItem><SelectItem value="Microinversor">Microinversor</SelectItem><SelectItem value="Híbrido">Híbrido</SelectItem></SelectContent></Select></div>
-          <div className="space-y-1"><Label>Fases *</Label><Select value={form.fases} onValueChange={(v) => set("fases", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Monofásico">Monofásico</SelectItem><SelectItem value="Trifásico">Trifásico</SelectItem></SelectContent></Select></div>
-          <div className="space-y-1"><Label>MPPTs</Label><Input type="number" value={form.mppt_count} onChange={(e) => set("mppt_count", e.target.value)} placeholder="2" /></div>
-          <div className="space-y-1"><Label>Strings por MPPT</Label><Input type="number" value={form.strings_por_mppt} onChange={(e) => set("strings_por_mppt", e.target.value)} placeholder="1" /></div>
-          <div className="space-y-1"><Label>Tensão Entrada Máx (V)</Label><Input type="number" value={form.tensao_entrada_max_v} onChange={(e) => set("tensao_entrada_max_v", e.target.value)} placeholder="1100" /></div>
-          <div className="space-y-1"><Label>Corrente Entrada Máx (A)</Label><Input type="number" step="0.1" value={form.corrente_entrada_max_a} onChange={(e) => set("corrente_entrada_max_a", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Tensão Saída (V)</Label><Input type="number" value={form.tensao_saida_v} onChange={(e) => set("tensao_saida_v", e.target.value)} placeholder="220" /></div>
-          <div className="space-y-1"><Label>Corrente de Saída (A)</Label><Input type="number" step="0.1" value={form.corrente_saida_a} onChange={(e) => set("corrente_saida_a", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Tensão MPPT mín (V)</Label><Input type="number" value={form.tensao_mppt_min_v} onChange={(e) => set("tensao_mppt_min_v", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Tensão MPPT máx (V)</Label><Input type="number" value={form.tensao_mppt_max_v} onChange={(e) => set("tensao_mppt_max_v", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Potência Máxima (kW)</Label><Input type="number" step="0.01" value={form.potencia_maxima_kw} onChange={(e) => set("potencia_maxima_kw", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Fator de Potência</Label><Input type="number" step="0.01" value={form.fator_potencia} onChange={(e) => set("fator_potencia", e.target.value)} placeholder="1.0" /></div>
-          <div className="space-y-1"><Label>Eficiência Máx (%)</Label><Input type="number" step="0.01" value={form.eficiencia_max_percent} onChange={(e) => set("eficiencia_max_percent", e.target.value)} placeholder="98.40" /></div>
-          <div className="space-y-1"><Label>Garantia (anos)</Label><Input type="number" value={form.garantia_anos} onChange={(e) => set("garantia_anos", e.target.value)} placeholder="5" /></div>
-          <div className="space-y-1"><Label>Peso (kg)</Label><Input type="number" step="0.1" value={form.peso_kg} onChange={(e) => set("peso_kg", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Proteção IP</Label><Input value={form.ip_protection as string} onChange={(e) => set("ip_protection", e.target.value)} placeholder="IP65" /></div>
-          <div className="space-y-1 sm:col-span-2">
-            <DatasheetUrlField value={form.datasheet_url} onChange={(v) => set("datasheet_url", v)} />
+      <FormModalTemplate open={dialogOpen} onOpenChange={setDialogOpen} title={editing ? "Editar Inversor" : "Novo Inversor"} icon={Cpu} subtitle="Cadastre ou edite um inversor" onSubmit={handleSave} submitLabel={editing ? "Salvar" : "Cadastrar"} saving={saveMutation.isPending} className="max-w-4xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-5">
+            <FormSection title="Identificação">
+              <div className="space-y-3">
+                <div className="space-y-1"><Label>Fabricante *</Label><Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: Growatt" /></div>
+                <div className="space-y-1"><Label>Modelo *</Label><Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: MOD 10KTL3-XH" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1"><Label>Tipo *</Label><Select value={form.tipo} onValueChange={(v) => set("tipo", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="String">String</SelectItem><SelectItem value="Microinversor">Microinversor</SelectItem><SelectItem value="Híbrido">Híbrido</SelectItem></SelectContent></Select></div>
+                  <div className="space-y-1"><Label>Fases *</Label><Select value={form.fases} onValueChange={(v) => set("fases", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Monofásico">Monofásico</SelectItem><SelectItem value="Trifásico">Trifásico</SelectItem></SelectContent></Select></div>
+                </div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Entrada DC">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label>Tensão Entrada Máx (V)</Label><Input type="number" value={form.tensao_entrada_max_v} onChange={(e) => set("tensao_entrada_max_v", e.target.value)} placeholder="1100" /></div>
+                <div className="space-y-1"><Label>Corrente Entrada Máx (A)</Label><Input type="number" step="0.1" value={form.corrente_entrada_max_a} onChange={(e) => set("corrente_entrada_max_a", e.target.value)} /></div>
+                <div className="space-y-1"><Label>Tensão MPPT mín (V)</Label><Input type="number" value={form.tensao_mppt_min_v} onChange={(e) => set("tensao_mppt_min_v", e.target.value)} /></div>
+                <div className="space-y-1"><Label>Tensão MPPT máx (V)</Label><Input type="number" value={form.tensao_mppt_max_v} onChange={(e) => set("tensao_mppt_max_v", e.target.value)} /></div>
+              </div>
+            </FormSection>
+
+            <FormSection title="MPPTs">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label>Nº de MPPTs</Label><Input type="number" value={form.mppt_count} onChange={(e) => set("mppt_count", e.target.value)} placeholder="2" /></div>
+                <div className="space-y-1"><Label>Strings por MPPT</Label><Input type="number" value={form.strings_por_mppt} onChange={(e) => set("strings_por_mppt", e.target.value)} placeholder="1" /></div>
+              </div>
+            </FormSection>
           </div>
-          <div className="space-y-1"><Label>Status</Label><Select value={form.status} onValueChange={(v) => set("status", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="rascunho">Rascunho</SelectItem><SelectItem value="revisao">Em revisão</SelectItem><SelectItem value="publicado">Publicado</SelectItem></SelectContent></Select></div>
-        </FormGrid>
+
+          <div className="space-y-5">
+            <FormSection title="Saída AC">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label>Potência Nominal (kW) *</Label><Input type="number" step="0.01" value={form.potencia_nominal_kw} onChange={(e) => set("potencia_nominal_kw", e.target.value)} placeholder="10.00" /></div>
+                <div className="space-y-1"><Label>Potência Máxima (kW)</Label><Input type="number" step="0.01" value={form.potencia_maxima_kw} onChange={(e) => set("potencia_maxima_kw", e.target.value)} /></div>
+                <div className="space-y-1"><Label>Tensão Saída (V)</Label><Input type="number" value={form.tensao_saida_v} onChange={(e) => set("tensao_saida_v", e.target.value)} placeholder="220" /></div>
+                <div className="space-y-1"><Label>Corrente de Saída (A)</Label><Input type="number" step="0.1" value={form.corrente_saida_a} onChange={(e) => set("corrente_saida_a", e.target.value)} /></div>
+                <div className="space-y-1"><Label>Fator de Potência</Label><Input type="number" step="0.01" value={form.fator_potencia} onChange={(e) => set("fator_potencia", e.target.value)} placeholder="1.0" /></div>
+                <div className="space-y-1"><Label>Eficiência Máx (%)</Label><Input type="number" step="0.01" value={form.eficiencia_max_percent} onChange={(e) => set("eficiencia_max_percent", e.target.value)} placeholder="98.40" /></div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Físico">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label>Dimensões (mm)</Label><Input value={form.dimensoes_mm} onChange={(e) => set("dimensoes_mm", e.target.value)} /></div>
+                <div className="space-y-1"><Label>Peso (kg)</Label><Input type="number" step="0.1" value={form.peso_kg} onChange={(e) => set("peso_kg", e.target.value)} /></div>
+                <div className="space-y-1"><Label>Proteção IP</Label><Input value={form.ip_protection as string} onChange={(e) => set("ip_protection", e.target.value)} placeholder="IP65" /></div>
+                <div className="flex items-center gap-3 pt-4">
+                  <Switch checked={form.wifi_integrado as boolean} onCheckedChange={(v) => set("wifi_integrado", v)} />
+                  <Label>Wi-Fi integrado</Label>
+                </div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Garantia & Datasheet">
+              <div className="space-y-3">
+                <div className="space-y-1"><Label>Garantia (anos)</Label><Input type="number" value={form.garantia_anos} onChange={(e) => set("garantia_anos", e.target.value)} placeholder="5" /></div>
+                <DatasheetUrlField value={form.datasheet_url} onChange={(v) => set("datasheet_url", v)} />
+              </div>
+            </FormSection>
+
+            <FormSection title="Status">
+              <div className="space-y-1"><Label>Status</Label><Select value={form.status} onValueChange={(v) => set("status", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="rascunho">Rascunho</SelectItem><SelectItem value="revisao">Em revisão</SelectItem><SelectItem value="publicado">Publicado</SelectItem></SelectContent></Select></div>
+            </FormSection>
+          </div>
+        </div>
       </FormModalTemplate>
 
       <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
