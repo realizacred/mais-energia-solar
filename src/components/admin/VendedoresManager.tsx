@@ -739,7 +739,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             <Button onClick={openNewDialog} variant="outline" className="mt-4 gap-2">
               <Plus className="w-4 h-4" />
               Cadastrar primeiro consultor
-          </Button>
+            </Button>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">
