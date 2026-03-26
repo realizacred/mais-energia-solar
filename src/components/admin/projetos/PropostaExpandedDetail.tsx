@@ -460,6 +460,23 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { data: ucsDetail = [] } = usePropostaExpandedUcs(latestVersao?.id || null, isExpanded);
   const { data: auditLogs = [] } = usePropostaAuditLogs(p.id, versaoIds, isExpanded);
   const loadingDetail = !snapshotData && isExpanded && !!latestVersao?.id;
+
+  // Fallback: buscar telefone/email do cliente quando snapshot não tiver
+  const { data: clienteContato } = useQuery({
+    queryKey: ["cliente-contato-fallback", customerId],
+    queryFn: async () => {
+      if (!customerId) return null;
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("telefone, email")
+        .eq("id", customerId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!customerId,
+  });
   const [activeTab, setActiveTab] = useState("resumo");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
@@ -1250,8 +1267,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             geracao_mensal: latestVersao.geracao_mensal,
             public_slug: latestVersao.public_slug,
           }}
-          clienteTelefone={(snapshot as any)?.clienteCelular || null}
-          clienteEmail={(snapshot as any)?.clienteEmail || null}
+          clienteTelefone={(snapshot as any)?.clienteCelular || clienteContato?.telefone || null}
+          clienteEmail={(snapshot as any)?.clienteEmail || clienteContato?.email || null}
         />
       )}
 
