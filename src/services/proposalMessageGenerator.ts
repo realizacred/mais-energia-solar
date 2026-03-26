@@ -242,17 +242,79 @@ function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
     blocks.bloco_codigo = "";
   }
 
-  // Pagamento
+  // Pagamento — agrupa por tipo e mostra detalhes completos
   if (ctx.pagamentoOpcoes.length > 0) {
-    const lines = ctx.pagamentoOpcoes.map(op => {
-      let line = `• ${op.nome}`;
-      if (op.entrada) line += ` — Entrada: ${formatBRL(op.entrada)}`;
-      if (op.parcelas && op.valor_parcela) {
-        line += ` + ${op.parcelas}x de ${formatBRL(op.valor_parcela)}`;
-      }
-      return line;
-    });
-    blocks.bloco_pagamento = `\n💳 *Pagamento:*\n${lines.join("\n")}`;
+    const aVista = ctx.pagamentoOpcoes.filter(op => op.tipo === "a_vista");
+    const financiamentos = ctx.pagamentoOpcoes.filter(op => op.tipo === "financiamento");
+    const parcelados = ctx.pagamentoOpcoes.filter(op => op.tipo === "parcelado");
+    const outros = ctx.pagamentoOpcoes.filter(op => !op.tipo || op.tipo === "outro");
+
+    const sections: string[] = [];
+
+    // À Vista
+    if (aVista.length > 0) {
+      aVista.forEach(op => {
+        let line = `💵 *À Vista*`;
+        if (op.entrada) line += ` — ${formatBRL(op.entrada)}`;
+        sections.push(line);
+      });
+    }
+
+    // Financiamentos — agrupa por banco, mostra cada plano
+    if (financiamentos.length > 0) {
+      const byBank = new Map<string, typeof financiamentos>();
+      financiamentos.forEach(op => {
+        const key = op.nome || "Financiamento";
+        if (!byBank.has(key)) byBank.set(key, []);
+        byBank.get(key)!.push(op);
+      });
+
+      byBank.forEach((plans, bankName) => {
+        sections.push(`🏦 *${bankName}:*`);
+        plans.forEach(op => {
+          const parts: string[] = [];
+          if (op.entrada) parts.push(`Entrada: ${formatBRL(op.entrada)}`);
+          if (op.parcelas && op.valor_parcela) {
+            parts.push(`${op.parcelas}x de ${formatBRL(op.valor_parcela)}`);
+          }
+          if (op.taxa_mensal && op.taxa_mensal > 0) {
+            parts.push(`Taxa: ${formatNumberBR(op.taxa_mensal * 100, 2)}% a.m.`);
+          }
+          if (op.carencia_meses && op.carencia_meses > 0) {
+            parts.push(`Carência: ${op.carencia_meses} meses`);
+          }
+          sections.push(`  • ${parts.join(" | ") || "Consultar condições"}`);
+        });
+      });
+    }
+
+    // Parcelados
+    if (parcelados.length > 0) {
+      sections.push(`💳 *Parcelamento direto:*`);
+      parcelados.forEach(op => {
+        const parts: string[] = [];
+        if (op.nome) parts.push(op.nome);
+        if (op.entrada) parts.push(`Entrada: ${formatBRL(op.entrada)}`);
+        if (op.parcelas && op.valor_parcela) {
+          parts.push(`${op.parcelas}x de ${formatBRL(op.valor_parcela)}`);
+        }
+        sections.push(`  • ${parts.join(" — ")}`);
+      });
+    }
+
+    // Outros
+    if (outros.length > 0) {
+      outros.forEach(op => {
+        let line = `• ${op.nome || "Outra opção"}`;
+        if (op.entrada) line += ` — Entrada: ${formatBRL(op.entrada)}`;
+        if (op.parcelas && op.valor_parcela) {
+          line += ` + ${op.parcelas}x de ${formatBRL(op.valor_parcela)}`;
+        }
+        sections.push(line);
+      });
+    }
+
+    blocks.bloco_pagamento = `\n💳 *Pagamento:*\n${sections.join("\n")}`;
   } else {
     blocks.bloco_pagamento = "";
   }
