@@ -470,7 +470,7 @@ function ResizableKanbanColumn({
         onMouseDown={onMouseDown}
       />
 
-      <div className="px-3 pt-3 pb-2 border-b-2" style={{ borderColor: stage.color || "hsl(var(--primary) / 0.2)" }}>
+      <div className="px-3 pt-3 pb-2 border-b-2" style={{ borderColor: stageColor || "hsl(var(--primary) / 0.2)" }}>
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2 min-w-0">
             <h3 className="text-[11px] font-bold text-secondary leading-tight truncate uppercase tracking-wider">
@@ -522,12 +522,12 @@ function ResizableKanbanColumn({
                         size="icon"
                         className={cn(
                           "h-6 w-6 rounded-full border-2 p-0",
-                          stage.color === c.value ? "border-foreground" : "border-transparent"
+                          stageColor === c.value ? "border-foreground" : "border-transparent"
                         )}
                         style={{ backgroundColor: c.value || "hsl(var(--muted))" }}
                         onClick={() => handleColorChange(c.value)}
                       >
-                        {stage.color === c.value && <Check className="h-3 w-3 text-primary-foreground" />}
+                        {stageColor === c.value && <Check className="h-3 w-3 text-primary-foreground" />}
                       </Button>
                     ))}
                   </div>
