@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useDealPipeline } from "@/hooks/useDealPipeline";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
-import { StatCard } from "@/components/ui-kit/StatCard";
+
 import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanbanStage } from "./ProjetoKanbanStage";
 import { ProjetoKanbanConsultor } from "./ProjetoKanbanConsultor";
