@@ -403,7 +403,7 @@ export function RecebimentosManager() {
 
       {/* Filters and Actions */}
       <div className="admin-toolbar">
-        <div className="flex flex-col sm:flex-row flex-1 gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row flex-1 gap-3 sm:gap-4 items-start sm:items-center">
           <SearchInput
               value={searchTerm}
               onChange={setSearchTerm}
@@ -422,7 +422,22 @@ export function RecebimentosManager() {
               <SelectItem value="cancelado">Cancelado</SelectItem>
             </SelectContent>
           </Select>
+          {activeFilterCount > 0 && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">{activeFilterCount} filtro{activeFilterCount > 1 ? "s" : ""}</Badge>
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 h-8 text-xs">
+                <X className="h-3 w-3" />
+                Limpar
+              </Button>
+            </div>
+          )}
         </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportCSV} disabled={filteredRecebimentos.length === 0} className="gap-1.5">
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
 
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
@@ -540,6 +555,7 @@ export function RecebimentosManager() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Table */}
