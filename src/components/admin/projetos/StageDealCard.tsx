@@ -120,6 +120,7 @@ export function StageDealCard({
   const timeInStage = getTimeInStage(deal.last_stage_change);
   const stagnation = getStagnationLevel(deal.last_stage_change);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const visibleFields = new Set(cardVisibleFields || ["valor_projeto", "potencia_kwp", "cidade"]);
 
   const DOC_KEYS = ["rg_cnh", "conta_luz", "iptu_imovel", "fotos", "autorizacao_art", "contrato_assinado"];
   const docTotal = deal.doc_checklist ? DOC_KEYS.length : 0;
