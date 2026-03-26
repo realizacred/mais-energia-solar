@@ -527,7 +527,8 @@ export function CustomFieldsSettings() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
