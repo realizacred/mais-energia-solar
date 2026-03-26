@@ -14,6 +14,7 @@ export interface ClienteRow {
   nome: string;
   telefone: string;
   email: string | null;
+  empresa: string | null;
   cpf_cnpj: string | null;
   data_nascimento: string | null;
   cep: string | null;
@@ -53,7 +54,7 @@ export function useClientes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes")
-        .select("id, nome, telefone, email, cpf_cnpj, data_nascimento, cep, estado, cidade, bairro, rua, numero, complemento, potencia_kwp, valor_projeto, data_instalacao, numero_placas, modelo_inversor, observacoes, lead_id, localizacao, ativo, created_at, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls, disjuntor_id, transformador_id")
+        .select("id, nome, telefone, email, empresa, cpf_cnpj, data_nascimento, cep, estado, cidade, bairro, rua, numero, complemento, potencia_kwp, valor_projeto, data_instalacao, numero_placas, modelo_inversor, observacoes, lead_id, localizacao, ativo, created_at, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls, disjuntor_id, transformador_id")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as ClienteRow[];
@@ -83,11 +84,22 @@ export function useSalvarCliente() {
   return useMutation({
     mutationFn: async ({ id, data }: { id?: string; data: Record<string, any> }) => {
       if (id) {
-        const { error } = await supabase.from("clientes").update(data).eq("id", id);
+        const { data: updated, error } = await supabase
+          .from("clientes")
+          .update(data)
+          .eq("id", id)
+          .select()
+          .single();
         if (error) throw error;
+        return updated;
       } else {
-        const { error } = await supabase.from("clientes").insert(data as any);
+        const { data: created, error } = await supabase
+          .from("clientes")
+          .insert(data as any)
+          .select()
+          .single();
         if (error) throw error;
+        return created;
       }
     },
     onSuccess: () => {

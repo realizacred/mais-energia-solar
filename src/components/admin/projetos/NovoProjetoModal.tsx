@@ -1,5 +1,7 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
 import {
   Dialog,
   DialogContent,
@@ -19,12 +21,37 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
-import { FolderKanban, Loader2, Users, AlertTriangle } from "lucide-react";
+import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
+import { Loader2, AlertTriangle, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useClientes, useSalvarCliente, type ClienteRow } from "@/hooks/useClientes";
+import { useClienteProjetoAberto } from "@/hooks/useProjetoCreateForm";
+
+const schema = z.object({
+  nomeProjeto: z.string().trim().max(150, "Nome do projeto deve ter no máximo 150 caracteres").optional(),
+  descricao: z.string().trim().max(1000, "Descrição deve ter no máximo 1000 caracteres").optional(),
+  consultorId: z.string().trim().min(1, "Consultor responsável é obrigatório"),
+  etiquetaId: z.string().optional(),
+  clienteNome: z.string().trim().min(2, "Nome do cliente é obrigatório").max(150, "Nome do cliente deve ter no máximo 150 caracteres"),
+  clienteEmail: z.union([z.literal(""), z.string().trim().email("E-mail inválido").max(255, "E-mail deve ter no máximo 255 caracteres")]),
+  clienteEmpresa: z.string().trim().max(150, "Nome da empresa deve ter no máximo 150 caracteres").optional(),
+  clienteCpfCnpj: z.string().trim().max(18, "CPF/CNPJ inválido").optional(),
+  clienteTelefone: z.string().trim().min(10, "Telefone celular é obrigatório").max(11, "Telefone inválido"),
+  valor: z.number().min(0).optional(),
+  cep: z.string().trim().min(9, "CEP é obrigatório"),
+  rua: z.string().trim().min(2, "Logradouro é obrigatório").max(150, "Logradouro deve ter no máximo 150 caracteres"),
+  numero: z.string().trim().min(1, "Número é obrigatório").max(20, "Número deve ter no máximo 20 caracteres"),
+  complemento: z.string().trim().max(100, "Complemento deve ter no máximo 100 caracteres").optional(),
+  bairro: z.string().trim().min(2, "Bairro é obrigatório").max(100, "Bairro deve ter no máximo 100 caracteres"),
+  cidade: z.string().trim().min(2, "Cidade é obrigatória").max(100, "Cidade deve ter no máximo 100 caracteres"),
+  estado: z.string().trim().min(2, "UF é obrigatória").max(2, "UF inválida"),
+});
+
+type FormValues = z.infer<typeof schema>;
 
 export interface NovoProjetoData {
   nome: string;
@@ -52,19 +79,6 @@ export interface NovoProjetoData {
   };
 }
 
-interface ClienteSimilar {
-  id: string;
-  nome: string;
-  telefone: string;
-  email: string | null;
-  cpf_cnpj: string | null;
-}
-
-interface ProjetoExistente {
-  id: string;
-  codigo: string;
-}
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -79,423 +93,432 @@ interface Props {
 }
 
 export function NovoProjetoModal({
-  open, onOpenChange, consultores, onSubmit,
-  defaultConsultorId, dynamicEtiquetas = [],
-  pipelines = [], stages = [],
-  defaultPipelineId, defaultStageId,
+  open,
+  onOpenChange,
+  consultores,
+  onSubmit,
+  defaultConsultorId,
+  dynamicEtiquetas = [],
+  pipelines = [],
+  stages = [],
+  defaultPipelineId,
+  defaultStageId,
 }: Props) {
-  // Project fields
-  const [nomeProjeto, setNomeProjeto] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [consultorId, setConsultorId] = useState(defaultConsultorId || "");
-  const [etiquetaId, setEtiquetaId] = useState("");
-
-  // Client fields
-  const [clienteNome, setClienteNome] = useState("");
-  const [clienteEmail, setClienteEmail] = useState("");
-  const [clienteEmpresa, setClienteEmpresa] = useState("");
-  const [clienteCpfCnpj, setClienteCpfCnpj] = useState("");
-  const [clienteTelefone, setClienteTelefone] = useState("");
-
-  // State
-  const [similares, setSimilares] = useState<ClienteSimilar[]>([]);
-  const [selectedClienteId, setSelectedClienteId] = useState<string | null>(null);
-  const [buscando, setBuscando] = useState(false);
+  const { data: clientes = [] } = useClientes();
+  const salvarCliente = useSalvarCliente();
+  const [selectedCliente, setSelectedCliente] = useState<ClienteRow | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [projetoExistente, setProjetoExistente] = useState<ProjetoExistente | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset on open
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+    defaultValues: {
+      nomeProjeto: "",
+      descricao: "",
+      consultorId: defaultConsultorId || "",
+      etiquetaId: "",
+      clienteNome: "",
+      clienteEmail: "",
+      clienteEmpresa: "",
+      clienteCpfCnpj: "",
+      clienteTelefone: "",
+      valor: 0,
+      cep: "",
+      rua: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
+      cidade: "",
+      estado: "",
+    },
+  });
+
   useEffect(() => {
-    if (open) {
-      setNomeProjeto("");
-      setDescricao("");
-      setConsultorId(defaultConsultorId || "");
-      setEtiquetaId("");
-      setClienteNome("");
-      setClienteEmail("");
-      setClienteEmpresa("");
-      setClienteCpfCnpj("");
-      setClienteTelefone("");
-      setSimilares([]);
-      setSelectedClienteId(null);
-      setProjetoExistente(null);
-      setErrors({});
-    }
-  }, [open, defaultConsultorId]);
+    if (!open) return;
+    setSelectedCliente(null);
+    form.reset({
+      nomeProjeto: "",
+      descricao: "",
+      consultorId: defaultConsultorId || "",
+      etiquetaId: "",
+      clienteNome: "",
+      clienteEmail: "",
+      clienteEmpresa: "",
+      clienteCpfCnpj: "",
+      clienteTelefone: "",
+      valor: 0,
+      cep: "",
+      rua: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
+      cidade: "",
+      estado: "",
+    });
+  }, [open, defaultConsultorId, form]);
 
-  // Auto-select first pipeline/stage
+  const clienteNome = form.watch("clienteNome");
+  const similares = useMemo(() => {
+    const term = clienteNome?.trim().toLowerCase() || "";
+    if (term.length < 2) return [];
+    return clientes
+      .filter((c) => c.nome.toLowerCase().includes(term))
+      .slice(0, 8);
+  }, [clienteNome, clientes]);
+
+  const projetoExistenteQuery = useClienteProjetoAberto(selectedCliente?.id ?? null);
+
   const resolvedPipelineId = defaultPipelineId || pipelines[0]?.id || "";
   const resolvedStageId = useMemo(() => {
     if (defaultStageId) return defaultStageId;
     if (!resolvedPipelineId) return "";
     const first = stages
-      .filter(s => s.pipeline_id === resolvedPipelineId && !s.is_closed)
+      .filter((s) => s.pipeline_id === resolvedPipelineId && !s.is_closed)
       .sort((a, b) => a.position - b.position)[0];
     return first?.id || "";
   }, [defaultStageId, resolvedPipelineId, stages]);
 
-  // Search similar clients when name changes
-  useEffect(() => {
-    const term = clienteNome.trim();
-    if (term.length < 2) { setSimilares([]); return; }
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      setBuscando(true);
-      try {
-        const { data } = await supabase
-          .from("clientes")
-          .select("id, nome, telefone, email, cpf_cnpj")
-          .ilike("nome", `%${term}%`)
-          .limit(8);
-        setSimilares(data ?? []);
-      } catch { setSimilares([]); }
-      finally { setBuscando(false); }
-    }, 400);
-
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [clienteNome]);
-
-  // Check duplicate project when a similar client is selected
-  useEffect(() => {
-    if (!selectedClienteId) { setProjetoExistente(null); return; }
-    let cancelled = false;
-
-    (async () => {
-      const { data } = await supabase
-        .from("projetos")
-        .select("id, codigo")
-        .eq("cliente_id", selectedClienteId)
-        .in("status", ["criado", "aguardando_documentacao", "em_analise", "aprovado", "em_instalacao"])
-        .limit(1)
-        .maybeSingle();
-      if (!cancelled) setProjetoExistente(data as ProjetoExistente | null);
-    })();
-
-    return () => { cancelled = true; };
-  }, [selectedClienteId]);
-
-  // Select similar client → fill fields
-  const handleSelectSimilar = useCallback((c: ClienteSimilar) => {
-    setSelectedClienteId(c.id);
-    setClienteNome(c.nome);
-    setClienteTelefone(c.telefone || "");
-    setClienteEmail(c.email || "");
-    setClienteCpfCnpj(c.cpf_cnpj || "");
-    setErrors(prev => {
-      const next = { ...prev };
-      delete next.clienteNome;
-      delete next.clienteTelefone;
-      return next;
-    });
-  }, []);
-
-  // Validation
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!clienteNome.trim()) e.clienteNome = "Nome é obrigatório!";
-    if (!clienteTelefone.trim()) e.clienteTelefone = "Telefone é obrigatório!";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+  const addressValue: AddressData = {
+    cep: form.watch("cep") || "",
+    rua: form.watch("rua") || "",
+    numero: form.watch("numero") || "",
+    complemento: form.watch("complemento") || "",
+    bairro: form.watch("bairro") || "",
+    cidade: form.watch("cidade") || "",
+    estado: form.watch("estado") || "",
   };
 
-  const canSubmit = !submitting && !projetoExistente;
+  const handleAddressChange = (addr: AddressData) => {
+    form.setValue("cep", addr.cep, { shouldValidate: true });
+    form.setValue("rua", addr.rua, { shouldValidate: true });
+    form.setValue("numero", addr.numero, { shouldValidate: true });
+    form.setValue("complemento", addr.complemento, { shouldValidate: true });
+    form.setValue("bairro", addr.bairro, { shouldValidate: true });
+    form.setValue("cidade", addr.cidade, { shouldValidate: true });
+    form.setValue("estado", addr.estado, { shouldValidate: true });
+  };
 
-  const handleSubmit = async () => {
-    if (!validate() || !canSubmit) return;
+  const handleSelectSimilar = (cliente: ClienteRow) => {
+    setSelectedCliente(cliente);
+    form.reset({
+      nomeProjeto: form.getValues("nomeProjeto") || cliente.nome,
+      descricao: form.getValues("descricao") || "",
+      consultorId: form.getValues("consultorId") || defaultConsultorId || "",
+      etiquetaId: form.getValues("etiquetaId") || "",
+      clienteNome: cliente.nome || "",
+      clienteEmail: cliente.email || "",
+      clienteEmpresa: cliente.empresa || "",
+      clienteCpfCnpj: cliente.cpf_cnpj || "",
+      clienteTelefone: cliente.telefone || "",
+      valor: form.getValues("valor") || 0,
+      cep: cliente.cep || "",
+      rua: cliente.rua || "",
+      numero: cliente.numero || "",
+      complemento: cliente.complemento || "",
+      bairro: cliente.bairro || "",
+      cidade: cliente.cidade || "",
+      estado: cliente.estado || "",
+    });
+  };
+
+  const handleConsultorAvatarClick = (consultorId: string) => {
+    form.setValue("consultorId", consultorId, { shouldValidate: true, shouldDirty: true });
+  };
+
+  const handleSubmit = form.handleSubmit(async (values) => {
+    if (projetoExistenteQuery.data) return;
+
     setSubmitting(true);
     try {
-      // If selected existing client, use their ID; otherwise create inline
-      let clienteId = selectedClienteId || "";
+      let clienteId = selectedCliente?.id || "";
 
       if (!clienteId) {
-        // Create new client
-        const { data: newCliente, error } = await supabase
-          .from("clientes")
-          .insert({
-            nome: clienteNome.trim(),
-            telefone: clienteTelefone.trim(),
-            email: clienteEmail.trim() || null,
-            empresa: clienteEmpresa.trim() || null,
-            cpf_cnpj: clienteCpfCnpj.trim() || null,
+        const created = await salvarCliente.mutateAsync({
+          data: {
+            nome: values.clienteNome.trim(),
+            telefone: values.clienteTelefone.trim(),
+            email: values.clienteEmail?.trim() || null,
+            empresa: values.clienteEmpresa?.trim() || null,
+            cpf_cnpj: values.clienteCpfCnpj?.trim() || null,
+            cep: values.cep.trim(),
+            estado: values.estado.trim(),
+            cidade: values.cidade.trim(),
+            bairro: values.bairro.trim(),
+            rua: values.rua.trim(),
+            numero: values.numero.trim(),
+            complemento: values.complemento?.trim() || null,
             cliente_code: `CLI-${Date.now()}`,
-          } as any)
-          .select("id")
-          .single();
-        if (error) throw error;
-        clienteId = newCliente.id;
+            ativo: true,
+          },
+        });
+        clienteId = created.id;
       }
 
       await onSubmit?.({
-        nome: nomeProjeto.trim() || clienteNome.trim(),
-        consultorId,
+        nome: values.nomeProjeto?.trim() || values.clienteNome.trim(),
+        consultorId: values.consultorId,
+        valor: values.valor && values.valor > 0 ? values.valor : undefined,
         pipelineId: resolvedPipelineId || undefined,
         stageId: resolvedStageId || undefined,
         clienteId,
-        descricao,
-        etiqueta: etiquetaId,
+        descricao: values.descricao?.trim() || "",
+        etiqueta: values.etiquetaId || "",
         notas: "",
         cliente: {
-          nome: clienteNome, email: clienteEmail, empresa: clienteEmpresa,
-          cpfCnpj: clienteCpfCnpj, telefone: clienteTelefone,
-          cep: "", estado: "", cidade: "", endereco: "", numero: "", bairro: "", complemento: "",
+          nome: values.clienteNome.trim(),
+          email: values.clienteEmail?.trim() || "",
+          empresa: values.clienteEmpresa?.trim() || "",
+          cpfCnpj: values.clienteCpfCnpj?.trim() || "",
+          telefone: values.clienteTelefone.trim(),
+          cep: values.cep.trim(),
+          estado: values.estado.trim(),
+          cidade: values.cidade.trim(),
+          endereco: values.rua.trim(),
+          numero: values.numero.trim(),
+          bairro: values.bairro.trim(),
+          complemento: values.complemento?.trim() || "",
         },
       });
       onOpenChange(false);
     } finally {
       setSubmitting(false);
     }
-  };
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-4xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
-        {/* Header */}
+      <DialogContent className="w-[90vw] max-w-[1100px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="flex-1">
-            <DialogTitle className="text-lg font-bold text-foreground">
-              Novo Projeto
-            </DialogTitle>
+            <DialogTitle className="text-lg font-bold text-foreground">Novo Projeto</DialogTitle>
           </div>
         </DialogHeader>
 
-        {/* Body — 3 columns */}
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="p-5">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* ─── Coluna 1: Projeto ─── */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-sm font-bold text-primary">Projeto</h3>
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    Nome do Projeto <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    placeholder="Nome do projeto"
-                    value={nomeProjeto}
-                    onChange={(e) => setNomeProjeto(e.target.value)}
-                    className="h-9"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Descrição</Label>
-                  <Textarea
-                    placeholder="Escreva aqui"
-                    value={descricao}
-                    onChange={(e) => setDescricao(e.target.value)}
-                    className="min-h-[60px] resize-y"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Vendedores</Label>
-                  <Select value={consultorId} onValueChange={setConsultorId}>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {consultores.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {/* Consultant avatars */}
-                  {consultores.length > 0 && (
-                    <div className="flex items-center gap-1 pt-1">
-                      {consultores.slice(0, 5).map((c) => (
-                        <Avatar key={c.id} className={cn(
-                          "w-7 h-7 border-2 transition-all",
-                          consultorId === c.id
-                            ? "border-primary ring-1 ring-primary"
-                            : "border-muted"
-                        )}>
-                          <AvatarFallback className={cn(
-                            "text-[10px] font-bold",
-                            consultorId === c.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                          )}>
-                            {c.nome.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      ))}
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="p-5 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-sm font-bold text-primary">Projeto</h3>
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                      <Users className="w-4 h-4 text-muted-foreground" />
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                {dynamicEtiquetas.length > 0 && (
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Etiqueta</Label>
-                    <Select value={etiquetaId} onValueChange={setEtiquetaId}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Selecione uma opção" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {dynamicEtiquetas.map((e) => (
-                          <SelectItem key={e.id} value={e.id}>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.cor }} />
-                              {e.nome}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-xs font-medium text-muted-foreground">Nome do Projeto</Label>
+                    <Input placeholder="Nome do projeto" className="h-9" {...form.register("nomeProjeto")} />
+                    {form.formState.errors.nomeProjeto && <p className="text-xs text-destructive">{form.formState.errors.nomeProjeto.message}</p>}
                   </div>
-                )}
-              </div>
 
-              {/* ─── Coluna 2: Cliente ─── */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-foreground mb-1">Cliente</h3>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    Nome do Cliente <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    placeholder="Digite o nome do cliente"
-                    value={clienteNome}
-                    onChange={(e) => {
-                      setClienteNome(e.target.value);
-                      if (selectedClienteId) setSelectedClienteId(null);
-                      setErrors(prev => { const n = { ...prev }; delete n.clienteNome; return n; });
-                    }}
-                    className={cn("h-9", errors.clienteNome && "border-destructive")}
-                  />
-                  {errors.clienteNome && (
-                    <p className="text-xs text-destructive">{errors.clienteNome}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Email do Cliente</Label>
-                  <Input
-                    placeholder="Digite o email do cliente"
-                    value={clienteEmail}
-                    onChange={(e) => setClienteEmail(e.target.value)}
-                    type="email"
-                    className="h-9"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Nome da Empresa</Label>
-                  <Input
-                    placeholder="Digite o nome da empresa"
-                    value={clienteEmpresa}
-                    onChange={(e) => setClienteEmpresa(e.target.value)}
-                    className="h-9"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <CpfCnpjInput
-                    value={clienteCpfCnpj}
-                    onChange={setClienteCpfCnpj}
-                    label="CNPJ/CPF"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    Telefone Celular <span className="text-destructive">*</span>
-                  </Label>
-                  <PhoneInput
-                    value={clienteTelefone}
-                    onChange={setClienteTelefone}
-                    className={cn(errors.clienteTelefone && "border-destructive")}
-                  />
-                  {errors.clienteTelefone && (
-                    <p className="text-xs text-destructive">{errors.clienteTelefone}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* ─── Coluna 3: Clientes Similares ─── */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-foreground mb-1">Clientes similares</h3>
-
-                {buscando && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Buscando...
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Descrição</Label>
+                    <Textarea placeholder="Escreva aqui" className="min-h-[60px] resize-y" {...form.register("descricao")} />
+                    {form.formState.errors.descricao && <p className="text-xs text-destructive">{form.formState.errors.descricao.message}</p>}
                   </div>
-                )}
 
-                {!buscando && similares.length === 0 && (
-                  <p className="text-sm text-muted-foreground py-2">
-                    Nenhum cliente similar
-                  </p>
-                )}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Consultor responsável <span className="text-destructive">*</span></Label>
+                    <Controller
+                      control={form.control}
+                      name="consultorId"
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {consultores.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {consultores.length > 0 && (
+                      <div className="flex items-center gap-1 pt-1 flex-wrap">
+                        {consultores.slice(0, 8).map((c) => {
+                          const active = form.watch("consultorId") === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => handleConsultorAvatarClick(c.id)}
+                              className="rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
+                              aria-label={`Selecionar ${c.nome}`}
+                            >
+                              <Avatar className={cn("w-7 h-7 border-2 transition-all", active ? "border-primary ring-1 ring-primary" : "border-muted")}>
+                                <AvatarFallback className={cn("text-[10px] font-bold", active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                                  {c.nome.substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {form.formState.errors.consultorId && <p className="text-xs text-destructive">{form.formState.errors.consultorId.message}</p>}
+                  </div>
 
-                {similares.length > 0 && (
-                  <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
-                    {similares.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => handleSelectSimilar(c)}
-                        className={cn(
-                          "w-full text-left rounded-lg border p-3 transition-colors",
-                          selectedClienteId === c.id
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:bg-muted/50"
+                  {dynamicEtiquetas.length > 0 && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground">Etiqueta</Label>
+                      <Controller
+                        control={form.control}
+                        name="etiquetaId"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Selecione uma opção" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dynamicEtiquetas.map((e) => (
+                                <SelectItem key={e.id} value={e.id}>
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.cor }} />
+                                    {e.nome}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         )}
-                      >
-                        <p className="text-sm font-medium text-foreground truncate">{c.nome}</p>
-                        <p className="text-xs text-muted-foreground truncate">{c.telefone}</p>
-                        {c.email && (
-                          <p className="text-xs text-muted-foreground truncate">{c.email}</p>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Duplicate project warning */}
-                {projetoExistente && (
-                  <div className="flex items-start gap-2.5 rounded-lg border border-warning/50 bg-warning/10 p-3 mt-2">
-                    <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-foreground">
-                        Projeto {projetoExistente.codigo} já existe
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Não é possível criar outro projeto enquanto houver um em andamento.
-                      </p>
+                      />
                     </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Valor estimado (opcional)</Label>
+                    <Controller
+                      control={form.control}
+                      name="valor"
+                      render={({ field }) => (
+                        <CurrencyInput value={field.value || 0} onChange={field.onChange} className="h-9" />
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4 lg:col-span-1">
+                  <h3 className="text-sm font-bold text-foreground mb-1">Cliente</h3>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Nome do Cliente <span className="text-destructive">*</span></Label>
+                    <Input
+                      placeholder="Digite o nome do cliente"
+                      className={cn("h-9", form.formState.errors.clienteNome && "border-destructive")}
+                      {...form.register("clienteNome", {
+                        onChange: () => {
+                          if (selectedCliente) setSelectedCliente(null);
+                        },
+                      })}
+                    />
+                    {form.formState.errors.clienteNome && <p className="text-xs text-destructive">{form.formState.errors.clienteNome.message}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Email do Cliente</Label>
+                    <Input placeholder="Digite o email do cliente" type="email" className="h-9" {...form.register("clienteEmail")} />
+                    {form.formState.errors.clienteEmail && <p className="text-xs text-destructive">{form.formState.errors.clienteEmail.message}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Nome da Empresa</Label>
+                    <Input placeholder="Digite o nome da empresa" className="h-9" {...form.register("clienteEmpresa")} />
+                    {form.formState.errors.clienteEmpresa && <p className="text-xs text-destructive">{form.formState.errors.clienteEmpresa.message}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Controller
+                      control={form.control}
+                      name="clienteCpfCnpj"
+                      render={({ field }) => (
+                        <CpfCnpjInput value={field.value || ""} onChange={field.onChange} label="CNPJ/CPF" showValidation={false} />
+                      )}
+                    />
+                    {form.formState.errors.clienteCpfCnpj && <p className="text-xs text-destructive">{form.formState.errors.clienteCpfCnpj.message}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">Telefone Celular <span className="text-destructive">*</span></Label>
+                    <Controller
+                      control={form.control}
+                      name="clienteTelefone"
+                      render={({ field }) => (
+                        <PhoneInput value={field.value || ""} onChange={field.onChange} className={cn(form.formState.errors.clienteTelefone && "border-destructive")} />
+                      )}
+                    />
+                    {form.formState.errors.clienteTelefone && <p className="text-xs text-destructive">{form.formState.errors.clienteTelefone.message}</p>}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-foreground mb-1">Clientes similares</h3>
+
+                  {similares.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">Nenhum cliente similar</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                      {similares.map((c) => (
+                        <Button
+                          key={c.id}
+                          type="button"
+                          variant="ghost"
+                          onClick={() => handleSelectSimilar(c)}
+                          className={cn(
+                            "w-full h-auto justify-start rounded-lg border p-3 text-left hover:bg-muted/50",
+                            selectedCliente?.id === c.id ? "border-primary bg-primary/5" : "border-border"
+                          )}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{c.nome}</p>
+                            <p className="text-xs text-muted-foreground truncate">{c.telefone}</p>
+                            {c.email && <p className="text-xs text-muted-foreground truncate">{c.email}</p>}
+                          </div>
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+
+                  {projetoExistenteQuery.data && (
+                    <div className="flex items-start gap-2.5 rounded-lg border border-warning/50 bg-warning/10 p-3">
+                      <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground">Projeto {projetoExistenteQuery.data.codigo || projetoExistenteQuery.data.id} já existe</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Não é possível criar outro projeto enquanto houver um em andamento.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3 border-t border-border pt-5">
+                <h3 className="text-sm font-bold text-foreground">Endereço</h3>
+                <AddressFields value={addressValue} onChange={handleAddressChange} />
+                {(form.formState.errors.cep || form.formState.errors.rua || form.formState.errors.numero || form.formState.errors.bairro || form.formState.errors.cidade || form.formState.errors.estado) && (
+                  <div className="space-y-1">
+                    {form.formState.errors.cep && <p className="text-xs text-destructive">{form.formState.errors.cep.message}</p>}
+                    {form.formState.errors.rua && <p className="text-xs text-destructive">{form.formState.errors.rua.message}</p>}
+                    {form.formState.errors.numero && <p className="text-xs text-destructive">{form.formState.errors.numero.message}</p>}
+                    {form.formState.errors.bairro && <p className="text-xs text-destructive">{form.formState.errors.bairro.message}</p>}
+                    {form.formState.errors.cidade && <p className="text-xs text-destructive">{form.formState.errors.cidade.message}</p>}
+                    {form.formState.errors.estado && <p className="text-xs text-destructive">{form.formState.errors.estado.message}</p>}
                   </div>
                 )}
               </div>
             </div>
-          </div>
-        </ScrollArea>
+          </ScrollArea>
 
-        {/* Footer */}
-        <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
-          <Button
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-          >
-            Fechar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-          >
-            {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-            {submitting ? "Cadastrando..." : "Cadastrar"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>Fechar</Button>
+            <Button type="submit" disabled={submitting || !!projetoExistenteQuery.data}>
+              {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+              {submitting ? "Cadastrando..." : "Cadastrar"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
