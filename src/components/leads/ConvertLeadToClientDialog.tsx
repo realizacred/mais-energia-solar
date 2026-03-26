@@ -967,6 +967,18 @@ export function ConvertLeadToClientDialog({
     return true;
   };
 
+  /** Check if a visited step has all required fields filled */
+  const isStepComplete = (step: number): boolean => {
+    const v = form.getValues();
+    if (step === 0) {
+      return !!(v.nome && v.telefone && v.email && v.cpf_cnpj && v.estado && v.cidade && v.bairro && v.rua && v.numero);
+    }
+    if (step === 1) {
+      return !!(v.disjuntor_id && v.transformador_id && v.localizacao && identidadeFiles.length > 0 && comprovanteFiles.length > 0);
+    }
+    return true;
+  };
+
   const handleNext = () => {
     setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
