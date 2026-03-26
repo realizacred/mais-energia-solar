@@ -310,65 +310,77 @@ serve(async (req) => {
 
     if (datasheetUrl && typeof datasheetUrl === "string" && datasheetUrl.startsWith("http")) {
       try {
-        console.log(`[enrich-equipment] Fetching datasheet: ${datasheetUrl}`);
-        const pdfRes = await fetch(datasheetUrl, {
-          signal: AbortSignal.timeout(15000),
+        // HEAD request to validate URL exists before downloading
+        console.log(`[enrich-equipment] Validating datasheet URL (HEAD): ${datasheetUrl}`);
+        const headRes = await fetch(datasheetUrl, {
+          method: "HEAD",
+          signal: AbortSignal.timeout(8000),
           headers: { "User-Agent": "Mozilla/5.0 (compatible; EnrichBot/1.0)" },
         });
 
-        if (pdfRes.ok) {
-          const contentType = pdfRes.headers.get("content-type") || "";
-          if (contentType.includes("application/pdf") || datasheetUrl.toLowerCase().endsWith(".pdf")) {
-            const pdfBuffer = await pdfRes.arrayBuffer();
-            if (pdfBuffer.byteLength > 0 && pdfBuffer.byteLength <= 20 * 1024 * 1024) {
-              const safeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
-              const storagePath = `${equipment_type}/${safeName(equipment.fabricante)}_${safeName(equipment.modelo)}.pdf`;
+        if (headRes.status !== 200) {
+          console.warn(`[enrich-equipment] Datasheet URL inválida (HEAD retornou ${headRes.status}): ${datasheetUrl}`);
+          // Do NOT save the URL — it doesn't exist
+        } else {
+          const headContentType = headRes.headers.get("content-type") || "";
+          const isPdf = headContentType.includes("application/pdf") || datasheetUrl.toLowerCase().endsWith(".pdf");
 
-              const { error: uploadError } = await supabase.storage
-                .from("datasheets")
-                .upload(storagePath, pdfBuffer, {
-                  contentType: "application/pdf",
-                  upsert: true,
-                });
+          if (!isPdf) {
+            console.warn(`[enrich-equipment] URL não é PDF (content-type: ${headContentType}): ${datasheetUrl}`);
+            // Do NOT save — not a PDF
+          } else {
+            // HEAD passed — now GET the actual PDF
+            console.log(`[enrich-equipment] HEAD OK, downloading PDF: ${datasheetUrl}`);
+            const pdfRes = await fetch(datasheetUrl, {
+              signal: AbortSignal.timeout(15000),
+              headers: { "User-Agent": "Mozilla/5.0 (compatible; EnrichBot/1.0)" },
+            });
 
-              if (uploadError) {
-                console.warn(`[enrich-equipment] Upload error:`, uploadError.message);
-              } else {
-                const { data: publicUrlData } = supabase.storage
+            if (pdfRes.ok) {
+              const pdfBuffer = await pdfRes.arrayBuffer();
+              if (pdfBuffer.byteLength > 0 && pdfBuffer.byteLength <= 20 * 1024 * 1024) {
+                const safeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+                const storagePath = `${equipment_type}/${safeName(equipment.fabricante)}_${safeName(equipment.modelo)}.pdf`;
+
+                const { error: uploadError } = await supabase.storage
                   .from("datasheets")
-                  .getPublicUrl(storagePath);
+                  .upload(storagePath, pdfBuffer, {
+                    contentType: "application/pdf",
+                    upsert: true,
+                  });
 
-                if (publicUrlData?.publicUrl) {
-                  // Update the datasheet_url with the storage URL
-                  await supabase
-                    .from(tableName)
-                    .update({
-                      datasheet_url: publicUrlData.publicUrl,
-                      datasheet_source_url: datasheetUrl,
-                    })
-                    .eq("id", equipment_id);
+                if (uploadError) {
+                  console.warn(`[enrich-equipment] Upload error:`, uploadError.message);
+                } else {
+                  const { data: publicUrlData } = supabase.storage
+                    .from("datasheets")
+                    .getPublicUrl(storagePath);
 
-                  datasheet_uploaded = true;
-                  console.log(`[enrich-equipment] PDF uploaded: ${storagePath} (${pdfBuffer.byteLength} bytes)`);
+                  if (publicUrlData?.publicUrl) {
+                    await supabase
+                      .from(tableName)
+                      .update({
+                        datasheet_url: publicUrlData.publicUrl,
+                        datasheet_source_url: datasheetUrl,
+                      })
+                      .eq("id", equipment_id);
+
+                    datasheet_uploaded = true;
+                    console.log(`[enrich-equipment] PDF uploaded: ${storagePath} (${pdfBuffer.byteLength} bytes)`);
+                  }
                 }
+              } else {
+                console.warn(`[enrich-equipment] PDF size out of range: ${pdfBuffer.byteLength} bytes`);
               }
             } else {
-              console.warn(`[enrich-equipment] PDF size out of range: ${pdfBuffer.byteLength} bytes`);
+              console.warn(`[enrich-equipment] PDF GET failed: ${pdfRes.status}`);
+              await pdfRes.text(); // consume body
             }
-          } else {
-            console.warn(`[enrich-equipment] Not a PDF content-type: ${contentType}`);
-            // Save URL as-is (fallback)
-            await supabase.from(tableName).update({ datasheet_url: datasheetUrl }).eq("id", equipment_id);
           }
-        } else {
-          console.warn(`[enrich-equipment] Datasheet fetch failed: ${pdfRes.status}`);
-          await pdfRes.text(); // consume body
-          await supabase.from(tableName).update({ datasheet_url: datasheetUrl }).eq("id", equipment_id);
         }
       } catch (pdfErr: any) {
-        console.warn(`[enrich-equipment] PDF download error: ${pdfErr.message}`);
-        // Fallback: save URL as-is
-        await supabase.from(tableName).update({ datasheet_url: datasheetUrl }).eq("id", equipment_id);
+        console.warn(`[enrich-equipment] PDF validation/download error: ${pdfErr.message}`);
+        // Do NOT save invalid URL as fallback
       }
     }
 
