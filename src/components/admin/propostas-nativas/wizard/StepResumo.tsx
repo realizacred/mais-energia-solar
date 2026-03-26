@@ -321,16 +321,12 @@ export function StepResumo({
         </div>
       </div>
 
-      {/* Pagamento — full width, expandable */}
+      {/* Pagamento — grouped by entity */}
       {pagamentoOpcoes.length > 0 && (
         <Card className="border-border/40 shadow-sm">
           <CardContent className="p-4">
             <SectionHeader icon={CreditCard} label="Condições de Pagamento" />
-            <div className="space-y-2">
-              {pagamentoOpcoes.map((op, i) => (
-                <PaymentOptionItem key={i} op={op} defaultOpen={i === 0} />
-              ))}
-            </div>
+            <PaymentGroupedList opcoes={pagamentoOpcoes} precoBase={precoFinal} />
           </CardContent>
         </Card>
       )}
