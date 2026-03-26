@@ -31,12 +31,14 @@ import {
 // Inversor type imported from hook
 
 const EMPTY_FORM = {
-  fabricante: "", modelo: "", potencia_nominal_kw: "", tipo: "String",
+  fabricante: "", modelo: "", potencia_nominal_kw: "", potencia_maxima_kw: "", tipo: "String",
   tensao_entrada_max_v: "", corrente_entrada_max_a: "",
+  tensao_mppt_min_v: "", tensao_mppt_max_v: "", corrente_saida_a: "", fator_potencia: "1.0",
   mppt_count: "2", strings_por_mppt: "1", fases: "Monofásico",
   tensao_saida_v: "220", eficiencia_max_percent: "",
   garantia_anos: "5", peso_kg: "", dimensoes_mm: "",
   wifi_integrado: true, ip_protection: "IP65",
+  datasheet_url: "", status: "rascunho",
 };
 
 export function InversoresManager() {
@@ -46,6 +48,7 @@ export function InversoresManager() {
   const [filterFabricante, setFilterFabricante] = useState("all");
   const [filterTipo, setFilterTipo] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [distImportOpen, setDistImportOpen] = useState(false);
   const [editing, setEditing] = useState<Inversor | null>(null);
   const [deleting, setDeleting] = useState<Inversor | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
