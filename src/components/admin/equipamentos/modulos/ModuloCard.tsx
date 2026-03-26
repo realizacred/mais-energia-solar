@@ -20,7 +20,7 @@ interface Props {
   onCompareToggle?: (checked: boolean) => void;
 }
 
-export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Props) {
+export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle, compareSelected, onCompareToggle }: Props) {
   const statusInfo = STATUS_LABELS[m.status] || STATUS_LABELS.rascunho;
   const completude = calcCompletude(m);
 
@@ -28,6 +28,7 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
     <Card className="group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all">
       {/* Action icons top-right */}
       <div className="absolute top-3 right-3 flex gap-1 z-10">
+        <EnrichButton equipmentType="modulo" equipmentId={m.id} />
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onView} title="Visualizar">
           <Eye className="w-4 h-4" />
         </Button>
@@ -35,6 +36,16 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
           <Pencil className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* Compare checkbox */}
+      {onCompareToggle && (
+        <div className="absolute top-3 left-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Checkbox
+            checked={compareSelected}
+            onCheckedChange={(v) => onCompareToggle(!!v)}
+          />
+        </div>
+      )}
 
       <CardContent className="pt-4 pb-3 px-4 space-y-3">
         {/* Header */}
