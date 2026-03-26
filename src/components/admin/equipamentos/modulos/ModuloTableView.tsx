@@ -243,7 +243,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
       </div>
 
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="text-xs [&_td]:px-2 [&_td]:py-2 [&_th]:px-2 [&_th]:py-2">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[40px]">
@@ -268,7 +268,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
               <SortHeader label="Completude" field="completude" />
               <TableHead>Origem</TableHead>
               <TableHead>Ativo</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="w-[100px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -284,55 +284,55 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
                       onCheckedChange={() => toggleOne(m.id)}
                     />
                   </TableCell>
-                  <TableCell className="font-medium">{m.fabricante}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{m.modelo}</TableCell>
-                  <TableCell><InlineCell m={m} field="potencia_wp" display={`${m.potencia_wp}W`} /></TableCell>
-                  <TableCell className="text-xs">{m.tipo_celula}</TableCell>
+                  <TableCell className="font-medium text-xs whitespace-nowrap">{m.fabricante}</TableCell>
+                  <TableCell className="max-w-[160px] truncate text-xs" title={m.modelo}>{m.modelo}</TableCell>
+                  <TableCell className="text-xs"><InlineCell m={m} field="potencia_wp" display={`${m.potencia_wp}W`} /></TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{m.tipo_celula}</TableCell>
                   <TableCell className="text-xs">{m.num_celulas || "—"}</TableCell>
-                  <TableCell><InlineCell m={m} field="eficiencia_percent" display={m.eficiencia_percent ? `${m.eficiencia_percent}%` : "—"} /></TableCell>
-                  <TableCell className="text-xs">{m.tensao_sistema || "—"}</TableCell>
-                  <TableCell><Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge></TableCell>
+                  <TableCell className="text-xs"><InlineCell m={m} field="eficiencia_percent" display={m.eficiencia_percent ? `${m.eficiencia_percent}%` : "—"} /></TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{m.tensao_sistema || "—"}</TableCell>
+                  <TableCell><Badge className={`text-2xs px-1.5 py-0 ${statusInfo.color}`}>{statusInfo.label}</Badge></TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 min-w-[80px]">
+                    <div className="flex items-center gap-1.5 min-w-[70px]">
                       <Progress value={comp} className="h-1.5 flex-1" />
-                      <span className={`text-xs font-medium tabular-nums ${comp >= 80 ? "text-success" : comp >= 60 ? "text-warning" : "text-destructive"}`}>
+                      <span className={`text-2xs font-medium tabular-nums ${comp >= 80 ? "text-success" : comp >= 60 ? "text-warning" : "text-destructive"}`}>
                         {comp}%
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     {global ? (
-                      <Badge variant="secondary" className="gap-1 text-xs">
-                        <Globe className="w-3 h-3" /> Global
+                      <Badge variant="secondary" className="gap-0.5 text-2xs px-1.5 py-0">
+                        <Globe className="w-2.5 h-2.5" /> Global
                       </Badge>
                     ) : (
-                      <Badge variant="default" className="gap-1 text-xs">
-                        <Building2 className="w-3 h-3" /> Custom
+                      <Badge variant="default" className="gap-0.5 text-2xs px-1.5 py-0">
+                        <Building2 className="w-2.5 h-2.5" /> Custom
                       </Badge>
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <Switch checked={m.ativo}
                         onCheckedChange={(v) => onToggle(m.id, v)} />
-                      <span className={`text-xs font-medium ${m.ativo ? "text-success" : "text-muted-foreground"}`}>
+                      <span className={`text-2xs font-medium ${m.ativo ? "text-success" : "text-muted-foreground"}`}>
                         {m.ativo ? "Ativo" : "Inativo"}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
+                    <div className="flex justify-end gap-0.5">
                       <EnrichButton equipmentType="modulo" equipmentId={m.id} />
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(m)}>
-                        <Eye className="w-4 h-4" />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onView(m)}>
+                        <Eye className="w-3.5 h-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(m)}>
-                        <Pencil className="w-4 h-4" />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(m)}>
+                        <Pencil className="w-3.5 h-3.5" />
                       </Button>
                       {!global && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"
                           onClick={() => onDelete(m)}>
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       )}
                     </div>
