@@ -1346,6 +1346,33 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 - Nunca usar max-w-2xl em ViewModal de equipamento — desperdiça espaço em desktop
 - max-h-[80vh] com overflow-y-auto no corpo para não ultrapassar a tela
 
+### Backlog RB-07 — Modais secundários sem w-[90vw] (corrigir em tarefa separada)
+- ProjectGallery.tsx:122
+- ServicoDetailDialog.tsx:343
+- ServicoValidacaoDialog.tsx:336
+- VendedoresManager.tsx:987
+- estoque/BarcodeScannerDialog.tsx:142
+- estoque/ItemQRCodeDialog.tsx:58
+- integrations-api/ApiConfigDialog.tsx:106
+- post-sale/PostSaleChecklistsPage.tsx:126
+- post-sale/PostSaleNewPlanDialog.tsx:64
+- post-sale/PostSaleNewUpsellDialog.tsx:67
+- post-sale/PostSaleNewVisitDialog.tsx:76
+- post-sale/PostSaleVisitDetail.tsx:294
+- post-sale/PostSaleVisitsList.tsx:146
+- solarmarket/SmClientDetailDialog.tsx:115
+- solarmarket/SmMigrationDrawer.tsx:557
+- solarmarket/SmProjectDetailDialog.tsx:92
+- solarmarket/SmProposalDetailDialog.tsx:112
+- instalador/ServicoEmAndamento.tsx:1121
+- institutional/ProjectsSection.tsx:176
+- layout/PortalSwitcher.tsx:334,361
+- solar-editor/ModuleRowDialog.tsx:27
+- super-admin/SuperAdminTenantList.tsx:193
+- ui-kit/StorageFileGallery.tsx:137
+- vendor/ScheduleWhatsAppDialog.tsx:248
+- vendor/productivity/WhatsAppTemplates.tsx:400
+
 # =============================================================================
 # BLOCO 11 — REGRAS DE ESCOPO
 # =============================================================================
