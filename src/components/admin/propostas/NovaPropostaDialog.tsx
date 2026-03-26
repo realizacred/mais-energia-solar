@@ -224,7 +224,7 @@ export function NovaPropostaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="w-[90vw] max-w-4xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <FileText className="w-5 h-5 text-primary" />
