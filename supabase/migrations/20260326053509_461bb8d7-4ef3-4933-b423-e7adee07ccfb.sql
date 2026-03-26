@@ -1,0 +1,1 @@
+ALTER TABLE public.generated_documents ADD COLUMN IF NOT EXISTS pdf_filled_path TEXT DEFAULT NULL;

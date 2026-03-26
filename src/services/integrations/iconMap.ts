@@ -39,6 +39,11 @@ const ICON_MAP: Record<string, string> = {
   sungrow: "sungrow.png",
   sunny_portal: "sunny_portal.png",
 
+  // PNG assets (signature providers)
+  clicksign: "clicksign.png",
+  autentique: "autentique.png",
+  d4sign: "d4sign.png",
+
   // SVG assets
   afore: "afore.svg",
   agendor: "agendor.svg",

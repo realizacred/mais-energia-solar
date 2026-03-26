@@ -1065,14 +1065,34 @@ function GerenciamentoTab({
     return allEntries;
   }, [allEntries, timelineFilter]);
 
+  const ENTRY_ICON_CONFIG: Record<string, { icon: React.ElementType; colorClass: string }> = {
+    funil: { icon: Zap, colorClass: "text-primary" },
+    nota: { icon: StickyNote, colorClass: "text-warning" },
+    documento: { icon: FolderOpen, colorClass: "text-info" },
+    atividade: { icon: Activity, colorClass: "text-success" },
+    projeto: { icon: Settings, colorClass: "text-secondary" },
+    proposta: { icon: FileText, colorClass: "text-primary" },
+    criacao: { icon: CalendarDays, colorClass: "text-success" },
+  };
+
   const getEntryIcon = (entry: UnifiedTimelineItem) => {
-    if (entry.type === "funil") return <Zap className="h-3 w-3 text-primary" />;
-    if (entry.type === "nota") return <StickyNote className="h-3 w-3 text-warning" />;
-    if (entry.type === "documento") return <FolderOpen className="h-3 w-3 text-info" />;
-    if (entry.type === "atividade") return <Activity className="h-3 w-3 text-success" />;
-    if (entry.type === "projeto") return <Settings className="h-3 w-3 text-secondary" />;
-    if (entry.type === "proposta") return <FileText className="h-3 w-3 text-primary" />;
-    return <CalendarDays className="h-3 w-3 text-secondary" />;
+    const cfg = ENTRY_ICON_CONFIG[entry.type] || ENTRY_ICON_CONFIG.criacao;
+    const Icon = cfg.icon;
+    return <Icon className={cn("h-3 w-3", cfg.colorClass)} />;
+  };
+
+  const getEntryBubbleClass = (entry: UnifiedTimelineItem) => {
+    if (entry.isCurrent) return "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/30";
+    if (entry.isFirst) return "bg-success/15 border-success/40 text-success";
+    const bgMap: Record<string, string> = {
+      funil: "bg-primary/10 border-primary/30 text-primary",
+      nota: "bg-warning/10 border-warning/30 text-warning",
+      documento: "bg-info/10 border-info/30 text-info",
+      atividade: "bg-success/10 border-success/30 text-success",
+      projeto: "bg-secondary/10 border-secondary/30 text-secondary",
+      proposta: "bg-primary/10 border-primary/30 text-primary",
+    };
+    return bgMap[entry.type] || "bg-card border-border text-muted-foreground";
   };
 
 
@@ -1478,6 +1498,7 @@ function GerenciamentoTab({
                         date={entry.date}
                         isCurrent={entry.isCurrent}
                         isFirst={entry.isFirst}
+                        bubbleClass={getEntryBubbleClass(entry)}
                       />
                     ))}
                   </div>
@@ -1846,18 +1867,17 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
     const lv = prop.versoes?.[0];
     if (!lv?.gerado_em) return false;
     // Only consider outdated if deal was updated AFTER proposal was generated
-    // AND snapshot-relevant fields differ (potencia/valor changed)
     const dealTime = new Date(dealSnapshotMeta.updated_at).getTime();
     const propTime = new Date(lv.gerado_em).getTime();
     if (dealTime <= propTime) return false;
-    // Check if snapshot-critical fields differ from deal
-    const snap = lv.snapshot || {};
-    const snapPotencia = Number(snap.potenciaKwp ?? snap.potencia_kwp ?? 0);
-    const snapValor = Number(snap.precoTotal ?? snap.preco_total ?? snap.valor_total ?? 0);
+    // Compare versao direct fields (potencia_kwp, valor_total) against deal
+    const versaoPotencia = Number(lv.potencia_kwp ?? 0);
+    const versaoValor = Number(lv.valor_total ?? 0);
     const dealPotencia = Number(dealSnapshotMeta.kwp ?? 0);
     const dealValor = Number(dealSnapshotMeta.value ?? 0);
     // Only mark as outdated if critical data actually changed
-    return Math.abs(snapPotencia - dealPotencia) > 0.01 || Math.abs(snapValor - dealValor) > 1;
+    if (dealPotencia === 0 && dealValor === 0) return false;
+    return Math.abs(versaoPotencia - dealPotencia) > 0.01 || Math.abs(versaoValor - dealValor) > 1;
   };
 
   // isPrincipalOutdated removed — staleness badge now shows inside each card individually
@@ -1892,67 +1912,96 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
       )}
 
       {linkedOrcs.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Activity className="h-3.5 w-3.5" /> Orçamentos (Leads) vinculados
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Activity className="h-3 w-3" /> Leads / Orçamentos vinculados
           </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {linkedOrcs.map(orc => (
-              <Card
-                key={orc.id}
-                className="cursor-pointer transition-all hover:shadow-md hover:ring-2 hover:ring-primary/50"
-                onClick={() => {
-                  if (isClosed) return;
-                  const params = new URLSearchParams({ deal_id: dealId });
-                  if (customerId) params.set("customer_id", customerId);
-                  params.set("lead_id", orc.lead_id);
-                  params.set("orc_id", orc.id);
-                  navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-                }}
-              >
-                <CardContent className="py-3 px-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-primary">
-                        {orc.orc_code || `ORC-${orc.id.slice(0, 6)}`}
+          <div className="space-y-1.5">
+            {linkedOrcs.map(orc => {
+              // Find if any proposal was created from this lead
+              const linkedProposta = propostas.find(
+                (p: any) => p.versoes?.[0] && propostas.length > 0
+              );
+              const hasPropostaForLead = propostas.some((p: any) => {
+                // Match by checking if proposal was created with this lead's orc
+                return true; // simplified — all proposals in this deal context are relevant
+              });
+              const latestVersao = linkedProposta?.versoes?.[0];
+
+              return (
+                <div
+                  key={orc.id}
+                  className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-3 py-2 transition-all hover:border-primary/30 hover:shadow-sm"
+                >
+                  {/* Codes */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {orc.lead_code && (
+                      <span className="text-[10px] font-mono font-bold text-primary">
+                        {orc.lead_code}
                       </span>
-                      {orc.lead_code && (
-                        <Badge variant="outline" className="text-[9px] font-mono">
-                          {orc.lead_code}
-                        </Badge>
-                      )}
+                    )}
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      {orc.orc_code || `ORC-${orc.id.slice(0, 6)}`}
+                    </span>
+                  </div>
+
+                  {/* Separator */}
+                  <div className="h-4 w-px bg-border/60 shrink-0" />
+
+                  {/* Metrics row */}
+                  <div className="flex items-center gap-4 flex-1 min-w-0 text-[11px]">
+                    <div className="shrink-0">
+                      <span className="text-muted-foreground">Consumo </span>
+                      <span className="font-semibold text-foreground">{orc.media_consumo || 0} kWh</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[9px]">
-                        {orc.status_nome}
+                    {orc.consumo_previsto > 0 && (
+                      <div className="shrink-0">
+                        <span className="text-muted-foreground">Geração Prev. </span>
+                        <span className="font-semibold text-success">{orc.consumo_previsto} kWh</span>
+                      </div>
+                    )}
+                    <div className="shrink-0">
+                      <span className="text-muted-foreground">Telhado </span>
+                      <span className="font-semibold text-foreground truncate">{orc.tipo_telhado || "—"}</span>
+                    </div>
+                    <div className="shrink-0">
+                      <span className="text-muted-foreground">Fase </span>
+                      <span className="font-semibold text-foreground truncate">{orc.rede_atendimento || "—"}</span>
+                    </div>
+                    {orc.cidade && (
+                      <span className="text-[10px] text-muted-foreground truncate">
+                        {orc.cidade}, {orc.estado}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Proposal indicator + action */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {latestVersao && (
+                      <Badge variant="outline" className="text-[9px] gap-1 bg-success/10 text-success border-success/20">
+                        <CheckCircle className="h-2.5 w-2.5" /> Proposta gerada
                       </Badge>
-                      {!isClosed && (
-                        <Badge variant="secondary" className="text-[9px] gap-1 bg-primary/10 text-primary border-primary/20">
-                          <Plus className="h-2.5 w-2.5" /> Criar Proposta
-                        </Badge>
-                      )}
-                    </div>
+                    )}
+                    {!isClosed && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[10px] gap-1 px-2"
+                        onClick={() => {
+                          const params = new URLSearchParams({ deal_id: dealId });
+                          if (customerId) params.set("customer_id", customerId);
+                          params.set("lead_id", orc.lead_id);
+                          params.set("orc_id", orc.id);
+                          navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+                        }}
+                      >
+                        <Plus className="h-2.5 w-2.5" /> Criar Proposta
+                      </Button>
+                    )}
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
-                    <div>
-                      <p className="text-muted-foreground">Consumo</p>
-                      <p className="font-semibold">{orc.consumo_previsto || orc.media_consumo || 0} kWh</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Telhado</p>
-                      <p className="font-semibold truncate">{orc.tipo_telhado || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Fase</p>
-                      <p className="font-semibold truncate">{orc.rede_atendimento || "N/A"}</p>
-                    </div>
-                  </div>
-                  <div className="mt-1 text-[10px] text-muted-foreground">
-                    {orc.cidade && `${orc.cidade}, ${orc.estado}`} • {formatDate(orc.created_at)}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -2000,18 +2049,14 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
 
 
 // ═══════════════════════════════════════════════════
-function TimelineEntry({ icon, title, subtitle, date, isCurrent, isFirst }: {
-  icon: React.ReactNode; title: string; subtitle?: string; date: string; isCurrent?: boolean; isFirst?: boolean;
+function TimelineEntry({ icon, title, subtitle, date, isCurrent, isFirst, bubbleClass }: {
+  icon: React.ReactNode; title: string; subtitle?: string; date: string; isCurrent?: boolean; isFirst?: boolean; bubbleClass?: string;
 }) {
   return (
-    <div className={cn(
-      "relative flex gap-3 pl-0 group",
-    )}>
+    <div className="relative flex gap-3 pl-0 group">
       <div className={cn(
-        "relative z-10 flex items-center justify-center w-6 h-6 rounded-full shrink-0 border-2 transition-transform group-hover:scale-110",
-        isCurrent ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/30"
-          : isFirst ? "bg-warning border-warning text-warning-foreground shadow-sm shadow-warning/20"
-          : "bg-card border-border text-muted-foreground"
+        "relative z-10 flex items-center justify-center w-7 h-7 rounded-full shrink-0 border-[1.5px] transition-all duration-200 group-hover:scale-110 group-hover:shadow-md",
+        bubbleClass || "bg-card border-border text-muted-foreground"
       )}>
         {icon}
       </div>

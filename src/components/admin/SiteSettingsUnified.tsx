@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import {
   Save, Globe, Phone, Building2, Type, BarChart3, Palette,
   Sparkles, Instagram, Facebook, Linkedin, Youtube,
-  Image as ImageIcon, Moon, Paintbrush, RotateCcw, Eye, CheckCircle2,
+  Image as ImageIcon, Moon, Paintbrush, RotateCcw, Eye, CheckCircle2, UserCheck,
 } from "lucide-react";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -311,6 +312,50 @@ export function SiteSettingsUnified() {
               </CardContent>
             </Card>
           )}
+
+          {/* Representante Legal — salva em brand_settings */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2.5">
+                <UserCheck className="w-4 h-4 text-primary" />
+                <div>
+                  <CardTitle className="text-base">Representante Legal</CardTitle>
+                  <CardDescription>Dados do representante para contratos e documentos</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nome completo do representante legal</Label>
+                  <Input
+                    value={brandDraft.representante_legal || ""}
+                    onChange={(e) => handleBrandChange("representante_legal", e.target.value)}
+                    placeholder="Ex: João da Silva"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cargo</Label>
+                  <Input
+                    value={brandDraft.representante_cargo || ""}
+                    onChange={(e) => handleBrandChange("representante_cargo", e.target.value)}
+                    placeholder="Ex: Sócio-Diretor"
+                  />
+                </div>
+              </div>
+              <div className="max-w-sm">
+                <CpfCnpjInput
+                  value={brandDraft.representante_cpf || ""}
+                  onChange={(val) => handleBrandChange("representante_cpf", val)}
+                  label="CPF do representante"
+                  placeholder="000.000.000-00"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Estes dados são usados nas variáveis <code className="text-xs bg-muted px-1 rounded">{"{{comercial.empresa_representante_*}}"}</code> em contratos e propostas. Salve clicando em <strong>"Salvar Visual"</strong>.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ═══ CONTATO ═══ */}

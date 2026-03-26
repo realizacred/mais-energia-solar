@@ -4,6 +4,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, Wifi, AlertTriangle, Receipt, User, Wrench, Signature, CreditCard, Home, Zap, Wallet, ChevronLeft, ChevronRight, Check, RefreshCw } from "lucide-react";
+import { MissingDocsConfirmModal } from "./MissingDocsConfirmModal";
 import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import { useOfflineConversionSync, getCachedEquipment, setCachedEquipment } from "@/hooks/useOfflineConversionSync";
@@ -135,7 +136,9 @@ export function ConvertLeadToClientDialog({
   const [assinaturaFiles, setAssinaturaFiles] = useState<DocumentFile[]>([]);
   
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [showMissingDocsModal, setShowMissingDocsModal] = useState(false);
   const [paymentItems, setPaymentItems] = useState<PaymentItemInput[]>([createEmptyItem()]);
+  const [aguardandoStatusAvailable, setAguardandoStatusAvailable] = useState<boolean | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -238,6 +241,23 @@ export function ConvertLeadToClientDialog({
     };
 
     loadEquipment();
+
+    // Check if "Aguardando Documentação" status exists
+    const checkAguardandoStatus = async () => {
+      if (!navigator.onLine) return;
+      try {
+        const { data: status } = await supabase
+          .from("lead_status")
+          .select("id")
+          .or("nome.eq.Aguardando Documentação,nome.ilike.%aguardando%document%")
+          .limit(1)
+          .maybeSingle();
+        setAguardandoStatusAvailable(!!status);
+      } catch {
+        setAguardandoStatusAvailable(false);
+      }
+    };
+    checkAguardandoStatus();
   }, []);
 
   // Load simulations for this lead
@@ -855,11 +875,18 @@ export function ConvertLeadToClientDialog({
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.removeItem(storageKey);
 
-      // Persist payment composition for admin approval
-      if (paymentItems.length > 0) {
+      // Persist payment composition to DB (source of truth) + localStorage (cache)
+      if (paymentItems.length > 0 && cliente) {
+        const compositionJson = JSON.stringify(paymentItems);
+        // Save to DB
+        await supabase
+          .from("clientes")
+          .update({ payment_composition: paymentItems } as any)
+          .eq("id", cliente.id);
+        // Keep localStorage as cache/fallback
         localStorage.setItem(
           `lead_payment_composition_${lead.id}`,
-          JSON.stringify(paymentItems)
+          compositionJson
         );
       }
 
@@ -958,6 +985,18 @@ export function ConvertLeadToClientDialog({
     return true;
   };
 
+  /** Check if a visited step has all required fields filled */
+  const isStepComplete = (step: number): boolean => {
+    const v = form.getValues();
+    if (step === 0) {
+      return !!(v.nome && v.telefone && v.email && v.cpf_cnpj && v.estado && v.cidade && v.bairro && v.rua && v.numero);
+    }
+    if (step === 1) {
+      return !!(v.disjuntor_id && v.transformador_id && v.localizacao && identidadeFiles.length > 0 && comprovanteFiles.length > 0);
+    }
+    return true;
+  };
+
   const handleNext = () => {
     setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
@@ -965,6 +1004,7 @@ export function ConvertLeadToClientDialog({
   const handleBack = () => setCurrentStep((s) => Math.max(s - 1, 0));
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
       <DialogContent className="w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* ── HEADER §25 ─────────────────────────────────────── */}
@@ -988,6 +1028,9 @@ export function ConvertLeadToClientDialog({
             const StepIcon = step.icon;
             const isActive = idx === currentStep;
             const isDone = idx < currentStep;
+            const isVisited = idx < currentStep;
+            const stepComplete = isVisited && isStepComplete(idx);
+            const stepIncomplete = isVisited && !stepComplete;
             return (
               <div key={idx} className="flex items-center gap-1 flex-1 min-w-0">
                 <Button
@@ -997,16 +1040,24 @@ export function ConvertLeadToClientDialog({
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors w-full min-w-0 h-auto ${
                     isActive
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : isDone
+                      : stepComplete
                       ? "text-success cursor-pointer hover:bg-muted/50"
+                      : stepIncomplete
+                      ? "text-warning cursor-pointer hover:bg-muted/50"
                       : "text-muted-foreground hover:bg-transparent"
                   }`}
                   disabled={idx > currentStep}
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                    isActive ? "bg-primary text-primary-foreground" : isDone ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : stepComplete
+                      ? "bg-success/10 text-success"
+                      : stepIncomplete
+                      ? "bg-warning/10 text-warning"
+                      : "bg-muted text-muted-foreground"
                   }`}>
-                    {isDone ? <Check className="w-3.5 h-3.5" /> : <StepIcon className="w-3.5 h-3.5" />}
+                    {stepComplete ? <Check className="w-3.5 h-3.5" /> : stepIncomplete ? <AlertTriangle className="w-3.5 h-3.5" /> : <StepIcon className="w-3.5 h-3.5" />}
                   </div>
                   <div className="min-w-0 text-left hidden sm:block">
                     <p className="text-xs font-semibold truncate">{step.label}</p>
@@ -1014,7 +1065,7 @@ export function ConvertLeadToClientDialog({
                   </div>
                 </Button>
                 {idx < STEPS.length - 1 && (
-                  <div className={`w-4 h-px shrink-0 ${isDone ? "bg-success" : "bg-border"}`} />
+                  <div className={`w-4 h-px shrink-0 ${stepComplete ? "bg-success" : stepIncomplete ? "bg-warning" : "bg-border"}`} />
                 )}
               </div>
             );
@@ -1402,8 +1453,18 @@ export function ConvertLeadToClientDialog({
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={handleSaveAsLead}
-                      disabled={loading || savingAsLead}
+                      onClick={() => {
+                        if (aguardandoStatusAvailable === false) {
+                          toast({
+                            title: "Status não configurado",
+                            description: "O status 'Aguardando Documentação' não existe. Peça ao administrador para criá-lo na configuração de status.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        handleSaveAsLead();
+                      }}
+                      disabled={loading || savingAsLead || aguardandoStatusAvailable === false}
                     >
                       {savingAsLead ? (
                         <><Spinner size="sm" /> Salvando...</>
@@ -1417,7 +1478,6 @@ export function ConvertLeadToClientDialog({
                       onClick={async () => {
                         const valid = await form.trigger();
                         if (!valid) {
-                          // Find which step has errors and navigate there
                           const errors = form.formState.errors;
                           const step0Fields = ["nome", "telefone", "email", "cpf_cnpj", "cep", "estado", "cidade", "bairro", "rua", "numero", "complemento"] as const;
                           const step1Fields = ["disjuntor_id", "transformador_id", "localizacao"] as const;
@@ -1448,6 +1508,14 @@ export function ConvertLeadToClientDialog({
                           }
                           return;
                         }
+
+                        // Check for missing documentation items
+                        const currentMissing = getMissingItems();
+                        if (currentMissing.length > 0) {
+                          setShowMissingDocsModal(true);
+                          return;
+                        }
+
                         const data = form.getValues();
                         handleSubmit(data);
                       }}
@@ -1466,5 +1534,19 @@ export function ConvertLeadToClientDialog({
         </Form>
       </DialogContent>
     </Dialog>
+
+    <MissingDocsConfirmModal
+      open={showMissingDocsModal}
+      onOpenChange={setShowMissingDocsModal}
+      missingItems={missingItems}
+      leadNome={lead.nome}
+      onSaveAsPending={() => {
+        setShowMissingDocsModal(false);
+        handleSaveAsLead();
+      }}
+      onBack={() => setShowMissingDocsModal(false)}
+      isSaving={savingAsLead}
+    />
+    </>
   );
 }

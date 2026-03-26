@@ -56,6 +56,13 @@ export function resolveFinanceiro(
     setCurIfMissing("economia_25_anos", econMensal * 12 * 25);
   }
 
+  // ── Economia Percentual ──
+  const econPercent = num(versao.economia_mensal_percent) ?? num(fin.economia_mensal_percent) ?? num(snap.economia_mensal_percent) ?? num(snap.economia_percentual);
+  if (econPercent != null) {
+    out["economia_percentual"] = fmtNum(econPercent, 1) + "%";
+    out["economia_mensal_percent"] = fmtNum(econPercent, 1) + "%";
+  }
+
   // ── Payback ──
   const paybackMeses = num(versao.payback_meses) ?? num(fin.payback_meses) ?? num(snap.payback_meses) ?? num(snap.payback);
   if (paybackMeses != null && paybackMeses > 0) {

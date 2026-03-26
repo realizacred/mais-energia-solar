@@ -760,6 +760,9 @@ export type Database = {
           logo_small_url: string | null
           logo_url: string | null
           logo_white_url: string | null
+          representante_cargo: string | null
+          representante_cpf: string | null
+          representante_legal: string | null
           tenant_id: string
           updated_at: string
         }
@@ -802,6 +805,9 @@ export type Database = {
           logo_small_url?: string | null
           logo_url?: string | null
           logo_white_url?: string | null
+          representante_cargo?: string | null
+          representante_cpf?: string | null
+          representante_legal?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -844,6 +850,9 @@ export type Database = {
           logo_small_url?: string | null
           logo_url?: string | null
           logo_white_url?: string | null
+          representante_cargo?: string | null
+          representante_cpf?: string | null
+          representante_legal?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -1709,6 +1718,7 @@ export type Database = {
           numero: string | null
           numero_placas: number | null
           observacoes: string | null
+          payment_composition: Json | null
           potencia_kwp: number | null
           rua: string | null
           simulacao_aceita_id: string | null
@@ -1748,6 +1758,7 @@ export type Database = {
           numero?: string | null
           numero_placas?: number | null
           observacoes?: string | null
+          payment_composition?: Json | null
           potencia_kwp?: number | null
           rua?: string | null
           simulacao_aceita_id?: string | null
@@ -1787,6 +1798,7 @@ export type Database = {
           numero?: string | null
           numero_placas?: number | null
           observacoes?: string | null
+          payment_composition?: Json | null
           potencia_kwp?: number | null
           rua?: string | null
           simulacao_aceita_id?: string | null
@@ -5895,6 +5907,7 @@ export type Database = {
           id: string
           input_payload: Json | null
           lead_id: string | null
+          pdf_filled_path: string | null
           pdf_path: string | null
           projeto_id: string | null
           signature_provider: string | null
@@ -5918,6 +5931,7 @@ export type Database = {
           id?: string
           input_payload?: Json | null
           lead_id?: string | null
+          pdf_filled_path?: string | null
           pdf_path?: string | null
           projeto_id?: string | null
           signature_provider?: string | null
@@ -5941,6 +5955,7 @@ export type Database = {
           id?: string
           input_payload?: Json | null
           lead_id?: string | null
+          pdf_filled_path?: string | null
           pdf_path?: string | null
           projeto_id?: string | null
           signature_provider?: string | null

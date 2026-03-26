@@ -1,6 +1,7 @@
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { formatKwp } from "@/lib/formatters/index";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info, Users, FileCheck } from "lucide-react";
@@ -65,7 +66,19 @@ export function ProjetosManager() {
   const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
   const [defaultStageId, setDefaultStageId] = useState<string | undefined>();
   const [defaultModalPipelineId, setDefaultModalPipelineId] = useState<string | undefined>();
-  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedDealId = searchParams.get("projeto") || null;
+  const setSelectedDealId = useCallback((id: string | null) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) {
+        next.set("projeto", id);
+      } else {
+        next.delete("projeto");
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
   const [activeTab, setActiveTab] = useState<string>("kanban");
   const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
   const [defaultPipelineApplied, setDefaultPipelineApplied] = useState(false);

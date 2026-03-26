@@ -4,6 +4,20 @@
  * saves the filled DOCX to storage, and updates generated_documents.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
+import {
+  withRetry,
+  fetchWithTimeout,
+  isCircuitOpen,
+  recordFailure,
+  resetCircuit,
+  sanitizeError,
+  updateHealthCache,
+  type CircuitBreakerState,
+} from "../_shared/error-utils.ts";
+
+// In-memory circuit breaker state (resets per cold start)
+let circuitState: CircuitBreakerState = { failures: 0, last_failure_at: null, open_until: null };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,18 +51,102 @@ function formatDateBR(d: string | null | undefined): string {
   }
 }
 
+/** Format date extenso in pt-BR with Brasília timezone */
+function formatDateExtenso(date: Date): string {
+  return date.toLocaleDateString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+/** Build payment description from payment_composition JSONB */
+function buildPaymentDescription(composition: any[], valorTotal: number | null): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!composition || !Array.isArray(composition) || composition.length === 0) return result;
+
+  const parts: string[] = [];
+  let entradaTotal = 0;
+  let financiadoTotal = 0;
+
+  for (const item of composition) {
+    const entrada = Number(item.entrada) || 0;
+    const parcelas = Number(item.parcelas) || 0;
+    const valorBase = Number(item.valor_base) || 0;
+    const banco = item.observacoes || item.banco || "";
+
+    if (entrada > 0) {
+      entradaTotal += entrada;
+      parts.push(`${formatBRL(entrada)} entrada`);
+    }
+    if (parcelas > 0 && valorBase > 0) {
+      financiadoTotal += parcelas * valorBase;
+      parts.push(`${parcelas}x ${formatBRL(valorBase)}`);
+    }
+    if (banco) {
+      result["pagamento_banco_nome"] = banco;
+      result["pagamento.banco_nome"] = banco;
+    }
+  }
+
+  const formaDescrita = parts.join(" + ") || "—";
+  result["pagamento_forma_descrita"] = formaDescrita;
+  result["pagamento.forma_descrita"] = formaDescrita;
+
+  result["pagamento_entrada_valor"] = entradaTotal > 0 ? formatBRL(entradaTotal) : "—";
+  result["pagamento.entrada_valor"] = result["pagamento_entrada_valor"];
+
+  if (valorTotal && valorTotal > 0 && entradaTotal > 0) {
+    const pct = Math.round((entradaTotal / valorTotal) * 100);
+    result["pagamento_entrada_percentual"] = `${pct}%`;
+    result["pagamento.entrada_percentual"] = `${pct}%`;
+  } else {
+    result["pagamento_entrada_percentual"] = "—";
+    result["pagamento.entrada_percentual"] = "—";
+  }
+
+  result["pagamento_total_financiado"] = financiadoTotal > 0 ? formatBRL(financiadoTotal) : "—";
+  result["pagamento.total_financiado"] = result["pagamento_total_financiado"];
+
+  const firstItem = composition[0];
+  if (firstItem) {
+    const parcelas = Number(firstItem.parcelas) || 0;
+    const valorBase = Number(firstItem.valor_base) || 0;
+    result["pagamento_parcelas_quantidade"] = parcelas > 0 ? String(parcelas) : "—";
+    result["pagamento.parcelas_quantidade"] = result["pagamento_parcelas_quantidade"];
+    result["pagamento_parcelas_valor"] = valorBase > 0 ? formatBRL(valorBase) : "—";
+    result["pagamento.parcelas_valor"] = result["pagamento_parcelas_valor"];
+  }
+
+  const banco = result["pagamento_banco_nome"] || "";
+  const condicoes = banco ? `${formaDescrita} via ${banco}` : formaDescrita;
+  result["pagamento_condicoes_completas"] = condicoes;
+  result["pagamento.condicoes_completas"] = condicoes;
+
+  return result;
+}
+
 /** Build flat variable context from loaded data */
 function buildContext(
   cliente: Record<string, any> | null,
   projeto: Record<string, any> | null,
   tenant: Record<string, any> | null,
   proposta: Record<string, any> | null,
+  brandSettings: Record<string, any> | null,
+  contratoNumero: string,
 ): Record<string, string> {
   const ctx: Record<string, string> = {};
   const set = (key: string, val: any) => {
     if (val !== null && val !== undefined && val !== "") {
       ctx[key] = String(val);
     }
+  };
+  /** Set both flat and dotted key for compatibility */
+  const setDual = (flat: string, dotted: string, val: any) => {
+    const s = val !== null && val !== undefined && val !== "" ? String(val) : "—";
+    ctx[flat] = s;
+    ctx[dotted] = s;
   };
 
   // Cliente
@@ -68,6 +166,13 @@ function buildContext(
     set("cliente_estado", cliente.estado);
     set("cliente_cep", cliente.cep);
     set("cliente_complemento", cliente.complemento);
+
+    // Pagamento (from payment_composition JSONB)
+    const valorTotal = projeto?.valor_total ?? null;
+    if (cliente.payment_composition) {
+      const payVars = buildPaymentDescription(cliente.payment_composition, valorTotal);
+      Object.assign(ctx, payVars);
+    }
   }
 
   // Projeto
@@ -100,6 +205,13 @@ function buildContext(
     set("empresa_endereco", tenant.endereco);
   }
 
+  // Brand Settings — Representante Legal
+  if (brandSettings) {
+    setDual("empresa_representante_legal", "comercial.empresa_representante_legal", brandSettings.representante_legal);
+    setDual("empresa_representante_cpf", "comercial.empresa_representante_cpf", brandSettings.representante_cpf);
+    setDual("empresa_representante_cargo", "comercial.empresa_representante_cargo", brandSettings.representante_cargo);
+  }
+
   // Proposta snapshot (if exists)
   if (proposta) {
     const snap = proposta.snapshot || {};
@@ -111,15 +223,27 @@ function buildContext(
     }
   }
 
-  // Date vars
+  // ── Contrato vars ──
   const now = new Date();
-  set("data_atual", now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }));
-  set("data_extenso", now.toLocaleDateString("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }));
+  const dataBR = now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const dataExtenso = formatDateExtenso(now);
+
+  setDual("contrato_numero", "contrato.numero", contratoNumero);
+  setDual("contrato_data", "contrato.data", dataBR);
+  setDual("contrato_data_extenso", "contrato.data_extenso", dataExtenso);
+
+  // Validade = hoje + 30 dias
+  const validade = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  setDual("contrato_validade", "contrato.validade", validade.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }));
+
+  // ── Assinatura vars ──
+  setDual("assinatura_local", "assinatura.local", cliente?.cidade || "—");
+  setDual("assinatura_data", "assinatura.data", dataBR);
+  setDual("assinatura_data_extenso", "assinatura.data_extenso", dataExtenso);
+
+  // ── Date vars (legacy compatibility) ──
+  set("data_atual", dataBR);
+  set("data_extenso", dataExtenso);
 
   return ctx;
 }
@@ -266,7 +390,7 @@ Deno.serve(async (req) => {
 
     const clienteId = projeto?.cliente_id;
 
-    const [clienteRes, tenantRes, propostaRes] = await Promise.all([
+    const [clienteRes, tenantRes, propostaRes, brandRes, contratoCountRes] = await Promise.all([
       clienteId
         ? supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle()
         : Promise.resolve({ data: null }),
@@ -304,7 +428,22 @@ Deno.serve(async (req) => {
           }
           return r;
         }),
+      // Brand settings (representante legal)
+      supabase
+        .from("brand_settings")
+        .select("representante_legal, representante_cpf, representante_cargo")
+        .eq("tenant_id", tenantId)
+        .maybeSingle(),
+      // Count existing generated documents for contrato.numero
+      supabase
+        .from("generated_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId),
     ]);
+
+    // Generate contrato number (zero-padded sequential)
+    const contratoCount = (contratoCountRes.count ?? 0) + 1;
+    const contratoNumero = String(contratoCount).padStart(4, "0");
 
     // 4. Build variable context
     const variables = buildContext(
@@ -312,6 +451,8 @@ Deno.serve(async (req) => {
       projeto,
       tenantRes.data,
       propostaRes.data,
+      brandRes.data,
+      contratoNumero,
     );
 
     console.log(`[generate-document] Variables resolved: ${Object.keys(variables).length} keys`);
@@ -342,7 +483,102 @@ Deno.serve(async (req) => {
 
     console.log(`[generate-document] DOCX saved to: ${docxPath}`);
 
-    // 7. Update or insert generated_documents record
+    // 7. Convert DOCX to PDF via Gotenberg (same pattern as docx-to-pdf)
+    let pdfPath: string | null = null;
+
+    if (isCircuitOpen(circuitState)) {
+      console.warn("[generate-document] Circuit breaker OPEN — skipping PDF conversion");
+    } else {
+      try {
+        // Encode DOCX to base64 for Gotenberg
+        let docxBase64 = "";
+        const chunkSize = 32768;
+        for (let i = 0; i < filledDocx.length; i += chunkSize) {
+          const chunk = filledDocx.subarray(i, i + chunkSize);
+          docxBase64 += String.fromCharCode(...chunk);
+        }
+        docxBase64 = btoa(docxBase64);
+
+        // Build multipart form for Gotenberg
+        const formData = new FormData();
+        const blob = new Blob([filledDocx], {
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        });
+        formData.append("files", blob, `${safeName}.docx`);
+        formData.append("landscape", "false");
+        formData.append("nativePageRanges", "1-");
+        formData.append("losslessImageCompression", "true");
+        formData.append("reduceImageResolution", "false");
+        formData.append("quality", "100");
+        formData.append("exportFormFields", "false");
+        formData.append("skipEmptyPages", "true");
+
+        const GOTENBERG_URL = await resolveGotenbergUrl(supabase, tenantId);
+        const conversionUrl = `${GOTENBERG_URL}/forms/libreoffice/convert`;
+        console.log(`[generate-document] Sending to Gotenberg: ${conversionUrl}`);
+
+        const response = await withRetry(
+          async () => {
+            const res = await fetchWithTimeout(
+              conversionUrl,
+              { method: "POST", body: formData },
+              90000,
+            );
+            if (!res.ok) {
+              const errorText = await res.text();
+              throw new Error(`Gotenberg ${res.status}: ${errorText}`);
+            }
+            return res;
+          },
+          {
+            maxRetries: 2,
+            baseDelayMs: 1000,
+            onRetry: (attempt, err) => {
+              console.warn(`[generate-document] PDF retry ${attempt}/2: ${sanitizeError(err)}`);
+            },
+          },
+        ).catch((err) => {
+          circuitState = recordFailure(circuitState);
+          console.error(`[generate-document] PDF conversion failed. Circuit: failures=${circuitState.failures}`);
+          updateHealthCache(supabase, "gotenberg", "down", {
+            error_message: sanitizeError(err),
+            metadata: { circuit_state: circuitState },
+          });
+          throw err;
+        });
+
+        // Success — reset circuit
+        if (circuitState.failures > 0) {
+          circuitState = resetCircuit();
+          updateHealthCache(supabase, "gotenberg", "up", {});
+        }
+
+        const pdfBuffer = await response.arrayBuffer();
+        const pdfBytes = new Uint8Array(pdfBuffer);
+        console.log(`[generate-document] PDF generated: ${pdfBytes.length} bytes`);
+
+        // Upload PDF to same bucket, same path structure
+        pdfPath = docxPath.replace(/\.docx$/, ".pdf");
+        const { error: pdfUploadErr } = await supabase.storage
+          .from("document-files")
+          .upload(pdfPath, pdfBytes, {
+            contentType: "application/pdf",
+            upsert: false,
+          });
+
+        if (pdfUploadErr) {
+          console.error("[generate-document] PDF upload error:", pdfUploadErr);
+          pdfPath = null; // Don't fail the whole operation
+        } else {
+          console.log(`[generate-document] PDF saved to: ${pdfPath}`);
+        }
+      } catch (pdfErr: any) {
+        console.error("[generate-document] PDF conversion error (non-fatal):", pdfErr?.message);
+        // PDF conversion is non-fatal — DOCX was already saved
+      }
+    }
+
+    // 8. Update or insert generated_documents record
     const docRecord: Record<string, any> = {
       tenant_id: tenantId,
       deal_id: deal_id,
@@ -351,6 +587,7 @@ Deno.serve(async (req) => {
       title: template.nome,
       status: "generated",
       docx_filled_path: docxPath,
+      pdf_filled_path: pdfPath,
       input_payload: variables,
       updated_by: userId,
     };
@@ -361,7 +598,6 @@ Deno.serve(async (req) => {
     let docId = generated_doc_id;
 
     if (docId) {
-      // Update existing record
       const { error: updErr } = await supabase
         .from("generated_documents")
         .update({
@@ -374,7 +610,6 @@ Deno.serve(async (req) => {
         console.error("[generate-document] Update error:", updErr);
       }
     } else {
-      // Insert new
       docRecord.created_by = userId;
       const { data: inserted, error: insErr } = await supabase
         .from("generated_documents")
@@ -399,6 +634,7 @@ Deno.serve(async (req) => {
         success: true,
         document_id: docId,
         docx_path: docxPath,
+        pdf_path: pdfPath,
         variables_count: Object.keys(variables).length,
       }),
       { headers: jsonHeaders },
