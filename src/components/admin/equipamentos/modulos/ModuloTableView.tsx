@@ -243,7 +243,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
       </div>
 
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="text-xs [&_td]:px-2 [&_td]:py-2 [&_th]:px-2 [&_th]:py-2">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[40px]">
