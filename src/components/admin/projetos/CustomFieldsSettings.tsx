@@ -644,7 +644,7 @@ export function CustomFieldsSettings() {
 
       {/* ═══ Dialog: Campo Customizado (Wizard) ═══ */}
       <Dialog open={fieldDialogOpen} onOpenChange={(open) => { setFieldDialogOpen(open); if (!open) setFieldWizardStep("type"); }}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
           <DialogHeader>
             <DialogTitle>
               {editingField
