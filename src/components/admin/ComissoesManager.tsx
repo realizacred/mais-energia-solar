@@ -636,7 +636,7 @@ export function ComissoesManager() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredComissoes.map((comissao) => {
+                      {paginatedComissoes.map((comissao) => {
                         const valorPago = calcularValorPago(comissao);
                         const saldoRestante = calcularSaldoRestante(comissao);
                         return (
