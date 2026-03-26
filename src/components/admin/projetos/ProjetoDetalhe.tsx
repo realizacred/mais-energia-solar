@@ -677,7 +677,7 @@ function GerenciamentoTab({
     try {
       const { data: fields } = await supabase
         .from("deal_custom_fields")
-        .select("id, title, field_key, field_type, options, important_stage_ids")
+        .select("id, title, field_key, field_type, options, important_stage_ids, icon")
         .eq("is_active", true)
         .eq("field_context", "projeto")
         .eq("important_on_funnel", true)
