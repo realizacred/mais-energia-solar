@@ -259,10 +259,14 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     const card = kitItemsToCardData(newItens, topoLabel);
     if (card) {
       if (meta?.distribuidorNome) card.distribuidorNome = meta.distribuidorNome;
-      if (meta?.custo) card.precoTotal = meta.custo;
+      if (meta?.custo != null && meta.custo > 0) card.precoTotal = meta.custo;
 
       if (editingKitIndex !== null) {
         setManualKits(manualKits.map((k, i) => i === editingKitIndex ? { card, itens: newItens, meta } : k));
+        // If the edited kit was the selected one, propagate updated items to parent
+        if (selectedManualIdx === editingKitIndex) {
+          onItensChange(newItens);
+        }
         setEditingKitIndex(null);
       } else {
         setManualKits([...manualKits, { card, itens: newItens, meta }]);
