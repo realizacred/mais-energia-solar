@@ -672,19 +672,31 @@ function GerenciamentoTab({
   };
 
   // Load important custom fields + values
+  // Filter by current stage: only show fields whose important_stage_ids includes the current stage
   const loadImportantFields = async () => {
     try {
       const { data: fields } = await supabase
         .from("deal_custom_fields")
-        .select("id, title, field_key, field_type, options")
+        .select("id, title, field_key, field_type, options, important_stage_ids")
         .eq("is_active", true)
         .eq("field_context", "projeto")
         .eq("important_on_funnel", true)
         .order("ordem");
       if (!fields || fields.length === 0) { setImportantFields([]); return; }
-      setImportantFields(fields as any);
 
-      const fieldIds = fields.map((f: any) => f.id);
+      // Client-side filter: only fields whose important_stage_ids includes current stage
+      const currentStageId = deal.stage_id;
+      const filtered = fields.filter((f: any) => {
+        const stageIds: string[] = f.important_stage_ids || [];
+        // If no specific stages configured, skip (important_on_funnel may be stale)
+        if (stageIds.length === 0) return false;
+        return stageIds.includes(currentStageId);
+      });
+
+      setImportantFields(filtered as any);
+
+      if (filtered.length === 0) { setCustomFieldValues({}); return; }
+      const fieldIds = filtered.map((f: any) => f.id);
       const { data: values } = await supabase
         .from("deal_custom_field_values")
         .select("field_id, value_text, value_number, value_boolean, value_date")
@@ -697,7 +709,7 @@ function GerenciamentoTab({
       }
     } catch { /* ignore */ }
   };
-  useEffect(() => { loadImportantFields(); }, [deal.id]);
+  useEffect(() => { loadImportantFields(); }, [deal.id, deal.stage_id]);
   useEffect(() => {
     async function loadNotes() {
       try {
