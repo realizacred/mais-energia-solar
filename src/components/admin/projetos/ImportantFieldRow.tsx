@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, FileText, AlignLeft } from "lucide-react";
+import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, FileText, AlignLeft, icons } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,7 @@ interface FieldDef {
   field_key: string;
   field_type: string;
   options: any;
+  icon?: string | null;
 }
 
 interface FieldValue {
@@ -53,7 +54,9 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
   const displayValue = getDisplayValue(field, value);
-  const FieldIcon = TYPE_ICON_MAP[field.field_type] || Type;
+  const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+  const CustomIcon = field.icon ? (icons as any)[toPascal(field.icon)] : null;
+  const FieldIcon = CustomIcon || TYPE_ICON_MAP[field.field_type] || Type;
 
   function startEdit() {
     if (field.field_type === "boolean") {
