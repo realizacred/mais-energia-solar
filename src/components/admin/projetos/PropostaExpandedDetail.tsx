@@ -1305,18 +1305,53 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   );
 }
 
-function getAuditLabel(acao: string, tabela: string): string {
+function getAuditMeta(acao: string, tabela: string): { label: string; icon: React.ReactNode; dotClass: string; badgeClass: string } {
   if (tabela === "propostas_nativas") {
-    if (acao === "INSERT") return "Criou a proposta";
-    if (acao === "UPDATE") return "Editou a proposta";
-    if (acao === "DELETE") return "Excluiu a proposta";
+    if (acao === "INSERT") return {
+      label: "Criou a proposta",
+      icon: <FilePlus className="h-3 w-3" />,
+      dotClass: "border-success/40 bg-success/10 text-success",
+      badgeClass: "bg-success/10 text-success",
+    };
+    if (acao === "UPDATE") return {
+      label: "Editou a proposta",
+      icon: <Pencil className="h-3 w-3" />,
+      dotClass: "border-info/40 bg-info/10 text-info",
+      badgeClass: "bg-info/10 text-info",
+    };
+    if (acao === "DELETE") return {
+      label: "Excluiu a proposta",
+      icon: <Trash2 className="h-3 w-3" />,
+      dotClass: "border-destructive/40 bg-destructive/10 text-destructive",
+      badgeClass: "bg-destructive/10 text-destructive",
+    };
   }
   if (tabela === "proposta_versoes") {
-    if (acao === "INSERT") return "Gerou modelo da proposta";
-    if (acao === "UPDATE") return "Atualizou versão da proposta";
-    if (acao === "DELETE") return "Removeu versão da proposta";
+    if (acao === "INSERT") return {
+      label: "Gerou modelo da proposta",
+      icon: <FileCheck className="h-3 w-3" />,
+      dotClass: "border-warning/40 bg-warning/10 text-warning",
+      badgeClass: "bg-warning/10 text-warning",
+    };
+    if (acao === "UPDATE") return {
+      label: "Atualizou versão da proposta",
+      icon: <RefreshCw className="h-3 w-3" />,
+      dotClass: "border-primary/40 bg-primary/10 text-primary",
+      badgeClass: "bg-primary/10 text-primary",
+    };
+    if (acao === "DELETE") return {
+      label: "Removeu versão da proposta",
+      icon: <Trash2 className="h-3 w-3" />,
+      dotClass: "border-destructive/40 bg-destructive/10 text-destructive",
+      badgeClass: "bg-destructive/10 text-destructive",
+    };
   }
-  return `${acao} em ${tabela}`;
+  return {
+    label: `${acao} em ${tabela}`,
+    icon: <Clock className="h-3 w-3" />,
+    dotClass: "border-muted-foreground/40 bg-muted text-muted-foreground",
+    badgeClass: "bg-muted text-muted-foreground",
+  };
 }
 
 function DataItem({ label, value }: { label: string; value: string }) {
