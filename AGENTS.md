@@ -1,4 +1,4 @@
-# AGENTS.md v2.3 — Mais Energia Solar CRM
+# AGENTS.md v2.4 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
 # Última atualização: 2026-03-26
 
@@ -37,9 +37,7 @@ Estou criando... | Regras principais | Snippet obrigatório | Anti-padrões
 # NUNCA quebrar. Build falha, PR é rejeitado, código é revertido.
 # =============================================================================
 
-RB-01 CORES SEMÂNTICAS OBRIGATÓRIAS — SISTEMA DINÂMICO POR TENANT
-    ⚠️ As cores são definidas por cada empresa em /admin/site-config → Cores
-    ⚠️ NUNCA hardcode valores HSL, hex ou classes Tailwind de cor — outro tenant quebra
+RB-01 CORES SEMÂNTICAS OBRIGATÓRIAS
     NUNCA use: orange-*, blue-*, green-*, red-*, #FF6600, #3b82f6, text-orange-500, bg-blue-600
     SEMPRE use variáveis CSS:
       - Ação principal: bg-primary, text-primary, border-primary, bg-primary/10
@@ -47,7 +45,7 @@ RB-01 CORES SEMÂNTICAS OBRIGATÓRIAS — SISTEMA DINÂMICO POR TENANT
       - Textos: text-foreground, text-muted-foreground, text-card-foreground
       - Bordas: border-border, border-input
       - Estados: bg-success, bg-warning, bg-destructive, bg-info
-    → Ver §1 para tabela completa de tokens e valores de referência do tenant atual
+    → Ver §1 para exemplos visuais
 
 RB-02 DARK MODE EM TODA TELA NOVA
     NUNCA use: bg-white, text-black, text-gray-500, border-gray-200
@@ -790,6 +788,32 @@ AP-13 DATA/HORA SEM FUSO BRASÍLIA
     🔍 Detectar: grep -rn 'toLocaleString\|toLocaleTimeString\|toLocaleDateString' src/ | grep -v 'timeZone'
     💥 Consequência: Horários aparecem +3h adiantados no preview e deploy (Lovable roda em UTC)
 
+AP-14 MOEDA/KWP SEM FORMATTER CENTRALIZADO
+    ❌ Errado: `R$ ${valor}`, `${potencia} kWp`, concatenação manual de unidades monetárias
+    ✅ Certo:
+      - Moeda:    formatBRL(valor)        → R$ 1.234,56
+      - Compacto: formatBRLCompact(valor) → R$ 1,2k
+      - Potência: formatKwh(potencia)     → 6,1 kWp
+      - Nulo:     valor != null ? formatBRL(valor) : "—"
+    🔍 Detectar: grep -rn 'R\$\s*\${' src/components/ --include="*.tsx"
+    💥 Consequência: Casas decimais inconsistentes (R$ 575 em vez de R$ 575,00)
+
+AP-15 VARIÁVEL DE PROPOSTA SEM IMPLEMENTAÇÃO NOS DOIS RESOLVERS
+    ❌ Errado: Adicionar variável apenas em resolveProposalVariables.ts (frontend)
+               ou apenas em _shared/resolvers/ (backend) — nunca só em um lado
+    ✅ Certo: Toda variável nova de proposta DEVE ser implementada nos dois:
+      1. src/lib/resolveProposalVariables.ts  → usado no preview/audit do sistema
+      2. supabase/functions/_shared/resolvers/ → usado na geração real do PDF
+    🔍 Detectar: comparar catálogo de variáveis com implementações nos dois arquivos
+    💥 Consequência: Preview mostra valor correto mas PDF sai em branco (ou vice-versa)
+    ⚠️ Após implementar: sempre fazer redeploy das edge functions afetadas (ver Bloco 10)
+
+AP-16 CAMPO DE KIT COM NOME ERRADO NO RESOLVER
+    ❌ Errado: modulo?.potencia, inversor?.potencia (campo não existe)
+    ✅ Certo:  modulo?.potencia_w, inversor?.potencia_w (campo real na tabela kit_itens)
+    🔍 Detectar: grep -rn '\.potencia[^_]' src/lib/resolveProposalVariables.ts
+    💥 Consequência: Variáveis de potência de módulo/inversor retornam null → "–" no PDF
+
 # =============================================================================
 # BLOCO 5 — DECISÕES ARQUITETURAIS (DA-XX)
 # POR QUE fizemos assim? QUANDO quebrar a regra?
@@ -841,74 +865,20 @@ DA-08 RESPONSIVIDADE MOBILE-FIRST (§32)
 
 # Use Ctrl+F para encontrar. Seção completa para consulta.
 
-## §1. IDENTIDADE VISUAL — Sistema de cores dinâmico por tenant
+## §1. IDENTIDADE VISUAL — Cores semânticas
 
-⚠️ ATENÇÃO CRÍTICA: As cores deste sistema SÃO DINÂMICAS.
-Cada empresa (tenant) define suas próprias cores em /admin/site-config → aba "Cores".
-As cores são extraídas automaticamente da logo da empresa e salvas como variáveis CSS.
-
-POR ISSO: NUNCA hardcode qualquer valor de cor — nem mesmo os valores HSL atuais
-da Mais Energia Solar. Outro tenant terá cores completamente diferentes.
-
-ONDE FICAM AS CORES: /admin/site-config → Cores (Configurações do Site)
-COMO SÃO APLICADAS: Geradas como variáveis CSS --primary, --secondary, etc. no :root
-COMO INSPECIONAR: DevTools → Elements → :root para ver os valores atuais do tenant
-
-### Mapeamento completo de tokens → variáveis CSS
-
-Tailwind class          | CSS var gerada          | O que representa
-------------------------|-------------------------|------------------------------------------
-bg-primary              | --primary               | Cor principal da marca (ex: laranja Mais Energia)
-text-primary            | --primary               | Texto na cor primária
-border-primary          | --primary               | Borda na cor primária
-bg-primary/10           | --primary + opacity     | Fundo suave (ícones, badges outline)
-bg-secondary            | --secondary             | Cor secundária da marca (ex: azul)
-bg-background           | --background            | Fundo da página
-bg-card                 | --card                  | Superfícies elevadas (cards, modais, dropdowns)
-bg-muted                | --muted                 | Seções alternadas, hover states
-text-foreground         | --foreground            | Texto principal
-text-card-foreground    | --card-foreground       | Texto dentro de cards
-text-muted-foreground   | --muted-foreground      | Texto secundário, labels, captions
-border-border           | --border                | Bordas de cards e containers
-border-input            | --input                 | Bordas de inputs e selects
-bg-destructive          | --destructive           | Erros, ações de remover, alertas críticos
-bg-success              | --success               | Sucesso, concluído, positivo
-bg-warning              | --warning               | Atenção, pendente, alerta
-bg-info                 | --info                  | Informação, links, status neutro
-
-### Valores de referência — Mais Energia Solar (tenant atual, light mode)
-# Use APENAS para referência visual ao desenvolver. NUNCA hardcode esses valores.
-
-Token          | HSL atual (light)    | HSL atual (dark)
----------------|----------------------|--------------------
---primary      | 28 95% 53%           | 28 90% 55%
---secondary    | 225 94% 48%          | — (herda light)
---background   | 225 14% 96%          | 225 26% 7%
---foreground   | 225 25% 12%          | 225 12% 92%
---card         | 0 0% 100%            | 225 24% 9%
---border       | 225 12% 90%          | 225 18% 15%
---muted        | 225 12% 94%          | —
---muted-foreground | 225 10% 46%      | —
---success      | 158 42% 38%          | —
---warning      | 38 52% 48%           | —
---destructive  | 4 48% 44%            | —
---info         | 210 46% 48%          | —
-
-### NUNCA use
-
-❌ Cores Tailwind hardcoded:
-   orange-*, blue-*, green-*, red-*, gray-*, yellow-*
-   text-orange-500, bg-blue-600, border-gray-200
-
-❌ Hex ou HSL literal no código:
-   #FF6600, #3b82f6, hsl(28, 95%, 53%)
-   (Mesmo que seja "a cor certa agora", quebra em outros tenants)
-
-❌ Nomes semânticos sem variável:
-   bg-white → use bg-card ou bg-background
-   text-black → use text-foreground
-   text-gray-500 → use text-muted-foreground
-   border-gray-200 → use border-border
+Variável | Uso | NUNCA substituir por
+---|---|---
+bg-primary | Botões primários, badges ativos, ícones | orange-500, blue-600, #FF6600
+bg-primary/10 | Fundo suave de ícones, badges outline | orange-50, blue-50
+bg-card | Cards, modais, dropdowns | bg-white, bg-gray-100
+bg-background | Fundo da página | bg-white, bg-gray-50
+bg-muted | Seções alternadas, hover states | bg-gray-100, bg-gray-200
+text-foreground | Texto principal | text-black, text-gray-900
+text-muted-foreground | Texto secundário, labels | text-gray-500, text-gray-600
+border-border | Bordas de cards, inputs | border-gray-200, border-gray-300
+bg-destructive | Erros, remover, alertas críticas | bg-red-500, bg-red-600
+bg-success | Sucesso, concluído, positivo | bg-green-500
 
 ## §2. DARK MODE — Variáveis obrigatórias
 
@@ -925,10 +895,6 @@ bg-white             ❌ → use bg-card ou bg-background
 text-black           ❌ → use text-foreground
 text-gray-500        ❌ → use text-muted-foreground
 border-gray-200      ❌ → use border-border
-
-// As variáveis dark mode são geradas automaticamente pelo sistema de cores
-// ao salvar em /admin/site-config → Cores → Modo Escuro
-// Não há necessidade de definir dark: manualmente nos componentes
 
 ## §4. TABELAS — Componente Table do shadcn
 
@@ -1342,6 +1308,26 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 - Nunca simplificar chains de fallback em resolveEntrada, resolvePagamento, resolveSistemaSolar, resolveFinanceiro
 - A ordem de prioridade foi definida por auditoria de dados reais — é intencional
 
+### Resolvers de proposta — implementação paralela obrigatória (AP-15)
+- O sistema tem DOIS resolvers de variáveis que devem estar sempre sincronizados:
+  - FRONTEND: `src/lib/resolveProposalVariables.ts` — usado no preview e auditoria
+  - BACKEND:  `supabase/functions/_shared/resolvers/` — usado na geração do PDF final
+- NUNCA adicionar variável em apenas um lado
+- Ao criar variável nova: implementar nos dois → redeploy das edge functions → testar preview E PDF
+- Variáveis comerciais disponíveis no contexto: `ctx.comercial.representante_nome`,
+  `representante_email`, `representante_celular`, `responsavel_email`, `responsavel_celular`
+
+### Campos de kit — nomes corretos (AP-16)
+- Na tabela `kit_itens` e no objeto de módulo/inversor, o campo de potência é `potencia_w`
+- NUNCA usar `modulo.potencia` ou `inversor.potencia` — o campo não existe e retorna undefined
+- Sempre usar: `modulo?.potencia_w`, `inversor?.potencia_w`
+
+### usePaybackEngine — queries migradas para useQuery
+- As queries de `payback_config` e `fio_b_escalonamento` usam useQuery com staleTime 15min
+- NÃO reverter para useState+useEffect — causava refetch a cada troca de step no wizard
+- A query de `config_tributaria_estado` e `concessionarias` permanece sob demanda (loadTributaria)
+  pois depende de parâmetros dinâmicos (estado, concessionariaId) — isso é intencional
+
 ### Build — verificação obrigatória
 - Após qualquer alteração em componentes React, verificar se não há funções sem declaração
 - Nunca fechar um bloco de função prematuramente
@@ -1356,5 +1342,5 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 - Nunca "aproveitar" para refatorar código adjacente
 
 # =============================================================================
-# FIM DO AGENTS.md v2.3
+# FIM DO AGENTS.md v2.4
 # =============================================================================
