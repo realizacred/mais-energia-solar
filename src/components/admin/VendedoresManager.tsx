@@ -984,7 +984,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
       {/* Invite Link Dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <TicketCheck className="w-5 h-5 text-primary" />

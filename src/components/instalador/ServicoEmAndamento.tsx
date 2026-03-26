@@ -1118,7 +1118,7 @@ function ChecklistItemWithPhoto({
       
       {/* Photo Preview Dialog */}
       <Dialog open={!!previewPhoto} onOpenChange={() => setPreviewPhoto(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2">
+        <DialogContent className="w-[90vw] max-w-[95vw] max-h-[95vh] p-2">
           {previewPhoto && (
             <img 
               src={previewPhoto} 

@@ -103,7 +103,7 @@ export function ApiConfigDialog({ open, onOpenChange, editingConfig, onSuccess }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="w-[90vw] max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Integração" : "Nova Integração de API"}</DialogTitle>
         </DialogHeader>

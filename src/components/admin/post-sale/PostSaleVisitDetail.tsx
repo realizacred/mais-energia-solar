@@ -291,7 +291,7 @@ export function PostSaleVisitDetail() {
 
       {/* Conclusion dialog */}
       <Dialog open={conclusionOpen} onOpenChange={setConclusionOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader><DialogTitle>Concluir visita</DialogTitle></DialogHeader>
           <Textarea placeholder="Observações da visita..." value={conclusionNotes} onChange={e => setConclusionNotes(e.target.value)} rows={3} />
           <DialogFooter>

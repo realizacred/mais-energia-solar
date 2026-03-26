@@ -340,7 +340,7 @@
        {/* Photo Preview Modal */}
        {selectedPhoto && (
          <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
-           <DialogContent className="max-w-4xl p-2">
+           <DialogContent className="w-[90vw] max-w-4xl p-2">
              <Button
                variant="ghost"
                size="icon"

@@ -112,7 +112,7 @@ export function SmClientDetailDialog({ client, open, onOpenChange, onSave, onDel
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] flex flex-col p-0">
+        <DialogContent className="w-[90vw] max-w-2xl max-h-[calc(100dvh-2rem)] flex flex-col p-0">
           <DialogHeader className="px-6 pt-6 pb-4 border-b">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-base">

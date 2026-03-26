@@ -123,7 +123,7 @@ export function PostSaleChecklistsPage() {
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="w-[90vw] max-w-sm">
           <DialogHeader><DialogTitle>Novo Template</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <Input placeholder="Nome do template" value={newNome} onChange={e => setNewNome(e.target.value)} />
