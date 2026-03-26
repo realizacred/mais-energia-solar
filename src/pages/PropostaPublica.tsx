@@ -56,6 +56,7 @@ export default function PropostaPublica() {
   const [loading, setLoading] = useState(true);
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
   const [html, setHtml] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [decision, setDecision] = useState<"aceita" | "recusada" | null>(null);
