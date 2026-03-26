@@ -515,7 +515,7 @@ export function StepDocumento({
             </div>
             <Button onClick={onGenerate} disabled={!templateSelecionado} className="w-full gap-2">
               <Zap className="h-4 w-4" />
-              Tentar Novamente
+              Gerar Proposta
             </Button>
           </div>
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] p-6 text-center">
@@ -526,7 +526,7 @@ export function StepDocumento({
             <p className="text-xs text-muted-foreground max-w-md">{generationError}</p>
             <Button variant="outline" size="sm" className="mt-4 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate}>
               <Zap className="h-3.5 w-3.5" />
-              Regenerar Proposta
+              Gerar Proposta
             </Button>
           </div>
         </div>
@@ -560,7 +560,7 @@ export function StepDocumento({
             </div>
             <Button onClick={onGenerate} disabled={!templateSelecionado} className="w-full gap-2">
               <Zap className="h-4 w-4" />
-              Regenerar com PDF
+              Gerar Proposta
             </Button>
             <Button variant="outline" size="sm" className="w-full gap-2" onClick={async () => {
               const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputDocxPath, 3600);
@@ -801,7 +801,7 @@ export function StepDocumento({
                 disabled={generating || rendering || !templateSelecionado}
               >
                 <RefreshCw className="h-3.5 w-3.5" />
-                Regenerar proposta
+                Gerar Proposta
               </Button>
             </div>
           )}
@@ -956,7 +956,7 @@ export function StepDocumento({
               <p className="text-xs text-muted-foreground max-w-sm">{generationError}</p>
               <Button variant="outline" size="sm" className="mt-3 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate}>
                 <Zap className="h-3.5 w-3.5" />
-                Regenerar
+                Gerar Proposta
               </Button>
             </div>
           ) : (

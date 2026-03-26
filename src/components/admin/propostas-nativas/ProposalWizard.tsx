@@ -1743,12 +1743,16 @@ export function ProposalWizard() {
         setBlockReason("missing_required");
         setBlockMissing((e as any).missing || []);
         setShowBlockModal(true);
+        setGenerationStatus("idle");
+        setGenerating(false);
         return;
       }
       if (errorCode === "estimativa_not_accepted") {
         setBlockReason("estimativa_not_accepted");
         setBlockMissing([]);
         setShowBlockModal(true);
+        setGenerationStatus("idle");
+        setGenerating(false);
         return;
       }
       if (errorCode === "mixed_grupos" || errorCode === "grupo_indefinido") {
@@ -1757,6 +1761,8 @@ export function ProposalWizard() {
           description: e.message || "Não é permitido misturar Grupo A e Grupo B na mesma proposta.",
           variant: "destructive",
         });
+        setGenerationStatus("idle");
+        setGenerating(false);
         return;
       }
       setGenerationStatus("error");
