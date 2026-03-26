@@ -642,8 +642,8 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   );
 }
 
-function CidadeSelect({ estado, cidade, onCidadeChange }: { estado: string; cidade: string; onCidadeChange: (v: string) => void }) {
-  const { cidades, isLoading } = useCidadesPorEstado(estado);
+
+
 
   if (!estado || cidades.length === 0) {
     return (
