@@ -974,6 +974,7 @@ export function ConvertLeadToClientDialog({
   const handleBack = () => setCurrentStep((s) => Math.max(s - 1, 0));
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
       <DialogContent className="w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* ── HEADER §25 ─────────────────────────────────────── */}
