@@ -237,18 +237,17 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
               { key: "overdue", label: "⚠ Atrasados" },
               { key: "proposta", label: "📄 C/ Proposta" },
             ].map(f => (
-              <button
+              <Button
                 key={f.key}
+                variant={mobileFilterStatus === f.key ? "default" : "outline"}
                 onClick={() => setMobileFilterStatus(f.key)}
                 className={cn(
-                  "shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors",
-                  mobileFilterStatus === f.key
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground border-border/60 hover:border-border"
+                  "shrink-0 px-3 py-1.5 h-auto rounded-full text-[11px] font-medium",
+                  mobileFilterStatus !== f.key && "text-muted-foreground border-border/60"
                 )}
               >
                 {f.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -415,8 +414,8 @@ function ResizableKanbanColumn({
   const { width: resizedWidth, onMouseDown } = useResizableColumn(280);
   const hasActiveAutomation = stageAutomations.length > 0;
   const hasRestriction = permission && permission !== "todos";
-  const [colorMenuOpen, setColorMenuOpen] = useState(false);
-  const [fieldsMenuOpen, setFieldsMenuOpen] = useState(false);
+  const [stageColor, setStageColor] = useState<string | null>(stage.color || null);
+  const [visibleFields, setVisibleFields] = useState<string[]>(stage.card_visible_fields || ["valor_projeto", "potencia_kwp", "cidade"]);
 
   const STAGE_COLORS = [
     { value: null, label: "Padrão" },
@@ -435,24 +434,18 @@ function ResizableKanbanColumn({
     { key: "status", label: "Status da proposta" },
   ];
 
-  const currentVisibleFields = stage.card_visible_fields || ["valor_projeto", "potencia_kwp", "cidade"];
-
   const handleColorChange = async (color: string | null) => {
+    setStageColor(color);
     await supabase.from("pipeline_stages").update({ color } as any).eq("id", stage.id);
-    // Optimistic: mutate local stage
-    (stage as any).color = color;
-    setColorMenuOpen(false);
   };
 
   const handleToggleField = async (fieldKey: string) => {
-    const current = [...currentVisibleFields];
+    const current = [...visibleFields];
     const idx = current.indexOf(fieldKey);
     if (idx >= 0) current.splice(idx, 1);
     else current.push(fieldKey);
+    setVisibleFields(current);
     await supabase.from("pipeline_stages").update({ card_visible_fields: current } as any).eq("id", stage.id);
-    (stage as any).card_visible_fields = current;
-    setFieldsMenuOpen(prev => !prev); // force re-render
-    setFieldsMenuOpen(true);
   };
 
   const overdueCount = useMemo(() => {
@@ -477,7 +470,7 @@ function ResizableKanbanColumn({
         onMouseDown={onMouseDown}
       />
 
-      <div className="px-3 pt-3 pb-2 border-b-2" style={{ borderColor: stage.color || "hsl(var(--primary) / 0.2)" }}>
+      <div className="px-3 pt-3 pb-2 border-b-2" style={{ borderColor: stageColor || "hsl(var(--primary) / 0.2)" }}>
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2 min-w-0">
             <h3 className="text-[11px] font-bold text-secondary leading-tight truncate uppercase tracking-wider">
@@ -529,12 +522,12 @@ function ResizableKanbanColumn({
                         size="icon"
                         className={cn(
                           "h-6 w-6 rounded-full border-2 p-0",
-                          stage.color === c.value ? "border-foreground" : "border-transparent"
+                          stageColor === c.value ? "border-foreground" : "border-transparent"
                         )}
                         style={{ backgroundColor: c.value || "hsl(var(--muted))" }}
                         onClick={() => handleColorChange(c.value)}
                       >
-                        {stage.color === c.value && <Check className="h-3 w-3 text-primary-foreground" />}
+                        {stageColor === c.value && <Check className="h-3 w-3 text-primary-foreground" />}
                       </Button>
                     ))}
                   </div>
@@ -552,7 +545,7 @@ function ResizableKanbanColumn({
                     {CARD_FIELD_OPTIONS.map((f) => (
                       <label key={f.key} className="flex items-center gap-2 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
                         <Checkbox
-                          checked={currentVisibleFields.includes(f.key)}
+                          checked={visibleFields.includes(f.key)}
                           onCheckedChange={() => handleToggleField(f.key)}
                           className="h-3.5 w-3.5"
                         />
@@ -631,7 +624,7 @@ function ResizableKanbanColumn({
             onClick={() => onViewProjeto?.(deal)}
             hasAutomation={hasActiveAutomation}
             dynamicEtiquetas={dynamicEtiquetas}
-            cardVisibleFields={stage.card_visible_fields || undefined}
+            cardVisibleFields={visibleFields}
           />
         ))}
       </div>
@@ -667,14 +660,14 @@ function AutomationDialog({ stageId, pipelineId, sortedStages, getStageNameById,
   if (!stageId || !pipelineId) return null;
   return (
     <Dialog open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-        <DialogHeader className="pb-2 border-b border-border/40">
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="pb-2 border-b border-border/40 p-5">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Zap className="h-4 w-4 text-primary" />
             Automações — {getStageNameById(stageId)}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4">
           <ProjetoAutomacaoConfig
             pipelineId={pipelineId}
             stages={sortedStages.map(s => ({ id: s.id, name: s.name, position: s.position }))}
