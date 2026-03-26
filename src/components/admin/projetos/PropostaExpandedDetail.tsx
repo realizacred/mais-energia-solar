@@ -491,7 +491,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
 
-  // PDF signed URL for persisted artifacts
+  // Restore the template used during generation from snapshot
+  useEffect(() => {
+    const snapTpl = (snapshot as any)?.templateSelecionado || (snapshot as any)?.template_selecionado;
+    if (snapTpl && !templateSelecionado) {
+      setTemplateSelecionado(snapTpl);
+    }
+  }, [snapshot, templateSelecionado]);
+
   const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(false);
