@@ -323,8 +323,8 @@ export default function PropostaPublica() {
         </div>
       )}
 
-      {/* ── CENÁRIOS INTERATIVOS ──────────────────────── */}
-      {hasCenarios && (
+      {/* ── CENÁRIOS INTERATIVOS — only on simulacao view ── */}
+      {hasCenarios && isSimulacaoView && (
         <div className="max-w-3xl mx-auto px-4 pb-4">
           <h3 className="text-base font-semibold mb-3 text-center">
             Escolha a melhor opção para você
