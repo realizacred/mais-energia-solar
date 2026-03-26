@@ -87,7 +87,6 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   useClientesRealtime();
 
   const { hasPermission } = useUserPermissions();
-  const { lookup: lookupCep } = useCepLookup();
   const canDeleteClients = hasPermission("delete_clients");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
