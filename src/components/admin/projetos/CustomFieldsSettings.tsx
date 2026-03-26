@@ -1035,6 +1035,8 @@ export function CustomFieldsSettings() {
                       </SelectContent>
                     </Select>
                   </div>
+                  </div>
+                  </div>
                 </div>
               )}
 
