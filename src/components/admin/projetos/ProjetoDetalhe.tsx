@@ -38,6 +38,7 @@ import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 import { DocumentosTab } from "./DocumentosTab";
 import { ProjetoInstalacaoTab } from "./ProjetoInstalacaoTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
+import { ProjetoOutrosCampos } from "./ProjetoOutrosCampos";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
@@ -1064,31 +1065,14 @@ function GerenciamentoTab({
             </DialogContent>
           </Dialog>
 
-          {/* Custom fields marked as important — only if any exist */}
-          {importantFields.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2 p-4">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <AlertCircle className="h-3.5 w-3.5 text-primary" />
-                  Campos Importantes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="divide-y-0">
-                  {importantFields.map((field, idx) => (
-                    <ImportantFieldRow
-                      key={field.id}
-                      field={field}
-                      value={customFieldValues[field.id]}
-                      dealId={deal.id}
-                      onSaved={() => loadImportantFields()}
-                      showSeparator={idx < importantFields.length - 1}
-                    />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Campos Importantes + Outros Campos */}
+          <ProjetoOutrosCampos
+            clienteId={deal.customer_id}
+            dealId={deal.id}
+            importantFields={importantFields}
+            customFieldValues={customFieldValues}
+            onReloadImportant={() => loadImportantFields()}
+          />
 
           <ProjetoDocChecklist dealId={deal.id} />
         </div>
