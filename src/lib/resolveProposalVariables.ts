@@ -253,7 +253,7 @@ function resolveFromContext(
 
   // ── Área útil (AP-15: espelhar resolveEntrada.ts do backend) ──
   if (key === "entrada.area_util" || key === "sistema_solar.area_util") {
-    const uc1Val = ctx.ucs?.[0] as Record<string, unknown> | undefined;
+    const uc1Val = ctx.ucs?.[0] as unknown as Record<string, unknown> | undefined;
     const snapVal = ctx.finalSnapshot as Record<string, unknown> | undefined;
     const areaRaw = snapVal?.area_util ?? uc1Val?.area_util ?? snapVal?.area_util_m2 ?? uc1Val?.area_util_m2;
     if (areaRaw != null && Number(areaRaw) > 0) return fmtNumber(Number(areaRaw), 1);

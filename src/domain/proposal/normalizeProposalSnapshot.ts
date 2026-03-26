@@ -337,6 +337,25 @@ export function normalizeProposalSnapshot(
     geracaoMensalEstimada,
     grupo: str(s.grupo, "B"),
 
+    // Área — snapshot > calculada a partir de dimensões do módulo × quantidade
+    areaUtil: (() => {
+      const raw = num(s.areaUtil ?? s.area_util ?? s.area_util_m2);
+      if (raw > 0) return raw;
+      // Fallback: calcular a partir dos módulos
+      const mod = itens.find(i => i.categoria === "modulo" || i.categoria === "modulos");
+      if (mod) {
+        const dim = str((s._raw ?? s)?.dimensoes_modulo ?? "");
+        const parts = dim.split(/[xX×]/);
+        if (parts.length >= 2) {
+          const c = Number(parts[0]) / 1000;
+          const l = Number(parts[1]) / 1000;
+          if (c > 0 && l > 0) return Math.round(c * l * mod.quantidade * 10) / 10;
+        }
+      }
+      return 0;
+    })(),
+    areaNecessaria: num(s.areaNecessaria ?? s.area_necessaria),
+
     // Kit
     itens,
     custoKit,
