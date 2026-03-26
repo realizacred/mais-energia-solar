@@ -654,6 +654,33 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
         </div>
       </div>
 
+      {/* Search & Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          value={searchTerm}
+          onChange={handleSearchChange}
+          placeholder="Buscar por nome, telefone ou e-mail..."
+        />
+        <Select value={filterStatus} onValueChange={handleFilterStatus}>
+          <SelectTrigger className="h-9 w-[120px] text-sm">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="ativo">Ativos</SelectItem>
+            <SelectItem value="inativo">Inativos</SelectItem>
+          </SelectContent>
+        </Select>
+        {activeFilterCount > 0 && (
+          <>
+            <Badge variant="secondary" className="text-xs">{activeFilterCount} filtro</Badge>
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs gap-1">
+              <X className="h-3 w-3" /> Limpar
+            </Button>
+          </>
+        )}
+      </div>
+
       {/* §27 KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow">
