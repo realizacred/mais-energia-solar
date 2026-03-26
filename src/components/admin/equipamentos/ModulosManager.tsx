@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload, FileSpreadsheet, Wand2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import { ModuloFormDialog } from "./modulos/ModuloFormDialog";
 import { ModuloImportDialog } from "./modulos/ModuloImportDialog";
 import { DistributorImportDialog } from "./modulos/DistributorImportDialog";
 import { ModuloTableView } from "./modulos/ModuloTableView";
+import { BatchEnrichDialog } from "./shared/BatchEnrichDialog";
 
 type ViewMode = "cards" | "table";
 
@@ -43,6 +44,7 @@ export function ModulosManager() {
   const [deleting, setDeleting] = useState<Modulo | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [distImportOpen, setDistImportOpen] = useState(false);
+  const [batchEnrichOpen, setBatchEnrichOpen] = useState(false);
 
   const fabricantes = useMemo(() => {
     const set = new Set(modulos.map((m) => m.fabricante));
@@ -80,6 +82,9 @@ export function ModulosManager() {
         description={`${modulos.length} módulos cadastrados (${fabricantes.length} fabricantes)`}
         actions={
           <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setBatchEnrichOpen(true)}>
+              <Wand2 className="w-4 h-4" /> Buscar specs IA
+            </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setDistImportOpen(true)}>
               <FileSpreadsheet className="w-4 h-4" /> CSV Distribuidora
             </Button>
@@ -228,6 +233,12 @@ export function ModulosManager() {
       />
       <ModuloImportDialog open={importOpen} onOpenChange={setImportOpen} existingModulos={modulos} />
       <DistributorImportDialog open={distImportOpen} onOpenChange={setDistImportOpen} existingModulos={modulos} />
+      <BatchEnrichDialog
+        open={batchEnrichOpen}
+        onOpenChange={setBatchEnrichOpen}
+        equipmentType="modulo"
+        draftIds={modulos.filter(m => m.status === "rascunho" && !m.datasheet_found_at).map(m => m.id)}
+      />
 
       {/* Delete */}
       <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>

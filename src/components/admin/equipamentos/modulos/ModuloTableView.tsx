@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { Search, Globe, Building2, Trash2, Pencil, Eye, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { EnrichButton } from "../shared/EnrichButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -143,6 +144,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      <EnrichButton equipmentType="modulo" equipmentId={m.id} />
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(m)}>
                         <Eye className="w-4 h-4" />
                       </Button>

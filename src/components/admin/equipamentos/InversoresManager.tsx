@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
-import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2, FileSpreadsheet } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2, FileSpreadsheet, Wand2 } from "lucide-react";
+import { EnrichButton } from "./shared/EnrichButton";
+import { BatchEnrichDialog } from "./shared/BatchEnrichDialog";
 import { useToast } from "@/hooks/use-toast";
 import { InversorImportDialog } from "./inversores/InversorImportDialog";
 import {
@@ -49,6 +51,7 @@ export function InversoresManager() {
   const [filterTipo, setFilterTipo] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [distImportOpen, setDistImportOpen] = useState(false);
+  const [batchEnrichOpen, setBatchEnrichOpen] = useState(false);
   const [editing, setEditing] = useState<Inversor | null>(null);
   const [deleting, setDeleting] = useState<Inversor | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -160,7 +163,10 @@ export function InversoresManager() {
         title="Inversores"
         description={`${inversores.length} inversores cadastrados (${fabricantes.length} fabricantes)`}
         actions={
-          <div className="flex items-center gap-2">
+           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setBatchEnrichOpen(true)} className="gap-2">
+              <Wand2 className="w-4 h-4" /> Buscar specs IA
+            </Button>
             <Button variant="outline" onClick={() => setDistImportOpen(true)} className="gap-2">
               <FileSpreadsheet className="w-4 h-4" /> CSV Distribuidora
             </Button>
@@ -294,6 +300,7 @@ export function InversoresManager() {
                       <span className="text-xs text-muted-foreground">—</span>
                     ) : (
                       <div className="flex justify-end gap-1">
+                        <EnrichButton equipmentType="inversor" equipmentId={inv.id} />
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(inv)}>
                           <Pencil className="w-4 h-4" />
                         </Button>
