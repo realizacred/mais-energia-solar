@@ -94,18 +94,43 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
     for (let i = 0; i < ids.length; i++) {
       if (!processingRef.current) break; // cancelled
 
-      try {
-        const { data, error } = await supabase.functions.invoke("enrich-equipment", {
-          body: { equipment_type: equipmentType, equipment_id: ids[i], tenant_id: tenantId },
-        });
+      let retries = 0;
+      const MAX_RETRIES = 3;
+      let success = false;
 
-        if (error || data?.error) {
+      while (retries <= MAX_RETRIES && !success && processingRef.current) {
+        try {
+          const { data, error } = await supabase.functions.invoke("enrich-equipment", {
+            body: { equipment_type: equipmentType, equipment_id: ids[i], tenant_id: tenantId },
+          });
+
+          if (error) {
+            // Check for rate limit (429) or server error (500) — retry
+            const isRetryable = error.message?.includes("429") || error.message?.includes("500");
+            if (isRetryable && retries < MAX_RETRIES) {
+              retries++;
+              const backoff = Math.min(2000 * Math.pow(2, retries), 30000);
+              console.warn(`[batch-enrich] Retry ${retries}/${MAX_RETRIES} for ${ids[i]} in ${backoff}ms`);
+              await new Promise((r) => setTimeout(r, backoff));
+              continue;
+            }
+            progressRef.current.failed++;
+          } else if (data?.error) {
+            progressRef.current.failed++;
+          } else {
+            progressRef.current.success++;
+          }
+          success = true;
+        } catch {
+          if (retries < MAX_RETRIES) {
+            retries++;
+            const backoff = Math.min(2000 * Math.pow(2, retries), 30000);
+            await new Promise((r) => setTimeout(r, backoff));
+            continue;
+          }
           progressRef.current.failed++;
-        } else {
-          progressRef.current.success++;
+          success = true; // exit retry loop
         }
-      } catch {
-        progressRef.current.failed++;
       }
 
       progressRef.current.processed++;
@@ -119,9 +144,9 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
         });
       }
 
-      // Rate limiting
+      // Rate limiting: 2.5s between calls to avoid 429
       if (i < ids.length - 1 && processingRef.current) {
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => setTimeout(r, 2500));
       }
     }
 
