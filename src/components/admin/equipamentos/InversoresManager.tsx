@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
 import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2, FileSpreadsheet, Wand2, X, GitCompareArrows, Package, CheckCircle2, FileWarning, Sparkles, LayoutGrid, Table as TableIcon, Eye, Zap } from "lucide-react";
 import { EnrichButton } from "./shared/EnrichButton";
+import { DatasheetUrlField } from "./shared/DatasheetUrlField";
 import { BatchEnrichDialog } from "./shared/BatchEnrichDialog";
 import { useToast } from "@/hooks/use-toast";
 import { InversorImportDialog } from "./inversores/InversorImportDialog";
@@ -369,7 +370,9 @@ export function InversoresManager() {
           <div className="space-y-1"><Label>Garantia (anos)</Label><Input type="number" value={form.garantia_anos} onChange={(e) => set("garantia_anos", e.target.value)} placeholder="5" /></div>
           <div className="space-y-1"><Label>Peso (kg)</Label><Input type="number" step="0.1" value={form.peso_kg} onChange={(e) => set("peso_kg", e.target.value)} /></div>
           <div className="space-y-1"><Label>Proteção IP</Label><Input value={form.ip_protection as string} onChange={(e) => set("ip_protection", e.target.value)} placeholder="IP65" /></div>
-          <div className="space-y-1 sm:col-span-2"><Label>URL do Datasheet</Label><Input value={form.datasheet_url} onChange={(e) => set("datasheet_url", e.target.value)} placeholder="https://..." /></div>
+          <div className="space-y-1 sm:col-span-2">
+            <DatasheetUrlField value={form.datasheet_url} onChange={(v) => set("datasheet_url", v)} />
+          </div>
           <div className="space-y-1"><Label>Status</Label><Select value={form.status} onValueChange={(v) => set("status", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="rascunho">Rascunho</SelectItem><SelectItem value="revisao">Em revisão</SelectItem><SelectItem value="publicado">Publicado</SelectItem></SelectContent></Select></div>
         </FormGrid>
       </FormModalTemplate>
