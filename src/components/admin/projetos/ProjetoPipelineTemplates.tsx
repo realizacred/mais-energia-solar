@@ -211,23 +211,22 @@ export function ProjetoPipelineTemplates({ open, onOpenChange, onCreateFromTempl
 
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">Etapas que serão criadas:</p>
-              <div className="flex items-stretch gap-0 overflow-x-auto">
+              <div className="flex flex-wrap gap-1.5">
                 {selectedTemplate.stages.map((s, i) => (
-                  <div
+                  <Badge
                     key={i}
+                    variant="outline"
                     className={cn(
-                      "relative flex items-center justify-center px-2.5 py-1.5 text-[10px] font-medium min-w-0 flex-1 truncate",
-                      i === 0 && "rounded-l-md",
-                      i === selectedTemplate.stages.length - 1 && "rounded-r-md",
+                      "text-[10px] font-medium px-2 py-0.5",
                       s.is_won
-                        ? "bg-success/15 text-success"
+                        ? "bg-success/10 text-success border-success/20"
                         : s.is_closed
-                          ? "bg-destructive/10 text-destructive"
-                          : "bg-primary/10 text-primary"
+                          ? "bg-destructive/10 text-destructive border-destructive/20"
+                          : "bg-primary/10 text-primary border-primary/20"
                     )}
                   >
-                    <span className="truncate">{s.name}</span>
-                  </div>
+                    {s.name}
+                  </Badge>
                 ))}
               </div>
             </div>
