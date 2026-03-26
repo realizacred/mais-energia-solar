@@ -28,6 +28,9 @@ export type VariableCategory =
   | "conta_energia"
   | "comercial"
   | "cliente"
+  | "contrato"
+  | "assinatura"
+  | "pagamento"
   | "tabelas"
   | "series"
   | "premissas"
@@ -45,6 +48,9 @@ export const CATEGORY_LABELS: Record<VariableCategory, string> = {
   conta_energia: "Conta de Energia",
   comercial: "Comercial",
   cliente: "Cliente",
+  contrato: "Contrato",
+  assinatura: "Assinatura",
+  pagamento: "Pagamento (Contrato)",
   tabelas: "Tabelas",
   series: "Séries",
   premissas: "Premissas",
@@ -63,6 +69,9 @@ export const CATEGORY_ORDER: VariableCategory[] = [
   "conta_energia",
   "comercial",
   "cliente",
+  "contrato",
+  "assinatura",
+  "pagamento",
   "tabelas",
   "series",
   "premissas",
