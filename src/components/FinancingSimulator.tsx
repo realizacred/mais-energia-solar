@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, TrendingUp, Calculator, Check } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { calcularTotalFinanciamento } from "@/services/paymentComposition/financingMath";
 
 interface FinancingSimulatorProps {
   investimento: number;
@@ -66,14 +67,11 @@ export default function FinancingSimulator({ investimento, economia }: Financing
     const bank = bancos[selectedBank] || bancos[0];
     if (!bank) return null;
     
-    const taxaMensal = bank.taxa_mensal / 100;
-    
-    // PMT formula: P * [r(1+r)^n] / [(1+r)^n - 1]
-    const fator = Math.pow(1 + taxaMensal, parcelas);
-    const valorParcela = investimento * (taxaMensal * fator) / (fator - 1);
-    
-    const totalPago = valorParcela * parcelas;
-    const juros = totalPago - investimento;
+    const { valorParcela, totalPago, totalJuros: juros } = calcularTotalFinanciamento(
+      investimento,
+      bank.taxa_mensal,
+      parcelas
+    );
     
     // Net monthly cost (parcela - economia)
     const custoLiquido = valorParcela - economia;
