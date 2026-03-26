@@ -117,6 +117,8 @@ export function ComissoesManager() {
   const [payDirectOpen, setPayDirectOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeView, setActiveView] = useState<"lista" | "relatorios">("lista");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Filters
   const currentDate = new Date();
