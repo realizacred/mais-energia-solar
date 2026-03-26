@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import {
   Dialog,
@@ -44,6 +44,10 @@ import {
   MessageSquare,
   Eye,
   FileText,
+  Download,
+  X,
+  Building2,
+  UserCheck,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPhone } from "@/lib/validations";
@@ -54,6 +58,7 @@ import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
 import { PageHeader, EmptyState, LoadingState, SearchInput, Spinner } from "@/components/ui-kit";
+import { TablePagination } from "@/components/ui-kit/TablePagination";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
   useClientes,
@@ -76,6 +81,35 @@ interface Lead {
 
 interface ClientesManagerProps {
   onSelectCliente?: (cliente: Cliente) => void;
+}
+
+// ── KPI Card ────────────────────────────────────────────────
+function KpiCard({
+  icon: Icon,
+  label,
+  value,
+  borderColor = "border-l-primary",
+  iconBg = "bg-primary/10 text-primary",
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string | number;
+  borderColor?: string;
+  iconBg?: string;
+}) {
+  return (
+    <Card className={`border-l-[3px] ${borderColor} bg-card shadow-sm`}>
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${iconBg} shrink-0`}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xl font-bold tracking-tight text-foreground leading-none">{value}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
@@ -101,6 +135,15 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     comprovante_endereco_urls: string[];
     comprovante_beneficiaria_urls: string[];
   }>({ identidade_urls: [], comprovante_endereco_urls: [], comprovante_beneficiaria_urls: [] });
+
+  // ── Filters ─────────────────────────────────────────────
+  const [filterTipo, setFilterTipo] = useState("todos");
+  const [filterCidade, setFilterCidade] = useState("todos");
+  const [filterStatus, setFilterStatus] = useState("todos");
+
+  // ── Pagination ──────────────────────────────────────────
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const handleOpenWhatsApp = (cliente: Cliente) => {
     setSelectedClienteForWhatsApp(cliente);
@@ -268,19 +311,115 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     setEditingCliente(null);
   };
 
-  const filteredClientes = clientes.filter(
-    (c) =>
-      c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.telefone.includes(searchTerm) ||
-      c.cpf_cnpj?.includes(searchTerm)
-  );
+  // ── Derived data ────────────────────────────────────────
+  const cidadesDisponiveis = useMemo(() => {
+    const cidades = new Set<string>();
+    clientes.forEach((c) => {
+      if (c.cidade) cidades.add(c.cidade);
+    });
+    return Array.from(cidades).sort();
+  }, [clientes]);
+
+  const filteredClientes = useMemo(() => {
+    return clientes.filter((c) => {
+      // Search
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const matchesSearch =
+          c.nome.toLowerCase().includes(term) ||
+          c.telefone.includes(searchTerm) ||
+          c.email?.toLowerCase().includes(term) ||
+          c.cpf_cnpj?.includes(searchTerm);
+        if (!matchesSearch) return false;
+      }
+      // Tipo (PF/PJ heuristic based on CPF/CNPJ length)
+      if (filterTipo !== "todos") {
+        const doc = c.cpf_cnpj?.replace(/\D/g, "") || "";
+        if (filterTipo === "pf" && doc.length > 11) return false;
+        if (filterTipo === "pj" && doc.length <= 11) return false;
+      }
+      // Cidade
+      if (filterCidade !== "todos" && c.cidade !== filterCidade) return false;
+      // Status
+      if (filterStatus !== "todos") {
+        if (filterStatus === "ativo" && !c.ativo) return false;
+        if (filterStatus === "inativo" && c.ativo) return false;
+      }
+      return true;
+    });
+  }, [clientes, searchTerm, filterTipo, filterCidade, filterStatus]);
+
+  // Reset page on filter change
+  const handleSearchChange = useCallback((v: string) => { setSearchTerm(v); setPage(1); }, []);
+  const handleFilterTipo = useCallback((v: string) => { setFilterTipo(v); setPage(1); }, []);
+  const handleFilterCidade = useCallback((v: string) => { setFilterCidade(v); setPage(1); }, []);
+  const handleFilterStatus = useCallback((v: string) => { setFilterStatus(v); setPage(1); }, []);
+
+  const activeFilterCount = [
+    filterTipo !== "todos" ? 1 : 0,
+    filterCidade !== "todos" ? 1 : 0,
+    filterStatus !== "todos" ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
+
+  const clearFilters = () => {
+    setFilterTipo("todos");
+    setFilterCidade("todos");
+    setFilterStatus("todos");
+    setSearchTerm("");
+    setPage(1);
+  };
+
+  // ── Paginated data ─────────────────────────────────────
+  const paginatedClientes = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredClientes.slice(start, start + pageSize);
+  }, [filteredClientes, page, pageSize]);
+
+  // ── KPIs ────────────────────────────────────────────────
+  const kpis = useMemo(() => {
+    const total = clientes.length;
+    let pf = 0;
+    let pj = 0;
+    let comProjeto = 0;
+    clientes.forEach((c) => {
+      const doc = c.cpf_cnpj?.replace(/\D/g, "") || "";
+      if (doc.length > 11) pj++;
+      else pf++;
+      if (c.potencia_kwp && c.potencia_kwp > 0) comProjeto++;
+    });
+    return { total, pf, pj, comProjeto };
+  }, [clientes]);
+
+  // ── CSV Export ──────────────────────────────────────────
+  const handleExportCSV = useCallback(() => {
+    if (filteredClientes.length === 0) return;
+    const headers = ["Nome", "Telefone", "E-mail", "CPF/CNPJ", "Cidade", "Estado", "Potência kWp", "Valor Projeto", "Ativo"];
+    const rows = filteredClientes.map((c) => [
+      c.nome,
+      c.telefone,
+      c.email || "",
+      c.cpf_cnpj || "",
+      c.cidade || "",
+      c.estado || "",
+      c.potencia_kwp?.toString() || "",
+      c.valor_projeto?.toString() || "",
+      c.ativo ? "Sim" : "Não",
+    ]);
+    const csvContent = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const ts = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
+    a.download = `clientes_${ts}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `${filteredClientes.length} clientes exportados` });
+  }, [filteredClientes]);
 
   const formatCurrency = (value: number | null) => {
-    if (!value) return "-";
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
+    if (!value) return "—";
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
   };
 
   return (
@@ -290,180 +429,238 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         title="Clientes"
         description="Gerencie os clientes da sua base"
         actions={
-          <Button className="gap-2" onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Novo Cliente
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={filteredClientes.length === 0}>
+              <Download className="h-4 w-4 mr-1.5" />
+              Exportar CSV
+            </Button>
+            <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Novo Cliente
+            </Button>
+          </div>
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <SearchInput
-          value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="Buscar por nome, telefone ou CPF..."
-        />
-
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
-            {/* §25 Header */}
-            <DialogHeader className="flex flex-row items-center gap-3 px-4 py-3 border-b border-border shrink-0">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <DialogTitle className="text-base font-bold text-foreground">
-                  {editingCliente ? "Editar Cliente" : "Novo Cliente"}
-                </DialogTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Cadastre ou edite um cliente</p>
-              </div>
-            </DialogHeader>
-
-            <ScrollArea className="flex-1 min-h-0">
-              <div className="px-4 py-3.5 space-y-4">
-                {/* Vincular Lead */}
-                <div className="space-y-1">
-                  <Label className="text-[11px] font-medium text-muted-foreground">Vincular a um Lead</Label>
-                  <Select
-                    value={formData.lead_id}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, lead_id: value });
-                      const lead = leads.find((l) => l.id === value);
-                      if (lead && !formData.nome) {
-                        setFormData({
-                          ...formData,
-                          lead_id: value,
-                          nome: lead.nome,
-                          telefone: lead.telefone,
-                        });
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Selecione um lead (opcional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {leads.map((lead) => (
-                        <SelectItem key={lead.id} value={lead.id}>
-                          {lead.lead_code} - {lead.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Dados Pessoais */}
-                <div className="space-y-2.5">
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Dados pessoais</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-medium text-muted-foreground">Nome <span className="text-destructive">*</span></Label>
-                      <Input
-                        value={formData.nome}
-                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                        className="h-8 text-sm"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-medium text-muted-foreground">Telefone <span className="text-destructive">*</span></Label>
-                      <PhoneInput
-                        value={formData.telefone}
-                        onChange={(raw) => setFormData({ ...formData, telefone: raw })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-medium text-muted-foreground">E-mail</Label>
-                      <EmailInput
-                        value={formData.email}
-                        onChange={(v) => setFormData({ ...formData, email: v })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-medium text-muted-foreground">CPF/CNPJ</Label>
-                      <CpfCnpjInput
-                        value={formData.cpf_cnpj}
-                        onChange={(v) => setFormData({ ...formData, cpf_cnpj: v })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] font-medium text-muted-foreground">Data de Nascimento</Label>
-                      <Input
-                        type="date"
-                        value={formData.data_nascimento}
-                        onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Endereço — usa AddressFields (RB-09) */}
-                <div className="space-y-2.5 border-t border-border pt-3.5">
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Endereço</p>
-                  <AddressFields
-                    value={{
-                      cep: formData.cep,
-                      rua: formData.rua,
-                      numero: formData.numero,
-                      complemento: formData.complemento,
-                      bairro: formData.bairro,
-                      cidade: formData.cidade,
-                      estado: formData.estado,
-                    }}
-                    onChange={(addr) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        cep: addr.cep,
-                        rua: addr.rua,
-                        numero: addr.numero,
-                        complemento: addr.complemento,
-                        bairro: addr.bairro,
-                        cidade: addr.cidade,
-                        estado: addr.estado,
-                      }));
-                    }}
-                  />
-                </div>
-
-                {/* Observações */}
-                <div className="space-y-1 border-t border-border pt-3.5">
-                  <Label className="text-[11px] font-medium text-muted-foreground">Observações</Label>
-                  <Textarea
-                    value={formData.observacoes}
-                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                    rows={2}
-                    className="text-sm min-h-[48px] resize-y"
-                  />
-                </div>
-
-                {/* Documentos (somente no modo edição) */}
-                {editingCliente && (
-                  <div className="space-y-2.5 border-t border-border pt-3.5">
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Documentos</p>
-                    <ClienteDocumentUpload
-                      clienteId={editingCliente.id}
-                      documents={editDocuments}
-                      onDocumentsChange={(updated) => {
-                        setEditDocuments(updated);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-
-            <DialogFooter className="flex justify-end gap-2 px-4 py-3 border-t border-border bg-muted/30 shrink-0">
-              <Button type="button" variant="ghost" onClick={() => { setDialogOpen(false); resetForm(); }} disabled={saving}>Cancelar</Button>
-              <Button onClick={handleSubmit} disabled={saving}>
-                {saving && <Spinner size="sm" className="mr-1.5" />}
-                {saving ? "Salvando..." : editingCliente ? "Salvar" : "Cadastrar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {/* KPI Cards §27 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard icon={Users} label="Total de clientes" value={kpis.total} borderColor="border-l-primary" iconBg="bg-primary/10 text-primary" />
+        <KpiCard icon={UserCheck} label="Pessoas físicas" value={kpis.pf} borderColor="border-l-info" iconBg="bg-info/10 text-info" />
+        <KpiCard icon={Building2} label="Pessoas jurídicas" value={kpis.pj} borderColor="border-l-warning" iconBg="bg-warning/10 text-warning" />
+        <KpiCard icon={Sun} label="Com projeto ativo" value={kpis.comProjeto} borderColor="border-l-success" iconBg="bg-success/10 text-success" />
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex flex-wrap items-center gap-2 flex-1">
+          <SearchInput
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Buscar por nome, telefone, e-mail ou CPF..."
+          />
+          <Select value={filterTipo} onValueChange={handleFilterTipo}>
+            <SelectTrigger className="h-9 w-[130px] text-sm">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="pf">Pessoa Física</SelectItem>
+              <SelectItem value="pj">Pessoa Jurídica</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterCidade} onValueChange={handleFilterCidade}>
+            <SelectTrigger className="h-9 w-[150px] text-sm">
+              <SelectValue placeholder="Cidade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas cidades</SelectItem>
+              {cidadesDisponiveis.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={handleFilterStatus}>
+            <SelectTrigger className="h-9 w-[120px] text-sm">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="ativo">Ativos</SelectItem>
+              <SelectItem value="inativo">Inativos</SelectItem>
+            </SelectContent>
+          </Select>
+          {activeFilterCount > 0 && (
+            <>
+              <Badge variant="secondary" className="text-xs">{activeFilterCount} filtro{activeFilterCount > 1 ? "s" : ""}</Badge>
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs gap-1">
+                <X className="h-3 w-3" /> Limpar
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Form Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+        <DialogContent className="w-[90vw] max-w-4xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          {/* §25 Header */}
+          <DialogHeader className="flex flex-row items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-bold text-foreground">
+                {editingCliente ? "Editar Cliente" : "Novo Cliente"}
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Cadastre ou edite um cliente</p>
+            </div>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-4 py-3.5 space-y-4">
+              {/* Vincular Lead */}
+              <div className="space-y-1">
+                <Label className="text-[11px] font-medium text-muted-foreground">Vincular a um Lead</Label>
+                <Select
+                  value={formData.lead_id}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, lead_id: value });
+                    const lead = leads.find((l) => l.id === value);
+                    if (lead && !formData.nome) {
+                      setFormData({
+                        ...formData,
+                        lead_id: value,
+                        nome: lead.nome,
+                        telefone: lead.telefone,
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Selecione um lead (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {leads.map((lead) => (
+                      <SelectItem key={lead.id} value={lead.id}>
+                        {lead.lead_code} - {lead.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Dados Pessoais */}
+              <div className="space-y-2.5">
+                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Dados pessoais</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Nome <span className="text-destructive">*</span></Label>
+                    <Input
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      className="h-8 text-sm"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Telefone <span className="text-destructive">*</span></Label>
+                    <PhoneInput
+                      value={formData.telefone}
+                      onChange={(raw) => setFormData({ ...formData, telefone: raw })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">E-mail</Label>
+                    <EmailInput
+                      value={formData.email}
+                      onChange={(v) => setFormData({ ...formData, email: v })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">CPF/CNPJ</Label>
+                    <CpfCnpjInput
+                      value={formData.cpf_cnpj}
+                      onChange={(v) => setFormData({ ...formData, cpf_cnpj: v })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Data de Nascimento</Label>
+                    <Input
+                      type="date"
+                      value={formData.data_nascimento}
+                      onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Endereço — usa AddressFields (RB-09) */}
+              <div className="space-y-2.5 border-t border-border pt-3.5">
+                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Endereço</p>
+                <AddressFields
+                  value={{
+                    cep: formData.cep,
+                    rua: formData.rua,
+                    numero: formData.numero,
+                    complemento: formData.complemento,
+                    bairro: formData.bairro,
+                    cidade: formData.cidade,
+                    estado: formData.estado,
+                  }}
+                  onChange={(addr) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      cep: addr.cep,
+                      rua: addr.rua,
+                      numero: addr.numero,
+                      complemento: addr.complemento,
+                      bairro: addr.bairro,
+                      cidade: addr.cidade,
+                      estado: addr.estado,
+                    }));
+                  }}
+                />
+              </div>
+
+              {/* Observações */}
+              <div className="space-y-1 border-t border-border pt-3.5">
+                <Label className="text-[11px] font-medium text-muted-foreground">Observações</Label>
+                <Textarea
+                  value={formData.observacoes}
+                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                  rows={2}
+                  className="text-sm min-h-[48px] resize-y"
+                />
+              </div>
+
+              {/* Documentos (somente no modo edição) */}
+              {editingCliente && (
+                <div className="space-y-2.5 border-t border-border pt-3.5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Documentos</p>
+                  <ClienteDocumentUpload
+                    clienteId={editingCliente.id}
+                    documents={editDocuments}
+                    onDocumentsChange={(updated) => {
+                      setEditDocuments(updated);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          <DialogFooter className="flex justify-end gap-2 px-4 py-3 border-t border-border bg-muted/30 shrink-0">
+            <Button type="button" variant="ghost" onClick={() => { setDialogOpen(false); resetForm(); }} disabled={saving}>Cancelar</Button>
+            <Button onClick={handleSubmit} disabled={saving}>
+              {saving && <Spinner size="sm" className="mr-1.5" />}
+              {saving ? "Salvando..." : editingCliente ? "Salvar" : "Cadastrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Table */}
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -474,11 +671,11 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         <EmptyState
           icon={Users}
           title="Nenhum cliente encontrado"
-          description="Cadastre um novo cliente para começar"
-          action={{ label: "Novo Cliente", onClick: () => setDialogOpen(true), icon: Plus }}
+          description={activeFilterCount > 0 ? "Tente ajustar os filtros" : "Cadastre um novo cliente para começar"}
+          action={activeFilterCount === 0 ? { label: "Novo Cliente", onClick: () => setDialogOpen(true), icon: Plus } : undefined}
         />
       ) : (
-        <SectionCard icon={Users} title="Clientes" variant="neutral" noPadding>
+        <SectionCard icon={Users} title={`Clientes (${filteredClientes.length})`} variant="neutral" noPadding>
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -491,10 +688,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredClientes.map((cliente) => (
+              {paginatedClientes.map((cliente) => (
                 <TableRow
                   key={cliente.id}
-                  className={onSelectCliente ? "cursor-pointer hover:bg-muted/30 transition-colors" : "hover:bg-muted/30 transition-colors"}
+                  className={`${onSelectCliente ? "cursor-pointer" : ""} hover:bg-muted/30 transition-colors ${!cliente.ativo ? "opacity-50" : ""}`}
                   onClick={() => onSelectCliente?.(cliente)}
                 >
                   <TableCell>
@@ -525,7 +722,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                         </p>
                       </div>
                     ) : (
-                      <span className="text-muted-foreground">-</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -550,7 +747,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                         Vinculado
                       </Badge>
                     ) : (
-                      <span className="text-muted-foreground">-</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
@@ -618,6 +815,14 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            totalItems={filteredClientes.length}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
         </SectionCard>
       )}
 
@@ -641,4 +846,3 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     </motion.div>
   );
 }
-
