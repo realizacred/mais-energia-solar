@@ -134,8 +134,14 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
 
   // ── Desktop ──
   return (
-    <ScrollArea className="w-full max-w-full">
-      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "min-content", width: "100%" }}>
+    <div className="w-full max-w-full overflow-x-auto">
+      <div
+        className="grid gap-3 pb-4 px-1"
+        style={{
+          gridTemplateColumns: `repeat(${ownerColumns.length}, minmax(220px, 1fr))`,
+          minWidth: ownerColumns.length > 4 ? `${ownerColumns.length * 230}px` : undefined,
+        }}
+      >
         {ownerColumns.map(col => {
           const isOver = dragOverCol === col.id;
           const totalKwp = col.deals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
@@ -145,11 +151,10 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
             <div
               key={col.id}
               className={cn(
-                "rounded-xl border border-border/50 transition-all flex flex-col",
+                "rounded-xl border border-border/50 transition-all flex flex-col min-w-0",
                 "bg-card/60",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
-              style={{ flex: "1 0 240px", minWidth: 240, maxWidth: 400 }}
               onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(col.id); }}
               onDragLeave={() => setDragOverCol(null)}
               onDrop={e => handleDrop(e, col.id)}
