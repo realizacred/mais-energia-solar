@@ -7,7 +7,8 @@ import { StepDocumento } from "@/components/admin/propostas-nativas/wizard/StepD
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
-  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, FolderOpen, MessageSquareText
+  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, FolderOpen, MessageSquareText,
+  FilePlus, FileCheck, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1193,7 +1194,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                           <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-primary/20" />
 
                           {auditLogs.map((log) => {
-                            const actionLabel = getAuditLabel(log.acao, log.tabela);
+                            const audit = getAuditMeta(log.acao, log.tabela);
                             const userName = log.user_email === "sistema"
                               ? "SISTEMA"
                               : log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
@@ -1204,8 +1205,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                               <div key={log.id} className="relative flex gap-3 pb-5 last:pb-0">
                                 {/* Timeline dot */}
                                 <div className="absolute -left-6 mt-1">
-                                  <div className="h-5 w-5 rounded-full bg-muted border-2 border-primary/30 flex items-center justify-center">
-                                    <div className="h-2 w-2 rounded-full bg-primary/60" />
+                                  <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", audit.dotClass)}>
+                                    {audit.icon}
                                   </div>
                                 </div>
 
@@ -1213,9 +1214,11 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold text-foreground">{userName}</p>
                                   <p className="text-[10px] text-muted-foreground">{dateStr} às {timeStr}</p>
-                                  <p className="text-xs text-primary mt-0.5 flex items-center gap-1.5">
-                                    <span className="h-4 w-4 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">P</span>
-                                    {actionLabel}
+                                  <p className="text-xs mt-0.5 flex items-center gap-1.5">
+                                    <span className={cn("h-4 w-4 rounded-full flex items-center justify-center shrink-0", audit.badgeClass)}>
+                                      {audit.icon}
+                                    </span>
+                                    <span className="text-foreground">{audit.label}</span>
                                   </p>
                                 </div>
                               </div>
@@ -1305,18 +1308,53 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   );
 }
 
-function getAuditLabel(acao: string, tabela: string): string {
+function getAuditMeta(acao: string, tabela: string): { label: string; icon: React.ReactNode; dotClass: string; badgeClass: string } {
   if (tabela === "propostas_nativas") {
-    if (acao === "INSERT") return "Criou a proposta";
-    if (acao === "UPDATE") return "Editou a proposta";
-    if (acao === "DELETE") return "Excluiu a proposta";
+    if (acao === "INSERT") return {
+      label: "Criou a proposta",
+      icon: <FilePlus className="h-3 w-3" />,
+      dotClass: "border-success/40 bg-success/10 text-success",
+      badgeClass: "bg-success/10 text-success",
+    };
+    if (acao === "UPDATE") return {
+      label: "Editou a proposta",
+      icon: <Pencil className="h-3 w-3" />,
+      dotClass: "border-info/40 bg-info/10 text-info",
+      badgeClass: "bg-info/10 text-info",
+    };
+    if (acao === "DELETE") return {
+      label: "Excluiu a proposta",
+      icon: <Trash2 className="h-3 w-3" />,
+      dotClass: "border-destructive/40 bg-destructive/10 text-destructive",
+      badgeClass: "bg-destructive/10 text-destructive",
+    };
   }
   if (tabela === "proposta_versoes") {
-    if (acao === "INSERT") return "Gerou modelo da proposta";
-    if (acao === "UPDATE") return "Atualizou versão da proposta";
-    if (acao === "DELETE") return "Removeu versão da proposta";
+    if (acao === "INSERT") return {
+      label: "Gerou modelo da proposta",
+      icon: <FileCheck className="h-3 w-3" />,
+      dotClass: "border-warning/40 bg-warning/10 text-warning",
+      badgeClass: "bg-warning/10 text-warning",
+    };
+    if (acao === "UPDATE") return {
+      label: "Atualizou versão da proposta",
+      icon: <RefreshCw className="h-3 w-3" />,
+      dotClass: "border-primary/40 bg-primary/10 text-primary",
+      badgeClass: "bg-primary/10 text-primary",
+    };
+    if (acao === "DELETE") return {
+      label: "Removeu versão da proposta",
+      icon: <Trash2 className="h-3 w-3" />,
+      dotClass: "border-destructive/40 bg-destructive/10 text-destructive",
+      badgeClass: "bg-destructive/10 text-destructive",
+    };
   }
-  return `${acao} em ${tabela}`;
+  return {
+    label: `${acao} em ${tabela}`,
+    icon: <Clock className="h-3 w-3" />,
+    dotClass: "border-muted-foreground/40 bg-muted text-muted-foreground",
+    badgeClass: "bg-muted text-muted-foreground",
+  };
 }
 
 function DataItem({ label, value }: { label: string; value: string }) {
