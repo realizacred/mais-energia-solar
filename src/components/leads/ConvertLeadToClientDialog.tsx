@@ -1482,5 +1482,19 @@ export function ConvertLeadToClientDialog({
         </Form>
       </DialogContent>
     </Dialog>
+
+    <MissingDocsConfirmModal
+      open={showMissingDocsModal}
+      onOpenChange={setShowMissingDocsModal}
+      missingItems={missingItems}
+      leadNome={lead.nome}
+      onSaveAsPending={() => {
+        setShowMissingDocsModal(false);
+        handleSaveAsLead();
+      }}
+      onBack={() => setShowMissingDocsModal(false)}
+      isSaving={savingAsLead}
+    />
+    </>
   );
 }
