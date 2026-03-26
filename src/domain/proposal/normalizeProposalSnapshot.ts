@@ -121,6 +121,10 @@ export interface NormalizedProposalSnapshot {
   geracaoMensalEstimada: number;
   grupo: string;
 
+  // Área
+  areaUtil: number;       // m² — área útil (snapshot ou calculada: módulos × dimensões)
+  areaNecessaria: number;  // m² — área necessária para instalação
+
   // Kit
   itens: NormalizedKitItem[];
   custoKit: number;
