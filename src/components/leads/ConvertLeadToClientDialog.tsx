@@ -1453,8 +1453,18 @@ export function ConvertLeadToClientDialog({
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={handleSaveAsLead}
-                      disabled={loading || savingAsLead}
+                      onClick={() => {
+                        if (aguardandoStatusAvailable === false) {
+                          toast({
+                            title: "Status não configurado",
+                            description: "O status 'Aguardando Documentação' não existe. Peça ao administrador para criá-lo na configuração de status.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        handleSaveAsLead();
+                      }}
+                      disabled={loading || savingAsLead || aguardandoStatusAvailable === false}
                     >
                       {savingAsLead ? (
                         <><Spinner size="sm" /> Salvando...</>
