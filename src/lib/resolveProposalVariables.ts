@@ -225,6 +225,18 @@ function resolveFromContext(
 
   // ── Comercial ──
   if (key === "comercial.responsavel_nome") return s(ctx.comercial?.responsavel_nome);
+  if (key === "comercial.responsavel_email") return s(ctx.comercial?.responsavel_email);
+  if (key === "comercial.responsavel_celular") return s(ctx.comercial?.responsavel_celular);
+  if (key === "comercial.representante_nome") {
+    return s(
+      ctx.comercial?.representante_nome
+      ?? (ctx.finalSnapshot as any)?.representante_nome
+      ?? (ctx.finalSnapshot as any)?.consultor_nome
+      ?? ctx.consultorNome
+    );
+  }
+  if (key === "comercial.representante_email") return s(ctx.comercial?.representante_email);
+  if (key === "comercial.representante_celular") return s(ctx.comercial?.representante_celular);
   if (key === "comercial.empresa_nome") return s(ctx.comercial?.empresa_nome ?? ctx.empresaNome);
 
   // ── Entrada ──
