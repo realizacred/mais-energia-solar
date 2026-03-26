@@ -40,6 +40,7 @@ import { ProjetoInstalacaoTab } from "./ProjetoInstalacaoTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoOutrosCampos } from "./ProjetoOutrosCampos";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
+import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
 import { useQuery } from "@tanstack/react-query";
@@ -585,6 +586,60 @@ function GerenciamentoTab({
   const [inlineEditValue, setInlineEditValue] = useState<string>("");
   const [savingInlineEdit, setSavingInlineEdit] = useState(false);
 
+  // ── Address edit dialog ──
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+  const [addressData, setAddressData] = useState<AddressData>({ cep: "", rua: "", numero: "", complemento: "", bairro: "", cidade: "", estado: "" });
+  const [savingAddress, setSavingAddress] = useState(false);
+
+  const openAddressDialog = async () => {
+    if (!deal.customer_id) return;
+    // Load current address from client
+    const { data } = await supabase
+      .from("clientes")
+      .select("cep, rua, numero, complemento, bairro, cidade, estado")
+      .eq("id", deal.customer_id)
+      .single();
+    if (data) {
+      setAddressData({
+        cep: data.cep || "",
+        rua: data.rua || "",
+        numero: data.numero || "",
+        complemento: data.complemento || "",
+        bairro: data.bairro || "",
+        cidade: data.cidade || "",
+        estado: data.estado || "",
+      });
+    }
+    setAddressDialogOpen(true);
+  };
+
+  const saveAddress = async () => {
+    if (!deal.customer_id) return;
+    setSavingAddress(true);
+    try {
+      const { error } = await supabase
+        .from("clientes")
+        .update({
+          cep: addressData.cep.trim() || null,
+          rua: addressData.rua.trim() || null,
+          numero: addressData.numero.trim() || null,
+          complemento: addressData.complemento.trim() || null,
+          bairro: addressData.bairro.trim() || null,
+          cidade: addressData.cidade.trim() || null,
+          estado: addressData.estado.trim() || null,
+        })
+        .eq("id", deal.customer_id);
+      if (error) throw error;
+      toast({ title: "Endereço atualizado!" });
+      setAddressDialogOpen(false);
+      onRefreshCustomer?.();
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingAddress(false);
+    }
+  };
+
   const openInlineEdit = (field: string, label: string, currentValue: string) => {
     setInlineEditField(field);
     setInlineEditLabel(label);
@@ -1034,7 +1089,7 @@ function GerenciamentoTab({
                   actionTooltip="Enviar e-mail"
                   onEdit={!customerEmail ? () => openInlineEdit("email", "E-mail", customerEmail) : undefined}
                 />
-                <ClientRow icon={MapPin} label={customerAddress || "Adicionar Cidade"} muted isLink={!customerAddress} onCopy={customerAddress ? () => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); } : undefined} onEdit={!customerAddress ? () => openInlineEdit("cidade", "Cidade", "") : undefined} />
+                <ClientRow icon={MapPin} label={customerAddress || "Adicionar Cidade"} muted isLink={!customerAddress} onCopy={customerAddress ? () => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); } : undefined} onEdit={() => openAddressDialog()} />
               </div>
             </CardContent>
           </Card>
@@ -1065,7 +1120,32 @@ function GerenciamentoTab({
             </DialogContent>
           </Dialog>
 
-          {/* Campos Importantes + Outros Campos */}
+          {/* ── Address Edit Dialog ── */}
+          <Dialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen}>
+            <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+              <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <DialogTitle className="text-base font-semibold text-foreground">Endereço do Cliente</DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">Preencha o CEP para autocompletar os campos</p>
+                </div>
+              </DialogHeader>
+              <div className="flex-1 min-h-0 overflow-y-auto p-5">
+                <AddressFields value={addressData} onChange={setAddressData} />
+              </div>
+              <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+                <Button variant="outline" onClick={() => setAddressDialogOpen(false)} disabled={savingAddress}>Cancelar</Button>
+                <Button onClick={saveAddress} disabled={savingAddress}>
+                  {savingAddress ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                  Salvar Endereço
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+
           <ProjetoOutrosCampos
             clienteId={deal.customer_id}
             dealId={deal.id}
