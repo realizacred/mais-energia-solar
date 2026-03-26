@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +37,6 @@ import { Progress } from "@/components/ui/progress";
 import {
   DollarSign,
   Plus,
-  
   Edit,
   Trash2,
   Receipt,
@@ -46,6 +45,8 @@ import {
   Calendar,
   BarChart3,
   CalendarDays,
+  Download,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -55,6 +56,7 @@ import { RelatoriosFinanceiros } from "./recebimentos/RelatoriosFinanceiros";
 import { CalendarioPagamentos } from "./recebimentos/CalendarioPagamentos";
 import { ParcelasAtrasadasWidget } from "./widgets/ParcelasAtrasadasWidget";
 import { PageHeader, StatCard, EmptyState, LoadingState, SearchInput } from "@/components/ui-kit";
+import { TablePagination } from "@/components/ui-kit/TablePagination";
 
 interface Cliente {
   id: string;
