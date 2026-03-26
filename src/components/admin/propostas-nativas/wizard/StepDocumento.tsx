@@ -20,6 +20,7 @@ import { sendProposal } from "@/services/proposalApi";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useProposalTemplates, useEmailTemplates } from "@/hooks/useProposalTemplates";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatBRL } from "./types";
 import { toast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
