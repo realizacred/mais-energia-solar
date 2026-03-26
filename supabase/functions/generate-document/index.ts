@@ -4,6 +4,20 @@
  * saves the filled DOCX to storage, and updates generated_documents.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
+import {
+  withRetry,
+  fetchWithTimeout,
+  isCircuitOpen,
+  recordFailure,
+  resetCircuit,
+  sanitizeError,
+  updateHealthCache,
+  type CircuitBreakerState,
+} from "../_shared/error-utils.ts";
+
+// In-memory circuit breaker state (resets per cold start)
+let circuitState: CircuitBreakerState = { failures: 0, last_failure_at: null, open_until: null };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
