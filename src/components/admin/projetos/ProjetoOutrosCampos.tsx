@@ -68,10 +68,10 @@ function useDisjuntores() {
     queryFn: async () => {
       const { data } = await supabase
         .from("disjuntores")
-        .select("id, nome")
+        .select("id, amperagem, descricao")
         .eq("ativo", true)
-        .order("nome");
-      return (data || []) as DisjuntorOption[];
+        .order("amperagem");
+      return (data || []).map(d => ({ id: d.id, nome: `${d.amperagem}A${d.descricao ? ` - ${d.descricao}` : ""}` })) as DisjuntorOption[];
     },
     staleTime: 1000 * 60 * 15,
   });
@@ -83,10 +83,10 @@ function useTransformadores() {
     queryFn: async () => {
       const { data } = await supabase
         .from("transformadores")
-        .select("id, nome")
+        .select("id, potencia_kva, descricao")
         .eq("ativo", true)
-        .order("nome");
-      return (data || []) as TransformadorOption[];
+        .order("potencia_kva");
+      return (data || []).map(t => ({ id: t.id, nome: `${t.potencia_kva} kVA${t.descricao ? ` - ${t.descricao}` : ""}` })) as TransformadorOption[];
     },
     staleTime: 1000 * 60 * 15,
   });
