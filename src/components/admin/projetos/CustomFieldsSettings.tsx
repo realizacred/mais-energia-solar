@@ -868,6 +868,18 @@ export function CustomFieldsSettings() {
                 )}
               </div>
 
+              {/* ── Card: Ícone do Campo ── */}
+              <div className="rounded-lg border bg-card p-4 space-y-3">
+                <h4 className="text-sm font-semibold text-foreground">Ícone do Campo</h4>
+                <p className="text-[11px] text-muted-foreground">Escolha um ícone para identificar visualmente este campo no detalhe do projeto.</p>
+                <IconPicker selected={fieldForm.icon} onSelect={icon => setFieldForm(p => ({ ...p, icon }))} />
+                {fieldForm.icon && (
+                  <Button variant="ghost" size="sm" onClick={() => setFieldForm(p => ({ ...p, icon: "" }))} className="text-xs text-muted-foreground">
+                    Remover ícone (usar padrão do tipo)
+                  </Button>
+                )}
+              </div>
+
               {/* ── Card: Comportamento (PROJETO context) ── */}
               {fieldForm.field_context === "projeto" && (
                 <div className="rounded-lg border bg-card p-4 space-y-4">
