@@ -232,7 +232,57 @@ export function StepDocumento({
     }
   };
 
-  const [sendingWa, setSendingWa] = useState(false);
+  const handleCopySimulacaoLink = async () => {
+    const propostaId = result?.proposta_id;
+    const versaoId = result?.versao_id;
+    if (!propostaId || !versaoId) {
+      toast({ title: "Gere a proposta primeiro", variant: "destructive" });
+      return;
+    }
+    try {
+      // Reuse the same token logic as tracked link
+      const { data: existing } = await supabase
+        .from("proposta_aceite_tokens" as any)
+        .select("token")
+        .eq("proposta_id", propostaId)
+        .eq("versao_id", versaoId)
+        .eq("tipo", "tracked")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let token = (existing as any)?.token as string | undefined;
+
+      if (!token) {
+        const { tenantId } = await getCurrentTenantId();
+        const { data: created, error: createErr } = await supabase
+          .from("proposta_aceite_tokens" as any)
+          .insert({
+            proposta_id: propostaId,
+            versao_id: versaoId,
+            tenant_id: tenantId,
+            tipo: "tracked",
+          } as any)
+          .select("token")
+          .single();
+
+        if (createErr || !created) {
+          toast({ title: `Erro ao criar link: ${createErr?.message || "desconhecido"}`, variant: "destructive" });
+          return;
+        }
+        token = (created as any).token;
+      }
+
+      const url = `${window.location.origin}/proposta/${token}?view=simulacao`;
+      try { await navigator.clipboard.writeText(url); } catch { window.prompt("Copie o link:", url); }
+      setCopiedSimulacao(true);
+      setTimeout(() => setCopiedSimulacao(false), 2000);
+      toast({ title: "Link da simulação financeira copiado! 💰" });
+    } catch (err: any) {
+      toast({ title: `Erro ao gerar link: ${err?.message || "desconhecido"}`, variant: "destructive" });
+    }
+  };
+
   const [sendingEmail, setSendingEmail] = useState(false);
 
   // ─── Send via proposalApi (§33 — centralizar chamadas de edge function) ───
