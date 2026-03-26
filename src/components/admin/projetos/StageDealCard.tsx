@@ -155,7 +155,7 @@ export function StageDealCard({
       style={borderStyle}
     >
       <div className="p-2 space-y-1">
-        {/* HEADER: Name + Value */}
+        {/* HEADER: Name + Num */}
         <div className="flex items-start justify-between gap-1.5">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
@@ -172,9 +172,6 @@ export function StageDealCard({
               )}
             </div>
           </div>
-          <span className="text-[12px] font-bold text-foreground whitespace-nowrap tabular-nums shrink-0">
-            {deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
-          </span>
         </div>
 
         {/* SUBHEADER: Location + kWp */}
@@ -188,6 +185,27 @@ export function StageDealCard({
             <Zap className="h-2.5 w-2.5 text-warning" />
             {deal.deal_kwp > 0 ? `${deal.deal_kwp.toFixed(1).replace(".", ",")} kWp` : "— kWp"}
           </span>
+        </div>
+
+        {/* VALUE + TIME CARD */}
+        <div className="flex items-center rounded-md bg-muted/40 border border-border/50 divide-x divide-border/50 text-center">
+          <div className="flex-1 py-1 px-2">
+            <p className="text-[13px] font-bold text-foreground tabular-nums leading-none">
+              {deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
+            </p>
+            <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Valor</p>
+          </div>
+          <div className="flex-1 py-1 px-2">
+            <p className={cn(
+              "text-[13px] font-bold tabular-nums leading-none",
+              stagnation === "critical" ? "text-destructive" :
+              stagnation === "warning" ? "text-warning" :
+              "text-foreground"
+            )}>
+              {timeInStage}
+            </p>
+            <p className="text-[8px] text-muted-foreground mt-0.5 uppercase tracking-wider">Tempo</p>
+          </div>
         </div>
 
         {/* STATUS + ETIQUETAS */}
@@ -257,21 +275,13 @@ export function StageDealCard({
             )}
           </div>
 
-          {/* Owner + time in stage */}
+          {/* Owner avatar */}
           <div className="flex items-center gap-1">
             <Avatar className="h-4 w-4 border border-border/40">
               <AvatarFallback className="text-[7px] font-bold bg-muted text-muted-foreground">
                 {getInitials(deal.owner_name)}
               </AvatarFallback>
             </Avatar>
-            <span className={cn(
-              "text-[9px] tabular-nums font-medium",
-              stagnation === "critical" ? "text-destructive" :
-              stagnation === "warning" ? "text-warning" :
-              "text-muted-foreground"
-            )}>
-              {timeInStage}
-            </span>
           </div>
         </div>
 
