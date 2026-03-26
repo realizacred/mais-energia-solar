@@ -414,8 +414,8 @@ function ResizableKanbanColumn({
   const { width: resizedWidth, onMouseDown } = useResizableColumn(280);
   const hasActiveAutomation = stageAutomations.length > 0;
   const hasRestriction = permission && permission !== "todos";
-  const [colorMenuOpen, setColorMenuOpen] = useState(false);
-  const [fieldsMenuOpen, setFieldsMenuOpen] = useState(false);
+  const [stageColor, setStageColor] = useState<string | null>(stage.color || null);
+  const [visibleFields, setVisibleFields] = useState<string[]>(stage.card_visible_fields || ["valor_projeto", "potencia_kwp", "cidade"]);
 
   const STAGE_COLORS = [
     { value: null, label: "Padrão" },
