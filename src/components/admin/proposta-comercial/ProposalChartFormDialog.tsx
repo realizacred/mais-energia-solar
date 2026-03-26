@@ -84,7 +84,7 @@ export function ProposalChartFormDialog({ open, onOpenChange, chart }: Props) {
         value_field: "value",
         title: "",
         subtitle: "",
-        colors: "#3b82f6",
+        colors: "hsl(var(--primary))",
         width: 1600,
         height: 900,
         show_legend: true,

@@ -100,7 +100,7 @@ export default function RlsTestPage() {
 
   const statusIcon = (s: TestStep["status"]) => {
     if (s === "running") return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
-    if (s === "pass") return <CheckCircle className="h-5 w-5 text-green-500" />;
+    if (s === "pass") return <CheckCircle className="h-5 w-5 text-success" />;
     if (s === "fail") return <XCircle className="h-5 w-5 text-destructive" />;
     return <div className="h-5 w-5 rounded-full border-2 border-muted" />;
   };
@@ -126,7 +126,7 @@ export default function RlsTestPage() {
               {statusIcon(step.status)}
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">{step.label}</p>
-                {step.result && <p className="text-xs text-green-600 mt-1 font-mono break-all">{step.result}</p>}
+                {step.result && <p className="text-xs text-success mt-1 font-mono break-all">{step.result}</p>}
                 {step.error && <p className="text-xs text-destructive mt-1 font-mono break-all">❌ {step.error}</p>}
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function RlsTestPage() {
         </CardHeader>
         <CardContent className="text-xs font-mono text-muted-foreground space-y-1">
           <p>Key type: <span className="text-foreground font-semibold">anon (publishable)</span></p>
-          <p>service_role no frontend: <span className="text-green-600 font-semibold">NÃO encontrado ✓</span></p>
+          <p>service_role no frontend: <span className="text-success font-semibold">NÃO encontrado ✓</span></p>
           <p>RLS: <span className="text-foreground font-semibold">Ativo em solar_kit_catalog + solar_kit_catalog_items</span></p>
         </CardContent>
       </Card>

@@ -160,8 +160,8 @@ export default function ConversionMetrics({ leads, statuses }: ConversionMetrics
               <AreaChart data={dailyTrend}>
                 <defs>
                   <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(25, 95%, 53%)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="hsl(25, 95%, 53%)" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <XAxis 
@@ -189,7 +189,7 @@ export default function ConversionMetrics({ leads, statuses }: ConversionMetrics
                 <Area 
                   type="monotone" 
                   dataKey="leads" 
-                  stroke="hsl(25, 95%, 53%)" 
+                  stroke="hsl(var(--primary))" 
                   strokeWidth={2}
                   fill="url(#colorLeads)"
                 />
