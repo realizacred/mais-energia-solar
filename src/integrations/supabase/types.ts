@@ -3019,17 +3019,20 @@ export type Database = {
           field_type: string
           id: string
           important_on_funnel: boolean | null
+          important_stage_ids: string[] | null
           is_active: boolean | null
           options: Json | null
           ordem: number | null
           required_on_create: boolean | null
           required_on_funnel: boolean | null
           required_on_proposal: boolean | null
+          required_stage_ids: string[] | null
           show_on_create: boolean | null
           tenant_id: string
           title: string
           updated_at: string
           visible_on_funnel: boolean | null
+          visible_pipeline_ids: string[] | null
         }
         Insert: {
           created_at?: string
@@ -3038,17 +3041,20 @@ export type Database = {
           field_type?: string
           id?: string
           important_on_funnel?: boolean | null
+          important_stage_ids?: string[] | null
           is_active?: boolean | null
           options?: Json | null
           ordem?: number | null
           required_on_create?: boolean | null
           required_on_funnel?: boolean | null
           required_on_proposal?: boolean | null
+          required_stage_ids?: string[] | null
           show_on_create?: boolean | null
           tenant_id: string
           title: string
           updated_at?: string
           visible_on_funnel?: boolean | null
+          visible_pipeline_ids?: string[] | null
         }
         Update: {
           created_at?: string
@@ -3057,17 +3063,20 @@ export type Database = {
           field_type?: string
           id?: string
           important_on_funnel?: boolean | null
+          important_stage_ids?: string[] | null
           is_active?: boolean | null
           options?: Json | null
           ordem?: number | null
           required_on_create?: boolean | null
           required_on_funnel?: boolean | null
           required_on_proposal?: boolean | null
+          required_stage_ids?: string[] | null
           show_on_create?: boolean | null
           tenant_id?: string
           title?: string
           updated_at?: string
           visible_on_funnel?: boolean | null
+          visible_pipeline_ids?: string[] | null
         }
         Relationships: [
           {
