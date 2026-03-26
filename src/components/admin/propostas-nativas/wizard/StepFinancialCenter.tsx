@@ -59,6 +59,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [instalacaoCusto, setInstalacaoCusto] = useState(instalacaoServico?.valor || 0);
   const [comissaoCusto, setComissaoCusto] = useState(comissaoServico?.valor || 0);
   const [kitExpanded, setKitExpanded] = useState(false);
+  const [kitCustoOverride, setKitCustoOverride] = useState<number | null>(null);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
 
   // Load pricing defaults from config (SSOT for initial margin)
