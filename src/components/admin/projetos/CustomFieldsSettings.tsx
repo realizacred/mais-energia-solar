@@ -98,6 +98,16 @@ const FIELD_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string 
 // Types that show "Valores possíveis" textarea
 const OPTION_TYPES = ["select", "multi_select"];
 
+const FIELD_KEY_PREFIXES: Record<string, string> = {
+  projeto: "cap",
+  pre_dimensionamento: "pre",
+  pos_dimensionamento: "pos",
+};
+
+function normalizeFieldType(fieldType: string) {
+  return fieldType === "multiselect" ? "multi_select" : fieldType;
+}
+
 const CONTEXT_LABELS: Record<string, string> = {
   projeto: "Projetos",
   pre_dimensionamento: "Pré-dimensionamento",
@@ -169,7 +179,7 @@ export function CustomFieldsSettings() {
       setEditingField(field);
       const vpids = field.visible_pipeline_ids || [];
       setFieldForm({
-        title: field.title, field_key: field.field_key, field_type: field.field_type,
+        title: field.title, field_key: field.field_key, field_type: normalizeFieldType(field.field_type),
         field_context: field.field_context,
         show_on_create: field.show_on_create, required_on_create: field.required_on_create,
         visible_on_funnel: field.visible_on_funnel, important_on_funnel: field.important_on_funnel,
@@ -209,14 +219,15 @@ export function CustomFieldsSettings() {
     setSaving(true);
     try {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
-      const options = OPTION_TYPES.includes(fieldForm.field_type)
+      const normalizedFieldType = normalizeFieldType(fieldForm.field_type);
+      const options = OPTION_TYPES.includes(normalizedFieldType)
         ? optionsText.split("\n").map(s => s.trim()).filter(Boolean)
         : null;
       const { visibilityMode, ...formRest } = fieldForm;
       const visible_on_funnel = visibilityMode === "all";
       const visible_pipeline_ids = visibilityMode === "some" ? formRest.visible_pipeline_ids : [];
       const payload = {
-        ...formRest, options, visible_on_funnel, visible_pipeline_ids,
+        ...formRest, field_type: normalizedFieldType, options, visible_on_funnel, visible_pipeline_ids,
         important_on_funnel: formRest.important_stage_ids.length > 0,
         required_on_funnel: formRest.required_stage_ids.length > 0,
         tenant_id: (profile as any)?.tenant_id,
@@ -431,8 +442,8 @@ export function CustomFieldsSettings() {
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Novo projeto</th>
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrig. criar</th>
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Visíveis nos funis</th>
-                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Importante no funil</th>
-                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório no funil</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Importante em etapa</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório em etapa</th>
                           </>
                         )}
                         {(contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
@@ -445,10 +456,7 @@ export function CustomFieldsSettings() {
                       {filteredFields.map((f, i) => (
                         <tr key={f.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                           <td className="px-4 py-2.5">
-                            <div className="flex items-center gap-1.5">
-                              <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50" />
-                              <span className="text-xs text-muted-foreground">{i + 1}</span>
-                            </div>
+                            <span className="text-xs text-muted-foreground">{i + 1}</span>
                           </td>
                           <td className="px-4 py-2.5 font-medium">{f.title}</td>
                           <td className="px-4 py-2.5">
@@ -465,7 +473,7 @@ export function CustomFieldsSettings() {
                             </button>
                           </td>
                           <td className="px-4 py-2.5">
-                            <Badge variant="outline" className="text-[10px]">{FIELD_TYPE_LABELS[f.field_type] || f.field_type}</Badge>
+                            <Badge variant="outline" className="text-[10px]">{FIELD_TYPE_LABELS[normalizeFieldType(f.field_type)] || f.field_type}</Badge>
                           </td>
                           {contextFilter === "projeto" && (
                             <>
@@ -486,7 +494,6 @@ export function CustomFieldsSettings() {
                                   ? f.required_stage_ids.map(sid => stages.find(s => s.id === sid)?.name || "?").join(", ")
                                   : "Nenhum"}
                               </td>
-                              <td className="text-center px-2"><SwitchCell value={f.required_on_funnel} fieldId={f.id} column="required_on_funnel" onUpdate={loadAll} /></td>
                             </>
                           )}
                           {(contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
@@ -754,11 +761,12 @@ export function CustomFieldsSettings() {
               {/* Selected type indicator */}
               <div className="flex justify-center py-1">
                 {(() => {
-                  const Icon = FIELD_TYPE_ICONS[fieldForm.field_type] || Type;
+                   const nft = normalizeFieldType(fieldForm.field_type);
+                  const Icon = FIELD_TYPE_ICONS[nft] || Type;
                   return (
                     <div className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-xl border-2 border-secondary/40 bg-secondary/5">
                       <Icon className="h-6 w-6 text-secondary" />
-                      <span className="text-xs font-semibold text-secondary">{FIELD_TYPE_LABELS[fieldForm.field_type]}</span>
+                      <span className="text-xs font-semibold text-secondary">{FIELD_TYPE_LABELS[nft]}</span>
                     </div>
                   );
                 })()}
@@ -776,8 +784,7 @@ export function CustomFieldsSettings() {
                       value={fieldForm.title}
                       onChange={e => {
                         const title = e.target.value;
-                        const CONTEXT_PREFIX: Record<string, string> = { projeto: "cap", premissa: "pre", cliente: "cli" };
-                        const prefix = CONTEXT_PREFIX[fieldForm.field_context] || "cap";
+                        const prefix = FIELD_KEY_PREFIXES[fieldForm.field_context] || FIELD_KEY_PREFIXES.projeto;
                         const slug = title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
                         setFieldForm(p => ({
                           ...p,
@@ -822,11 +829,11 @@ export function CustomFieldsSettings() {
                 {/* Type (readonly) */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Tipo</Label>
-                  <Input value={FIELD_TYPE_LABELS[fieldForm.field_type]} readOnly className="bg-muted/30" />
+                  <Input value={FIELD_TYPE_LABELS[normalizeFieldType(fieldForm.field_type)]} readOnly className="bg-muted/30" />
                 </div>
 
                 {/* Options for select/multi_select */}
-                {OPTION_TYPES.includes(fieldForm.field_type) && (
+                {OPTION_TYPES.includes(normalizeFieldType(fieldForm.field_type)) && (
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium">Valores possíveis</Label>
                     <Textarea
