@@ -348,11 +348,11 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
     return (
       <div className="flex items-center justify-between py-3 gap-3">
         <input ref={fileRef} type="file" className="hidden" onChange={handleFileUpload} />
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           <Paperclip className="h-4 w-4 shrink-0 text-primary" />
           <span className="text-sm text-foreground truncate">{row.label}</span>
           {row.hasFile && (
-            <span className="text-[10px] text-muted-foreground">({row.fileCount})</span>
+            <span className="text-xs text-muted-foreground">({row.fileCount})</span>
           )}
         </div>
         <Button
@@ -361,7 +361,7 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
           onClick={() => fileRef.current?.click()}
           disabled={saving}
         >
-          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
           Anexar aqui
         </Button>
       </div>
@@ -372,7 +372,7 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
   if (row.type === "select" && row.options) {
     return (
       <div className="flex items-center justify-between py-3 gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           {row.value ? (
             <CheckCircle className="h-4 w-4 shrink-0 text-success" />
           ) : (
@@ -385,7 +385,7 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
             value={row.selectedId || "none"}
             onValueChange={(v) => saveField(v === "none" ? "" : v)}
           >
-            <SelectTrigger className="h-8 text-xs w-36 bg-muted/30 border-border">
+            <SelectTrigger className="h-8 text-sm w-40 bg-muted/30 border-border">
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
@@ -396,18 +396,18 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
             </SelectContent>
           </Select>
           <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={startEdit} disabled>
-            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+            <Pencil className="h-4 w-4 text-muted-foreground" />
           </Button>
         </div>
       </div>
     );
   }
 
-  // ── Text / Textarea type row ──
+  // ── Text / Textarea type row (editing) ──
   if (editing) {
     return (
       <div className="py-3 space-y-2">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <row.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="text-sm text-foreground">{row.label}</span>
         </div>
@@ -440,21 +440,22 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
     );
   }
 
+  // ── Text / Textarea display row ──
   return (
     <div className="flex items-center justify-between py-3 gap-3">
-      <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
         <row.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className={cn("text-sm truncate", row.value ? "text-primary" : "text-foreground")}>{row.label}</span>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         <div className={cn(
-          "px-2 py-1 rounded border text-xs min-w-[100px] max-w-[180px] truncate text-center",
+          "text-sm px-3 py-1.5 rounded border text-center truncate max-w-[180px] min-w-[100px]",
           row.value ? "border-border bg-muted/30 text-foreground" : "border-dashed border-border text-muted-foreground"
         )}>
           {row.value || "—"}
         </div>
         <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={startEdit}>
-          <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+          <Pencil className="h-4 w-4 text-muted-foreground" />
         </Button>
       </div>
     </div>
