@@ -663,6 +663,7 @@ export function CustomFieldsSettings() {
             </div>
           </DialogHeader>
 
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
           {/* ── Step 1: Type Grid ── */}
           {fieldWizardStep === "type" && (() => {
             const availableTypes = Object.entries(FIELD_TYPE_LABELS);
