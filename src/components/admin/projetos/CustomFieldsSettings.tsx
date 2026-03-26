@@ -654,10 +654,7 @@ export function CustomFieldsSettings() {
                     {motivos.map((m, i) => (
                       <tr key={m.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-1.5">
-                            <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50" />
-                            <span className="text-xs text-muted-foreground">{i + 1}</span>
-                          </div>
+                          <span className="text-xs text-muted-foreground">{i + 1}</span>
                         </td>
                         <td className="px-4 py-2.5 font-medium">{m.nome}</td>
                         <td className="px-4 py-2.5 text-right">
