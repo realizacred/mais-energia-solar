@@ -212,7 +212,15 @@ export function CustomFieldsSettings() {
       const options = OPTION_TYPES.includes(fieldForm.field_type)
         ? optionsText.split("\n").map(s => s.trim()).filter(Boolean)
         : null;
-      const payload = { ...fieldForm, options, tenant_id: (profile as any)?.tenant_id };
+      const { visibilityMode, ...formRest } = fieldForm;
+      const visible_on_funnel = visibilityMode === "all";
+      const visible_pipeline_ids = visibilityMode === "some" ? formRest.visible_pipeline_ids : [];
+      const payload = {
+        ...formRest, options, visible_on_funnel, visible_pipeline_ids,
+        important_on_funnel: formRest.important_stage_ids.length > 0,
+        required_on_funnel: formRest.required_stage_ids.length > 0,
+        tenant_id: (profile as any)?.tenant_id,
+      };
 
       if (editingField) {
         const { error } = await supabase.from("deal_custom_fields").update(payload).eq("id", editingField.id);
