@@ -101,7 +101,7 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="w-[90vw] max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base flex items-center gap-2">
             <LayoutGrid className="h-4 w-4 text-primary" /> Editar Layout dos Módulos

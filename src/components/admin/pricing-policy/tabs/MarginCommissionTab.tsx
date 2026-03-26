@@ -222,7 +222,7 @@ export function MarginCommissionTab() {
 
       {/* ── MARGIN DIALOG ── */}
       <Dialog open={marginDialog} onOpenChange={setMarginDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle>{marginEditId ? "Editar Plano de Margem" : "Novo Plano de Margem"}</DialogTitle>
           </DialogHeader>
@@ -245,7 +245,7 @@ export function MarginCommissionTab() {
 
       {/* ── COMMISSION DIALOG ── */}
       <Dialog open={commissionDialog} onOpenChange={setCommissionDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle>{commissionEditId ? "Editar Plano de Comissão" : "Novo Plano de Comissão"}</DialogTitle>
           </DialogHeader>

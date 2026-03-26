@@ -1189,7 +1189,7 @@ function GerenciamentoTab({
 
           {/* ── Inline Edit Dialog ── */}
           <Dialog open={inlineEditOpen} onOpenChange={setInlineEditOpen}>
-            <DialogContent className="max-w-[400px]">
+            <DialogContent className="w-[90vw] max-w-[400px]">
               <DialogHeader>
                 <DialogTitle>{inlineEditLabel ? `Adicionar ${inlineEditLabel}` : "Editar"}</DialogTitle>
               </DialogHeader>
@@ -1511,7 +1511,7 @@ function GerenciamentoTab({
 
       {/* Dialog: Nova Nota */}
       <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Nova Nota</DialogTitle>
             <DialogDescription>Adicione uma observação ou anotação a este projeto.</DialogDescription>

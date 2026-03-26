@@ -240,7 +240,7 @@
  
    return (
      <Dialog open={open} onOpenChange={onOpenChange}>
-       <DialogContent className="max-w-lg">
+       <DialogContent className="w-[90vw] max-w-lg">
          <div className="flex justify-between items-center mb-4">
            <h2 className="text-lg font-semibold">Recibo de Pagamento</h2>
            <div className="flex gap-2">

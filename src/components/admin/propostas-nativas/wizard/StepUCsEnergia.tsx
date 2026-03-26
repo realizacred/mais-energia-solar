@@ -551,7 +551,7 @@ function UCConfigModal({ uc, onUpdate, onClose }: {
 }) {
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[90vw] max-w-md">
         <DialogHeader>
           <DialogTitle className="text-sm">Configurações adicionais — {uc.nome}</DialogTitle>
         </DialogHeader>
@@ -674,7 +674,7 @@ function RateioModal({ open, onOpenChange, ucs, rateioManual, onRateioManualChan
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[90vw] max-w-md">
         <DialogHeader>
           <DialogTitle className="text-sm flex items-center justify-between">
             Gerenciador de rateio de créditos
@@ -736,7 +736,7 @@ function MesAMesModal({ uc, tipo, onUpdate, onClose }: {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="w-[90vw] max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-sm">{label} — mês a mês — {uc.nome}</DialogTitle>
         </DialogHeader>

@@ -367,7 +367,7 @@ export function CostComponentsTab({ versionId, isReadOnly }: Props) {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[90vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Componente" : "Novo Componente de Custo"}</DialogTitle>
             <DialogDescription>
