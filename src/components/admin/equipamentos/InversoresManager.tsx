@@ -383,6 +383,26 @@ export function InversoresManager() {
                 <Input type="number" value={form.tensao_saida_v} onChange={(e) => set("tensao_saida_v", e.target.value)} placeholder="220" />
               </div>
               <div className="space-y-1">
+                <Label>Corrente de Saída (A)</Label>
+                <Input type="number" step="0.1" value={form.corrente_saida_a} onChange={(e) => set("corrente_saida_a", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Tensão MPPT mín (V)</Label>
+                <Input type="number" value={form.tensao_mppt_min_v} onChange={(e) => set("tensao_mppt_min_v", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Tensão MPPT máx (V)</Label>
+                <Input type="number" value={form.tensao_mppt_max_v} onChange={(e) => set("tensao_mppt_max_v", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Potência Máxima (kW)</Label>
+                <Input type="number" step="0.01" value={form.potencia_maxima_kw} onChange={(e) => set("potencia_maxima_kw", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Fator de Potência</Label>
+                <Input type="number" step="0.01" value={form.fator_potencia} onChange={(e) => set("fator_potencia", e.target.value)} placeholder="1.0" />
+              </div>
+              <div className="space-y-1">
                 <Label>Eficiência Máx (%)</Label>
                 <Input type="number" step="0.01" value={form.eficiencia_max_percent} onChange={(e) => set("eficiencia_max_percent", e.target.value)} placeholder="98.40" />
               </div>
@@ -397,6 +417,21 @@ export function InversoresManager() {
               <div className="space-y-1">
                 <Label>Proteção IP</Label>
                 <Input value={form.ip_protection as string} onChange={(e) => set("ip_protection", e.target.value)} placeholder="IP65" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label>URL do Datasheet</Label>
+                <Input value={form.datasheet_url} onChange={(e) => set("datasheet_url", e.target.value)} placeholder="https://..." />
+              </div>
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => set("status", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rascunho">Rascunho</SelectItem>
+                    <SelectItem value="revisao">Em revisão</SelectItem>
+                    <SelectItem value="publicado">Publicado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
           </FormGrid>
         </FormModalTemplate>
