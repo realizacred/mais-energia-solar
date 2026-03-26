@@ -1,6 +1,23 @@
 import { useState, useCallback, useMemo } from "react";
-import { Plus, Trash2, CreditCard, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Receipt } from "lucide-react";
+import { Plus, Trash2, CreditCard, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Receipt, GripVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +62,20 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
   const summary = useMemo(() => computeSummary(items, valorVenda), [items, valorVenda]);
   const errors = useMemo(() => validateComposition(items, valorVenda), [items, valorVenda]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = items.findIndex((i) => i.id === active.id);
+      const newIndex = items.findIndex((i) => i.id === over.id);
+      onChange(arrayMove(items, oldIndex, newIndex));
+    }
+  }, [items, onChange]);
+
   const addItem = useCallback(() => {
     const newItem = createEmptyItem();
     // Set remaining value as default
@@ -73,22 +104,27 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
 
   return (
     <div className="space-y-4">
-      {/* ── Items List ── */}
-      <AnimatePresence mode="popLayout">
-        {items.map((item, idx) => (
-          <PaymentItemCard
-            key={item.id}
-            item={item}
-            index={idx}
-            expanded={expandedItems.has(item.id)}
-            onToggle={() => toggleExpand(item.id)}
-            onUpdate={(patch) => updateItem(item.id, patch)}
-            onRemove={() => removeItem(item.id)}
-            readOnly={readOnly}
-            configMap={configMap}
-          />
-        ))}
-      </AnimatePresence>
+      {/* ── Items List with DnD ── */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+          <AnimatePresence mode="popLayout">
+            {items.map((item, idx) => (
+              <SortablePaymentItem
+                key={item.id}
+                item={item}
+                index={idx}
+                isFirst={idx === 0}
+                expanded={expandedItems.has(item.id)}
+                onToggle={() => toggleExpand(item.id)}
+                onUpdate={(patch) => updateItem(item.id, patch)}
+                onRemove={() => removeItem(item.id)}
+                readOnly={readOnly}
+                configMap={configMap}
+              />
+            ))}
+          </AnimatePresence>
+        </SortableContext>
+      </DndContext>
 
       {/* ── Add Button ── */}
       {!readOnly && (() => {
