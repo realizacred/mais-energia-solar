@@ -27,8 +27,8 @@ export function useProjetosParaClone(enabled: boolean) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projetos" as any)
-        .select("id, nome, cliente_id, clientes(nome)")
-        .eq("ativo", true)
+        .select("id, codigo, potencia_kwp, cliente_id, clientes!projetos_cliente_id_fkey(nome)")
+        .in("status", ["em_andamento", "aguardando_aprovacao", "aprovado"])
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
