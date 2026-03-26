@@ -466,6 +466,12 @@ export function InversoresManager() {
           onOpenChange={setDistImportOpen}
           existingInversores={inversores}
         />
+        <BatchEnrichDialog
+          open={batchEnrichOpen}
+          onOpenChange={setBatchEnrichOpen}
+          equipmentType="inversor"
+          draftIds={inversores.filter(i => i.status === "rascunho" && !i.datasheet_found_at).map(i => i.id)}
+        />
       </div>
     </div>
   );

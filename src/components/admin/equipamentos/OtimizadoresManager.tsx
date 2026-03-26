@@ -389,6 +389,12 @@ export function OtimizadoresManager() {
           onOpenChange={setDistImportOpen}
           existingOtimizadores={otimizadores}
         />
+        <BatchEnrichDialog
+          open={batchEnrichOpen}
+          onOpenChange={setBatchEnrichOpen}
+          equipmentType="otimizador"
+          draftIds={otimizadores.filter(o => o.status === "rascunho" && !o.datasheet_found_at).map(o => o.id)}
+        />
       </div>
     </div>
   );
