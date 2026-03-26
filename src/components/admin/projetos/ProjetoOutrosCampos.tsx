@@ -346,11 +346,11 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
   // ── File type row ──
   if (row.type === "file") {
     return (
-      <div className="flex items-center justify-between py-2 gap-2.5">
+      <div className="flex items-center justify-between py-1 gap-2">
         <input ref={fileRef} type="file" className="hidden" onChange={handleFileUpload} />
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Paperclip className="h-4 w-4 shrink-0 text-primary" />
-          <span className="text-sm text-foreground truncate">{row.label}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Paperclip className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="text-xs text-foreground truncate">{row.label}</span>
           {row.hasFile && (
             <span className="text-xs text-muted-foreground">({row.fileCount})</span>
           )}
@@ -371,14 +371,14 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
   // ── Select type row ──
   if (row.type === "select" && row.options) {
     return (
-      <div className="flex items-center justify-between py-2 gap-2.5">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center justify-between py-1 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           {row.value ? (
-            <CheckCircle className="h-4 w-4 shrink-0 text-success" />
+            <CheckCircle className="h-3.5 w-3.5 shrink-0 text-success" />
           ) : (
-            <row.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <row.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           )}
-          <span className={cn("text-sm truncate", row.value ? "text-primary" : "text-foreground")}>{row.label}</span>
+          <span className={cn("text-xs truncate", row.value ? "text-primary" : "text-foreground")}>{row.label}</span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <Select
@@ -406,10 +406,10 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
   // ── Text / Textarea type row (editing) ──
   if (editing) {
     return (
-      <div className="py-2 space-y-2">
-        <div className="flex items-center gap-2.5">
-          <row.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="text-sm text-foreground">{row.label}</span>
+      <div className="py-1 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <row.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-xs text-foreground">{row.label}</span>
         </div>
         {row.type === "textarea" ? (
           <Textarea
@@ -442,14 +442,14 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
 
   // ── Text / Textarea display row ──
   return (
-    <div className="flex items-center justify-between py-2 gap-2.5">
-      <div className="flex items-center gap-2.5 min-w-0">
-        <row.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className={cn("text-sm truncate", row.value ? "text-primary" : "text-foreground")}>{row.label}</span>
+      <div className="flex items-center justify-between py-1 gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <row.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <span className={cn("text-xs truncate", row.value ? "text-primary" : "text-foreground")}>{row.label}</span>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         <div className={cn(
-          "text-sm px-3 py-1 rounded border text-center truncate w-[140px]",
+          "text-xs px-2 py-0.5 rounded border text-center truncate w-[130px]",
           row.value ? "border-border bg-muted/30 text-foreground" : "border-dashed border-border text-muted-foreground"
         )}>
           {row.value || "—"}

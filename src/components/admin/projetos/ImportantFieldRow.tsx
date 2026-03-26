@@ -148,9 +148,9 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   if (field.field_type === "boolean") {
     return (
       <>
-        <div className="flex items-center gap-2.5 py-2 px-1">
-          <FieldIcon className="h-4 w-4 shrink-0 text-primary" />
-          <span className="text-sm text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
+        <div className="flex items-center gap-2 py-1 px-1">
+          <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
           <Switch
             checked={value?.value_boolean ?? false}
             onCheckedChange={() => toggleBool()}
@@ -166,9 +166,9 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   if (editing) {
     return (
       <>
-        <div className="flex items-center gap-2.5 py-2 px-1 min-w-0">
-          <FieldIcon className="h-4 w-4 shrink-0 text-primary" />
-          <span className="text-sm text-foreground truncate min-w-0 w-[120px] shrink-0" title={field.title}>{field.title}</span>
+        <div className="flex items-center gap-2 py-1 px-1 min-w-0">
+          <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="text-xs text-foreground truncate min-w-0 w-[120px] shrink-0" title={field.title}>{field.title}</span>
           <div className="flex-1 flex items-center gap-1.5 justify-end min-w-0">
             {field.field_type === "select" && options.length > 0 ? (
               <Select value={draft || "none"} onValueChange={(v) => setDraft(v === "none" ? "" : v)}>
@@ -218,13 +218,13 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   return (
     <>
       <div
-        className="flex items-center gap-2.5 py-2 px-1 group hover:bg-muted/40 -mx-1 rounded-md transition-colors cursor-pointer"
+        className="flex items-center gap-2 py-1 px-1 group hover:bg-muted/40 -mx-1 rounded-md transition-colors cursor-pointer"
         onClick={startEdit}
       >
-        <FieldIcon className="h-4 w-4 shrink-0 text-primary" />
-        <span className="text-sm text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
+        <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
+        <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
         <div className={cn(
-          "text-sm px-3 py-1 rounded border text-center truncate w-[140px]",
+          "text-xs px-2 py-0.5 rounded border text-center truncate w-[130px]",
           displayValue === "—"
             ? "text-muted-foreground/50 border-dashed border-border"
             : "font-medium text-foreground border-border bg-muted/30"
