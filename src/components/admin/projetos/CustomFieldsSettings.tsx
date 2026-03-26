@@ -430,9 +430,9 @@ export function CustomFieldsSettings() {
                           <>
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Novo projeto</th>
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrig. criar</th>
-                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Funil</th>
-                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Importante</th>
-                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrig. funil</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Visíveis nos funis</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Importante no funil</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório no funil</th>
                           </>
                         )}
                         {(contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
@@ -471,8 +471,21 @@ export function CustomFieldsSettings() {
                             <>
                               <td className="text-center px-2"><SwitchCell value={f.show_on_create} fieldId={f.id} column="show_on_create" onUpdate={loadAll} /></td>
                               <td className="text-center px-2"><SwitchCell value={f.required_on_create} fieldId={f.id} column="required_on_create" onUpdate={loadAll} /></td>
-                              <td className="text-center px-2"><SwitchCell value={f.visible_on_funnel} fieldId={f.id} column="visible_on_funnel" onUpdate={loadAll} /></td>
-                              <td className="text-center px-2"><SwitchCell value={f.important_on_funnel} fieldId={f.id} column="important_on_funnel" onUpdate={loadAll} /></td>
+                              <td className="text-center px-2 text-xs text-muted-foreground">
+                                {(f.visible_pipeline_ids?.length > 0)
+                                  ? f.visible_pipeline_ids.map(pid => pipelines.find(p => p.id === pid)?.name || "?").join(", ")
+                                  : f.visible_on_funnel ? "Todos" : "Nenhum"}
+                              </td>
+                              <td className="text-center px-2 text-xs text-muted-foreground">
+                                {(f.important_stage_ids?.length > 0)
+                                  ? f.important_stage_ids.map(sid => stages.find(s => s.id === sid)?.name || "?").join(", ")
+                                  : "Nenhum"}
+                              </td>
+                              <td className="text-center px-2 text-xs text-muted-foreground">
+                                {(f.required_stage_ids?.length > 0)
+                                  ? f.required_stage_ids.map(sid => stages.find(s => s.id === sid)?.name || "?").join(", ")
+                                  : "Nenhum"}
+                              </td>
                               <td className="text-center px-2"><SwitchCell value={f.required_on_funnel} fieldId={f.id} column="required_on_funnel" onUpdate={loadAll} /></td>
                             </>
                           )}
