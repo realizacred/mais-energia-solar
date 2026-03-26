@@ -730,14 +730,15 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       </div>
 
       {/* §4 Table */}
-      {vendedores.length === 0 ? (
+      {filteredVendedores.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Users className="w-10 h-10 text-muted-foreground/40 mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">Nenhum consultor cadastrado</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">Cadastre o primeiro consultor para começar</p>
-          <Button onClick={openNewDialog} variant="outline" className="mt-4 gap-2">
-            <Plus className="w-4 h-4" />
-            Cadastrar primeiro consultor
+          <p className="text-sm font-medium text-muted-foreground">Nenhum consultor encontrado</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">{activeFilterCount > 0 ? "Tente ajustar os filtros" : "Cadastre o primeiro consultor para começar"}</p>
+          {activeFilterCount === 0 && (
+            <Button onClick={openNewDialog} variant="outline" className="mt-4 gap-2">
+              <Plus className="w-4 h-4" />
+              Cadastrar primeiro consultor
           </Button>
         </div>
       ) : (
