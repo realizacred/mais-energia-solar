@@ -148,9 +148,9 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   if (field.field_type === "boolean") {
     return (
       <>
-        <div className="flex items-center gap-2 py-2 px-1">
-          <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
+        <div className="flex items-center gap-3 py-3 px-1">
+          <FieldIcon className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-sm text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
           <Switch
             checked={value?.value_boolean ?? false}
             onCheckedChange={() => toggleBool()}
@@ -166,13 +166,13 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   if (editing) {
     return (
       <>
-        <div className="flex items-center gap-1.5 py-2 px-1 min-w-0">
-          <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="text-xs text-foreground truncate min-w-0 max-w-[80px]" title={field.title}>{field.title}</span>
-          <div className="flex-1 flex items-center gap-1 justify-end min-w-0">
+        <div className="flex items-center gap-3 py-3 px-1 min-w-0">
+          <FieldIcon className="h-4 w-4 shrink-0 text-primary" />
+          <span className="text-sm text-foreground truncate min-w-0 w-[120px] shrink-0" title={field.title}>{field.title}</span>
+          <div className="flex-1 flex items-center gap-1.5 justify-end min-w-0">
             {field.field_type === "select" && options.length > 0 ? (
               <Select value={draft || "none"} onValueChange={(v) => setDraft(v === "none" ? "" : v)}>
-                <SelectTrigger className="h-7 text-xs w-full min-w-0">
+                <SelectTrigger className="h-8 text-xs w-full min-w-0">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -188,7 +188,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="text-xs w-full min-w-0 min-h-[28px] h-7 resize-none"
+                className="text-sm w-full min-w-0 min-h-[60px] resize-none"
               />
             ) : (
               <Input
@@ -197,15 +197,15 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="h-7 text-xs w-full min-w-0"
+                className="h-8 text-sm w-full min-w-0"
                 step={field.field_type === "currency" ? "0.01" : undefined}
               />
             )}
-            <Button variant="ghost" size="icon" onClick={save} disabled={saving} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-primary/10 text-primary transition-colors shrink-0">
-              <Check className="h-3 w-3" />
+            <Button variant="ghost" size="icon" onClick={save} disabled={saving} className="h-7 w-7 shrink-0 hover:bg-primary/10 text-primary transition-colors">
+              <Check className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={cancel} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground transition-colors shrink-0">
-              <X className="h-3 w-3" />
+            <Button variant="ghost" size="icon" onClick={cancel} className="h-7 w-7 shrink-0 hover:bg-destructive/10 text-muted-foreground transition-colors">
+              <X className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -218,20 +218,20 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   return (
     <>
       <div
-        className="flex items-center gap-2 py-2 px-1 group hover:bg-muted/40 -mx-1 rounded-md transition-colors cursor-pointer"
+        className="flex items-center gap-3 py-3 px-1 group hover:bg-muted/40 -mx-1 rounded-md transition-colors cursor-pointer"
         onClick={startEdit}
       >
-        <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-        <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
-        <span className={cn(
-          "text-xs px-2 py-0.5 rounded border text-center truncate max-w-[160px]",
+        <FieldIcon className="h-4 w-4 shrink-0 text-primary" />
+        <span className="text-sm text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
+        <div className={cn(
+          "text-sm px-3 py-1.5 rounded border text-center truncate max-w-[180px] min-w-[100px]",
           displayValue === "—"
             ? "text-muted-foreground/50 border-dashed border-border"
-            : "font-medium text-foreground border-border bg-background"
+            : "font-medium text-foreground border-border bg-muted/30"
         )}>
           {displayValue}
-        </span>
-        <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/70 transition-colors" />
+        </div>
+        <Pencil className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/70 transition-colors" />
       </div>
       {showSeparator && <Separator />}
     </>
