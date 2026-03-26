@@ -17,6 +17,7 @@ interface CustomField {
   field_context: string;
   options: Json | null;
   required_on_create: boolean | null;
+  required_on_proposal?: boolean | null;
   show_on_create: boolean | null;
   is_active: boolean | null;
   ordem: number | null;
@@ -35,15 +36,12 @@ export function StepCamposCustomizados({ values, onValuesChange }: Props) {
     setLoading(true);
     supabase
       .from("deal_custom_fields")
-      .select("id, title, field_key, field_type, field_context, options, required_on_create, show_on_create, is_active, ordem")
+      .select("id, title, field_key, field_type, field_context, options, required_on_create, required_on_proposal, show_on_create, is_active, ordem")
       .eq("is_active", true)
+      .eq("field_context", "pre_dimensionamento")
       .order("ordem")
       .then(({ data }) => {
-        // Filter fields that should show on proposal creation
-        const visible = (data || []).filter(
-          (f) => f.show_on_create !== false
-        ) as CustomField[];
-        setFields(visible);
+        setFields((data || []) as CustomField[]);
         setLoading(false);
       });
   }, []);
@@ -91,7 +89,7 @@ function CustomFieldInput({ field, value, onChange }: {
   value: any;
   onChange: (val: any) => void;
 }) {
-  const isRequired = field.required_on_create === true;
+  const isRequired = field.required_on_proposal === true || field.required_on_create === true;
   const label = `${field.title}${isRequired ? " *" : ""}`;
 
   switch (field.field_type) {
@@ -114,6 +112,7 @@ function CustomFieldInput({ field, value, onChange }: {
       );
     }
 
+    case "multi_select":
     case "multiselect": {
       const options = Array.isArray(field.options) ? field.options as string[] : [];
       const selected: string[] = Array.isArray(value) ? value : [];

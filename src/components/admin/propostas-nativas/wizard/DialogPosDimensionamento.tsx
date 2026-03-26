@@ -257,6 +257,7 @@ function PosCustomFieldInput({ field, value, onChange }: {
       );
     }
 
+    case "multi_select":
     case "multiselect": {
       const options = Array.isArray(field.options) ? field.options as string[] : [];
       const selected: string[] = Array.isArray(value) ? value : [];
