@@ -812,6 +812,11 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ── Cliente (complementares) ──
   v("comercial", "comercial.cliente_observacoes", "cliente_observacoes", "Observações do Cliente", "Observações e notas sobre o cliente", "-", "Cliente preferencial"),
 
+  // ── Representante Legal da Empresa ──
+  v("comercial", "comercial.empresa_representante_legal", "empresa_representante_legal", "Representante Legal", "Nome do representante legal da empresa", "-", "Carlos Alberto Silva"),
+  v("comercial", "comercial.empresa_representante_cpf", "empresa_representante_cpf", "CPF do Representante", "CPF do representante legal da empresa", "-", "123.456.789-00"),
+  v("comercial", "comercial.empresa_representante_cargo", "empresa_representante_cargo", "Cargo do Representante", "Cargo do representante legal (ex: Sócio-Diretor)", "-", "Sócio-Diretor"),
+
   // ──────────────────────────────────────────────────────────────
   // CLIENTE
   // ──────────────────────────────────────────────────────────────
