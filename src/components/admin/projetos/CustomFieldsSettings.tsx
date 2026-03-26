@@ -1157,6 +1157,7 @@ function StageMultiSelect({ label, stages, pipelines, selectedIds, onChange }: {
       </div>
     </div>
   );
+}
 
 // ─── Helpers ───
 function SwitchRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
