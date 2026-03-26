@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
-import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { InversorImportDialog } from "./inversores/InversorImportDialog";
 import {
   useInversoresCatalogo,
   useSalvarInversor,
