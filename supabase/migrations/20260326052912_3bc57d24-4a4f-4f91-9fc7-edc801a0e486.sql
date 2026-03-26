@@ -1,0 +1,1 @@
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS payment_composition JSONB DEFAULT NULL;
