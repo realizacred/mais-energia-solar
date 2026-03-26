@@ -197,6 +197,7 @@ export function ProjetosManager() {
         defaultStageId={defaultStageId}
         pipelines={activePipelines.map(p => ({ id: p.id, name: p.name }))}
         stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position, is_closed: s.is_closed }))}
+        dynamicEtiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor }))}
         onSubmit={async (data) => {
           const customerId = data.clienteId;
           if (!customerId) {
