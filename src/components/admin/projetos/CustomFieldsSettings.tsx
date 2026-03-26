@@ -644,20 +644,26 @@ export function CustomFieldsSettings() {
 
       {/* ═══ Dialog: Campo Customizado (Wizard) ═══ */}
       <Dialog open={fieldDialogOpen} onOpenChange={(open) => { setFieldDialogOpen(open); if (!open) setFieldWizardStep("type"); }}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingField
-                ? "Editar Campo"
-                : `Novo Campo Customizado (${CONTEXT_LABELS[fieldForm.field_context]})`}
-            </DialogTitle>
-            <DialogDescription>
-              {fieldWizardStep === "type"
-                ? "Selecione o tipo de campo que deseja criar"
-                : "Configure as propriedades do campo"}
-            </DialogDescription>
+        <DialogContent className="w-[90vw] max-w-lg p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Settings2 className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                {editingField
+                  ? "Editar Campo"
+                  : `Novo Campo Customizado (${CONTEXT_LABELS[fieldForm.field_context]})`}
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {fieldWizardStep === "type"
+                  ? "Selecione o tipo de campo que deseja criar"
+                  : "Configure as propriedades do campo"}
+              </p>
+            </div>
           </DialogHeader>
 
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
           {/* ── Step 1: Type Grid ── */}
           {fieldWizardStep === "type" && (() => {
             const availableTypes = Object.entries(FIELD_TYPE_LABELS);
@@ -908,19 +914,22 @@ export function CustomFieldsSettings() {
                 </div>
               )}
 
-              <DialogFooter>
+            </>
+          )}
+          </div>
+
+          {/* Footers outside scroll area */}
+          {fieldWizardStep === "config" && (
+              <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
                 <Button variant="ghost" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
                 <Button onClick={handleSaveField} disabled={!fieldForm.title.trim() || !fieldForm.field_key.trim() || saving}>
                   {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                   {editingField ? "Salvar" : "Cadastrar"}
                 </Button>
               </DialogFooter>
-            </>
           )}
-
-          {/* Footer for step 1 */}
           {fieldWizardStep === "type" && (
-            <DialogFooter>
+            <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
               <Button variant="ghost" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
             </DialogFooter>
           )}
@@ -929,7 +938,7 @@ export function CustomFieldsSettings() {
 
       {/* ═══ Dialog: Tipo de Atividade ═══ */}
       <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle>{editingActivity ? "Editar Tipo" : "Criar Tipo de Atividade"}</DialogTitle>
             <DialogDescription>Defina o nome, visibilidade e ícone</DialogDescription>
