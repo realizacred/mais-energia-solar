@@ -174,12 +174,17 @@ const ProposalWizardPage = lazy(() =>
     .then((m) => ({ default: m.ProposalWizard }))
     .catch((err) => {
       console.error("[ProposalWizard] Lazy load failed:", err);
+      // Auto-reload on stale chunk errors (deployment cache)
+      if (String(err?.message || "").includes("dynamically imported module")) {
+        window.location.reload();
+        return { default: () => null };
+      }
       return {
         default: () => (
           <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-center px-4">
             <p className="text-destructive font-semibold">Erro ao carregar o Wizard de Propostas</p>
             <p className="text-sm text-muted-foreground max-w-md">{String(err?.message || err)}</p>
-            <button onClick={() => window.location.reload()} className="text-sm text-primary underline">Recarregar página</button>
+            <a onClick={() => window.location.reload()} className="text-sm text-primary underline cursor-pointer">Recarregar página</a>
           </div>
         ),
       };
