@@ -313,29 +313,31 @@ export function ProjetosManager() {
                   </span>
                 </div>
 
-                {/* Color Legend — hover to reveal */}
-                <div className="relative group/legend">
-                  <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-[10px] text-muted-foreground hover:text-foreground">
-                    <Info className="h-3 w-3" />
-                    Legenda
-                  </Button>
-                  <div className="absolute right-0 mt-1 z-20 bg-popover border border-border rounded-xl shadow-xl p-3 w-64 invisible opacity-0 group-hover/legend:visible group-hover/legend:opacity-100 transition-all duration-200">
+                {/* Color Legend — click to toggle */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-[10px] text-muted-foreground hover:text-foreground">
+                      <Info className="h-3 w-3" />
+                      Legenda
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-64 p-3">
                     <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2.5">Bordas dos cards</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full shrink-0" style={{ backgroundColor: "hsl(142 71% 45%)" }} />
+                        <span className="w-1.5 h-5 rounded-full shrink-0 bg-success" />
                         <span className="text-[11px] text-muted-foreground">Projeto ganho</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full shrink-0" style={{ backgroundColor: "hsl(0 84% 60%)" }} />
+                        <span className="w-1.5 h-5 rounded-full shrink-0 bg-destructive" />
                         <span className="text-[11px] text-muted-foreground">Projeto perdido / estagnado +7d</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full shrink-0" style={{ backgroundColor: "hsl(38 92% 50%)" }} />
+                        <span className="w-1.5 h-5 rounded-full shrink-0 bg-warning" />
                         <span className="text-[11px] text-muted-foreground">Estagnado +3 dias</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full shrink-0" style={{ backgroundColor: "hsl(27 96% 61%)" }} />
+                        <span className="w-1.5 h-5 rounded-full shrink-0 bg-muted-foreground" />
                         <span className="text-[11px] text-muted-foreground">Sem proposta vinculada</span>
                       </div>
                       <div className="flex items-center gap-2.5">
@@ -347,8 +349,8 @@ export function ProjetosManager() {
                         <span className="text-[11px] text-muted-foreground">Cor da etiqueta do projeto</span>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
