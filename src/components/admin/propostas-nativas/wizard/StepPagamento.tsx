@@ -953,9 +953,5 @@ function calcParcela(op: { valor_financiado: number; entrada: number; num_parcel
   const principal = (op.valor_financiado || 0) - (op.entrada || 0);
   if (principal <= 0 || op.num_parcelas <= 0) return 0;
   if (op.tipo === "a_vista") return op.valor_financiado || 0;
-  if (op.taxa_mensal <= 0) return principal / op.num_parcelas;
-  const r = op.taxa_mensal / 100;
-  const n = op.num_parcelas;
-  const fator = Math.pow(1 + r, n);
-  return principal * (r * fator) / (fator - 1);
+  return calcularPrestacao(principal, op.taxa_mensal, op.num_parcelas);
 }
