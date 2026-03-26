@@ -23,6 +23,8 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useProposalVersionSnapshot } from "@/hooks/useProposalVersionSnapshot";
@@ -41,17 +43,11 @@ import {
 interface ProposalMessageDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Versão ID da proposta ativa */
   versaoId: string;
-  /** Proposta ID */
   propostaId: string;
-  /** Projeto (deal) ID */
   projetoId: string;
-  /** Cliente ID */
   clienteId?: string | null;
-  /** Tenant ID for config lookup */
   tenantId?: string;
-  /** Dados básicos já disponíveis (evita refetch) */
   propostaData: {
     cliente_nome: string | null;
     codigo: string | null;
@@ -65,7 +61,6 @@ interface ProposalMessageDrawerProps {
     geracao_mensal: number | null;
     public_slug: string | null;
   };
-  /** Pre-filled contact info */
   clienteTelefone?: string | null;
   clienteEmail?: string | null;
 }
@@ -85,10 +80,8 @@ export function ProposalMessageDrawer({
   clienteTelefone,
   clienteEmail,
 }: ProposalMessageDrawerProps) {
-  // Read tenant config (templates, blocks, defaults)
   const { data: tenantConfig } = useProposalMessageConfig(tenantId);
 
-  // Defaults from tenant config (applied once on open)
   const configMode = tenantConfig?.defaults?.mode || "cliente";
   const configStyle = tenantConfig?.defaults?.style || "completa";
 
@@ -102,7 +95,6 @@ export function ProposalMessageDrawer({
 
   const sendMutation = useSendProposalMessage();
 
-  // Apply tenant defaults when config loads and drawer opens
   useEffect(() => {
     if (open && tenantConfig && !defaultsApplied) {
       setMode(tenantConfig.defaults.mode || "cliente");
@@ -114,7 +106,6 @@ export function ProposalMessageDrawer({
     }
   }, [open, tenantConfig, defaultsApplied]);
 
-  // Pre-fill destinatário when drawer opens
   useEffect(() => {
     if (open) {
       setDestinatarioTelefone(clienteTelefone || "");
@@ -122,18 +113,15 @@ export function ProposalMessageDrawer({
     }
   }, [open, clienteTelefone, clienteEmail]);
 
-  // Fetch snapshot via hook (§16 compliant)
   const { data: snapshot, isLoading: loadingSnapshot } = useProposalVersionSnapshot(
     open ? versaoId : null
   );
 
-  // Build context from snapshot + versao data
   const msgContext = useMemo<ProposalMessageContext | null>(() => {
     if (!snapshot) return null;
     return extractMessageContext(snapshot, versaoData, propostaData);
   }, [snapshot, versaoData, propostaData]);
 
-  // Resolve template and blocks from tenant config
   const generateOptions = useMemo(() => {
     if (!tenantConfig) return {};
     const templateKey = `${mode}_${style}`;
@@ -144,7 +132,6 @@ export function ProposalMessageDrawer({
     };
   }, [tenantConfig, mode, style]);
 
-  // Generate message on mode/style/context change
   useEffect(() => {
     if (!msgContext) return;
     const text = generateProposalMessage(msgContext, mode, style, generateOptions);
@@ -178,9 +165,8 @@ export function ProposalMessageDrawer({
     try {
       await navigator.clipboard.writeText(message);
       setCopied(true);
-      // Log copy action
       sendMutation.mutate(buildPayload("copy", ""), {
-        onError: () => {/* silent — copy still worked */},
+        onError: () => {},
       });
       toast({ title: "Mensagem copiada! 📋" });
       setTimeout(() => setCopied(false), 3000);
@@ -243,195 +229,211 @@ export function ProposalMessageDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[90vw] max-w-lg flex flex-col p-0 gap-0">
-        {/* Header */}
-        <SheetHeader className="p-5 pb-4 border-b border-border shrink-0">
+      <SheetContent className="w-[90vw] max-w-md flex flex-col p-0 gap-0 overflow-hidden">
+        {/* Header — §25: ícone + título + subtítulo */}
+        <SheetHeader className="px-5 pt-5 pb-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <MessageCircle className="w-5 h-5 text-primary" />
             </div>
-            <div className="flex-1">
-              <SheetTitle className="text-base font-semibold text-foreground">
+            <div className="flex-1 min-w-0">
+              <SheetTitle className="text-base font-semibold text-foreground leading-tight">
                 Mensagem da Proposta
               </SheetTitle>
-              <SheetDescription className="text-xs text-muted-foreground mt-0.5">
+              <SheetDescription className="text-[11px] text-muted-foreground mt-0.5">
                 Gere, edite e envie ao cliente ou consultor
               </SheetDescription>
             </div>
           </div>
         </SheetHeader>
 
-        {/* Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
-          {/* Mode selector */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Destinatário</p>
-            <ToggleGroup
-              type="single"
-              value={mode}
-              onValueChange={(v) => v && setMode(v as MessageMode)}
-              className="justify-start"
-            >
-              <ToggleGroupItem value="cliente" aria-label="Cliente" className="gap-1.5 text-xs">
-                <User className="h-3.5 w-3.5" />
-                Cliente
-              </ToggleGroupItem>
-              <ToggleGroupItem value="consultor" aria-label="Consultor" className="gap-1.5 text-xs">
-                <Briefcase className="h-3.5 w-3.5" />
-                Consultor
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
+        {/* Body — §36: flex-1 min-h-0 scroll interno */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-5 space-y-4">
+            {/* Destinatário + Estilo — layout compacto lado a lado */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Destinatário
+                </p>
+                <ToggleGroup
+                  type="single"
+                  value={mode}
+                  onValueChange={(v) => v && setMode(v as MessageMode)}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="cliente" aria-label="Cliente" className="gap-1 text-[11px] h-8 px-2.5">
+                    <User className="h-3.5 w-3.5" />
+                    Cliente
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="consultor" aria-label="Consultor" className="gap-1 text-[11px] h-8 px-2.5">
+                    <Briefcase className="h-3.5 w-3.5" />
+                    Consultor
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
 
-          {/* Style selector */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estilo</p>
-            <ToggleGroup
-              type="single"
-              value={style}
-              onValueChange={(v) => v && setStyle(v as MessageStyle)}
-              className="justify-start"
-            >
-              <ToggleGroupItem value="curta" aria-label="Curta" className="gap-1.5 text-xs">
-                <AlignLeft className="h-3.5 w-3.5" />
-                Curta
-              </ToggleGroupItem>
-              <ToggleGroupItem value="completa" aria-label="Completa" className="gap-1.5 text-xs">
-                <AlignJustify className="h-3.5 w-3.5" />
-                Completa
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Estilo
+                </p>
+                <ToggleGroup
+                  type="single"
+                  value={style}
+                  onValueChange={(v) => v && setStyle(v as MessageStyle)}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="curta" aria-label="Curta" className="gap-1 text-[11px] h-8 px-2.5">
+                    <AlignLeft className="h-3.5 w-3.5" />
+                    Curta
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="completa" aria-label="Completa" className="gap-1 text-[11px] h-8 px-2.5">
+                    <AlignJustify className="h-3.5 w-3.5" />
+                    Completa
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            </div>
 
-          {/* Current mode badge */}
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[10px]">
+            {/* Badge modo ativo */}
+            <Badge variant="outline" className="text-[10px] font-medium">
               {mode === "cliente" ? "👤 Cliente" : "📋 Consultor"} • {style === "curta" ? "Resumida" : "Completa"}
             </Badge>
-          </div>
 
-          {/* Destinatário fields */}
-          <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/30">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contato para envio</p>
-            <div className="grid grid-cols-1 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs flex items-center gap-1.5">
-                  <Phone className="h-3 w-3" /> Telefone (WhatsApp)
-                </Label>
-                <Input
-                  value={destinatarioTelefone}
-                  onChange={(e) => setDestinatarioTelefone(e.target.value)}
-                  placeholder="5511999998888"
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs flex items-center gap-1.5">
-                  <AtSign className="h-3 w-3" /> E-mail
-                </Label>
-                <Input
-                  value={destinatarioEmail}
-                  onChange={(e) => setDestinatarioEmail(e.target.value)}
-                  placeholder="cliente@email.com"
-                  className="h-8 text-xs"
-                />
+            <Separator />
+
+            {/* Contato para envio */}
+            <div className="rounded-lg border border-border bg-muted/30 p-3.5 space-y-3">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Contato para envio
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px] flex items-center gap-1.5 text-muted-foreground">
+                    <Phone className="h-3 w-3" /> Telefone (WhatsApp)
+                  </Label>
+                  <Input
+                    value={destinatarioTelefone}
+                    onChange={(e) => setDestinatarioTelefone(e.target.value)}
+                    placeholder="5511999998888"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] flex items-center gap-1.5 text-muted-foreground">
+                    <AtSign className="h-3 w-3" /> E-mail
+                  </Label>
+                  <Input
+                    value={destinatarioEmail}
+                    onChange={(e) => setDestinatarioEmail(e.target.value)}
+                    placeholder="cliente@email.com"
+                    className="h-8 text-xs"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Message area */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagem</p>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={handleRegenerate}
-                    disabled={loadingSnapshot || isSending}
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Regenerar mensagem</TooltipContent>
-              </Tooltip>
-            </div>
+            <Separator />
 
-            {loadingSnapshot ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-1/2" />
+            {/* Mensagem */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Mensagem
+                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleRegenerate}
+                      disabled={loadingSnapshot || isSending}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Regenerar mensagem</TooltipContent>
+                </Tooltip>
               </div>
-            ) : (
-              <Textarea
-                value={message}
-                onChange={(e) => {
-                  setMessage(e.target.value);
-                  setCopied(false);
-                }}
-                className="min-h-[220px] text-sm font-mono leading-relaxed resize-y"
-                placeholder="A mensagem será gerada automaticamente..."
-              />
+
+              {loadingSnapshot ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ) : (
+                <Textarea
+                  value={message}
+                  onChange={(e) => {
+                    setMessage(e.target.value);
+                    setCopied(false);
+                  }}
+                  className="min-h-[200px] text-xs font-mono leading-relaxed resize-y border-border"
+                  placeholder="A mensagem será gerada automaticamente..."
+                />
+              )}
+            </div>
+          </div>
+        </ScrollArea>
+
+        {/* Footer — §22: botões alinhados */}
+        <div className="flex gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+          <Button
+            variant={copied ? "default" : "outline"}
+            className={cn(
+              "flex-1 gap-1.5 text-xs h-9",
+              copied && "bg-success text-success-foreground hover:bg-success/90"
             )}
-          </div>
-        </div>
+            onClick={handleCopy}
+            disabled={!message || loadingSnapshot || isSending}
+          >
+            {copied ? <CheckCircle className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? "Copiado!" : "Copiar"}
+          </Button>
 
-        {/* Footer */}
-        <SheetFooter className="flex flex-col gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
-          <div className="flex gap-2 w-full">
-            <Button
-              variant={copied ? "default" : "outline"}
-              className={cn("flex-1 gap-1.5", copied && "bg-success text-success-foreground hover:bg-success/90")}
-              onClick={handleCopy}
-              disabled={!message || loadingSnapshot || isSending}
-            >
-              {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? "Copiado!" : "Copiar"}
-            </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="gap-1.5 shrink-0"
-                  onClick={handleSendWhatsApp}
-                  disabled={!message || loadingSnapshot || isSending}
-                >
-                  {isSending && sendMutation.variables?.canal === "whatsapp" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <MessageCircle className="h-4 w-4 text-success" />
-                  )}
-                  <span className="hidden sm:inline text-xs">WhatsApp</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Enviar via WhatsApp (real)</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="gap-1.5 shrink-0"
-                  onClick={handleSendEmail}
-                  disabled={!message || loadingSnapshot || isSending}
-                >
-                  {isSending && sendMutation.variables?.canal === "email" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Mail className="h-4 w-4 text-info" />
-                  )}
-                  <span className="hidden sm:inline text-xs">E-mail</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Enviar via e-mail (real)</TooltipContent>
-            </Tooltip>
-          </div>
-        </SheetFooter>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-1.5 text-xs h-9"
+                onClick={handleSendWhatsApp}
+                disabled={!message || loadingSnapshot || isSending}
+              >
+                {isSending && sendMutation.variables?.canal === "whatsapp" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <MessageCircle className="h-3.5 w-3.5 text-success" />
+                )}
+                WhatsApp
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Enviar via WhatsApp</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-1.5 text-xs h-9"
+                onClick={handleSendEmail}
+                disabled={!message || loadingSnapshot || isSending}
+              >
+                {isSending && sendMutation.variables?.canal === "email" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Mail className="h-3.5 w-3.5 text-info" />
+                )}
+                E-mail
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Enviar via e-mail</TooltipContent>
+          </Tooltip>
+        </div>
       </SheetContent>
     </Sheet>
   );
