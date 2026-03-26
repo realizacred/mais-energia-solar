@@ -74,6 +74,7 @@ export function StepDocumento({
   docxBlob,
 }: StepDocumentoProps) {
   // ─── Queries via hooks (§16 AGENTS.md) ──────────────────
+  const queryClient = useQueryClient();
   const { data: templates = [], isLoading: loadingTemplates } = useProposalTemplates();
   const { data: emailTemplatesData = [] } = useEmailTemplates();
 
