@@ -616,8 +616,8 @@ export function ProposalWizard() {
               lon: rawSnapshot.projectAddress?.lon ?? null,
             } : undefined),
             mapSnapshots: rawSnapshot.mapSnapshots || [],
-            selectedLead: null,
-            cliente: undefined as any,
+            selectedLead: rawSnapshot.selectedLead || null,
+            cliente: rawSnapshot.cliente || undefined as any,
             ucs: rawSnapshot.ucs || [],
             grupo: rawSnapshot.ucs?.length > 1 ? "multi" : (uc0.subgrupo?.startsWith("A") ? "A" : "B1"),
             potenciaKwp: tecnico.potencia_kwp || versao.potencia_kwp || 0,
@@ -767,6 +767,26 @@ export function ProposalWizard() {
                   console.log("[ProposalWizard] Synthetic lead created from cliente:", cli.id);
                 }
               }
+            }
+          }
+
+          // Enrich cliente state if missing from snapshot
+          if (!s.cliente?.nome && propostaMeta?.cliente_id) {
+            const { data: cliEnrich } = await supabase
+              .from("clientes")
+              .select("nome, telefone, email, cpf_cnpj, empresa")
+              .eq("id", propostaMeta.cliente_id)
+              .maybeSingle();
+            if (cliEnrich?.nome) {
+              setCliente(prev => ({
+                ...prev,
+                nome: prev.nome || cliEnrich.nome || "",
+                celular: prev.celular || cliEnrich.telefone || "",
+                email: prev.email || cliEnrich.email || "",
+                cnpj_cpf: prev.cnpj_cpf || cliEnrich.cpf_cnpj || "",
+                empresa: prev.empresa || cliEnrich.empresa || "",
+              }));
+              console.log("[ProposalWizard] cliente enriched from DB:", propostaMeta.cliente_id);
             }
           }
 
