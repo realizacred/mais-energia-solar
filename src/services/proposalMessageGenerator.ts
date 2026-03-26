@@ -512,7 +512,16 @@ export function extractMessageContext(
     consultorNome: snap.consultorNome || snap.consultor_nome || null,
     empresaNome: snap.empresaNome || snap.empresa_nome || null,
     validadeDias: snap.validade_dias || snap.validadeDias || null,
-    pagamentoOpcoes: pagOpcoes,
+    pagamentoOpcoes: pagOpcoes.map((op: any) => ({
+      nome: op.nome || "",
+      tipo: op.tipo || null,
+      entrada: op.entrada || null,
+      parcelas: op.parcelas || op.num_parcelas || null,
+      valor_parcela: op.valor_parcela || null,
+      taxa_mensal: op.taxa_mensal || null,
+      valor_financiado: op.valor_financiado || null,
+      carencia_meses: op.carencia_meses || null,
+    })),
     itensInclusos: itens.map((i: any) => ({
       descricao: `${i.fabricante || ""} ${i.modelo || i.descricao || ""}`.trim(),
       quantidade: i.quantidade || 1,
