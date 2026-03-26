@@ -42,6 +42,7 @@ import { ProjetoOutrosCampos } from "./ProjetoOutrosCampos";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
+import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
 import { useQuery } from "@tanstack/react-query";
 import { usePropostasProjetoTab, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
@@ -575,6 +576,7 @@ function GerenciamentoTab({
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [deleteActivityDialogOpen, setDeleteActivityDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
+  const [waDialogOpen, setWaDialogOpen] = useState(false);
   const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; created_by_name?: string }>>([]);
   const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string; assigned_to?: string | null }>>([]);
 
@@ -1132,7 +1134,7 @@ function GerenciamentoTab({
                   muted={!customerPhone}
                   isLink={!customerPhone}
                   onCopy={customerPhone ? () => { navigator.clipboard.writeText(customerPhone); toast({ title: "Telefone copiado" }); } : undefined}
-                  onAction={customerPhone ? () => window.open(`https://wa.me/${customerPhone.replace(/\D/g, "")}`, "_blank") : undefined}
+                  onAction={customerPhone ? () => setWaDialogOpen(true) : undefined}
                   actionIcon={customerPhone ? MessageSquare : undefined}
                   actionTooltip="Abrir WhatsApp"
                   onEdit={!customerPhone ? () => openInlineEdit("telefone", "Telefone", customerPhone) : undefined}
@@ -1252,7 +1254,7 @@ function GerenciamentoTab({
                     const isDone = a.status === "done";
                     const assignedName = a.assigned_to ? (teamMembers.find(m => m.user_id === a.assigned_to)?.nome || null) : null;
                     const phoneForAction = customerPhone?.replace(/\D/g, "") || "";
-                    const waLink = phoneForAction ? `https://wa.me/${phoneForAction.startsWith("55") ? phoneForAction : `55${phoneForAction}`}` : "";
+                    
                     const telLink = phoneForAction ? `tel:+${phoneForAction.startsWith("55") ? phoneForAction : `55${phoneForAction}`}` : "";
                     const isCallType = a.activity_type === "call";
                     const isWaType = a.activity_type === "whatsapp" || a.activity_type === "follow_up";
@@ -1299,14 +1301,12 @@ function GerenciamentoTab({
                                     <TooltipContent>Ligar para {customerName || "cliente"}</TooltipContent>
                                   </Tooltip>
                                 )}
-                                {!isDone && (isCallType || isWaType) && waLink && (
+                                {!isDone && (isCallType || isWaType) && phoneForAction && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex">
-                                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                                          <MessageSquare className="h-3.5 w-3.5 text-success" />
-                                        </Button>
-                                      </a>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setWaDialogOpen(true); }}>
+                                        <MessageSquare className="h-3.5 w-3.5 text-success" />
+                                      </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>WhatsApp para {customerName || "cliente"}</TooltipContent>
                                   </Tooltip>
@@ -1639,6 +1639,12 @@ function GerenciamentoTab({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ScheduleWhatsAppDialog
+        lead={customerPhone ? { nome: customerName, telefone: customerPhone } : null}
+        open={waDialogOpen}
+        onOpenChange={setWaDialogOpen}
+      />
     </>
   );
 }
