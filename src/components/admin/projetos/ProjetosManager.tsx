@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info, Users, FileCheck } from "lucide-react";
+import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info, Users, FileCheck, Download, Clock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { motion } from "framer-motion";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useDealPipeline } from "@/hooks/useDealPipeline";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
+import { StatCard } from "@/components/ui-kit/StatCard";
 import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanbanStage } from "./ProjetoKanbanStage";
 import { ProjetoKanbanConsultor } from "./ProjetoKanbanConsultor";
@@ -26,6 +27,7 @@ import { ProjetoPerformanceDashboard } from "./ProjetoPerformanceDashboard";
 import { EtiquetasManager } from "./EtiquetasManager";
 import { ProjetoPipelineTemplates } from "./ProjetoPipelineTemplates";
 import { cn } from "@/lib/utils";
+import { toast as sonnerToast } from "sonner";
 
 interface DynamicEtiqueta {
   id: string;
@@ -181,6 +183,45 @@ export function ProjetosManager() {
 
   const qtdPropostasAceitas = useMemo(() => {
     return deals.filter(d => d.proposta_status === "aceita" || d.proposta_status === "Gerada").length;
+  }, [deals]);
+
+  // KPI stats
+  const kpiStats = useMemo(() => {
+    const now = new Date();
+    const emAndamento = deals.filter(d => d.deal_status === "open").length;
+    const concluidos = deals.filter(d => d.deal_status === "won").length;
+    const atrasados = deals.filter(d => {
+      if (d.deal_status === "won" || d.deal_status === "lost") return false;
+      const lastChange = new Date(d.last_stage_change);
+      const diffDays = (now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
+      return diffDays > 7;
+    }).length;
+    return { total: deals.length, emAndamento, concluidos, atrasados };
+  }, [deals]);
+
+  // CSV export
+  const handleExportCSV = useCallback(() => {
+    if (deals.length === 0) return;
+    const now = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }).replace(/[/:\s]/g, "-");
+    const header = ["Projeto", "Cliente", "Consultor", "Status", "Valor", "kWp", "Última Movimentação"];
+    const rows = deals.map(d => [
+      d.deal_title || "",
+      d.customer_name || "",
+      d.owner_name || "",
+      d.deal_status || "",
+      String(d.deal_value || 0),
+      String(d.deal_kwp || 0),
+      d.last_stage_change ? new Date(d.last_stage_change).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "",
+    ]);
+    const csv = [header, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `projetos_${now}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    sonnerToast.success(`${deals.length} projetos exportados`);
   }, [deals]);
 
   // ── Detail View ──
