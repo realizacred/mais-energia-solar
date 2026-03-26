@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
-import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
+import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/FormModalTemplate";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,

@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
-import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
+import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/FormModalTemplate";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
