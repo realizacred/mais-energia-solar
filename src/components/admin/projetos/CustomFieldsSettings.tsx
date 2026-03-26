@@ -96,6 +96,20 @@ const FIELD_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string 
   boolean: CheckSquare,
 };
 
+/** Cores vibrantes por tipo — gradientes suaves para visual 3D */
+const FIELD_TYPE_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
+  text:         { bg: "bg-info/15",        text: "text-info",        ring: "ring-info/30" },
+  textarea:     { bg: "bg-info/15",        text: "text-info",        ring: "ring-info/30" },
+  number:       { bg: "bg-primary/15",     text: "text-primary",     ring: "ring-primary/30" },
+  currency:     { bg: "bg-success/15",     text: "text-success",     ring: "ring-success/30" },
+  multi_select: { bg: "bg-secondary/15",   text: "text-secondary",   ring: "ring-secondary/30" },
+  select:       { bg: "bg-accent/15",      text: "text-accent-foreground", ring: "ring-accent/30" },
+  date:         { bg: "bg-warning/15",     text: "text-warning",     ring: "ring-warning/30" },
+  datetime:     { bg: "bg-warning/15",     text: "text-warning",     ring: "ring-warning/30" },
+  file:         { bg: "bg-destructive/15", text: "text-destructive", ring: "ring-destructive/30" },
+  boolean:      { bg: "bg-success/15",     text: "text-success",     ring: "ring-success/30" },
+};
+
 // Types that show "Valores possíveis" textarea
 const OPTION_TYPES = ["select", "multi_select"];
 
@@ -733,9 +747,10 @@ export function CustomFieldsSettings() {
           {fieldWizardStep === "type" && (() => {
             const availableTypes = Object.entries(FIELD_TYPE_LABELS);
             return (
-              <div className="grid grid-cols-3 gap-3 py-2">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 py-2">
                 {availableTypes.map(([key, label]) => {
                   const Icon = FIELD_TYPE_ICONS[key] || Type;
+                  const colors = FIELD_TYPE_COLORS[key] || FIELD_TYPE_COLORS.text;
                   return (
                     <button
                       key={key}
@@ -745,15 +760,18 @@ export function CustomFieldsSettings() {
                         setFieldWizardStep("config");
                       }}
                       className={cn(
-                        "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                        "hover:border-secondary/60 hover:bg-secondary/5 cursor-pointer",
+                        "flex flex-col items-center gap-2.5 p-4 rounded-xl border transition-all",
+                        "hover:shadow-md hover:scale-[1.03] cursor-pointer",
                         "border-border bg-card text-foreground"
                       )}
                     >
-                      <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center">
-                        <Icon className="h-5 w-5 text-foreground" />
+                      <div className={cn(
+                        "w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ring-1",
+                        colors.bg, colors.ring
+                      )}>
+                        <Icon className={cn("h-5 w-5", colors.text)} />
                       </div>
-                      <span className="text-xs font-medium text-center leading-tight">{label}</span>
+                      <span className="text-[11px] font-medium text-center leading-tight text-foreground">{label}</span>
                     </button>
                   );
                 })}
@@ -779,20 +797,29 @@ export function CustomFieldsSettings() {
               {/* Selected type indicator */}
               <div className="flex justify-center py-1">
                 {(() => {
-                   const nft = normalizeFieldType(fieldForm.field_type);
+                  const nft = normalizeFieldType(fieldForm.field_type);
                   const Icon = FIELD_TYPE_ICONS[nft] || Type;
+                  const colors = FIELD_TYPE_COLORS[nft] || FIELD_TYPE_COLORS.text;
                   return (
-                    <div className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-xl border-2 border-secondary/40 bg-secondary/5">
-                      <Icon className="h-6 w-6 text-secondary" />
-                      <span className="text-xs font-semibold text-secondary">{FIELD_TYPE_LABELS[nft]}</span>
+                    <div className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-xl border bg-card shadow-sm">
+                      <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ring-1", colors.bg, colors.ring)}>
+                        <Icon className={cn("h-6 w-6", colors.text)} />
+                      </div>
+                      <span className="text-xs font-semibold text-foreground">{FIELD_TYPE_LABELS[nft]}</span>
                     </div>
                   );
                 })()}
               </div>
 
               {/* ── Card: Dados do Campo ── */}
-              <div className="rounded-lg border bg-card p-4 space-y-4">
-                <h4 className="text-sm font-semibold text-foreground">Dados do Campo</h4>
+              <div className="rounded-xl border bg-card overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
+                  <div className="w-6 h-6 rounded-md bg-info/15 flex items-center justify-center">
+                    <Type className="h-3.5 w-3.5 text-info" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-foreground">Dados do Campo</h4>
+                </div>
+                <div className="p-4 space-y-4">
 
                 {/* Title + Variable */}
                 <div className="grid grid-cols-2 gap-4">
@@ -866,24 +893,37 @@ export function CustomFieldsSettings() {
                     </p>
                   </div>
                 )}
+                </div>
               </div>
 
               {/* ── Card: Ícone do Campo ── */}
-              <div className="rounded-lg border bg-card p-4 space-y-3">
-                <h4 className="text-sm font-semibold text-foreground">Ícone do Campo</h4>
-                <p className="text-[11px] text-muted-foreground">Escolha um ícone para identificar visualmente este campo no detalhe do projeto.</p>
+              <div className="rounded-xl border bg-card overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
+                  <div className="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center">
+                    <Layers className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-foreground">Ícone do Campo</h4>
+                </div>
+                <div className="p-4 space-y-3">
                 <IconPicker selected={fieldForm.icon} onSelect={icon => setFieldForm(p => ({ ...p, icon }))} />
                 {fieldForm.icon && (
                   <Button variant="ghost" size="sm" onClick={() => setFieldForm(p => ({ ...p, icon: "" }))} className="text-xs text-muted-foreground">
                     Remover ícone (usar padrão do tipo)
                   </Button>
                 )}
+                </div>
               </div>
 
               {/* ── Card: Comportamento (PROJETO context) ── */}
               {fieldForm.field_context === "projeto" && (
-                <div className="rounded-lg border bg-card p-4 space-y-4">
-                  <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
+                <div className="rounded-xl border bg-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
+                    <div className="w-6 h-6 rounded-md bg-warning/15 flex items-center justify-center">
+                      <Sliders className="h-3.5 w-3.5 text-warning" />
+                    </div>
+                    <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
+                  </div>
+                  <div className="p-4 space-y-4">
 
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium">Mostrar campo em novo projeto?</Label>
@@ -968,13 +1008,20 @@ export function CustomFieldsSettings() {
                       onChange={ids => setFieldForm(p => ({ ...p, required_stage_ids: ids }))}
                     />
                   </div>
+                  </div>
                 </div>
               )}
 
               {/* ── Card: Comportamento (PRE/POS DIMENSIONAMENTO context) ── */}
               {(fieldForm.field_context === "pre_dimensionamento" || fieldForm.field_context === "pos_dimensionamento") && (
-                <div className="rounded-lg border bg-card p-4 space-y-4">
-                  <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
+                <div className="rounded-xl border bg-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
+                    <div className="w-6 h-6 rounded-md bg-warning/15 flex items-center justify-center">
+                      <Sliders className="h-3.5 w-3.5 text-warning" />
+                    </div>
+                    <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
+                  </div>
+                  <div className="p-4 space-y-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium">Obrigatório na proposta?</Label>
                     <Select
@@ -989,6 +1036,7 @@ export function CustomFieldsSettings() {
                     </Select>
                   </div>
                 </div>
+              </div>
               )}
 
             </>
@@ -1292,20 +1340,21 @@ function IconPicker({ selected, onSelect }: { selected: string; onSelect: (icon:
   const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
 
   return (
-    <div className="grid grid-cols-10 gap-1 p-2 border rounded-lg bg-muted/20 max-h-[140px] overflow-y-auto">
+    <div className="grid grid-cols-10 gap-1.5 p-3 border rounded-xl bg-muted/10 max-h-[160px] overflow-y-auto">
       {ICON_PICKER_LIST.map(name => {
         const Icon = (icons as any)[toPascal(name)];
         if (!Icon) return null;
+        const isSelected = selected === name;
         return (
           <button
             key={name}
             type="button"
             onClick={() => onSelect(name)}
             className={cn(
-              "w-8 h-8 rounded-md flex items-center justify-center transition-all",
-              selected === name
-                ? "bg-secondary text-secondary-foreground ring-2 ring-secondary/30"
-                : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+              isSelected
+                ? "bg-primary/15 text-primary ring-2 ring-primary/30 shadow-sm scale-110"
+                : "hover:bg-primary/10 text-muted-foreground hover:text-primary hover:shadow-sm hover:scale-105"
             )}
             title={name}
           >
