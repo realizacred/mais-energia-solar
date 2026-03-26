@@ -241,6 +241,23 @@ export function ConvertLeadToClientDialog({
     };
 
     loadEquipment();
+
+    // Check if "Aguardando Documentação" status exists
+    const checkAguardandoStatus = async () => {
+      if (!navigator.onLine) return;
+      try {
+        const { data: status } = await supabase
+          .from("lead_status")
+          .select("id")
+          .or("nome.eq.Aguardando Documentação,nome.ilike.%aguardando%document%")
+          .limit(1)
+          .maybeSingle();
+        setAguardandoStatusAvailable(!!status);
+      } catch {
+        setAguardandoStatusAvailable(false);
+      }
+    };
+    checkAguardandoStatus();
   }, []);
 
   // Load simulations for this lead
