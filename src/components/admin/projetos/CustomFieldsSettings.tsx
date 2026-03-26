@@ -96,6 +96,20 @@ const FIELD_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string 
   boolean: CheckSquare,
 };
 
+/** Cores vibrantes por tipo — gradientes suaves para visual 3D */
+const FIELD_TYPE_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
+  text:         { bg: "bg-info/15",        text: "text-info",        ring: "ring-info/30" },
+  textarea:     { bg: "bg-info/15",        text: "text-info",        ring: "ring-info/30" },
+  number:       { bg: "bg-primary/15",     text: "text-primary",     ring: "ring-primary/30" },
+  currency:     { bg: "bg-success/15",     text: "text-success",     ring: "ring-success/30" },
+  multi_select: { bg: "bg-secondary/15",   text: "text-secondary",   ring: "ring-secondary/30" },
+  select:       { bg: "bg-accent/15",      text: "text-accent-foreground", ring: "ring-accent/30" },
+  date:         { bg: "bg-warning/15",     text: "text-warning",     ring: "ring-warning/30" },
+  datetime:     { bg: "bg-warning/15",     text: "text-warning",     ring: "ring-warning/30" },
+  file:         { bg: "bg-destructive/15", text: "text-destructive", ring: "ring-destructive/30" },
+  boolean:      { bg: "bg-success/15",     text: "text-success",     ring: "ring-success/30" },
+};
+
 // Types that show "Valores possíveis" textarea
 const OPTION_TYPES = ["select", "multi_select"];
 
@@ -733,9 +747,10 @@ export function CustomFieldsSettings() {
           {fieldWizardStep === "type" && (() => {
             const availableTypes = Object.entries(FIELD_TYPE_LABELS);
             return (
-              <div className="grid grid-cols-3 gap-3 py-2">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 py-2">
                 {availableTypes.map(([key, label]) => {
                   const Icon = FIELD_TYPE_ICONS[key] || Type;
+                  const colors = FIELD_TYPE_COLORS[key] || FIELD_TYPE_COLORS.text;
                   return (
                     <button
                       key={key}
@@ -745,15 +760,18 @@ export function CustomFieldsSettings() {
                         setFieldWizardStep("config");
                       }}
                       className={cn(
-                        "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                        "hover:border-secondary/60 hover:bg-secondary/5 cursor-pointer",
+                        "flex flex-col items-center gap-2.5 p-4 rounded-xl border transition-all",
+                        "hover:shadow-md hover:scale-[1.03] cursor-pointer",
                         "border-border bg-card text-foreground"
                       )}
                     >
-                      <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center">
-                        <Icon className="h-5 w-5 text-foreground" />
+                      <div className={cn(
+                        "w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ring-1",
+                        colors.bg, colors.ring
+                      )}>
+                        <Icon className={cn("h-5 w-5", colors.text)} />
                       </div>
-                      <span className="text-xs font-medium text-center leading-tight">{label}</span>
+                      <span className="text-[11px] font-medium text-center leading-tight text-foreground">{label}</span>
                     </button>
                   );
                 })}
@@ -779,12 +797,15 @@ export function CustomFieldsSettings() {
               {/* Selected type indicator */}
               <div className="flex justify-center py-1">
                 {(() => {
-                   const nft = normalizeFieldType(fieldForm.field_type);
+                  const nft = normalizeFieldType(fieldForm.field_type);
                   const Icon = FIELD_TYPE_ICONS[nft] || Type;
+                  const colors = FIELD_TYPE_COLORS[nft] || FIELD_TYPE_COLORS.text;
                   return (
-                    <div className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-xl border-2 border-secondary/40 bg-secondary/5">
-                      <Icon className="h-6 w-6 text-secondary" />
-                      <span className="text-xs font-semibold text-secondary">{FIELD_TYPE_LABELS[nft]}</span>
+                    <div className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-xl border bg-card shadow-sm">
+                      <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ring-1", colors.bg, colors.ring)}>
+                        <Icon className={cn("h-6 w-6", colors.text)} />
+                      </div>
+                      <span className="text-xs font-semibold text-foreground">{FIELD_TYPE_LABELS[nft]}</span>
                     </div>
                   );
                 })()}
@@ -1292,20 +1313,21 @@ function IconPicker({ selected, onSelect }: { selected: string; onSelect: (icon:
   const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
 
   return (
-    <div className="grid grid-cols-10 gap-1 p-2 border rounded-lg bg-muted/20 max-h-[140px] overflow-y-auto">
+    <div className="grid grid-cols-10 gap-1.5 p-3 border rounded-xl bg-muted/10 max-h-[160px] overflow-y-auto">
       {ICON_PICKER_LIST.map(name => {
         const Icon = (icons as any)[toPascal(name)];
         if (!Icon) return null;
+        const isSelected = selected === name;
         return (
           <button
             key={name}
             type="button"
             onClick={() => onSelect(name)}
             className={cn(
-              "w-8 h-8 rounded-md flex items-center justify-center transition-all",
-              selected === name
-                ? "bg-secondary text-secondary-foreground ring-2 ring-secondary/30"
-                : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+              isSelected
+                ? "bg-primary/15 text-primary ring-2 ring-primary/30 shadow-sm scale-110"
+                : "hover:bg-primary/10 text-muted-foreground hover:text-primary hover:shadow-sm hover:scale-105"
             )}
             title={name}
           >
