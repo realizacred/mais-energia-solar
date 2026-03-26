@@ -80,9 +80,14 @@ export function InversoresManager() {
       setForm({
         fabricante: inv.fabricante, modelo: inv.modelo,
         potencia_nominal_kw: String(inv.potencia_nominal_kw),
+        potencia_maxima_kw: inv.potencia_maxima_kw ? String(inv.potencia_maxima_kw) : "",
         tipo: inv.tipo,
         tensao_entrada_max_v: inv.tensao_entrada_max_v ? String(inv.tensao_entrada_max_v) : "",
         corrente_entrada_max_a: inv.corrente_entrada_max_a ? String(inv.corrente_entrada_max_a) : "",
+        tensao_mppt_min_v: inv.tensao_mppt_min_v ? String(inv.tensao_mppt_min_v) : "",
+        tensao_mppt_max_v: inv.tensao_mppt_max_v ? String(inv.tensao_mppt_max_v) : "",
+        corrente_saida_a: inv.corrente_saida_a ? String(inv.corrente_saida_a) : "",
+        fator_potencia: inv.fator_potencia ? String(inv.fator_potencia) : "1.0",
         mppt_count: inv.mppt_count ? String(inv.mppt_count) : "2",
         strings_por_mppt: inv.strings_por_mppt ? String(inv.strings_por_mppt) : "1",
         fases: inv.fases,
@@ -93,6 +98,8 @@ export function InversoresManager() {
         dimensoes_mm: inv.dimensoes_mm || "",
         wifi_integrado: inv.wifi_integrado ?? true,
         ip_protection: inv.ip_protection || "IP65",
+        datasheet_url: inv.datasheet_url || "",
+        status: inv.status || "rascunho",
       });
     } else {
       setEditing(null);
