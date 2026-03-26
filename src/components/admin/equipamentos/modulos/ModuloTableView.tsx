@@ -191,6 +191,25 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
     );
   }
 
+  function InlineCell({ m, field, display }: { m: Modulo; field: "potencia_wp" | "eficiencia_percent"; display: string }) {
+    const isEditing = editingCell?.id === m.id && editingCell?.field === field;
+    if (isEditing) {
+      return (
+        <Input autoFocus type="number" step="0.01" className="w-[80px] h-7 text-xs" value={editingCell.value}
+          onChange={e => setEditingCell({ ...editingCell, value: e.target.value })}
+          onKeyDown={e => { if (e.key === "Enter") handleInlineSave(m.id, field, editingCell.value); if (e.key === "Escape") setEditingCell(null); }}
+          onBlur={() => handleInlineSave(m.id, field, editingCell.value)}
+        />
+      );
+    }
+    return (
+      <span className="group/cell cursor-pointer flex items-center gap-1" onDoubleClick={() => setEditingCell({ id: m.id, field, value: String((m as any)[field] ?? "") })}>
+        {display}
+        <Pencil className="w-3 h-3 opacity-0 group-hover/cell:opacity-40 transition-opacity" />
+      </span>
+    );
+  }
+
   return (
     <div className="space-y-2">
       {/* Bulk actions bar */}
@@ -267,10 +286,10 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
                   </TableCell>
                   <TableCell className="font-medium">{m.fabricante}</TableCell>
                   <TableCell className="max-w-[200px] truncate">{m.modelo}</TableCell>
-                  <TableCell><Badge variant="outline">{m.potencia_wp}W</Badge></TableCell>
+                  <TableCell><InlineCell m={m} field="potencia_wp" display={`${m.potencia_wp}W`} /></TableCell>
                   <TableCell className="text-xs">{m.tipo_celula}</TableCell>
                   <TableCell className="text-xs">{m.num_celulas || "—"}</TableCell>
-                  <TableCell>{m.eficiencia_percent ? `${m.eficiencia_percent}%` : "—"}</TableCell>
+                  <TableCell><InlineCell m={m} field="eficiencia_percent" display={m.eficiencia_percent ? `${m.eficiencia_percent}%` : "—"} /></TableCell>
                   <TableCell className="text-xs">{m.tensao_sistema || "—"}</TableCell>
                   <TableCell><Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge></TableCell>
                   <TableCell>
