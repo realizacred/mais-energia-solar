@@ -1801,19 +1801,24 @@ function TimelineEntry({ icon, title, subtitle, date, isCurrent, isFirst }: {
   icon: React.ReactNode; title: string; subtitle?: string; date: string; isCurrent?: boolean; isFirst?: boolean;
 }) {
   return (
-    <div className="relative flex gap-3 pl-0">
+    <div className={cn(
+      "relative flex gap-3 pl-0 group",
+    )}>
       <div className={cn(
-        "relative z-10 flex items-center justify-center w-6 h-6 rounded-full shrink-0 border-2",
-        isCurrent ? "bg-primary border-primary text-primary-foreground"
-          : isFirst ? "bg-warning border-warning text-warning-foreground"
+        "relative z-10 flex items-center justify-center w-6 h-6 rounded-full shrink-0 border-2 transition-transform group-hover:scale-110",
+        isCurrent ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/30"
+          : isFirst ? "bg-warning border-warning text-warning-foreground shadow-sm shadow-warning/20"
           : "bg-card border-border text-muted-foreground"
       )}>
         {icon}
       </div>
-      <div className="flex-1 min-w-0 pb-1">
-        <p className={cn("text-sm leading-snug", isCurrent ? "font-semibold text-foreground" : "text-foreground/80")}>{title}</p>
-        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
-        <p className="text-[10px] text-muted-foreground/70 mt-0.5">{date}</p>
+      <div className={cn(
+        "flex-1 min-w-0 pb-2 -mt-0.5 px-3 py-2 rounded-lg transition-colors",
+        isCurrent ? "bg-primary/5" : "hover:bg-muted/30"
+      )}>
+        <p className={cn("text-sm leading-snug", isCurrent ? "font-semibold text-foreground" : "text-foreground")}>{title}</p>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{subtitle}</p>}
+        <p className="text-[10px] text-muted-foreground/60 mt-1">{date}</p>
       </div>
     </div>
   );
