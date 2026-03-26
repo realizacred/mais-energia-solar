@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL } from "./types";
+import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
 import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
 
 // ─── Types ────────────────────────────────────────────────
@@ -666,16 +667,7 @@ export function StepPagamento({
               const parcelas = parseInt(novoPrazo) || 0;
               const taxa = parseFloat(novoTaxa) || 0;
               const principal = Math.max(0, precoFinal - entradaVal);
-              let prestacao = 0;
-              if (parcelas > 0 && principal > 0) {
-                if (taxa <= 0) {
-                  prestacao = principal / parcelas;
-                } else {
-                  const r = taxa / 100;
-                  const fator = Math.pow(1 + r, parcelas);
-                  prestacao = principal * (r * fator) / (fator - 1);
-                }
-              }
+              const prestacao = calcularPrestacao(principal, taxa, parcelas);
               return (
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">Prestação</Label>
@@ -961,9 +953,5 @@ function calcParcela(op: { valor_financiado: number; entrada: number; num_parcel
   const principal = (op.valor_financiado || 0) - (op.entrada || 0);
   if (principal <= 0 || op.num_parcelas <= 0) return 0;
   if (op.tipo === "a_vista") return op.valor_financiado || 0;
-  if (op.taxa_mensal <= 0) return principal / op.num_parcelas;
-  const r = op.taxa_mensal / 100;
-  const n = op.num_parcelas;
-  const fator = Math.pow(1 + r, n);
-  return principal * (r * fator) / (fator - 1);
+  return calcularPrestacao(principal, op.taxa_mensal, op.num_parcelas);
 }

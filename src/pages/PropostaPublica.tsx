@@ -1,4 +1,5 @@
 import { formatBRL } from "@/lib/formatters";
+import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock, XCircle, ThumbsDown } from "lucide-react";
@@ -425,7 +426,7 @@ export default function PropostaPublica() {
                         <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                           {op.entrada > 0 && <span>Entrada: {formatBRL(op.entrada)}</span>}
                           {op.num_parcelas > 0 && <span>{op.num_parcelas}x de {formatBRL(op.valor_parcela)}</span>}
-                          {op.taxa_mensal > 0 && <span>Taxa: {((Number(op.taxa_mensal) || 0) < 1 ? ((Number(op.taxa_mensal) || 0) * 100).toFixed(2) : Number(op.taxa_mensal).toFixed(2))}%</span>}
+                          {op.taxa_mensal > 0 && <span>Taxa: {formatTaxaMensal(op.taxa_mensal)}</span>}
                         </div>
                       </div>
                     ))}
