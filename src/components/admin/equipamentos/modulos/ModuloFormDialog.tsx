@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, AlertTriangle, LayoutGrid } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Modulo } from "./types";
 import { CELL_TYPES, TENSAO_SISTEMAS } from "./types";
 import { DatasheetSection } from "./DatasheetSection";
+import { DatasheetUrlField } from "../shared/DatasheetUrlField";
 
 interface Props {
   modulo: Modulo | null;
