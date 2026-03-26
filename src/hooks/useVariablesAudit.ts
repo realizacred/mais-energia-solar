@@ -480,7 +480,8 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
   const categoryAudit = useMemo(() => {
     const CATEGORY_ICONS: Record<VariableCategory, string> = {
       entrada: "📥", sistema_solar: "☀️", financeiro: "💰", conta_energia: "⚡",
-      comercial: "🏢", cliente: "👤", tabelas: "📊", series: "📈",
+      comercial: "🏢", cliente: "👤", contrato: "📄", assinatura: "✍️",
+      pagamento: "💳", tabelas: "📊", series: "📈",
       premissas: "⚙️", tarifa: "🏷️", aneel: "🔄", gd: "🌞",
       calculo: "🧮", cdd: "🔗", customizada: "🧩",
     };
