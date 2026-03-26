@@ -760,6 +760,9 @@ export type Database = {
           logo_small_url: string | null
           logo_url: string | null
           logo_white_url: string | null
+          representante_cargo: string | null
+          representante_cpf: string | null
+          representante_legal: string | null
           tenant_id: string
           updated_at: string
         }
@@ -802,6 +805,9 @@ export type Database = {
           logo_small_url?: string | null
           logo_url?: string | null
           logo_white_url?: string | null
+          representante_cargo?: string | null
+          representante_cpf?: string | null
+          representante_legal?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -844,6 +850,9 @@ export type Database = {
           logo_small_url?: string | null
           logo_url?: string | null
           logo_white_url?: string | null
+          representante_cargo?: string | null
+          representante_cpf?: string | null
+          representante_legal?: string | null
           tenant_id?: string
           updated_at?: string
         }
