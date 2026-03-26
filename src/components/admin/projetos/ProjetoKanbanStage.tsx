@@ -65,7 +65,7 @@ const formatKwp = (v: number) => {
 };
 
 // ─── Resizable column hook ─────────────────────
-function useResizableColumn(initialWidth: number, minWidth = 240, maxWidth = 500) {
+function useResizableColumn(initialWidth: number, minWidth = 220, maxWidth = 450) {
   const [width, setWidth] = useState(initialWidth);
   const isResizing = useRef(false);
   const startX = useRef(0);
@@ -411,7 +411,7 @@ function ResizableKanbanColumn({
   onViewProjeto, onNewProject, onAutomationConfig,
   getStageNameById, dynamicEtiquetas,
 }: ResizableKanbanColumnProps) {
-  const { width: resizedWidth, onMouseDown } = useResizableColumn(280);
+  const { width: resizedWidth, onMouseDown } = useResizableColumn(250);
   const hasActiveAutomation = stageAutomations.length > 0;
   const hasRestriction = permission && permission !== "todos";
   const [stageColor, setStageColor] = useState<string | null>(stage.color || null);
