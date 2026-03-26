@@ -1,8 +1,9 @@
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
+import { formatKwp } from "@/lib/formatters/index";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info } from "lucide-react";
+import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info, Users, FileCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { motion } from "framer-motion";
@@ -155,6 +156,20 @@ export function ProjetosManager() {
     return deals.reduce((sum, d) => sum + (d.deal_value || 0), 0);
   }, [deals]);
 
+  const totalKwp = useMemo(() => {
+    return deals.reduce((sum, d) => sum + (d.deal_kwp || 0), 0);
+  }, [deals]);
+
+  const totalPropostasAceitas = useMemo(() => {
+    return deals
+      .filter(d => d.proposta_status === "aceita" || d.proposta_status === "Gerada")
+      .reduce((sum, d) => sum + (d.deal_value || 0), 0);
+  }, [deals]);
+
+  const qtdPropostasAceitas = useMemo(() => {
+    return deals.filter(d => d.proposta_status === "aceita" || d.proposta_status === "Gerada").length;
+  }, [deals]);
+
   // ── Detail View ──
    if (selectedDealId) {
     return (
@@ -297,7 +312,7 @@ export function ProjetosManager() {
 
               {/* Summary bar */}
               <div className="px-4 py-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-5 flex-wrap">
+                <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-1.5">
                     <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-sm font-bold text-foreground">{deals.length}</span>
@@ -307,11 +322,27 @@ export function ProjetosManager() {
                     <div className="flex items-center gap-1.5">
                       <DollarSign className="h-3.5 w-3.5 text-success" />
                       <span className="text-sm font-bold font-mono text-foreground">{formatBRL(totalValue)}</span>
+                      <span className="text-xs text-muted-foreground">total</span>
                     </div>
                   )}
-                  <span className="text-xs text-muted-foreground">
-                    {ownerColumns.length} consultores
-                  </span>
+                  {totalKwp > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5 text-warning" />
+                      <span className="text-sm font-bold font-mono text-foreground">{formatKwp(totalKwp, 1)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-sm font-bold text-foreground">{ownerColumns.length}</span>
+                    <span className="text-xs text-muted-foreground">consultores</span>
+                  </div>
+                  {qtdPropostasAceitas > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <FileCheck className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-sm font-bold font-mono text-foreground">{formatBRL(totalPropostasAceitas)}</span>
+                      <span className="text-xs text-muted-foreground">({qtdPropostasAceitas} propostas aceitas)</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Color Legend — click to toggle */}
