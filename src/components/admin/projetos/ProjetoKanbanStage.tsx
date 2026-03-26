@@ -512,16 +512,58 @@ function ResizableKanbanColumn({
                 <Settings2 className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 bg-popover">
+            <DropdownMenuContent align="end" className="w-56 bg-popover">
               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Visual</DropdownMenuLabel>
-              <DropdownMenuItem disabled className="text-xs gap-2">
-                <Palette className="h-3.5 w-3.5" />
-                Personalizar cor da etapa
+
+              {/* Color picker submenu */}
+              <DropdownMenuItem className="text-xs gap-2 p-0" onSelect={e => e.preventDefault()}>
+                <div className="w-full px-2 py-1.5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Palette className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Cor da etapa</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {STAGE_COLORS.map((c) => (
+                      <Button
+                        key={c.label}
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-6 w-6 rounded-full border-2 p-0",
+                          stage.color === c.value ? "border-foreground" : "border-transparent"
+                        )}
+                        style={{ backgroundColor: c.value || "hsl(var(--muted))" }}
+                        onClick={() => handleColorChange(c.value)}
+                      >
+                        {stage.color === c.value && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </DropdownMenuItem>
-              <DropdownMenuItem disabled className="text-xs gap-2">
-                <Eye className="h-3.5 w-3.5" />
-                Campos visíveis no card
+
+              {/* Card visible fields */}
+              <DropdownMenuItem className="text-xs gap-2 p-0" onSelect={e => e.preventDefault()}>
+                <div className="w-full px-2 py-1.5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Campos visíveis no card</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {CARD_FIELD_OPTIONS.map((f) => (
+                      <label key={f.key} className="flex items-center gap-2 cursor-pointer text-[11px] text-muted-foreground hover:text-foreground">
+                        <Checkbox
+                          checked={currentVisibleFields.includes(f.key)}
+                          onCheckedChange={() => handleToggleField(f.key)}
+                          className="h-3.5 w-3.5"
+                        />
+                        {f.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </DropdownMenuItem>
+
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Inteligência</DropdownMenuLabel>
               <DropdownMenuItem
@@ -530,15 +572,6 @@ function ResizableKanbanColumn({
               >
                 <Zap className="h-3.5 w-3.5" />
                 Configurar Automação
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled className="text-xs gap-2">
-                <Lock className="h-3.5 w-3.5" />
-                Permissões da etapa
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled className="text-xs gap-2">
-                <Workflow className="h-3.5 w-3.5" />
-                Construtor de Fluxos
-                <Badge variant="outline" className="text-[8px] h-4 px-1 ml-auto">BETA</Badge>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
