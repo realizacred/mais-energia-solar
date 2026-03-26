@@ -308,8 +308,8 @@ export default function PropostaPublica() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      {/* Proposal Preview */}
-      {html && (
+      {/* Proposal Preview — hidden on simulacao view */}
+      {html && !isSimulacaoView && (
         <div className="max-w-4xl mx-auto py-6 px-4">
           <div className="bg-card rounded-xl shadow-sm overflow-hidden">
             <iframe
