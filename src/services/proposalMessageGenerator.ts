@@ -39,9 +39,13 @@ export interface ProposalMessageContext {
   validadeDias: number | null;
   pagamentoOpcoes: Array<{
     nome: string;
+    tipo?: string | null;
     entrada?: number | null;
     parcelas?: number | null;
     valor_parcela?: number | null;
+    taxa_mensal?: number | null;
+    valor_financiado?: number | null;
+    carencia_meses?: number | null;
   }>;
   itensInclusos: Array<{
     descricao: string;
@@ -238,17 +242,79 @@ function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
     blocks.bloco_codigo = "";
   }
 
-  // Pagamento
+  // Pagamento — agrupa por tipo e mostra detalhes completos
   if (ctx.pagamentoOpcoes.length > 0) {
-    const lines = ctx.pagamentoOpcoes.map(op => {
-      let line = `• ${op.nome}`;
-      if (op.entrada) line += ` — Entrada: ${formatBRL(op.entrada)}`;
-      if (op.parcelas && op.valor_parcela) {
-        line += ` + ${op.parcelas}x de ${formatBRL(op.valor_parcela)}`;
-      }
-      return line;
-    });
-    blocks.bloco_pagamento = `\n💳 *Pagamento:*\n${lines.join("\n")}`;
+    const aVista = ctx.pagamentoOpcoes.filter(op => op.tipo === "a_vista");
+    const financiamentos = ctx.pagamentoOpcoes.filter(op => op.tipo === "financiamento");
+    const parcelados = ctx.pagamentoOpcoes.filter(op => op.tipo === "parcelado");
+    const outros = ctx.pagamentoOpcoes.filter(op => !op.tipo || op.tipo === "outro");
+
+    const sections: string[] = [];
+
+    // À Vista
+    if (aVista.length > 0) {
+      aVista.forEach(op => {
+        let line = `💵 *À Vista*`;
+        if (op.entrada) line += ` — ${formatBRL(op.entrada)}`;
+        sections.push(line);
+      });
+    }
+
+    // Financiamentos — agrupa por banco, mostra cada plano
+    if (financiamentos.length > 0) {
+      const byBank = new Map<string, typeof financiamentos>();
+      financiamentos.forEach(op => {
+        const key = op.nome || "Financiamento";
+        if (!byBank.has(key)) byBank.set(key, []);
+        byBank.get(key)!.push(op);
+      });
+
+      byBank.forEach((plans, bankName) => {
+        sections.push(`🏦 *${bankName}:*`);
+        plans.forEach(op => {
+          const parts: string[] = [];
+          if (op.entrada) parts.push(`Entrada: ${formatBRL(op.entrada)}`);
+          if (op.parcelas && op.valor_parcela) {
+            parts.push(`${op.parcelas}x de ${formatBRL(op.valor_parcela)}`);
+          }
+          if (op.taxa_mensal && op.taxa_mensal > 0) {
+            parts.push(`Taxa: ${(op.taxa_mensal * 100).toFixed(2).replace('.', ',')}% a.m.`);
+          }
+          if (op.carencia_meses && op.carencia_meses > 0) {
+            parts.push(`Carência: ${op.carencia_meses} meses`);
+          }
+          sections.push(`  • ${parts.join(" | ") || "Consultar condições"}`);
+        });
+      });
+    }
+
+    // Parcelados
+    if (parcelados.length > 0) {
+      sections.push(`💳 *Parcelamento direto:*`);
+      parcelados.forEach(op => {
+        const parts: string[] = [];
+        if (op.nome) parts.push(op.nome);
+        if (op.entrada) parts.push(`Entrada: ${formatBRL(op.entrada)}`);
+        if (op.parcelas && op.valor_parcela) {
+          parts.push(`${op.parcelas}x de ${formatBRL(op.valor_parcela)}`);
+        }
+        sections.push(`  • ${parts.join(" — ")}`);
+      });
+    }
+
+    // Outros
+    if (outros.length > 0) {
+      outros.forEach(op => {
+        let line = `• ${op.nome || "Outra opção"}`;
+        if (op.entrada) line += ` — Entrada: ${formatBRL(op.entrada)}`;
+        if (op.parcelas && op.valor_parcela) {
+          line += ` + ${op.parcelas}x de ${formatBRL(op.valor_parcela)}`;
+        }
+        sections.push(line);
+      });
+    }
+
+    blocks.bloco_pagamento = `\n💳 *Pagamento:*\n${sections.join("\n")}`;
   } else {
     blocks.bloco_pagamento = "";
   }
@@ -446,7 +512,16 @@ export function extractMessageContext(
     consultorNome: snap.consultorNome || snap.consultor_nome || null,
     empresaNome: snap.empresaNome || snap.empresa_nome || null,
     validadeDias: snap.validade_dias || snap.validadeDias || null,
-    pagamentoOpcoes: pagOpcoes,
+    pagamentoOpcoes: pagOpcoes.map((op: any) => ({
+      nome: op.nome || "",
+      tipo: op.tipo || null,
+      entrada: op.entrada || null,
+      parcelas: op.parcelas || op.num_parcelas || null,
+      valor_parcela: op.valor_parcela || null,
+      taxa_mensal: op.taxa_mensal || null,
+      valor_financiado: op.valor_financiado || null,
+      carencia_meses: op.carencia_meses || null,
+    })),
     itensInclusos: itens.map((i: any) => ({
       descricao: `${i.fabricante || ""} ${i.modelo || i.descricao || ""}`.trim(),
       quantidade: i.quantidade || 1,
