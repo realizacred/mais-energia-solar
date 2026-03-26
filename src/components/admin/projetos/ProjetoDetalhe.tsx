@@ -1498,6 +1498,7 @@ function GerenciamentoTab({
                         date={entry.date}
                         isCurrent={entry.isCurrent}
                         isFirst={entry.isFirst}
+                        bubbleClass={getEntryBubbleClass(entry)}
                       />
                     ))}
                   </div>
