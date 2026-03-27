@@ -147,13 +147,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
           if (planPercent > 0) {
             setPercentualComissaoConsultor(planPercent);
           } else {
-            // Último fallback: pricing_config.comissao_padrao_percent
-            const { data: config } = await supabase
-              .from("pricing_config")
-              .select("comissao_padrao_percent")
-              .limit(1)
-              .maybeSingle();
-            const fallback = Number((config as any)?.comissao_padrao_percent) || 0;
+            // Último fallback: pricing_config.comissao_padrao_percent (via hook)
+            const fallback = Number(pricingConfig?.comissao_padrao_percent) || 0;
             if (fallback > 0) {
               setPercentualComissaoConsultor(fallback);
               setComissaoSource("padrão do tenant");
