@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -217,7 +218,7 @@ export default function PlanoServicoManager() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Valor (R$) <span className="text-destructive">*</span></Label>
-                    <Input type="number" step="0.01" min="0" value={form.valor} onChange={(e) => setForm(f => ({ ...f, valor: e.target.value }))} placeholder="49.90" />
+                    <CurrencyInput value={Number(form.valor) || 0} onChange={(v) => setForm(f => ({ ...f, valor: String(v) }))} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Tipo</Label>

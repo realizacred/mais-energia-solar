@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
@@ -117,7 +118,7 @@ export function ItemFormDialog({ open, onOpenChange, defaultSku = "" }: ItemForm
         <p className="text-sm font-medium text-muted-foreground mb-3">Entrada inicial (opcional)</p>
         <FormGrid>
           <div><Label>Quantidade</Label><Input type="number" value={qtdInicial} onChange={(e) => setQtdInicial(e.target.value)} min="0" placeholder="0" /></div>
-          <div><Label>Custo unitário (R$)</Label><Input type="number" value={custoUnitario} onChange={(e) => setCustoUnitario(e.target.value)} min="0" step="0.01" placeholder="0,00" /></div>
+          <div><Label>Custo unitário (R$)</Label><CurrencyInput value={Number(custoUnitario) || 0} onChange={(v) => setCustoUnitario(String(v))} /></div>
         </FormGrid>
         {Number(qtdInicial) > 0 && locais && locais.length > 0 && (
           <div className="mt-2">

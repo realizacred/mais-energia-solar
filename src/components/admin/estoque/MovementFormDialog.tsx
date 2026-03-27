@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
@@ -99,7 +100,7 @@ export function MovementFormDialog({ open, tipo, onOpenChange, saldos }: Movemen
       <FormGrid>
         <div><Label>Quantidade *</Label><Input type="number" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} min="0.01" step="0.01" /></div>
         {tipo === "entrada" && (
-          <div><Label>Custo unitário (R$)</Label><Input type="number" value={custoUnitario} onChange={(e) => setCustoUnitario(e.target.value)} min="0" step="0.01" /></div>
+          <div><Label>Custo unitário (R$)</Label><CurrencyInput value={Number(custoUnitario) || 0} onChange={(v) => setCustoUnitario(String(v))} /></div>
         )}
       </FormGrid>
       <div><Label>Observação</Label><Input value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="NF, projeto, motivo..." /></div>
