@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
-import { Plus, Pencil, Trash2, Search, Battery, Eye, X, Package, CheckCircle2, Sparkles, LayoutGrid, Table as TableIcon, Zap } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Battery, Eye, X, Package, CheckCircle2, Sparkles, LayoutGrid, Table as TableIcon, Zap, Wand2, FileWarning, GitCompareArrows } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { EnrichButton } from "./shared/EnrichButton";
+import { BatchEnrichDialog } from "./shared/BatchEnrichDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { BateriaViewModal } from "./baterias/BateriaViewModal";
 import { BateriaTableView } from "./baterias/BateriaTableView";
+import { BateriaCompareModal } from "./baterias/BateriaCompareModal";
 import { calcCompletudeBateria } from "@/utils/calcCompletudeBateria";
 
 type ViewMode = "cards" | "table";
