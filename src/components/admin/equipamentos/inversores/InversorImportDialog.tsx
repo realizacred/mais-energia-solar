@@ -216,7 +216,6 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
         ].filter(Boolean).join(" · "),
         variant: errors > 0 ? "destructive" : undefined,
       });
-      });
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
     } finally { setImporting(false); }
