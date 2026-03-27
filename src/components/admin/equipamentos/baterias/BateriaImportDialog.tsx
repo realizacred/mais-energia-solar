@@ -130,13 +130,11 @@ function parseDistributorBateria(text: string): { baterias: ParsedBateria[]; war
   const seenKeys = new Set<string>();
 
   base.modules.forEach((m, idx) => {
-    const energia_kwh_val = extractEnergyFromModel(`${m.fabricante} ${m.modelo}`) ?? 0;
-    const key = `${m.fabricante}|${m.modelo}|${energia_kwh_val}`.toLowerCase();
-    if (seenKeys.has(key)) return;
-    seenKeys.add(key);
-
     const fullName = `${m.fabricante} ${m.modelo}`;
     const energia_kwh = extractEnergyFromModel(fullName) ?? 0;
+    const key = `${m.fabricante}|${m.modelo}|${energia_kwh}`.toLowerCase();
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
 
     if (energia_kwh <= 0) {
       warnings.push({ line: idx + 2, issue: `Energia não detectada: "${fullName}"` });
