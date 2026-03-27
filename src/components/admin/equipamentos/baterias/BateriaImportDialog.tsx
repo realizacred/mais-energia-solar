@@ -365,7 +365,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) handleClose(); }}>
-      <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <FileSpreadsheet className="w-5 h-5 text-primary" />
@@ -470,7 +470,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
                 )}
 
                 {newItems.length > 0 && (
-                  <div className="max-h-[200px] overflow-auto border border-border rounded-lg">
+                  <div className="max-h-[200px] overflow-x-auto overflow-y-auto border border-border rounded-lg">
                     <table className="w-full text-xs">
                       <thead className="bg-muted/50 sticky top-0">
                         <tr>
