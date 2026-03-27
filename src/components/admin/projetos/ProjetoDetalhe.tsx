@@ -999,16 +999,12 @@ function GerenciamentoTab({
           .order("created_at", { ascending: false })
           .limit(20);
         if (data && data.length > 0) {
-          const PROPOSTA_STATUS: Record<string, string> = {
-            draft: "Rascunho", rascunho: "Rascunho", gerada: "Gerada", sent: "Enviada", enviada: "Enviada",
-            accepted: "Aceita", aceita: "Aceita", rejected: "Rejeitada", recusada: "Recusada",
-            expired: "Expirada", expirada: "Expirada",
-          };
+          const { getProposalStatusLabel } = await import("@/lib/proposalStatusConfig");
           setPropostaEntries(data.map((p: any) => ({
             id: `prop-${p.id}`,
             type: "proposta" as const,
             title: `Proposta: ${p.titulo || p.codigo || "Sem título"}`,
-            subtitle: `${p.codigo || "—"} • Status: ${PROPOSTA_STATUS[p.status] || p.status}`,
+            subtitle: `${p.codigo || "—"} • Status: ${getProposalStatusLabel(p.status)}`,
             date: formatDate(p.created_at),
           })));
         }

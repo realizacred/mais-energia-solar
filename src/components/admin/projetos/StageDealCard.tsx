@@ -32,19 +32,8 @@ interface DynamicEtiqueta {
   icon: string | null;
 }
 
-const PROPOSTA_STATUS_MAP: Record<string, { label: string; className: string }> = {
-  rascunho: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
-  gerada: { label: "Gerada", className: "bg-success/10 text-success border-success/20" },
-  generated: { label: "Gerada", className: "bg-success/10 text-success border-success/20" },
-  enviada: { label: "Enviada", className: "bg-info/10 text-info border-info/20" },
-  sent: { label: "Enviada", className: "bg-info/10 text-info border-info/20" },
-  aceita: { label: "Aceita", className: "bg-success/15 text-success border-success/30" },
-  accepted: { label: "Aceita", className: "bg-success/15 text-success border-success/30" },
-  recusada: { label: "Recusada", className: "bg-destructive/10 text-destructive border-destructive/20" },
-  rejected: { label: "Recusada", className: "bg-destructive/10 text-destructive border-destructive/20" },
-  expirada: { label: "Expirada", className: "bg-muted text-muted-foreground" },
-  expired: { label: "Expirada", className: "bg-muted text-muted-foreground" },
-};
+import { PROPOSAL_STATUS_CONFIG } from "@/lib/proposalStatusConfig";
+const PROPOSTA_STATUS_MAP = PROPOSAL_STATUS_CONFIG;
 
 function getTimeInStage(lastChange: string) {
   const hours = differenceInHours(new Date(), new Date(lastChange));

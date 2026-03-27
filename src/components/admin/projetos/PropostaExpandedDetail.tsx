@@ -99,29 +99,16 @@ interface SnapshotData {
 
 // UCDetailData imported from usePropostaExpandedData hook
 
-// ─── Status Badge ───────────────────────────────────
-const STATUS_MAP: Record<string, { label: string; cls: string; iconCls: string }> = {
-  rascunho: { label: "Rascunho", cls: "bg-muted text-muted-foreground", iconCls: "text-muted-foreground" },
-  gerada: { label: "Gerada", cls: "bg-primary/10 text-primary", iconCls: "text-primary" },
-  generated: { label: "Gerada", cls: "bg-primary/10 text-primary", iconCls: "text-primary" },
-  enviada: { label: "Enviada", cls: "bg-info/10 text-info", iconCls: "text-info" },
-  sent: { label: "Enviada", cls: "bg-info/10 text-info", iconCls: "text-info" },
-  aceita: { label: "Aceita", cls: "bg-success/10 text-success", iconCls: "text-success" },
-  ganha: { label: "Ganha", cls: "bg-success/10 text-success", iconCls: "text-success" },
-  rejeitada: { label: "Rejeitada", cls: "bg-destructive/10 text-destructive", iconCls: "text-destructive" },
-  recusada: { label: "Recusada", cls: "bg-destructive/10 text-destructive", iconCls: "text-destructive" },
-  perdida: { label: "Perdida", cls: "bg-destructive/10 text-destructive", iconCls: "text-destructive" },
-  arquivada: { label: "Arquivada", cls: "bg-muted text-muted-foreground", iconCls: "text-muted-foreground" },
-  expirada: { label: "Expirada", cls: "bg-warning/10 text-warning", iconCls: "text-warning" },
-};
+// ─── Status Badge (SSOT from proposalStatusConfig) ───
+import { getProposalStatusConfig } from "@/lib/proposalStatusConfig";
 
 function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_MAP[status] || { label: status, cls: "bg-muted text-muted-foreground" };
-  return <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.cls)}>{s.label}</span>;
+  const s = getProposalStatusConfig(status);
+  return <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.className)}>{s.label}</span>;
 }
 
 function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: boolean }) {
-  const s = STATUS_MAP[status];
+  const s = getProposalStatusConfig(status);
   const colorCls = s?.iconCls || (isPrincipal ? "text-primary" : "text-muted-foreground");
   const isAccepted = ["aceita", "ganha"].includes(status);
   const isRejected = ["rejeitada", "recusada", "perdida"].includes(status);
@@ -654,7 +641,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           .eq("status", "pendente");
       }
 
-      toast({ title: `Proposta marcada como "${STATUS_MAP[newStatus]?.label || newStatus}"` });
+      toast({ title: `Proposta marcada como "${getProposalStatusConfig(newStatus).label}"` });
       onRefresh();
     } catch (e: any) {
       toast({ title: "Erro ao atualizar status", description: e.message, variant: "destructive" });
