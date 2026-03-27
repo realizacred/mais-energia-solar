@@ -4,6 +4,7 @@ import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
@@ -215,7 +216,7 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
           </FormGrid>
           <div className="space-y-2">
             <Label>Data Efetiva</Label>
-            <Input type="date" value={form.effective_date} onChange={e => setForm(p => ({ ...p, effective_date: e.target.value }))} />
+            <DateInput value={form.effective_date} onChange={v => setForm(p => ({ ...p, effective_date: v }))} />
           </div>
           <div className="space-y-2">
             <Label>Observações</Label>

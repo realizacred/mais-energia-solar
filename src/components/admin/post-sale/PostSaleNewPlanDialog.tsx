@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -118,7 +119,7 @@ export function PostSaleNewPlanDialog({ open, onOpenChange }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Data de início</Label>
-              <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-9" />
+              <DateInput value={dataInicio} onChange={setDataInicio} className="h-9" />
             </div>
           </div>
 
