@@ -186,7 +186,12 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
       for (let i = 0; i < insertPayloads.length; i += BATCH_SIZE) {
         const chunk = insertPayloads.slice(i, i + BATCH_SIZE);
         const { error } = await supabase.from("inversores_catalogo").insert(chunk as any);
-        if (error) errors += chunk.length; else inserted += chunk.length;
+        if (error) {
+          console.error("[inversor-import] Erro no batch", i, "-", i + chunk.length, ":", error.message, error.details, error.code);
+          errors += chunk.length;
+        } else {
+          inserted += chunk.length;
+        }
         setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
       }
 
