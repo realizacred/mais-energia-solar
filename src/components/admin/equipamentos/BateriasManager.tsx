@@ -360,6 +360,12 @@ export function BateriasManager() {
         {!isLoading && filtered.length > 0 && <p className="text-xs text-muted-foreground text-right">{filtered.length} de {baterias.length} baterias</p>}
       </div>
 
+      {compareIds.size >= 2 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <Button size="lg" className="gap-2 shadow-lg" onClick={() => setCompareOpen(true)}><GitCompareArrows className="w-4 h-4" /> Comparar ({compareIds.size})</Button>
+        </div>
+      )}
+
       {/* Form Dialog */}
       <FormModalTemplate
         open={dialogOpen}
@@ -428,6 +434,8 @@ export function BateriasManager() {
       </AlertDialog>
 
       <BateriaViewModal bateria={viewItem} open={!!viewItem} onOpenChange={v => !v && setViewItem(null)} />
+      <BateriaCompareModal baterias={compareBaterias} open={compareOpen} onOpenChange={(v) => { setCompareOpen(v); if (!v) setCompareIds(new Set()); }} />
+      <BatchEnrichDialog open={batchEnrichOpen} onOpenChange={setBatchEnrichOpen} equipmentType="bateria" draftIds={baterias.map(b => b.id)} />
     </div>
   );
 }
