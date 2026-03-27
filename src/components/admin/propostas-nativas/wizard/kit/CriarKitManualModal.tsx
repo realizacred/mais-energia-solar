@@ -278,6 +278,10 @@ function createEmptyOtimizador(): OtimizadorEntry {
   return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
 }
 
+function createEmptyBateria(): BateriaEntry {
+  return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", energiaKwh: 0 };
+}
+
 /**
  * Filter inversores by topologia + sistema rules:
  * - Híbrido/Off grid sistema → only "Híbrido" type inverters
