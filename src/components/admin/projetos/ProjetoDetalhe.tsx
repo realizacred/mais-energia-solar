@@ -821,7 +821,7 @@ function GerenciamentoTab({
       try {
         const { data } = await supabase
           .from("deal_activities")
-          .select("id, title, description, activity_type, due_date, status, created_at, assigned_to")
+          .select("id, title, description, activity_type, due_date, status, created_at, assigned_to, completed_at")
           .eq("deal_id", deal.id)
           .order("due_date", { ascending: true, nullsFirst: false })
           .limit(50);
@@ -944,7 +944,7 @@ function GerenciamentoTab({
     else updates.completed_at = null;
     try {
       await supabase.from("deal_activities").update(updates as any).eq("id", activityId);
-      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: newStatus } : a));
+      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: newStatus, completed_at: newStatus === "done" ? new Date().toISOString() : null } : a));
       toast({ title: newStatus === "done" ? "Atividade concluída ✓" : "Atividade reaberta" });
     } catch { /* ignore */ }
   };
