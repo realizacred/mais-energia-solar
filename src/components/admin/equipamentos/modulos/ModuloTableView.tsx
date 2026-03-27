@@ -236,12 +236,6 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
         </div>
       )}
 
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" className="gap-2" onClick={exportCSV}>
-          <Download className="w-4 h-4" /> Exportar CSV
-        </Button>
-      </div>
-
       <div className="overflow-x-auto">
         <Table className="text-xs [&_td]:px-2 [&_td]:py-2 [&_th]:px-2 [&_th]:py-2">
           <TableHeader>
