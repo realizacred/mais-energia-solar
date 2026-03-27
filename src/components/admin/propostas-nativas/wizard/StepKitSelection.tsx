@@ -768,6 +768,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           itens.filter(i => i.categoria === "modulo").reduce((s, i) => s + i.quantidade, 0) ||
           manualKits.reduce((s, k) => s + k.itens.filter(i => i.categoria === "modulo").reduce((ss, i) => ss + i.quantidade, 0), 0)
         }
+        mpptCount={(() => {
+          const allItens = itens.length > 0 ? itens : manualKits.flatMap(k => k.itens);
+          const invItens = allItens.filter(i => i.categoria === "inversor");
+          // Sum up quantities of inverters as proxy for string count
+          return invItens.reduce((s, i) => s + i.quantidade, 0) || 1;
+        })()}
         onSave={(newLayouts) => {
           onLayoutsChange?.(newLayouts);
           toast({ title: "Layout atualizado" });
