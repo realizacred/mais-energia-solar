@@ -260,14 +260,35 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
                     <p className="text-xs text-muted-foreground">Suspeitos</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
-                    <p className="text-2xl font-bold text-warning">{duplicateItems.length}</p>
-                    <p className="text-xs text-muted-foreground">Duplicados</p>
+                    <p className="text-2xl font-bold text-muted-foreground">{duplicateItems.length}</p>
+                    <p className="text-xs text-muted-foreground">Já existem</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
                     <p className="text-2xl font-bold text-foreground">{parseResult.inversores.length}</p>
                     <p className="text-xs text-muted-foreground">Total</p>
                   </div>
                 </div>
+
+                {/* Overwrite all toggle */}
+                {duplicateItems.length > 0 && (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {duplicateItems.length} itens já existem no catálogo
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Ative para atualizar todos os existentes com os dados do CSV
+                      </p>
+                    </div>
+                    <Switch
+                      checked={overwriteIds.size === duplicateItems.length}
+                      onCheckedChange={(checked) => {
+                        if (checked) setOverwriteIds(new Set(duplicateItems.map(d => d.idx)));
+                        else setOverwriteIds(new Set());
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* Suspects */}
                 {suspectItems.length > 0 && (
@@ -292,21 +313,13 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
                   </div>
                 )}
 
-                {duplicateItems.length > 0 && (
+                {duplicateItems.length > 0 && overwriteIds.size > 0 && overwriteIds.size < duplicateItems.length && (
                   <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-warning">{duplicateItems.length} duplicados</p>
+                      <p className="text-sm font-medium text-warning">{overwriteIds.size} de {duplicateItems.length} selecionados para sobrescrever</p>
                       <Button variant="ghost" size="sm" onClick={selectAllDuplicates} className="text-xs h-7">
-                        {overwriteIds.size === duplicateItems.length ? "Desmarcar todos" : "Selecionar todos"}
+                        Selecionar todos
                       </Button>
-                    </div>
-                    <div className="max-h-32 overflow-y-auto space-y-1">
-                      {duplicateItems.map((d) => (
-                        <label key={d.idx} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-warning/10 rounded px-1 py-0.5">
-                          <Checkbox checked={overwriteIds.has(d.idx)} onCheckedChange={(c) => toggleOverwrite(d.idx, !!c)} />
-                          <span className="text-foreground">{d.item.fabricante} {d.item.modelo} ({d.item.potencia_nominal_kw}kW)</span>
-                        </label>
-                      ))}
                     </div>
                   </div>
                 )}
@@ -365,7 +378,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
                 <CheckCircle2 className="w-12 h-12 text-success mx-auto" />
                 <p className="text-lg font-semibold text-foreground">Importação concluída</p>
                 <p className="text-sm text-muted-foreground">
-                  {importResult.inserted} inseridos · {importResult.updated} atualizados · {importResult.skipped} ignorados
+                  {importResult.inserted} inseridos · {importResult.updated} atualizados · {importResult.skipped} já existiam no catálogo
                   {importResult.errors > 0 && ` · ${importResult.errors} erros`}
                 </p>
               </div>
