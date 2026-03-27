@@ -82,13 +82,27 @@ export function BateriasManager() {
   const { data: baterias = [], isLoading } = useQuery({
     queryKey: ["baterias"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("baterias")
-        .select("id, tenant_id, fabricante, modelo, tipo_bateria, energia_kwh, tensao_nominal_v, tensao_carga_v, tensao_operacao_v, corrente_max_carga_a, corrente_max_descarga_a, correntes_recomendadas_a, potencia_max_saida_kw, dimensoes_mm, ativo, created_at, updated_at")
-        .order("fabricante")
-        .order("modelo");
-      if (error) throw error;
-      return data as Bateria[];
+      const allData: Bateria[] = [];
+      const batchSize = 1000;
+      let offset = 0;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from("baterias")
+          .select("id, tenant_id, fabricante, modelo, tipo_bateria, energia_kwh, tensao_nominal_v, tensao_carga_v, tensao_operacao_v, corrente_max_carga_a, corrente_max_descarga_a, correntes_recomendadas_a, potencia_max_saida_kw, dimensoes_mm, ativo, created_at, updated_at")
+          .order("fabricante")
+          .order("modelo")
+          .range(offset, offset + batchSize - 1);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allData.push(...(data as Bateria[]));
+        if (data.length < batchSize) break;
+        offset += batchSize;
+      }
+
+      return allData;
     },
     staleTime: 1000 * 60 * 5,
   });

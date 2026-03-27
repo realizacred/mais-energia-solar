@@ -43,13 +43,28 @@ export function useInversoresCatalogo() {
   return useQuery({
     queryKey: [QUERY_KEY],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inversores_catalogo")
-        .select(SELECT_COLS)
-        .order("fabricante")
-        .order("potencia_nominal_kw");
-      if (error) throw error;
-      return data as Inversor[];
+      // Fetch ALL inverters with pagination to bypass Supabase 1000-row default limit
+      const allData: Inversor[] = [];
+      const batchSize = 1000;
+      let offset = 0;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from("inversores_catalogo")
+          .select(SELECT_COLS)
+          .order("fabricante")
+          .order("potencia_nominal_kw")
+          .range(offset, offset + batchSize - 1);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allData.push(...(data as Inversor[]));
+        if (data.length < batchSize) break;
+        offset += batchSize;
+      }
+
+      return allData;
     },
     staleTime: STALE_TIME,
   });
