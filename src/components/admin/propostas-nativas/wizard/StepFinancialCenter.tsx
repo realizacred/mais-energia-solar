@@ -129,13 +129,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     })();
   }, [leadId, comissaoLoaded]);
 
-  // Auto-fill commission value when precoVenda changes and commission is zero
-  useEffect(() => {
-    if (percentualComissaoConsultor > 0 && comissaoCusto === 0 && precoVenda > 0 && comissaoLoaded) {
-      const calculado = Math.round(precoVenda * percentualComissaoConsultor / 100 * 100) / 100;
-      if (calculado > 0) setComissaoCusto(calculado);
-    }
-  }, [percentualComissaoConsultor, precoVenda, comissaoLoaded]);
 
   // ── Sync Financial Center costs back to VendaData ──
   // This ensures calcPrecoFinal and StepResumo see the correct values
