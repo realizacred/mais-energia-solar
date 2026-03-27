@@ -936,7 +936,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
         tilt_deg: updatedPd.inclinacao ?? 10,
         azimuth_deviation_deg: updatedPd.desvio_azimutal ?? 0,
         desempenho: cfg.desempenho,
-        somente_ghi: somenteGhi,
+        somente_ghi: effectiveSomenteGhi,
       });
       configs[topo] = { ...cfg, fator_geracao: newFator };
     }
@@ -946,7 +946,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
       topologia_configs: configs,
       fator_geracao: configs.tradicional?.fator_geracao ?? updatedPd.fator_geracao,
     };
-  }, [irradiacao, latitude, ghiSeries, somenteGhi]);
+  }, [irradiacao, latitude, ghiSeries]);
 
   // Apply sombreamento: adjusts desempenho per topology, then recalculates fator_geracao
   const applySombreamento = useCallback((sombreamentoLevel: string, currentPd: PreDimensionamentoData) => {
