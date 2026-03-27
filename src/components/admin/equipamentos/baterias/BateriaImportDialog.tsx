@@ -375,7 +375,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
           <div className="space-y-4">
             {!parseResult && !importResult && (
               <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
@@ -398,7 +398,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
                     <p className="text-xs text-muted-foreground">Novas</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
-                    <p className="text-2xl font-bold text-yellow-500">{suspectItems.length}</p>
+                    <p className="text-2xl font-bold text-warning">{suspectItems.length}</p>
                     <p className="text-xs text-muted-foreground">Suspeitas</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
@@ -412,16 +412,16 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
                 </div>
 
                 {suspectItems.length > 0 && (
-                  <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">🟡 {suspectItems.length} suspeitas</p>
-                      <Button variant="outline" size="sm" onClick={handleVerifyWithAI} disabled={verifyingAI} className="text-xs h-7 gap-1">
-                        {verifyingAI ? <><Loader2 className="w-3 h-3 animate-spin" /> {aiProgress.current}/{aiProgress.total}</> : <><Sparkles className="w-3 h-3" /> Verificar com IA</>}
+                   <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
+                     <div className="flex items-center justify-between">
+                       <p className="text-sm font-medium text-warning">🟡 {suspectItems.length} suspeitas</p>
+                       <Button variant="outline" size="sm" onClick={handleVerifyWithAI} disabled={verifyingAI} className="text-xs h-7 gap-1">
+                         {verifyingAI ? <><Loader2 className="w-3 h-3 animate-spin" /> {aiProgress.current}/{aiProgress.total}</> : <><Sparkles className="w-3 h-3" /> Verificar com IA</>}
                       </Button>
                     </div>
                     <div className="max-h-32 overflow-y-auto space-y-1">
                       {suspectItems.map((s) => (
-                        <label key={s.idx} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-yellow-500/10 rounded px-1 py-0.5">
+                        <label key={s.idx} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-warning/10 rounded px-1 py-0.5">
                           <Checkbox checked={importSuspectIds.has(s.idx)} onCheckedChange={(c) => toggleSuspect(s.idx, !!c)} className="mt-0.5" />
                           <div className="flex-1 min-w-0">
                             <span className="text-foreground">{s.item.fabricante} {s.item.modelo} ({s.item.energia_kwh}kWh)</span>

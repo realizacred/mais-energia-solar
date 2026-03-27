@@ -306,7 +306,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
           <div className="space-y-4">
             {/* Upload */}
             {!parseResult && !importResult && (
@@ -340,7 +340,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
                     <p className="text-xs text-muted-foreground">Novos</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
-                    <p className="text-2xl font-bold text-yellow-500">{suspectItems.length}</p>
+                    <p className="text-2xl font-bold text-warning">{suspectItems.length}</p>
                     <p className="text-xs text-muted-foreground">Suspeitos</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
@@ -372,10 +372,10 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
 
                 {/* Suspect section */}
                 {suspectItems.length > 0 && (
-                  <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                        🟡 {suspectItems.length} suspeitos (similaridade ≥85%)
+                   <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
+                     <div className="flex items-center justify-between">
+                       <p className="text-sm font-medium text-warning">
+                         🟡 {suspectItems.length} suspeitos (similaridade ≥92%)
                       </p>
                       <Button
                         variant="outline"
@@ -393,7 +393,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
                     </div>
                     <div className="max-h-32 overflow-y-auto space-y-1">
                       {suspectItems.map((s) => (
-                        <label key={s.idx} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-yellow-500/10 rounded px-1 py-0.5">
+                        <label key={s.idx} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-warning/10 rounded px-1 py-0.5">
                           <Checkbox
                             checked={importSuspectIds.has(s.idx)}
                             onCheckedChange={(c) => toggleSuspect(s.idx, !!c)}
@@ -405,7 +405,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
                               Possível duplicata de: {s.match.existingFabricante} {s.match.existingModelo} ({Math.round(s.match.score * 100)}%)
                             </p>
                           </div>
-                          <Badge variant="outline" className="text-[10px] bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 shrink-0">Suspeito</Badge>
+                          <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20 shrink-0">Suspeito</Badge>
                         </label>
                       ))}
                     </div>
