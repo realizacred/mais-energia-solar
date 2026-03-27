@@ -486,9 +486,9 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+        <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30">
           {!parsed ? (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -506,7 +506,7 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
               </Button>
             </>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
