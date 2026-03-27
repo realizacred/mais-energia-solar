@@ -99,20 +99,13 @@ interface SnapshotData {
 
 // UCDetailData imported from usePropostaExpandedData hook
 
-// ─── Status Badge ───────────────────────────────────
-const STATUS_MAP: Record<string, { label: string; cls: string; iconCls: string }> = {
-  rascunho: { label: "Rascunho", cls: "bg-muted text-muted-foreground", iconCls: "text-muted-foreground" },
-  gerada: { label: "Gerada", cls: "bg-primary/10 text-primary", iconCls: "text-primary" },
-  generated: { label: "Gerada", cls: "bg-primary/10 text-primary", iconCls: "text-primary" },
-  enviada: { label: "Enviada", cls: "bg-info/10 text-info", iconCls: "text-info" },
-  sent: { label: "Enviada", cls: "bg-info/10 text-info", iconCls: "text-info" },
-  aceita: { label: "Aceita", cls: "bg-success/10 text-success", iconCls: "text-success" },
-  ganha: { label: "Ganha", cls: "bg-success/10 text-success", iconCls: "text-success" },
-  rejeitada: { label: "Rejeitada", cls: "bg-destructive/10 text-destructive", iconCls: "text-destructive" },
-  recusada: { label: "Recusada", cls: "bg-destructive/10 text-destructive", iconCls: "text-destructive" },
-  perdida: { label: "Perdida", cls: "bg-destructive/10 text-destructive", iconCls: "text-destructive" },
-  arquivada: { label: "Arquivada", cls: "bg-muted text-muted-foreground", iconCls: "text-muted-foreground" },
-  expirada: { label: "Expirada", cls: "bg-warning/10 text-warning", iconCls: "text-warning" },
+// ─── Status Badge (SSOT from proposalStatusConfig) ───
+import { PROPOSAL_STATUS_CONFIG, getProposalStatusConfig } from "@/lib/proposalStatusConfig";
+const STATUS_MAP = PROPOSAL_STATUS_CONFIG as Record<string, { label: string; cls: string; iconCls: string }>;
+// Alias: the centralized config uses `className` but this file reads `cls`
+const getStatusMapEntry = (status: string) => {
+  const c = getProposalStatusConfig(status);
+  return { label: c.label, cls: c.className, iconCls: c.iconCls };
 };
 
 function StatusBadge({ status }: { status: string }) {
