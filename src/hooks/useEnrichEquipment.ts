@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useToast } from "@/hooks/use-toast";
 
-type EquipmentType = "modulo" | "inversor" | "otimizador";
+type EquipmentType = "modulo" | "inversor" | "otimizador" | "bateria";
 
 interface EnrichParams {
   equipment_type: EquipmentType;
@@ -28,6 +28,7 @@ const QUERY_KEY_MAP: Record<EquipmentType, string[]> = {
   modulo: ["modulos-solares"],
   inversor: ["inversores-catalogo"],
   otimizador: ["otimizadores-catalogo"],
+  bateria: ["baterias"],
 };
 
 /**
