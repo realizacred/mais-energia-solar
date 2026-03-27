@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
-import { Plus, Pencil, Trash2, Search, Battery, Eye, X, Package, CheckCircle2, Sparkles, LayoutGrid, Table as TableIcon, Zap, Wand2, FileWarning, GitCompareArrows } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Battery, Eye, X, Package, CheckCircle2, Sparkles, LayoutGrid, Table as TableIcon, Zap, Wand2, FileWarning, GitCompareArrows, FileSpreadsheet } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,7 @@ import {
 import { BateriaViewModal } from "./baterias/BateriaViewModal";
 import { BateriaTableView } from "./baterias/BateriaTableView";
 import { BateriaCompareModal } from "./baterias/BateriaCompareModal";
+import { BateriaImportDialog } from "./baterias/BateriaImportDialog";
 import { calcCompletudeBateria } from "@/utils/calcCompletudeBateria";
 
 type ViewMode = "cards" | "table";
@@ -74,6 +75,7 @@ export function BateriasManager() {
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
   const [batchEnrichOpen, setBatchEnrichOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: baterias = [], isLoading } = useQuery({
     queryKey: ["baterias"],
@@ -235,6 +237,7 @@ export function BateriasManager() {
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             {activeFilterCount > 0 && <Badge variant="secondary" className="gap-1">{activeFilterCount} filtro{activeFilterCount > 1 ? "s" : ""}</Badge>}
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="gap-2"><FileSpreadsheet className="w-4 h-4" /> Importar CSV</Button>
             <Button variant="outline" size="sm" onClick={() => setBatchEnrichOpen(true)} className="gap-2"><Wand2 className="w-4 h-4" /> Buscar specs IA</Button>
             <Button size="sm" onClick={() => openDialog()} className="gap-2"><Plus className="w-4 h-4" /> Nova Bateria</Button>
           </div>

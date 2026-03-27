@@ -138,7 +138,7 @@ function parseRows(text: string, existing: Modulo[]): ParsedRow[] {
     if (!hasDimensions) warnings.push("Dimensões incompletas → Rascunho");
 
     const key = `${fabricante}|${modelo}|${potencia_wp}`.toLowerCase();
-    const isDuplicate = existingKeys.has(key);
+    const isDuplicate = existingMap.has(key);
     if (isDuplicate) warnings.push("Duplicado (já existe)");
 
     const status = (!hasElectrical || !hasDimensions) ? "rascunho" : "publicado";
