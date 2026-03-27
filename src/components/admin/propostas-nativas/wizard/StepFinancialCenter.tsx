@@ -88,49 +88,95 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [comissaoLoaded, setComissaoLoaded] = useState(false);
   const [percentualComissaoConsultor, setPercentualComissaoConsultor] = useState<number>(0);
   const [consultorNome, setConsultorNome] = useState<string>("");
+  const [comissaoSource, setComissaoSource] = useState<string>("");
 
   useEffect(() => {
     if (comissaoLoaded || !leadId) return;
     (async () => {
       try {
+        // 1. Buscar consultor_id do lead
         const { data: lead } = await supabase
           .from("leads")
-          .select("consultor_id")
+          .select("consultor_id, tenant_id")
           .eq("id", leadId)
           .maybeSingle();
         const consultorId = lead?.consultor_id;
-        if (!consultorId) { setComissaoLoaded(true); return; }
+        if (!consultorId) {
+          console.debug("[Comissão] Lead sem consultor vinculado");
+          setComissaoLoaded(true);
+          return;
+        }
 
-        // Fetch consultant name
-        const { data: profile } = await supabase
-          .from("profiles" as any)
-          .select("nome")
+        // 2. Buscar consultor na tabela consultores (SSOT)
+        const { data: consultor } = await supabase
+          .from("consultores")
+          .select("id, nome, user_id, percentual_comissao")
           .eq("id", consultorId)
           .maybeSingle();
-        if ((profile as any)?.nome) setConsultorNome((profile as any).nome);
 
-        // Try commission_plans first
-        const { data: plans } = await supabase
-          .from("commission_plans" as any)
-          .select("parameters, is_active")
-          .eq("is_active", true)
-          .limit(1)
-          .maybeSingle();
-        const params = (plans as any)?.parameters;
-        const percentual = typeof params === "object" && params !== null
-          ? (Number(params.percentual) || 0)
-          : 0;
-        setPercentualComissaoConsultor(percentual);
+        const nome = (consultor as any)?.nome ?? "";
+        const consultorPercent = Number((consultor as any)?.percentual_comissao) || 0;
+        setConsultorNome(nome);
 
-        if (percentual > 0 && comissaoCusto === 0) {
-          console.debug("[StepFinancialCenter] Comissão do consultor:", percentual, "%");
+        // 3. Prioridade: consultor.percentual_comissao > plano atribuído > pricing_config
+        if (consultorPercent > 0) {
+          setPercentualComissaoConsultor(consultorPercent);
+          setComissaoSource("consultor");
+          console.debug("[Comissão] Consultor:", nome, "| Percentual:", consultorPercent + "% | Origem: cadastro do consultor");
+        } else {
+          // Fallback: buscar plano de comissão atribuído via user_pricing_assignments
+          const userId = (consultor as any)?.user_id;
+          let planPercent = 0;
+          if (userId) {
+            const { data: assignment } = await supabase
+              .from("user_pricing_assignments" as any)
+              .select("commission_plan_id")
+              .eq("user_id", userId)
+              .maybeSingle();
+            const planId = (assignment as any)?.commission_plan_id;
+            if (planId) {
+              const { data: plan } = await supabase
+                .from("commission_plans" as any)
+                .select("parameters, is_active, name")
+                .eq("id", planId)
+                .eq("is_active", true)
+                .maybeSingle();
+              const params = (plan as any)?.parameters;
+              planPercent = typeof params === "object" && params !== null
+                ? (Number(params.percentual) || Number(params.rate) || 0)
+                : 0;
+              if (planPercent > 0) {
+                setComissaoSource(`plano: ${(plan as any)?.name || "atribuído"}`);
+                console.debug("[Comissão] Consultor:", nome, "| Percentual:", planPercent + "% | Origem: plano", (plan as any)?.name);
+              }
+            }
+          }
+
+          if (planPercent > 0) {
+            setPercentualComissaoConsultor(planPercent);
+          } else {
+            // Último fallback: pricing_config.comissao_padrao_percent
+            const { data: config } = await supabase
+              .from("pricing_config")
+              .select("comissao_padrao_percent")
+              .limit(1)
+              .maybeSingle();
+            const fallback = Number((config as any)?.comissao_padrao_percent) || 0;
+            if (fallback > 0) {
+              setPercentualComissaoConsultor(fallback);
+              setComissaoSource("padrão do tenant");
+              console.debug("[Comissão] Consultor:", nome, "| Percentual:", fallback + "% | Origem: pricing_config (fallback)");
+            } else {
+              console.debug("[Comissão] Consultor:", nome, "| Sem percentual configurado");
+            }
+          }
         }
       } catch (e) {
-        console.warn("[StepFinancialCenter] Erro ao buscar comissão:", e);
+        console.warn("[Comissão] Erro ao buscar consultor:", e);
       }
       setComissaoLoaded(true);
     })();
-  }, [leadId, comissaoLoaded]);
+  }, [leadId]); // ← SÓ leadId
 
 
   // ── Sync Financial Center costs back to VendaData ──
