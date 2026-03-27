@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List, Sparkles, ChevronDown, ChevronUp, Info, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
@@ -85,6 +86,9 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
   // ── Auto-load commission from consultant linked to the lead ──
   const [comissaoLoaded, setComissaoLoaded] = useState(false);
+  const [percentualComissaoConsultor, setPercentualComissaoConsultor] = useState<number>(0);
+  const [consultorNome, setConsultorNome] = useState<string>("");
+
   useEffect(() => {
     if (comissaoLoaded || !leadId) return;
     (async () => {
@@ -96,6 +100,15 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
           .maybeSingle();
         const consultorId = lead?.consultor_id;
         if (!consultorId) { setComissaoLoaded(true); return; }
+
+        // Fetch consultant name
+        const { data: profile } = await supabase
+          .from("profiles" as any)
+          .select("nome")
+          .eq("id", consultorId)
+          .maybeSingle();
+        if ((profile as any)?.nome) setConsultorNome((profile as any).nome);
+
         // Try commission_plans first
         const { data: plans } = await supabase
           .from("commission_plans" as any)
@@ -104,8 +117,9 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
           .limit(1)
           .maybeSingle();
         const percentual = (plans as any)?.taxa_base_percent ?? 0;
+        setPercentualComissaoConsultor(percentual);
+
         if (percentual > 0 && comissaoCusto === 0) {
-          // Will be recalculated when precoVenda changes — just store percentage hint
           console.debug("[StepFinancialCenter] Comissão do consultor:", percentual, "%");
         }
       } catch (e) {
@@ -114,6 +128,14 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       setComissaoLoaded(true);
     })();
   }, [leadId, comissaoLoaded]);
+
+  // Auto-fill commission value when precoVenda changes and commission is zero
+  useEffect(() => {
+    if (percentualComissaoConsultor > 0 && comissaoCusto === 0 && precoVenda > 0 && comissaoLoaded) {
+      const calculado = Math.round(precoVenda * percentualComissaoConsultor / 100 * 100) / 100;
+      if (calculado > 0) setComissaoCusto(calculado);
+    }
+  }, [percentualComissaoConsultor, precoVenda, comissaoLoaded]);
 
   // ── Sync Financial Center costs back to VendaData ──
   // This ensures calcPrecoFinal and StepResumo see the correct values
