@@ -1068,7 +1068,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                 </Button>
               )}
               {mode === "zero" && (
-                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])}>
+                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 1 }])}>
                   + Componente
                 </Button>
               )}
