@@ -26,7 +26,7 @@ const TABLE_MAP: Record<EquipmentType, string> = {
 // ── Prompts ──────────────────────────────────────────────────────
 
 function buildPrompt(type: EquipmentType, fabricante: string, modelo: string): { system: string; user: string } {
-  const system = "Você é um especialista em energia solar. Busque as especificações técnicas do equipamento indicado. Retorne APENAS um JSON válido com os campos solicitados. Se não encontrar um valor, use null. Não invente dados. IMPORTANTE: Para datasheet_url, forneça APENAS URLs que você tem certeza absoluta que existem e estão acessíveis publicamente. Se não tiver certeza da URL exata, retorne null. NUNCA invente ou adivinhe URLs de datasheet.";
+  const system = "Você é um especialista em energia solar. Busque as especificações técnicas do equipamento indicado. Retorne APENAS um JSON válido com os campos solicitados. Se não encontrar um valor, use null. Não invente dados. REGRA CRÍTICA SOBRE datasheet_url: NÃO retorne URLs de datasheet. Sempre retorne null para datasheet_url. URLs inventadas ou desatualizadas causam erros no sistema. O sistema buscará o datasheet por conta própria.";
 
   const specs: Record<EquipmentType, string> = {
     modulo: `{
@@ -265,17 +265,39 @@ function mergeResults(
 
 async function validateDatasheetUrl(url: string): Promise<{ valid: boolean; reason?: string }> {
   try {
-    const headRes = await fetch(url, {
-      method: "HEAD",
-      signal: AbortSignal.timeout(8000),
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; EnrichBot/1.0)" },
-    });
-
-    if (headRes.status !== 200) {
-      return { valid: false, reason: `HEAD failed: status ${headRes.status}` };
+    // Block known dead/unreliable domains
+    const blocklist = ["aesolar.com", "longisolartechnology.com", "jinkosolarglobal.com"];
+    const urlHost = new URL(url).hostname.replace("www.", "");
+    if (blocklist.some(d => urlHost.includes(d))) {
+      return { valid: false, reason: `blocked domain: ${urlHost}` };
     }
 
-    const contentType = headRes.headers.get("content-type") || "";
+    // Try HEAD first
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "HEAD",
+        signal: AbortSignal.timeout(8000),
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; EnrichBot/1.0)" },
+      });
+    } catch {
+      // HEAD failed (connection refused, DNS, etc) — try GET as fallback
+      try {
+        res = await fetch(url, {
+          method: "GET",
+          signal: AbortSignal.timeout(10000),
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; EnrichBot/1.0)", "Range": "bytes=0-1024" },
+        });
+      } catch (err2: any) {
+        return { valid: false, reason: `connection failed: ${err2.message}` };
+      }
+    }
+
+    if (res.status !== 200 && res.status !== 206) {
+      return { valid: false, reason: `HTTP ${res.status}` };
+    }
+
+    const contentType = res.headers.get("content-type") || "";
     const isPdf = contentType.includes("application/pdf") ||
                   contentType.includes("application/octet-stream") ||
                   url.toLowerCase().endsWith(".pdf");
@@ -284,14 +306,14 @@ async function validateDatasheetUrl(url: string): Promise<{ valid: boolean; reas
       return { valid: false, reason: `not PDF: content-type=${contentType}` };
     }
 
-    const contentLength = parseInt(headRes.headers.get("content-length") || "0", 10);
+    const contentLength = parseInt(res.headers.get("content-length") || "0", 10);
     if (contentLength > 0 && contentLength < 10000) {
-      return { valid: false, reason: `too small: ${contentLength} bytes (min 10KB)` };
+      return { valid: false, reason: `too small: ${contentLength} bytes` };
     }
 
     return { valid: true };
   } catch (err: any) {
-    return { valid: false, reason: `HEAD error: ${err.message}` };
+    return { valid: false, reason: `validation error: ${err.message}` };
   }
 }
 
