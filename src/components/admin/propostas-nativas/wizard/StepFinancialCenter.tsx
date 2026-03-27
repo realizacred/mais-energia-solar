@@ -506,56 +506,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                   </div>
 
                   {/* Categoria */}
-                  <span className="text-muted-foreground font-medium flex items-center gap-1">
+                  <span className="text-muted-foreground font-medium">
                     {row.categoria}
-                    {row.id === "comissao" && percentualComissaoConsultor > 0 && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge variant="outline"
-                              className="text-[10px] bg-primary/10 text-primary border-primary/30 cursor-help gap-0.5 px-1.5 py-0">
-                              {comissaoManualOverride && Math.abs(percentualEfetivo - percentualComissaoConsultor) > 0.01 ? (
-                                <span>{percentualComissaoConsultor}% → {percentualEfetivo.toFixed(1)}%</span>
-                              ) : (
-                                <span>{percentualComissaoConsultor}%</span>
-                              )}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[280px] space-y-1">
-                            <p className="text-xs font-medium">
-                              {consultorNome ? `Comissão — ${consultorNome}` : "Comissão automática"}
-                            </p>
-                            {comissaoSource && (
-                              <p className="text-xs text-muted-foreground">Origem: {comissaoSource}</p>
-                            )}
-                            {comissaoManualOverride ? (
-                              <>
-                                <p className="text-xs text-muted-foreground">
-                                  Original: {percentualComissaoConsultor}% de {formatBRL(precoVendaSemComissao)} = {formatBRL(precoVendaSemComissao * percentualComissaoConsultor / 100)}
-                                </p>
-                                <p className="text-xs font-medium text-primary">
-                                  Atual: {percentualEfetivo.toFixed(2)}% → {formatBRL(comissaoCusto)}
-                                </p>
-                              </>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">
-                                {percentualComissaoConsultor}% de {formatBRL(precoVendaSemComissao)} = {formatBRL(precoVendaSemComissao * percentualComissaoConsultor / 100)}
-                              </p>
-                            )}
-                            <p className="text-xs text-muted-foreground">
-                              {comissaoManualOverride ? "Valor alterado manualmente." : "Recalcula automaticamente ao alterar valores."}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                    {row.id === "comissao" && comissaoEnabled && percentualComissaoConsultor === 0 && comissaoLoaded && (
-                      <Badge variant="outline"
-                        className="text-[10px] bg-muted text-muted-foreground border-border gap-0.5 px-1.5 py-0">
-                        <Pencil className="w-2.5 h-2.5" />
-                        Manual
-                      </Badge>
-                    )}
                   </span>
 
                   {/* Item */}
@@ -568,12 +520,70 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         onClick={e => e.stopPropagation()}
                       />
                     ) : (
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1.5">
                         {row.item}
                         {isKit && itens.length > 0 && (
                           kitExpanded
                             ? <ChevronUp className="h-3 w-3 text-muted-foreground" />
                             : <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                        )}
+                        {/* Commission badge — in Item column */}
+                        {row.id === "comissao" && percentualComissaoConsultor > 0 && (() => {
+                          const isOverride = comissaoManualOverride && Math.abs(percentualEfetivo - percentualComissaoConsultor) > 0.01;
+                          const isLower = percentualEfetivo < percentualComissaoConsultor - 0.01;
+                          const isHigher = percentualEfetivo > percentualComissaoConsultor + 0.01;
+                          // Colors: lower = destructive, higher = success, same = primary (normal)
+                          const badgeBg = isOverride
+                            ? (isLower ? "bg-destructive/10 text-destructive border-destructive/30" : isHigher ? "bg-success/10 text-success border-success/30" : "bg-primary/10 text-primary border-primary/30")
+                            : "bg-primary/10 text-primary border-primary/30";
+                          return (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline"
+                                    className={cn("text-[10px] cursor-help gap-0.5 px-1.5 py-0", badgeBg)}>
+                                    {isOverride ? (
+                                      <span>{percentualComissaoConsultor}% → {percentualEfetivo.toFixed(1)}%</span>
+                                    ) : (
+                                      <span>{percentualComissaoConsultor}%</span>
+                                    )}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[280px] space-y-1">
+                                  <p className="text-xs font-medium">
+                                    {consultorNome ? `Comissão — ${consultorNome}` : "Comissão automática"}
+                                  </p>
+                                  {comissaoSource && (
+                                    <p className="text-xs text-muted-foreground">Origem: {comissaoSource}</p>
+                                  )}
+                                  {comissaoManualOverride ? (
+                                    <>
+                                      <p className="text-xs text-muted-foreground">
+                                        Original: {percentualComissaoConsultor}% de {formatBRL(precoVendaSemComissao)} = {formatBRL(precoVendaSemComissao * percentualComissaoConsultor / 100)}
+                                      </p>
+                                      <p className={cn("text-xs font-medium", isLower ? "text-destructive" : isHigher ? "text-success" : "text-primary")}>
+                                        Atual: {percentualEfetivo.toFixed(2)}% → {formatBRL(comissaoCusto)}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                      {percentualComissaoConsultor}% de {formatBRL(precoVendaSemComissao)} = {formatBRL(precoVendaSemComissao * percentualComissaoConsultor / 100)}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground">
+                                    {comissaoManualOverride ? "Valor alterado manualmente." : "Recalcula automaticamente ao alterar valores."}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
+                        {row.id === "comissao" && comissaoEnabled && percentualComissaoConsultor === 0 && comissaoLoaded && (
+                          <Badge variant="outline"
+                            className="text-[10px] bg-muted text-muted-foreground border-border gap-0.5 px-1.5 py-0">
+                            <Pencil className="w-2.5 h-2.5" />
+                            Manual
+                          </Badge>
                         )}
                       </span>
                     )}
