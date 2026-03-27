@@ -103,6 +103,7 @@ export function FornecedoresManager() {
   const [viewFornecedor, setViewFornecedor] = useState<Fornecedor | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [importOpen, setImportOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
