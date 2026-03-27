@@ -647,11 +647,11 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Nome do distribuidor *</Label>
-              <Input value={distribuidorNome} onChange={e => setDistribuidorNome(e.target.value)} className="h-8 text-xs" />
+              <Input value={distribuidorNome} onChange={e => setDistribuidorNome(e.target.value)} className={cn("h-8 text-xs", triedSave && !distribuidorNome.trim() && "ring-2 ring-destructive")} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Custo *</Label>
-              <CurrencyInput value={custo} onChange={setCusto} className="h-8 text-xs" placeholder="0,00" />
+              <CurrencyInput value={custo} onChange={setCusto} className={cn("h-8 text-xs", triedSave && custo <= 0 && "ring-2 ring-destructive")} placeholder="0,00" />
             </div>
           </div>
 
