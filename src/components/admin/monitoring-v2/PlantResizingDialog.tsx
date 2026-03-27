@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -90,11 +92,11 @@ export function PlantResizingDialog({ open, onOpenChange, plantId, tenantId }: P
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Data da Ampliação *</Label>
-                <Input type="date" value={form.data_ampliacao} onChange={(e) => set("data_ampliacao", e.target.value)} />
+                <DateInput value={form.data_ampliacao} onChange={(v) => set("data_ampliacao", v)} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Valor Investido Total (R$)</Label>
-                <Input type="number" step="0.01" value={form.valor_investido_total} onChange={(e) => set("valor_investido_total", e.target.value)} placeholder="Ex: 250000,00" />
+                <CurrencyInput value={Number(form.valor_investido_total) || 0} onChange={(v) => set("valor_investido_total", String(v))} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Geração Anual Prevista (kWh)</Label>
