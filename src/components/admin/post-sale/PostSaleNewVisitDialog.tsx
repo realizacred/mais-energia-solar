@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -111,7 +113,7 @@ export function PostSaleNewVisitDialog({ open, onOpenChange }: Props) {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Telefone</Label>
-                  <Input value={telefoneAvulso} onChange={e => setTelefoneAvulso(e.target.value)} placeholder="(00) 00000-0000" className="h-9" />
+                  <PhoneInput value={telefoneAvulso} onChange={setTelefoneAvulso} className="h-9" />
                 </div>
               </div>
             </TabsContent>
@@ -129,7 +131,7 @@ export function PostSaleNewVisitDialog({ open, onOpenChange }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Data prevista</Label>
-              <Input type="date" value={dataPrevista} onChange={e => setDataPrevista(e.target.value)} className="h-9" />
+              <DateInput value={dataPrevista} onChange={setDataPrevista} className="h-9" />
             </div>
           </div>
 

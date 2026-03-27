@@ -681,7 +681,7 @@ export function FornecedoresManager() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Telefone</Label>
-                    <Input value={form.telefone} onChange={e => setForm(p => ({ ...p, telefone: formatPhone(e.target.value) }))} placeholder="(00) 00000-0000" maxLength={15} />
+                    <PhoneInput value={form.telefone} onChange={v => setForm(p => ({ ...p, telefone: v }))} />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
@@ -691,7 +691,7 @@ export function FornecedoresManager() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Tel. Contato</Label>
-                    <Input value={form.contato_telefone} onChange={e => setForm(p => ({ ...p, contato_telefone: formatPhone(e.target.value) }))} placeholder="(00) 00000-0000" maxLength={15} />
+                    <PhoneInput value={form.contato_telefone} onChange={v => setForm(p => ({ ...p, contato_telefone: v }))} />
                   </div>
                 </div>
                 <div className="space-y-1.5 mt-4">
