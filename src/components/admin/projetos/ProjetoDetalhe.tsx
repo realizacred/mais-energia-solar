@@ -1128,7 +1128,18 @@ function GerenciamentoTab({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => navigate("/admin/clientes")}>
+                  <DropdownMenuItem onClick={async () => {
+                    if (!deal.customer_id) return;
+                    const { data } = await supabase
+                      .from("clientes")
+                      .select("*")
+                      .eq("id", deal.customer_id)
+                      .single();
+                    if (data) {
+                      setFichaClienteData(data);
+                      setFichaDialogOpen(true);
+                    }
+                  }}>
                     <Eye className="h-3.5 w-3.5 mr-2" />Ver ficha completa
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openAddressDialog()}>
@@ -1136,7 +1147,11 @@ function GerenciamentoTab({
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {customerPhone && (
-                    <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(customerPhone); toast({ title: "Telefone copiado" }); }}>
+                    <DropdownMenuItem onClick={() => {
+                      const formatted = formatPhoneBR(customerPhone);
+                      navigator.clipboard.writeText(formatted);
+                      toast({ title: "Telefone copiado!", description: formatted });
+                    }}>
                       <Copy className="h-3.5 w-3.5 mr-2" />Copiar telefone
                     </DropdownMenuItem>
                   )}
@@ -1147,7 +1162,21 @@ function GerenciamentoTab({
                   )}
                   <DropdownMenuSeparator />
                   {customerPhone && (
-                    <DropdownMenuItem onClick={() => navigate("/admin/inbox")}>
+                    <DropdownMenuItem onClick={async () => {
+                      try {
+                        const result = await upsertContactFromWhatsApp({
+                          phoneRaw: customerPhone,
+                          displayName: customerName || undefined,
+                        });
+                        if (result.conversationId) {
+                          navigate(`/admin/whatsapp?conversationId=${result.conversationId}`);
+                        } else {
+                          toast({ title: "Erro", description: "Não foi possível abrir a conversa.", variant: "destructive" });
+                        }
+                      } catch (err: any) {
+                        toast({ title: "Erro", description: err.message, variant: "destructive" });
+                      }
+                    }}>
                       <MessageSquare className="h-3.5 w-3.5 mr-2" />Abrir WhatsApp interno
                     </DropdownMenuItem>
                   )}
