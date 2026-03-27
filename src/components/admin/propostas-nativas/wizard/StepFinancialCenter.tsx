@@ -418,7 +418,39 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                   </div>
 
                   {/* Categoria */}
-                  <span className="text-muted-foreground font-medium">{row.categoria}</span>
+                  <span className="text-muted-foreground font-medium flex items-center gap-1">
+                    {row.categoria}
+                    {row.id === "comissao" && percentualComissaoConsultor > 0 && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline"
+                              className="text-[10px] bg-primary/10 text-primary border-primary/30 cursor-help gap-0.5 px-1.5 py-0">
+                              <Info className="w-2.5 h-2.5" />
+                              {percentualComissaoConsultor}%
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[220px] space-y-1">
+                            <p className="text-xs font-medium">Comissão do consultor</p>
+                            {consultorNome && (
+                              <p className="text-xs text-muted-foreground">{consultorNome}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              {percentualComissaoConsultor}% sobre venda = {formatBRL(precoVenda * percentualComissaoConsultor / 100)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Valor editável manualmente.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    {row.id === "comissao" && comissaoEnabled && percentualComissaoConsultor === 0 && comissaoCusto === 0 && comissaoLoaded && (
+                      <Badge variant="outline"
+                        className="text-[10px] bg-warning/10 text-warning border-warning/30 gap-0.5 px-1.5 py-0">
+                        <AlertTriangle className="w-2.5 h-2.5" />
+                        Sem %
+                      </Badge>
+                    )}
+                  </span>
 
                   {/* Item */}
                   <div>
