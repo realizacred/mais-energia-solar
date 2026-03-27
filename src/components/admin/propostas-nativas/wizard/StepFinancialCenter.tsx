@@ -490,24 +490,27 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                               {percentualComissaoConsultor}%
                             </Badge>
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[220px] space-y-1">
-                            <p className="text-xs font-medium">Comissão do consultor</p>
+                          <TooltipContent side="top" className="max-w-[250px] space-y-1">
+                            <p className="text-xs font-medium">Comissão automática</p>
                             {consultorNome && (
-                              <p className="text-xs text-muted-foreground">{consultorNome}</p>
+                              <p className="text-xs text-muted-foreground">Consultor: {consultorNome}</p>
+                            )}
+                            {comissaoSource && (
+                              <p className="text-xs text-muted-foreground">Origem: {comissaoSource}</p>
                             )}
                             <p className="text-xs text-muted-foreground">
-                              {percentualComissaoConsultor}% sobre venda = {formatBRL(precoVenda * percentualComissaoConsultor / 100)}
+                              {percentualComissaoConsultor}% de {formatBRL(precoVendaSemComissao)} = {formatBRL(precoVendaSemComissao * percentualComissaoConsultor / 100)}
                             </p>
-                            <p className="text-xs text-muted-foreground">Valor editável manualmente.</p>
+                            <p className="text-xs text-muted-foreground">Recalcula automaticamente ao alterar valores.</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     )}
-                    {row.id === "comissao" && comissaoEnabled && percentualComissaoConsultor === 0 && comissaoCusto === 0 && comissaoLoaded && (
+                    {row.id === "comissao" && comissaoEnabled && percentualComissaoConsultor === 0 && comissaoLoaded && (
                       <Badge variant="outline"
-                        className="text-[10px] bg-warning/10 text-warning border-warning/30 gap-0.5 px-1.5 py-0">
-                        <AlertTriangle className="w-2.5 h-2.5" />
-                        Sem %
+                        className="text-[10px] bg-muted text-muted-foreground border-border gap-0.5 px-1.5 py-0">
+                        <Pencil className="w-2.5 h-2.5" />
+                        Manual
                       </Badge>
                     )}
                   </span>
