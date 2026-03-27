@@ -904,6 +904,11 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
     return base;
   });
 
+  // In PremissasModal, ALWAYS use POA transposition when latitude is available.
+  // The user is explicitly setting tilt/azimuth here, so these must affect the result.
+  // somente_ghi: false is safe — calcEffectiveIrrad falls back to GHI if latitude is null.
+  const effectiveSomenteGhi = false;
+
   // Compute effective irradiance for fator_geracao calc
   const effectiveIrrad = useMemo(() => {
     if (!irradiacao || irradiacao <= 0) return 0;
@@ -913,9 +918,9 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
       latitude,
       tilt_deg: pd.inclinacao ?? 10,
       azimuth_deviation_deg: pd.desvio_azimutal ?? 0,
-      somente_ghi: somenteGhi,
+      somente_ghi: effectiveSomenteGhi,
     });
-  }, [irradiacao, latitude, ghiSeries, somenteGhi, pd.inclinacao, pd.desvio_azimutal]);
+  }, [irradiacao, latitude, ghiSeries, pd.inclinacao, pd.desvio_azimutal]);
 
   // Recalculate fator_geracao via SSOT service when tilt/azimuth change
   const recalcFatorGeracao = useCallback((updatedPd: PreDimensionamentoData) => {
