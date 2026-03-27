@@ -100,21 +100,15 @@ interface SnapshotData {
 // UCDetailData imported from usePropostaExpandedData hook
 
 // ─── Status Badge (SSOT from proposalStatusConfig) ───
-import { PROPOSAL_STATUS_CONFIG, getProposalStatusConfig } from "@/lib/proposalStatusConfig";
-const STATUS_MAP = PROPOSAL_STATUS_CONFIG as Record<string, { label: string; cls: string; iconCls: string }>;
-// Alias: the centralized config uses `className` but this file reads `cls`
-const getStatusMapEntry = (status: string) => {
-  const c = getProposalStatusConfig(status);
-  return { label: c.label, cls: c.className, iconCls: c.iconCls };
-};
+import { getProposalStatusConfig } from "@/lib/proposalStatusConfig";
 
 function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_MAP[status] || { label: status, cls: "bg-muted text-muted-foreground" };
-  return <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.cls)}>{s.label}</span>;
+  const s = getProposalStatusConfig(status);
+  return <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.className)}>{s.label}</span>;
 }
 
 function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: boolean }) {
-  const s = STATUS_MAP[status];
+  const s = getProposalStatusConfig(status);
   const colorCls = s?.iconCls || (isPrincipal ? "text-primary" : "text-muted-foreground");
   const isAccepted = ["aceita", "ganha"].includes(status);
   const isRejected = ["rejeitada", "recusada", "perdida"].includes(status);

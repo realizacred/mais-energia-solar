@@ -1004,7 +1004,7 @@ function GerenciamentoTab({
             id: `prop-${p.id}`,
             type: "proposta" as const,
             title: `Proposta: ${p.titulo || p.codigo || "Sem título"}`,
-            subtitle: `${p.codigo || "—"} • Status: ${PROPOSTA_STATUS[p.status] || p.status}`,
+            subtitle: `${p.codigo || "—"} • Status: ${getProposalStatusLabel(p.status)}`,
             date: formatDate(p.created_at),
           })));
         }
