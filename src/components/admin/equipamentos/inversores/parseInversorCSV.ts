@@ -29,17 +29,31 @@ export interface ParsedDistributorInversor {
 export function extractPotenciaKw(modelo: string): number {
   const upper = modelo.toUpperCase();
 
+  // Padrão SUN-10K-, SUN-3.6K-, SUN-75K- (número seguido de K antes de traço/letra)
+  const sunKMatch = upper.match(/[-\s](\d+\.?\d*)K[-\s]/);
+  if (sunKMatch) {
+    const val = parseFloat(sunKMatch[1]);
+    if (val >= 0.3 && val <= 10000) return val;
+  }
+
   // Padrão explícito: número + KW ou KWP
-  const kwMatch = upper.match(/(\d+\.?\d*)\s*[Kk][Ww]/i);
+  const kwMatch = upper.match(/(\d+\.?\d*)\s*KW/);
   if (kwMatch) return parseFloat(kwMatch[1]);
 
   // Padrão SG(\d+)(RS|CX|RT|KTL|TL) — ex: SG10RS, SG110CX
   const sgMatch = upper.match(/SG(\d+)\s*(RS|CX|RT|KTL|TL)/);
   if (sgMatch) return parseInt(sgMatch[1]);
 
-  // Padrão (\d+)\s*(KTL|KW|K) — ex: MOD 10KTL3
-  const ktlMatch = upper.match(/(\d+)\s*(KTL|KW|K(?=[A-Z0-9]))/);
+  // Padrão (\d+)\s*(KTL|K) — ex: MOD 10KTL3
+  const ktlMatch = upper.match(/(\d+)\s*(KTL|K(?=[A-Z0-9]))/);
   if (ktlMatch) return parseInt(ktlMatch[1]);
+
+  // Padrão P{num}K: "1P3K" → 3kW, "S-1P3K-HIB" → 3kW
+  const pKMatch = upper.match(/\dP(\d+\.?\d*)K/);
+  if (pKMatch) {
+    const val = parseFloat(pKMatch[1]);
+    if (val >= 0.3 && val <= 10000) return val;
+  }
 
   // Padrão M(\d{3}) — ex: M030 → 30
   const mMatch = upper.match(/\bM(\d{3})\b/);
@@ -57,6 +71,13 @@ export function extractPotenciaKw(modelo: string): number {
   if (genericMatch) {
     const val = parseFloat(genericMatch[1]);
     if (val >= 1 && val <= 500) return val;
+  }
+
+  // Padrão {num}W (watts direto): "450W" → 0.45kW, "600W" → 0.6kW
+  const wMatch = upper.match(/(\d+)\s*W(?:[^A-Z]|$)/);
+  if (wMatch) {
+    const val = parseInt(wMatch[1]) / 1000;
+    if (val >= 0.3 && val <= 10000) return val;
   }
 
   // Fallback: procurar número razoável de 1-3 dígitos no modelo
