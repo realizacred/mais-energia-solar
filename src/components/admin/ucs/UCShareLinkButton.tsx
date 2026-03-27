@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getPublicUrl } from "@/lib/getPublicUrl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -343,7 +344,7 @@ export function UCShareLinkButton({ unitId }: Props) {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1">
                             <Label className="text-xs">Email</Label>
-                            <Input type="email" placeholder="cliente@exemplo.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="h-8 text-sm" />
+                            <EmailInput value={newEmail} onChange={setNewEmail} className="h-8 text-sm" required />
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">Senha</Label>

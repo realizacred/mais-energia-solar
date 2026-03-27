@@ -7,6 +7,7 @@ import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -198,7 +199,7 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">E-mail da fatura</Label>
-                    <Input type="email" value={newUc.email_fatura} onChange={(e) => setUc("email_fatura")(e.target.value)} placeholder="Opcional" />
+                    <EmailInput value={newUc.email_fatura || ""} onChange={setUc("email_fatura")} placeholder="Opcional" />
                   </div>
                 </div>
               </div>

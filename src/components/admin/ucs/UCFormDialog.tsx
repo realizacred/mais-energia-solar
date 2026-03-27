@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -374,7 +375,7 @@ export function UCFormDialog({ open, onOpenChange, editingUC, onSuccess }: Props
                 </div>
                 <div className="space-y-1 min-w-0">
                   <Label className="text-[11px]">E-mail da Fatura</Label>
-                  <Input type="email" value={form.email_fatura} onChange={set("email_fatura")} placeholder="fatura@email.com" autoComplete="off" />
+                  <EmailInput value={form.email_fatura || ""} onChange={(v) => setForm(f => ({ ...f, email_fatura: v }))} placeholder="fatura@email.com" />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label className="text-[11px]">Leitura automática por e-mail</Label>

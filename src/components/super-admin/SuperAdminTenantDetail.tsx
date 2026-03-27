@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -536,7 +537,7 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
             <DialogTitle>Alterar Email</DialogTitle>
             <DialogDescription>Usuário: {emailTarget?.nome || emailTarget?.email}</DialogDescription>
           </DialogHeader>
-          <div><Label>Novo Email</Label><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} /></div>
+          <div><Label>Novo Email</Label><EmailInput value={newEmail} onChange={setNewEmail} required /></div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEmailTarget(null)}>Cancelar</Button>
             <Button onClick={handleChangeEmail} disabled={!!actionLoading}>Confirmar</Button>

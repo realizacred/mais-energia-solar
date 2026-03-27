@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -128,11 +129,10 @@ export function PlantCreateClientDialog({ open, onOpenChange, plantId }: Props) 
 
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">E-mail</Label>
-              <Input
-                type="email"
-                placeholder="cliente@email.com"
+              <EmailInput
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={setEmail}
+                placeholder="cliente@email.com"
               />
             </div>
 
