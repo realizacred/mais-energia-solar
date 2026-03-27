@@ -24,34 +24,40 @@ export interface ParsedDistributorOtimizador {
  *  - HUAWEI SUN2000-450W-P → 450 Wp
  *  - Número seguido de W → valor direto
  */
-export function extractPotenciaWpOtimizador(modelo: string): number {
+export function extractPotenciaWpOtimizador(modelo: string): number | null {
   const upper = modelo.toUpperCase();
 
-  // Padrão P(\d{2,3}) — ex: P370, P505 (range otimizador: 50-800W)
+  // Filtrar inversores SolarEdge: SE8250H, SE10000H, etc.
+  if (/^SE\d{4,}/i.test(modelo.trim())) return null;
+
+  // Filtrar inversores com padrão S+número grande: S1200, S1400, etc.
+  if (/^S\d{4,}/i.test(modelo.trim())) return null;
+
+  // Padrão P(\d{2,3}) — ex: P370, P505, P850, P950
   const pMatch = upper.match(/\bP(\d{2,3})\b/);
   if (pMatch) {
     const val = parseInt(pMatch[1]);
-    if (val >= 50 && val <= 800) return val;
+    if (val >= 50 && val <= 1000) return val;
   }
 
   // Padrão (\d{2,3})W — ex: 400W, 450W
   const wMatch = upper.match(/(\d{2,3})\s*W\b/);
   if (wMatch) {
     const val = parseInt(wMatch[1]);
-    if (val >= 50 && val <= 800) return val;
+    if (val >= 50 && val <= 1000) return val;
   }
 
   // Padrão SUN2000-(\d{2,3})W — ex: SUN2000-450W-P
   const sunMatch = upper.match(/SUN2000-(\d{2,3})W/);
   if (sunMatch) {
     const val = parseInt(sunMatch[1]);
-    if (val >= 50 && val <= 800) return val;
+    if (val >= 50 && val <= 1000) return val;
   }
 
-  // Fallback: procurar número razoável de 2-3 dígitos no range de otimizador
+  // Fallback restrito: só se modelo curto e número é único token relevante
   const nums = modelo.match(/(\d{2,3})/g);
-  if (nums) {
-    const candidates = nums.map(Number).filter(n => n >= 50 && n <= 800);
+  if (nums && modelo.replace(/\D/g, "").length <= 4) {
+    const candidates = nums.map(Number).filter(n => n >= 50 && n <= 1000);
     if (candidates.length > 0) return Math.max(...candidates);
   }
 
@@ -71,13 +77,18 @@ export interface OtimizadorParseResult {
 export function parseDistributorOtimizadorCSV(csvText: string): OtimizadorParseResult {
   const base = parseDistributorCSV(csvText, "Otimizador");
 
-  const otimizadores: ParsedDistributorOtimizador[] = base.modules.map(m => ({
-    fabricante: m.fabricante,
-    modelo: m.modelo,
-    potencia_wp: extractPotenciaWpOtimizador(m.modelo),
-    status: "rascunho" as const,
-    ativo: true,
-  }));
+  const otimizadores: ParsedDistributorOtimizador[] = [];
+  for (const m of base.modules) {
+    const potencia = extractPotenciaWpOtimizador(m.modelo);
+    if (potencia === null) continue; // é inversor, não otimizador
+    otimizadores.push({
+      fabricante: m.fabricante,
+      modelo: m.modelo,
+      potencia_wp: potencia,
+      status: "rascunho" as const,
+      ativo: true,
+    });
+  }
 
   return {
     otimizadores,
