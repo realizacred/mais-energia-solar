@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { formatPhone } from "@/lib/validations";
+import { FornecedorImportDialog } from "@/components/admin/fornecedores/FornecedorImportDialog";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import {
   Plus, Trash2, Pencil, Truck, Building2, Phone, Mail, MapPin,
