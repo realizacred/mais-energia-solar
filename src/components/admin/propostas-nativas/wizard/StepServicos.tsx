@@ -35,6 +35,8 @@ interface StepServicosProps {
 }
 
 export function StepServicos({ servicos, onServicosChange, kitItens = [], potenciaKwp = 0 }: StepServicosProps) {
+  const [kitExpanded, setKitExpanded] = useState(false);
+
   const addServico = () => {
     onServicosChange([...servicos, {
       id: crypto.randomUUID(),
