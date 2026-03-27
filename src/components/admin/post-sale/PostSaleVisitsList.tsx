@@ -90,11 +90,12 @@ export function PostSaleVisitsList() {
   const clearFilters = () => { setSearch(""); setFilterStatus("all"); setFilterTipo("all"); };
 
   // Pagination
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filtered.length / pageSize)), [filtered.length, pageSize]);
+  const safeCurrentPage = Math.min(page, totalPages);
   const paginatedData = useMemo(() => {
-    const start = (page - 1) * pageSize;
+    const start = (safeCurrentPage - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [filtered, page, pageSize]);
+  }, [filtered, safeCurrentPage, pageSize]);
 
   useEffect(() => { setPage(1); }, [search, filterStatus, filterTipo, pageSize]);
 

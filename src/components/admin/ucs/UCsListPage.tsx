@@ -165,8 +165,9 @@ export default function UCsListPage() {
     return { topLevelUcs: topLevel, beneficiaryMap: benMap, ucMap };
   }, [filteredUcs, gdTree]);
 
-  const totalPages = Math.max(1, Math.ceil(topLevelUcs.length / PAGE_SIZE));
-  const pagedUcs = topLevelUcs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(topLevelUcs.length / PAGE_SIZE)), [topLevelUcs.length]);
+  const safeCurrentPage = Math.min(page, totalPages);
+  const pagedUcs = useMemo(() => topLevelUcs.slice((safeCurrentPage - 1) * PAGE_SIZE, safeCurrentPage * PAGE_SIZE), [topLevelUcs, safeCurrentPage]);
 
   useEffect(() => setPage(1), [quickFilter, tipoFilter, search]);
 

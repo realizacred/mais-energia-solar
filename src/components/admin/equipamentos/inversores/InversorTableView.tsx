@@ -80,9 +80,9 @@ export function InversorTableView({ inversores, onView, onEdit, onDelete, onTogg
     });
   }, [inversores, sortKey, sortDir, completudeMap]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(sorted.length / pageSize)), [sorted.length, pageSize]);
   const safeCurrentPage = Math.min(currentPage, totalPages);
-  const paginated = sorted.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
+  const paginated = useMemo(() => sorted.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize), [sorted, safeCurrentPage, pageSize]);
 
   const allPageSelected = paginated.length > 0 && paginated.every(i => selectedIds.has(i.id));
   const somePageSelected = paginated.some(i => selectedIds.has(i.id));

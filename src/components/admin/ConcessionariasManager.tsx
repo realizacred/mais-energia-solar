@@ -491,14 +491,15 @@ export function ConcessionariasManager() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-  const totalPages = Math.max(1, Math.ceil(filteredConcessionarias.length / pageSize));
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredConcessionarias.length / pageSize)), [filteredConcessionarias.length, pageSize]);
+  const safeCurrentPage = Math.min(page, totalPages);
   const paginatedData = useMemo(() => {
-    const start = (page - 1) * pageSize;
+    const start = (safeCurrentPage - 1) * pageSize;
     return filteredConcessionarias.slice(start, start + pageSize);
-  }, [filteredConcessionarias, page, pageSize]);
+  }, [filteredConcessionarias, safeCurrentPage, pageSize]);
 
   // Reset page on filter change
-  useEffect(() => { setPage(1); }, [searchTerm, filterEstado, filterStatus]);
+  useEffect(() => { setPage(1); }, [searchTerm, filterEstado, filterStatus, pageSize]);
 
   if (loading) {
     return (

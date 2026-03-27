@@ -163,11 +163,12 @@ export function FornecedoresManager() {
   }, [fornecedores, search, filterTipo, filterCidade, filterAtivo]);
 
   /* ─── Pagination ─── */
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filtered.length / pageSize)), [filtered.length, pageSize]);
+  const safeCurrentPage = Math.min(page, totalPages);
   const paginatedData = useMemo(() => {
-    const start = (page - 1) * pageSize;
+    const start = (safeCurrentPage - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [filtered, page, pageSize]);
+  }, [filtered, safeCurrentPage, pageSize]);
 
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [search, filterTipo, filterCidade, filterAtivo, pageSize]);
