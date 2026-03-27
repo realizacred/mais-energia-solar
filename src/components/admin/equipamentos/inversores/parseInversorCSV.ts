@@ -29,6 +29,13 @@ export interface ParsedDistributorInversor {
 export function extractPotenciaKw(modelo: string): number {
   const upper = modelo.toUpperCase();
 
+  // Padrão SUN2000-{kw}KTL: "SUN2000-5KTL-L1" → 5, "SUN2000-6KTL" → 6
+  const sun2000KtlMatch = upper.match(/SUN\d+-(\d+\.?\d*)KTL/);
+  if (sun2000KtlMatch) {
+    const val = parseFloat(sun2000KtlMatch[1]);
+    if (val >= 0.3 && val <= 10000) return val;
+  }
+
   // Padrão SUN-10K-, SUN-3.6K-, SUN-75K- (número seguido de K antes de traço/letra)
   const sunKMatch = upper.match(/[-\s](\d+\.?\d*)K[-\s]/);
   if (sunKMatch) {
