@@ -658,11 +658,36 @@ function GerenciamentoTab({
 
   const saveInlineEdit = async () => {
     if (!deal.customer_id || !inlineEditField) return;
+
+    const trimmed = inlineEditValue.trim();
+
+    // Validate email
+    if (inlineEditField === "email" && trimmed) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmed)) {
+        toast({ title: "E-mail inválido", description: "Digite um e-mail válido (ex: nome@email.com)", variant: "destructive" });
+        return;
+      }
+    }
+
+    // Validate phone
+    if (inlineEditField === "telefone" && trimmed) {
+      const digitsOnly = trimmed.replace(/\D/g, "");
+      if (digitsOnly.length < 10 || digitsOnly.length > 11) {
+        toast({ title: "Telefone inválido", description: "Digite um telefone válido com DDD", variant: "destructive" });
+        return;
+      }
+    }
+
     setSavingInlineEdit(true);
     try {
+      const valueToSave = inlineEditField === "telefone" && trimmed
+        ? trimmed.replace(/\D/g, "")
+        : trimmed || null;
+
       const { error } = await supabase
         .from("clientes")
-        .update({ [inlineEditField]: inlineEditValue.trim() || null })
+        .update({ [inlineEditField]: valueToSave })
         .eq("id", deal.customer_id);
       if (error) throw error;
       toast({ title: "Dados atualizados!" });
@@ -1207,7 +1232,7 @@ function GerenciamentoTab({
                 <ClientRow
                   icon={Mail}
                   label={customerEmail || "Adicionar Email"}
-                  muted
+                  muted={!customerEmail}
                   isLink={!customerEmail}
                   onCopy={customerEmail ? () => { navigator.clipboard.writeText(customerEmail); toast({ title: "E-mail copiado" }); } : undefined}
                   onAction={customerEmail ? () => window.open(`mailto:${customerEmail}`, "_blank") : undefined}
@@ -1228,13 +1253,23 @@ function GerenciamentoTab({
               </DialogHeader>
               <div className="space-y-3 py-2">
                 <Label className="text-sm text-primary">{inlineEditLabel}</Label>
-                <Input
-                  value={inlineEditValue}
-                  onChange={(e) => setInlineEditValue(e.target.value)}
-                  placeholder={`Digite ${inlineEditLabel?.toLowerCase()}...`}
-                  autoFocus
-                  onKeyDown={(e) => { if (e.key === "Enter") saveInlineEdit(); }}
-                />
+                {inlineEditField === "telefone" ? (
+                  <PhoneInput
+                    value={inlineEditValue}
+                    onChange={setInlineEditValue}
+                    placeholder="(00) 00000-0000"
+                    autoFocus
+                  />
+                ) : (
+                  <Input
+                    type={inlineEditField === "email" ? "email" : "text"}
+                    value={inlineEditValue}
+                    onChange={(e) => setInlineEditValue(e.target.value)}
+                    placeholder={inlineEditField === "email" ? "nome@email.com" : `Digite ${inlineEditLabel?.toLowerCase()}...`}
+                    autoFocus
+                    onKeyDown={(e) => { if (e.key === "Enter") saveInlineEdit(); }}
+                  />
+                )}
               </div>
               <Separator />
               <div className="flex justify-end">
