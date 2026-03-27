@@ -641,7 +641,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           .eq("status", "pendente");
       }
 
-      toast({ title: `Proposta marcada como "${STATUS_MAP[newStatus]?.label || newStatus}"` });
+      toast({ title: `Proposta marcada como "${getProposalStatusConfig(newStatus).label}"` });
       onRefresh();
     } catch (e: any) {
       toast({ title: "Erro ao atualizar status", description: e.message, variant: "destructive" });
