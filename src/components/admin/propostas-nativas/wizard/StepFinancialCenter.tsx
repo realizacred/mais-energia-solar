@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List, Sparkles, ChevronDown, ChevronUp, Info, AlertTriangle } from "lucide-react";
+import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List, Sparkles, ChevronDown, ChevronUp, Info, AlertTriangle, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
 import { roundCurrency } from "@/lib/formatters";
 import { usePricingDefaults } from "./hooks/usePricingDefaults";
+import { usePricingConfig } from "./hooks/usePricingConfig";
 import { toast } from "@/hooks/use-toast";
 
 // ── Types ──
@@ -63,26 +64,17 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [kitExpanded, setKitExpanded] = useState(false);
   const [kitCustoOverride, setKitCustoOverride] = useState<number | null>(venda.custo_kit_override ?? null);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
+  const { data: pricingConfig } = usePricingConfig();
 
-  // Load pricing defaults from config (SSOT for initial margin)
+  // Apply initial margin from pricing_config (one-time, when venda still has default 20%)
   useEffect(() => {
-    if (loadedDefaults) return;
-    supabase
-      .from("pricing_config")
-      .select("margem_minima_percent, comissao_padrao_percent, desconto_maximo_percent")
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          const d = data as any;
-          if (venda.margem_percentual === 20 && d.margem_minima_percent) {
-            console.debug("[StepFinancialCenter] Margem inicial aplicada:", d.margem_minima_percent, "| Origem: pricing_config");
-            onVendaChange({ ...venda, margem_percentual: d.margem_minima_percent });
-          }
-        }
-        setLoadedDefaults(true);
-      });
-  }, []);
+    if (loadedDefaults || !pricingConfig) return;
+    if (venda.margem_percentual === 20 && pricingConfig.margem_minima_percent) {
+      console.debug("[StepFinancialCenter] Margem inicial aplicada:", pricingConfig.margem_minima_percent, "| Origem: pricing_config");
+      onVendaChange({ ...venda, margem_percentual: pricingConfig.margem_minima_percent });
+    }
+    setLoadedDefaults(true);
+  }, [pricingConfig]);
 
   // ── Auto-load commission from consultant linked to the lead ──
   const [comissaoLoaded, setComissaoLoaded] = useState(false);
@@ -155,13 +147,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
           if (planPercent > 0) {
             setPercentualComissaoConsultor(planPercent);
           } else {
-            // Último fallback: pricing_config.comissao_padrao_percent
-            const { data: config } = await supabase
-              .from("pricing_config")
-              .select("comissao_padrao_percent")
-              .limit(1)
-              .maybeSingle();
-            const fallback = Number((config as any)?.comissao_padrao_percent) || 0;
+            // Último fallback: pricing_config.comissao_padrao_percent (via hook)
+            const fallback = Number(pricingConfig?.comissao_padrao_percent) || 0;
             if (fallback > 0) {
               setPercentualComissaoConsultor(fallback);
               setComissaoSource("padrão do tenant");
@@ -176,7 +163,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       }
       setComissaoLoaded(true);
     })();
-  }, [leadId]); // ← SÓ leadId
+  }, [leadId, pricingConfig]); // leadId + pricingConfig para fallback
 
 
   // ── Sync Financial Center costs back to VendaData ──
@@ -598,7 +585,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                     </>
                   ) : (
                     <>
-                      <div className="text-right" onClick={e => e.stopPropagation()}>
+                      <div className="text-right flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                         <CurrencyInput
                           value={row.custoUnitario}
                           onChange={(val) => {
@@ -617,6 +604,40 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                           prefix=""
                           className="h-7 text-xs w-24 ml-auto text-right"
                         />
+                        {/* Reset button — only when commission is manually overridden */}
+                        {row.id === "comissao" && comissaoManualOverride && comissaoEnabled && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setComissaoManualOverride(false);
+                                    if (percentualComissaoConsultor > 0) {
+                                      const calculado = roundCurrency(
+                                        precoVendaSemComissao * percentualComissaoConsultor / 100
+                                      );
+                                      setComissaoCusto(calculado);
+                                    }
+                                  }}
+                                >
+                                  <RotateCcw className="w-3 h-3 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[280px]">
+                                <p className="text-xs font-medium">Restaurar cálculo automático</p>
+                                {percentualComissaoConsultor > 0 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Voltará para {formatBRL(roundCurrency(precoVendaSemComissao * percentualComissaoConsultor / 100))} ({percentualComissaoConsultor}%)
+                                  </p>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                       <span className="text-right font-medium">
                         {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
