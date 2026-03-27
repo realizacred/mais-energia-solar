@@ -85,6 +85,9 @@ export function StepConsumptionIntelligence({
   }, [uc1TipoTelhado, roofFactors, setPd]);
 
   // ─── Effective irradiance — SSOT via fatorGeracaoService ──
+  // Always use POA transposition when latitude is available (somente_ghi: false).
+  // The user sets tilt/azimuth here and expects them to affect the result.
+  // calcEffectiveIrrad falls back to GHI automatically when latitude is null.
   const effectiveIrrad = useMemo(() => {
     if (!irradiacao || irradiacao <= 0) return 0;
     return calcEffectiveIrrad({
@@ -93,9 +96,9 @@ export function StepConsumptionIntelligence({
       latitude,
       tilt_deg: pd.inclinacao ?? 10,
       azimuth_deviation_deg: pd.desvio_azimutal ?? 0,
-      somente_ghi: somenteGhi,
+      somente_ghi: false,
     });
-  }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal, somenteGhi]);
+  }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal]);
 
   // ─── Derive fator_geracao from POA irradiation ──────────
   // fator_geracao = POA_avg × 30 × (desempenho / 100)
