@@ -3,7 +3,7 @@
  * Suporta minimização — processamento continua em background com toast persistente.
  */
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Wand2, Loader2, Minimize2, X } from "lucide-react";
+import { Wand2, Loader2, Minimize2, X, Brain } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -39,6 +39,21 @@ interface BatchProgress {
   total: number;
   success: number;
   failed: number;
+  lastModel?: string;
+  dualCount?: number;
+}
+
+const MODEL_LABELS: Record<string, string> = {
+  "google/gemini-2.5-flash": "Gemini 2.5 Flash",
+  "google/gemini-2.5-pro": "Gemini 2.5 Pro",
+  "openai/gpt-5-mini": "GPT-5 Mini",
+  "openai/gpt-5": "GPT-5",
+  "google/gemini-3-flash-preview": "Gemini 3 Flash",
+};
+
+function formatModelName(model?: string): string {
+  if (!model) return "IA";
+  return MODEL_LABELS[model] || model.split("/").pop() || "IA";
 }
 
 export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds }: BatchEnrichDialogProps) {
@@ -46,7 +61,7 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
 
   // Refs survive modal close
   const processingRef = useRef(false);
-  const progressRef = useRef<BatchProgress>({ processed: 0, total: 0, success: 0, failed: 0 });
+  const progressRef = useRef<BatchProgress>({ processed: 0, total: 0, success: 0, failed: 0, dualCount: 0 });
   const toastIdRef = useRef<string | number | null>(null);
 
   // Local state for modal UI only
@@ -79,7 +94,7 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
 
   const runBatch = useCallback(async (ids: string[]) => {
     processingRef.current = true;
-    progressRef.current = { processed: 0, total: ids.length, success: 0, failed: 0 };
+    progressRef.current = { processed: 0, total: ids.length, success: 0, failed: 0, dualCount: 0 };
     setIsRunning(true);
     setResult(null);
     setProgress({ ...progressRef.current });
@@ -119,6 +134,8 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
             progressRef.current.failed++;
           } else {
             progressRef.current.success++;
+            if (data?.winner_model) progressRef.current.lastModel = data.winner_model;
+            if (data?.dual_ai_used) progressRef.current.dualCount = (progressRef.current.dualCount || 0) + 1;
           }
           success = true;
         } catch {
@@ -249,6 +266,12 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
                 Processando {progress.processed} de {progress.total}...
               </p>
               <Progress value={pct} className="h-2" />
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Brain className="w-3.5 h-3.5 text-primary" />
+                <span>
+                  Usando <span className="font-medium text-foreground">Gemini 2.5 Flash</span> + fallback <span className="font-medium text-foreground">GPT-5 Mini</span>
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Você pode minimizar esta janela — o processamento continua em background.
               </p>
@@ -266,6 +289,17 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
                   <p>❌ Falharam: <span className="font-semibold text-destructive">{result.failed}</span></p>
                 )}
                 <p>Total processado: {result.processed}</p>
+                {result.lastModel && (
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <Brain className="w-3.5 h-3.5 text-primary" />
+                    <span>
+                      Modelo: <span className="font-medium text-foreground">{formatModelName(result.lastModel)}</span>
+                      {(result.dualCount || 0) > 0 && (
+                        <span className="text-muted-foreground"> · {result.dualCount} usaram Dual IA</span>
+                      )}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
