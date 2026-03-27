@@ -42,7 +42,7 @@ type ViewMode = "resumido" | "detalhado";
 
 // ── Component ──
 
-export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, potenciaKwp }: Props) {
+export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, potenciaKwp, leadId }: Props) {
   const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
   const comissaoServico = servicos.find(s => s.categoria === "comissao");
 
