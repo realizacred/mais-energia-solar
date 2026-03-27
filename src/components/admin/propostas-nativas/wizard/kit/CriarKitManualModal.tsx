@@ -582,6 +582,11 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       return;
     }
 
+    if (custo <= 0) {
+      toast({ title: "O custo do kit deve ser maior que zero", variant: "destructive" });
+      return;
+    }
+
     // Distribute custo proportionally by (quantidade * potencia_w) weight
     if (custo > 0) {
       const totalWeight = itens.reduce((s, i) => s + i.quantidade * Math.max(i.potencia_w, 1), 0);
