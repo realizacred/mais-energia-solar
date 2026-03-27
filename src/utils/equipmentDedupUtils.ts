@@ -5,9 +5,11 @@
  * Camada 3: Verificação via IA (sob demanda, chamada pelo usuário)
  */
 
-/** Remove tudo que não é alfanumérico e converte para lowercase */
+/** Remove acentos, normaliza case e mantém apenas caracteres alfanuméricos */
 export function normalizeForDedup(str: string): string {
   return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "")
     .trim();
@@ -49,7 +51,7 @@ export function similarityScore(a: string, b: string): number {
   return 1 - levenshtein(normA, normB) / maxLen;
 }
 
-const SIMILARITY_THRESHOLD = 0.85;
+const SIMILARITY_THRESHOLD = 0.98;
 
 export interface SuspectMatch {
   existingFabricante: string;
@@ -60,8 +62,8 @@ export interface SuspectMatch {
 }
 
 /**
- * Encontra itens suspeitos (similares mas não duplicatas exatas).
- * Compara fabricante+modelo concatenado contra existentes no banco.
+ * Encontra itens suspeitos de forma conservadora para evitar falsos positivos.
+ * Só compara itens com mesmo fabricante e mesma potência/capacidade exata.
  */
 export function findSuspects(
   newFabricante: string,
@@ -69,13 +71,23 @@ export function findSuspects(
   newPotencia: number,
   existingItems: Array<{ id: string; fabricante: string; modelo: string; potencia: number }>
 ): SuspectMatch | null {
+  const normalizedFabricante = normalizeForDedup(newFabricante);
+  const normalizedModelo = normalizeForDedup(newModelo);
   const newStr = `${newFabricante} ${newModelo}`;
   let bestMatch: SuspectMatch | null = null;
   let bestScore = 0;
 
   for (const existing of existingItems) {
-    // Potência DEVE ser exatamente igual — qualquer diferença = produto diferente
     if (newPotencia !== existing.potencia) {
+      continue;
+    }
+
+    if (normalizeForDedup(existing.fabricante) !== normalizedFabricante) {
+      continue;
+    }
+
+    const normalizedExistingModelo = normalizeForDedup(existing.modelo);
+    if (normalizedExistingModelo === normalizedModelo) {
       continue;
     }
 
