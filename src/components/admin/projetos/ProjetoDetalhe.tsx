@@ -1,8 +1,10 @@
 import { EmptyState } from "@/components/ui-kit/EmptyState";
-import { formatBRLInteger as formatBRL } from "@/lib/formatters";
+import { formatBRLInteger as formatBRL, formatPhoneBR } from "@/lib/formatters";
 import { useClienteHasRecebimento } from "@/hooks/useClienteRecebimento";
 import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
+import { ClienteViewDialog } from "@/components/admin/ClienteViewDialog";
+import { upsertContactFromWhatsApp } from "@/services/contactWhatsAppService";
 import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -577,6 +579,8 @@ function GerenciamentoTab({
   const [deleteActivityDialogOpen, setDeleteActivityDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
   const [waDialogOpen, setWaDialogOpen] = useState(false);
+  const [fichaDialogOpen, setFichaDialogOpen] = useState(false);
+  const [fichaClienteData, setFichaClienteData] = useState<any>(null);
   const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; created_by_name?: string }>>([]);
   const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string; assigned_to?: string | null }>>([]);
 
@@ -1124,7 +1128,18 @@ function GerenciamentoTab({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => navigate("/admin/clientes")}>
+                  <DropdownMenuItem onClick={async () => {
+                    if (!deal.customer_id) return;
+                    const { data } = await supabase
+                      .from("clientes")
+                      .select("*")
+                      .eq("id", deal.customer_id)
+                      .single();
+                    if (data) {
+                      setFichaClienteData(data);
+                      setFichaDialogOpen(true);
+                    }
+                  }}>
                     <Eye className="h-3.5 w-3.5 mr-2" />Ver ficha completa
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openAddressDialog()}>
@@ -1132,7 +1147,11 @@ function GerenciamentoTab({
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {customerPhone && (
-                    <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(customerPhone); toast({ title: "Telefone copiado" }); }}>
+                    <DropdownMenuItem onClick={() => {
+                      const formatted = formatPhoneBR(customerPhone);
+                      navigator.clipboard.writeText(formatted);
+                      toast({ title: "Telefone copiado!", description: formatted });
+                    }}>
                       <Copy className="h-3.5 w-3.5 mr-2" />Copiar telefone
                     </DropdownMenuItem>
                   )}
@@ -1143,7 +1162,21 @@ function GerenciamentoTab({
                   )}
                   <DropdownMenuSeparator />
                   {customerPhone && (
-                    <DropdownMenuItem onClick={() => navigate("/admin/inbox")}>
+                    <DropdownMenuItem onClick={async () => {
+                      try {
+                        const result = await upsertContactFromWhatsApp({
+                          phoneRaw: customerPhone,
+                          displayName: customerName || undefined,
+                        });
+                        if (result.conversationId) {
+                          navigate(`/admin/whatsapp?conversationId=${result.conversationId}`);
+                        } else {
+                          toast({ title: "Erro", description: "Não foi possível abrir a conversa.", variant: "destructive" });
+                        }
+                      } catch (err: any) {
+                        toast({ title: "Erro", description: err.message, variant: "destructive" });
+                      }
+                    }}>
                       <MessageSquare className="h-3.5 w-3.5 mr-2" />Abrir WhatsApp interno
                     </DropdownMenuItem>
                   )}
@@ -1677,6 +1710,12 @@ function GerenciamentoTab({
         lead={customerPhone ? { nome: customerName, telefone: customerPhone } : null}
         open={waDialogOpen}
         onOpenChange={setWaDialogOpen}
+      />
+
+      <ClienteViewDialog
+        cliente={fichaClienteData}
+        open={fichaDialogOpen}
+        onOpenChange={setFichaDialogOpen}
       />
     </>
   );
