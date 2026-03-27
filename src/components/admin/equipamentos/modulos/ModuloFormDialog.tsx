@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertTriangle, LayoutGrid } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Modulo } from "./types";
-import { CELL_TYPES, TENSAO_SISTEMAS } from "./types";
+import { CELL_TYPES } from "./types";
 import { DatasheetSection } from "./DatasheetSection";
 import { DatasheetUrlField } from "../shared/DatasheetUrlField";
 
@@ -26,7 +26,7 @@ interface FormData {
   potencia_wp: string;
   tipo_celula: string;
   num_celulas: string;
-  tensao_sistema: string;
+  
   eficiencia_percent: string;
   comprimento_mm: string;
   largura_mm: string;
@@ -50,7 +50,7 @@ interface FormData {
 
 const EMPTY: FormData = {
   fabricante: "", modelo: "", potencia_wp: "", tipo_celula: "Mono PERC",
-  num_celulas: "", tensao_sistema: "1500V", eficiencia_percent: "",
+  num_celulas: "", eficiencia_percent: "",
   comprimento_mm: "", largura_mm: "", profundidade_mm: "",
   peso_kg: "", bifacial: false,
   garantia_produto_anos: "12", garantia_performance_anos: "25",
@@ -97,7 +97,7 @@ function fromModulo(m: Modulo): FormData {
     potencia_wp: String(m.potencia_wp),
     tipo_celula: m.tipo_celula || "Mono PERC",
     num_celulas: m.num_celulas ? String(m.num_celulas) : "",
-    tensao_sistema: m.tensao_sistema || "1500V",
+    
     eficiencia_percent: m.eficiencia_percent ? String(m.eficiencia_percent) : "",
     comprimento_mm: m.comprimento_mm ? String(m.comprimento_mm) : "",
     largura_mm: m.largura_mm ? String(m.largura_mm) : "",
@@ -152,7 +152,7 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
       potencia_wp: parseInt(form.potencia_wp),
       tipo_celula: form.tipo_celula,
       num_celulas: int(form.num_celulas),
-      tensao_sistema: form.tensao_sistema,
+      
       eficiencia_percent: num(form.eficiencia_percent),
       comprimento_mm: int(form.comprimento_mm),
       largura_mm: int(form.largura_mm),
@@ -233,15 +233,6 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
                   <Switch checked={form.bifacial} onCheckedChange={v => set("bifacial", v)} />
                   <Label className="text-xs">Bifacial</Label>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Tensão do sistema</Label>
-                  <Select value={form.tensao_sistema} onValueChange={v => set("tensao_sistema", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {TENSAO_SISTEMAS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
             </div>
           </FormSection>
@@ -307,7 +298,7 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
                   const mapping: Record<string, keyof FormData> = {
                     fabricante: "fabricante", modelo: "modelo",
                     potencia_wp: "potencia_wp", tipo_celula: "tipo_celula",
-                    num_celulas: "num_celulas", tensao_sistema: "tensao_sistema",
+                    num_celulas: "num_celulas",
                     eficiencia_percent: "eficiencia_percent",
                     comprimento_mm: "comprimento_mm", largura_mm: "largura_mm",
                     profundidade_mm: "profundidade_mm", peso_kg: "peso_kg",

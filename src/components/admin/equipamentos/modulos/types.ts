@@ -5,7 +5,7 @@ export interface Modulo {
   potencia_wp: number;
   tipo_celula: string;
   num_celulas: number | null;
-  tensao_sistema: string | null;
+  
   eficiencia_percent: number | null;
   comprimento_mm: number | null;
   largura_mm: number | null;
@@ -40,7 +40,7 @@ export const CELL_TYPES = [
   "Policristalino",
 ] as const;
 
-export const TENSAO_SISTEMAS = ["1000V", "1500V"] as const;
+
 
 export const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   rascunho: { label: "Rascunho", color: "bg-warning/10 text-warning border-warning/20" },
@@ -51,7 +51,7 @@ export const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export const MODULO_QUERY_KEY = ["modulos-solares"] as const;
 
 export const MODULOS_SELECT = `
-  id, fabricante, modelo, potencia_wp, tipo_celula, num_celulas, tensao_sistema,
+  id, fabricante, modelo, potencia_wp, tipo_celula, num_celulas,
   eficiencia_percent, comprimento_mm, largura_mm, profundidade_mm, peso_kg, area_m2,
   bifacial, garantia_produto_anos, garantia_performance_anos,
   voc_v, isc_a, vmp_v, imp_a,

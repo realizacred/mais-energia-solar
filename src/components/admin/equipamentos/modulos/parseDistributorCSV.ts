@@ -12,7 +12,7 @@ export interface ParsedDistributorModule {
   tipo_celula: string;
   status: "rascunho";
   ativo: boolean;
-  tensao_sistema: string;
+  
 }
 
 // Fabricantes com nomes compostos (ordem: mais específico primeiro)
@@ -194,7 +194,7 @@ export function parseDistributorCSV(
       tipo_celula: detectCellType(itemName),
       status: "rascunho",
       ativo: true,
-      tensao_sistema: "1500V",
+      
     });
   }
 
