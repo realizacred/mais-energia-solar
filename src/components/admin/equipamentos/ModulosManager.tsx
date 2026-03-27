@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useEquipamentosCatalogoRealtime } from "@/hooks/useEquipamentosCatalogoRealtime";
 import { VirtuosoGrid } from "react-virtuoso";
 import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload, FileSpreadsheet, Wand2, X, GitCompareArrows, Package, CheckCircle2, FileWarning, Sparkles, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +31,7 @@ import { calcCompletude } from "@/utils/calcCompletude";
 type ViewMode = "cards" | "table";
 
 export function ModulosManager() {
+  useEquipamentosCatalogoRealtime();
   const { data: modulos = [], isLoading } = useModulos();
   const { saveMutation, deleteMutation, toggleMutation } = useModuloMutations();
 

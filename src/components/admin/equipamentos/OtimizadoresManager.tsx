@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useEquipamentosCatalogoRealtime } from "@/hooks/useEquipamentosCatalogoRealtime";
 import { VirtuosoGrid } from "react-virtuoso";
 import { Plus, Pencil, Trash2, Search, Zap, Globe, Building2, FileSpreadsheet, Wand2, X, GitCompareArrows, Package, CheckCircle2, FileWarning, Sparkles, LayoutGrid, Table as TableIcon } from "lucide-react";
 import { EnrichButton } from "./shared/EnrichButton";
@@ -44,6 +45,7 @@ const EMPTY_FORM = {
 };
 
 export function OtimizadoresManager() {
+  useEquipamentosCatalogoRealtime();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [filterAtivo, setFilterAtivo] = useState("all");
