@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -182,7 +183,7 @@ export function InlineClienteCreateModal({ open, onOpenChange, existingClientes,
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-[11px]">E-mail</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
+                <EmailInput value={email} onChange={setEmail} placeholder="email@exemplo.com" />
               </div>
             </div>
           </div>

@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -429,7 +430,13 @@ export function NovoProjetoModal({
 
                   <div className="space-y-1">
                     <Label className="text-[11px] font-medium text-muted-foreground">Email do Cliente</Label>
-                    <Input placeholder="Digite o email do cliente" type="email" className="h-8 text-sm" {...form.register("clienteEmail")} />
+                    <Controller
+                      name="clienteEmail"
+                      control={form.control}
+                      render={({ field }) => (
+                        <EmailInput value={field.value || ""} onChange={field.onChange} placeholder="Digite o email do cliente" className="h-8 text-sm" />
+                      )}
+                    />
                     {form.formState.errors.clienteEmail && <p className="text-xs text-destructive">{form.formState.errors.clienteEmail.message}</p>}
                   </div>
 

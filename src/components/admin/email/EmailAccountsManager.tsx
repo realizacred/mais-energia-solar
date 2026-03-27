@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -412,11 +413,11 @@ export function EmailAccountsManager() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs">Endereço de e-mail <span className="text-destructive">*</span></Label>
-                      <Input
-                        type="email"
+                      <EmailInput
                         value={form.email_address}
-                        onChange={set("email_address")}
+                        onChange={(v) => setForm(f => ({ ...f, email_address: v }))}
                         placeholder="faturas@empresa.com.br"
+                        required
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -477,11 +478,11 @@ export function EmailAccountsManager() {
                   <p className="text-sm font-medium text-foreground">Conexão Gmail OAuth</p>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Endereço Gmail <span className="text-destructive">*</span></Label>
-                    <Input
-                      type="email"
+                    <EmailInput
                       value={form.email_address}
-                      onChange={set("email_address")}
+                      onChange={(v) => setForm(f => ({ ...f, email_address: v }))}
                       placeholder="empresa@gmail.com"
+                      required
                     />
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4 space-y-2">
