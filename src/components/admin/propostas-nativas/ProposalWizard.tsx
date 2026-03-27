@@ -216,7 +216,19 @@ export function ProposalWizard() {
     margem_percentual: 20, desconto_percentual: 0, observacoes: "",
   });
 
-  // Pagamento
+  // Sync catalog kit fixed_price → venda.custo_kit_override
+  // When items have 0 unit_price but kit has a known cost from meta
+  useEffect(() => {
+    if (manualKits.length === 0) return;
+    const meta = (manualKits[0] as any)?.meta;
+    if (!meta?.custo || meta.custo <= 0) return;
+    const calculatedFromItems = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+    // Only set override when items cost is significantly lower than meta cost
+    if (calculatedFromItems < meta.custo * 0.99 && venda.custo_kit_override !== meta.custo) {
+      setVenda(prev => ({ ...prev, custo_kit_override: meta.custo }));
+    }
+  }, [manualKits, itens]);
+
   const [pagamentoOpcoes, setPagamentoOpcoes] = useState<PagamentoOpcao[]>([]);
   const { bancos, loadingBancos } = useBancosCatalog();
 
