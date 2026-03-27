@@ -210,13 +210,24 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const precoVenda = roundCurrency(custoTotal + margemValor);
   const precoWp = potenciaKwp > 0 ? roundCurrency(precoVenda / (potenciaKwp * 1000)) : 0;
 
-  // Auto-fill commission value when precoVenda changes and commission is zero
+  // Base price WITHOUT commission — breaks circular dependency
+  const custoSemComissao = roundCurrency(
+    allRows.filter(r => r.checked && r.id !== "comissao")
+      .reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0)
+  );
+  const precoVendaSemComissao = roundCurrency(custoSemComissao * (1 + margemPercent / 100));
+
+  // Auto-recalculate commission whenever base price or percentage changes
   useEffect(() => {
-    if (percentualComissaoConsultor > 0 && comissaoCusto === 0 && precoVenda > 0 && comissaoLoaded) {
-      const calculado = Math.round(precoVenda * percentualComissaoConsultor / 100 * 100) / 100;
-      if (calculado > 0) setComissaoCusto(calculado);
+    if (!comissaoEnabled || percentualComissaoConsultor <= 0 || !comissaoLoaded) return;
+    if (precoVendaSemComissao <= 0) return;
+    const calculado = roundCurrency(precoVendaSemComissao * percentualComissaoConsultor / 100);
+    // Only update if difference is significant (avoid loops)
+    if (Math.abs(comissaoCusto - calculado) > 0.01) {
+      console.debug("[StepFinancialCenter] Comissão recalculada:", formatBRL(calculado), `(${percentualComissaoConsultor}% de ${formatBRL(precoVendaSemComissao)})`);
+      setComissaoCusto(calculado);
     }
-  }, [percentualComissaoConsultor, precoVenda, comissaoLoaded]);
+  }, [precoVendaSemComissao, percentualComissaoConsultor, comissaoEnabled, comissaoLoaded]);
 
 
   const sliderMin = custoTotal;
