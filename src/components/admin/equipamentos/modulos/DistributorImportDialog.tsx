@@ -201,16 +201,36 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
     const suspectsToImport = suspectItems.filter(s => importSuspectIds.has(s.idx));
     const toInsert = [...newItems, ...suspectsToImport.map(s => s.item)];
     const toUpdate = duplicateItems.filter(d => overwriteIds.has(d.idx));
-    if (toInsert.length === 0 && toUpdate.length === 0) return;
 
     setImporting(true);
     setProgress(0);
 
     try {
       const { tenantId } = await getCurrentTenantId();
+      const { data: fornecedoresTestData, error: fornecedoresTestError } = await supabase
+        .from("fornecedores")
+        .select("id")
+        .limit(1);
+
+      console.log("[test] fornecedores query:", fornecedoresTestData, fornecedoresTestError);
       console.log("[fornecedores] tenantId:", tenantId);
       console.log("[fornecedores] nomes:", distributorNames);
+      console.log("[fornecedores] chamando importFornecedoresFromHeader");
       const fornecedoresCriados = await importFornecedoresFromHeader(rawCsvText, tenantId);
+      console.log("[fornecedores] importFornecedoresFromHeader retorno:", fornecedoresCriados);
+
+      if (toInsert.length === 0 && toUpdate.length === 0) {
+        if (fornecedoresCriados > 0) {
+          qc.invalidateQueries({ queryKey: ["fornecedores"] });
+          const skipped = duplicateItems.length + suspectItems.length - suspectsToImport.length;
+          setImportResult({ inserted: 0, updated: 0, skipped, errors: 0, fornecedores: fornecedoresCriados });
+          toast({
+            title: "Importação concluída",
+            description: `${fornecedoresCriados} fornecedores criados`,
+          });
+        }
+        return;
+      }
 
       let inserted = 0;
       let updated = 0;
