@@ -536,6 +536,7 @@ export function ProposalWizard() {
           s = await normalizeLegacySnapshot(rawSnapshot, propostaIdFromUrl, versao) as WizardSnapshot;
         } else if (rawSnapshot.engine_version || rawSnapshot.versao_schema) {
           // Engine-enriched snapshot — map back to wizard format
+          const ws = rawSnapshot._wizard_state || {}; // Wizard state passthrough (v2.5+)
           const uc0 = (rawSnapshot.ucs as any[])?.[0] || {};
           const tecnico = rawSnapshot.tecnico || {};
           const fin = rawSnapshot.financeiro || {};
@@ -605,14 +606,14 @@ export function ProposalWizard() {
             locEstado: uc0.estado || "",
             locCidade: uc0.cidade || "",
             locTipoTelhado: uc0.tipo_telhado || "",
-            locDistribuidoraId: uc0.distribuidora_id || "",
+            locDistribuidoraId: ws.locDistribuidoraId || uc0.distribuidora_id || "",
             locDistribuidoraNome: uc0.distribuidora || "",
             locIrradiacao: tecnico.irradiacao_media_kwp_mes || 0,
-            locGhiSeries: null,
-            locSkipPoa: true,
-            locLatitude: rawSnapshot.locLatitude ?? (rawSnapshot.projectAddress?.lat != null ? rawSnapshot.projectAddress.lat : null),
+            locGhiSeries: ws.locGhiSeries ?? null,
+            locSkipPoa: ws.locSkipPoa ?? true,
+            locLatitude: ws.locLatitude ?? rawSnapshot.locLatitude ?? (rawSnapshot.projectAddress?.lat != null ? rawSnapshot.projectAddress.lat : null),
             distanciaKm: uc0.distancia || rawSnapshot.distanciaKm || 0,
-            projectAddress: rawSnapshot.projectAddress ?? (uc0.cidade ? {
+            projectAddress: ws.projectAddress ?? rawSnapshot.projectAddress ?? (uc0.cidade ? {
               cep: uc0.cep || "",
               rua: uc0.rua || uc0.logradouro || "",
               numero: uc0.numero || "",
@@ -624,19 +625,19 @@ export function ProposalWizard() {
               lon: rawSnapshot.projectAddress?.lon ?? null,
             } : undefined),
             mapSnapshots: rawSnapshot.mapSnapshots || [],
-            selectedLead: rawSnapshot.selectedLead || null,
-            cliente: rawSnapshot.cliente || undefined as any,
+            selectedLead: ws.selectedLead ?? rawSnapshot.selectedLead ?? null,
+            cliente: ws.cliente ?? rawSnapshot.cliente ?? undefined as any,
             ucs: rawSnapshot.ucs || [],
             grupo: rawSnapshot.ucs?.length > 1 ? "multi" : (uc0.subgrupo?.startsWith("A") ? "A" : "B1"),
             potenciaKwp: tecnico.potencia_kwp || versao.potencia_kwp || 0,
             itens: engineItens,
-            layouts: [],
-            manualKits: [],
-            adicionais: [],
+            layouts: ws.layouts || [],
+            manualKits: ws.manualKits || [],
+            adicionais: ws.adicionais || [],
             servicos: servicosMapped,
             venda: vendaMapped,
             premissas: premissasMapped,
-            preDimensionamento: {
+            preDimensionamento: ws.preDimensionamento ?? {
               sistema: "on_grid",
               tipos_kit: ["customizado"],
               topologias: ["tradicional"],
@@ -654,14 +655,14 @@ export function ProposalWizard() {
               tipo_kit: "customizado",
             } as any,
             pagamentoOpcoes: pagOpcoes,
-            customFieldValues: rawSnapshot.variaveis_custom || {},
-            nomeProposta: "",
-            descricaoProposta: "",
-            templateSelecionado: rawSnapshot.inputs?.template_id || "",
+            customFieldValues: ws.customFieldValues ?? rawSnapshot.variaveis_custom ?? {},
+            nomeProposta: ws.nomeProposta ?? "",
+            descricaoProposta: ws.descricaoProposta ?? "",
+            templateSelecionado: ws.templateSelecionado ?? rawSnapshot.inputs?.template_id ?? "",
             step: 0,
-            geracaoMensalEstimada: tecnico.geracao_estimada_kwh || fin.economia_mensal ? Math.round(tecnico.geracao_estimada_kwh || 0) : 0,
+            geracaoMensalEstimada: ws.geracaoMensalEstimada ?? (tecnico.geracao_estimada_kwh || fin.economia_mensal ? Math.round(tecnico.geracao_estimada_kwh || 0) : 0),
           } as any;
-          console.log("[ProposalWizard] Normalized engine snapshot to wizard format");
+          console.log("[ProposalWizard] Normalized engine snapshot to wizard format", { hasWizardState: !!rawSnapshot._wizard_state });
         } else {
           // Native wizard snapshot — use as-is
           s = rawSnapshot as WizardSnapshot;
@@ -1619,6 +1620,25 @@ export function ProposalWizard() {
         pagamento_opcoes: pagamentoOpcoes.map(({ id, ...rest }) => rest),
         observacoes: venda.observacoes || undefined,
         aceite_estimativa: enforcement.aceiteEstimativa || undefined,
+        // Wizard-specific state for edit round-trip (engine passes through, not used for calc)
+        _wizard_state: {
+          selectedLead,
+          cliente,
+          projectAddress,
+          preDimensionamento,
+          layouts,
+          manualKits,
+          adicionais,
+          customFieldValues,
+          nomeProposta,
+          descricaoProposta,
+          templateSelecionado,
+          locSkipPoa,
+          locLatitude,
+          locGhiSeries,
+          locDistribuidoraId,
+          geracaoMensalEstimada,
+        },
       };
 
       const genResult = await generateProposal(payload);

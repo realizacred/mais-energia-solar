@@ -130,6 +130,8 @@ interface GenerateRequestV2 {
   idempotency_key: string;
   variaveis_custom?: boolean;
   aceite_estimativa?: boolean;
+  /** Wizard-specific state for edit round-trip (passthrough, not used by engine) */
+  _wizard_state?: Record<string, unknown>;
 }
 
 // ─── Catalog Enrichment ─────────────────────────────────────
@@ -838,6 +840,8 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       // Spread at root level so resolveFinanceiro can read them via snap[key]
       ...flatItensFinanceiros,
       ai_justificativa: aiJustificativa ?? undefined,
+      // Wizard-specific state for edit round-trip (passthrough, not used by engine)
+      _wizard_state: body._wizard_state ?? undefined,
     };
 
     // ── 8. CRIAR OU REUTILIZAR propostas_nativas ────────────
