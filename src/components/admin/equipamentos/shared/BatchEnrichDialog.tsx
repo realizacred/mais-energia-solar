@@ -17,7 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 interface BatchEnrichDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  equipmentType: "modulo" | "inversor" | "otimizador";
+  equipmentType: "modulo" | "inversor" | "otimizador" | "bateria";
   /** IDs dos equipamentos em rascunho sem specs */
   draftIds: string[];
 }
