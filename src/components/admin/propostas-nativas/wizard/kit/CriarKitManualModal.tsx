@@ -65,12 +65,23 @@ interface OtimizadorEntry {
   potenciaW: number;
 }
 
+interface BateriaEntry {
+  id: string;
+  selectedId: string;
+  quantidade: number;
+  avulso: boolean;
+  nome: string;
+  fabricante: string;
+  energiaKwh: number;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   modulos: CatalogoModulo[];
   inversores: CatalogoInversor[];
   otimizadores?: CatalogoOtimizador[];
+  baterias?: CatalogoBateria[];
   onKitCreated: (itens: KitItemRow[], meta?: KitMeta) => void;
   mode: "equipamentos" | "zero";
   sistema?: "on_grid" | "hibrido" | "off_grid";
