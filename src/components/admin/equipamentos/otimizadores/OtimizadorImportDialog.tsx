@@ -221,7 +221,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) handleClose(); }}>
-      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <FileSpreadsheet className="w-5 h-5 text-primary" />
