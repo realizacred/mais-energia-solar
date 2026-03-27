@@ -116,7 +116,6 @@ const MODULO_RANGES: Record<string, Range> = {
   temp_coeff_isc: { min: 0.01, max: 0.15 },
 };
 
-// Colunas geradas (GENERATED ALWAYS) — nunca incluir no UPDATE
 const GENERATED_COLUMNS: Record<EquipmentType, string[]> = {
   modulo: ["area_m2"],
   inversor: [],
@@ -165,7 +164,6 @@ function validateSpecs(specs: Record<string, unknown>, type: EquipmentType): Rec
       validated[key] = null;
       continue;
     }
-
     const range = ranges[key];
     if (range && typeof value === "number") {
       validated[key] = value >= range.min && value <= range.max ? value : null;
@@ -178,13 +176,180 @@ function validateSpecs(specs: Record<string, unknown>, type: EquipmentType): Rec
 }
 
 function extractJSON(raw: string): Record<string, unknown> | null {
-  // Try to find JSON in the response (may have markdown fences)
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return null;
   try {
     return JSON.parse(jsonMatch[0]);
   } catch {
     return null;
+  }
+}
+
+// ── Dual AI call ─────────────────────────────────────────────────
+
+interface AICallResult {
+  parsed: Record<string, unknown> | null;
+  provider: string;
+  model: string;
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  error?: string;
+}
+
+function countFilledFields(obj: Record<string, unknown> | null): number {
+  if (!obj) return 0;
+  return Object.values(obj).filter(v => v !== null && v !== undefined).length;
+}
+
+async function callAIProvider(
+  provider: "gemini" | "openai",
+  model: string,
+  system: string,
+  user: string,
+  apiKey: string,
+): Promise<AICallResult> {
+  const providerLabel = provider === "gemini" ? "lovable_gateway" : "lovable_gateway";
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      return { parsed: null, provider: providerLabel, model, usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, error: `${res.status} - ${errorText}` };
+    }
+
+    const data = await res.json();
+    const rawContent = data.choices?.[0]?.message?.content || "";
+    const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+    const parsed = extractJSON(rawContent);
+
+    return { parsed, provider: providerLabel, model, usage };
+  } catch (err: any) {
+    return { parsed: null, provider: providerLabel, model, usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, error: err.message };
+  }
+}
+
+function mergeResults(
+  r1: Record<string, unknown> | null,
+  r2: Record<string, unknown> | null,
+): Record<string, unknown> {
+  if (!r1 && !r2) return {};
+  if (!r1) return r2!;
+  if (!r2) return r1;
+
+  const count1 = countFilledFields(r1);
+  const count2 = countFilledFields(r2);
+  // Primary = the one with more filled fields
+  const primary = count1 >= count2 ? r1 : r2;
+  const secondary = count1 >= count2 ? r2 : r1;
+
+  const merged: Record<string, unknown> = { ...primary };
+  // Fill gaps from secondary
+  for (const [key, value] of Object.entries(secondary)) {
+    if ((merged[key] === null || merged[key] === undefined) && value !== null && value !== undefined) {
+      merged[key] = value;
+    }
+  }
+  return merged;
+}
+
+// ── Datasheet validation & download ──────────────────────────────
+
+async function validateDatasheetUrl(url: string): Promise<{ valid: boolean; reason?: string }> {
+  try {
+    const headRes = await fetch(url, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(8000),
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; EnrichBot/1.0)" },
+    });
+
+    if (headRes.status !== 200) {
+      return { valid: false, reason: `HEAD failed: status ${headRes.status}` };
+    }
+
+    const contentType = headRes.headers.get("content-type") || "";
+    const isPdf = contentType.includes("application/pdf") ||
+                  contentType.includes("application/octet-stream") ||
+                  url.toLowerCase().endsWith(".pdf");
+
+    if (!isPdf) {
+      return { valid: false, reason: `not PDF: content-type=${contentType}` };
+    }
+
+    const contentLength = parseInt(headRes.headers.get("content-length") || "0", 10);
+    if (contentLength > 0 && contentLength < 10000) {
+      return { valid: false, reason: `too small: ${contentLength} bytes (min 10KB)` };
+    }
+
+    return { valid: true };
+  } catch (err: any) {
+    return { valid: false, reason: `HEAD error: ${err.message}` };
+  }
+}
+
+async function downloadAndStorePDF(
+  sourceUrl: string,
+  equipment_type: string,
+  fabricante: string,
+  modelo: string,
+  supabase: any,
+): Promise<{ publicUrl: string | null; storagePath: string | null }> {
+  try {
+    const pdfRes = await fetch(sourceUrl, {
+      signal: AbortSignal.timeout(30000),
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; EnrichBot/1.0)" },
+    });
+
+    if (!pdfRes.ok) {
+      console.warn(`[enrich-equipment] PDF GET failed: ${pdfRes.status}`);
+      await pdfRes.text(); // consume body
+      return { publicUrl: null, storagePath: null };
+    }
+
+    const pdfBuffer = await pdfRes.arrayBuffer();
+
+    if (pdfBuffer.byteLength < 10000) {
+      console.warn(`[enrich-equipment] PDF too small: ${pdfBuffer.byteLength} bytes`);
+      return { publicUrl: null, storagePath: null };
+    }
+    if (pdfBuffer.byteLength > 20 * 1024 * 1024) {
+      console.warn(`[enrich-equipment] PDF too large: ${pdfBuffer.byteLength} bytes`);
+      return { publicUrl: null, storagePath: null };
+    }
+
+    const safeName = (s: string) =>
+      s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+    const storagePath = `${equipment_type}/${safeName(fabricante)}_${safeName(modelo)}.pdf`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("datasheets")
+      .upload(storagePath, pdfBuffer, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.warn(`[enrich-equipment] Upload error:`, uploadError.message);
+      return { publicUrl: null, storagePath: null };
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("datasheets")
+      .getPublicUrl(storagePath);
+
+    console.log(`[enrich-equipment] PDF uploaded: ${storagePath} (${pdfBuffer.byteLength} bytes)`);
+    return { publicUrl: publicUrlData?.publicUrl || null, storagePath };
+  } catch (err: any) {
+    console.warn(`[enrich-equipment] PDF download error: ${err.message}`);
+    return { publicUrl: null, storagePath: null };
   }
 }
 
@@ -233,50 +398,47 @@ serve(async (req) => {
     // 3. Build prompt
     const { system, user } = buildPrompt(equipment_type, equipment.fabricante, equipment.modelo);
 
-    // 4. Call AI via Lovable Gateway (always available)
+    // 4. Call AI — Dual provider strategy
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
 
-    console.log(`[enrich-equipment] Buscando specs para ${equipment.fabricante} ${equipment.modelo} (${equipment_type})`);
+    console.log(`[enrich-equipment] Buscando specs para ${equipment.fabricante} ${equipment.modelo} (${equipment_type}) — dual AI`);
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      }),
-    });
+    // Primary: Gemini Flash (fast, cheap)
+    const primary = await callAIProvider("gemini", "google/gemini-2.5-flash", system, user, apiKey);
+    const primaryFilled = countFilledFields(primary.parsed);
 
-    if (!aiRes.ok) {
-      const errorText = await aiRes.text();
-      throw new Error(`AI Gateway error: ${aiRes.status} - ${errorText}`);
+    console.log(`[enrich-equipment] Primary (gemini-2.5-flash): ${primaryFilled} campos, error=${primary.error || "none"}`);
+
+    let secondary: AICallResult | null = null;
+    let usedDual = false;
+
+    // If primary failed or returned < 3 fields, try secondary
+    if (primary.error || primaryFilled < 3) {
+      console.log(`[enrich-equipment] Primary insufficient (${primaryFilled} campos), trying secondary (gpt-5-mini)...`);
+      secondary = await callAIProvider("openai", "openai/gpt-5-mini", system, user, apiKey);
+      const secondaryFilled = countFilledFields(secondary.parsed);
+      console.log(`[enrich-equipment] Secondary (gpt-5-mini): ${secondaryFilled} campos, error=${secondary.error || "none"}`);
+      usedDual = true;
     }
 
-    const aiData = await aiRes.json();
-    const rawContent = aiData.choices?.[0]?.message?.content || "";
-    const usage = aiData.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+    // 5. Merge results
+    const rawMerged = mergeResults(primary.parsed, secondary?.parsed || null);
 
-    // 5. Parse JSON
-    const parsed = extractJSON(rawContent);
-    if (!parsed) {
-      throw new Error("IA não retornou JSON válido");
+    if (Object.keys(rawMerged).length === 0) {
+      throw new Error("Nenhum provider retornou dados válidos");
     }
 
-    console.log(`[enrich-equipment] RAW da IA:`, JSON.stringify(parsed));
+    console.log(`[enrich-equipment] Merged RAW:`, JSON.stringify(rawMerged));
 
     // 6. Validate
-    const validated = validateSpecs(parsed, equipment_type);
-
+    const validated = validateSpecs(rawMerged, equipment_type);
     console.log(`[enrich-equipment] VALIDADO:`, JSON.stringify(validated));
 
     // 7. Count filled fields
-    const fieldsFilled = Object.values(validated).filter(v => v !== null && v !== undefined).length;
+    const fieldsFilled = countFilledFields(validated);
 
-    // 8. Remove null fields and generated columns
+    // 8. Build update payload (remove null fields and generated columns)
     const generatedCols = GENERATED_COLUMNS[equipment_type] || [];
     const updatePayload: Record<string, unknown> = {
       datasheet_found_at: new Date().toISOString(),
@@ -285,7 +447,8 @@ serve(async (req) => {
     };
 
     for (const [key, value] of Object.entries(validated)) {
-      if (generatedCols.includes(key)) continue; // skip generated columns
+      if (generatedCols.includes(key)) continue;
+      if (key === "datasheet_url") continue; // handled separately below
       if (value !== null && value !== undefined) {
         updatePayload[key] = value;
       } else if (force_refresh) {
@@ -293,7 +456,7 @@ serve(async (req) => {
       }
     }
 
-    // 9. Update equipment (first pass — without datasheet storage URL)
+    // 9. Update equipment (specs only, no datasheet yet)
     const { error: updateError } = await supabase
       .from(tableName)
       .update(updatePayload)
@@ -304,87 +467,50 @@ serve(async (req) => {
       throw new Error(`Erro ao atualizar: ${updateError.message}`);
     }
 
-    // 9b. Download datasheet PDF and upload to Storage
-    let datasheet_uploaded = false;
+    // 10. Datasheet: validate URL → download → upload to Storage
+    let datasheet_downloaded = false;
+    let datasheet_path: string | null = null;
     const datasheetUrl = validated.datasheet_url as string | null;
 
     if (datasheetUrl && typeof datasheetUrl === "string" && datasheetUrl.startsWith("http")) {
-      try {
-        // HEAD request to validate URL exists before downloading
-        console.log(`[enrich-equipment] Validating datasheet URL (HEAD): ${datasheetUrl}`);
-        const headRes = await fetch(datasheetUrl, {
-          method: "HEAD",
-          signal: AbortSignal.timeout(8000),
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; EnrichBot/1.0)" },
-        });
+      console.log(`[enrich-equipment] Validating datasheet URL: ${datasheetUrl}`);
+      const headCheck = await validateDatasheetUrl(datasheetUrl);
 
-        if (headRes.status !== 200) {
-          console.warn(`[enrich-equipment] Datasheet URL inválida (HEAD retornou ${headRes.status}): ${datasheetUrl}`);
-          // Do NOT save the URL — it doesn't exist
+      if (!headCheck.valid) {
+        console.warn(`[enrich-equipment] Datasheet URL rejected: ${headCheck.reason}`);
+        // Save source_url for reference but NOT datasheet_url
+        await supabase
+          .from(tableName)
+          .update({ datasheet_source_url: datasheetUrl })
+          .eq("id", equipment_id);
+      } else {
+        console.log(`[enrich-equipment] HEAD OK, downloading PDF...`);
+        const { publicUrl, storagePath } = await downloadAndStorePDF(
+          datasheetUrl, equipment_type, equipment.fabricante, equipment.modelo, supabase
+        );
+
+        if (publicUrl) {
+          await supabase
+            .from(tableName)
+            .update({
+              datasheet_url: publicUrl,
+              datasheet_source_url: datasheetUrl,
+            })
+            .eq("id", equipment_id);
+
+          datasheet_downloaded = true;
+          datasheet_path = storagePath;
         } else {
-          const headContentType = headRes.headers.get("content-type") || "";
-          const isPdf = headContentType.includes("application/pdf") || datasheetUrl.toLowerCase().endsWith(".pdf");
-
-          if (!isPdf) {
-            console.warn(`[enrich-equipment] URL não é PDF (content-type: ${headContentType}): ${datasheetUrl}`);
-            // Do NOT save — not a PDF
-          } else {
-            // HEAD passed — now GET the actual PDF
-            console.log(`[enrich-equipment] HEAD OK, downloading PDF: ${datasheetUrl}`);
-            const pdfRes = await fetch(datasheetUrl, {
-              signal: AbortSignal.timeout(15000),
-              headers: { "User-Agent": "Mozilla/5.0 (compatible; EnrichBot/1.0)" },
-            });
-
-            if (pdfRes.ok) {
-              const pdfBuffer = await pdfRes.arrayBuffer();
-              if (pdfBuffer.byteLength > 0 && pdfBuffer.byteLength <= 20 * 1024 * 1024) {
-                const safeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
-                const storagePath = `${equipment_type}/${safeName(equipment.fabricante)}_${safeName(equipment.modelo)}.pdf`;
-
-                const { error: uploadError } = await supabase.storage
-                  .from("datasheets")
-                  .upload(storagePath, pdfBuffer, {
-                    contentType: "application/pdf",
-                    upsert: true,
-                  });
-
-                if (uploadError) {
-                  console.warn(`[enrich-equipment] Upload error:`, uploadError.message);
-                } else {
-                  const { data: publicUrlData } = supabase.storage
-                    .from("datasheets")
-                    .getPublicUrl(storagePath);
-
-                  if (publicUrlData?.publicUrl) {
-                    await supabase
-                      .from(tableName)
-                      .update({
-                        datasheet_url: publicUrlData.publicUrl,
-                        datasheet_source_url: datasheetUrl,
-                      })
-                      .eq("id", equipment_id);
-
-                    datasheet_uploaded = true;
-                    console.log(`[enrich-equipment] PDF uploaded: ${storagePath} (${pdfBuffer.byteLength} bytes)`);
-                  }
-                }
-              } else {
-                console.warn(`[enrich-equipment] PDF size out of range: ${pdfBuffer.byteLength} bytes`);
-              }
-            } else {
-              console.warn(`[enrich-equipment] PDF GET failed: ${pdfRes.status}`);
-              await pdfRes.text(); // consume body
-            }
-          }
+          // Download failed — save source URL only
+          await supabase
+            .from(tableName)
+            .update({ datasheet_source_url: datasheetUrl })
+            .eq("id", equipment_id);
         }
-      } catch (pdfErr: any) {
-        console.warn(`[enrich-equipment] PDF validation/download error: ${pdfErr.message}`);
-        // Do NOT save invalid URL as fallback
       }
     }
 
-    // 10. Log AI usage
+    // 11. Log AI usage (combined)
     const authHeader = req.headers.get("authorization");
     let userId = "system";
     if (authHeader) {
@@ -399,27 +525,51 @@ serve(async (req) => {
       } catch { /* ignore */ }
     }
 
+    // Log primary
     await supabase.from("ai_usage_logs").insert({
       tenant_id,
       user_id: userId,
       function_name: "enrich-equipment",
       provider: "lovable_gateway",
-      model: "google/gemini-2.5-flash",
-      prompt_tokens: usage.prompt_tokens,
-      completion_tokens: usage.completion_tokens,
-      total_tokens: usage.total_tokens,
-      estimated_cost_usd: (usage.prompt_tokens / 1000) * 0.00015 + (usage.completion_tokens / 1000) * 0.0006,
+      model: primary.model,
+      prompt_tokens: primary.usage.prompt_tokens,
+      completion_tokens: primary.usage.completion_tokens,
+      total_tokens: primary.usage.total_tokens,
+      estimated_cost_usd: (primary.usage.prompt_tokens / 1000) * 0.00015 + (primary.usage.completion_tokens / 1000) * 0.0006,
       is_fallback: false,
     });
 
-    console.log(`[enrich-equipment] Sucesso: ${fieldsFilled} campos preenchidos para ${equipment.fabricante} ${equipment.modelo}, datasheet_uploaded=${datasheet_uploaded}`);
+    // Log secondary if used
+    if (secondary && !secondary.error) {
+      await supabase.from("ai_usage_logs").insert({
+        tenant_id,
+        user_id: userId,
+        function_name: "enrich-equipment",
+        provider: "lovable_gateway",
+        model: secondary.model,
+        prompt_tokens: secondary.usage.prompt_tokens,
+        completion_tokens: secondary.usage.completion_tokens,
+        total_tokens: secondary.usage.total_tokens,
+        estimated_cost_usd: (secondary.usage.prompt_tokens / 1000) * 0.00015 + (secondary.usage.completion_tokens / 1000) * 0.0006,
+        is_fallback: true,
+      });
+    }
+
+    const winnerProvider = usedDual
+      ? (countFilledFields(primary.parsed) >= countFilledFields(secondary?.parsed || null) ? primary.model : secondary?.model || primary.model)
+      : primary.model;
+
+    console.log(`[enrich-equipment] Sucesso: ${fieldsFilled} campos preenchidos para ${equipment.fabricante} ${equipment.modelo}, dual=${usedDual}, winner=${winnerProvider}, datasheet_downloaded=${datasheet_downloaded}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         fields_filled: fieldsFilled,
         equipment: `${equipment.fabricante} ${equipment.modelo}`,
-        datasheet_uploaded,
+        dual_ai_used: usedDual,
+        winner_model: winnerProvider,
+        datasheet_downloaded,
+        datasheet_path,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
