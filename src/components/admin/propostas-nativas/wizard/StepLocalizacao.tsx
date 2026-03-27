@@ -626,7 +626,7 @@ export function StepLocalizacao({
                   ) : (
                     <Select value={distribuidoraId} onValueChange={handleConcChange}>
                       <SelectTrigger className={cn(
-                        "h-7 text-xs",
+                        "h-7 text-xs [&>span]:text-left [&>span]:truncate",
                         !distribuidoraId && estado && "border-destructive/50"
                       )}>
                         <SelectValue placeholder="Selecione" />
