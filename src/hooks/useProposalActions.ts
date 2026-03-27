@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { formatBRL } from "@/lib/formatters";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
+import { getPublicUrl } from "@/lib/getPublicUrl";
 import {
   transitionProposalStatus,
   generateOs as svcGenerateOs,
