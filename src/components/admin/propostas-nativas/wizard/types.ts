@@ -184,13 +184,22 @@ function _round(v: number): number {
 }
 
 /** Calcula o preço final (custo base + margem − desconto) de forma canônica.
- *  SSOT: toda lógica de pricing deve usar esta função. */
+ *  SSOT: toda lógica de pricing deve usar esta função.
+ *  Quando o Centro Financeiro está ativo, custo_instalacao/custo_comissao/custo_outros
+ *  são sincronizados de lá — usa esses valores se disponíveis para evitar double-counting. */
 export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], venda: VendaData): number {
   const custoKitCalculado = _round(itens.reduce((s, i) => s + _round(i.quantidade * i.preco_unitario), 0));
   const custoKit = (venda.custo_kit_override != null && venda.custo_kit_override > 0)
     ? _round(venda.custo_kit_override)
     : custoKitCalculado;
-  const custoServicos = _round(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
+
+  // If Financial Center has synced costs (custo_instalacao > 0 or explicitly set),
+  // use VendaData costs directly. Otherwise fall back to servicos array.
+  const hasFCCosts = venda.custo_instalacao > 0 || venda.custo_comissao > 0 || venda.custo_outros > 0;
+  const custoServicos = hasFCCosts
+    ? _round(venda.custo_instalacao)
+    : _round(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
+
   const custoBase = _round(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
   const margemValor = _round(custoBase * (venda.margem_percentual / 100));
   const precoComMargem = _round(custoBase + margemValor);

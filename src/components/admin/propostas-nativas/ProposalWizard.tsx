@@ -2050,7 +2050,7 @@ export function ProposalWizard() {
 
       case STEP_KEYS.VENDA:
         return wrap("venda", (
-          <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
+          <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} leadId={selectedLead?.id} />
         ));
 
       case STEP_KEYS.PAGAMENTO:
