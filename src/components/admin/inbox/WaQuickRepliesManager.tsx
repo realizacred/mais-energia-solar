@@ -442,7 +442,7 @@ export function WaQuickRepliesManager() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="w-10">#</TableHead>
                 <TableHead>Título</TableHead>
                 <TableHead>Categoria</TableHead>
@@ -529,7 +529,7 @@ export function WaQuickRepliesManager() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="w-10">#</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Slug</TableHead>

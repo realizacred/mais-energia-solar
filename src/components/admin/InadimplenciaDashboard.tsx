@@ -340,7 +340,7 @@ export function InadimplenciaDashboard() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead>Cliente</TableHead>
                     <TableHead>Parcela</TableHead>
                     <TableHead>Valor</TableHead>

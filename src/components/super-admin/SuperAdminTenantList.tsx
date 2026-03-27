@@ -241,7 +241,7 @@ export function SuperAdminTenantList({ onSelectTenant }: Props) {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead>Empresa</TableHead>
                     <TableHead>Plano</TableHead>
                     <TableHead>Status</TableHead>

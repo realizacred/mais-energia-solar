@@ -301,7 +301,7 @@ ${errorDetails.body ?? "—"}`}
         <SectionCard title={`Detalhes (${details.length} itens)`} variant="blue" noPadding>
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead>SM Proposal ID</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Status</TableHead>

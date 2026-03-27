@@ -450,7 +450,7 @@ export function SaudeTarifariaPage() {
                 <ScrollArea className="max-h-[300px]">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
                         <TableHead className="text-[10px]">Concessionária</TableHead>
                         <TableHead className="text-[10px]">UF</TableHead>
                         <TableHead className="text-[10px]">Ação</TableHead>
@@ -496,7 +496,7 @@ export function SaudeTarifariaPage() {
                 <ScrollArea className="max-h-[300px]">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
                         <TableHead className="text-[10px]">Concessionária</TableHead>
                         <TableHead className="text-[10px]">Subgrupo</TableHead>
                         <TableHead className="text-[10px]">Campo</TableHead>

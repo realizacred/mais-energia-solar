@@ -151,7 +151,7 @@ export function ICMSConfig() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="w-16">UF</TableHead>
                 <TableHead className="w-24">ICMS (%)</TableHead>
                 <TableHead className="w-28">Isenção SCEE</TableHead>

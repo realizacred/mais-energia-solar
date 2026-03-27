@@ -56,7 +56,7 @@ export function PostSaleUpsellList() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="text-xs">CLIENTE</TableHead>
                 <TableHead className="text-xs">TIPO</TableHead>
                 <TableHead className="text-xs">DESCRIÇÃO</TableHead>

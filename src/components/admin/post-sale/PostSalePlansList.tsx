@@ -48,7 +48,7 @@ export function PostSalePlansList() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="text-xs">CLIENTE</TableHead>
                 <TableHead className="text-xs">PROJETO</TableHead>
                 <TableHead className="text-xs">STATUS</TableHead>

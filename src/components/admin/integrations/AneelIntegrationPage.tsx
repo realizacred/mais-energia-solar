@@ -469,7 +469,7 @@ export function AneelIntegrationPage() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead>Run ID</TableHead>
                     <TableHead>Origem</TableHead>
                     <TableHead>Status</TableHead>
@@ -504,7 +504,7 @@ export function AneelIntegrationPage() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead>Distribuidora</TableHead>
                     <TableHead>UF</TableHead>
                     <TableHead>TE (R$/kWh)</TableHead>
@@ -581,7 +581,7 @@ export function AneelIntegrationPage() {
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Nome</TableHead>
                   <TableHead>Sigla</TableHead>
                   <TableHead>UF</TableHead>

@@ -72,7 +72,7 @@ export function ServicosTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="bg-muted/50 hover:bg-muted/50">
           <TableHead>Data</TableHead>
           <TableHead>Tipo</TableHead>
           <TableHead>Cliente</TableHead>

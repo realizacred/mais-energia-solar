@@ -234,7 +234,7 @@
            ) : (
              <Table>
                <TableHeader>
-                 <TableRow>
+                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                    <TableHead>Consultor</TableHead>
                    <TableHead className="text-center">Tipo</TableHead>
                    <TableHead className="text-center">Meta Orçamentos</TableHead>

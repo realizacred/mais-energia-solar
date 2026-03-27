@@ -152,7 +152,7 @@ export function SlaDashboard() {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Consultor</TableHead>
                   <TableHead className="text-center">Total</TableHead>
                   <TableHead className="text-center">Vencidas</TableHead>

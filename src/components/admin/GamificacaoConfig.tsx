@@ -268,7 +268,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
                    {/* Full Ranking Table */}
                    <Table>
                      <TableHeader>
-                       <TableRow>
+                       <TableRow className="bg-muted/50 hover:bg-muted/50">
                          <TableHead className="w-16">#</TableHead>
                          <TableHead>Consultor</TableHead>
                          <TableHead className="text-center">Orçamentos</TableHead>

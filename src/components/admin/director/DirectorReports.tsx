@@ -173,7 +173,7 @@ export function DirectorReports({ insights }: Props) {
               <CardContent>
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead>Métrica</TableHead>
                       <TableHead>Atual</TableHead>
                       <TableHead>Anterior</TableHead>

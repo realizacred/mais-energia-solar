@@ -71,7 +71,7 @@ function ClientsTable({ clients, onSelect, onNavigateProjects, pagination }: {
     <SectionCard icon={Users} title="Clientes" variant="neutral" noPadding>
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead>Cliente</TableHead>
             <TableHead>Contato</TableHead>
             <TableHead>Cidade/UF</TableHead>
@@ -139,7 +139,7 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
     <SectionCard icon={FolderKanban} title="Projetos" variant="neutral" noPadding>
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead>Projeto</TableHead>
             <TableHead>Cliente</TableHead>
             <TableHead>Potência</TableHead>
@@ -240,7 +240,7 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
     >
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead className="w-10">
               <Checkbox
                 checked={allDisplayedSelected}
@@ -320,7 +320,7 @@ function FunnelsTable({ funnels }: { funnels: SmFunnel[] }) {
     <SectionCard icon={GitBranch} title="Funis" variant="neutral" noPadding>
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead>Funil</TableHead>
             <TableHead>ID SM</TableHead>
             <TableHead>Etapas</TableHead>
@@ -354,7 +354,7 @@ function CustomFieldsTable({ fields }: { fields: SmCustomField[] }) {
     <SectionCard icon={Settings2} title="Campos Customizados" variant="neutral" noPadding>
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead>Nome</TableHead>
             <TableHead>Chave</TableHead>
             <TableHead>Tipo</TableHead>
@@ -391,7 +391,7 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
     <SectionCard icon={Clock} title="Histórico de Sincronizações" variant="neutral" noPadding>
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead>Quando</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Status</TableHead>
