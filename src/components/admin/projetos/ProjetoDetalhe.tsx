@@ -821,7 +821,7 @@ function GerenciamentoTab({
       try {
         const { data } = await supabase
           .from("deal_activities")
-          .select("id, title, description, activity_type, due_date, status, created_at, assigned_to")
+          .select("id, title, description, activity_type, due_date, status, created_at, assigned_to, completed_at")
           .eq("deal_id", deal.id)
           .order("due_date", { ascending: true, nullsFirst: false })
           .limit(50);
@@ -938,14 +938,12 @@ function GerenciamentoTab({
 
   // Toggle activity status
   const handleToggleActivity = async (activityId: string, currentStatus: string) => {
-    const newStatus = currentStatus === "done" ? "pending" : "done";
-    const updates: Record<string, unknown> = { status: newStatus };
-    if (newStatus === "done") updates.completed_at = new Date().toISOString();
-    else updates.completed_at = null;
+    if (currentStatus === "done") return; // Não permite reabrir
+    const updates: Record<string, unknown> = { status: "done", completed_at: new Date().toISOString() };
     try {
       await supabase.from("deal_activities").update(updates as any).eq("id", activityId);
-      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: newStatus } : a));
-      toast({ title: newStatus === "done" ? "Atividade concluída ✓" : "Atividade reaberta" });
+      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: "done", completed_at: new Date().toISOString() } : a));
+      toast({ title: "Atividade concluída ✓" });
     } catch { /* ignore */ }
   };
 
@@ -1428,11 +1426,12 @@ function GerenciamentoTab({
                         )}
                       >
                         <button
-                          onClick={() => handleToggleActivity(a.id, a.status)}
+                          onClick={() => !isDone && handleToggleActivity(a.id, a.status)}
+                          disabled={isDone}
                           className={cn(
                             "mt-0.5 h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all",
                             isDone
-                              ? "bg-success border-success"
+                              ? "bg-success border-success cursor-default"
                               : "border-muted-foreground/30 hover:border-primary hover:scale-110"
                           )}
                         >
@@ -1485,11 +1484,13 @@ function GerenciamentoTab({
                                       <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleToggleActivity(a.id, a.status)}>
-                                      <CheckCircle className="h-3.5 w-3.5 mr-2" />
-                                      {a.status === "done" ? "Reabrir" : "Marcar como concluída"}
-                                    </DropdownMenuItem>
+                                   <DropdownMenuContent align="end">
+                                    {!isDone && (
+                                      <DropdownMenuItem onClick={() => handleToggleActivity(a.id, a.status)}>
+                                        <CheckCircle className="h-3.5 w-3.5 mr-2" />
+                                        Marcar como concluída
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem onClick={() => handleEditActivity(a)}>
                                       <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
                                     </DropdownMenuItem>
@@ -1536,10 +1537,16 @@ function GerenciamentoTab({
                                 {assignedName}
                               </span>
                             )}
-                            {a.created_at && (
+                            {a.created_at && !isDone && (
                               <span className="text-[10px] flex items-center gap-1 text-muted-foreground">
                                 <Clock className="h-3 w-3" />
                                 Criada: {formatDateTime(a.created_at)}
+                              </span>
+                            )}
+                            {isDone && (a as any).completed_at && (
+                              <span className="text-[10px] flex items-center gap-1 text-success font-medium">
+                                <CheckCircle className="h-3 w-3" />
+                                Concluída: {formatDateTime((a as any).completed_at)}
                               </span>
                             )}
                             {(isCallType || isWaType) && customerPhone && (
