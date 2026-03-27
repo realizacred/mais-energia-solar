@@ -1,6 +1,6 @@
 import { formatKwp, formatPowerKw } from "@/lib/formatters/index";
 import { useState, useEffect } from "react";
-import { Sun, Cpu, Pencil, LayoutGrid, Info } from "lucide-react";
+import { SunMedium, Cable, Pencil, LayoutGrid, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
 import { EditarLayoutModal } from "./kit/EditarLayoutModal";
