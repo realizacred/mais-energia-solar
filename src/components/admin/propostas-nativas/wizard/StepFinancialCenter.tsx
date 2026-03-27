@@ -626,7 +626,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                     </>
                   ) : (
                     <>
-                      <div className="text-right flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                      <div className="text-right relative flex items-center justify-end" onClick={e => e.stopPropagation()}>
                         <CurrencyInput
                           value={row.custoUnitario}
                           onChange={(val) => {
@@ -653,7 +653,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 shrink-0"
+                                  className="h-6 w-6 shrink-0 absolute -right-7"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setComissaoManualOverride(false);
