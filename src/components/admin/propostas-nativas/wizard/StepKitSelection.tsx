@@ -641,6 +641,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           modulos={modulos}
           inversores={inversores}
           otimizadores={otimizadores}
+          baterias={baterias}
           onKitCreated={handleManualKitCreated}
           mode={manualMode}
           sistema={pd?.sistema}
