@@ -419,6 +419,7 @@ export function RecebimentosManager() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="aguardando_instalacao">Aguardando Instalação</SelectItem>
               <SelectItem value="pendente">Pendente</SelectItem>
               <SelectItem value="parcial">Parcial</SelectItem>
               <SelectItem value="quitado">Quitado</SelectItem>
