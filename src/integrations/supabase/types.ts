@@ -4522,6 +4522,68 @@ export type Database = {
         }
         Relationships: []
       }
+      fechamentos_caixa: {
+        Row: {
+          breakdown_formas: Json | null
+          created_at: string | null
+          data_fim: string
+          data_inicio: string
+          fechado_em: string | null
+          fechado_por: string | null
+          id: string
+          observacoes: string | null
+          status: string | null
+          tenant_id: string
+          tipo: string
+          total_parcelas_pagas: number | null
+          total_recebido: number | null
+          total_recebimentos_quitados: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          breakdown_formas?: Json | null
+          created_at?: string | null
+          data_fim: string
+          data_inicio: string
+          fechado_em?: string | null
+          fechado_por?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string | null
+          tenant_id?: string
+          tipo: string
+          total_parcelas_pagas?: number | null
+          total_recebido?: number | null
+          total_recebimentos_quitados?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          breakdown_formas?: Json | null
+          created_at?: string | null
+          data_fim?: string
+          data_inicio?: string
+          fechado_em?: string | null
+          fechado_por?: string | null
+          id?: string
+          observacoes?: string | null
+          status?: string | null
+          tenant_id?: string
+          tipo?: string
+          total_parcelas_pagas?: number | null
+          total_recebido?: number | null
+          total_recebimentos_quitados?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fechamentos_caixa_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financiamento_api_config: {
         Row: {
           api_key: string | null
