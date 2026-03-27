@@ -111,12 +111,7 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
 
   return (
     <div className="space-y-5">
-      {/* BLOCO 1: Checklist (Pré-requisitos) */}
-      <section>
-        <ProjetoDocChecklist dealId={dealId} />
-      </section>
-
-      {/* BLOCO 2: Documentos Gerados */}
+      {/* BLOCO 1: Documentos Gerados */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -196,7 +191,7 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
         )}
       </section>
 
-      {/* BLOCO 3: Arquivos Anexados */}
+      {/* BLOCO 2: Arquivos Anexados */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -251,7 +246,7 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
         )}
       </section>
 
-      {/* BLOCO 4: Variáveis do Documento */}
+      {/* BLOCO 3: Variáveis do Documento */}
       <section className="space-y-3">
         <div>
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -267,6 +262,11 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
             toast({ title: "Geração de contrato", description: "Funcionalidade será conectada ao motor de documentos." });
           }}
         />
+      </section>
+
+      {/* BLOCO 4: Checklist de Documentos (última etapa) */}
+      <section>
+        <ProjetoDocChecklist dealId={dealId} />
       </section>
 
       {/* Generate Document Dialog */}
