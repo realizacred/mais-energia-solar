@@ -163,7 +163,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       }
       setComissaoLoaded(true);
     })();
-  }, [leadId]); // ← SÓ leadId
+  }, [leadId, pricingConfig]); // leadId + pricingConfig para fallback
 
 
   // ── Sync Financial Center costs back to VendaData ──
@@ -585,7 +585,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                     </>
                   ) : (
                     <>
-                      <div className="text-right" onClick={e => e.stopPropagation()}>
+                      <div className="text-right flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                         <CurrencyInput
                           value={row.custoUnitario}
                           onChange={(val) => {
@@ -604,6 +604,40 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                           prefix=""
                           className="h-7 text-xs w-24 ml-auto text-right"
                         />
+                        {/* Reset button — only when commission is manually overridden */}
+                        {row.id === "comissao" && comissaoManualOverride && comissaoEnabled && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setComissaoManualOverride(false);
+                                    if (percentualComissaoConsultor > 0) {
+                                      const calculado = roundCurrency(
+                                        precoVendaSemComissao * percentualComissaoConsultor / 100
+                                      );
+                                      setComissaoCusto(calculado);
+                                    }
+                                  }}
+                                >
+                                  <RotateCcw className="w-3 h-3 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[280px]">
+                                <p className="text-xs font-medium">Restaurar cálculo automático</p>
+                                {percentualComissaoConsultor > 0 && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Voltará para {formatBRL(roundCurrency(precoVendaSemComissao * percentualComissaoConsultor / 100))} ({percentualComissaoConsultor}%)
+                                  </p>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
                       <span className="text-right font-medium">
                         {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
