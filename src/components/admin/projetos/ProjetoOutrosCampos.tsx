@@ -200,13 +200,13 @@ export function ProjetoOutrosCampos({ clienteId, dealId, importantFields, custom
       <Card>
         <Collapsible open={camposOpen} onOpenChange={setCamposOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3 h-auto hover:bg-muted/30 rounded-t-lg">
+            <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-2 h-auto hover:bg-muted/30 rounded-t-lg">
               <span className="text-sm font-bold text-foreground">Campos importantes</span>
               <ChevronUp className={cn("h-4 w-4 text-muted-foreground transition-transform", !camposOpen && "rotate-180")} />
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <CardContent className="px-4 pb-4 pt-0">
+            <CardContent className="px-4 pb-3 pt-0">
               {importantFields.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Nenhum campo importante encontrado para esta etapa
@@ -234,13 +234,13 @@ export function ProjetoOutrosCampos({ clienteId, dealId, importantFields, custom
         <Card>
           <Collapsible open={outrosOpen} onOpenChange={setOutrosOpen}>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-3 h-auto hover:bg-muted/30 rounded-t-lg">
+              <Button variant="ghost" className="w-full flex items-center justify-between px-4 py-2 h-auto hover:bg-muted/30 rounded-t-lg">
                 <span className="text-sm font-bold text-foreground">Outros campos</span>
                 <ChevronUp className={cn("h-4 w-4 text-muted-foreground transition-transform", !outrosOpen && "rotate-180")} />
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent className="px-4 pb-4 pt-0">
+              <CardContent className="px-4 pb-3 pt-0">
                 <div className="divide-y divide-border">
                   {outrosCamposRows.map((row) => (
                     <OutroCampoRowComp

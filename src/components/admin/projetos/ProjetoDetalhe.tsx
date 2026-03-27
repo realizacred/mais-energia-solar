@@ -1113,7 +1113,7 @@ function GerenciamentoTab({
         <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           {/* Card: Dados do Cliente */}
           <Card>
-            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 px-4 pt-3">
+            <CardHeader className="pb-0 flex flex-row items-center justify-between space-y-0 px-4 pt-3">
               <CardTitle className="text-sm font-bold text-foreground">
                 Dados do cliente
               </CardTitle>
@@ -1155,8 +1155,8 @@ function GerenciamentoTab({
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
-            <CardContent className="px-4 pb-3 pt-1">
-              <div className="space-y-1.5">
+            <CardContent className="px-4 pb-3 pt-0">
+              <div className="space-y-1">
                 <ClientRow icon={User} label={customerName || "—"} />
                 <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} onEdit={!customerEmpresa ? () => openInlineEdit("empresa", "Nome da Empresa", customerEmpresa) : undefined} />
                 <ClientRow icon={Hash} label={customerCpfCnpj ? formatCpfCnpj(customerCpfCnpj) : "Adicionar CNPJ/CPF"} muted={!customerCpfCnpj} isLink={!customerCpfCnpj} onCopy={customerCpfCnpj ? () => { navigator.clipboard.writeText(customerCpfCnpj); toast({ title: "CPF/CNPJ copiado" }); } : undefined} onEdit={!customerCpfCnpj ? () => openInlineEdit("cpf_cnpj", "CPF / CNPJ", customerCpfCnpj) : undefined} />
