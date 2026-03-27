@@ -427,6 +427,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     setModuloEntries(initModulos);
     setInversorEntries(initInversores);
     setOtimizadorEntries(initOtimizadores);
+    setBateriaEntries(initBaterias);
     // Prefer meta custo over calculated initCusto (catalog items have preco_unitario=0)
     setCusto(initialCardData?.custo || initCusto);
     // Restore header fields from card data
@@ -542,6 +543,27 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           id: crypto.randomUUID(), descricao: `${cat.fabricante} ${cat.modelo} ${cat.potencia_wp || 0}W`,
           fabricante: cat.fabricante, modelo: cat.modelo, potencia_w: cat.potencia_wp || 0,
           quantidade: ot.quantidade, preco_unitario: 0, categoria: "outros", avulso: false,
+        });
+      }
+    });
+
+    // Baterias
+    bateriaEntries.forEach(bat => {
+      if (bat.avulso) {
+        if (!bat.nome) return;
+        itens.push({
+          id: crypto.randomUUID(), descricao: `${bat.fabricante} ${bat.nome} ${bat.energiaKwh}kWh`,
+          fabricante: bat.fabricante, modelo: bat.nome, potencia_w: bat.energiaKwh * 1000,
+          quantidade: bat.quantidade, preco_unitario: 0, categoria: "bateria", avulso: true,
+        });
+      } else {
+        const cat = baterias.find(c => c.id === bat.selectedId);
+        if (!cat) return;
+        itens.push({
+          id: crypto.randomUUID(), descricao: `${cat.fabricante} ${cat.modelo} ${cat.energia_kwh || 0}kWh`,
+          fabricante: cat.fabricante, modelo: cat.modelo, potencia_w: (cat.energia_kwh || 0) * 1000,
+          quantidade: bat.quantidade, preco_unitario: 0, categoria: "bateria", avulso: false,
+          produto_ref: cat.id,
         });
       }
     });
@@ -965,11 +987,79 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
               </>
             )}
 
+            {/* Baterias */}
+            {bateriaEntries.map((bat, idx) => (
+              <div key={bat.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Zap className="h-3 w-3 text-primary" /> Bateria
+                  </Label>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setBateriaEntries(p => p.filter(x => x.id !== bat.id))}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+
+                {bat.avulso ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Nome da bateria *</Label>
+                      <Input value={bat.nome} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, nome: e.target.value } : x))} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Qtd. *</Label>
+                      <Input type="number" min="0" value={bat.quantidade || ""} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Fabricante</Label>
+                      <Input value={bat.fabricante} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, fabricante: e.target.value } : x))} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Energia (kWh)</Label>
+                      <Input type="number" min="0" step="0.1" value={bat.energiaKwh || ""} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, energiaKwh: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <SearchableEquipSelect
+                      value={bat.selectedId}
+                      onValueChange={v => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, selectedId: v } : x))}
+                      options={baterias.map(cat => ({
+                        value: cat.id,
+                        label: `${cat.fabricante} ${cat.modelo}${cat.energia_kwh ? ` (${cat.energia_kwh}kWh)` : ""}`,
+                        searchText: `${cat.fabricante} ${cat.modelo} ${cat.energia_kwh || ""}`,
+                      }))}
+                      placeholder="Buscar bateria..."
+                      emptyText="Nenhuma bateria cadastrada"
+                      className="flex-1"
+                    />
+                    <Input type="number" min="0" value={bat.quantidade || ""} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Switch checked={bat.avulso} onCheckedChange={v => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, avulso: v } : x))} className="scale-75" />
+                    <span className="text-[10px] text-muted-foreground">Avulso?</span>
+                  </div>
+                  {idx === bateriaEntries.length - 1 && (
+                    <Button variant="ghost" size="sm" onClick={() => setBateriaEntries(p => [...p, createEmptyBateria()])} className="text-[11px] text-primary font-medium h-6">
+                      + Adicionar mais
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+
             {/* Add buttons */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {otimizadorEntries.length === 0 && (
                 <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])}>
                   <Zap className="h-3 w-3 mr-1" /> + Otimizador
+                </Button>
+              )}
+              {bateriaEntries.length === 0 && (
+                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setBateriaEntries(p => [...p, createEmptyBateria()])}>
+                  <Zap className="h-3 w-3 mr-1" /> + Bateria
                 </Button>
               )}
               {mode === "zero" && (
