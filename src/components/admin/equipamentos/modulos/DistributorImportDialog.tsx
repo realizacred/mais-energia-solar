@@ -35,17 +35,7 @@ interface Props {
 
 const BATCH_SIZE = 50;
 
-function extractDistributors(headerLine: string): string[] {
-  const cols = headerLine.split(";").map(c => c.trim());
-  const names: string[] = [];
-  for (let i = 2; i < cols.length; i++) {
-    const col = cols[i];
-    const match = col.match(/^\d+\s*-\s*(.+)$/);
-    if (match) names.push(match[1].trim());
-    else if (col && col !== "") names.push(col);
-  }
-  return [...new Set(names)];
-}
+import { importFornecedoresFromHeader, extractDistributorNames } from "@/utils/importFornecedoresFromHeader";
 
 export function DistributorImportDialog({ open, onOpenChange, existingModulos }: Props) {
   const { toast } = useToast();
@@ -199,24 +189,27 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
     reader.onload = (ev) => {
       const text = ev.target?.result as string || "";
       const firstLine = text.split("\n")[0] || "";
-      setDistributorNames(extractDistributors(firstLine));
+      setDistributorNames(extractDistributorNames(firstLine));
       const result = parseDistributorCSV(text, "Módulo");
       setParseResult(result);
     };
     reader.readAsText(file, "ISO-8859-1");
   };
 
-  const importFornecedores = async (tenantId: string): Promise<number> => {
+  const importFornecedoresLocal = async (tenantId: string): Promise<number> => {
     if (distributorNames.length === 0) return 0;
+    const headerLine = distributorNames.join(";"); // reconstruct won't work, use stored firstLine
+    // Use the raw names directly via the shared utility's insert logic
     const { data: existing } = await supabase
       .from("fornecedores").select("nome").eq("tenant_id", tenantId).eq("tipo", "distribuidor");
-    const existingNames = new Set((existing || []).map(f => f.nome.toLowerCase()));
-    const toCreate = distributorNames.filter(name => !existingNames.has(name.toLowerCase()));
+    const existingNamesSet = new Set((existing || []).map(f => f.nome.toLowerCase().trim()));
+    const toCreate = distributorNames.filter(name => !existingNamesSet.has(name.toLowerCase().trim()));
     if (toCreate.length === 0) return 0;
     const { error } = await supabase.from("fornecedores").insert(toCreate.map(nome => ({
       nome, tipo: "distribuidor", tenant_id: tenantId, ativo: true,
     })));
-    if (error) { console.error("Erro ao criar fornecedores:", error.message); return 0; }
+    if (error) { console.error("[importFornecedores] erro:", error.message); return 0; }
+    console.log(`[importFornecedores] ${toCreate.length} fornecedores criados:`, toCreate);
     return toCreate.length;
   };
 
@@ -231,7 +224,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
 
     try {
       const { tenantId } = await getCurrentTenantId();
-      const fornecedoresCriados = await importFornecedores(tenantId);
+      const fornecedoresCriados = await importFornecedoresLocal(tenantId);
 
       let inserted = 0;
       let updated = 0;
