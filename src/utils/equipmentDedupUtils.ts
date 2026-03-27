@@ -51,7 +51,7 @@ export function similarityScore(a: string, b: string): number {
   return 1 - levenshtein(normA, normB) / maxLen;
 }
 
-const SIMILARITY_THRESHOLD = 0.98;
+const SIMILARITY_THRESHOLD = 0.92;
 
 export interface SuspectMatch {
   existingFabricante: string;
@@ -73,26 +73,29 @@ export function findSuspects(
 ): SuspectMatch | null {
   const normalizedFabricante = normalizeForDedup(newFabricante);
   const normalizedModelo = normalizeForDedup(newModelo);
-  const newStr = `${newFabricante} ${newModelo}`;
   let bestMatch: SuspectMatch | null = null;
   let bestScore = 0;
 
   for (const existing of existingItems) {
+    // Must have same potencia/capacidade (exact)
     if (newPotencia !== existing.potencia) {
       continue;
     }
 
+    // Must have same fabricante (normalized)
     if (normalizeForDedup(existing.fabricante) !== normalizedFabricante) {
       continue;
     }
 
     const normalizedExistingModelo = normalizeForDedup(existing.modelo);
+    // Skip exact matches (handled by dedup key)
     if (normalizedExistingModelo === normalizedModelo) {
       continue;
     }
 
-    const existingStr = `${existing.fabricante} ${existing.modelo}`;
-    const score = similarityScore(newStr, existingStr);
+    // Compare ONLY modelo strings — not fabricante+modelo
+    // This prevents fabricante from inflating the similarity score
+    const score = similarityScore(newModelo, existing.modelo);
 
     if (score >= SIMILARITY_THRESHOLD && score < 1.0 && score > bestScore) {
       bestScore = score;
