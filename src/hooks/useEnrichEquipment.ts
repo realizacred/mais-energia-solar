@@ -22,6 +22,8 @@ interface EnrichResult {
   skipped?: boolean;
   message?: string;
   error?: string;
+  winner_model?: string;
+  dual_ai_used?: boolean;
 }
 
 const QUERY_KEY_MAP: Record<EquipmentType, string[]> = {
@@ -53,12 +55,16 @@ export function useEnrichEquipment() {
     onSuccess: (data, vars) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY_MAP[vars.equipment_type] });
 
+      const modelName = data.winner_model
+        ? (data.winner_model.split("/").pop() || "IA")
+        : "IA";
+
       if (data.skipped) {
         toast({ title: "Já enriquecido", description: data.message });
       } else {
         toast({
           title: "Specs encontradas",
-          description: `${data.fields_filled} campos preenchidos para ${data.equipment}`,
+          description: `${data.fields_filled} campos preenchidos para ${data.equipment} via ${modelName}${data.dual_ai_used ? " (Dual IA)" : ""}`,
         });
       }
     },
