@@ -1428,11 +1428,12 @@ function GerenciamentoTab({
                         )}
                       >
                         <button
-                          onClick={() => handleToggleActivity(a.id, a.status)}
+                          onClick={() => !isDone && handleToggleActivity(a.id, a.status)}
+                          disabled={isDone}
                           className={cn(
                             "mt-0.5 h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all",
                             isDone
-                              ? "bg-success border-success"
+                              ? "bg-success border-success cursor-default"
                               : "border-muted-foreground/30 hover:border-primary hover:scale-110"
                           )}
                         >
@@ -1485,11 +1486,13 @@ function GerenciamentoTab({
                                       <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleToggleActivity(a.id, a.status)}>
-                                      <CheckCircle className="h-3.5 w-3.5 mr-2" />
-                                      {a.status === "done" ? "Reabrir" : "Marcar como concluída"}
-                                    </DropdownMenuItem>
+                                   <DropdownMenuContent align="end">
+                                    {!isDone && (
+                                      <DropdownMenuItem onClick={() => handleToggleActivity(a.id, a.status)}>
+                                        <CheckCircle className="h-3.5 w-3.5 mr-2" />
+                                        Marcar como concluída
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem onClick={() => handleEditActivity(a)}>
                                       <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
                                     </DropdownMenuItem>
@@ -1536,10 +1539,16 @@ function GerenciamentoTab({
                                 {assignedName}
                               </span>
                             )}
-                            {a.created_at && (
+                            {a.created_at && !isDone && (
                               <span className="text-[10px] flex items-center gap-1 text-muted-foreground">
                                 <Clock className="h-3 w-3" />
                                 Criada: {formatDateTime(a.created_at)}
+                              </span>
+                            )}
+                            {isDone && (a as any).completed_at && (
+                              <span className="text-[10px] flex items-center gap-1 text-success font-medium">
+                                <CheckCircle className="h-3 w-3" />
+                                Concluída: {formatDateTime((a as any).completed_at)}
                               </span>
                             )}
                             {(isCallType || isWaType) && customerPhone && (
