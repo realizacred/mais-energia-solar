@@ -18,7 +18,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
-import { importFornecedoresFromHeader } from "@/utils/importFornecedoresFromHeader";
 import {
   dedupKeyNormalized,
   findSuspects,
@@ -100,9 +99,20 @@ function extractEnergyFromModel(item: string): number | null {
   return null;
 }
 
+function extractCsvCategories(text: string): string[] {
+  const lines = text.split("\n").filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const categories = [...new Set(lines.slice(1).map(line => line.split(";")[0]?.trim()).filter(Boolean))];
+  console.log("[parseCSV] Categorias encontradas:", categories);
+  return categories;
+}
+
 /** Parse formato distribuidora para baterias */
-function parseDistributorBateria(text: string): { baterias: ParsedBateria[]; warnings: { line: number; issue: string }[] } {
-  // Use parseDistributorCSV with category filter — try "Bateria" and "Armazenamento"
+function parseDistributorBateria(text: string): { baterias: ParsedBateria[]; warnings: { line: number; issue: string }[]; categories: string[] } {
+  const categories = extractCsvCategories(text);
+  const batteryCategories = ["bateria", "armazenamento", "storage", "battery", "acumulador", "banco de energia"];
+  const matchingCategories = categories.filter(category => batteryCategories.some(term => category.toLowerCase().includes(term)));
+
   let base = parseDistributorCSV(text, "Bateria" as any);
   if (base.modules.length === 0) {
     base = parseDistributorCSV(text, "Armazenamento" as any);
@@ -112,6 +122,10 @@ function parseDistributorBateria(text: string): { baterias: ParsedBateria[]; war
   const warnings: { line: number; issue: string }[] = base.warnings.map(w => ({
     line: w.line, issue: w.issue,
   }));
+
+  if (matchingCategories.length === 0) {
+    warnings.push({ line: 0, issue: `Nenhuma bateria encontrada. Categorias no arquivo: ${categories.join(", ") || "nenhuma"}` });
+  }
 
   const seenKeys = new Set<string>();
 
@@ -136,18 +150,17 @@ function parseDistributorBateria(text: string): { baterias: ParsedBateria[]; war
     });
   });
 
-  return { baterias, warnings };
+  return { baterias, warnings, categories };
 }
 
-function parseBateriaCSV(text: string): { baterias: ParsedBateria[]; warnings: { line: number; issue: string }[] } {
-  // Auto-detect format
+function parseBateriaCSV(text: string): { baterias: ParsedBateria[]; warnings: { line: number; issue: string }[]; categories: string[] } {
   if (isDistributorFormat(text)) {
     return parseDistributorBateria(text);
   }
 
-  // Simple format: Fabricante;Modelo;Energia;Tipo;Tensão
   const lines = text.split("\n").filter(l => l.trim());
-  if (lines.length < 2) return { baterias: [], warnings: [] };
+  const categories = extractCsvCategories(text);
+  if (lines.length < 2) return { baterias: [], warnings: [], categories };
 
   const delim = detectDelimiter(text);
   const headers = lines[0].split(delim).map(h => h.trim().toLowerCase());
@@ -179,7 +192,6 @@ function parseBateriaCSV(text: string): { baterias: ParsedBateria[]; warnings: {
       continue;
     }
 
-    // Try extracting from model name if energy column empty
     if (energia_kwh <= 0) {
       energia_kwh = extractEnergyFromModel(`${fabricante} ${modelo}`) ?? 0;
     }
@@ -191,7 +203,7 @@ function parseBateriaCSV(text: string): { baterias: ParsedBateria[]; warnings: {
     baterias.push({ fabricante, modelo, energia_kwh, tipo_bateria, tensao_nominal_v });
   }
 
-  return { baterias, warnings };
+  return { baterias, warnings, categories };
 }
 
 export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Props) {
@@ -199,8 +211,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
   const qc = useQueryClient();
 
   const [fileName, setFileName] = useState("");
-  const [csvHeaderLine, setCsvHeaderLine] = useState("");
-  const [parseResult, setParseResult] = useState<{ baterias: ParsedBateria[]; warnings: { line: number; issue: string }[] } | null>(null);
+  const [parseResult, setParseResult] = useState<{ baterias: ParsedBateria[]; warnings: { line: number; issue: string }[]; categories: string[] } | null>(null);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [overwriteIds, setOverwriteIds] = useState<Set<number>>(new Set());
@@ -208,7 +219,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
   const [verifyingAI, setVerifyingAI] = useState(false);
   const [aiProgress, setAiProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{
-    inserted: number; updated: number; skipped: number; errors: number; fornecedores: number;
+    inserted: number; updated: number; skipped: number; errors: number;
   } | null>(null);
 
   const existingMap = useMemo(() => {
@@ -291,7 +302,6 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string || "";
-      setCsvHeaderLine(text.split("\n")[0] || "");
       setParseResult(parseBateriaCSV(text));
     };
     reader.readAsText(file, "ISO-8859-1");
@@ -306,7 +316,6 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
 
     try {
       const { tenantId } = await getCurrentTenantId();
-      const fornecedoresCriados = await importFornecedoresFromHeader(csvHeaderLine, tenantId);
       let inserted = 0, updated = 0, errors = 0;
       const insertPayloads = toInsert.map(b => ({
         fabricante: b.fabricante, modelo: b.modelo,
@@ -335,15 +344,13 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
       }
 
       qc.invalidateQueries({ queryKey: ["baterias"] });
-      qc.invalidateQueries({ queryKey: ["fornecedores"] });
       const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
-      setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados });
+      setImportResult({ inserted, updated, skipped, errors });
       toast({
         title: "Importação concluída",
         description: [
           `${inserted} inseridas`, `${updated} atualizadas`, `${skipped} ignoradas`,
           errors > 0 ? `${errors} erros` : null,
-          fornecedoresCriados > 0 ? `${fornecedoresCriados} fornecedores criados` : null,
         ].filter(Boolean).join(" · "),
       });
     } catch (err: any) {
@@ -352,7 +359,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
   };
 
   const handleClose = () => {
-    setParseResult(null); setFileName(""); setCsvHeaderLine(""); setImportResult(null);
+    setParseResult(null); setFileName(""); setImportResult(null);
     setProgress(0); setOverwriteIds(new Set()); setImportSuspectIds(new Set()); onOpenChange(false);
   };
 
@@ -446,11 +453,18 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
                   </div>
                 )}
 
+                {parseResult.baterias.length === 0 && parseResult.categories.length > 0 && (
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-1">
+                    <p className="text-sm font-medium text-warning">Nenhuma bateria encontrada</p>
+                    <p className="text-xs text-muted-foreground">Categorias no arquivo: {parseResult.categories.join(", ")}</p>
+                  </div>
+                )}
+
                 {parseResult.warnings.length > 0 && (
                   <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-1">
                     <p className="text-sm font-medium text-warning flex items-center gap-2"><AlertTriangle className="w-4 h-4" />{parseResult.warnings.length} avisos</p>
                     <div className="max-h-24 overflow-y-auto text-xs text-muted-foreground space-y-0.5">
-                      {parseResult.warnings.slice(0, 20).map((w, i) => (<p key={i}>Linha {w.line}: {w.issue}</p>))}
+                      {parseResult.warnings.slice(0, 20).map((w, i) => (<p key={i}>{w.line > 0 ? `Linha ${w.line}: ` : ""}{w.issue}</p>))}
                     </div>
                   </div>
                 )}

@@ -29,6 +29,14 @@ import {
 import { importFornecedoresFromHeader, extractDistributorNames } from "@/utils/importFornecedoresFromHeader";
 
 interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  existingModulos: Modulo[];
+}
+
+const BATCH_SIZE = 50;
+
+export function DistributorImportDialog({ open, onOpenChange, existingModulos }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
 

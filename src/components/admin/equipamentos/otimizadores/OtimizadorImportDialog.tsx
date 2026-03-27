@@ -44,7 +44,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
   const qc = useQueryClient();
 
   const [fileName, setFileName] = useState("");
-  const [csvHeaderLine, setCsvHeaderLine] = useState("");
+  const [rawCsvText, setRawCsvText] = useState("");
   const [parseResult, setParseResult] = useState<OtimizadorParseResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -136,7 +136,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string || "";
-      setCsvHeaderLine(text.split("\n")[0] || "");
+      setRawCsvText(text);
       setParseResult(parseDistributorOtimizadorCSV(text));
     };
     reader.readAsText(file, "ISO-8859-1");
@@ -151,7 +151,8 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
 
     try {
       const { tenantId } = await getCurrentTenantId();
-      const fornecedoresCriados = await importFornecedoresFromHeader(csvHeaderLine, tenantId);
+      console.log("[fornecedores] tenantId:", tenantId);
+      const fornecedoresCriados = await importFornecedoresFromHeader(rawCsvText, tenantId);
       let inserted = 0, updated = 0, errors = 0;
       const insertPayloads = toInsert.map(ot => ({
         fabricante: ot.fabricante, modelo: ot.modelo,
@@ -193,7 +194,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
   };
 
   const handleClose = () => {
-    setParseResult(null); setFileName(""); setCsvHeaderLine(""); setImportResult(null);
+    setParseResult(null); setFileName(""); setRawCsvText(""); setImportResult(null);
     setProgress(0); setOverwriteIds(new Set()); setImportSuspectIds(new Set()); onOpenChange(false);
   };
 
