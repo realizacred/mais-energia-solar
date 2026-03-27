@@ -152,10 +152,10 @@ export function ModulosManager() {
               <Wand2 className="w-4 h-4" /> Buscar specs IA
             </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setDistImportOpen(true)}>
-              <FileSpreadsheet className="w-4 h-4" /> CSV Distribuidora
+              <FileSpreadsheet className="w-4 h-4" /> Importar CSV
             </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
-              <Upload className="w-4 h-4" /> Importar
+              <Upload className="w-4 h-4" /> Colar Planilha
             </Button>
             <Button size="sm" onClick={openCreate} className="gap-2">
               <Plus className="w-4 h-4" /> Novo Módulo
