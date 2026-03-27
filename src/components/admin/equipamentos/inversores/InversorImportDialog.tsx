@@ -1,8 +1,8 @@
 /**
  * Dialog de importação de inversores via CSV de distribuidora.
- * Dedup unificado: fabricante|modelo|potencia_nominal_kw
+ * Dedup normalizado + detecção de suspeitos via Levenshtein + verificação IA
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  AlertTriangle, CheckCircle2, Upload, Loader2, FileSpreadsheet,
+  AlertTriangle, CheckCircle2, Upload, Loader2, FileSpreadsheet, Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,11 @@ import {
   type ParsedDistributorInversor,
 } from "./parseInversorCSV";
 import type { Inversor } from "@/hooks/useInversoresCatalogo";
+import {
+  dedupKeyNormalized,
+  findSuspects,
+  type SuspectMatch,
+} from "@/utils/equipmentDedupUtils";
 
 interface Props {
   open: boolean;
@@ -32,10 +37,6 @@ interface Props {
 }
 
 const BATCH_SIZE = 50;
-
-function dedupKey(fabricante: string, modelo: string, potencia: number): string {
-  return `${fabricante}|${modelo}|${potencia}`.toLowerCase();
-}
 
 export function InversorImportDialog({ open, onOpenChange, existingInversores }: Props) {
   const { toast } = useToast();
@@ -46,37 +47,82 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [overwriteIds, setOverwriteIds] = useState<Set<number>>(new Set());
+  const [importSuspectIds, setImportSuspectIds] = useState<Set<number>>(new Set());
+  const [verifyingAI, setVerifyingAI] = useState(false);
+  const [aiProgress, setAiProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{
     inserted: number; updated: number; skipped: number; errors: number;
   } | null>(null);
 
   const existingMap = useMemo(() => {
     const map = new Map<string, string>();
-    existingInversores.forEach(i => map.set(dedupKey(i.fabricante, i.modelo, i.potencia_nominal_kw), i.id));
+    existingInversores.forEach(i => map.set(dedupKeyNormalized(i.fabricante, i.modelo, i.potencia_nominal_kw), i.id));
     return map;
   }, [existingInversores]);
 
-  const { newItems, duplicateItems } = useMemo(() => {
-    if (!parseResult) return { newItems: [] as ParsedDistributorInversor[], duplicateItems: [] as { item: ParsedDistributorInversor; idx: number; existingId: string }[] };
+  const existingForSuspects = useMemo(() =>
+    existingInversores.map(i => ({ id: i.id, fabricante: i.fabricante, modelo: i.modelo, potencia: i.potencia_nominal_kw })),
+    [existingInversores]
+  );
+
+  const { newItems, suspectItems, duplicateItems } = useMemo(() => {
+    if (!parseResult) return {
+      newItems: [] as ParsedDistributorInversor[],
+      suspectItems: [] as { item: ParsedDistributorInversor; idx: number; match: SuspectMatch }[],
+      duplicateItems: [] as { item: ParsedDistributorInversor; idx: number; existingId: string }[],
+    };
     const newItems: ParsedDistributorInversor[] = [];
+    const suspectItems: { item: ParsedDistributorInversor; idx: number; match: SuspectMatch }[] = [];
     const duplicateItems: { item: ParsedDistributorInversor; idx: number; existingId: string }[] = [];
     parseResult.inversores.forEach((inv, idx) => {
-      const key = dedupKey(inv.fabricante, inv.modelo, inv.potencia_nominal_kw);
+      const key = dedupKeyNormalized(inv.fabricante, inv.modelo, inv.potencia_nominal_kw);
       const existingId = existingMap.get(key);
-      if (existingId) duplicateItems.push({ item: inv, idx, existingId });
-      else newItems.push(inv);
+      if (existingId) {
+        duplicateItems.push({ item: inv, idx, existingId });
+      } else {
+        const suspect = findSuspects(inv.fabricante, inv.modelo, inv.potencia_nominal_kw, existingForSuspects);
+        if (suspect) suspectItems.push({ item: inv, idx, match: suspect });
+        else newItems.push(inv);
+      }
     });
-    return { newItems, duplicateItems };
-  }, [parseResult, existingMap]);
+    return { newItems, suspectItems, duplicateItems };
+  }, [parseResult, existingMap, existingForSuspects]);
 
   const toggleOverwrite = (idx: number, checked: boolean) => {
     setOverwriteIds(prev => { const next = new Set(prev); if (checked) next.add(idx); else next.delete(idx); return next; });
   };
-
+  const toggleSuspect = (idx: number, checked: boolean) => {
+    setImportSuspectIds(prev => { const next = new Set(prev); if (checked) next.add(idx); else next.delete(idx); return next; });
+  };
   const selectAllDuplicates = () => {
     if (overwriteIds.size === duplicateItems.length) setOverwriteIds(new Set());
     else setOverwriteIds(new Set(duplicateItems.map(d => d.idx)));
   };
+
+  const handleVerifyWithAI = useCallback(async () => {
+    if (suspectItems.length === 0) return;
+    setVerifyingAI(true);
+    setAiProgress({ current: 0, total: suspectItems.length });
+    const newImport = new Set(importSuspectIds);
+    for (let i = 0; i < suspectItems.length; i++) {
+      const s = suspectItems[i];
+      try {
+        const { data } = await supabase.functions.invoke("ai-generate", {
+          body: {
+            systemPrompt: "Você é um especialista em equipamentos solares. Responda APENAS: SIM ou NAO.",
+            userPrompt: `São o mesmo inversor solar?\nItem 1: ${s.item.fabricante} ${s.item.modelo} ${s.item.potencia_nominal_kw}kW\nItem 2: ${s.match.existingFabricante} ${s.match.existingModelo} ${s.match.existingPotencia}kW\nResponda APENAS: SIM ou NAO`,
+            functionName: "import-dedup-verify", userId: "system", tenantId: "system",
+          },
+        });
+        if (data?.content && !data.content.trim().toUpperCase().includes("SIM")) newImport.add(s.idx);
+      } catch { /* keep as suspect */ }
+      setAiProgress(prev => ({ ...prev, current: prev.current + 1 }));
+      if (i < suspectItems.length - 1 && (i + 1) % 5 === 0) await new Promise(r => setTimeout(r, 1000));
+    }
+    setImportSuspectIds(newImport);
+    setVerifyingAI(false);
+    toast({ title: "Verificação IA concluída" });
+  }, [suspectItems, importSuspectIds, toast]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,6 +130,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
     setFileName(file.name);
     setImportResult(null);
     setOverwriteIds(new Set());
+    setImportSuspectIds(new Set());
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string || "";
@@ -93,7 +140,8 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
   };
 
   const handleImport = async () => {
-    const toInsert = newItems;
+    const suspectsToImport = suspectItems.filter(s => importSuspectIds.has(s.idx));
+    const toInsert = [...newItems, ...suspectsToImport.map(s => s.item)];
     const toUpdate = duplicateItems.filter(d => overwriteIds.has(d.idx));
     if (toInsert.length === 0 && toUpdate.length === 0) return;
     setImporting(true); setProgress(0);
@@ -111,7 +159,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
       for (let i = 0; i < insertPayloads.length; i += BATCH_SIZE) {
         const chunk = insertPayloads.slice(i, i + BATCH_SIZE);
         const { error } = await supabase.from("inversores_catalogo").insert(chunk as any);
-        if (error) { errors += chunk.length; } else inserted += chunk.length;
+        if (error) errors += chunk.length; else inserted += chunk.length;
         setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
       }
 
@@ -124,7 +172,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
       }
 
       qc.invalidateQueries({ queryKey: ["inversores-catalogo"] });
-      const skipped = duplicateItems.length - toUpdate.length;
+      const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
       setImportResult({ inserted, updated, skipped, errors });
       toast({
         title: "Importação concluída",
@@ -137,7 +185,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
 
   const handleClose = () => {
     setParseResult(null); setFileName(""); setImportResult(null);
-    setProgress(0); setOverwriteIds(new Set()); onOpenChange(false);
+    setProgress(0); setOverwriteIds(new Set()); setImportSuspectIds(new Set()); onOpenChange(false);
   };
 
   return (
@@ -170,10 +218,14 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
 
             {parseResult && !importResult && (
               <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="rounded-lg border border-border p-3 text-center">
                     <p className="text-2xl font-bold text-success">{newItems.length}</p>
                     <p className="text-xs text-muted-foreground">Novos</p>
+                  </div>
+                  <div className="rounded-lg border border-border p-3 text-center">
+                    <p className="text-2xl font-bold text-yellow-500">{suspectItems.length}</p>
+                    <p className="text-xs text-muted-foreground">Suspeitos</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
                     <p className="text-2xl font-bold text-warning">{duplicateItems.length}</p>
@@ -181,9 +233,32 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
                     <p className="text-2xl font-bold text-foreground">{parseResult.inversores.length}</p>
-                    <p className="text-xs text-muted-foreground">Total detectados</p>
+                    <p className="text-xs text-muted-foreground">Total</p>
                   </div>
                 </div>
+
+                {/* Suspects */}
+                {suspectItems.length > 0 && (
+                  <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">🟡 {suspectItems.length} suspeitos</p>
+                      <Button variant="outline" size="sm" onClick={handleVerifyWithAI} disabled={verifyingAI} className="text-xs h-7 gap-1">
+                        {verifyingAI ? <><Loader2 className="w-3 h-3 animate-spin" /> {aiProgress.current}/{aiProgress.total}</> : <><Sparkles className="w-3 h-3" /> Verificar com IA</>}
+                      </Button>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {suspectItems.map((s) => (
+                        <label key={s.idx} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-yellow-500/10 rounded px-1 py-0.5">
+                          <Checkbox checked={importSuspectIds.has(s.idx)} onCheckedChange={(c) => toggleSuspect(s.idx, !!c)} className="mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-foreground">{s.item.fabricante} {s.item.modelo} ({s.item.potencia_nominal_kw}kW)</span>
+                            <p className="text-muted-foreground text-[10px] truncate">Similar a: {s.match.existingFabricante} {s.match.existingModelo} ({Math.round(s.match.score * 100)}%)</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {duplicateItems.length > 0 && (
                   <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
@@ -241,7 +316,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
                 )}
 
                 <p className="text-xs text-muted-foreground text-center">
-                  {newItems.length} novos · {duplicateItems.length} duplicados ({overwriteIds.size} para sobrescrever)
+                  {newItems.length} novos · {suspectItems.length} suspeitos ({importSuspectIds.size} para importar) · {duplicateItems.length} duplicados ({overwriteIds.size} para sobrescrever)
                 </p>
 
                 {importing && (
@@ -271,9 +346,9 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
             <Button onClick={handleClose}>Fechar</Button>
           ) : parseResult ? (
             <>
-              <Button variant="ghost" onClick={() => { setParseResult(null); setFileName(""); setOverwriteIds(new Set()); }} disabled={importing}>Voltar</Button>
-              <Button onClick={handleImport} disabled={(newItems.length === 0 && overwriteIds.size === 0) || importing} className="gap-2">
-                {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> Importando...</> : `Importar ${newItems.length + overwriteIds.size} inversores`}
+              <Button variant="ghost" onClick={() => { setParseResult(null); setFileName(""); setOverwriteIds(new Set()); setImportSuspectIds(new Set()); }} disabled={importing}>Voltar</Button>
+              <Button onClick={handleImport} disabled={(newItems.length === 0 && overwriteIds.size === 0 && importSuspectIds.size === 0) || importing} className="gap-2">
+                {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> Importando...</> : `Importar ${newItems.length + overwriteIds.size + importSuspectIds.size} inversores`}
               </Button>
             </>
           ) : (

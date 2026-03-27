@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  AlertTriangle, CheckCircle2, Upload, Loader2, FileSpreadsheet,
+  AlertTriangle, CheckCircle2, Upload, Loader2, FileSpreadsheet, Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,11 @@ import {
   type ParsedDistributorModule,
 } from "./parseDistributorCSV";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import {
+  dedupKeyNormalized,
+  findSuspects,
+  type SuspectMatch,
+} from "@/utils/equipmentDedupUtils";
 
 interface Props {
   open: boolean;
@@ -42,11 +47,6 @@ function extractDistributors(headerLine: string): string[] {
   return [...new Set(names)];
 }
 
-/** Dedup key: fabricante|modelo|potencia_wp (lowercase) */
-function dedupKey(fabricante: string, modelo: string, potencia: number): string {
-  return `${fabricante}|${modelo}|${potencia}`.toLowerCase();
-}
-
 export function DistributorImportDialog({ open, onOpenChange, existingModulos }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -57,22 +57,37 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [overwriteIds, setOverwriteIds] = useState<Set<number>>(new Set());
+  const [importSuspectIds, setImportSuspectIds] = useState<Set<number>>(new Set());
+  const [verifyingAI, setVerifyingAI] = useState(false);
+  const [aiProgress, setAiProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{
     inserted: number; updated: number; skipped: number; errors: number; fornecedores: number;
   } | null>(null);
 
-  // Existing dedup map: key → existing record id
+  // Existing dedup map: normalized key → existing record id
   const existingMap = useMemo(() => {
     const map = new Map<string, string>();
-    existingModulos.forEach(m => map.set(dedupKey(m.fabricante, m.modelo, m.potencia_wp), m.id));
+    existingModulos.forEach(m => map.set(dedupKeyNormalized(m.fabricante, m.modelo, m.potencia_wp), m.id));
     return map;
   }, [existingModulos]);
 
+  // Existing items for suspect detection
+  const existingForSuspects = useMemo(() =>
+    existingModulos.map(m => ({ id: m.id, fabricante: m.fabricante, modelo: m.modelo, potencia: m.potencia_wp })),
+    [existingModulos]
+  );
+
   // Classify parsed items
-  const { newItems, duplicateItems, errorItems } = useMemo(() => {
-    if (!parseResult) return { newItems: [] as ParsedDistributorModule[], duplicateItems: [] as { item: ParsedDistributorModule; idx: number; existingId: string }[], errorItems: [] as { item: ParsedDistributorModule; idx: number; issue: string }[] };
+  const { newItems, suspectItems, duplicateItems, errorItems } = useMemo(() => {
+    if (!parseResult) return {
+      newItems: [] as ParsedDistributorModule[],
+      suspectItems: [] as { item: ParsedDistributorModule; idx: number; match: SuspectMatch }[],
+      duplicateItems: [] as { item: ParsedDistributorModule; idx: number; existingId: string }[],
+      errorItems: [] as { item: ParsedDistributorModule; idx: number; issue: string }[],
+    };
 
     const newItems: ParsedDistributorModule[] = [];
+    const suspectItems: { item: ParsedDistributorModule; idx: number; match: SuspectMatch }[] = [];
     const duplicateItems: { item: ParsedDistributorModule; idx: number; existingId: string }[] = [];
     const errorItems: { item: ParsedDistributorModule; idx: number; issue: string }[] = [];
 
@@ -81,17 +96,23 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
         errorItems.push({ item: m, idx, issue: "Fabricante ou modelo vazio" });
         return;
       }
-      const key = dedupKey(m.fabricante, m.modelo, m.potencia_wp);
+      const key = dedupKeyNormalized(m.fabricante, m.modelo, m.potencia_wp);
       const existingId = existingMap.get(key);
       if (existingId) {
         duplicateItems.push({ item: m, idx, existingId });
       } else {
-        newItems.push(m);
+        // Check for suspects via Levenshtein
+        const suspect = findSuspects(m.fabricante, m.modelo, m.potencia_wp, existingForSuspects);
+        if (suspect) {
+          suspectItems.push({ item: m, idx, match: suspect });
+        } else {
+          newItems.push(m);
+        }
       }
     });
 
-    return { newItems, duplicateItems, errorItems };
-  }, [parseResult, existingMap]);
+    return { newItems, suspectItems, duplicateItems, errorItems };
+  }, [parseResult, existingMap, existingForSuspects]);
 
   const toggleOverwrite = (idx: number, checked: boolean) => {
     setOverwriteIds(prev => {
@@ -101,13 +122,70 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
     });
   };
 
-  const selectAllDuplicates = () => {
-    if (overwriteIds.size === duplicateItems.length) {
-      setOverwriteIds(new Set());
-    } else {
-      setOverwriteIds(new Set(duplicateItems.map(d => d.idx)));
-    }
+  const toggleSuspect = (idx: number, checked: boolean) => {
+    setImportSuspectIds(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(idx); else next.delete(idx);
+      return next;
+    });
   };
+
+  const selectAllDuplicates = () => {
+    if (overwriteIds.size === duplicateItems.length) setOverwriteIds(new Set());
+    else setOverwriteIds(new Set(duplicateItems.map(d => d.idx)));
+  };
+
+  const handleVerifyWithAI = useCallback(async () => {
+    if (suspectItems.length === 0) return;
+    setVerifyingAI(true);
+    const total = suspectItems.length;
+    setAiProgress({ current: 0, total });
+
+    const newSuspectImport = new Set(importSuspectIds);
+    const movedToDuplicate: number[] = [];
+    const movedToNew: number[] = [];
+
+    const batchSize = 5;
+    for (let i = 0; i < suspectItems.length; i += batchSize) {
+      const batch = suspectItems.slice(i, i + batchSize);
+      for (const s of batch) {
+        try {
+          const { data, error } = await supabase.functions.invoke("ai-generate", {
+            body: {
+              systemPrompt: "Você é um especialista em equipamentos solares fotovoltaicos. Responda APENAS com SIM ou NAO.",
+              userPrompt: `São o mesmo produto solar?\nItem 1: ${s.item.fabricante} ${s.item.modelo} ${s.item.potencia_wp}Wp\nItem 2: ${s.match.existingFabricante} ${s.match.existingModelo} ${s.match.existingPotencia}Wp\nResponda APENAS: SIM ou NAO`,
+              functionName: "import-dedup-verify",
+              userId: "system",
+              tenantId: "system",
+            },
+          });
+          if (!error && data?.content) {
+            const answer = data.content.trim().toUpperCase();
+            if (answer.includes("SIM")) {
+              movedToDuplicate.push(s.idx);
+            } else {
+              movedToNew.push(s.idx);
+              newSuspectImport.add(s.idx);
+            }
+          }
+        } catch {
+          // Keep as suspect on error
+        }
+        setAiProgress(prev => ({ ...prev, current: prev.current + 1 }));
+      }
+      // Delay between batches
+      if (i + batchSize < suspectItems.length) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    setImportSuspectIds(newSuspectImport);
+    setVerifyingAI(false);
+    toast({
+      title: "Verificação IA concluída",
+      description: `${movedToDuplicate.length} duplicatas confirmadas · ${movedToNew.length} novos confirmados · ${total - movedToDuplicate.length - movedToNew.length} inconclusivos`,
+    });
+  }, [suspectItems, importSuspectIds, toast]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,6 +193,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
     setFileName(file.name);
     setImportResult(null);
     setOverwriteIds(new Set());
+    setImportSuspectIds(new Set());
 
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -142,7 +221,8 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
   };
 
   const handleImport = async () => {
-    const toInsert = newItems;
+    const suspectsToImport = suspectItems.filter(s => importSuspectIds.has(s.idx));
+    const toInsert = [...newItems, ...suspectsToImport.map(s => s.item)];
     const toUpdate = duplicateItems.filter(d => overwriteIds.has(d.idx));
     if (toInsert.length === 0 && toUpdate.length === 0) return;
 
@@ -157,7 +237,6 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
       let updated = 0;
       let errors = 0;
 
-      // Insert new items
       const insertPayloads = toInsert.map(m => ({
         fabricante: m.fabricante, modelo: m.modelo, potencia_wp: m.potencia_wp,
         bifacial: m.bifacial, tipo_celula: m.tipo_celula,
@@ -174,7 +253,6 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
         setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
       }
 
-      // Update duplicates marked for overwrite
       for (const dup of toUpdate) {
         const { error } = await supabase.from("modulos_solares").update({
           bifacial: dup.item.bifacial, tipo_celula: dup.item.tipo_celula,
@@ -186,7 +264,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
       }
 
       qc.invalidateQueries({ queryKey: [...MODULO_QUERY_KEY] });
-      const skipped = duplicateItems.length - toUpdate.length;
+      const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
       setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados });
 
       toast({
@@ -207,6 +285,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
   const handleClose = () => {
     setParseResult(null); setFileName(""); setImportResult(null);
     setDistributorNames([]); setProgress(0); setOverwriteIds(new Set());
+    setImportSuspectIds(new Set());
     onOpenChange(false);
   };
 
@@ -251,7 +330,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
             {parseResult && !importResult && (
               <div className="space-y-4">
                 {/* Summary cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   <div className="rounded-lg border border-border p-3 text-center">
                     <p className="text-2xl font-bold text-foreground">{parseResult.modules.length}</p>
                     <p className="text-xs text-muted-foreground">Detectados</p>
@@ -259,6 +338,10 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
                   <div className="rounded-lg border border-border p-3 text-center">
                     <p className="text-2xl font-bold text-success">{newItems.length}</p>
                     <p className="text-xs text-muted-foreground">Novos</p>
+                  </div>
+                  <div className="rounded-lg border border-border p-3 text-center">
+                    <p className="text-2xl font-bold text-yellow-500">{suspectItems.length}</p>
+                    <p className="text-xs text-muted-foreground">Suspeitos</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
                     <p className="text-2xl font-bold text-warning">{duplicateItems.length}</p>
@@ -283,6 +366,48 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
                       {distributorNames.length > 10 && (
                         <Badge variant="outline" className="text-xs">+{distributorNames.length - 10}</Badge>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Suspect section */}
+                {suspectItems.length > 0 && (
+                  <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                        🟡 {suspectItems.length} suspeitos (similaridade ≥85%)
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleVerifyWithAI}
+                        disabled={verifyingAI}
+                        className="text-xs h-7 gap-1"
+                      >
+                        {verifyingAI ? (
+                          <><Loader2 className="w-3 h-3 animate-spin" /> Verificando {aiProgress.current}/{aiProgress.total}...</>
+                        ) : (
+                          <><Sparkles className="w-3 h-3" /> Verificar com IA</>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {suspectItems.map((s) => (
+                        <label key={s.idx} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-yellow-500/10 rounded px-1 py-0.5">
+                          <Checkbox
+                            checked={importSuspectIds.has(s.idx)}
+                            onCheckedChange={(c) => toggleSuspect(s.idx, !!c)}
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-foreground">{s.item.fabricante} {s.item.modelo} ({s.item.potencia_wp}Wp)</span>
+                            <p className="text-muted-foreground text-[10px] truncate">
+                              Possível duplicata de: {s.match.existingFabricante} {s.match.existingModelo} ({Math.round(s.match.score * 100)}%)
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 shrink-0">Suspeito</Badge>
+                        </label>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -361,7 +486,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
 
                 {/* Footer summary */}
                 <p className="text-xs text-muted-foreground text-center">
-                  {newItems.length} novos · {duplicateItems.length} duplicados ({overwriteIds.size} para sobrescrever) · {errorItems.length} erros
+                  {newItems.length} novos · {suspectItems.length} suspeitos ({importSuspectIds.size} para importar) · {duplicateItems.length} duplicados ({overwriteIds.size} para sobrescrever) · {errorItems.length} erros
                 </p>
 
                 {importing && (
@@ -395,18 +520,18 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
             <Button onClick={handleClose}>Fechar</Button>
           ) : parseResult ? (
             <>
-              <Button variant="ghost" onClick={() => { setParseResult(null); setFileName(""); setDistributorNames([]); setOverwriteIds(new Set()); }} disabled={importing}>
+              <Button variant="ghost" onClick={() => { setParseResult(null); setFileName(""); setDistributorNames([]); setOverwriteIds(new Set()); setImportSuspectIds(new Set()); }} disabled={importing}>
                 Voltar
               </Button>
               <Button
                 onClick={handleImport}
-                disabled={(newItems.length === 0 && overwriteIds.size === 0) || importing}
+                disabled={(newItems.length === 0 && overwriteIds.size === 0 && importSuspectIds.size === 0) || importing}
                 className="gap-2"
               >
                 {importing ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Importando...</>
                 ) : (
-                  `Importar ${newItems.length + overwriteIds.size} módulos`
+                  `Importar ${newItems.length + overwriteIds.size + importSuspectIds.size} módulos`
                 )}
               </Button>
             </>
