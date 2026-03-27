@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List, Sparkles, ChevronDown, ChevronUp, Info, AlertTriangle } from "lucide-react";
+import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List, Sparkles, ChevronDown, ChevronUp, Info, AlertTriangle, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
 import { roundCurrency } from "@/lib/formatters";
 import { usePricingDefaults } from "./hooks/usePricingDefaults";
+import { usePricingConfig } from "./hooks/usePricingConfig";
 import { toast } from "@/hooks/use-toast";
 
 // ── Types ──
