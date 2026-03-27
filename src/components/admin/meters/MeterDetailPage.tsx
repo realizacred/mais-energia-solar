@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -829,10 +830,9 @@ export default function MeterDetailPage() {
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Data da leitura inicial</label>
-                  <Input
-                    type="date"
+                  <DateInput
                     value={leituraData}
-                    onChange={(e) => setLeituraData(e.target.value)}
+                    onChange={setLeituraData}
                   />
                 </div>
                 <div>

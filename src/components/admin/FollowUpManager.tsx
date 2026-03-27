@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -469,7 +470,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
             </div>
             <div className="space-y-2">
               <Label htmlFor="data_proxima_acao">Data da Próxima Ação</Label>
-              <Input id="data_proxima_acao" type="date" value={formData.data_proxima_acao} onChange={(e) => setFormData(p => ({ ...p, data_proxima_acao: e.target.value }))} />
+              <DateInput id="data_proxima_acao" value={formData.data_proxima_acao} onChange={(v) => setFormData(p => ({ ...p, data_proxima_acao: v }))} />
             </div>
           </div>
           <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">

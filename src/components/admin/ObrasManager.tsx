@@ -5,6 +5,8 @@ import { handleSupabaseError } from "@/lib/errorHandler";
 import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -479,7 +481,7 @@ export function ObrasManager() {
               </div>
               <div className="space-y-2">
                 <Label>Valor (R$)</Label>
-                <Input type="number" value={(form as any).valor_projeto ?? ""} onChange={(e) => setForm({ ...form, valor_projeto: e.target.value } as any)} placeholder="35000" />
+                <CurrencyInput value={Number((form as any).valor_projeto) || 0} onChange={(v) => setForm({ ...form, valor_projeto: String(v) } as any)} />
               </div>
               <div className="space-y-2">
                 <Label>Economia (R$/mês)</Label>
@@ -514,7 +516,7 @@ export function ObrasManager() {
               </div>
               <div className="space-y-2">
                 <Label>Data Conclusão</Label>
-                <Input type="date" value={form.data_conclusao} onChange={(e) => setForm({ ...form, data_conclusao: e.target.value })} />
+                <DateInput value={form.data_conclusao} onChange={(v) => setForm({ ...form, data_conclusao: v })} />
               </div>
             </div>
 

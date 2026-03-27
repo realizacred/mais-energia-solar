@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/storagePaths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -899,11 +901,11 @@ export function UCInvoicesTab({ unitId }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Valor (R$) <span className="text-destructive">*</span></Label>
-                <Input type="number" step="0.01" value={form.total_amount} onChange={(e) => setForm(f => ({ ...f, total_amount: e.target.value }))} placeholder="0,00" />
+                <CurrencyInput value={Number(form.total_amount) || 0} onChange={(v) => setForm(f => ({ ...f, total_amount: String(v) }))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Vencimento</Label>
-                <Input type="date" value={form.due_date} onChange={(e) => setForm(f => ({ ...f, due_date: e.target.value }))} />
+                <DateInput value={form.due_date} onChange={(v) => setForm(f => ({ ...f, due_date: v }))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Bandeira Tarifária</Label>
@@ -978,11 +980,11 @@ export function UCInvoicesTab({ unitId }: Props) {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">PIS (R$)</Label>
-                <Input type="number" step="0.01" value={form.pis_valor} onChange={(e) => setForm(f => ({ ...f, pis_valor: e.target.value }))} placeholder="0,00" />
+                <CurrencyInput value={Number(form.pis_valor) || 0} onChange={(v) => setForm(f => ({ ...f, pis_valor: String(v) }))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">COFINS (R$)</Label>
-                <Input type="number" step="0.01" value={form.cofins_valor} onChange={(e) => setForm(f => ({ ...f, cofins_valor: e.target.value }))} placeholder="0,00" />
+                <CurrencyInput value={Number(form.cofins_valor) || 0} onChange={(v) => setForm(f => ({ ...f, cofins_valor: String(v) }))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Tarifa Energia</Label>

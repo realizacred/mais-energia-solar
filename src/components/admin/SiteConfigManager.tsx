@@ -4,6 +4,7 @@ import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -207,11 +208,11 @@ export function SiteConfigManager() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Telefone</Label>
-                  <Input value={settings.telefone || ""} onChange={(e) => update("telefone", e.target.value)} />
+                  <PhoneInput value={settings.telefone || ""} onChange={(v) => update("telefone", v)} />
                 </div>
                 <div className="space-y-2">
                   <Label>WhatsApp (só números)</Label>
-                  <Input value={settings.whatsapp || ""} onChange={(e) => update("whatsapp", e.target.value)} placeholder="5532998437675" />
+                  <PhoneInput value={settings.whatsapp || ""} onChange={(v) => update("whatsapp", v)} placeholder="(00) 00000-0000" />
                 </div>
               </div>
               <div className="space-y-2">

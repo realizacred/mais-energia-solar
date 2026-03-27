@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -585,10 +586,9 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[11px] font-medium text-muted-foreground">Data de Nascimento</Label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={formData.data_nascimento}
-                      onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                      onChange={(v) => setFormData({ ...formData, data_nascimento: v })}
                       className="h-8 text-sm"
                     />
                   </div>

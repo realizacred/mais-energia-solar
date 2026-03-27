@@ -13,6 +13,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -228,10 +229,9 @@ export function ProposalDetail() {
             <DialogTitle className="text-base font-bold">Alterar validade da proposta</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <Input
-              type="date"
+            <DateInput
               value={validadeDate}
-              onChange={(e) => setValidadeDate(e.target.value)}
+              onChange={setValidadeDate}
               className="text-sm"
             />
             <div className="flex justify-end gap-2 pt-2 border-t">

@@ -3,6 +3,7 @@ import { Settings2, Building2, MapPin, FileText, Zap, TestTube, Globe, Loader2, 
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -153,7 +154,7 @@ export function FiscalWizard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>CNPJ</Label>
-            <Input placeholder="00.000.000/0000-00" value={settings.cnpj_emitente} onChange={e => setSettings(p => ({ ...p, cnpj_emitente: e.target.value }))} />
+            <CpfCnpjInput value={settings.cnpj_emitente} onChange={v => setSettings(p => ({ ...p, cnpj_emitente: v }))} label="" showValidation={false} />
           </div>
           <div className="space-y-2">
             <Label>Inscrição Municipal</Label>

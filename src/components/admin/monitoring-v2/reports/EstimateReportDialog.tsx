@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -146,17 +147,15 @@ export function EstimateReportDialog({
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">Período *</Label>
               <div className="flex items-center gap-2">
-                <Input
-                  type="date"
+                <DateInput
                   value={periodStart}
-                  onChange={(e) => setPeriodStart(e.target.value)}
+                  onChange={setPeriodStart}
                   className="flex-1"
                 />
                 <span className="text-muted-foreground text-sm">→</span>
-                <Input
-                  type="date"
+                <DateInput
                   value={periodEnd}
-                  onChange={(e) => setPeriodEnd(e.target.value)}
+                  onChange={setPeriodEnd}
                   className="flex-1"
                 />
               </div>

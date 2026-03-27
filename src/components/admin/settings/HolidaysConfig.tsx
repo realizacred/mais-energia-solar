@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -119,7 +120,7 @@ export function HolidaysConfig({ tenantId }: { tenantId: string }) {
         <div className="flex items-end gap-2 flex-wrap">
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Data</label>
-            <Input type="date" value={newData} onChange={e => setNewData(e.target.value)} className="w-40 h-8 text-sm" />
+            <DateInput value={newData} onChange={setNewData} className="w-40 h-8 text-sm" />
           </div>
           <div className="space-y-1 flex-1 min-w-[140px]">
             <label className="text-xs text-muted-foreground">Nome</label>

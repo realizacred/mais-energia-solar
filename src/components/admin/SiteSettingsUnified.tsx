@@ -7,6 +7,7 @@ import {
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -369,11 +370,11 @@ export function SiteSettingsUnified() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Telefone</Label>
-                    <Input value={siteSettings.telefone || ""} onChange={(e) => updateSite("telefone", e.target.value)} />
+                    <PhoneInput value={siteSettings.telefone || ""} onChange={(v) => updateSite("telefone", v)} />
                   </div>
                   <div className="space-y-2">
                     <Label>WhatsApp (só números)</Label>
-                    <Input value={siteSettings.whatsapp || ""} onChange={(e) => updateSite("whatsapp", e.target.value)} placeholder="5532998437675" />
+                    <PhoneInput value={siteSettings.whatsapp || ""} onChange={(v) => updateSite("whatsapp", v)} placeholder="(00) 00000-0000" />
                   </div>
                 </div>
                 <div className="space-y-2">

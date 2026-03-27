@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -523,12 +524,9 @@ export function RecebimentosManager() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="data_acordo">Data do Acordo *</Label>
-                  <Input
-                    id="data_acordo"
-                    type="date"
+                  <DateInput
                     value={formData.data_acordo}
-                    onChange={(e) => setFormData({ ...formData, data_acordo: e.target.value })}
-                    required
+                    onChange={(v) => setFormData({ ...formData, data_acordo: v })}
                   />
                 </div>
               </div>

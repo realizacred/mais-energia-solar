@@ -7,6 +7,7 @@ import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -234,11 +235,11 @@ export function GdBeneficiaryFormModal({ open, onOpenChange, groupId, ucGeradora
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Vigência Início</Label>
-                <Input type="date" value={form.start_date} onChange={(e) => set("start_date")(e.target.value)} />
+                <DateInput value={form.start_date} onChange={set("start_date")} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Vigência Fim</Label>
-                <Input type="date" value={form.end_date} onChange={(e) => set("end_date")(e.target.value)} />
+                <DateInput value={form.end_date} onChange={set("end_date")} />
               </div>
             </div>
 

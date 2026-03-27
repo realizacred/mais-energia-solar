@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -509,7 +510,7 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
           <DialogHeader><DialogTitle>Editar Tenant</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Nome</Label><Input value={editForm.nome} onChange={(e) => setEditForm(f => ({ ...f, nome: e.target.value }))} /></div>
-            <div><Label>Documento (CNPJ/CPF)</Label><Input value={editForm.documento} onChange={(e) => setEditForm(f => ({ ...f, documento: e.target.value }))} /></div>
+            <div><Label>Documento (CNPJ/CPF)</Label><CpfCnpjInput value={editForm.documento} onChange={(v) => setEditForm(f => ({ ...f, documento: v }))} label="" /></div>
             <div><Label>Domínio Customizado</Label><Input value={editForm.dominio_customizado} onChange={(e) => setEditForm(f => ({ ...f, dominio_customizado: e.target.value }))} /></div>
             <div>
               <Label>Plano</Label>

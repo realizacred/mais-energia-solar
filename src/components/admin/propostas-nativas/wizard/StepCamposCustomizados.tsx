@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -164,7 +165,7 @@ function CustomFieldInput({ field, value, onChange }: {
       return (
         <div className="space-y-1.5">
           <Label className="text-xs">{label}</Label>
-          <Input type="date" value={value || ""} onChange={e => onChange(e.target.value)} className="h-9 text-xs" />
+          <DateInput value={value || ""} onChange={onChange} className="h-9 text-xs" />
         </div>
       );
 
