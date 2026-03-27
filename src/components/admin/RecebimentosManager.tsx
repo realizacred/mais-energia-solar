@@ -98,6 +98,7 @@ const FORMAS_PAGAMENTO = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
+  aguardando_instalacao: "bg-muted text-muted-foreground border-border",
   pendente: "bg-warning/15 text-warning border-warning/20",
   parcial: "bg-info/15 text-info border-info/20",
   quitado: "bg-success/15 text-success border-success/20",
@@ -105,6 +106,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
+  aguardando_instalacao: "Aguardando Instalação",
   pendente: "Pendente",
   parcial: "Parcial",
   quitado: "Quitado",
