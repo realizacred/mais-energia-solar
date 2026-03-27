@@ -487,9 +487,9 @@ export default function UCsListPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2 text-sm text-muted-foreground">
               <span className="text-xs">
-                {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, topLevelUcs.length)} de {topLevelUcs.length}
+                {(safeCurrentPage - 1) * PAGE_SIZE + 1} - {Math.min(safeCurrentPage * PAGE_SIZE, topLevelUcs.length)} de {topLevelUcs.length}
               </span>
-              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={safeCurrentPage === 1} onClick={() => setPage(p => p - 1)}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -497,7 +497,7 @@ export default function UCsListPage() {
                 return (
                   <Button
                     key={pageNum}
-                    variant={page === pageNum ? "default" : "ghost"}
+                    variant={safeCurrentPage === pageNum ? "default" : "ghost"}
                     size="icon"
                     className="h-7 w-7 text-xs"
                     onClick={() => setPage(pageNum)}
@@ -507,7 +507,7 @@ export default function UCsListPage() {
                 );
               })}
               {totalPages > 5 && <span>...</span>}
-              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={safeCurrentPage === totalPages} onClick={() => setPage(p => p + 1)}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
