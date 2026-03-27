@@ -418,6 +418,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [otimizadorEntries, setOtimizadorEntries] = useState<OtimizadorEntry[]>(initOtimizadores);
   const [bateriaEntries, setBateriaEntries] = useState<BateriaEntry[]>(initBaterias);
   const [componenteEntries, setComponenteEntries] = useState<{ id: string; nome: string; quantidade: number }[]>([]);
+  const [triedSave, setTriedSave] = useState(false);
 
   // Reset form when initialItens changes (open for edit vs create)
   const [lastInitKey, setLastInitKey] = useState<string | null>(null);
