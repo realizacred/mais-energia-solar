@@ -1834,6 +1834,28 @@ export function ProposalWizard() {
 
   const goNext = () => {
     if (step >= activeSteps.length - 1) return;
+
+    // Intercept: validate Financial Center before advancing
+    if (currentStepKey === STEP_KEYS.VENDA) {
+      const erros: string[] = [];
+      if (venda.custo_instalacao > 0 || venda.custo_comissao > 0 || venda.custo_outros > 0) {
+        // Financial center is active — validate costs
+        // Negative margin check
+        const custoBase = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+        const custoTotal = custoBase + venda.custo_instalacao + venda.custo_comissao + venda.custo_outros;
+        if (precoFinal > 0 && precoFinal < custoTotal) {
+          erros.push(
+            `Preço de venda (${formatBRL(precoFinal)}) está abaixo do custo total (${formatBRL(custoTotal)}). Margem negativa!`
+          );
+        }
+      }
+      if (erros.length > 0) {
+        setVendaErros(erros);
+        setShowVendaValidacao(true);
+        return;
+      }
+    }
+
     // Intercept: when advancing FROM Resumo → show pos-dimensionamento dialog
     const nextKey = activeSteps[step + 1]?.key;
     if (currentStepKey === STEP_KEYS.RESUMO && nextKey === STEP_KEYS.PROPOSTA) {
