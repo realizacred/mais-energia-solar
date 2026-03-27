@@ -33,6 +33,7 @@ interface Props {
   itens: KitItemRow[];
   servicos: ServicoItem[];
   potenciaKwp: number;
+  leadId?: string | null;
 }
 
 // ── View Modes ──
