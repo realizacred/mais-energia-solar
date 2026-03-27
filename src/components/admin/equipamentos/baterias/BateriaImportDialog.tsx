@@ -329,7 +329,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
       for (let i = 0; i < insertPayloads.length; i += BATCH_SIZE) {
         const chunk = insertPayloads.slice(i, i + BATCH_SIZE);
         const { error } = await supabase.from("baterias").insert(chunk as any);
-        if (error) errors += chunk.length; else inserted += chunk.length;
+        if (error) { console.error("[bateria-import] Erro batch", i, ":", error.message, error.code); errors += chunk.length; } else inserted += chunk.length;
         setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
       }
 
