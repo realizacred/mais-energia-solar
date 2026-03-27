@@ -1113,7 +1113,7 @@ function GerenciamentoTab({
         <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           {/* Card: Dados do Cliente */}
           <Card>
-            <CardHeader className="pb-0 flex flex-row items-center justify-between space-y-0 px-3.5 sm:px-3.5 pt-2.5 sm:pt-2.5">
+            <CardHeader className="pb-0 flex flex-row items-center justify-between space-y-0 px-3 sm:px-3 pt-3 sm:pt-3">
               <CardTitle className="text-sm font-bold text-foreground">
                 Dados do cliente
               </CardTitle>
@@ -1155,8 +1155,8 @@ function GerenciamentoTab({
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
-            <CardContent className="px-3.5 sm:px-3.5 pb-2.5 sm:pb-2.5 pt-0">
-              <div className="space-y-0.5">
+            <CardContent className="px-3 sm:px-3 pb-3 sm:pb-3 pt-1">
+              <div className="space-y-1.5">
                 <ClientRow icon={User} label={customerName || "—"} />
                 <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} onEdit={!customerEmpresa ? () => openInlineEdit("empresa", "Nome da Empresa", customerEmpresa) : undefined} />
                 <ClientRow icon={Hash} label={customerCpfCnpj ? formatCpfCnpj(customerCpfCnpj) : "Adicionar CNPJ/CPF"} muted={!customerCpfCnpj} isLink={!customerCpfCnpj} onCopy={customerCpfCnpj ? () => { navigator.clipboard.writeText(customerCpfCnpj); toast({ title: "CPF/CNPJ copiado" }); } : undefined} onEdit={!customerCpfCnpj ? () => openInlineEdit("cpf_cnpj", "CPF / CNPJ", customerCpfCnpj) : undefined} />
@@ -1709,7 +1709,7 @@ function ClientRow({ icon: Icon, label, muted, isLink, wrap, onCopy, onAction, a
   return (
     <div
       className={cn(
-        "flex items-start gap-2.5 py-0.5 group",
+        "flex items-start gap-1.5 py-0.5 group",
         onEdit && "cursor-pointer hover:bg-muted/40 -mx-2 px-2 rounded-md transition-colors"
       )}
       onClick={onEdit}
