@@ -23,6 +23,9 @@ import {
   findSuspects,
   type SuspectMatch,
 } from "@/utils/equipmentDedupUtils";
+import {
+  parseDistributorCSV,
+} from "../modulos/parseDistributorCSV";
 
 interface Bateria {
   id: string;
