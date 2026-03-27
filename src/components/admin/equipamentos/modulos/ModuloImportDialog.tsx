@@ -342,165 +342,170 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
           </div>
         </DialogHeader>
 
-        {!parsed ? (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Cole uma tabela (TSV/CSV) ou faça upload de um arquivo CSV.
-              A primeira linha deve conter os cabeçalhos.
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="gap-2" asChild>
-                <label>
-                  <Upload className="w-4 h-4" /> Upload CSV
-                  <input type="file" accept=".csv,.tsv,.txt" className="hidden" onChange={handleFileUpload} />
-                </label>
-              </Button>
-            </div>
-            <Textarea
-              placeholder={"Fabricante\tModelo\tPotencia\tTipo\tEficiencia\t...\nCanadian Solar\tCS7N-665MS\t665\tMono PERC\t22.5\t..."}
-              rows={12}
-              value={rawText}
-              onChange={e => setRawText(e.target.value)}
-              className="font-mono text-xs"
-            />
-            <DialogFooter className="gap-2">
-              <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button variant="secondary" onClick={handleBulkImport} disabled={!rawText.trim() || bulkImporting} className="gap-2">
-                {bulkImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {bulkImporting ? "Importando..." : "Importação Rápida (servidor)"}
-              </Button>
-              <Button onClick={handleParse} disabled={!rawText.trim()}>Analisar Dados</Button>
-            </DialogFooter>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-bold">{parsed.length}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-bold text-success">{validRows.length}</p>
-                <p className="text-xs text-muted-foreground">Novos</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-bold text-yellow-500">{suspectRows.length}</p>
-                <p className="text-xs text-muted-foreground">Suspeitos</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-bold text-warning">{dupeRows.length}</p>
-                <p className="text-xs text-muted-foreground">Duplicados</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-bold text-destructive">{errorRows.length}</p>
-                <p className="text-xs text-muted-foreground">Erros</p>
-              </div>
-            </div>
-
-            {/* Suspects */}
-            {suspectRows.length > 0 && (
-              <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                    🟡 {suspectRows.length} suspeitos (similaridade ≥85%)
-                  </p>
-                  <Button variant="outline" size="sm" onClick={handleVerifyWithAI} disabled={verifyingAI} className="text-xs h-7 gap-1">
-                    {verifyingAI ? (
-                      <><Loader2 className="w-3 h-3 animate-spin" /> {aiProgress.current}/{aiProgress.total}</>
-                    ) : (
-                      <><Sparkles className="w-3 h-3" /> Verificar com IA</>
-                    )}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-5 space-y-5">
+            {!parsed ? (
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="gap-2" asChild>
+                    <label>
+                      <Upload className="w-4 h-4" /> Upload CSV
+                      <input type="file" accept=".csv,.tsv,.txt" className="hidden" onChange={handleFileUpload} />
+                    </label>
                   </Button>
                 </div>
-                <div className="max-h-32 overflow-y-auto space-y-1">
-                  {suspectRows.map((s) => (
-                    <label key={s.idx} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-yellow-500/10 rounded px-1 py-0.5">
-                      <Checkbox checked={importSuspectIds.has(s.idx)} onCheckedChange={(c) => toggleSuspect(s.idx, !!c)} className="mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-foreground">{s.row.fabricante} {s.row.modelo} ({s.row.potencia_wp}Wp)</span>
-                        <p className="text-muted-foreground text-[10px] truncate">
-                          Similar a: {s.match.existingFabricante} {s.match.existingModelo} ({Math.round(s.match.score * 100)}%)
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 shrink-0">Suspeito</Badge>
-                    </label>
-                  ))}
-                </div>
+                <Textarea
+                  placeholder={"Fabricante\tModelo\tPotencia\tTipo\tEficiencia\t...\nCanadian Solar\tCS7N-665MS\t665\tMono PERC\t22.5\t..."}
+                  rows={12}
+                  value={rawText}
+                  onChange={e => setRawText(e.target.value)}
+                  className="font-mono text-xs"
+                />
               </div>
-            )}
+            ) : (
+              <div className="space-y-4">
+                {/* Summary */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <div className="rounded-lg border p-3 text-center">
+                    <p className="text-2xl font-bold">{parsed.length}</p>
+                    <p className="text-xs text-muted-foreground">Total</p>
+                  </div>
+                  <div className="rounded-lg border p-3 text-center">
+                    <p className="text-2xl font-bold text-success">{validRows.length}</p>
+                    <p className="text-xs text-muted-foreground">Novos</p>
+                  </div>
+                  <div className="rounded-lg border p-3 text-center">
+                    <p className="text-2xl font-bold text-warning">{suspectRows.length}</p>
+                    <p className="text-xs text-muted-foreground">Suspeitos</p>
+                  </div>
+                  <div className="rounded-lg border p-3 text-center">
+                    <p className="text-2xl font-bold text-warning">{dupeRows.length}</p>
+                    <p className="text-xs text-muted-foreground">Duplicados</p>
+                  </div>
+                  <div className="rounded-lg border p-3 text-center">
+                    <p className="text-2xl font-bold text-destructive">{errorRows.length}</p>
+                    <p className="text-xs text-muted-foreground">Erros</p>
+                  </div>
+                </div>
 
-            {dupeRows.length > 0 && (
-              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
-                <p className="text-sm font-medium text-warning">
-                  {dupeRows.length} duplicados detectados (serão ignorados)
+                {/* Suspects */}
+                {suspectRows.length > 0 && (
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-warning">
+                        🟡 {suspectRows.length} suspeitos (similaridade ≥85%)
+                      </p>
+                      <Button variant="outline" size="sm" onClick={handleVerifyWithAI} disabled={verifyingAI} className="text-xs h-7 gap-1 shrink-0">
+                        {verifyingAI ? (
+                          <><Loader2 className="w-3 h-3 animate-spin" /> {aiProgress.current}/{aiProgress.total}</>
+                        ) : (
+                          <><Sparkles className="w-3 h-3" /> Verificar com IA</>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {suspectRows.map((s) => (
+                        <label key={s.idx} className="flex items-start gap-2 text-xs cursor-pointer hover:bg-warning/10 rounded px-1 py-0.5">
+                          <Checkbox checked={importSuspectIds.has(s.idx)} onCheckedChange={(c) => toggleSuspect(s.idx, !!c)} className="mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-foreground">{s.row.fabricante} {s.row.modelo} ({s.row.potencia_wp}Wp)</span>
+                            <p className="text-muted-foreground text-[10px] truncate">
+                              Similar a: {s.match.existingFabricante} {s.match.existingModelo} ({Math.round(s.match.score * 100)}%)
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20 shrink-0">Suspeito</Badge>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {dupeRows.length > 0 && (
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
+                    <p className="text-sm font-medium text-warning">
+                      {dupeRows.length} duplicados detectados (serão ignorados)
+                    </p>
+                  </div>
+                )}
+
+                {/* Preview table */}
+                <div className="max-h-[300px] overflow-x-auto overflow-y-auto border rounded-lg">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/50 sticky top-0">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left">#</th>
+                        <th className="px-2 py-1.5 text-left">Fabricante</th>
+                        <th className="px-2 py-1.5 text-left">Modelo</th>
+                        <th className="px-2 py-1.5 text-left">W</th>
+                        <th className="px-2 py-1.5 text-left">Status</th>
+                        <th className="px-2 py-1.5 text-left">Problemas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsed.slice(0, 50).map((r, i) => {
+                        const key = dedupKeyNormalized(r.fabricante, r.modelo, r.potencia_wp);
+                        const isDupe = existingMap.has(key);
+                        return (
+                          <tr key={i} className={r.errors.length > 0 ? "bg-destructive/5" : isDupe ? "bg-warning/5" : ""}>
+                            <td className="px-2 py-1">{i + 1}</td>
+                            <td className="px-2 py-1">{r.fabricante}</td>
+                            <td className="px-2 py-1 max-w-[200px] truncate">{r.modelo}</td>
+                            <td className="px-2 py-1">{r.potencia_wp}</td>
+                            <td className="px-2 py-1">
+                              {r.errors.length > 0 ? (
+                                <Badge variant="destructive" className="text-xs">Erro</Badge>
+                              ) : isDupe ? (
+                                <Badge variant="outline" className="text-xs text-warning">Duplicado</Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />{r.status}
+                                </Badge>
+                              )}
+                            </td>
+                            <td className="px-2 py-1 text-muted-foreground">
+                              {[...r.errors, ...r.warnings].join("; ")}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {parsed.length > 50 && (
+                        <tr>
+                          <td colSpan={6} className="px-2 py-2 text-center text-muted-foreground">
+                            ...e mais {parsed.length - 50} linhas
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  {validRows.length} novos · {suspectRows.length} suspeitos ({importSuspectIds.size} para importar) · {dupeRows.length} duplicados · {errorRows.length} erros
                 </p>
               </div>
             )}
+          </div>
+        </ScrollArea>
 
-            {/* Preview table */}
-            <div className="max-h-[300px] overflow-auto border rounded-lg">
-              <table className="w-full text-xs">
-                <thead className="bg-muted/50 sticky top-0">
-                  <tr>
-                    <th className="px-2 py-1.5 text-left">#</th>
-                    <th className="px-2 py-1.5 text-left">Fabricante</th>
-                    <th className="px-2 py-1.5 text-left">Modelo</th>
-                    <th className="px-2 py-1.5 text-left">W</th>
-                    <th className="px-2 py-1.5 text-left">Status</th>
-                    <th className="px-2 py-1.5 text-left">Problemas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {parsed.slice(0, 50).map((r, i) => {
-                    const key = dedupKeyNormalized(r.fabricante, r.modelo, r.potencia_wp);
-                    const isDupe = existingMap.has(key);
-                    return (
-                      <tr key={i} className={r.errors.length > 0 ? "bg-destructive/5" : isDupe ? "bg-warning/5" : ""}>
-                        <td className="px-2 py-1">{i + 1}</td>
-                        <td className="px-2 py-1">{r.fabricante}</td>
-                        <td className="px-2 py-1 max-w-[200px] truncate">{r.modelo}</td>
-                        <td className="px-2 py-1">{r.potencia_wp}</td>
-                        <td className="px-2 py-1">
-                          {r.errors.length > 0 ? (
-                            <Badge variant="destructive" className="text-xs">Erro</Badge>
-                          ) : isDupe ? (
-                            <Badge variant="outline" className="text-xs text-warning">Duplicado</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs">
-                              <CheckCircle2 className="w-3 h-3 mr-1" />{r.status}
-                            </Badge>
-                          )}
-                        </td>
-                        <td className="px-2 py-1 text-muted-foreground">
-                          {[...r.errors, ...r.warnings].join("; ")}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {parsed.length > 50 && (
-                    <tr>
-                      <td colSpan={6} className="px-2 py-2 text-center text-muted-foreground">
-                        ...e mais {parsed.length - 50} linhas
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <p className="text-xs text-muted-foreground text-center">
-              {validRows.length} novos · {suspectRows.length} suspeitos ({importSuspectIds.size} para importar) · {dupeRows.length} duplicados · {errorRows.length} erros
-            </p>
-
-            <DialogFooter className="gap-2">
+        <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+          {!parsed ? (
+            <>
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button variant="secondary" onClick={handleBulkImport} disabled={!rawText.trim() || bulkImporting} className="gap-2">
+                {bulkImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {bulkImporting ? "Importando..." : "Importação Rápida"}
+              </Button>
+              <Button onClick={handleParse} disabled={!rawText.trim()}>Analisar Dados</Button>
+            </>
+          ) : (
+            <>
               <Button variant="ghost" onClick={() => { setParsed(null); setImportSuspectIds(new Set()); }}>Voltar</Button>
-              <Button variant="outline" onClick={handleImport} disabled={(validRows.length === 0 && importSuspectIds.size === 0) || importing}>
+              <Button onClick={handleImport} disabled={(validRows.length === 0 && importSuspectIds.size === 0) || importing} className="gap-2">
                 {importing ? "Importando..." : `Importar ${validRows.length + importSuspectIds.size} módulos`}
               </Button>
-            </DialogFooter>
-          </div>
-        )}
+            </>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
