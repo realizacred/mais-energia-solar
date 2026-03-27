@@ -28,6 +28,10 @@ interface CatalogoOtimizador {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
   eficiencia_percent: number | null; compatibilidade: string | null;
 }
+interface CatalogoBateria {
+  id: string; fabricante: string; modelo: string; energia_kwh: number | null;
+  tensao_nominal_v: number | null; tipo_bateria: string | null;
+}
 
 interface InversorEntry {
   id: string;
