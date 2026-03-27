@@ -66,6 +66,14 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
   const { data: pricingConfig } = usePricingConfig();
 
+  // Other services (not instalacao/comissao) — tracked with local state for toggle
+  const outrosServicos = useMemo(() =>
+    servicos.filter(s => s.categoria !== "instalacao" && s.categoria !== "comissao" && s.valor > 0),
+    [servicos]
+  );
+  const [servicosEnabledMap, setServicosEnabledMap] = useState<Record<string, boolean>>({});
+  const isServicoEnabled = (id: string) => servicosEnabledMap[id] ?? true;
+
   // Apply initial margin from pricing_config (one-time, when venda still has default 20%)
   useEffect(() => {
     if (loadedDefaults || !pricingConfig) return;
