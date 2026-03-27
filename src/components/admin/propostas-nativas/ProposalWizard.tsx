@@ -785,6 +785,13 @@ export function ProposalWizard() {
                 email: prev.email || cliEnrich.email || "",
                 cnpj_cpf: prev.cnpj_cpf || cliEnrich.cpf_cnpj || "",
                 empresa: prev.empresa || cliEnrich.empresa || "",
+                cep: prev.cep || cliEnrich.cep || "",
+                endereco: prev.endereco || cliEnrich.rua || "",
+                numero: prev.numero || cliEnrich.numero || "",
+                complemento: prev.complemento || cliEnrich.complemento || "",
+                bairro: prev.bairro || cliEnrich.bairro || "",
+                cidade: prev.cidade || cliEnrich.cidade || "",
+                estado: prev.estado || cliEnrich.estado || "",
               }));
               console.log("[ProposalWizard] cliente enriched from DB:", propostaMeta.cliente_id);
             }
