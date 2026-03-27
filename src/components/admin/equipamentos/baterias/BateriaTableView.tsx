@@ -59,6 +59,7 @@ export function BateriaTableView({ baterias, onView, onEdit, onDelete, onToggle 
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const enrichBatch = useEnrichEquipmentBatch();
 
   const dataKey = baterias.length;
   const [prevKey, setPrevKey] = useState(dataKey);
@@ -187,6 +188,9 @@ export function BateriaTableView({ baterias, onView, onEdit, onDelete, onToggle 
           <div className="flex gap-2 ml-auto">
             <Button variant="outline" size="sm" disabled={bulkLoading} onClick={() => handleBulkToggle(true)}>Ativar</Button>
             <Button variant="outline" size="sm" disabled={bulkLoading} onClick={() => handleBulkToggle(false)}>Desativar</Button>
+            <Button variant="outline" size="sm" className="gap-1" disabled={enrichBatch.isPending} onClick={() => enrichBatch.mutate({ equipment_type: "bateria", ids: Array.from(selectedIds) }, { onSuccess: () => setSelectedIds(new Set()) })}>
+              {enrichBatch.isPending && <Loader2 className="w-3 h-3 animate-spin" />} Buscar specs IA
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Cancelar</Button>
           </div>
         </div>
@@ -240,6 +244,7 @@ export function BateriaTableView({ baterias, onView, onEdit, onDelete, onToggle 
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      <EnrichButton equipmentType="bateria" equipmentId={bat.id} />
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(bat)}><Eye className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(bat)}><Pencil className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(bat)}><Trash2 className="w-4 h-4" /></Button>
