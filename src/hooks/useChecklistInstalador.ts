@@ -70,11 +70,13 @@ export function useChecklistTemplates() {
   });
 }
 
-// ── Checklists de um projeto ──
-export function useChecklistsByProjeto(projetoId: string) {
+// ── Checklists de um projeto (recebe dealId, resolve para projetos.id) ──
+export function useChecklistsByProjeto(dealId: string) {
   return useQuery({
-    queryKey: [QK, "projeto", projetoId],
+    queryKey: [QK, "projeto", dealId],
     queryFn: async () => {
+      // Resolve deal_id → projetos.id
+      const projetoId = await resolveProjetoId(dealId);
       const { data, error } = await supabase
         .from("checklists_instalador")
         .select("id, template_id, status, fase_atual, data_agendada, data_inicio, data_fim, observacoes, assinatura_instalador_url, assinatura_cliente_url, created_at")
@@ -84,7 +86,7 @@ export function useChecklistsByProjeto(projetoId: string) {
       return (data ?? []) as ChecklistInstalador[];
     },
     staleTime: STALE,
-    enabled: !!projetoId,
+    enabled: !!dealId,
   });
 }
 
@@ -154,16 +156,30 @@ async function getTenantAndUser() {
   return { userId: user.id, tenantId: profile?.tenant_id as string };
 }
 
+/** Resolve deal_id → projetos.id (FK exige projetos.id, não deals.id) */
+async function resolveProjetoId(dealId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("projetos")
+    .select("id")
+    .eq("deal_id", dealId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data?.id) throw new Error("Projeto não encontrado para este deal. Verifique se o projeto foi criado corretamente.");
+  return data.id;
+}
+
 // ── Criar checklist ──
 export function useCriarChecklist() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ projetoId, templateId }: { projetoId: string; templateId: string }) => {
+    mutationFn: async ({ projetoId: dealId, templateId }: { projetoId: string; templateId: string }) => {
       const { userId, tenantId } = await getTenantAndUser();
+      // Resolve deal_id → projetos.id (FK exige projetos.id)
+      const realProjetoId = await resolveProjetoId(dealId);
       const { data, error } = await supabase
         .from("checklists_instalador")
         .insert({
-          projeto_id: projetoId,
+          projeto_id: realProjetoId,
           instalador_id: userId,
           template_id: templateId,
           status: "agendado",
