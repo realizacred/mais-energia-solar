@@ -439,6 +439,7 @@ export function BateriasManager() {
       <BateriaViewModal bateria={viewItem} open={!!viewItem} onOpenChange={v => !v && setViewItem(null)} />
       <BateriaCompareModal baterias={compareBaterias} open={compareOpen} onOpenChange={(v) => { setCompareOpen(v); if (!v) setCompareIds(new Set()); }} />
       <BatchEnrichDialog open={batchEnrichOpen} onOpenChange={setBatchEnrichOpen} equipmentType="bateria" draftIds={baterias.map(b => b.id)} />
+      <BateriaImportDialog open={importOpen} onOpenChange={setImportOpen} existingBaterias={baterias} />
     </div>
   );
 }
