@@ -443,6 +443,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                     const summary = catalogSummaries.get(kit.id);
                     const isSelected = selectedCatalogKitId === kit.id;
 
+                    const kitPrice = kit.fixed_price || summary?.custoTotal || 0;
+
                     if (viewMode === "list") {
                       return (
                         <div
@@ -455,25 +457,39 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                           )}
                           onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
                         >
-                          <div className="flex-1 min-w-0 flex items-center gap-4">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-bold truncate">{kit.name}</p>
-                              {kit.description && (
-                                <p className="text-xs text-muted-foreground truncate mt-0.5">{kit.description}</p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3 shrink-0">
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <p className="text-sm font-bold truncate">{kit.name}</p>
+                            {kit.description && (
+                              <p className="text-xs text-muted-foreground truncate">{kit.description}</p>
+                            )}
+                            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
                               {summary && summary.moduloQtd > 0 && (
-                                <span className="text-xs text-muted-foreground">{summary.moduloQtd}x módulos</span>
+                                <span className="flex items-center gap-1">
+                                  <Sun className="h-3 w-3" />
+                                  {summary.moduloQtd}x {summary.moduloDescricao}
+                                </span>
                               )}
                               {summary && summary.inversorQtd > 0 && (
-                                <span className="text-xs text-muted-foreground">{summary.inversorQtd}x inversores</span>
+                                <span className="flex items-center gap-1">
+                                  <Cpu className="h-3 w-3" />
+                                  {summary.inversorQtd}x {summary.inversorDescricao}
+                                </span>
                               )}
+                            </div>
+                            <div className="flex items-center gap-3">
                               {kit.estimated_kwp != null && kit.estimated_kwp > 0 && (
                                 <Badge variant="secondary" className="text-[10px]">{kit.estimated_kwp} kWp</Badge>
                               )}
-                              {kit.fixed_price != null && kit.fixed_price > 0 && (
-                                <p className="text-sm font-bold text-primary">{formatBRL(kit.fixed_price)}</p>
+                              <Badge variant="outline" className="text-[10px]">
+                                {kit.pricing_mode === "fixed" ? "Fixo" : "Calculado"}
+                              </Badge>
+                              {summary && (
+                                <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                                  {summary.totalItens} itens
+                                </Badge>
+                              )}
+                              {kitPrice > 0 && (
+                                <span className="text-sm font-bold text-primary">{formatBRL(kitPrice)}</span>
                               )}
                             </div>
                           </div>
@@ -501,11 +517,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                       <div
                         key={kit.id}
                         className={cn(
-                          "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between min-h-[200px] relative",
+                          "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between min-h-[220px] cursor-pointer relative",
                           isSelected
                             ? "border-primary shadow-md ring-2 ring-primary/20"
                             : "border-border/40 hover:border-primary/30"
                         )}
+                        onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
                       >
                         {isSelected && (
                           <div className="absolute top-2 right-2">
@@ -514,9 +531,11 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                             </Badge>
                           </div>
                         )}
+
                         <div className="space-y-3">
+                          {/* Name + description */}
                           <div>
-                            <p className="text-sm font-bold truncate">{kit.name}</p>
+                            <p className="text-sm font-bold truncate pr-20">{kit.name}</p>
                             {kit.description && (
                               <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{kit.description}</p>
                             )}
@@ -548,12 +567,13 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                             </div>
                           )}
 
+                          {/* Badges */}
                           <div className="flex items-center gap-2 flex-wrap">
                             {kit.estimated_kwp != null && kit.estimated_kwp > 0 && (
                               <Badge variant="secondary" className="text-[10px]">{kit.estimated_kwp} kWp</Badge>
                             )}
                             <Badge variant="outline" className="text-[10px]">
-                              {kit.pricing_mode === "fixed" ? `Fixo ${kit.fixed_price ? formatBRL(kit.fixed_price) : ""}` : "Calculado"}
+                              {kit.pricing_mode === "fixed" ? "Fixo" : "Calculado"}
                             </Badge>
                             {summary && (
                               <Badge variant="outline" className="text-[10px] text-muted-foreground">
@@ -561,18 +581,21 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                               </Badge>
                             )}
                           </div>
-
-                          {kit.fixed_price != null && kit.fixed_price > 0 && (
-                            <p className="text-sm font-bold text-primary">{formatBRL(kit.fixed_price)}</p>
-                          )}
                         </div>
-                        <div className="mt-3 flex justify-end">
+
+                        {/* Footer: price + action */}
+                        <div className="border-t border-border/40 pt-3 mt-2 flex items-center justify-between">
+                          <div>
+                            {kitPrice > 0 && (
+                              <p className="text-sm font-bold text-primary">{formatBRL(kitPrice)}</p>
+                            )}
+                          </div>
                           <Button
                             size="sm"
                             variant={isSelected ? "outline" : "default"}
                             className={cn("gap-1.5 h-8 text-xs", isSelected && "border-primary text-primary")}
                             disabled={snapshotLoading === kit.id}
-                            onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
+                            onClick={(e) => { e.stopPropagation(); handleSelectCatalogKit(kit.id, kit.name); }}
                           >
                             {snapshotLoading === kit.id ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
