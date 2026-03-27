@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -906,10 +907,9 @@ export function StepDocumento({
               </PopoverTrigger>
               <PopoverContent className="w-auto p-3" align="start">
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Alterar validade</Label>
-                <Input
-                  type="date"
+                <DateInput
                   value={validade}
-                  onChange={(e) => setValidade(e.target.value)}
+                  onChange={setValidade}
                   className="h-8 text-xs w-44"
                 />
               </PopoverContent>

@@ -5,6 +5,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -306,7 +307,7 @@ function PosCustomFieldInput({ field, value, onChange }: {
       return (
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">{label}</Label>
-          <Input type="date" value={value || ""} onChange={e => onChange(e.target.value)} className="h-9 text-xs" />
+          <DateInput value={value || ""} onChange={onChange} className="h-9 text-xs" />
         </div>
       );
 
