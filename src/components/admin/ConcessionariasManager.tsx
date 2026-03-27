@@ -732,19 +732,19 @@ export function ConcessionariasManager() {
           <Table>
              <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="font-semibold text-foreground">Nome</TableHead>
-                <TableHead className="font-semibold text-foreground">Sigla</TableHead>
-                <TableHead className="font-semibold text-foreground">UF</TableHead>
-                <TableHead className="font-semibold text-foreground">Subgrupos</TableHead>
-                <TableHead className="font-semibold text-foreground">Tarifa (TE+TUSD)</TableHead>
-                <TableHead className="font-semibold text-foreground">Fio B (100%)</TableHead>
-                <TableHead className="font-semibold text-foreground">Fio B Vigente</TableHead>
-                <TableHead className="font-semibold text-foreground">Integral c/ Imp.</TableHead>
-                <TableHead className="font-semibold text-foreground">ICMS</TableHead>
-                <TableHead className="font-semibold text-foreground">Isenção</TableHead>
-                <TableHead className="font-semibold text-foreground">Sync ANEEL</TableHead>
-                <TableHead className="font-semibold text-foreground">Status</TableHead>
-                <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Nome</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Sigla</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">UF</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Subgrupos</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Tarifa (TE+TUSD)</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Fio B (100%)</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Fio B Vigente</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Integral c/ Imp.</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">ICMS</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Isenção</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Sync ANEEL</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Status</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -774,7 +774,7 @@ export function ConcessionariasManager() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredConcessionarias.map((c) => (
+                paginatedData.map((c) => (
                   <React.Fragment key={c.id}>
                     <TableRow 
                       className={`hover:bg-muted/30 cursor-pointer transition-colors ${expandedId === c.id ? 'bg-muted/30' : ''}`}
@@ -993,6 +993,31 @@ export function ConcessionariasManager() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {filteredConcessionarias.length > 0 && (
+          <div className="flex items-center justify-between text-sm text-muted-foreground mt-4">
+            <div className="flex items-center gap-2">
+              <span>Exibir</span>
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="w-20 h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map(s => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <span>de {filteredConcessionarias.length} resultados</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="px-2 text-xs">{page} / {totalPages}</span>
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Add/Edit Dialog */}
         <ConcessionariaFormDialog
