@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useEquipamentosCatalogoRealtime } from "@/hooks/useEquipamentosCatalogoRealtime";
 import { VirtuosoGrid } from "react-virtuoso";
 import { Plus, Pencil, Trash2, Search, Battery, Eye, X, Package, CheckCircle2, Sparkles, LayoutGrid, Table as TableIcon, Zap, Wand2, FileWarning, GitCompareArrows, FileSpreadsheet } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -58,6 +59,7 @@ const EMPTY_FORM = {
 };
 
 export function BateriasManager() {
+  useEquipamentosCatalogoRealtime();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
