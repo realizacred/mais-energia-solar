@@ -1,7 +1,7 @@
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { formatBRLInteger as formatBRL, formatPhoneBR } from "@/lib/formatters";
-import { useClienteHasRecebimento } from "@/hooks/useClienteRecebimento";
+import { useClienteHasRecebimento, useClienteRecebimentoDetalhes } from "@/hooks/useClienteRecebimento";
 import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
 import { ClienteViewDialog } from "@/components/admin/ClienteViewDialog";
