@@ -91,9 +91,9 @@ export function BateriaTableView({ baterias, onView, onEdit, onDelete, onToggle 
     });
   }, [baterias, sortKey, sortDir, completudeMap]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(sorted.length / pageSize)), [sorted.length, pageSize]);
   const safeCurrentPage = Math.min(currentPage, totalPages);
-  const paginated = sorted.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
+  const paginated = useMemo(() => sorted.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize), [sorted, safeCurrentPage, pageSize]);
 
   const allPageSelected = paginated.length > 0 && paginated.every(b => selectedIds.has(b.id));
 

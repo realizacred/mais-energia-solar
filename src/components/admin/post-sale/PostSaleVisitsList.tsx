@@ -90,11 +90,12 @@ export function PostSaleVisitsList() {
   const clearFilters = () => { setSearch(""); setFilterStatus("all"); setFilterTipo("all"); };
 
   // Pagination
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filtered.length / pageSize)), [filtered.length, pageSize]);
+  const safeCurrentPage = Math.min(page, totalPages);
   const paginatedData = useMemo(() => {
-    const start = (page - 1) * pageSize;
+    const start = (safeCurrentPage - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [filtered, page, pageSize]);
+  }, [filtered, safeCurrentPage, pageSize]);
 
   useEffect(() => { setPage(1); }, [search, filterStatus, filterTipo, pageSize]);
 
@@ -268,11 +269,11 @@ export function PostSaleVisitsList() {
             <span>de {filtered.length} resultados</span>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={safeCurrentPage <= 1} onClick={() => setPage(p => p - 1)}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="px-2 text-xs">{page} / {totalPages}</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+            <span className="px-2 text-xs">{safeCurrentPage} / {totalPages}</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={safeCurrentPage >= totalPages} onClick={() => setPage(p => p + 1)}>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>

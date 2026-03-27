@@ -491,14 +491,15 @@ export function ConcessionariasManager() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-  const totalPages = Math.max(1, Math.ceil(filteredConcessionarias.length / pageSize));
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredConcessionarias.length / pageSize)), [filteredConcessionarias.length, pageSize]);
+  const safeCurrentPage = Math.min(page, totalPages);
   const paginatedData = useMemo(() => {
-    const start = (page - 1) * pageSize;
+    const start = (safeCurrentPage - 1) * pageSize;
     return filteredConcessionarias.slice(start, start + pageSize);
-  }, [filteredConcessionarias, page, pageSize]);
+  }, [filteredConcessionarias, safeCurrentPage, pageSize]);
 
   // Reset page on filter change
-  useEffect(() => { setPage(1); }, [searchTerm, filterEstado, filterStatus]);
+  useEffect(() => { setPage(1); }, [searchTerm, filterEstado, filterStatus, pageSize]);
 
   if (loading) {
     return (
@@ -1008,11 +1009,11 @@ export function ConcessionariasManager() {
               <span>de {filteredConcessionarias.length} resultados</span>
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={safeCurrentPage <= 1} onClick={() => setPage(p => p - 1)}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="px-2 text-xs">{page} / {totalPages}</span>
-              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+              <span className="px-2 text-xs">{safeCurrentPage} / {totalPages}</span>
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={safeCurrentPage >= totalPages} onClick={() => setPage(p => p + 1)}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
