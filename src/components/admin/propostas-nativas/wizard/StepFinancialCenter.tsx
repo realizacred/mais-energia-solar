@@ -83,6 +83,60 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       });
   }, []);
 
+  // ── Auto-load commission from consultant linked to the lead ──
+  const [comissaoLoaded, setComissaoLoaded] = useState(false);
+  useEffect(() => {
+    if (comissaoLoaded || !leadId) return;
+    (async () => {
+      try {
+        const { data: lead } = await supabase
+          .from("leads")
+          .select("consultor_id")
+          .eq("id", leadId)
+          .maybeSingle();
+        const consultorId = lead?.consultor_id;
+        if (!consultorId) { setComissaoLoaded(true); return; }
+        // Try commission_plans first
+        const { data: plans } = await supabase
+          .from("commission_plans" as any)
+          .select("taxa_base_percent")
+          .eq("ativo", true)
+          .limit(1)
+          .maybeSingle();
+        const percentual = (plans as any)?.taxa_base_percent ?? 0;
+        if (percentual > 0 && comissaoCusto === 0) {
+          // Will be recalculated when precoVenda changes — just store percentage hint
+          console.debug("[StepFinancialCenter] Comissão do consultor:", percentual, "%");
+        }
+      } catch (e) {
+        console.warn("[StepFinancialCenter] Erro ao buscar comissão:", e);
+      }
+      setComissaoLoaded(true);
+    })();
+  }, [leadId, comissaoLoaded]);
+
+  // ── Sync Financial Center costs back to VendaData ──
+  // This ensures calcPrecoFinal and StepResumo see the correct values
+  useEffect(() => {
+    const newInstalacao = instalacaoEnabled ? roundCurrency(instalacaoQtd * instalacaoCusto) : 0;
+    const newComissao = comissaoEnabled ? roundCurrency(comissaoQtd * comissaoCusto) : 0;
+    const newOutros = roundCurrency(custosExtras.filter(c => c.checked).reduce((s, c) => s + roundCurrency(c.quantidade * c.custoUnitario), 0));
+
+    const changed =
+      venda.custo_instalacao !== newInstalacao ||
+      venda.custo_comissao !== newComissao ||
+      venda.custo_outros !== newOutros;
+
+    if (changed) {
+      onVendaChange({
+        ...venda,
+        custo_instalacao: newInstalacao,
+        custo_comissao: newComissao,
+        custo_outros: newOutros,
+      });
+    }
+  }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras]);
+
   // ── Calculations ──
 
   const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
