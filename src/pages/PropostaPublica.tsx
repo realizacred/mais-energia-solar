@@ -320,14 +320,14 @@ export default function PropostaPublica() {
     <div className="min-h-screen bg-muted/30">
       {/* Proposal Preview — hidden on simulacao view */}
       {html && !isSimulacaoView && (
-        <div className="max-w-4xl mx-auto py-6 px-4">
-          <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+        <div className="w-full px-0 sm:px-4 sm:py-4 md:max-w-5xl md:mx-auto">
+          <div className="bg-card sm:rounded-xl shadow-sm overflow-hidden">
             <iframe
               srcDoc={html}
               title="Proposta"
               sandbox="allow-same-origin allow-popups allow-scripts"
               className="w-full border-0"
-              style={{ width: "100%", height: "clamp(400px, 70vh, 900px)" }}
+              style={{ width: "100%", height: "calc(100vh - 56px)" }}
             />
           </div>
         </div>
@@ -335,13 +335,13 @@ export default function PropostaPublica() {
 
       {/* PDF Preview — when DOCX template was used (no HTML render) */}
       {!html && pdfUrl && !isSimulacaoView && (
-        <div className="max-w-4xl mx-auto py-6 px-4">
-          <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+        <div className="w-full px-0 sm:px-4 sm:py-4 md:max-w-5xl md:mx-auto">
+          <div className="bg-card sm:rounded-xl shadow-sm overflow-hidden">
             <iframe
               src={pdfUrl}
               title="Proposta PDF"
               className="w-full border-0"
-              style={{ width: "100%", height: "clamp(500px, 80vh, 1000px)" }}
+              style={{ width: "100%", height: "calc(100vh - 56px)" }}
             />
           </div>
         </div>
