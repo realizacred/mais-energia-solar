@@ -133,7 +133,7 @@ export function StepAdicionais({
                   {modItem && (
                     <div className="flex items-start gap-2.5">
                       <div className="h-9 w-9 rounded bg-muted/50 flex items-center justify-center shrink-0 mt-0.5">
-                        <Sun className="h-4 w-4 text-muted-foreground" />
+                        <SunMedium className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-foreground">
@@ -150,7 +150,7 @@ export function StepAdicionais({
                   {invItem && (
                     <div className="flex items-start gap-2.5">
                       <div className="h-9 w-9 rounded bg-muted/50 flex items-center justify-center shrink-0 mt-0.5">
-                        <Cpu className="h-4 w-4 text-muted-foreground" />
+                        <Cable className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-foreground">
