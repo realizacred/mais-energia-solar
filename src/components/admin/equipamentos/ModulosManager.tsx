@@ -39,7 +39,7 @@ export function ModulosManager() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterTipo, setFilterTipo] = useState<string>("all");
   const [filterBifacial, setFilterBifacial] = useState<string>("all");
-  const [filterTensao, setFilterTensao] = useState<string>("all");
+  
   const [filterPotMin, setFilterPotMin] = useState<string>("");
   const [filterPotMax, setFilterPotMax] = useState<string>("");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
@@ -68,11 +68,11 @@ export function ModulosManager() {
     if (filterStatus !== "all") c++;
     if (filterTipo !== "all") c++;
     if (filterBifacial !== "all") c++;
-    if (filterTensao !== "all") c++;
+    
     if (filterPotMin) c++;
     if (filterPotMax) c++;
     return c;
-  }, [search, filterAtivo, filterFabricante, filterStatus, filterTipo, filterBifacial, filterTensao, filterPotMin, filterPotMax]);
+  }, [search, filterAtivo, filterFabricante, filterStatus, filterTipo, filterBifacial, filterPotMin, filterPotMax]);
 
   const clearFilters = () => {
     setSearch("");
@@ -81,7 +81,7 @@ export function ModulosManager() {
     setFilterStatus("all");
     setFilterTipo("all");
     setFilterBifacial("all");
-    setFilterTensao("all");
+    
     setFilterPotMin("");
     setFilterPotMax("");
   };
@@ -94,13 +94,12 @@ export function ModulosManager() {
     const matchStatus = filterStatus === "all" || m.status === filterStatus;
     const matchTipo = filterTipo === "all" || m.tipo_celula === filterTipo;
     const matchBifacial = filterBifacial === "all" || (filterBifacial === "sim" ? m.bifacial : !m.bifacial);
-    const matchTensao = filterTensao === "all" || m.tensao_sistema === filterTensao;
     const potMin = filterPotMin ? parseInt(filterPotMin) : null;
     const potMax = filterPotMax ? parseInt(filterPotMax) : null;
     const matchPotMin = potMin == null || m.potencia_wp >= potMin;
     const matchPotMax = potMax == null || m.potencia_wp <= potMax;
-    return matchSearch && matchAtivo && matchFab && matchStatus && matchTipo && matchBifacial && matchTensao && matchPotMin && matchPotMax;
-  }), [modulos, search, filterAtivo, filterFabricante, filterStatus, filterTipo, filterBifacial, filterTensao, filterPotMin, filterPotMax]);
+    return matchSearch && matchAtivo && matchFab && matchStatus && matchTipo && matchBifacial && matchPotMin && matchPotMax;
+  }), [modulos, search, filterAtivo, filterFabricante, filterStatus, filterTipo, filterBifacial, filterPotMin, filterPotMax]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -277,14 +276,6 @@ export function ModulosManager() {
                 <SelectItem value="nao">Monofacial</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterTensao} onValueChange={setFilterTensao}>
-              <SelectTrigger className="w-32"><SelectValue placeholder="Tensão" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="1000V">1000V</SelectItem>
-                <SelectItem value="1500V">1500V</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={filterAtivo} onValueChange={setFilterAtivo}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -313,10 +304,10 @@ export function ModulosManager() {
               </Button>
             )}
             <Button variant="outline" size="sm" className="gap-2 ml-auto" onClick={() => {
-              const headers = ["Fabricante", "Modelo", "Potência(W)", "Tipo", "Células", "Eficiência(%)", "Tensão", "Status", "Bifacial", "Vmp", "Imp", "Voc", "Isc"];
+              const headers = ["Fabricante", "Modelo", "Potência(W)", "Tipo", "Células", "Eficiência(%)", "Status", "Bifacial", "Vmp", "Imp", "Voc", "Isc"];
               const rows = filtered.map(m => [
                 m.fabricante, m.modelo, m.potencia_wp, m.tipo_celula,
-                m.num_celulas ?? "", m.eficiencia_percent ?? "", m.tensao_sistema ?? "",
+                m.num_celulas ?? "", m.eficiencia_percent ?? "",
                 m.status, m.bifacial ? "Sim" : "Não",
                 m.vmp_v ?? "", m.imp_a ?? "", m.voc_v ?? "", m.isc_a ?? "",
               ]);

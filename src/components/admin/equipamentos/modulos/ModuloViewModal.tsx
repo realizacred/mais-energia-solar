@@ -84,7 +84,7 @@ export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
                 <Field label="Tipo de célula" value={m.tipo_celula} />
                 <Field label="Nº de células" value={m.num_celulas} />
                 <Field label="Bifacial" value={m.bifacial ? "Sim" : "Não"} />
-                <Field label="Tensão do sistema" value={m.tensao_sistema} />
+                
               </Section>
 
               <Section title="Elétrico DC (STC)">

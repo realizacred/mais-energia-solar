@@ -21,7 +21,7 @@ import { calcCompletude } from "@/utils/calcCompletude";
 import type { Modulo } from "./types";
 import { STATUS_LABELS } from "./types";
 
-type SortKey = "fabricante" | "modelo" | "potencia_wp" | "tipo_celula" | "num_celulas" | "eficiencia_percent" | "tensao_sistema" | "status" | "completude";
+type SortKey = "fabricante" | "modelo" | "potencia_wp" | "tipo_celula" | "num_celulas" | "eficiencia_percent" | "status" | "completude";
 type SortDir = "asc" | "desc";
 
 interface Props {
@@ -158,10 +158,10 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
   };
 
   const exportCSV = useCallback(() => {
-    const headers = ["Fabricante", "Modelo", "Potência(W)", "Tipo", "Células", "Eficiência(%)", "Tensão", "Status", "Bifacial", "Vmp", "Imp", "Voc", "Isc"];
+    const headers = ["Fabricante", "Modelo", "Potência(W)", "Tipo", "Células", "Eficiência(%)", "Status", "Bifacial", "Vmp", "Imp", "Voc", "Isc"];
     const rows = sorted.map(m => [
       m.fabricante, m.modelo, m.potencia_wp, m.tipo_celula,
-      m.num_celulas ?? "", m.eficiencia_percent ?? "", m.tensao_sistema ?? "",
+      m.num_celulas ?? "", m.eficiencia_percent ?? "",
       m.status, m.bifacial ? "Sim" : "Não",
       m.vmp_v ?? "", m.imp_a ?? "", m.voc_v ?? "", m.isc_a ?? "",
     ]);
@@ -257,7 +257,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
               <SortHeader label="Tipo" field="tipo_celula" />
               <SortHeader label="Células" field="num_celulas" />
               <SortHeader label="Efic.%" field="eficiencia_percent" />
-              <SortHeader label="Tensão" field="tensao_sistema" />
+              
               <SortHeader label="Status" field="status" />
               <SortHeader label="Completude" field="completude" />
               <TableHead>Origem</TableHead>
@@ -284,7 +284,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
                   <TableCell className="text-xs whitespace-nowrap">{m.tipo_celula}</TableCell>
                   <TableCell className="text-xs">{m.num_celulas || "—"}</TableCell>
                   <TableCell className="text-xs"><InlineCell m={m} field="eficiencia_percent" display={m.eficiencia_percent ? `${m.eficiencia_percent}%` : "—"} /></TableCell>
-                  <TableCell className="text-xs whitespace-nowrap">{m.tensao_sistema || "—"}</TableCell>
+                  
                   <TableCell><Badge className={`text-2xs px-1.5 py-0 ${statusInfo.color}`}>{statusInfo.label}</Badge></TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5 min-w-[70px]">

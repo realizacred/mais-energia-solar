@@ -33,7 +33,7 @@ const SPECS: SpecRow[] = [
   { label: "Garantia Produto", key: "garantia_produto_anos", unit: " anos", higherIsBetter: true },
   { label: "Garantia Perf.", key: "garantia_performance_anos", unit: " anos", higherIsBetter: true },
   { label: "Tipo Célula", key: "tipo_celula" },
-  { label: "Tensão Sistema", key: "tensao_sistema" },
+  
 ];
 
 function getHighlightClass(values: (number | null)[], idx: number, higherIsBetter?: boolean): string {

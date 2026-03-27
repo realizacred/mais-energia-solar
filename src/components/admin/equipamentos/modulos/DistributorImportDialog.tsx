@@ -91,7 +91,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
         tipo_celula: m.tipo_celula,
         status: m.status,
         ativo: m.ativo,
-        tensao_sistema: m.tensao_sistema,
+        
         tenant_id: tenantId,
       }));
 
