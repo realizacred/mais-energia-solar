@@ -63,6 +63,7 @@ export function useEquipmentCatalog() {
   const [modulos, setModulos] = useState<any[]>([]);
   const [inversores, setInversores] = useState<any[]>([]);
   const [otimizadores, setOtimizadores] = useState<any[]>([]);
+  const [baterias, setBaterias] = useState<any[]>([]);
   const [loadingEquip, setLoadingEquip] = useState(false);
 
   useEffect(() => {
@@ -71,15 +72,17 @@ export function useEquipmentCatalog() {
       supabase.from("modulos_solares").select("id, fabricante, modelo, potencia_wp, tipo_celula, eficiencia_percent").eq("ativo", true).order("potencia_wp", { ascending: false }),
       supabase.from("inversores_catalogo").select("id, fabricante, modelo, potencia_nominal_kw, tipo, mppt_count, fases").eq("ativo", true).order("potencia_nominal_kw", { ascending: false }),
       supabase.from("otimizadores_catalogo").select("id, fabricante, modelo, potencia_wp, eficiencia_percent, compatibilidade").eq("ativo", true).order("fabricante"),
-    ]).then(([modRes, invRes, otimRes]) => {
+      supabase.from("baterias").select("id, fabricante, modelo, energia_kwh, tensao_nominal_v, tipo_bateria").eq("ativo", true).order("fabricante"),
+    ]).then(([modRes, invRes, otimRes, batRes]) => {
       setModulos(modRes.data || []);
       setInversores(invRes.data || []);
       setOtimizadores(otimRes.data || []);
+      setBaterias(batRes.data || []);
       setLoadingEquip(false);
     });
   }, []);
 
-  return { modulos, inversores, otimizadores, loadingEquip };
+  return { modulos, inversores, otimizadores, baterias, loadingEquip };
 }
 
 export function useBancosCatalog() {

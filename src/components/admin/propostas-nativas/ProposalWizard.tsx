@@ -190,7 +190,7 @@ export function ProposalWizard() {
   const [premissas, setPremissas] = useState<PremissasData>(DEFAULT_PREMISSAS);
 
   // Kit (extracted hooks)
-  const { modulos, inversores, otimizadores, loadingEquip } = useEquipmentCatalog();
+  const { modulos, inversores, otimizadores, baterias, loadingEquip } = useEquipmentCatalog();
   const [itens, setItens] = useState<KitItemRow[]>([
     { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
   ]);
@@ -2006,7 +2006,7 @@ export function ProposalWizard() {
         const kitVal = validateKit(itens, potenciaKwp);
         return wrap("kit", (
           <div className="space-y-4">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} />
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} />
             {kitVal.warnings.length > 0 && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
                 {kitVal.warnings.map((w, i) => (

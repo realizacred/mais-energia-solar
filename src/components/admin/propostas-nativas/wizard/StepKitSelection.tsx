@@ -45,12 +45,18 @@ interface CatalogoOtimizador {
   eficiencia_percent: number | null; compatibilidade: string | null;
 }
 
+interface CatalogoBateria {
+  id: string; fabricante: string; modelo: string; energia_kwh: number | null;
+  tensao_nominal_v: number | null; tipo_bateria: string | null;
+}
+
 interface Props {
   itens: KitItemRow[];
   onItensChange: (itens: KitItemRow[]) => void;
   modulos: CatalogoModuloUnificado[];
   inversores: CatalogoInversorUnificado[];
   otimizadores?: CatalogoOtimizador[];
+  baterias?: CatalogoBateria[];
   loadingEquip: boolean;
   potenciaKwp: number;
   layouts?: LayoutArranjo[];
@@ -105,7 +111,7 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardDat
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries, somenteGhi }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries, somenteGhi }: Props) {
   // If returning to this step with a kit already restored, auto-switch to "manual" tab
   const [tab, setTab] = useState<TabType>(() => {
     if (manualKitsProp.length > 0) return "manual";
@@ -635,6 +641,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           modulos={modulos}
           inversores={inversores}
           otimizadores={otimizadores}
+          baterias={baterias}
           onKitCreated={handleManualKitCreated}
           mode={manualMode}
           sistema={pd?.sistema}
