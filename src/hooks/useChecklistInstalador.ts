@@ -154,6 +154,18 @@ async function getTenantAndUser() {
   return { userId: user.id, tenantId: profile?.tenant_id as string };
 }
 
+/** Resolve deal_id → projetos.id (FK exige projetos.id, não deals.id) */
+async function resolveProjetoId(dealId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("projetos")
+    .select("id")
+    .eq("deal_id", dealId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data?.id) throw new Error("Projeto não encontrado para este deal. Verifique se o projeto foi criado corretamente.");
+  return data.id;
+}
+
 // ── Criar checklist ──
 export function useCriarChecklist() {
   const qc = useQueryClient();
