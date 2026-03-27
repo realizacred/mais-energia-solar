@@ -458,6 +458,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   }, 0);
 
   const handleSave = () => {
+    setTriedSave(true);
     // Validation
     const errors: string[] = [];
     if (!distribuidorNome.trim()) errors.push("Nome do distribuidor");
@@ -711,7 +712,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                 // Reset inversor selections since the filtered list changed
                 setInversorEntries([createEmptyInversor()]);
               }}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione uma topologia" /></SelectTrigger>
+                <SelectTrigger className={cn("h-8 text-xs", triedSave && !topologia && "ring-2 ring-destructive")}><SelectValue placeholder="Selecione uma topologia" /></SelectTrigger>
                 <SelectContent>
                   {TOPOLOGIAS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
