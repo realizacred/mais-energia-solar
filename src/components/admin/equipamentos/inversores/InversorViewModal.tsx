@@ -45,6 +45,17 @@ export function InversorViewModal({ inversor: inv, open, onOpenChange }: Props) 
   const completude = calcCompletudeInversor(inv);
   const formatPotencia = (kw: number) => kw < 1 ? `${(kw * 1000).toFixed(0)} W` : `${kw} kW`;
 
+  // Calcular área a partir de dimensoes_mm (ex: "310 x 286 x 114")
+  const computeAreaM2 = (dim: string | null): string | null => {
+    if (!dim) return null;
+    const nums = dim.match(/(\d+(?:\.\d+)?)/g);
+    if (!nums || nums.length < 2) return null;
+    const sorted = nums.map(Number).sort((a, b) => b - a);
+    const areaM2 = (sorted[0] * sorted[1]) / 1_000_000;
+    return areaM2 > 0 ? areaM2.toFixed(3) : null;
+  };
+  const areaM2 = computeAreaM2(inv.dimensoes_mm);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-4xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
