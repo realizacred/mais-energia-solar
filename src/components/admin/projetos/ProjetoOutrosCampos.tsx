@@ -206,7 +206,7 @@ export function ProjetoOutrosCampos({ clienteId, dealId, importantFields, custom
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <CardContent className="px-4 pb-2 pt-0">
+            <CardContent className="px-4 sm:px-4 pb-2 sm:pb-2 pt-0">
               {importantFields.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-2.5">
                   Nenhum campo importante encontrado para esta etapa
@@ -240,7 +240,7 @@ export function ProjetoOutrosCampos({ clienteId, dealId, importantFields, custom
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent className="px-4 pb-2 pt-0">
+              <CardContent className="px-4 sm:px-4 pb-2 sm:pb-2 pt-0">
                 <div className="divide-y divide-border">
                   {outrosCamposRows.map((row) => (
                     <OutroCampoRowComp
