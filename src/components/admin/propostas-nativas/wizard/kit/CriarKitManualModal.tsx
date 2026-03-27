@@ -267,19 +267,19 @@ function SearchableEquipSelect({ value, onValueChange, options, placeholder, emp
 }
 
 function createEmptyModulo(): ModuloEntry {
-  return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
+  return { id: crypto.randomUUID(), selectedId: "", quantidade: 1, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
 }
 
 function createEmptyInversor(): InversorEntry {
-  return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0, fases: "", tensaoLinha: 0 };
+  return { id: crypto.randomUUID(), selectedId: "", quantidade: 1, avulso: false, nome: "", fabricante: "", potenciaW: 0, fases: "", tensaoLinha: 0 };
 }
 
 function createEmptyOtimizador(): OtimizadorEntry {
-  return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
+  return { id: crypto.randomUUID(), selectedId: "", quantidade: 1, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
 }
 
 function createEmptyBateria(): BateriaEntry {
-  return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", energiaKwh: 0 };
+  return { id: crypto.randomUUID(), selectedId: "", quantidade: 1, avulso: false, nome: "", fabricante: "", energiaKwh: 0 };
 }
 
 /**
