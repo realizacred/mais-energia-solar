@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { MODULO_QUERY_KEY } from "./types";
 import type { Modulo } from "./types";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 interface Props {
   open: boolean;
@@ -188,7 +189,12 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
     if (validRows.length === 0) return;
     setImporting(true);
     try {
-      const batch = validRows.map(({ errors, warnings, isDuplicate, ...row }) => row);
+      const { tenantId } = await getCurrentTenantId();
+      // Exclude UI-only fields and GENERATED columns (area_m2)
+      const batch = validRows.map(({ errors, warnings, isDuplicate, ...row }) => ({
+        ...row,
+        tenant_id: tenantId,
+      }));
       // Insert in batches of 100
       for (let i = 0; i < batch.length; i += 100) {
         const chunk = batch.slice(i, i + 100);
