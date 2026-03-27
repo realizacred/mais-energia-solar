@@ -102,6 +102,29 @@ export function resolveFinanceiro(
   set("roi_anual", fin.roi_anual ?? snap.roi_anual);
 
   // ── Equipment costs from snapshot ──
+  // ── Financial Center costs (custo_instalacao, custo_comissao, custo_outros) ──
+  const custoInstalacao = num(fin.custo_instalacao) ?? num(snap.custo_instalacao) ?? 0;
+  const custoComissao = num(fin.custo_comissao) ?? num(snap.custo_comissao) ?? 0;
+  const custoOutros = num(fin.custo_outros) ?? num(snap.custo_outros) ?? 0;
+  const custoKit = num(fin.custo_kit) ?? num(snap.custo_kit) ?? 0;
+  const custoTotalCalc = custoKit + custoInstalacao + custoComissao + custoOutros;
+
+  if (custoInstalacao > 0) { setCurIfMissing("valor_instalacao", custoInstalacao); setCurIfMissing("custo_instalacao_total", custoInstalacao); }
+  if (custoComissao > 0) { setCurIfMissing("valor_comissao", custoComissao); setCurIfMissing("comissao_total", custoComissao); }
+  if (custoOutros > 0) setCurIfMissing("valor_outros_custos", custoOutros);
+  if (custoInstalacao + custoOutros > 0) setCurIfMissing("valor_servicos", custoInstalacao + custoOutros);
+  if (custoKit > 0) setCurIfMissing("valor_kit", custoKit);
+  if (custoTotalCalc > 0) setCurIfMissing("valor_custo_total", custoTotalCalc);
+  if (valorTotal != null && valorTotal > 0 && custoTotalCalc > 0) {
+    setCurIfMissing("margem_valor", valorTotal - custoTotalCalc);
+    const margemReal = ((valorTotal - custoTotalCalc) / custoTotalCalc) * 100;
+    if (!out["margem_real"]) out["margem_real"] = `${fmtNum(margemReal, 1)}%`;
+  }
+  const margemPct = num(fin.margem_percentual) ?? num(snap.margem_percentual);
+  if (margemPct != null && !out["margem_percentual"]) out["margem_percentual"] = `${fmtNum(margemPct, 1)}%`;
+  const pctComissao = num(snap.percentual_comissao_consultor) ?? num(fin.percentual_comissao_consultor);
+  if (pctComissao != null && !out["percentual_comissao"]) out["percentual_comissao"] = `${fmtNum(pctComissao, 1)}%`;
+
   const costFields = [
     "modulo_custo_un", "modulo_preco_un", "modulo_custo_total", "modulo_preco_total",
     "inversor_custo_un", "inversor_preco_un", "inversor_custo_total", "inversor_preco_total",
@@ -112,7 +135,7 @@ export function resolveFinanceiro(
     "estrutura_custo_total", "estrutura_preco_total",
     "equipamentos_custo_total", "kits_custo_total", "componentes_custo_total",
     "baterias_custo_total", "baterias_preco_total",
-    "margem_lucro", "margem_percentual", "desconto_percentual", "desconto_valor",
+    "margem_lucro", "desconto_percentual", "desconto_valor",
     "custo_modulos", "custo_inversores", "custo_estrutura", "custo_instalacao", "custo_kit",
     "comissao_percentual", "comissao_valor", "comissao_res", "comissao_rep",
     "distribuidor_categoria", "preco_por_extenso",
