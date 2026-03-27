@@ -23,7 +23,6 @@ interface ParsedRow {
   potencia_wp: number;
   tipo_celula: string;
   num_celulas: number | null;
-  tensao_sistema: string;
   eficiencia_percent: number | null;
   comprimento_mm: number | null;
   largura_mm: number | null;
@@ -107,7 +106,6 @@ function parseRows(text: string, existing: Modulo[]): ParsedRow[] {
   const colTpmax = findCol("coeff_pmax", "pmax", "temp_pmax");
   const colTvoc = findCol("coeff_voc", "temp_voc");
   const colTisc = findCol("coeff_isc", "temp_isc");
-  const colTensao = findCol("tensao", "tensão", "voltage", "system");
 
   const existingKeys = new Set(
     existing.map(m => `${m.fabricante}|${m.modelo}|${m.potencia_wp}`.toLowerCase())
@@ -149,7 +147,6 @@ function parseRows(text: string, existing: Modulo[]): ParsedRow[] {
     return {
       fabricante, modelo, potencia_wp, tipo_celula,
       num_celulas: parseInt2(get(colCells)),
-      tensao_sistema: get(colTensao) || "1500V",
       eficiencia_percent: parseNumber(get(colEff)),
       comprimento_mm, largura_mm,
       profundidade_mm: parseInt2(get(colProf)),
@@ -255,7 +252,7 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
     <Dialog open={open} onOpenChange={v => { if (!v) { setParsed(null); setRawText(""); } onOpenChange(v); }}>
       <DialogContent className="w-[90vw] max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Importar Módulos em Massa</DialogTitle>
+          <DialogTitle>Colar Planilha de Módulos</DialogTitle>
         </DialogHeader>
 
         {!parsed ? (
