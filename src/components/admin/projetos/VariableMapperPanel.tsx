@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { valorPorExtenso, formatCurrency } from "@/utils/valorPorExtenso";
+import { formatPhoneBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 // ── Types ────────────────────────────────────────
