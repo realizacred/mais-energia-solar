@@ -171,7 +171,12 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   useEffect(() => {
     const newInstalacao = instalacaoEnabled ? roundCurrency(instalacaoQtd * instalacaoCusto) : 0;
     const newComissao = comissaoEnabled ? roundCurrency(comissaoQtd * comissaoCusto) : 0;
-    const newOutros = roundCurrency(custosExtras.filter(c => c.checked).reduce((s, c) => s + roundCurrency(c.quantidade * c.custoUnitario), 0));
+    // Include other services + user-added extras in custo_outros
+    const servicosOutrosTotal = outrosServicos
+      .filter(s => isServicoEnabled(s.id))
+      .reduce((s, sv) => s + sv.valor, 0);
+    const extrasTotal = custosExtras.filter(c => c.checked).reduce((s, c) => s + roundCurrency(c.quantidade * c.custoUnitario), 0);
+    const newOutros = roundCurrency(servicosOutrosTotal + extrasTotal);
 
     const changed =
       venda.custo_instalacao !== newInstalacao ||
@@ -186,7 +191,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         custo_outros: newOutros,
       });
     }
-  }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras]);
+  }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras, outrosServicos, servicosEnabledMap]);
 
   // ── Calculations ──
 
