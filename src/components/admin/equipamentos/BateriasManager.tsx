@@ -72,6 +72,8 @@ export function BateriasManager() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [viewItem, setViewItem] = useState<Bateria | null>(null);
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [batchEnrichOpen, setBatchEnrichOpen] = useState(false);
 
   const { data: baterias = [], isLoading } = useQuery({
     queryKey: ["baterias"],
