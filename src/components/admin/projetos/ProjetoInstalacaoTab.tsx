@@ -1,10 +1,14 @@
 import { useState, useCallback, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, ClipboardList, AlertCircle, Plus, ChevronDown, ChevronUp, Camera, X, MessageSquare, CheckCircle2, FileDown, Loader2 } from "lucide-react";
+import {
+  Zap, ClipboardList, CheckCircle, CheckCircle2,
+  AlertCircle, ChevronDown, ChevronUp, Camera, X,
+  MessageSquare, FileDown, Loader2, Check,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -36,10 +40,37 @@ interface Props {
 }
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
-  pendente: { label: "Pendente", className: "bg-warning/10 text-warning" },
-  em_andamento: { label: "Em andamento", className: "bg-info/10 text-info" },
-  concluido: { label: "Concluído", className: "bg-success/10 text-success" },
-  cancelado: { label: "Cancelado", className: "bg-destructive/10 text-destructive" },
+  pendente: { label: "Pendente", className: "bg-warning/10 text-warning border-warning/30" },
+  agendado: { label: "Agendado", className: "bg-info/10 text-info border-info/30" },
+  em_andamento: { label: "Em andamento", className: "bg-primary/10 text-primary border-primary/30" },
+  concluido: { label: "Concluído", className: "bg-success/10 text-success border-success/30" },
+  cancelado: { label: "Cancelado", className: "bg-destructive/10 text-destructive border-destructive/30" },
+};
+
+const TIPO_CONFIG: Record<string, {
+  label: string;
+  desc: string;
+  iconBg: string;
+  iconColor: string;
+  Icon: typeof ClipboardList;
+  badgeClass: string;
+}> = {
+  pre_instalacao: {
+    label: "Pré-Instalação Solar",
+    desc: "Checklist de preparação: vistoria, agendamento, aprovações e materiais antes da instalação",
+    iconBg: "bg-warning/10 group-hover:bg-warning/20",
+    iconColor: "text-warning",
+    Icon: ClipboardList,
+    badgeClass: "bg-warning/10 text-warning border-warning/30",
+  },
+  pos_instalacao: {
+    label: "Pós-Instalação Solar",
+    desc: "Checklist de entrega: testes, fotos, treinamento e documentação junto à concessionária",
+    iconBg: "bg-success/10 group-hover:bg-success/20",
+    iconColor: "text-success",
+    Icon: CheckCircle,
+    badgeClass: "bg-success/10 text-success border-success/30",
+  },
 };
 
 export function ProjetoInstalacaoTab({ dealId }: Props) {
@@ -54,82 +85,100 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 w-full rounded-lg" />
-        ))}
+      <div className="space-y-4 p-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Skeleton className="h-40 w-full rounded-lg" />
+          <Skeleton className="h-40 w-full rounded-lg" />
+        </div>
       </div>
     );
   }
 
+  // Determine which templates still need to be started
+  const availableTemplates = templates.filter(
+    t => !checklists.some(c => c.template_id === t.id && c.status !== "cancelado")
+  );
+
+  // Enrich checklists with template info
+  const enrichedChecklists = checklists.map(c => {
+    const tpl = templates.find(t => t.id === c.template_id);
+    return { ...c, tipo: tpl?.tipo || "pre_instalacao", templateNome: tpl?.nome || "Checklist" };
+  });
+
+  const handleIniciar = (templateId: string) => {
+    criarChecklist.mutate({ projetoId: dealId, templateId });
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Create checklist section */}
-      {templates.length > 0 && (
-        <Card className="border-border/60">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-primary" />
-              Iniciar Checklist
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              Selecione um template para iniciar o checklist de instalação:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {templates.map(t => {
-                const alreadyExists = checklists.some(
-                  c => c.template_id === t.id && c.status !== "cancelado"
-                );
-                return (
-                  <Button
-                    key={t.id}
-                    variant="outline"
-                    size="sm"
-                    disabled={criarChecklist.isPending || alreadyExists}
-                    onClick={() => criarChecklist.mutate({ projetoId: dealId, templateId: t.id })}
-                    className="gap-1.5"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    {t.nome}
-                    {alreadyExists && <span className="text-[10px] text-muted-foreground">(já criado)</span>}
-                  </Button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-6 p-6">
+      {/* HEADER */}
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Zap className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Instalação</h2>
+          <p className="text-xs text-muted-foreground">Gerencie as etapas de pré e pós-instalação</p>
+        </div>
+      </div>
+
+      {/* CARDS DE INICIAR — templates disponíveis */}
+      {availableTemplates.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {availableTemplates.map(t => {
+            const cfg = TIPO_CONFIG[t.tipo] || TIPO_CONFIG.pre_instalacao;
+            const IconComp = cfg.Icon;
+            return (
+              <button
+                key={t.id}
+                onClick={() => handleIniciar(t.id)}
+                disabled={criarChecklist.isPending}
+                className="flex flex-col items-start gap-3 p-5 rounded-lg border border-border bg-card hover:border-primary/30 hover:bg-primary/5 transition-all text-left group disabled:opacity-50"
+              >
+                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center transition-colors", cfg.iconBg)}>
+                  <IconComp className={cn("w-5 h-5", cfg.iconColor)} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{cfg.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t.descricao || cfg.desc}</p>
+                </div>
+                <Badge variant="outline" className={cn("text-xs", cfg.badgeClass)}>
+                  {criarChecklist.isPending ? "Criando..." : "Iniciar checklist"}
+                </Badge>
+              </button>
+            );
+          })}
+        </div>
       )}
 
-      {/* Empty states */}
+      {/* CHECKLISTS INICIADOS */}
+      {enrichedChecklists.length > 0 && (
+        <div className="space-y-4">
+          {enrichedChecklists.map(checklist => (
+            <ChecklistCard
+              key={checklist.id}
+              checklist={checklist}
+              tipo={checklist.tipo}
+              dealId={dealId}
+              isExpanded={expandedId === checklist.id}
+              onToggleExpand={() => setExpandedId(prev => prev === checklist.id ? null : checklist.id)}
+              onFinalizar={() => setFinalizarOpen(checklist.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* EMPTY STATE — nenhum template e nenhum checklist */}
       {checklists.length === 0 && templates.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-          <ClipboardList className="h-10 w-10 mb-3 text-muted-foreground/40" />
-          <p className="font-medium">Nenhum checklist disponível</p>
-          <p className="text-sm mt-1">Configure templates em Configurações para começar.</p>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mb-3">
+            <ClipboardList className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-sm font-medium text-foreground">Nenhum checklist disponível</p>
+          <p className="text-xs text-muted-foreground mt-1">Configure templates de instalação nas Configurações para começar.</p>
         </div>
       )}
-
-      {checklists.length === 0 && templates.length > 0 && (
-        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-          <AlertCircle className="h-8 w-8 mb-2 text-warning/60" />
-          <p className="text-sm">Nenhum checklist iniciado para este projeto.</p>
-          <p className="text-xs mt-1">Use os botões acima para iniciar.</p>
-        </div>
-      )}
-
-      {/* Existing checklists */}
-      {checklists.map(checklist => (
-        <ChecklistCard
-          key={checklist.id}
-          checklist={checklist}
-          dealId={dealId}
-          isExpanded={expandedId === checklist.id}
-          onToggleExpand={() => setExpandedId(prev => prev === checklist.id ? null : checklist.id)}
-          onFinalizar={() => setFinalizarOpen(checklist.id)}
-        />
-      ))}
 
       {/* Finalizar dialog */}
       {finalizarOpen && (
@@ -145,15 +194,19 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
 
 /* ── Checklist Card ── */
 function ChecklistCard({
-  checklist, dealId, isExpanded, onToggleExpand, onFinalizar,
+  checklist, tipo, dealId, isExpanded, onToggleExpand, onFinalizar,
 }: {
   checklist: ChecklistInstalador;
+  tipo: string;
   dealId: string;
   isExpanded: boolean;
   onToggleExpand: () => void;
   onFinalizar: () => void;
 }) {
   const statusCfg = STATUS_MAP[checklist.status] || STATUS_MAP.pendente;
+  const tipoCfg = TIPO_CONFIG[tipo] || TIPO_CONFIG.pre_instalacao;
+  const IconComp = tipoCfg.Icon;
+
   const { items, respostas, arquivos, isLoading } = useChecklistDetail(
     isExpanded ? checklist.id : null,
     isExpanded ? checklist.template_id : null
@@ -162,15 +215,12 @@ function ChecklistCard({
 
   const totalItems = items.length;
   const doneItems = respostas.filter(r => r.valor_boolean === true).length;
-  const progress = totalItems > 0 ? (doneItems / totalItems) * 100 : 0;
+  const progress = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
   const isConcluido = checklist.status === "concluido";
 
   const handleDownloadReport = async () => {
     setDownloading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("Não autenticado");
-
       const res = await supabase.functions.invoke("generate-installation-report", {
         body: { checklist_id: checklist.id },
       });
@@ -195,46 +245,61 @@ function ChecklistCard({
     }
   };
 
+  const progressColor = progress === 100 ? "bg-success" : progress >= 50 ? "bg-primary" : "bg-warning";
+
   return (
-    <Card className="border-border/60">
-      <Button variant="ghost" onClick={onToggleExpand} className="w-full text-left h-auto p-0">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-primary" />
-              <CardTitle className="text-sm font-semibold">Checklist de Instalação</CardTitle>
-              <Badge variant="secondary" className={cn("text-[10px] h-5 px-1.5", statusCfg.className)}>
-                {statusCfg.label}
-              </Badge>
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {/* Header */}
+      <button onClick={onToggleExpand} className="w-full text-left">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <div className={cn("w-8 h-8 rounded-md flex items-center justify-center", tipoCfg.iconBg)}>
+              <IconComp className={cn("w-4 h-4", tipoCfg.iconColor)} />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">
-                {formatDateTime(checklist.created_at, { day: "2-digit", month: "2-digit", year: "2-digit" })}
-              </span>
-              {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            <div>
+              <p className="text-sm font-semibold text-foreground">{tipoCfg.label}</p>
+              <p className="text-xs text-muted-foreground">
+                Iniciado em {formatDateTime(checklist.created_at, { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: "America/Sao_Paulo" })}
+              </p>
             </div>
           </div>
-          {isExpanded && totalItems > 0 && (
-            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-2">
-              <div
-                className={cn("h-full rounded-full transition-all duration-300", doneItems === totalItems ? "bg-success" : "bg-primary")}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          )}
-        </CardHeader>
-      </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5", statusCfg.className)}>
+              {statusCfg.label}
+            </Badge>
+            {isExpanded && totalItems > 0 && (
+              <Badge variant="outline" className={cn(
+                "text-xs",
+                progress === 100 ? "bg-success/10 text-success border-success/30"
+                  : progress >= 50 ? "bg-primary/10 text-primary border-primary/30"
+                  : "bg-warning/10 text-warning border-warning/30"
+              )}>
+                {progress}%
+              </Badge>
+            )}
+            {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </div>
+        </div>
+      </button>
 
+      {/* Progress bar */}
+      {isExpanded && totalItems > 0 && (
+        <div className="h-1 bg-muted">
+          <div className={cn("h-full transition-all duration-500", progressColor)} style={{ width: `${progress}%` }} />
+        </div>
+      )}
+
+      {/* Content */}
       {isExpanded && (
-        <CardContent className="space-y-1 pt-0">
+        <div className="divide-y divide-border">
           {isLoading ? (
-            <div className="space-y-2">
+            <div className="p-4 space-y-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full rounded-lg" />
               ))}
             </div>
           ) : items.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">Template sem itens configurados.</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">Template sem itens configurados.</p>
           ) : (
             <>
               {items.map(item => {
@@ -252,20 +317,14 @@ function ChecklistCard({
                 );
               })}
 
-              {/* Summary + Finalizar */}
-              <div className="flex items-center justify-between pt-3 px-3">
+              {/* Summary + Actions */}
+              <div className="flex items-center justify-between p-4 bg-muted/30">
                 <span className={cn("text-xs font-bold", doneItems === totalItems ? "text-success" : "text-muted-foreground")}>
                   {doneItems}/{totalItems} concluídos
                 </span>
                 <div className="flex items-center gap-2">
                   {isConcluido && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleDownloadReport}
-                      disabled={downloading}
-                      className="gap-1.5"
-                    >
+                    <Button variant="outline" size="sm" onClick={handleDownloadReport} disabled={downloading} className="gap-1.5">
                       {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
                       Relatório PDF
                     </Button>
@@ -286,9 +345,9 @@ function ChecklistCard({
               </div>
             </>
           )}
-        </CardContent>
+        </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -344,14 +403,14 @@ function ChecklistItemRow({
   const fotoPaths = arquivos.map(a => a.url);
 
   return (
-    <div className={cn("rounded-lg transition-all", checked ? "bg-success/5" : "bg-card")}>
-      <div className="flex items-center gap-3 px-3 py-2.5">
+    <div className={cn("transition-all", checked ? "bg-success/5" : "")}>
+      <div className="flex items-center gap-3 px-4 py-3">
         <button
           onClick={handleToggle}
           disabled={disabled || toggleItem.isPending}
           className={cn(
             "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all",
-            checked ? "bg-success border-success text-success-foreground" : "border-border bg-card"
+            checked ? "bg-primary border-primary text-primary-foreground" : "border-border bg-card"
           )}
         >
           {checked && <Check className="h-3 w-3" />}
@@ -362,9 +421,10 @@ function ChecklistItemRow({
 
         <div className="flex items-center gap-1">
           {item.obrigatorio && !checked && (
-            <Badge variant="outline" className="text-[9px] h-4 px-1 border-warning/30 text-warning">Obrigatório</Badge>
+            <Badge variant="outline" className="text-[9px] h-4 px-1 bg-destructive/10 text-destructive border-destructive/30">
+              Obrigatório
+            </Badge>
           )}
-          {/* Observation toggle */}
           <Button
             variant="ghost"
             size="icon"
@@ -374,7 +434,6 @@ function ChecklistItemRow({
           >
             <MessageSquare className="h-3.5 w-3.5" />
           </Button>
-          {/* Photo upload */}
           {resposta?.id && !disabled && (
             <Button
               variant="ghost"
@@ -389,9 +448,8 @@ function ChecklistItemRow({
         </div>
       </div>
 
-      {/* Observation inline */}
       {showObs && (
-        <div className="px-3 pb-2 space-y-1.5">
+        <div className="px-4 pb-3 space-y-1.5">
           <Textarea
             value={obsText}
             onChange={e => setObsText(e.target.value)}
@@ -400,9 +458,7 @@ function ChecklistItemRow({
             disabled={disabled}
           />
           <div className="flex justify-end gap-1">
-            <Button variant="ghost" size="sm" onClick={() => setShowObs(false)} className="h-7 text-xs">
-              Cancelar
-            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowObs(false)} className="h-7 text-xs">Cancelar</Button>
             <Button size="sm" onClick={handleSaveObs} disabled={salvarObs.isPending} className="h-7 text-xs">
               {salvarObs.isPending ? "Salvando..." : "Salvar"}
             </Button>
@@ -410,16 +466,14 @@ function ChecklistItemRow({
         </div>
       )}
 
-      {/* Existing observation badge */}
       {!showObs && resposta?.observacao && (
-        <div className="px-10 pb-2">
+        <div className="px-12 pb-2">
           <p className="text-[11px] text-muted-foreground italic truncate">💬 {resposta.observacao}</p>
         </div>
       )}
 
-      {/* Photos gallery */}
       {fotoPaths.length > 0 && (
-        <div className="px-10 pb-2">
+        <div className="px-12 pb-2">
           <StorageFileGallery bucket="checklist-assets" filePaths={fotoPaths} />
         </div>
       )}
@@ -460,23 +514,27 @@ function FinalizarDialog({
           </div>
           <div className="flex-1">
             <DialogTitle className="text-base font-semibold text-foreground">Finalizar Checklist</DialogTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">Assine para concluir a instalação</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Colha as assinaturas para concluir</p>
           </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-5 space-y-5">
-            <SignaturePad ref={sigInstaladorRef} label="Assinatura do Instalador" />
-            <SignaturePad ref={sigClienteRef} label="Assinatura do Cliente" />
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Assinatura do Instalador</p>
+              <SignaturePad ref={sigInstaladorRef} label="" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Assinatura do Cliente</p>
+              <SignaturePad ref={sigClienteRef} label="" />
+            </div>
           </div>
         </ScrollArea>
 
         <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
-          <Button variant="outline" onClick={onClose} disabled={finalizar.isPending}>
-            Cancelar
-          </Button>
+          <Button variant="outline" onClick={onClose} disabled={finalizar.isPending}>Cancelar</Button>
           <Button onClick={handleFinalizar} disabled={finalizar.isPending}>
-            {finalizar.isPending ? "Finalizando..." : "Finalizar Instalação"}
+            {finalizar.isPending ? "Finalizando..." : "Finalizar"}
           </Button>
         </DialogFooter>
       </DialogContent>
