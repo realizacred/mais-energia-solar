@@ -1,4 +1,5 @@
-import { Plus, Trash2, Wrench, Info } from "lucide-react";
+import { useState } from "react";
+import { Plus, Trash2, Wrench, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,8 @@ interface StepServicosProps {
 }
 
 export function StepServicos({ servicos, onServicosChange, kitItens = [], potenciaKwp = 0 }: StepServicosProps) {
+  const [kitExpanded, setKitExpanded] = useState(false);
+
   const addServico = () => {
     onServicosChange([...servicos, {
       id: crypto.randomUUID(),
@@ -168,17 +171,38 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
           {/* Items */}
           <div className="divide-y divide-border/60">
             {resumoItens.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-[1fr_auto_auto] gap-2 px-4 py-2.5 text-xs items-center">
-                <span className="text-foreground truncate flex items-center gap-1">
-                  {item.descricao}
-                  {item.expandivel && (
-                    <svg className="h-3 w-3 text-muted-foreground shrink-0" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 5l3 3 3-3" />
-                    </svg>
-                  )}
-                </span>
-                <span className="text-center text-muted-foreground w-10">{item.quantidade}</span>
-                <span className="text-right font-medium w-24">{formatBRL(item.valor)}</span>
+              <div key={idx}>
+                <div
+                  className={`grid grid-cols-[1fr_auto_auto] gap-2 px-4 py-2.5 text-xs items-center ${item.expandivel ? "cursor-pointer hover:bg-muted/30 transition-colors" : ""}`}
+                  onClick={() => item.expandivel && setKitExpanded(prev => !prev)}
+                >
+                  <span className="text-foreground truncate flex items-center gap-1">
+                    {item.expandivel && (
+                      kitExpanded
+                        ? <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                        : <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                    )}
+                    {item.descricao}
+                  </span>
+                  <span className="text-center text-muted-foreground w-10">{item.quantidade}</span>
+                  <span className="text-right font-medium w-24">{formatBRL(item.valor)}</span>
+                </div>
+                {/* Kit sub-items */}
+                {item.expandivel && kitExpanded && kitItens.length > 0 && (
+                  <div className="bg-muted/20 border-t border-border/20">
+                    {kitItens.map((ki, kiIdx) => (
+                      <div key={kiIdx} className="grid grid-cols-[1fr_auto_auto] gap-2 px-4 pl-8 py-1.5 text-[11px] items-center">
+                        <span className="text-muted-foreground truncate">
+                          {ki.descricao}
+                        </span>
+                        <span className="text-center text-muted-foreground/70 w-10">{ki.quantidade}</span>
+                        <span className="text-right text-muted-foreground w-24">
+                          {formatBRL(ki.quantidade * ki.preco_unitario)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
