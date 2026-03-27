@@ -178,8 +178,8 @@ export function parseDistributorCSV(
       });
     }
 
-    // Dedup dentro do próprio CSV
-    const key = `${fabricante}|${modelo}`.toLowerCase();
+    // Dedup dentro do próprio CSV — inclui potência na chave para não descartar variantes
+    const key = `${fabricante}|${modelo}|${potencia_wp}`.toLowerCase();
     if (seenKeys.has(key)) {
       warnings.push({ line: i + 1, raw: itemName, issue: "Duplicado dentro do CSV" });
       continue;

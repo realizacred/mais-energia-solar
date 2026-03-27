@@ -130,7 +130,8 @@ function parseDistributorBateria(text: string): { baterias: ParsedBateria[]; war
   const seenKeys = new Set<string>();
 
   base.modules.forEach((m, idx) => {
-    const key = `${m.fabricante}|${m.modelo}`.toLowerCase();
+    const energia_kwh_val = extractEnergyFromModel(`${m.fabricante} ${m.modelo}`) ?? 0;
+    const key = `${m.fabricante}|${m.modelo}|${energia_kwh_val}`.toLowerCase();
     if (seenKeys.has(key)) return;
     seenKeys.add(key);
 
