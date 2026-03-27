@@ -1,4 +1,5 @@
-import { Plus, Trash2, Wrench, Info } from "lucide-react";
+import { useState } from "react";
+import { Plus, Trash2, Wrench, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
