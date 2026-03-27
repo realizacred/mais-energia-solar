@@ -1619,6 +1619,25 @@ export function ProposalWizard() {
         pagamento_opcoes: pagamentoOpcoes.map(({ id, ...rest }) => rest),
         observacoes: venda.observacoes || undefined,
         aceite_estimativa: enforcement.aceiteEstimativa || undefined,
+        // Wizard-specific state for edit round-trip (engine passes through, not used for calc)
+        _wizard_state: {
+          selectedLead,
+          cliente,
+          projectAddress,
+          preDimensionamento,
+          layouts,
+          manualKits,
+          adicionais,
+          customFieldValues,
+          nomeProposta,
+          descricaoProposta,
+          templateSelecionado,
+          locSkipPoa,
+          locLatitude,
+          locGhiSeries,
+          locDistribuidoraId,
+          geracaoMensalEstimada,
+        },
       };
 
       const genResult = await generateProposal(payload);
