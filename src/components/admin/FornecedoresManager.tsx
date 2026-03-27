@@ -4,7 +4,7 @@ import { FornecedorImportDialog } from "@/components/admin/fornecedores/Forneced
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import {
   Plus, Trash2, Pencil, Truck, Building2, Phone, Mail, MapPin,
-  Search, X, Download, Eye, Package, Factory, Wrench, Globe,
+  Search, X, Download, Upload, Eye, Package, Factory, Wrench, Globe,
   FileText, Calendar, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
