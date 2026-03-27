@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
@@ -239,18 +241,16 @@ export function OnboardingWizard({ open, onOpenChange, tenantId, userName }: Onb
                   </div>
                   <div className="space-y-2">
                     <Label>Telefone *</Label>
-                    <Input
-                      placeholder="(11) 99999-9999"
+                    <PhoneInput
                       value={consultor.telefone}
-                      onChange={(e) => setConsultor((p) => ({ ...p, telefone: e.target.value }))}
+                      onChange={(raw) => setConsultor((p) => ({ ...p, telefone: raw }))}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>E-mail</Label>
-                    <Input
-                      placeholder="consultor@email.com"
+                    <EmailInput
                       value={consultor.email}
-                      onChange={(e) => setConsultor((p) => ({ ...p, email: e.target.value }))}
+                      onChange={(v) => setConsultor((p) => ({ ...p, email: v }))}
                     />
                   </div>
                 </div>
@@ -274,10 +274,9 @@ export function OnboardingWizard({ open, onOpenChange, tenantId, userName }: Onb
                   </div>
                   <div className="space-y-2">
                     <Label>Telefone *</Label>
-                    <Input
-                      placeholder="(11) 99999-9999"
+                    <PhoneInput
                       value={lead.telefone}
-                      onChange={(e) => setLead((p) => ({ ...p, telefone: e.target.value }))}
+                      onChange={(raw) => setLead((p) => ({ ...p, telefone: raw }))}
                     />
                   </div>
                 </div>

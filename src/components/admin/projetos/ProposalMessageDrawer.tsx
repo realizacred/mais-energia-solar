@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
@@ -312,10 +314,9 @@ export function ProposalMessageDrawer({
                   <Label className="text-[11px] flex items-center gap-1.5 text-muted-foreground">
                     <Phone className="h-3 w-3" /> Telefone (WhatsApp)
                   </Label>
-                  <Input
+                  <PhoneInput
                     value={destinatarioTelefone}
-                    onChange={(e) => setDestinatarioTelefone(e.target.value)}
-                    placeholder="5511999998888"
+                    onChange={setDestinatarioTelefone}
                     className="h-8 text-xs"
                   />
                 </div>
@@ -323,10 +324,9 @@ export function ProposalMessageDrawer({
                   <Label className="text-[11px] flex items-center gap-1.5 text-muted-foreground">
                     <AtSign className="h-3 w-3" /> E-mail
                   </Label>
-                  <Input
+                  <EmailInput
                     value={destinatarioEmail}
-                    onChange={(e) => setDestinatarioEmail(e.target.value)}
-                    placeholder="cliente@email.com"
+                    onChange={setDestinatarioEmail}
                     className="h-8 text-xs"
                   />
                 </div>

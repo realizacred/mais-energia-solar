@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
@@ -976,10 +977,9 @@ export function StepDocumento({
       <div className="flex items-start gap-4">
         <div className="space-y-1.5 w-44 shrink-0">
           <Label className="text-xs text-muted-foreground">Destinatário</Label>
-          <Input
+          <PhoneInput
             value={waDestinatario}
-            onChange={e => setWaDestinatario(e.target.value)}
-            placeholder="(00) 00000-0000"
+            onChange={setWaDestinatario}
             className="h-9 text-sm"
           />
         </div>

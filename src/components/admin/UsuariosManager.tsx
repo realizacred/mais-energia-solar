@@ -12,6 +12,7 @@ import { PageHeader, EmptyState } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -708,11 +709,9 @@ export function UsuariosManager() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="telefone">Telefone</Label>
-              <Input
-                id="telefone"
+              <PhoneInput
                 value={newUserForm.telefone}
-                onChange={(e) => setNewUserForm({ ...newUserForm, telefone: e.target.value })}
-                placeholder="(00) 00000-0000"
+                onChange={(raw) => setNewUserForm({ ...newUserForm, telefone: raw })}
               />
             </div>
             <div className="space-y-2">
