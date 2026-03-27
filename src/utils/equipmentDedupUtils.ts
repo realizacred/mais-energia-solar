@@ -74,12 +74,8 @@ export function findSuspects(
   let bestScore = 0;
 
   for (const existing of existingItems) {
-    // Skip if potencia differs by more than 20%
-    if (
-      newPotencia > 0 &&
-      existing.potencia > 0 &&
-      Math.abs(newPotencia - existing.potencia) / Math.max(newPotencia, existing.potencia) > 0.2
-    ) {
+    // Potência DEVE ser exatamente igual — qualquer diferença = produto diferente
+    if (newPotencia !== existing.potencia) {
       continue;
     }
 
