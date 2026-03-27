@@ -493,7 +493,11 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         checked={row.checked}
                         onCheckedChange={(checked) => {
                           if (row.id === "instalacao") setInstalacaoEnabled(!!checked);
-                          if (row.id === "comissao") setComissaoEnabled(!!checked);
+                          else if (row.id === "comissao") setComissaoEnabled(!!checked);
+                          else if (row.id.startsWith("servico-")) {
+                            const svcId = row.id.replace("servico-", "");
+                            setServicosEnabledMap(prev => ({ ...prev, [svcId]: !!checked }));
+                          }
                         }}
                         onClick={e => e.stopPropagation()}
                         className="h-4 w-4"
