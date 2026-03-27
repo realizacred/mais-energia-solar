@@ -3,9 +3,10 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { formatNumberBR } from "@/lib/formatters";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2, Package,
+  ChevronLeft, ChevronRight, MapPin, User, Settings2,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
   Zap, AlertTriangle, AlertCircle, Phone, Save, CheckCircle2,
+  SunMedium, LayoutGrid, HardHat, Calculator, Wallet, ClipboardCheck, ScrollText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -87,13 +88,13 @@ const BASE_STEPS: WizardStep[] = [
   { key: STEP_KEYS.LOCALIZACAO, label: "Localização", icon: MapPin },
   { key: STEP_KEYS.UCS, label: "Unidades Consumidoras", icon: Zap },
   { key: STEP_KEYS.CAMPOS_PRE, label: "Campos Customizados", icon: ClipboardList, conditional: true },
-  { key: STEP_KEYS.KIT, label: "Kit Gerador", icon: Package },
-  { key: STEP_KEYS.ADICIONAIS, label: "Adicionais", icon: Box },
-  { key: STEP_KEYS.SERVICOS, label: "Serviços", icon: Wrench },
-  { key: STEP_KEYS.VENDA, label: "Venda", icon: DollarSign },
-  { key: STEP_KEYS.PAGAMENTO, label: "Formas de pagamento", icon: CreditCard },
-  { key: STEP_KEYS.RESUMO, label: "Resumo", icon: BarChart3 },
-  { key: STEP_KEYS.PROPOSTA, label: "Proposta", icon: FileText },
+  { key: STEP_KEYS.KIT, label: "Kit Gerador", icon: SunMedium },
+  { key: STEP_KEYS.ADICIONAIS, label: "Adicionais", icon: LayoutGrid },
+  { key: STEP_KEYS.SERVICOS, label: "Serviços", icon: HardHat },
+  { key: STEP_KEYS.VENDA, label: "Centro Financeiro", icon: Calculator },
+  { key: STEP_KEYS.PAGAMENTO, label: "Formas de pagamento", icon: Wallet },
+  { key: STEP_KEYS.RESUMO, label: "Resumo", icon: ClipboardCheck },
+  { key: STEP_KEYS.PROPOSTA, label: "Proposta", icon: ScrollText },
 ];
 
 /** Step card metadata — title + helper text for each step */
