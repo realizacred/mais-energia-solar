@@ -205,7 +205,7 @@ export function ComissoesReports({
                 <h4 className="font-medium mb-4">Resumo por Consultor</h4>
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead>Consultor</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-right">Pago</TableHead>
@@ -286,7 +286,7 @@ export function ComissoesReports({
             </div>
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Data</TableHead>
                   <TableHead>Consultor</TableHead>
                   <TableHead className="text-right">Valor</TableHead>

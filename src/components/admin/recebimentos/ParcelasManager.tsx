@@ -304,7 +304,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
             <TooltipProvider>
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead>Parcela</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Vencimento</TableHead>

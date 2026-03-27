@@ -192,7 +192,7 @@ export function VendorOrcamentosTable({
       <div className="overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="w-12">Visto</TableHead>
               <TableHead className="w-28">Orçamento</TableHead>
               <TableHead className="w-24">Cliente</TableHead>

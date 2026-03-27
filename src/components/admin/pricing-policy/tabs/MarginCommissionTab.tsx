@@ -126,7 +126,7 @@ export function MarginCommissionTab() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Nome</TableHead>
                   <TableHead>Margem Mín.</TableHead>
                   <TableHead>Margem Máx.</TableHead>
@@ -182,7 +182,7 @@ export function MarginCommissionTab() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Nome</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Parâmetros</TableHead>

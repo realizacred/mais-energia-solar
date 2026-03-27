@@ -143,7 +143,7 @@ export default function WebhookManager() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead>Nome</TableHead>
                 <TableHead>URL</TableHead>
                 <TableHead>Eventos</TableHead>

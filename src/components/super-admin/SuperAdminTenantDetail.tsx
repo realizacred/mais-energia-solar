@@ -304,7 +304,7 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead>Usuário</TableHead>
                       <TableHead>Roles</TableHead>
                       <TableHead>Status</TableHead>
@@ -475,7 +475,7 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead>Data</TableHead>
                       <TableHead>Ação</TableHead>
                       <TableHead>Detalhes</TableHead>

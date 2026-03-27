@@ -245,7 +245,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
       <div className="overflow-x-auto">
         <Table className="text-xs [&_td]:px-2 [&_td]:py-2 [&_th]:px-2 [&_th]:py-2">
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="w-[40px]">
                 <Checkbox
                   checked={allPageSelected}

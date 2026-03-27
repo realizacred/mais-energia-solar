@@ -137,7 +137,7 @@ export default function LeadsTrashPage() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Lead</TableHead>
                   <TableHead>Telefone</TableHead>
                   <TableHead>Cidade/UF</TableHead>

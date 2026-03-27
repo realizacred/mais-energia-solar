@@ -439,7 +439,7 @@ export default function PerformanceDashboard() {
               <ScrollArea className="w-full">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead className="w-[50px]">#</TableHead>
                       <TableHead>Consultor</TableHead>
                       <TableHead className="text-right">Faturamento</TableHead>

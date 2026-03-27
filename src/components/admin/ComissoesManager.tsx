@@ -619,7 +619,7 @@ export function ComissoesManager() {
                 ) : (
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
                         <TableHead className="w-12">
                           <Checkbox
                             checked={selectedIds.size === filteredComissoes.length && filteredComissoes.length > 0}

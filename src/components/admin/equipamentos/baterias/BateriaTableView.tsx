@@ -198,7 +198,7 @@ export function BateriaTableView({ baterias, onView, onEdit, onDelete, onToggle 
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="w-[40px]"><Checkbox checked={allPageSelected} onCheckedChange={toggleAll} /></TableHead>
               <SortHeader label="Fabricante" field="fabricante" />
               <SortHeader label="Modelo" field="modelo" />

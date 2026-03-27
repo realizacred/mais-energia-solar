@@ -417,7 +417,7 @@ export function PagamentosComissaoDialog({
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead>Data</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Forma</TableHead>

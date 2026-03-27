@@ -207,7 +207,7 @@ export function LeadStatusManager() {
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="w-12">#</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead className="w-24">Cor</TableHead>
