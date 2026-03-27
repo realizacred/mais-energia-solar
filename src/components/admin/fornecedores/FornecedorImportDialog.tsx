@@ -327,7 +327,7 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
                 )}
 
                 {newItems.length > 0 && (
-                  <div className="max-h-[200px] overflow-auto border border-border rounded-lg">
+                  <div className="max-h-[200px] overflow-x-auto overflow-y-auto border border-border rounded-lg">
                     <table className="w-full text-xs">
                       <thead className="bg-muted/50 sticky top-0">
                         <tr>
