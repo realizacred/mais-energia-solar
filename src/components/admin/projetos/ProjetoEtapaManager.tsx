@@ -439,20 +439,21 @@ export function ProjetoEtapaManager({
               </div>
             </div>
           ) : (
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setShowCreate(true)}
               className={cn(
-                "w-[180px] flex-shrink-0 rounded-xl border-2 border-dashed border-primary/30",
+                "w-[180px] h-auto flex-shrink-0 rounded-xl border-2 border-dashed border-primary/30",
                 "flex flex-col items-center justify-center gap-3 py-10",
                 "text-primary/50 hover:text-primary hover:border-primary/50 hover:bg-primary/5",
-                "transition-all duration-200 cursor-pointer"
+                "transition-all duration-200"
               )}
             >
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <Plus className="h-5 w-5 text-primary" />
               </div>
               <span className="text-xs font-semibold">Nova Etapa</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
