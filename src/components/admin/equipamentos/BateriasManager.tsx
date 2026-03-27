@@ -224,6 +224,8 @@ export function BateriasManager() {
     setCompareIds(next);
   };
 
+  const compareBaterias = useMemo(() => baterias.filter(b => compareIds.has(b.id)), [baterias, compareIds]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -233,6 +235,7 @@ export function BateriasManager() {
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             {activeFilterCount > 0 && <Badge variant="secondary" className="gap-1">{activeFilterCount} filtro{activeFilterCount > 1 ? "s" : ""}</Badge>}
+            <Button variant="outline" size="sm" onClick={() => setBatchEnrichOpen(true)} className="gap-2"><Wand2 className="w-4 h-4" /> Buscar specs IA</Button>
             <Button size="sm" onClick={() => openDialog()} className="gap-2"><Plus className="w-4 h-4" /> Nova Bateria</Button>
           </div>
         }
