@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { importFornecedoresFromHeader } from "@/utils/importFornecedoresFromHeader";
 import {
   parseDistributorOtimizadorCSV,
   type OtimizadorParseResult,
@@ -43,6 +44,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
   const qc = useQueryClient();
 
   const [fileName, setFileName] = useState("");
+  const [csvHeaderLine, setCsvHeaderLine] = useState("");
   const [parseResult, setParseResult] = useState<OtimizadorParseResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -51,7 +53,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
   const [verifyingAI, setVerifyingAI] = useState(false);
   const [aiProgress, setAiProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{
-    inserted: number; updated: number; skipped: number; errors: number;
+    inserted: number; updated: number; skipped: number; errors: number; fornecedores: number;
   } | null>(null);
 
   const existingMap = useMemo(() => {
@@ -134,6 +136,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string || "";
+      setCsvHeaderLine(text.split("\n")[0] || "");
       setParseResult(parseDistributorOtimizadorCSV(text));
     };
     reader.readAsText(file, "ISO-8859-1");
@@ -148,6 +151,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
 
     try {
       const { tenantId } = await getCurrentTenantId();
+      const fornecedoresCriados = await importFornecedoresFromHeader(csvHeaderLine, tenantId);
       let inserted = 0, updated = 0, errors = 0;
       const insertPayloads = toInsert.map(ot => ({
         fabricante: ot.fabricante, modelo: ot.modelo,
@@ -172,11 +176,16 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
       }
 
       qc.invalidateQueries({ queryKey: ["otimizadores-catalogo"] });
+      qc.invalidateQueries({ queryKey: ["fornecedores"] });
       const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
-      setImportResult({ inserted, updated, skipped, errors });
+      setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados });
       toast({
         title: "Importação concluída",
-        description: `${inserted} inseridos · ${updated} atualizados · ${skipped} ignorados${errors > 0 ? ` · ${errors} erros` : ""}`,
+        description: [
+          `${inserted} inseridos`, `${updated} atualizados`, `${skipped} ignorados`,
+          errors > 0 ? `${errors} erros` : null,
+          fornecedoresCriados > 0 ? `${fornecedoresCriados} fornecedores criados` : null,
+        ].filter(Boolean).join(" · "),
       });
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
@@ -184,7 +193,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
   };
 
   const handleClose = () => {
-    setParseResult(null); setFileName(""); setImportResult(null);
+    setParseResult(null); setFileName(""); setCsvHeaderLine(""); setImportResult(null);
     setProgress(0); setOverwriteIds(new Set()); setImportSuspectIds(new Set()); onOpenChange(false);
   };
 
