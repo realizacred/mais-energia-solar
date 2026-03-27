@@ -772,6 +772,13 @@ export function FornecedoresManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FornecedorImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        existingFornecedores={fornecedores}
+        onImported={fetchData}
+      />
     </div>
   );
 }
