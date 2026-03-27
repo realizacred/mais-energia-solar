@@ -352,7 +352,45 @@ function resolveFromContext(
   if (key === "financeiro.preco_kwp") return (ctx.precoTotal && ctx.potenciaKwp) ? fmtCurrency(ctx.precoTotal / ctx.potenciaKwp) : null;
   if (key === "financeiro.preco_watt") return (ctx.precoTotal && ctx.potenciaKwp) ? `${fmtNumber(ctx.precoTotal / (ctx.potenciaKwp * 1000), 2)} R$/W` : null;
 
-  // Equipment financials from kit
+  // ── Financial Center costs (from VendaData) ──
+  if (key === "financeiro.valor_kit" || key === "financeiro.custo_kit") {
+    const custoKit = (ctx.venda as any)?.custo_kit_override > 0
+      ? (ctx.venda as any).custo_kit_override
+      : ((ctx.kit as any)?.itens as Array<Record<string, unknown>> | undefined)?.reduce(
+          (s: number, i: Record<string, unknown>) => s + (Number(i.quantidade ?? 0) * Number(i.preco_unitario ?? 0)), 0
+        ) ?? 0;
+    return custoKit > 0 ? fmtCurrency(custoKit) : null;
+  }
+  if (key === "financeiro.valor_instalacao" || key === "financeiro.custo_instalacao_total") {
+    return (ctx.venda as any)?.custo_instalacao > 0 ? fmtCurrency((ctx.venda as any).custo_instalacao) : null;
+  }
+  if (key === "financeiro.valor_comissao" || key === "financeiro.comissao_total") {
+    return (ctx.venda as any)?.custo_comissao > 0 ? fmtCurrency((ctx.venda as any).custo_comissao) : null;
+  }
+  if (key === "financeiro.valor_outros_custos") {
+    return (ctx.venda as any)?.custo_outros > 0 ? fmtCurrency((ctx.venda as any).custo_outros) : null;
+  }
+  if (key === "financeiro.valor_servicos") {
+    const inst = Number((ctx.venda as any)?.custo_instalacao ?? 0);
+    const outros = Number((ctx.venda as any)?.custo_outros ?? 0);
+    return (inst + outros) > 0 ? fmtCurrency(inst + outros) : null;
+  }
+  if (key === "financeiro.margem_percentual") {
+    return (ctx.venda as any)?.margem_percentual != null ? `${fmtNumber((ctx.venda as any).margem_percentual, 1)}%` : null;
+  }
+  if (key === "financeiro.margem_valor") {
+    if (ctx.precoTotal != null && (ctx.venda as any)) {
+      const v = ctx.venda as any;
+      const custoTotal = (v.custo_instalacao ?? 0) + (v.custo_comissao ?? 0) + (v.custo_outros ?? 0) +
+        (v.custo_kit_override > 0 ? v.custo_kit_override : ((ctx.kit as any)?.itens as Array<Record<string, unknown>> | undefined)?.reduce(
+          (s: number, i: Record<string, unknown>) => s + (Number(i.quantidade ?? 0) * Number(i.preco_unitario ?? 0)), 0
+        ) ?? 0);
+      return fmtCurrency(ctx.precoTotal - custoTotal);
+    }
+    return null;
+  }
+
+
   if (kitItens && Array.isArray(kitItens)) {
     const findItem = (cat: string) => kitItens.find((i) => String(i.categoria || i.tipo || "").toLowerCase().includes(cat));
     const modulo = findItem("modulo") || findItem("painel") || findItem("placa");
