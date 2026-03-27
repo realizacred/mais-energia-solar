@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
-import { Trash2, Pencil, Eye, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, Pencil, Eye, Download, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
+import { EnrichButton } from "../shared/EnrichButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +14,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { useEnrichEquipmentBatch } from "@/hooks/useEnrichEquipment";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { calcCompletudeBateria } from "@/utils/calcCompletudeBateria";
-import { Loader2 } from "lucide-react";
 
 interface Bateria {
   id: string;
