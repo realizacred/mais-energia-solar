@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Mail, Phone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -389,11 +391,11 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
           )}
           <div className="space-y-1.5">
             <Label className="text-xs">Data de nascimento</Label>
-            <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="h-9 text-sm" />
+            <DateInput value={birthDate} onChange={setBirthDate} className="h-9 text-sm" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Celular</Label>
-            <Input value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} className="h-9 text-sm" placeholder="(00) 00000-0000" maxLength={15} />
+            <PhoneInput value={phone} onChange={setPhone} className="h-9 text-sm" />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-semibold">Autenticações opcionais</Label>

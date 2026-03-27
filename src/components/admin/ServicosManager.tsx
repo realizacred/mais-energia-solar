@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { PageHeader } from "@/components/ui-kit";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -364,10 +365,9 @@ export function ServicosManager() {
 
                     <div className="space-y-2">
                       <Label>Data *</Label>
-                      <Input
-                        type="date"
+                      <DateInput
                         value={formData.data_agendada}
-                        onChange={(e) => setFormData(prev => ({ ...prev, data_agendada: e.target.value }))}
+                        onChange={(v) => setFormData(prev => ({ ...prev, data_agendada: v }))}
                       />
                     </div>
                   </div>
