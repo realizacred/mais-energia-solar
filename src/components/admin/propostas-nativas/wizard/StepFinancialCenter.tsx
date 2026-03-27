@@ -207,7 +207,15 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const precoVenda = roundCurrency(custoTotal + margemValor);
   const precoWp = potenciaKwp > 0 ? roundCurrency(precoVenda / (potenciaKwp * 1000)) : 0;
 
-  // Slider range
+  // Auto-fill commission value when precoVenda changes and commission is zero
+  useEffect(() => {
+    if (percentualComissaoConsultor > 0 && comissaoCusto === 0 && precoVenda > 0 && comissaoLoaded) {
+      const calculado = Math.round(precoVenda * percentualComissaoConsultor / 100 * 100) / 100;
+      if (calculado > 0) setComissaoCusto(calculado);
+    }
+  }, [percentualComissaoConsultor, precoVenda, comissaoLoaded]);
+
+
   const sliderMin = custoTotal;
   const sliderMax = custoTotal * 2 || 50000;
 
