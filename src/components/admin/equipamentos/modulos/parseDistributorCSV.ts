@@ -96,15 +96,48 @@ function extractPotenciaWp(modelo: string): number {
   // Padrões comuns: 410MS, 530W, MLK-36-530, etc.
   // Pegar o maior número de 3-4 dígitos que pareça potência (100-999)
   const matches = modelo.match(/(\d{3,4})/g);
-  if (!matches) return 0;
+  if (!matches) {
+    // Padrão: zeros à esquerda — ex: "00350" → 350, "MF 00605" → 605
+    const leadingZerosMatch = modelo.match(/\b0+(\d{3,4})\b/);
+    if (leadingZerosMatch) {
+      const potencia = parseInt(leadingZerosMatch[1], 10);
+      if (potencia >= 100 && potencia <= 9999) return potencia;
+    }
+
+    // Padrão: número com sufixo alfanumérico — ex: "KRPF3605B" → 360
+    const alphanumSuffixMatch = modelo.match(/(\d{3,4})[A-Z]+\d*$/i);
+    if (alphanumSuffixMatch) {
+      const raw = alphanumSuffixMatch[1];
+      const potencia = parseInt(raw.substring(0, 3), 10);
+      if (potencia >= 100 && potencia <= 999) return potencia;
+    }
+
+    return 0;
+  }
 
   // Filtrar candidatos razoáveis para potência (100W a 999W tipicamente)
   const candidates = matches
     .map(Number)
     .filter(n => n >= 100 && n <= 999);
 
-  // Retornar o maior (geralmente a potência está no range mais alto)
-  return candidates.length > 0 ? Math.max(...candidates) : 0;
+  if (candidates.length > 0) return Math.max(...candidates);
+
+  // Fallback: zeros à esquerda — ex: "00350" → 350
+  const leadingZerosMatch = modelo.match(/\b0+(\d{3,4})\b/);
+  if (leadingZerosMatch) {
+    const potencia = parseInt(leadingZerosMatch[1], 10);
+    if (potencia >= 100 && potencia <= 9999) return potencia;
+  }
+
+  // Fallback: número com sufixo alfanumérico — ex: "KRPF3605B" → 360
+  const alphanumSuffixMatch = modelo.match(/(\d{3,4})[A-Z]+\d*$/i);
+  if (alphanumSuffixMatch) {
+    const raw = alphanumSuffixMatch[1];
+    const potencia = parseInt(raw.substring(0, 3), 10);
+    if (potencia >= 100 && potencia <= 999) return potencia;
+  }
+
+  return 0;
 }
 
 function detectBifacial(text: string): boolean {
