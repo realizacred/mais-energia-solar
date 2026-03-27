@@ -538,7 +538,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
           ) : (
             <Button variant="ghost" onClick={handleClose}>Cancelar</Button>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
