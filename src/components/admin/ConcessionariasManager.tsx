@@ -478,25 +478,6 @@ export function ConcessionariasManager() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10 rounded-lg" />
-          <div>
-            <Skeleton className="h-5 w-48 mb-1" />
-            <Skeleton className="h-4 w-72" />
-          </div>
-        </div>
-        <div className="space-y-2">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-lg" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   // KPIs
   const kpis = useMemo(() => {
     const total = concessionarias.length;
@@ -518,6 +499,30 @@ export function ConcessionariasManager() {
 
   // Reset page on filter change
   useEffect(() => { setPage(1); }, [searchTerm, filterEstado, filterStatus]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <div>
+            <Skeleton className="h-5 w-48 mb-1" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="p-5"><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-4 w-32" /></Card>
+          ))}
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
