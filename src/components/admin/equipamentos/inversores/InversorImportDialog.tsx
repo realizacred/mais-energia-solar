@@ -208,12 +208,14 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
       const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
       setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados });
       toast({
-        title: "Importação concluída",
+        title: errors > 0 ? "Importação com erros" : "Importação concluída",
         description: [
-          `${inserted} inseridos`, `${updated} atualizados`, `${skipped} ignorados`,
-          errors > 0 ? `${errors} erros` : null,
+          `${inserted} inseridos`, `${updated} atualizados`, `${skipped} já existiam`,
+          errors > 0 ? `${errors} erros — verifique o console (F12)` : null,
           fornecedoresCriados > 0 ? `${fornecedoresCriados} fornecedores criados` : null,
         ].filter(Boolean).join(" · "),
+        variant: errors > 0 ? "destructive" : undefined,
+      });
       });
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
