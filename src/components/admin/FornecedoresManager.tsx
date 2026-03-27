@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { formatPhone } from "@/lib/validations";
+import { FornecedorImportDialog } from "@/components/admin/fornecedores/FornecedorImportDialog";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import {
   Plus, Trash2, Pencil, Truck, Building2, Phone, Mail, MapPin,
-  Search, X, Download, Eye, Package, Factory, Wrench, Globe,
+  Search, X, Download, Upload, Eye, Package, Factory, Wrench, Globe,
   FileText, Calendar, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
@@ -102,6 +103,7 @@ export function FornecedoresManager() {
   const [viewFornecedor, setViewFornecedor] = useState<Fornecedor | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [importOpen, setImportOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -302,6 +304,9 @@ export function FornecedoresManager() {
             )}
             <Button variant="outline" size="sm" className="gap-2" onClick={handleExportCSV}>
               <Download className="w-4 h-4" /> Exportar CSV
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
+              <Upload className="w-4 h-4" /> Importar CSV
             </Button>
             <Button size="sm" onClick={openCreate} className="gap-2">
               <Plus className="w-4 h-4" /> Novo Fornecedor
@@ -767,6 +772,13 @@ export function FornecedoresManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <FornecedorImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        existingFornecedores={fornecedores}
+        onImported={fetchData}
+      />
     </div>
   );
 }
