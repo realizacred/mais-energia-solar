@@ -221,7 +221,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) handleClose(); }}>
-      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <FileSpreadsheet className="w-5 h-5 text-primary" />
@@ -232,8 +232,8 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-4">
             {!parseResult && !importResult && (
               <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                 <FileSpreadsheet className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -367,9 +367,9 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+        <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30">
           {importResult ? (
             <Button onClick={handleClose}>Fechar</Button>
           ) : parseResult ? (
@@ -382,7 +382,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
           ) : (
             <Button variant="ghost" onClick={handleClose}>Cancelar</Button>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
