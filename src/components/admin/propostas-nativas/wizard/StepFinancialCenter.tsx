@@ -194,6 +194,16 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const custoKitEfetivo = kitCustoOverride !== null ? kitCustoOverride : custoKit;
   const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${(Number(potenciaKwp) || 0).toFixed(2)} kWp` : "Kit fotovoltaico";
 
+  // Other services (not instalacao/comissao) — tracked with local state for toggle
+  const outrosServicos = useMemo(() =>
+    servicos.filter(s => s.categoria !== "instalacao" && s.categoria !== "comissao" && s.valor > 0),
+    [servicos]
+  );
+
+  const [servicosEnabledMap, setServicosEnabledMap] = useState<Record<string, boolean>>({});
+
+  const isServicoEnabled = (id: string) => servicosEnabledMap[id] ?? true;
+
   // Build all cost rows
   const allRows = useMemo<CustoRow[]>(() => {
     const rows: CustoRow[] = [];
@@ -220,6 +230,19 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       checked: instalacaoEnabled,
     });
 
+    // Other services from StepServicos (projeto, frete, etc.)
+    outrosServicos.forEach(s => {
+      rows.push({
+        id: `servico-${s.id}`,
+        categoria: "Serviço",
+        item: s.descricao || s.categoria,
+        quantidade: 1,
+        custoUnitario: s.valor,
+        fixo: true,
+        checked: isServicoEnabled(s.id),
+      });
+    });
+
     // Comissão
     rows.push({
       id: "comissao",
@@ -235,7 +258,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     custosExtras.forEach(c => rows.push(c));
 
     return rows;
-  }, [custoKitEfetivo, kitLabel, instalacaoQtd, instalacaoCusto, instalacaoEnabled, comissaoQtd, comissaoCusto, comissaoEnabled, custosExtras]);
+  }, [custoKitEfetivo, kitLabel, instalacaoQtd, instalacaoCusto, instalacaoEnabled, comissaoQtd, comissaoCusto, comissaoEnabled, custosExtras, outrosServicos, servicosEnabledMap]);
 
   const custoTotal = roundCurrency(allRows.filter(r => r.checked).reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
   const margemPercent = venda.margem_percentual;
