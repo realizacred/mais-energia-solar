@@ -308,6 +308,7 @@ export function StepAdicionais({
         onOpenChange={setShowEditLayout}
         layouts={layouts}
         totalModulos={totalModulos}
+        mpptCount={itens.filter(i => i.categoria === "inversor").reduce((s, i) => s + i.quantidade, 0) || 1}
         onSave={(newLayouts) => {
           onLayoutsChange(newLayouts);
           toast({ title: "Layout atualizado" });
