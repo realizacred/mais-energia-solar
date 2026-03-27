@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Plus, Trash2, Sun, Cpu, Zap, Check, ChevronsUpDown } from "lucide-react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { Plus, Trash2, Sun, Cpu, Zap, Check, ChevronsUpDown, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,39 +88,166 @@ export interface KitMeta {
 
 const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
 
-/** Searchable equipment combo (Popover + Command) */
+/** Searchable equipment combo with highlight, keyboard nav, badge */
 interface SearchableOption { value: string; label: string; searchText: string }
+
+function highlightMatch(text: string, query: string) {
+  if (!query.trim()) return <>{text}</>;
+  const terms = query.trim().toLowerCase().split(/\s+/);
+  // Build a regex that matches any of the terms
+  const escaped = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const regex = new RegExp(`(${escaped})`, "gi");
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-primary/20 text-primary font-medium rounded-sm px-0.5">{part}</mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+}
+
 function SearchableEquipSelect({ value, onValueChange, options, placeholder, emptyText, className }: {
   value: string; onValueChange: (v: string) => void;
   options: SearchableOption[]; placeholder: string; emptyText: string; className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const selectedLabel = options.find(o => o.value === value)?.label;
+  const [search, setSearch] = useState("");
+  const [focusedIdx, setFocusedIdx] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const blurTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const selectedOption = options.find(o => o.value === value);
+
+  // Filter options by search (150ms debounce handled inline since cmdk is gone)
+  const filtered = useMemo(() => {
+    if (!search.trim()) return options.slice(0, 50);
+    const terms = search.toLowerCase().split(/\s+/);
+    return options.filter(o => terms.every(t => o.searchText.toLowerCase().includes(t))).slice(0, 50);
+  }, [options, search]);
+
+  // Reset focused index when filtered list changes
+  useEffect(() => { setFocusedIdx(-1); }, [filtered.length, search]);
+
+  const handleSelect = useCallback((val: string) => {
+    onValueChange(val);
+    setOpen(false);
+    setSearch("");
+    setFocusedIdx(-1);
+  }, [onValueChange]);
+
+  const handleClear = useCallback(() => {
+    onValueChange("");
+    setSearch("");
+    setFocusedIdx(-1);
+    // Re-open for new search
+    setTimeout(() => {
+      setOpen(true);
+      inputRef.current?.focus();
+    }, 50);
+  }, [onValueChange]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!open) return;
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setFocusedIdx(prev => Math.min(prev + 1, filtered.length - 1));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setFocusedIdx(prev => Math.max(prev - 1, 0));
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (focusedIdx >= 0 && focusedIdx < filtered.length) {
+          handleSelect(filtered[focusedIdx].value);
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        setOpen(false);
+        setSearch("");
+        break;
+    }
+  }, [open, focusedIdx, filtered, handleSelect]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (focusedIdx >= 0 && listRef.current) {
+      const item = listRef.current.children[focusedIdx] as HTMLElement;
+      item?.scrollIntoView({ block: "nearest" });
+    }
+  }, [focusedIdx]);
+
+  // If value is selected, show badge mode
+  if (value && selectedOption) {
+    return (
+      <div className={cn("flex items-center gap-1", className)}>
+        <div className="flex-1 flex items-center gap-1 h-8 px-2 rounded-md border border-primary/20 bg-primary/5">
+          <span className="text-xs text-primary font-medium truncate flex-1">{selectedOption.label}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 shrink-0 text-primary/60 hover:text-primary hover:bg-primary/10"
+            onClick={handleClear}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={open}
-          className={cn("h-8 text-xs justify-between font-normal", !value && "text-muted-foreground", className)}>
-          <span className="truncate">{selectedLabel || placeholder}</span>
-          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
-          <CommandInput placeholder={placeholder} className="h-8 text-xs" />
-          <CommandList className="max-h-[200px]">
-            <CommandEmpty className="text-xs py-3">{emptyText}</CommandEmpty>
-            {options.map(o => (
-              <CommandItem key={o.value} value={o.searchText} onSelect={() => { onValueChange(o.value); setOpen(false); }}
-                className="text-xs">
-                <Check className={cn("mr-1.5 h-3 w-3 shrink-0", value === o.value ? "opacity-100" : "opacity-0")} />
-                <span className="truncate">{o.label}</span>
-              </CommandItem>
-            ))}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div className={cn("relative", className)}>
+      <Input
+        ref={inputRef}
+        value={search}
+        onChange={e => { setSearch(e.target.value); if (!open) setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => { blurTimeout.current = setTimeout(() => setOpen(false), 200); }}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        className="h-8 text-xs"
+        autoComplete="off"
+      />
+      {open && (
+        <div
+          className="absolute z-50 top-full left-0 right-0 mt-1 rounded-md border border-border bg-popover shadow-lg overflow-hidden"
+          onMouseDown={e => e.preventDefault()} // prevent blur
+        >
+          <div ref={listRef} className="max-h-[200px] overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-3 text-center">{emptyText}</p>
+            ) : (
+              filtered.map((o, idx) => (
+                <div
+                  key={o.value}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2 py-1.5 text-xs cursor-pointer transition-colors",
+                    idx === focusedIdx && "bg-primary/10 border-l-2 border-primary",
+                    idx !== focusedIdx && "hover:bg-muted/60 border-l-2 border-transparent",
+                    value === o.value && "font-medium"
+                  )}
+                  onClick={() => handleSelect(o.value)}
+                  onMouseEnter={() => setFocusedIdx(idx)}
+                >
+                  <Check className={cn("h-3 w-3 shrink-0", value === o.value ? "opacity-100 text-primary" : "opacity-0")} />
+                  <span className="truncate">{highlightMatch(o.label, search)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
