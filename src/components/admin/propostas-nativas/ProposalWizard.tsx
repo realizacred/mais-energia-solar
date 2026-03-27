@@ -2425,6 +2425,42 @@ export function ProposalWizard() {
           onConfirmGenerate={handleGenerate}
         />
       )}
+
+      {/* Financial Center validation gate */}
+      <AlertDialog open={showVendaValidacao} onOpenChange={setShowVendaValidacao}>
+        <AlertDialogContent className="w-[90vw] max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-base font-semibold text-foreground">
+                Corrija antes de prosseguir
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Os itens abaixo precisam ser ajustados:
+                </p>
+                <ul className="space-y-2 mt-2">
+                  {vendaErros.map((erro, i) => (
+                    <li key={i} className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                      <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                      <span className="text-sm text-foreground">{erro}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowVendaValidacao(false)} className="w-full">
+              Entendi, vou corrigir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
