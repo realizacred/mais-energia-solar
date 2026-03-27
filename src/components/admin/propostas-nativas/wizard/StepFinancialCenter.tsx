@@ -66,6 +66,14 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
   const { data: pricingConfig } = usePricingConfig();
 
+  // Other services (not instalacao/comissao) — tracked with local state for toggle
+  const outrosServicos = useMemo(() =>
+    servicos.filter(s => s.categoria !== "instalacao" && s.categoria !== "comissao" && s.valor > 0),
+    [servicos]
+  );
+  const [servicosEnabledMap, setServicosEnabledMap] = useState<Record<string, boolean>>({});
+  const isServicoEnabled = (id: string) => servicosEnabledMap[id] ?? true;
+
   // Apply initial margin from pricing_config (one-time, when venda still has default 20%)
   useEffect(() => {
     if (loadedDefaults || !pricingConfig) return;
@@ -171,7 +179,12 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   useEffect(() => {
     const newInstalacao = instalacaoEnabled ? roundCurrency(instalacaoQtd * instalacaoCusto) : 0;
     const newComissao = comissaoEnabled ? roundCurrency(comissaoQtd * comissaoCusto) : 0;
-    const newOutros = roundCurrency(custosExtras.filter(c => c.checked).reduce((s, c) => s + roundCurrency(c.quantidade * c.custoUnitario), 0));
+    // Include other services + user-added extras in custo_outros
+    const servicosOutrosTotal = outrosServicos
+      .filter(s => isServicoEnabled(s.id))
+      .reduce((s, sv) => s + sv.valor, 0);
+    const extrasTotal = custosExtras.filter(c => c.checked).reduce((s, c) => s + roundCurrency(c.quantidade * c.custoUnitario), 0);
+    const newOutros = roundCurrency(servicosOutrosTotal + extrasTotal);
 
     const changed =
       venda.custo_instalacao !== newInstalacao ||
@@ -186,13 +199,14 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         custo_outros: newOutros,
       });
     }
-  }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras]);
+  }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras, outrosServicos, servicosEnabledMap]);
 
   // ── Calculations ──
 
   const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
   const custoKitEfetivo = kitCustoOverride !== null ? kitCustoOverride : custoKit;
   const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${(Number(potenciaKwp) || 0).toFixed(2)} kWp` : "Kit fotovoltaico";
+
 
   // Build all cost rows
   const allRows = useMemo<CustoRow[]>(() => {
@@ -220,6 +234,19 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       checked: instalacaoEnabled,
     });
 
+    // Other services from StepServicos (projeto, frete, etc.)
+    outrosServicos.forEach(s => {
+      rows.push({
+        id: `servico-${s.id}`,
+        categoria: "Serviço",
+        item: s.descricao || s.categoria,
+        quantidade: 1,
+        custoUnitario: s.valor,
+        fixo: true,
+        checked: isServicoEnabled(s.id),
+      });
+    });
+
     // Comissão
     rows.push({
       id: "comissao",
@@ -235,7 +262,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     custosExtras.forEach(c => rows.push(c));
 
     return rows;
-  }, [custoKitEfetivo, kitLabel, instalacaoQtd, instalacaoCusto, instalacaoEnabled, comissaoQtd, comissaoCusto, comissaoEnabled, custosExtras]);
+  }, [custoKitEfetivo, kitLabel, instalacaoQtd, instalacaoCusto, instalacaoEnabled, comissaoQtd, comissaoCusto, comissaoEnabled, custosExtras, outrosServicos, servicosEnabledMap]);
 
   const custoTotal = roundCurrency(allRows.filter(r => r.checked).reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
   const margemPercent = venda.margem_percentual;
@@ -466,7 +493,11 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         checked={row.checked}
                         onCheckedChange={(checked) => {
                           if (row.id === "instalacao") setInstalacaoEnabled(!!checked);
-                          if (row.id === "comissao") setComissaoEnabled(!!checked);
+                          else if (row.id === "comissao") setComissaoEnabled(!!checked);
+                          else if (row.id.startsWith("servico-")) {
+                            const svcId = row.id.replace("servico-", "");
+                            setServicosEnabledMap(prev => ({ ...prev, [svcId]: !!checked }));
+                          }
                         }}
                         onClick={e => e.stopPropagation()}
                         className="h-4 w-4"
