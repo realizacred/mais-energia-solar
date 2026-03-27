@@ -144,7 +144,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
   // ─── Full mode ──────────────────────────────────
   return (
     <Card className="border-border/60">
-      <CardHeader className="px-4 pt-3 pb-2">
+      <CardHeader className="px-4 sm:px-4 pt-3 sm:pt-3 pb-2 sm:pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-bold flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
@@ -165,7 +165,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-0.5 px-4 pb-2.5 pt-0">
+      <CardContent className="space-y-0.5 px-4 sm:px-4 pb-2.5 sm:pb-2.5 pt-0">
         <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
 
         {useLegacy ? (

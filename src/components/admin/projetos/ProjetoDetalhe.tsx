@@ -1113,7 +1113,7 @@ function GerenciamentoTab({
         <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           {/* Card: Dados do Cliente */}
           <Card>
-            <CardHeader className="pb-0 flex flex-row items-center justify-between space-y-0 px-3.5 pt-2.5">
+            <CardHeader className="pb-0 flex flex-row items-center justify-between space-y-0 px-3.5 sm:px-3.5 pt-2.5 sm:pt-2.5">
               <CardTitle className="text-sm font-bold text-foreground">
                 Dados do cliente
               </CardTitle>
@@ -1155,7 +1155,7 @@ function GerenciamentoTab({
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
-            <CardContent className="px-3.5 pb-2.5 pt-0">
+            <CardContent className="px-3.5 sm:px-3.5 pb-2.5 sm:pb-2.5 pt-0">
               <div className="space-y-0.5">
                 <ClientRow icon={User} label={customerName || "—"} />
                 <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} onEdit={!customerEmpresa ? () => openInlineEdit("empresa", "Nome da Empresa", customerEmpresa) : undefined} />
@@ -1254,7 +1254,7 @@ function GerenciamentoTab({
         <div className="lg:col-span-7 xl:col-span-8 space-y-4">
           {/* Card: Atividades */}
           <Card className="shadow-sm">
-            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 px-4 pt-3">
+            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 px-4 sm:px-4 pt-3 sm:pt-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-warning/15 flex items-center justify-center">
                   <Zap className="h-3.5 w-3.5 text-warning" />
@@ -1270,7 +1270,7 @@ function GerenciamentoTab({
                 <Plus className="h-3 w-3" /> Nova atividade
               </Button>
             </CardHeader>
-            <CardContent className="px-4 pb-3 pt-0">
+            <CardContent className="px-4 sm:px-4 pb-3 sm:pb-3 pt-0">
               {activities.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-border rounded-lg bg-muted/20">
                   <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
@@ -1432,7 +1432,7 @@ function GerenciamentoTab({
 
           {/* Card: Histórico / Timeline */}
           <Card className="shadow-sm">
-            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 px-4 pt-3">
+            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0 px-4 sm:px-4 pt-3 sm:pt-3">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Clock className="h-3.5 w-3.5 text-primary" />
@@ -1443,7 +1443,7 @@ function GerenciamentoTab({
                 <Plus className="h-3 w-3" /> Nova nota
               </Button>
             </CardHeader>
-            <CardContent className="px-4 pb-3 pt-0">
+            <CardContent className="px-4 sm:px-4 pb-3 sm:pb-3 pt-0">
               {/* Filter pills */}
               <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                 {TIMELINE_FILTERS.map(f => {
