@@ -3,6 +3,7 @@ import { Phone, Mail, MapPin, Send, ArrowRight, CheckCircle2 } from "lucide-reac
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -223,12 +224,9 @@ export function ContactSection() {
                     maxLength={100}
                     className="rounded-xl h-12"
                   />
-                  <Input
-                    placeholder="Telefone *"
+                  <PhoneInput
                     value={formData.telefone}
-                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                    required
-                    maxLength={20}
+                    onChange={(raw) => setFormData({ ...formData, telefone: raw })}
                     className="rounded-xl h-12"
                   />
                 </div>
