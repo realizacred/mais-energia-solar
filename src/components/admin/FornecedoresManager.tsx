@@ -305,6 +305,9 @@ export function FornecedoresManager() {
             <Button variant="outline" size="sm" className="gap-2" onClick={handleExportCSV}>
               <Download className="w-4 h-4" /> Exportar CSV
             </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
+              <Upload className="w-4 h-4" /> Importar CSV
+            </Button>
             <Button size="sm" onClick={openCreate} className="gap-2">
               <Plus className="w-4 h-4" /> Novo Fornecedor
             </Button>
