@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { importFornecedoresFromHeader } from "@/utils/importFornecedoresFromHeader";
 import {
   dedupKeyNormalized,
   findSuspects,
@@ -198,6 +199,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
   const qc = useQueryClient();
 
   const [fileName, setFileName] = useState("");
+  const [csvHeaderLine, setCsvHeaderLine] = useState("");
   const [parseResult, setParseResult] = useState<{ baterias: ParsedBateria[]; warnings: { line: number; issue: string }[] } | null>(null);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -206,7 +208,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
   const [verifyingAI, setVerifyingAI] = useState(false);
   const [aiProgress, setAiProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{
-    inserted: number; updated: number; skipped: number; errors: number;
+    inserted: number; updated: number; skipped: number; errors: number; fornecedores: number;
   } | null>(null);
 
   const existingMap = useMemo(() => {
@@ -289,6 +291,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string || "";
+      setCsvHeaderLine(text.split("\n")[0] || "");
       setParseResult(parseBateriaCSV(text));
     };
     reader.readAsText(file, "ISO-8859-1");
@@ -303,6 +306,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
 
     try {
       const { tenantId } = await getCurrentTenantId();
+      const fornecedoresCriados = await importFornecedoresFromHeader(csvHeaderLine, tenantId);
       let inserted = 0, updated = 0, errors = 0;
       const insertPayloads = toInsert.map(b => ({
         fabricante: b.fabricante, modelo: b.modelo,
@@ -331,11 +335,16 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
       }
 
       qc.invalidateQueries({ queryKey: ["baterias"] });
+      qc.invalidateQueries({ queryKey: ["fornecedores"] });
       const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
-      setImportResult({ inserted, updated, skipped, errors });
+      setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados });
       toast({
         title: "Importação concluída",
-        description: `${inserted} inseridas · ${updated} atualizadas · ${skipped} ignoradas${errors > 0 ? ` · ${errors} erros` : ""}`,
+        description: [
+          `${inserted} inseridas`, `${updated} atualizadas`, `${skipped} ignoradas`,
+          errors > 0 ? `${errors} erros` : null,
+          fornecedoresCriados > 0 ? `${fornecedoresCriados} fornecedores criados` : null,
+        ].filter(Boolean).join(" · "),
       });
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
@@ -343,7 +352,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
   };
 
   const handleClose = () => {
-    setParseResult(null); setFileName(""); setImportResult(null);
+    setParseResult(null); setFileName(""); setCsvHeaderLine(""); setImportResult(null);
     setProgress(0); setOverwriteIds(new Set()); setImportSuspectIds(new Set()); onOpenChange(false);
   };
 
