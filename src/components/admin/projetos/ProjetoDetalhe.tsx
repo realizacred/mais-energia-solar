@@ -692,8 +692,8 @@ function GerenciamentoTab({
       const currentStageId = deal.stage_id;
       const filtered = fields.filter((f: any) => {
         const stageIds: string[] = f.important_stage_ids || [];
-        // If no specific stages configured, skip (important_on_funnel may be stale)
-        if (stageIds.length === 0) return false;
+        // If no specific stages configured, show in ALL stages
+        if (stageIds.length === 0) return true;
         return stageIds.includes(currentStageId);
       });
 
