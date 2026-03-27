@@ -10,7 +10,7 @@ import {
 import { useEnrichEquipment } from "@/hooks/useEnrichEquipment";
 
 interface EnrichButtonProps {
-  equipmentType: "modulo" | "inversor" | "otimizador";
+  equipmentType: "modulo" | "inversor" | "otimizador" | "bateria";
   equipmentId: string;
   size?: "icon" | "sm";
 }

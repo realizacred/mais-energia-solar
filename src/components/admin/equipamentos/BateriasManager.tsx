@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
-import { Plus, Pencil, Trash2, Search, Battery, Eye, X, Package, CheckCircle2, Sparkles, LayoutGrid, Table as TableIcon, Zap } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Battery, Eye, X, Package, CheckCircle2, Sparkles, LayoutGrid, Table as TableIcon, Zap, Wand2, FileWarning, GitCompareArrows } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { EnrichButton } from "./shared/EnrichButton";
+import { BatchEnrichDialog } from "./shared/BatchEnrichDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { BateriaViewModal } from "./baterias/BateriaViewModal";
 import { BateriaTableView } from "./baterias/BateriaTableView";
+import { BateriaCompareModal } from "./baterias/BateriaCompareModal";
 import { calcCompletudeBateria } from "@/utils/calcCompletudeBateria";
 
 type ViewMode = "cards" | "table";
@@ -69,6 +72,8 @@ export function BateriasManager() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [viewItem, setViewItem] = useState<Bateria | null>(null);
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [batchEnrichOpen, setBatchEnrichOpen] = useState(false);
 
   const { data: baterias = [], isLoading } = useQuery({
     queryKey: ["baterias"],
@@ -219,6 +224,8 @@ export function BateriasManager() {
     setCompareIds(next);
   };
 
+  const compareBaterias = useMemo(() => baterias.filter(b => compareIds.has(b.id)), [baterias, compareIds]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -228,6 +235,7 @@ export function BateriasManager() {
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             {activeFilterCount > 0 && <Badge variant="secondary" className="gap-1">{activeFilterCount} filtro{activeFilterCount > 1 ? "s" : ""}</Badge>}
+            <Button variant="outline" size="sm" onClick={() => setBatchEnrichOpen(true)} className="gap-2"><Wand2 className="w-4 h-4" /> Buscar specs IA</Button>
             <Button size="sm" onClick={() => openDialog()} className="gap-2"><Plus className="w-4 h-4" /> Nova Bateria</Button>
           </div>
         }
@@ -305,6 +313,7 @@ export function BateriasManager() {
               return (
                 <Card key={bat.id} className={`group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all ${!bat.ativo ? "opacity-50 grayscale" : ""}`}>
                   <div className="absolute top-3 right-3 flex gap-1 z-10">
+                    <EnrichButton equipmentType="bateria" equipmentId={bat.id} />
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog(bat)} title="Editar"><Pencil className="w-4 h-4" /></Button>
                   </div>
                   {compareIds.size < 3 && (
@@ -350,6 +359,12 @@ export function BateriasManager() {
 
         {!isLoading && filtered.length > 0 && <p className="text-xs text-muted-foreground text-right">{filtered.length} de {baterias.length} baterias</p>}
       </div>
+
+      {compareIds.size >= 2 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <Button size="lg" className="gap-2 shadow-lg" onClick={() => setCompareOpen(true)}><GitCompareArrows className="w-4 h-4" /> Comparar ({compareIds.size})</Button>
+        </div>
+      )}
 
       {/* Form Dialog */}
       <FormModalTemplate
@@ -419,6 +434,8 @@ export function BateriasManager() {
       </AlertDialog>
 
       <BateriaViewModal bateria={viewItem} open={!!viewItem} onOpenChange={v => !v && setViewItem(null)} />
+      <BateriaCompareModal baterias={compareBaterias} open={compareOpen} onOpenChange={(v) => { setCompareOpen(v); if (!v) setCompareIds(new Set()); }} />
+      <BatchEnrichDialog open={batchEnrichOpen} onOpenChange={setBatchEnrichOpen} equipmentType="bateria" draftIds={baterias.map(b => b.id)} />
     </div>
   );
 }
