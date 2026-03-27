@@ -23,6 +23,9 @@ import {
   findSuspects,
   type SuspectMatch,
 } from "@/utils/equipmentDedupUtils";
+import {
+  parseDistributorCSV,
+} from "../modulos/parseDistributorCSV";
 
 interface Bateria {
   id: string;
@@ -67,7 +70,81 @@ function detectDelimiter(text: string): string {
   return ",";
 }
 
+/** Detecta se o CSV é formato distribuidora (Categoria;Item;...) ou simples */
+function isDistributorFormat(text: string): boolean {
+  const firstLine = text.split("\n")[0]?.toLowerCase() || "";
+  return firstLine.includes("categoria") && firstLine.includes("item");
+}
+
+/** Extrai energia em kWh do nome do modelo de bateria */
+function extractEnergyFromModel(item: string): number | null {
+  // Padrão: número com decimal seguido de kWh ou KWH
+  const kwhMatch = item.match(/(\d+\.?\d*)\s*[Kk][Ww][Hh]/);
+  if (kwhMatch) return parseFloat(kwhMatch[1]);
+
+  // Padrão: número decimal isolado que parece capacidade (ex: "HVS 10.2" → 10.2)
+  const decimalMatch = item.match(/\b(\d+\.\d+)\b/);
+  if (decimalMatch) {
+    const val = parseFloat(decimalMatch[1]);
+    if (val >= 1 && val <= 500) return val;
+  }
+
+  // Padrão: US3000C → 3000 Wh = 3 kWh
+  const whMatch = item.match(/(\d{4,5})[A-Za-z]/);
+  if (whMatch) {
+    const wh = parseInt(whMatch[1]);
+    if (wh >= 1000 && wh <= 50000) return wh / 1000;
+  }
+
+  return null;
+}
+
+/** Parse formato distribuidora para baterias */
+function parseDistributorBateria(text: string): { baterias: ParsedBateria[]; warnings: { line: number; issue: string }[] } {
+  // Use parseDistributorCSV with category filter — try "Bateria" and "Armazenamento"
+  let base = parseDistributorCSV(text, "Bateria" as any);
+  if (base.modules.length === 0) {
+    base = parseDistributorCSV(text, "Armazenamento" as any);
+  }
+
+  const baterias: ParsedBateria[] = [];
+  const warnings: { line: number; issue: string }[] = base.warnings.map(w => ({
+    line: w.line, issue: w.issue,
+  }));
+
+  const seenKeys = new Set<string>();
+
+  base.modules.forEach((m, idx) => {
+    const key = `${m.fabricante}|${m.modelo}`.toLowerCase();
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
+
+    const fullName = `${m.fabricante} ${m.modelo}`;
+    const energia_kwh = extractEnergyFromModel(fullName) ?? 0;
+
+    if (energia_kwh <= 0) {
+      warnings.push({ line: idx + 2, issue: `Energia não detectada: "${fullName}"` });
+    }
+
+    baterias.push({
+      fabricante: m.fabricante,
+      modelo: m.modelo,
+      energia_kwh,
+      tipo_bateria: "LFP",
+      tensao_nominal_v: null,
+    });
+  });
+
+  return { baterias, warnings };
+}
+
 function parseBateriaCSV(text: string): { baterias: ParsedBateria[]; warnings: { line: number; issue: string }[] } {
+  // Auto-detect format
+  if (isDistributorFormat(text)) {
+    return parseDistributorBateria(text);
+  }
+
+  // Simple format: Fabricante;Modelo;Energia;Tipo;Tensão
   const lines = text.split("\n").filter(l => l.trim());
   if (lines.length < 2) return { baterias: [], warnings: [] };
 
@@ -92,13 +169,18 @@ function parseBateriaCSV(text: string): { baterias: ParsedBateria[]; warnings: {
 
     const fabricante = get(colFab) || "";
     const modelo = get(colMod) || "";
-    const energia_kwh = parseNumber(get(colEnergy)) ?? 0;
+    let energia_kwh = parseNumber(get(colEnergy)) ?? 0;
     const tipo_bateria = get(colType) || "LFP";
     const tensao_nominal_v = parseNumber(get(colVoltage));
 
     if (!fabricante || !modelo) {
       warnings.push({ line: i + 1, issue: "Fabricante ou modelo vazio" });
       continue;
+    }
+
+    // Try extracting from model name if energy column empty
+    if (energia_kwh <= 0) {
+      energia_kwh = extractEnergyFromModel(`${fabricante} ${modelo}`) ?? 0;
     }
 
     if (energia_kwh <= 0) {

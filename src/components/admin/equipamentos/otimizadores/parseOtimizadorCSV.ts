@@ -27,26 +27,31 @@ export interface ParsedDistributorOtimizador {
 export function extractPotenciaWpOtimizador(modelo: string): number {
   const upper = modelo.toUpperCase();
 
-  // Padrão P(\d{3,4}) — ex: P370, P505
-  const pMatch = upper.match(/\bP(\d{3,4})\b/);
-  if (pMatch) return parseInt(pMatch[1]);
+  // Padrão P(\d{2,3}) — ex: P370, P505 (range otimizador: 50-800W)
+  const pMatch = upper.match(/\bP(\d{2,3})\b/);
+  if (pMatch) {
+    const val = parseInt(pMatch[1]);
+    if (val >= 50 && val <= 800) return val;
+  }
 
-  // Padrão M(\d{3,4}) — ex: M1600
-  const mMatch = upper.match(/\bM(\d{3,4})\b/);
-  if (mMatch) return parseInt(mMatch[1]);
+  // Padrão (\d{2,3})W — ex: 400W, 450W
+  const wMatch = upper.match(/(\d{2,3})\s*W\b/);
+  if (wMatch) {
+    const val = parseInt(wMatch[1]);
+    if (val >= 50 && val <= 800) return val;
+  }
 
-  // Padrão (\d{3,4})W — ex: 450W
-  const wMatch = upper.match(/(\d{3,4})\s*W\b/);
-  if (wMatch) return parseInt(wMatch[1]);
+  // Padrão SUN2000-(\d{2,3})W — ex: SUN2000-450W-P
+  const sunMatch = upper.match(/SUN2000-(\d{2,3})W/);
+  if (sunMatch) {
+    const val = parseInt(sunMatch[1]);
+    if (val >= 50 && val <= 800) return val;
+  }
 
-  // Padrão SUN2000-(\d{3,4})W — ex: SUN2000-450W-P
-  const sunMatch = upper.match(/SUN2000-(\d{3,4})W/);
-  if (sunMatch) return parseInt(sunMatch[1]);
-
-  // Fallback: procurar número razoável de 3-4 dígitos
-  const nums = modelo.match(/(\d{3,4})/g);
+  // Fallback: procurar número razoável de 2-3 dígitos no range de otimizador
+  const nums = modelo.match(/(\d{2,3})/g);
   if (nums) {
-    const candidates = nums.map(Number).filter(n => n >= 100 && n <= 2000);
+    const candidates = nums.map(Number).filter(n => n >= 50 && n <= 800);
     if (candidates.length > 0) return Math.max(...candidates);
   }
 
