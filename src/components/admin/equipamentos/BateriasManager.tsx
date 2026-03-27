@@ -313,6 +313,7 @@ export function BateriasManager() {
               return (
                 <Card key={bat.id} className={`group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all ${!bat.ativo ? "opacity-50 grayscale" : ""}`}>
                   <div className="absolute top-3 right-3 flex gap-1 z-10">
+                    <EnrichButton equipmentType="bateria" equipmentId={bat.id} />
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog(bat)} title="Editar"><Pencil className="w-4 h-4" /></Button>
                   </div>
                   {compareIds.size < 3 && (
