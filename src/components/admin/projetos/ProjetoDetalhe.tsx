@@ -579,6 +579,8 @@ function GerenciamentoTab({
   const [deleteActivityDialogOpen, setDeleteActivityDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
   const [waDialogOpen, setWaDialogOpen] = useState(false);
+  const [fichaDialogOpen, setFichaDialogOpen] = useState(false);
+  const [fichaClienteData, setFichaClienteData] = useState<any>(null);
   const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; created_by_name?: string }>>([]);
   const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string; assigned_to?: string | null }>>([]);
 
