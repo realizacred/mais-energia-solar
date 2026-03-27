@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { Plus, Trash2, Sun, Cpu, Zap, Check, ChevronsUpDown, X } from "lucide-react";
+import { Plus, Trash2, SunMedium, Cable, Zap, BatteryCharging, Check, ChevronsUpDown, X, Package, Settings2, Boxes } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -637,43 +637,49 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
-        <DialogHeader className="p-5 pb-4 border-b border-border shrink-0">
-          <DialogTitle className="text-base">{title}</DialogTitle>
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">{title}</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Configure os componentes e custos do kit</p>
+          </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
         <div className="p-5 space-y-4">
           {/* Header fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Nome do distribuidor *</Label>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">Nome do distribuidor <span className="text-destructive">*</span></Label>
               <Input value={distribuidorNome} onChange={e => setDistribuidorNome(e.target.value)} className={cn("h-8 text-xs", triedSave && !distribuidorNome.trim() && "ring-2 ring-destructive")} />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Custo *</Label>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">Custo <span className="text-destructive">*</span></Label>
               <CurrencyInput value={custo} onChange={setCusto} className={cn("h-8 text-xs", triedSave && custo <= 0 && "ring-2 ring-destructive")} placeholder="0,00" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Nome do Kit *</Label>
-              <Input value={nomeKit} onChange={e => setNomeKit(e.target.value)} className="h-8 text-xs" />
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">Nome do Kit <span className="text-destructive">*</span></Label>
+              <Input value={nomeKit} onChange={e => setNomeKit(e.target.value)} className={cn("h-8 text-xs", triedSave && !nomeKit.trim() && "ring-2 ring-destructive")} />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Código do Kit *</Label>
-              <Input value={codigoKit} onChange={e => setCodigoKit(e.target.value)} className="h-8 text-xs" />
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">Código do Kit <span className="text-destructive">*</span></Label>
+              <Input value={codigoKit} onChange={e => setCodigoKit(e.target.value)} className={cn("h-8 text-xs", triedSave && !codigoKit.trim() && "ring-2 ring-destructive")} />
             </div>
           </div>
 
           {/* Sistema */}
-          <div className="space-y-1">
-            <Label className="text-xs">Sistema</Label>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Sistema</Label>
             <RadioGroup value={sistema} onValueChange={v => setSistema(v as any)} className="flex gap-4">
               {[{ v: "on_grid", l: "On grid" }, { v: "hibrido", l: "Híbrido" }, { v: "off_grid", l: "Off grid" }].map(o => (
-                <div key={o.v} className="flex items-center gap-1.5">
-                  <RadioGroupItem value={o.v} id={`s-${o.v}`} className="h-3.5 w-3.5" />
-                  <Label htmlFor={`s-${o.v}`} className="text-xs cursor-pointer">{o.l}</Label>
+                <div key={o.v} className="flex items-center gap-2">
+                  <RadioGroupItem value={o.v} id={`s-${o.v}`} className="h-4 w-4" />
+                  <Label htmlFor={`s-${o.v}`} className="text-sm cursor-pointer text-foreground">{o.l}</Label>
                 </div>
               ))}
             </RadioGroup>
@@ -697,8 +703,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
           {/* Topologia + Custos */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Topologia *</Label>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">Topologia <span className="text-destructive">*</span></Label>
               <Select value={topologia} onValueChange={v => {
                 setTopologia(v);
                 // Auto-add otimizador entry when switching to Otimizador
@@ -748,14 +754,17 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
           {/* Filter info banner */}
           {topologia && (
-            <div className="rounded-md bg-muted/50 border border-border/40 px-3 py-2 text-[11px] text-muted-foreground flex items-center gap-2">
-              <Cpu className="h-3.5 w-3.5 shrink-0" />
-              <span>
-                Filtro ativo: <strong className="text-foreground">{topologia}</strong>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+              <Settings2 className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span className="text-xs text-primary">
+                Filtro ativo:{" "}
+                <span className="font-medium">{topologia}</span>
                 {(sistema === "hibrido" || sistema === "off_grid") && (
-                  <> • Sistema <strong className="text-foreground">{sistema === "hibrido" ? "Híbrido" : "Off grid"}</strong> → somente inversores híbridos</>
+                  <> • Sistema <span className="font-medium">{sistema === "hibrido" ? "Híbrido" : "Off grid"}</span> → somente inversores híbridos</>
                 )}
-                {" "}({filteredInversores.length} inversores disponíveis)
+              </span>
+              <span className="text-xs text-muted-foreground ml-1">
+                ({filteredInversores.length} inversores disponíveis)
               </span>
             </div>
           )}
@@ -766,9 +775,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Módulos */}
             {moduloEntries.map((m, idx) => (
-              <div key={m.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div key={m.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5"><Sun className="h-3 w-3 text-primary" /> Módulo *</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-warning/10 flex items-center justify-center">
+                      <SunMedium className="w-3.5 h-3.5 text-warning" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">Módulo <span className="text-destructive">*</span></span>
+                  </div>
                   {moduloEntries.length > 1 && (
                     <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setModuloEntries(p => p.filter(x => x.id !== m.id))}>
                       <Trash2 className="h-3 w-3" />
@@ -824,9 +838,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Inversores (filtered by topologia + sistema) */}
             {inversorEntries.map((inv, idx) => (
-              <div key={inv.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div key={inv.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5"><Cpu className="h-3 w-3 text-primary" /> {inversorLabel} *</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+                      <Cable className="w-3.5 h-3.5 text-primary" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">{inversorLabel} <span className="text-destructive">*</span></span>
+                  </div>
                   <div className="flex items-center gap-2">
                     {inversorEntries.length > 1 && (
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setInversorEntries(p => p.filter(x => x.id !== inv.id))}>
@@ -900,7 +919,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     <span className="text-[10px] text-muted-foreground">Avulso?</span>
                   </div>
                   {idx === inversorEntries.length - 1 && (
-                    <Button variant="ghost" size="sm" onClick={() => setInversorEntries(p => [...p, createEmptyInversor()])} className="text-[11px] text-primary font-medium h-6">
+                    <Button variant="ghost" size="sm" onClick={() => setInversorEntries(p => [...p, createEmptyInversor()])} className="text-xs text-primary font-medium h-7 hover:bg-primary/10">
                       + Adicionar mais
                     </Button>
                   )}
@@ -910,11 +929,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Otimizadores (only when topologia = Otimizador) */}
             {showOtimizadores && otimizadorEntries.map((ot, idx) => (
-              <div key={ot.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div key={ot.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <Zap className="h-3 w-3 text-primary" /> Otimizador *
-                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-info/10 flex items-center justify-center">
+                      <Zap className="w-3.5 h-3.5 text-info" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">Otimizador <span className="text-destructive">*</span></span>
+                  </div>
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setOtimizadorEntries(p => p.filter(x => x.id !== ot.id))}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -975,9 +997,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             {mode === "zero" && (
               <>
                 {componenteEntries.map(c => (
-                  <div key={c.id} className="rounded-lg border-2 border-border/40 bg-muted/30 p-3 space-y-2">
+                  <div key={c.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold">Componente *</Label>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
+                          <Boxes className="w-3.5 h-3.5 text-muted-foreground" />
+                        </div>
+                        <span className="text-sm font-semibold text-foreground">Componente <span className="text-destructive">*</span></span>
+                      </div>
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setComponenteEntries(p => p.filter(x => x.id !== c.id))}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -996,11 +1023,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Baterias */}
             {bateriaEntries.map((bat, idx) => (
-              <div key={bat.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div key={bat.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <Zap className="h-3 w-3 text-primary" /> Bateria
-                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-success/10 flex items-center justify-center">
+                      <BatteryCharging className="w-3.5 h-3.5 text-success" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">Bateria</span>
+                  </div>
                   <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setBateriaEntries(p => p.filter(x => x.id !== bat.id))}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -1060,18 +1090,18 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             {/* Add buttons */}
             <div className="flex flex-wrap gap-2">
               {otimizadorEntries.length === 0 && (
-                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])}>
-                  <Zap className="h-3 w-3 mr-1" /> + Otimizador
+                <Button variant="outline" size="sm" className="text-xs h-7 gap-1 border-dashed text-muted-foreground hover:text-primary hover:border-primary hover:bg-primary/5" onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])}>
+                  <Plus className="w-3.5 h-3.5" /> Otimizador
                 </Button>
               )}
               {bateriaEntries.length === 0 && (
-                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setBateriaEntries(p => [...p, createEmptyBateria()])}>
-                  <Zap className="h-3 w-3 mr-1" /> + Bateria
+                <Button variant="outline" size="sm" className="text-xs h-7 gap-1 border-dashed text-muted-foreground hover:text-primary hover:border-primary hover:bg-primary/5" onClick={() => setBateriaEntries(p => [...p, createEmptyBateria()])}>
+                  <Plus className="w-3.5 h-3.5" /> Bateria
                 </Button>
               )}
               {mode === "zero" && (
-                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 1 }])}>
-                  + Componente
+                <Button variant="outline" size="sm" className="text-xs h-7 gap-1 border-dashed text-muted-foreground hover:text-primary hover:border-primary hover:bg-primary/5" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 1 }])}>
+                  <Plus className="w-3.5 h-3.5" /> Componente
                 </Button>
               )}
             </div>
@@ -1082,14 +1112,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
         {/* Footer */}
         <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30 shrink-0">
-          <Button variant="ghost" size="sm" className="text-xs" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Voltar
           </Button>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
-              Potência: {potenciaTotal.toFixed(2)} kWp
-            </Badge>
-            <Button size="sm" className="text-xs h-8" onClick={handleSave}>
+            <span className="text-sm text-muted-foreground">
+              Potência: <span className="font-medium text-foreground">{potenciaTotal.toFixed(2)} kWp</span>
+            </span>
+            <Button onClick={handleSave}>
               Salvar
             </Button>
           </div>
