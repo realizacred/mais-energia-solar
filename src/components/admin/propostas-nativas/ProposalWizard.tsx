@@ -190,7 +190,7 @@ export function ProposalWizard() {
   const [premissas, setPremissas] = useState<PremissasData>(DEFAULT_PREMISSAS);
 
   // Kit (extracted hooks)
-  const { modulos, inversores, otimizadores, loadingEquip } = useEquipmentCatalog();
+  const { modulos, inversores, otimizadores, baterias, loadingEquip } = useEquipmentCatalog();
   const [itens, setItens] = useState<KitItemRow[]>([
     { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
   ]);
