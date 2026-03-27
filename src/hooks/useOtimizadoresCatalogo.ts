@@ -35,13 +35,27 @@ export function useOtimizadoresCatalogo() {
   return useQuery({
     queryKey: [QUERY_KEY],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("otimizadores_catalogo")
-        .select(SELECT_COLS)
-        .order("fabricante")
-        .order("potencia_wp");
-      if (error) throw error;
-      return data as Otimizador[];
+      const allData: Otimizador[] = [];
+      const batchSize = 1000;
+      let offset = 0;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from("otimizadores_catalogo")
+          .select(SELECT_COLS)
+          .order("fabricante")
+          .order("potencia_wp")
+          .range(offset, offset + batchSize - 1);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allData.push(...(data as Otimizador[]));
+        if (data.length < batchSize) break;
+        offset += batchSize;
+      }
+
+      return allData;
     },
     staleTime: STALE_TIME,
   });
