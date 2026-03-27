@@ -1395,6 +1395,10 @@ function GerenciamentoTab({
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleToggleActivity(a.id, a.status)}>
+                                      <CheckCircle className="h-3.5 w-3.5 mr-2" />
+                                      {a.status === "done" ? "Reabrir" : "Marcar como concluída"}
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleEditActivity(a)}>
                                       <Pencil className="h-3.5 w-3.5 mr-2" /> Editar
                                     </DropdownMenuItem>
