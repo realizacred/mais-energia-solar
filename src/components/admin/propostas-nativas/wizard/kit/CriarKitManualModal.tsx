@@ -376,6 +376,23 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     });
   }, [initialItens, otimizadores]);
 
+  const initBaterias = useMemo(() => {
+    if (!initialItens) return [];
+    const bats = initialItens.filter(i => i.categoria === "bateria");
+    return bats.map(b => {
+      const catalogMatch = baterias.find(c => (b.produto_ref && c.id === b.produto_ref) || (c.modelo === b.modelo && c.fabricante === b.fabricante));
+      return {
+        id: crypto.randomUUID(),
+        selectedId: catalogMatch?.id || "",
+        quantidade: b.quantidade,
+        avulso: b.avulso || !catalogMatch,
+        nome: b.modelo || "",
+        fabricante: b.fabricante || "",
+        energiaKwh: b.potencia_w ? b.potencia_w / 1000 : 0,
+      } as BateriaEntry;
+    });
+  }, [initialItens, baterias]);
+
   const initCusto = useMemo(() => {
     if (!initialItens) return 0;
     return initialItens.reduce((s, i) => s + (i.preco_unitario || 0) * i.quantidade, 0);
@@ -399,6 +416,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [moduloEntries, setModuloEntries] = useState<ModuloEntry[]>(initModulos);
   const [inversorEntries, setInversorEntries] = useState<InversorEntry[]>(initInversores);
   const [otimizadorEntries, setOtimizadorEntries] = useState<OtimizadorEntry[]>(initOtimizadores);
+  const [bateriaEntries, setBateriaEntries] = useState<BateriaEntry[]>(initBaterias);
   const [componenteEntries, setComponenteEntries] = useState<{ id: string; nome: string; quantidade: number }[]>([]);
 
   // Reset form when initialItens changes (open for edit vs create)
