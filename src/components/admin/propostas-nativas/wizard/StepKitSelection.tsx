@@ -900,7 +900,7 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
 
         {/* Module info */}
         <div className="flex items-start gap-2 mb-1.5">
-          <Package className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+          <Sun className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
           <div>
             <p className="text-xs font-medium">{card.moduloQtd}x {card.moduloDescricao}</p>
             <p className="text-[10px] text-muted-foreground">Total {card.moduloPotenciaKwp.toFixed(2)} kWp</p>
@@ -909,7 +909,7 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
 
         {/* Inverter info */}
         <div className="flex items-start gap-2 mb-3">
-          <Zap className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+          <Cpu className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
           <div>
             <p className="text-xs font-medium">{card.inversorQtd}x {card.inversorDescricao}</p>
             <p className="text-[10px] text-muted-foreground">Total {card.inversorPotenciaKw.toFixed(2)} kW</p>
