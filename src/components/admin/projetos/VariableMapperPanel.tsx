@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { valorPorExtenso, formatCurrency } from "@/utils/valorPorExtenso";
+import { formatPhoneBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 // ── Types ────────────────────────────────────────
@@ -73,6 +74,7 @@ function getNestedValue(obj: Record<string, any>, path: string): any {
 
 function formatDisplayValue(value: any, key: string): string {
   if (value === null || value === undefined || value === "") return "";
+  if (key.includes("telefone")) return formatPhoneBR(String(value));
   if (key.includes("valor") || key === "preco_por_extenso") {
     if (key === "preco_por_extenso") return String(value);
     if (typeof value === "number") return formatCurrency(value);
