@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertTriangle, CheckCircle2, Upload, Loader2, FileSpreadsheet, Sparkles,
 } from "lucide-react";
@@ -402,14 +403,34 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
                     <p className="text-xs text-muted-foreground">Suspeitas</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
-                    <p className="text-2xl font-bold text-warning">{duplicateItems.length}</p>
-                    <p className="text-xs text-muted-foreground">Duplicadas</p>
+                    <p className="text-2xl font-bold text-muted-foreground">{duplicateItems.length}</p>
+                    <p className="text-xs text-muted-foreground">Já existem</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
                     <p className="text-2xl font-bold text-foreground">{parseResult.baterias.length}</p>
                     <p className="text-xs text-muted-foreground">Total</p>
                   </div>
                 </div>
+
+                {duplicateItems.length > 0 && (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {duplicateItems.length} itens já existem no catálogo
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Ative para atualizar todos os existentes com os dados do CSV
+                      </p>
+                    </div>
+                    <Switch
+                      checked={overwriteIds.size === duplicateItems.length}
+                      onCheckedChange={(checked) => {
+                        if (checked) setOverwriteIds(new Set(duplicateItems.map(d => d.idx)));
+                        else setOverwriteIds(new Set());
+                      }}
+                    />
+                  </div>
+                )}
 
                 {suspectItems.length > 0 && (
                    <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
@@ -433,21 +454,11 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
                   </div>
                 )}
 
-                {duplicateItems.length > 0 && (
+                {duplicateItems.length > 0 && overwriteIds.size > 0 && overwriteIds.size < duplicateItems.length && (
                   <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-warning">{duplicateItems.length} duplicadas</p>
-                      <Button variant="ghost" size="sm" onClick={selectAllDuplicates} className="text-xs h-7">
-                        {overwriteIds.size === duplicateItems.length ? "Desmarcar todas" : "Selecionar todas"}
-                      </Button>
-                    </div>
-                    <div className="max-h-32 overflow-y-auto space-y-1">
-                      {duplicateItems.map((d) => (
-                        <label key={d.idx} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-warning/10 rounded px-1 py-0.5">
-                          <Checkbox checked={overwriteIds.has(d.idx)} onCheckedChange={(c) => toggleOverwrite(d.idx, !!c)} />
-                          <span className="text-foreground">{d.item.fabricante} {d.item.modelo} ({d.item.energia_kwh}kWh)</span>
-                        </label>
-                      ))}
+                      <p className="text-sm font-medium text-warning">{overwriteIds.size} de {duplicateItems.length} selecionadas para sobrescrever</p>
+                      <Button variant="ghost" size="sm" onClick={selectAllDuplicates} className="text-xs h-7">Selecionar todas</Button>
                     </div>
                   </div>
                 )}
@@ -513,7 +524,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
                 <CheckCircle2 className="w-12 h-12 text-success mx-auto" />
                 <p className="text-lg font-semibold text-foreground">Importação concluída</p>
                 <p className="text-sm text-muted-foreground">
-                  {importResult.inserted} inseridas · {importResult.updated} atualizadas · {importResult.skipped} ignoradas
+                  {importResult.inserted} inseridas · {importResult.updated} atualizadas · {importResult.skipped} já existiam no catálogo
                   {importResult.errors > 0 && ` · ${importResult.errors} erros`}
                 </p>
               </div>
