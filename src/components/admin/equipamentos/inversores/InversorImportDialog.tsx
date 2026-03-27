@@ -44,7 +44,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
   const qc = useQueryClient();
 
   const [fileName, setFileName] = useState("");
-  const [csvHeaderLine, setCsvHeaderLine] = useState("");
+  const [rawCsvText, setRawCsvText] = useState("");
   const [parseResult, setParseResult] = useState<InversorParseResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -136,7 +136,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string || "";
-      setCsvHeaderLine(text.split("\n")[0] || "");
+      setRawCsvText(text);
       setParseResult(parseDistributorInversorCSV(text));
     };
     reader.readAsText(file, "ISO-8859-1");
@@ -151,7 +151,8 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
 
     try {
       const { tenantId } = await getCurrentTenantId();
-      const fornecedoresCriados = await importFornecedoresFromHeader(csvHeaderLine, tenantId);
+      console.log("[fornecedores] tenantId:", tenantId);
+      const fornecedoresCriados = await importFornecedoresFromHeader(rawCsvText, tenantId);
       let inserted = 0, updated = 0, errors = 0;
       const insertPayloads = toInsert.map(inv => ({
         fabricante: inv.fabricante, modelo: inv.modelo,
@@ -193,7 +194,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
   };
 
   const handleClose = () => {
-    setParseResult(null); setFileName(""); setCsvHeaderLine(""); setImportResult(null);
+    setParseResult(null); setFileName(""); setRawCsvText(""); setImportResult(null);
     setProgress(0); setOverwriteIds(new Set()); setImportSuspectIds(new Set()); onOpenChange(false);
   };
 

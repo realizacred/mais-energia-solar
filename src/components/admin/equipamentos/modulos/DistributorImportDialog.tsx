@@ -26,6 +26,7 @@ import {
   findSuspects,
   type SuspectMatch,
 } from "@/utils/equipmentDedupUtils";
+import { importFornecedoresFromHeader, extractDistributorNames } from "@/utils/importFornecedoresFromHeader";
 
 interface Props {
   open: boolean;
@@ -35,13 +36,12 @@ interface Props {
 
 const BATCH_SIZE = 50;
 
-import { importFornecedoresFromHeader, extractDistributorNames } from "@/utils/importFornecedoresFromHeader";
-
 export function DistributorImportDialog({ open, onOpenChange, existingModulos }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
 
   const [fileName, setFileName] = useState("");
+  const [rawCsvText, setRawCsvText] = useState("");
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [distributorNames, setDistributorNames] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
@@ -189,28 +189,12 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
     reader.onload = (ev) => {
       const text = ev.target?.result as string || "";
       const firstLine = text.split("\n")[0] || "";
+      setRawCsvText(text);
       setDistributorNames(extractDistributorNames(firstLine));
       const result = parseDistributorCSV(text, "Módulo");
       setParseResult(result);
     };
     reader.readAsText(file, "ISO-8859-1");
-  };
-
-  const importFornecedoresLocal = async (tenantId: string): Promise<number> => {
-    if (distributorNames.length === 0) return 0;
-    const headerLine = distributorNames.join(";"); // reconstruct won't work, use stored firstLine
-    // Use the raw names directly via the shared utility's insert logic
-    const { data: existing } = await supabase
-      .from("fornecedores").select("nome").eq("tenant_id", tenantId).eq("tipo", "distribuidor");
-    const existingNamesSet = new Set((existing || []).map(f => f.nome.toLowerCase().trim()));
-    const toCreate = distributorNames.filter(name => !existingNamesSet.has(name.toLowerCase().trim()));
-    if (toCreate.length === 0) return 0;
-    const { error } = await supabase.from("fornecedores").insert(toCreate.map(nome => ({
-      nome, tipo: "distribuidor", tenant_id: tenantId, ativo: true,
-    })));
-    if (error) { console.error("[importFornecedores] erro:", error.message); return 0; }
-    console.log(`[importFornecedores] ${toCreate.length} fornecedores criados:`, toCreate);
-    return toCreate.length;
   };
 
   const handleImport = async () => {
@@ -224,7 +208,9 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
 
     try {
       const { tenantId } = await getCurrentTenantId();
-      const fornecedoresCriados = await importFornecedoresLocal(tenantId);
+      console.log("[fornecedores] tenantId:", tenantId);
+      console.log("[fornecedores] nomes:", distributorNames);
+      const fornecedoresCriados = await importFornecedoresFromHeader(rawCsvText, tenantId);
 
       let inserted = 0;
       let updated = 0;
@@ -257,6 +243,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
       }
 
       qc.invalidateQueries({ queryKey: [...MODULO_QUERY_KEY] });
+      qc.invalidateQueries({ queryKey: ["fornecedores"] });
       const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
       setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados });
 
@@ -276,7 +263,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
   };
 
   const handleClose = () => {
-    setParseResult(null); setFileName(""); setImportResult(null);
+    setParseResult(null); setFileName(""); setRawCsvText(""); setImportResult(null);
     setDistributorNames([]); setProgress(0); setOverwriteIds(new Set());
     setImportSuspectIds(new Set());
     onOpenChange(false);
@@ -513,7 +500,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
             <Button onClick={handleClose}>Fechar</Button>
           ) : parseResult ? (
             <>
-              <Button variant="ghost" onClick={() => { setParseResult(null); setFileName(""); setDistributorNames([]); setOverwriteIds(new Set()); setImportSuspectIds(new Set()); }} disabled={importing}>
+              <Button variant="ghost" onClick={() => { setParseResult(null); setFileName(""); setRawCsvText(""); setDistributorNames([]); setOverwriteIds(new Set()); setImportSuspectIds(new Set()); }} disabled={importing}>
                 Voltar
               </Button>
               <Button
