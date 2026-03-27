@@ -1,6 +1,6 @@
 /**
  * Dialog de importação de otimizadores via CSV de distribuidora.
- * Baseado no InversorImportDialog.
+ * Dedup unificado: fabricante|modelo|potencia_wp
  */
 import { useState, useMemo } from "react";
 import {
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertTriangle, CheckCircle2, Upload, Loader2, FileSpreadsheet,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
   parseDistributorOtimizadorCSV,
   type OtimizadorParseResult,
+  type ParsedDistributorOtimizador,
 } from "./parseOtimizadorCSV";
 import type { Otimizador } from "@/hooks/useOtimizadoresCatalogo";
 
@@ -31,6 +33,10 @@ interface Props {
 
 const BATCH_SIZE = 50;
 
+function dedupKey(fabricante: string, modelo: string, potencia: number): string {
+  return `${fabricante}|${modelo}|${potencia}`.toLowerCase();
+}
+
 export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadores }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -39,104 +45,99 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
   const [parseResult, setParseResult] = useState<OtimizadorParseResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [overwriteIds, setOverwriteIds] = useState<Set<number>>(new Set());
   const [importResult, setImportResult] = useState<{
-    imported: number; skipped: number; errors: number;
+    inserted: number; updated: number; skipped: number; errors: number;
   } | null>(null);
 
-  const existingKeys = useMemo(
-    () => new Set(existingOtimizadores.map(i => `${i.fabricante}|${i.modelo}`.toLowerCase())),
-    [existingOtimizadores]
-  );
+  const existingMap = useMemo(() => {
+    const map = new Map<string, string>();
+    existingOtimizadores.forEach(o => map.set(dedupKey(o.fabricante, o.modelo, o.potencia_wp || 0), o.id));
+    return map;
+  }, [existingOtimizadores]);
 
-  const newOtimizadores = useMemo(() => {
-    if (!parseResult) return [];
-    return parseResult.otimizadores.filter(
-      i => !existingKeys.has(`${i.fabricante}|${i.modelo}`.toLowerCase())
-    );
-  }, [parseResult, existingKeys]);
+  const { newItems, duplicateItems } = useMemo(() => {
+    if (!parseResult) return { newItems: [] as ParsedDistributorOtimizador[], duplicateItems: [] as { item: ParsedDistributorOtimizador; idx: number; existingId: string }[] };
+    const newItems: ParsedDistributorOtimizador[] = [];
+    const duplicateItems: { item: ParsedDistributorOtimizador; idx: number; existingId: string }[] = [];
+    parseResult.otimizadores.forEach((ot, idx) => {
+      const key = dedupKey(ot.fabricante, ot.modelo, ot.potencia_wp);
+      const existingId = existingMap.get(key);
+      if (existingId) duplicateItems.push({ item: ot, idx, existingId });
+      else newItems.push(ot);
+    });
+    return { newItems, duplicateItems };
+  }, [parseResult, existingMap]);
 
-  const duplicateCount = useMemo(() => {
-    if (!parseResult) return 0;
-    return parseResult.otimizadores.length - newOtimizadores.length;
-  }, [parseResult, newOtimizadores]);
+  const toggleOverwrite = (idx: number, checked: boolean) => {
+    setOverwriteIds(prev => { const next = new Set(prev); if (checked) next.add(idx); else next.delete(idx); return next; });
+  };
+
+  const selectAllDuplicates = () => {
+    if (overwriteIds.size === duplicateItems.length) setOverwriteIds(new Set());
+    else setOverwriteIds(new Set(duplicateItems.map(d => d.idx)));
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setFileName(file.name);
     setImportResult(null);
-
+    setOverwriteIds(new Set());
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string || "";
-      const result = parseDistributorOtimizadorCSV(text);
-      setParseResult(result);
+      setParseResult(parseDistributorOtimizadorCSV(text));
     };
-    reader.readAsText(file, "utf-8");
+    reader.readAsText(file, "ISO-8859-1");
   };
 
   const handleImport = async () => {
-    if (newOtimizadores.length === 0) return;
-    setImporting(true);
-    setProgress(0);
+    const toInsert = newItems;
+    const toUpdate = duplicateItems.filter(d => overwriteIds.has(d.idx));
+    if (toInsert.length === 0 && toUpdate.length === 0) return;
+    setImporting(true); setProgress(0);
 
     try {
       const { tenantId } = await getCurrentTenantId();
-
-      const itemsToInsert = newOtimizadores.map(ot => ({
-        fabricante: ot.fabricante,
-        modelo: ot.modelo,
+      let inserted = 0, updated = 0, errors = 0;
+      const insertPayloads = toInsert.map(ot => ({
+        fabricante: ot.fabricante, modelo: ot.modelo,
         potencia_wp: ot.potencia_wp || null,
-        status: ot.status,
-        ativo: ot.ativo,
-        tenant_id: tenantId,
+        status: ot.status, ativo: ot.ativo, tenant_id: tenantId,
       }));
+      const totalOps = insertPayloads.length + toUpdate.length;
 
-      let imported = 0;
-      let errors = 0;
+      for (let i = 0; i < insertPayloads.length; i += BATCH_SIZE) {
+        const chunk = insertPayloads.slice(i, i + BATCH_SIZE);
+        const { error } = await supabase.from("otimizadores_catalogo").insert(chunk as any);
+        if (error) errors += chunk.length; else inserted += chunk.length;
+        setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
+      }
 
-      for (let i = 0; i < itemsToInsert.length; i += BATCH_SIZE) {
-        const chunk = itemsToInsert.slice(i, i + BATCH_SIZE);
-        const { error } = await supabase
-          .from("otimizadores_catalogo")
-          .insert(chunk as any);
-
-        if (error) {
-          console.error("Erro no batch", i, error.message);
-          errors += chunk.length;
-        } else {
-          imported += chunk.length;
-        }
-
-        setProgress(Math.round(((i + chunk.length) / itemsToInsert.length) * 100));
+      for (const dup of toUpdate) {
+        const { error } = await supabase.from("otimizadores_catalogo").update({
+          potencia_wp: dup.item.potencia_wp || null,
+        }).eq("id", dup.existingId);
+        if (error) errors++; else updated++;
+        setProgress(Math.round(((insertPayloads.length + toUpdate.indexOf(dup) + 1) / totalOps) * 100));
       }
 
       qc.invalidateQueries({ queryKey: ["otimizadores-catalogo"] });
-      setImportResult({ imported, skipped: duplicateCount, errors });
-
+      const skipped = duplicateItems.length - toUpdate.length;
+      setImportResult({ inserted, updated, skipped, errors });
       toast({
-        title: `${imported} otimizadores importados`,
-        description: errors > 0
-          ? `${errors} erros durante a importação.`
-          : `${duplicateCount} duplicados ignorados.`,
+        title: "Importação concluída",
+        description: `${inserted} inseridos · ${updated} atualizados · ${skipped} ignorados${errors > 0 ? ` · ${errors} erros` : ""}`,
       });
     } catch (err: any) {
-      toast({
-        title: "Erro na importação",
-        description: err.message,
-        variant: "destructive",
-      });
-    } finally {
-      setImporting(false);
-    }
+      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
+    } finally { setImporting(false); }
   };
 
   const handleClose = () => {
-    setParseResult(null);
-    setFileName("");
-    setImportResult(null);
-    setProgress(0);
-    onOpenChange(false);
+    setParseResult(null); setFileName(""); setImportResult(null);
+    setProgress(0); setOverwriteIds(new Set()); onOpenChange(false);
   };
 
   return (
@@ -147,31 +148,23 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
             <FileSpreadsheet className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1">
-            <DialogTitle className="text-base font-semibold text-foreground">
-              Importar Otimizadores — CSV Distribuidora
-            </DialogTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Formato: Categoria;Item;Preços... — detecta fabricante, modelo e potência
-            </p>
+            <DialogTitle className="text-base font-semibold text-foreground">Importar Otimizadores — CSV Distribuidora</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Formato: Categoria;Item;Preços... — detecta fabricante, modelo e potência</p>
           </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-5 space-y-5">
             {!parseResult && !importResult && (
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                  <FileSpreadsheet className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Selecione o arquivo CSV da distribuidora (separado por ponto-e-vírgula)
-                  </p>
-                  <Button variant="outline" size="sm" className="gap-2" asChild>
-                    <label className="cursor-pointer">
-                      <Upload className="w-4 h-4" /> Selecionar arquivo CSV
-                      <input type="file" accept=".csv,.txt" className="hidden" onChange={handleFileUpload} />
-                    </label>
-                  </Button>
-                </div>
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                <FileSpreadsheet className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground mb-4">Selecione o arquivo CSV da distribuidora</p>
+                <Button variant="outline" size="sm" className="gap-2" asChild>
+                  <label className="cursor-pointer">
+                    <Upload className="w-4 h-4" /> Selecionar arquivo CSV
+                    <input type="file" accept=".csv,.txt" className="hidden" onChange={handleFileUpload} />
+                  </label>
+                </Button>
               </div>
             )}
 
@@ -179,84 +172,80 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-lg border border-border p-3 text-center">
+                    <p className="text-2xl font-bold text-success">{newItems.length}</p>
+                    <p className="text-xs text-muted-foreground">Novos</p>
+                  </div>
+                  <div className="rounded-lg border border-border p-3 text-center">
+                    <p className="text-2xl font-bold text-warning">{duplicateItems.length}</p>
+                    <p className="text-xs text-muted-foreground">Duplicados</p>
+                  </div>
+                  <div className="rounded-lg border border-border p-3 text-center">
                     <p className="text-2xl font-bold text-foreground">{parseResult.otimizadores.length}</p>
-                    <p className="text-xs text-muted-foreground">Otimizadores detectados</p>
-                  </div>
-                  <div className="rounded-lg border border-border p-3 text-center">
-                    <p className="text-2xl font-bold text-success">{newOtimizadores.length}</p>
-                    <p className="text-xs text-muted-foreground">Novos para importar</p>
-                  </div>
-                  <div className="rounded-lg border border-border p-3 text-center">
-                    <p className="text-2xl font-bold text-warning">{duplicateCount}</p>
-                    <p className="text-xs text-muted-foreground">Duplicados (ignorados)</p>
+                    <p className="text-xs text-muted-foreground">Total</p>
                   </div>
                 </div>
 
-                {parseResult.warnings.length > 0 && (
-                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-1">
-                    <p className="text-sm font-medium text-warning flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      {parseResult.warnings.length} avisos durante o parse
-                    </p>
-                    <div className="max-h-24 overflow-y-auto text-xs text-muted-foreground space-y-0.5">
-                      {parseResult.warnings.slice(0, 20).map((w, i) => (
-                        <p key={i}>Linha {w.line}: {w.issue} — "{w.raw}"</p>
+                {duplicateItems.length > 0 && (
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-warning">{duplicateItems.length} duplicados</p>
+                      <Button variant="ghost" size="sm" onClick={selectAllDuplicates} className="text-xs h-7">
+                        {overwriteIds.size === duplicateItems.length ? "Desmarcar todos" : "Selecionar todos"}
+                      </Button>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {duplicateItems.map((d) => (
+                        <label key={d.idx} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-warning/10 rounded px-1 py-0.5">
+                          <Checkbox checked={overwriteIds.has(d.idx)} onCheckedChange={(c) => toggleOverwrite(d.idx, !!c)} />
+                          <span className="text-foreground">{d.item.fabricante} {d.item.modelo} ({d.item.potencia_wp}Wp)</span>
+                        </label>
                       ))}
-                      {parseResult.warnings.length > 20 && (
-                        <p>...e mais {parseResult.warnings.length - 20} avisos</p>
-                      )}
                     </div>
                   </div>
                 )}
 
-                <div className="max-h-[280px] overflow-auto border border-border rounded-lg">
-                  <table className="w-full text-xs">
-                    <thead className="bg-muted/50 sticky top-0">
-                      <tr>
-                        <th className="px-2 py-1.5 text-left text-foreground">#</th>
-                        <th className="px-2 py-1.5 text-left text-foreground">Fabricante</th>
-                        <th className="px-2 py-1.5 text-left text-foreground">Modelo</th>
-                        <th className="px-2 py-1.5 text-left text-foreground">Wp</th>
-                        <th className="px-2 py-1.5 text-left text-foreground">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {newOtimizadores.slice(0, 50).map((ot, i) => (
-                        <tr key={i} className="border-t border-border">
-                          <td className="px-2 py-1 text-muted-foreground">{i + 1}</td>
-                          <td className="px-2 py-1 font-medium text-foreground">{ot.fabricante}</td>
-                          <td className="px-2 py-1 max-w-[200px] truncate text-foreground">{ot.modelo}</td>
-                          <td className="px-2 py-1 text-foreground">{ot.potencia_wp || "—"}</td>
-                          <td className="px-2 py-1">
-                            {ot.potencia_wp === 0 ? (
-                              <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/20">
-                                Sem potência
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-xs">
-                                <CheckCircle2 className="w-3 h-3 mr-1" />Rascunho
-                              </Badge>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {newOtimizadores.length > 50 && (
+                {parseResult.warnings.length > 0 && (
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-1">
+                    <p className="text-sm font-medium text-warning flex items-center gap-2"><AlertTriangle className="w-4 h-4" />{parseResult.warnings.length} avisos</p>
+                    <div className="max-h-24 overflow-y-auto text-xs text-muted-foreground space-y-0.5">
+                      {parseResult.warnings.slice(0, 20).map((w, i) => (<p key={i}>Linha {w.line}: {w.issue}</p>))}
+                    </div>
+                  </div>
+                )}
+
+                {newItems.length > 0 && (
+                  <div className="max-h-[200px] overflow-auto border border-border rounded-lg">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 sticky top-0">
                         <tr>
-                          <td colSpan={5} className="px-2 py-2 text-center text-muted-foreground">
-                            ...e mais {newOtimizadores.length - 50} otimizadores
-                          </td>
+                          <th className="px-2 py-1.5 text-left text-foreground">#</th>
+                          <th className="px-2 py-1.5 text-left text-foreground">Fabricante</th>
+                          <th className="px-2 py-1.5 text-left text-foreground">Modelo</th>
+                          <th className="px-2 py-1.5 text-left text-foreground">Wp</th>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {newItems.slice(0, 50).map((ot, i) => (
+                          <tr key={i} className="border-t border-border">
+                            <td className="px-2 py-1 text-muted-foreground">{i + 1}</td>
+                            <td className="px-2 py-1 font-medium text-foreground">{ot.fabricante}</td>
+                            <td className="px-2 py-1 max-w-[200px] truncate text-foreground">{ot.modelo}</td>
+                            <td className="px-2 py-1 text-foreground">{ot.potencia_wp || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground text-center">
+                  {newItems.length} novos · {duplicateItems.length} duplicados ({overwriteIds.size} para sobrescrever)
+                </p>
 
                 {importing && (
                   <div className="space-y-2">
                     <Progress value={progress} className="h-2" />
-                    <p className="text-xs text-muted-foreground text-center">
-                      Importando... {progress}%
-                    </p>
+                    <p className="text-xs text-muted-foreground text-center">Importando... {progress}%</p>
                   </div>
                 )}
               </div>
@@ -265,13 +254,11 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
             {importResult && (
               <div className="text-center space-y-3 py-4">
                 <CheckCircle2 className="w-12 h-12 text-success mx-auto" />
-                <div>
-                  <p className="text-lg font-semibold text-foreground">Importação concluída</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {importResult.imported} importados · {importResult.skipped} duplicados ignorados
-                    {importResult.errors > 0 && ` · ${importResult.errors} erros`}
-                  </p>
-                </div>
+                <p className="text-lg font-semibold text-foreground">Importação concluída</p>
+                <p className="text-sm text-muted-foreground">
+                  {importResult.inserted} inseridos · {importResult.updated} atualizados · {importResult.skipped} ignorados
+                  {importResult.errors > 0 && ` · ${importResult.errors} erros`}
+                </p>
               </div>
             )}
           </div>
@@ -282,15 +269,9 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
             <Button onClick={handleClose}>Fechar</Button>
           ) : parseResult ? (
             <>
-              <Button variant="ghost" onClick={() => { setParseResult(null); setFileName(""); }} disabled={importing}>
-                Voltar
-              </Button>
-              <Button onClick={handleImport} disabled={newOtimizadores.length === 0 || importing} className="gap-2">
-                {importing ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Importando...</>
-                ) : (
-                  `Importar ${newOtimizadores.length} otimizadores`
-                )}
+              <Button variant="ghost" onClick={() => { setParseResult(null); setFileName(""); setOverwriteIds(new Set()); }} disabled={importing}>Voltar</Button>
+              <Button onClick={handleImport} disabled={(newItems.length === 0 && overwriteIds.size === 0) || importing} className="gap-2">
+                {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> Importando...</> : `Importar ${newItems.length + overwriteIds.size} otimizadores`}
               </Button>
             </>
           ) : (

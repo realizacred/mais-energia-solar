@@ -107,9 +107,8 @@ function parseRows(text: string, existing: Modulo[]): ParsedRow[] {
   const colTvoc = findCol("coeff_voc", "temp_voc");
   const colTisc = findCol("coeff_isc", "temp_isc");
 
-  const existingKeys = new Set(
-    existing.map(m => `${m.fabricante}|${m.modelo}|${m.potencia_wp}`.toLowerCase())
-  );
+  const existingMap = new Map<string, string>();
+  existing.forEach(m => existingMap.set(`${m.fabricante}|${m.modelo}|${m.potencia_wp}`.toLowerCase(), m.id));
 
   return lines.slice(1).map(line => {
     const cols = line.split(delim).map(c => c.trim());
@@ -139,7 +138,7 @@ function parseRows(text: string, existing: Modulo[]): ParsedRow[] {
     if (!hasDimensions) warnings.push("Dimensões incompletas → Rascunho");
 
     const key = `${fabricante}|${modelo}|${potencia_wp}`.toLowerCase();
-    const isDuplicate = existingKeys.has(key);
+    const isDuplicate = existingMap.has(key);
     if (isDuplicate) warnings.push("Duplicado (já existe)");
 
     const status = (!hasElectrical || !hasDimensions) ? "rascunho" : "publicado";
