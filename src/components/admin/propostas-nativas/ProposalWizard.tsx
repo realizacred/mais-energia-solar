@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { formatNumberBR } from "@/lib/formatters";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ChevronLeft, ChevronRight, MapPin, User, Settings2,
+  ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
   Zap, AlertTriangle, AlertCircle, Phone, Save, CheckCircle2,
   SunMedium, LayoutGrid, HardHat, Calculator, Wallet, ClipboardCheck, ScrollText,
