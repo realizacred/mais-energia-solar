@@ -1,13 +1,14 @@
 import { useMemo } from "react";
-import { Eye, Clock, Smartphone, Monitor, Send, CheckCircle2, XCircle, UserCheck, Globe, MessageCircle, Link2, Mail } from "lucide-react";
+import { Eye, Clock, Smartphone, Monitor, Send, CheckCircle2, XCircle, UserCheck, Globe, MessageCircle, Link2, Mail, BarChart3 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useProposalTracking } from "@/hooks/useProposalTracking";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, parseISO, eachDayOfInterval, startOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 interface ProposalTrackingPanelProps {
   propostaId: string;
@@ -47,6 +48,46 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
   }, [views]);
 
   const activeToken = tokens.find(t => t.decisao) || tokens[0] || null;
+
+  // Daily views aggregation for chart
+  const dailyViews = useMemo(() => {
+    if (views.length === 0) return [];
+
+    const now = new Date();
+    const oldest = views.length > 0
+      ? views.reduce((min, v) => {
+          const d = new Date(v.created_at);
+          return d < min ? d : min;
+        }, now)
+      : subDays(now, 7);
+
+    const start = startOfDay(oldest > subDays(now, 30) ? oldest : subDays(now, 30));
+    const end = startOfDay(now);
+    const days = eachDayOfInterval({ start, end });
+
+    const countMap = new Map<string, number>();
+    views.forEach(v => {
+      const dayKey = format(startOfDay(new Date(v.created_at)), "yyyy-MM-dd");
+      countMap.set(dayKey, (countMap.get(dayKey) || 0) + 1);
+    });
+
+    return days.map(d => ({
+      dia: format(d, "dd/MM", { locale: ptBR }),
+      views: countMap.get(format(d, "yyyy-MM-dd")) || 0,
+    }));
+  }, [views]);
+
+  const ChartTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-card border border-border rounded-lg shadow-lg p-2 text-xs">
+        <p className="font-medium text-foreground">{label}</p>
+        <p className="text-muted-foreground">
+          Visualizações: <span className="font-semibold text-foreground">{payload[0].value}</span>
+        </p>
+      </div>
+    );
+  };
 
   if (loading) return <Skeleton className="h-40 rounded-xl" />;
 
@@ -162,7 +203,42 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
             </div>
           </div>
 
-          {/* Aggregated tracking from propostas_nativas */}
+          {/* ── Daily Views Chart ─────────────────────────── */}
+          {dailyViews.length > 1 && (
+            <>
+              <Separator className="my-3" />
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-xs font-medium text-muted-foreground">Visualizações por dia</p>
+              </div>
+              <ResponsiveContainer width="100%" height={140}>
+                <BarChart data={dailyViews} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="dia"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar
+                    dataKey="views"
+                    fill="hsl(var(--primary))"
+                    radius={[3, 3, 0, 0]}
+                    maxBarSize={32}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </>
+          )}
+
           {(primeiroAcessoEm || activeToken?.first_viewed_at) && (
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
               <span>

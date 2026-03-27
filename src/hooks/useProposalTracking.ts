@@ -55,7 +55,7 @@ export function useProposalTracking(propostaId: string | null, versaoId?: string
         .select("id, ip_address, user_agent, referrer, created_at", { count: "exact" })
         .eq("proposta_id", propostaId)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(200);
 
       const tokensPromise = (supabase as any)
         .from("proposta_aceite_tokens")
