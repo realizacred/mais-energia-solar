@@ -1711,6 +1711,12 @@ function GerenciamentoTab({
         open={waDialogOpen}
         onOpenChange={setWaDialogOpen}
       />
+
+      <ClienteViewDialog
+        cliente={fichaClienteData}
+        open={fichaDialogOpen}
+        onOpenChange={setFichaDialogOpen}
+      />
     </>
   );
 }
