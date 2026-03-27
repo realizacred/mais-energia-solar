@@ -496,22 +496,37 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                           <TooltipTrigger asChild>
                             <Badge variant="outline"
                               className="text-[10px] bg-primary/10 text-primary border-primary/30 cursor-help gap-0.5 px-1.5 py-0">
-                              <Info className="w-2.5 h-2.5" />
-                              {percentualComissaoConsultor}%
+                              {comissaoManualOverride && Math.abs(percentualEfetivo - percentualComissaoConsultor) > 0.01 ? (
+                                <span>{percentualComissaoConsultor}% → {percentualEfetivo.toFixed(1)}%</span>
+                              ) : (
+                                <span>{percentualComissaoConsultor}%</span>
+                              )}
                             </Badge>
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[250px] space-y-1">
-                            <p className="text-xs font-medium">Comissão automática</p>
-                            {consultorNome && (
-                              <p className="text-xs text-muted-foreground">Consultor: {consultorNome}</p>
-                            )}
+                          <TooltipContent side="top" className="max-w-[280px] space-y-1">
+                            <p className="text-xs font-medium">
+                              {consultorNome ? `Comissão — ${consultorNome}` : "Comissão automática"}
+                            </p>
                             {comissaoSource && (
                               <p className="text-xs text-muted-foreground">Origem: {comissaoSource}</p>
                             )}
+                            {comissaoManualOverride ? (
+                              <>
+                                <p className="text-xs text-muted-foreground">
+                                  Original: {percentualComissaoConsultor}% de {formatBRL(precoVendaSemComissao)} = {formatBRL(precoVendaSemComissao * percentualComissaoConsultor / 100)}
+                                </p>
+                                <p className="text-xs font-medium text-primary">
+                                  Atual: {percentualEfetivo.toFixed(2)}% → {formatBRL(comissaoCusto)}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                {percentualComissaoConsultor}% de {formatBRL(precoVendaSemComissao)} = {formatBRL(precoVendaSemComissao * percentualComissaoConsultor / 100)}
+                              </p>
+                            )}
                             <p className="text-xs text-muted-foreground">
-                              {percentualComissaoConsultor}% de {formatBRL(precoVendaSemComissao)} = {formatBRL(precoVendaSemComissao * percentualComissaoConsultor / 100)}
+                              {comissaoManualOverride ? "Valor alterado manualmente." : "Recalcula automaticamente ao alterar valores."}
                             </p>
-                            <p className="text-xs text-muted-foreground">Recalcula automaticamente ao alterar valores.</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -596,6 +611,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                               setInstalacaoCusto(val);
                             } else if (row.id === "comissao") {
                               setComissaoCusto(val);
+                              setComissaoManualOverride(true);
                             }
                           }}
                           prefix=""
