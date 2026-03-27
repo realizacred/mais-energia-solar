@@ -82,8 +82,16 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
     try {
       const { tenantId } = await getCurrentTenantId();
 
-      const itemsToInsert = newModules.map(m => ({
-        ...m,
+      // Explicitly exclude area_m2 (GENERATED ALWAYS column) as safety measure
+      const itemsToInsert = newModules.map(({ ...m }) => ({
+        fabricante: m.fabricante,
+        modelo: m.modelo,
+        potencia_wp: m.potencia_wp,
+        bifacial: m.bifacial,
+        tipo_celula: m.tipo_celula,
+        status: m.status,
+        ativo: m.ativo,
+        tensao_sistema: m.tensao_sistema,
         tenant_id: tenantId,
       }));
 
