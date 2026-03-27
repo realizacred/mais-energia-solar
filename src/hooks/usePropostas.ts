@@ -186,15 +186,57 @@ export function usePropostas(filters: PropostaFilters = {}) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const { data: propostaInfo } = await supabase
+        .from("propostas_nativas")
+        .select("deal_id, projeto_id")
+        .eq("id", id)
+        .single();
+
       const { data, error } = await supabase.rpc("proposal_delete" as any, {
         p_proposta_id: id,
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
+
+      const dealId = propostaInfo?.deal_id || propostaInfo?.projeto_id;
+      if (!dealId) return;
+
+      const { data: remaining } = await supabase
+        .from("propostas_nativas")
+        .select("id")
+        .or(`deal_id.eq.${dealId},projeto_id.eq.${dealId}`)
+        .neq("status", "excluida")
+        .neq("id", id)
+        .limit(1);
+
+      if (!remaining || remaining.length === 0) {
+        await supabase
+          .from("deals")
+          .update({ value: 0, kwp: 0 } as any)
+          .eq("id", dealId);
+        return;
+      }
+
+      const { data: latestVersion } = await supabase
+        .from("proposta_versoes")
+        .select("valor_total, potencia_kwp")
+        .eq("proposta_id", remaining[0].id)
+        .order("versao_numero", { ascending: false })
+        .limit(1)
+        .single();
+
+      await supabase
+        .from("deals")
+        .update({
+          value: latestVersion?.valor_total || 0,
+          kwp: latestVersion?.potencia_kwp || 0,
+        } as any)
+        .eq("id", dealId);
     },
     onSuccess: () => {
       toast({ title: "Proposta excluída" });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["deal-pipeline"] });
     },
     onError: (err: any) => {
       toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
