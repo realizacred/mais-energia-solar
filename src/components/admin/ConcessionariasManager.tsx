@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Plus, Trash2, Pencil, Building2, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload, FileUp, Calculator } from "lucide-react";
+import { Plus, Trash2, Pencil, Building2, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, ChevronLeft, Upload, FileUp, Calculator } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getFioBCobranca } from "@/lib/calcGrupoB";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
@@ -477,6 +478,28 @@ export function ConcessionariasManager() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  // KPIs
+  const kpis = useMemo(() => {
+    const total = concessionarias.length;
+    const configuradas = concessionarias.filter(c => c.tarifa_energia != null || c.ultima_sync_tarifas != null).length;
+    const pendentes = total - configuradas;
+    const comIsencao = concessionarias.filter(c => c.possui_isencao_scee === true).length;
+    return { total, configuradas, pendentes, comIsencao };
+  }, [concessionarias]);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+  const totalPages = Math.max(1, Math.ceil(filteredConcessionarias.length / pageSize));
+  const paginatedData = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredConcessionarias.slice(start, start + pageSize);
+  }, [filteredConcessionarias, page, pageSize]);
+
+  // Reset page on filter change
+  useEffect(() => { setPage(1); }, [searchTerm, filterEstado, filterStatus]);
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -486,6 +509,11 @@ export function ConcessionariasManager() {
             <Skeleton className="h-5 w-48 mb-1" />
             <Skeleton className="h-4 w-72" />
           </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="p-5"><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-4 w-32" /></Card>
+          ))}
         </div>
         <div className="space-y-2">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -501,9 +529,14 @@ export function ConcessionariasManager() {
       <PageHeader
         icon={Building2}
         title="Concessionárias"
-        description="Cadastre concessionárias com tarifas, custos de disponibilidade e tributação (ICMS) específicos."
+        description={`${concessionarias.length} concessionárias cadastradas`}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="gap-1">
+                {(filterEstado !== "all" ? 1 : 0) + (filterStatus !== "all" ? 1 : 0) + (searchTerm ? 1 : 0)} filtro(s)
+              </Badge>
+            )}
             <Button
               variant="outline"
               onClick={() => handleSyncTarifas()}
@@ -539,6 +572,54 @@ export function ConcessionariasManager() {
           </div>
         }
       />
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="border-l-[3px] border-l-primary">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground leading-none">{kpis.total}</p>
+              <p className="text-xs text-muted-foreground mt-1">Total</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-success">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground leading-none">{kpis.configuradas}</p>
+              <p className="text-xs text-muted-foreground mt-1">Configuradas</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-warning">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground leading-none">{kpis.pendentes}</p>
+              <p className="text-xs text-muted-foreground mt-1">Pendentes</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-info">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0">
+              <Info className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground leading-none">{kpis.comIsencao}</p>
+              <p className="text-xs text-muted-foreground mt-1">Com isenção ICMS</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <SectionCard icon={Building2} title="Lista de Concessionárias" variant="blue">
         {/* Sync progress bar */}
@@ -651,19 +732,19 @@ export function ConcessionariasManager() {
           <Table>
              <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="font-semibold text-foreground">Nome</TableHead>
-                <TableHead className="font-semibold text-foreground">Sigla</TableHead>
-                <TableHead className="font-semibold text-foreground">UF</TableHead>
-                <TableHead className="font-semibold text-foreground">Subgrupos</TableHead>
-                <TableHead className="font-semibold text-foreground">Tarifa (TE+TUSD)</TableHead>
-                <TableHead className="font-semibold text-foreground">Fio B (100%)</TableHead>
-                <TableHead className="font-semibold text-foreground">Fio B Vigente</TableHead>
-                <TableHead className="font-semibold text-foreground">Integral c/ Imp.</TableHead>
-                <TableHead className="font-semibold text-foreground">ICMS</TableHead>
-                <TableHead className="font-semibold text-foreground">Isenção</TableHead>
-                <TableHead className="font-semibold text-foreground">Sync ANEEL</TableHead>
-                <TableHead className="font-semibold text-foreground">Status</TableHead>
-                <TableHead className="font-semibold text-foreground text-right">Ações</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Nome</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Sigla</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">UF</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Subgrupos</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Tarifa (TE+TUSD)</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Fio B (100%)</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Fio B Vigente</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Integral c/ Imp.</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">ICMS</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Isenção</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Sync ANEEL</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Status</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -693,7 +774,7 @@ export function ConcessionariasManager() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredConcessionarias.map((c) => (
+                paginatedData.map((c) => (
                   <React.Fragment key={c.id}>
                     <TableRow 
                       className={`hover:bg-muted/30 cursor-pointer transition-colors ${expandedId === c.id ? 'bg-muted/30' : ''}`}
@@ -912,6 +993,31 @@ export function ConcessionariasManager() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {filteredConcessionarias.length > 0 && (
+          <div className="flex items-center justify-between text-sm text-muted-foreground mt-4">
+            <div className="flex items-center gap-2">
+              <span>Exibir</span>
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="w-20 h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map(s => <SelectItem key={s} value={String(s)}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <span>de {filteredConcessionarias.length} resultados</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="px-2 text-xs">{page} / {totalPages}</span>
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Add/Edit Dialog */}
         <ConcessionariaFormDialog

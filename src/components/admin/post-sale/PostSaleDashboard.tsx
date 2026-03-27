@@ -44,11 +44,11 @@ export function PostSaleDashboard() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="text-xs">CLIENTE</TableHead>
-                <TableHead className="text-xs">PROJETO</TableHead>
-                <TableHead className="text-xs">TIPO</TableHead>
-                <TableHead className="text-xs">DATA PREVISTA</TableHead>
-                <TableHead className="text-xs">STATUS</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Cliente</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Projeto</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Tipo</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Data prevista</TableHead>
+                <TableHead className="uppercase tracking-wide text-xs font-semibold text-muted-foreground">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
