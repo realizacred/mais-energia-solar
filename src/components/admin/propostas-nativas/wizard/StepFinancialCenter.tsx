@@ -207,15 +207,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const custoKitEfetivo = kitCustoOverride !== null ? kitCustoOverride : custoKit;
   const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${(Number(potenciaKwp) || 0).toFixed(2)} kWp` : "Kit fotovoltaico";
 
-  // Other services (not instalacao/comissao) — tracked with local state for toggle
-  const outrosServicos = useMemo(() =>
-    servicos.filter(s => s.categoria !== "instalacao" && s.categoria !== "comissao" && s.valor > 0),
-    [servicos]
-  );
-
-  const [servicosEnabledMap, setServicosEnabledMap] = useState<Record<string, boolean>>({});
-
-  const isServicoEnabled = (id: string) => servicosEnabledMap[id] ?? true;
 
   // Build all cost rows
   const allRows = useMemo<CustoRow[]>(() => {
