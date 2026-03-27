@@ -49,6 +49,46 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
 
   const activeToken = tokens.find(t => t.decisao) || tokens[0] || null;
 
+  // Daily views aggregation for chart
+  const dailyViews = useMemo(() => {
+    if (views.length === 0) return [];
+
+    const now = new Date();
+    const oldest = views.length > 0
+      ? views.reduce((min, v) => {
+          const d = new Date(v.created_at);
+          return d < min ? d : min;
+        }, now)
+      : subDays(now, 7);
+
+    const start = startOfDay(oldest > subDays(now, 30) ? oldest : subDays(now, 30));
+    const end = startOfDay(now);
+    const days = eachDayOfInterval({ start, end });
+
+    const countMap = new Map<string, number>();
+    views.forEach(v => {
+      const dayKey = format(startOfDay(new Date(v.created_at)), "yyyy-MM-dd");
+      countMap.set(dayKey, (countMap.get(dayKey) || 0) + 1);
+    });
+
+    return days.map(d => ({
+      dia: format(d, "dd/MM", { locale: ptBR }),
+      views: countMap.get(format(d, "yyyy-MM-dd")) || 0,
+    }));
+  }, [views]);
+
+  const ChartTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-card border border-border rounded-lg shadow-lg p-2 text-xs">
+        <p className="font-medium text-foreground">{label}</p>
+        <p className="text-muted-foreground">
+          Visualizações: <span className="font-semibold text-foreground">{payload[0].value}</span>
+        </p>
+      </div>
+    );
+  };
+
   if (loading) return <Skeleton className="h-40 rounded-xl" />;
 
   return (
