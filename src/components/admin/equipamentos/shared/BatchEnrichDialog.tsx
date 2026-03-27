@@ -254,6 +254,10 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
                 <span className="font-semibold text-foreground">{draftIds.length}</span>{" "}
                 {TYPE_LABELS[equipmentType]} em rascunho sem especificações técnicas.
               </p>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Brain className="w-3.5 h-3.5 text-primary" />
+                <span>Dual IA: <span className="font-medium text-foreground">Gemini 2.5 Flash</span> + fallback <span className="font-medium text-foreground">GPT-5 Mini</span></span>
+              </div>
               <p className="text-xs text-muted-foreground">
                 A IA buscará as specs de cada equipamento na internet. Isso pode levar alguns minutos.
               </p>
