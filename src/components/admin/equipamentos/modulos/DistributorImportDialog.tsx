@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertTriangle, CheckCircle2, Upload, Loader2, FileSpreadsheet, Sparkles,
 } from "lucide-react";
@@ -344,8 +345,8 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
                     <p className="text-xs text-muted-foreground">Suspeitos</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
-                    <p className="text-2xl font-bold text-warning">{duplicateItems.length}</p>
-                    <p className="text-xs text-muted-foreground">Duplicados</p>
+                    <p className="text-2xl font-bold text-muted-foreground">{duplicateItems.length}</p>
+                    <p className="text-xs text-muted-foreground">Já existem</p>
                   </div>
                   <div className="rounded-lg border border-border p-3 text-center">
                     <p className="text-2xl font-bold text-destructive">{errorItems.length}</p>
@@ -412,29 +413,24 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
                   </div>
                 )}
 
-                {/* Duplicate overwrite section */}
+                {/* Overwrite all toggle */}
                 {duplicateItems.length > 0 && (
-                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-warning">
-                        {duplicateItems.length} duplicados encontrados
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {duplicateItems.length} itens já existem no catálogo
                       </p>
-                      <Button variant="ghost" size="sm" onClick={selectAllDuplicates} className="text-xs h-7">
-                        {overwriteIds.size === duplicateItems.length ? "Desmarcar todos" : "Selecionar todos"}
-                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Ative para atualizar todos os existentes com os dados do CSV
+                      </p>
                     </div>
-                    <div className="max-h-32 overflow-y-auto space-y-1">
-                      {duplicateItems.map((d) => (
-                        <label key={d.idx} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-warning/10 rounded px-1 py-0.5">
-                          <Checkbox
-                            checked={overwriteIds.has(d.idx)}
-                            onCheckedChange={(c) => toggleOverwrite(d.idx, !!c)}
-                          />
-                          <span className="text-foreground">{d.item.fabricante} {d.item.modelo} ({d.item.potencia_wp}Wp)</span>
-                          <Badge variant="outline" className="text-[10px] ml-auto bg-warning/10 text-warning border-warning/20">Sobrescrever</Badge>
-                        </label>
-                      ))}
-                    </div>
+                    <Switch
+                      checked={overwriteIds.size === duplicateItems.length}
+                      onCheckedChange={(checked) => {
+                        if (checked) setOverwriteIds(new Set(duplicateItems.map(d => d.idx)));
+                        else setOverwriteIds(new Set());
+                      }}
+                    />
                   </div>
                 )}
 
@@ -505,7 +501,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
                 <div>
                   <p className="text-lg font-semibold text-foreground">Importação concluída</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {importResult.inserted} inseridos · {importResult.updated} atualizados · {importResult.skipped} ignorados
+                    {importResult.inserted} inseridos · {importResult.updated} atualizados · {importResult.skipped} já existiam no catálogo
                     {importResult.errors > 0 && ` · ${importResult.errors} erros`}
                     {importResult.fornecedores > 0 && ` · ${importResult.fornecedores} fornecedores criados`}
                   </p>
