@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Search, Battery, Eye } from "lucide-react";
+import { useState, useMemo } from "react";
+import { VirtuosoGrid } from "react-virtuoso";
+import { Plus, Pencil, Trash2, Search, Battery, Eye, X, Package, CheckCircle2, Sparkles, LayoutGrid, Table as TableIcon, Zap } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,20 +9,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
-import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/FormModalTemplate";
+import { FormModalTemplate, FormSection } from "@/components/ui-kit/FormModalTemplate";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { BateriaViewModal } from "./baterias/BateriaViewModal";
+import { BateriaTableView } from "./baterias/BateriaTableView";
+import { calcCompletudeBateria } from "@/utils/calcCompletudeBateria";
+
+type ViewMode = "cards" | "table";
 
 interface Bateria {
   id: string;
@@ -38,6 +43,7 @@ interface Bateria {
   corrente_max_carga_a: number | null;
   correntes_recomendadas_a: string | null;
   ativo: boolean;
+  tenant_id?: string | null;
 }
 
 const EMPTY_FORM = {
@@ -52,11 +58,17 @@ export function BateriasManager() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterAtivo, setFilterAtivo] = useState("all");
+  const [filterFabricante, setFilterFabricante] = useState("all");
+  const [filterTipo, setFilterTipo] = useState("all");
+  const [filterCapMin, setFilterCapMin] = useState("");
+  const [filterCapMax, setFilterCapMax] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Bateria | null>(null);
   const [deleting, setDeleting] = useState<Bateria | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [viewItem, setViewItem] = useState<Bateria | null>(null);
+  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
 
   const { data: baterias = [], isLoading } = useQuery({
     queryKey: ["baterias"],
@@ -70,13 +82,6 @@ export function BateriasManager() {
       return data as Bateria[];
     },
     staleTime: 1000 * 60 * 5,
-  });
-
-  const filtered = baterias.filter((b) => {
-    const matchSearch = !search ||
-      `${b.fabricante} ${b.modelo} ${b.tipo_bateria || ""}`.toLowerCase().includes(search.toLowerCase());
-    const matchAtivo = filterAtivo === "all" || (filterAtivo === "ativo" ? b.ativo : !b.ativo);
-    return matchSearch && matchAtivo;
   });
 
   const saveMutation = useMutation({
@@ -117,6 +122,52 @@ export function BateriasManager() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["baterias"] }),
   });
+
+  const fabricantes = useMemo(() => {
+    const set = new Set(baterias.map(b => b.fabricante));
+    return Array.from(set).sort();
+  }, [baterias]);
+
+  const tipos = useMemo(() => {
+    const set = new Set(baterias.map(b => b.tipo_bateria).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [baterias]);
+
+  const activeFilterCount = useMemo(() => {
+    let c = 0;
+    if (search) c++;
+    if (filterAtivo !== "all") c++;
+    if (filterFabricante !== "all") c++;
+    if (filterTipo !== "all") c++;
+    if (filterCapMin) c++;
+    if (filterCapMax) c++;
+    return c;
+  }, [search, filterAtivo, filterFabricante, filterTipo, filterCapMin, filterCapMax]);
+
+  const clearFilters = () => {
+    setSearch(""); setFilterAtivo("all"); setFilterFabricante("all");
+    setFilterTipo("all"); setFilterCapMin(""); setFilterCapMax("");
+  };
+
+  const filtered = useMemo(() => baterias.filter((b) => {
+    const matchSearch = !search || `${b.fabricante} ${b.modelo} ${b.tipo_bateria || ""}`.toLowerCase().includes(search.toLowerCase());
+    const matchAtivo = filterAtivo === "all" || (filterAtivo === "ativo" ? b.ativo : !b.ativo);
+    const matchFab = filterFabricante === "all" || b.fabricante === filterFabricante;
+    const matchTipo = filterTipo === "all" || b.tipo_bateria === filterTipo;
+    const capMin = filterCapMin ? parseFloat(filterCapMin) : null;
+    const capMax = filterCapMax ? parseFloat(filterCapMax) : null;
+    const matchCapMin = capMin == null || (b.energia_kwh != null && b.energia_kwh >= capMin);
+    const matchCapMax = capMax == null || (b.energia_kwh != null && b.energia_kwh <= capMax);
+    return matchSearch && matchAtivo && matchFab && matchTipo && matchCapMin && matchCapMax;
+  }), [baterias, search, filterAtivo, filterFabricante, filterTipo, filterCapMin, filterCapMax]);
+
+  const kpis = useMemo(() => {
+    const total = baterias.length;
+    const ativos = baterias.filter(b => b.ativo).length;
+    const inativos = total - ativos;
+    const completos = baterias.filter(b => calcCompletudeBateria(b) >= 80).length;
+    return { total, ativos, inativos, completos };
+  }, [baterias]);
 
   const openDialog = (b?: Bateria) => {
     if (b) {
@@ -162,123 +213,145 @@ export function BateriasManager() {
 
   const set = (key: string, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
+  const toggleCompare = (id: string, checked: boolean) => {
+    const next = new Set(compareIds);
+    if (checked && next.size < 3) next.add(id); else next.delete(id);
+    setCompareIds(next);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Battery}
         title="Baterias"
-        description="Cadastro de baterias para sistemas híbridos e off-grid."
+        description={`${baterias.length} baterias cadastradas (${fabricantes.length} fabricantes)`}
         actions={
-          <Button onClick={() => openDialog()} className="gap-2">
-            <Plus className="w-4 h-4" /> Nova Bateria
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {activeFilterCount > 0 && <Badge variant="secondary" className="gap-1">{activeFilterCount} filtro{activeFilterCount > 1 ? "s" : ""}</Badge>}
+            <Button size="sm" onClick={() => openDialog()} className="gap-2"><Plus className="w-4 h-4" /> Nova Bateria</Button>
+          </div>
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar fabricante, modelo..." className="pl-9"
-            value={search} onChange={(e) => setSearch(e.target.value)} />
+      {/* KPIs */}
+      {!isLoading && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="border-l-[3px] border-l-primary"><CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0"><Package className="w-4 h-4" /></div>
+            <div><p className="text-xl font-bold text-foreground leading-none">{kpis.total}</p><p className="text-xs text-muted-foreground mt-1">Total baterias</p></div>
+          </CardContent></Card>
+          <Card className="border-l-[3px] border-l-success"><CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0"><CheckCircle2 className="w-4 h-4" /></div>
+            <div><p className="text-xl font-bold text-foreground leading-none">{kpis.ativos}<span className="text-xs font-normal text-muted-foreground ml-1">({kpis.total ? Math.round((kpis.ativos / kpis.total) * 100) : 0}%)</span></p><p className="text-xs text-muted-foreground mt-1">Ativas</p></div>
+          </CardContent></Card>
+          <Card className="border-l-[3px] border-l-warning"><CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0"><Battery className="w-4 h-4" /></div>
+            <div><p className="text-xl font-bold text-foreground leading-none">{kpis.inativos}<span className="text-xs font-normal text-muted-foreground ml-1">({kpis.total ? Math.round((kpis.inativos / kpis.total) * 100) : 0}%)</span></p><p className="text-xs text-muted-foreground mt-1">Inativas</p></div>
+          </CardContent></Card>
+          <Card className="border-l-[3px] border-l-info"><CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0"><Sparkles className="w-4 h-4" /></div>
+            <div><p className="text-xl font-bold text-foreground leading-none">{kpis.completos}<span className="text-xs font-normal text-muted-foreground ml-1">({kpis.total ? Math.round((kpis.completos / kpis.total) * 100) : 0}%)</span></p><p className="text-xs text-muted-foreground mt-1">Specs completas (≥80%)</p></div>
+          </CardContent></Card>
         </div>
-        <Select value={filterAtivo} onValueChange={setFilterAtivo}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="ativo">Ativos</SelectItem>
-            <SelectItem value="inativo">Inativos</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      )}
 
-      <div className="rounded-lg border border-border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead>Fabricante</TableHead>
-              <TableHead>Modelo</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Energia</TableHead>
-              <TableHead>Tensão Nom.</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16 rounded-md" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-10 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
-                </TableRow>
-              ))
-            ) : filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="py-16">
-                  <div className="flex flex-col items-center justify-center text-center">
-                    <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center mb-4">
-                      <Battery className="h-7 w-7 text-muted-foreground/50" />
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Buscar fabricante, modelo..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <div className="flex gap-1 border rounded-md p-0.5">
+              <Button variant={viewMode === "cards" ? "secondary" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setViewMode("cards")}><LayoutGrid className="w-4 h-4" /></Button>
+              <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="icon" className="h-8 w-8" onClick={() => setViewMode("table")}><TableIcon className="w-4 h-4" /></Button>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-wrap items-center">
+            <Select value={filterFabricante} onValueChange={setFilterFabricante}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="Fabricante" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Todos fabricantes</SelectItem>{fabricantes.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={filterTipo} onValueChange={setFilterTipo}>
+              <SelectTrigger className="w-40"><SelectValue placeholder="Tipo" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Todos os tipos</SelectItem>{tipos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={filterAtivo} onValueChange={setFilterAtivo}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Todos</SelectItem><SelectItem value="ativo">Ativos</SelectItem><SelectItem value="inativo">Inativos</SelectItem></SelectContent>
+            </Select>
+            <Input type="number" placeholder="Min kWh" className="w-24 h-9" value={filterCapMin} onChange={(e) => setFilterCapMin(e.target.value)} />
+            <Input type="number" placeholder="Max kWh" className="w-24 h-9" value={filterCapMax} onChange={(e) => setFilterCapMax(e.target.value)} />
+            {activeFilterCount > 0 && <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={clearFilters}><X className="w-3 h-3" /> Limpar filtros</Button>}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mx-auto mb-3"><Battery className="w-6 h-6" /></div>
+            <p className="font-medium text-foreground">Nenhuma bateria encontrada</p>
+            <p className="text-sm mt-1">Tente ajustar os filtros ou cadastre uma nova bateria.</p>
+            <Button size="sm" onClick={() => openDialog()} className="mt-4 gap-2"><Plus className="w-4 h-4" /> Nova Bateria</Button>
+          </div>
+        ) : viewMode === "cards" ? (
+          <VirtuosoGrid
+            style={{ height: "calc(100vh - 320px)" }}
+            totalCount={filtered.length}
+            itemContent={(index) => {
+              const bat = filtered[index];
+              const comp = calcCompletudeBateria(bat);
+              return (
+                <Card key={bat.id} className={`group relative border border-border hover:border-primary/30 hover:shadow-sm transition-all ${!bat.ativo ? "opacity-50 grayscale" : ""}`}>
+                  <div className="absolute top-3 right-3 flex gap-1 z-10">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog(bat)} title="Editar"><Pencil className="w-4 h-4" /></Button>
+                  </div>
+                  {compareIds.size < 3 && (
+                    <div className="absolute top-3 left-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Checkbox checked={compareIds.has(bat.id)} onCheckedChange={(v) => toggleCompare(bat.id, !!v)} />
                     </div>
-                    <h3 className="text-base font-semibold text-foreground mb-1">Nenhuma bateria encontrada</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mb-4">Cadastre uma nova bateria para começar.</p>
-                    <Button onClick={() => openDialog()} className="gap-2">
-                      <Plus className="w-4 h-4" /> Nova Bateria
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : filtered.map((b) => (
-              <TableRow key={b.id} className="hover:bg-muted/30 transition-colors">
-                <TableCell className="font-medium text-foreground">{b.fabricante}</TableCell>
-                <TableCell>{b.modelo}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs">
-                    {b.tipo_bateria || "—"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {b.energia_kwh ? (
-                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
-                      {b.energia_kwh} kWh
-                    </Badge>
-                  ) : "—"}
-                </TableCell>
-                <TableCell>
-                  {b.tensao_nominal_v ? (
-                    <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs">
-                      {b.tensao_nominal_v}V
-                    </Badge>
-                  ) : "—"}
-                </TableCell>
-                <TableCell>
-                  <Switch checked={b.ativo} onCheckedChange={(v) => toggleMutation.mutate({ id: b.id, ativo: v })} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewItem(b)}>
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(b)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => setDeleting(b)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  )}
+                  <CardContent className="pt-4 pb-3 px-4 space-y-3">
+                    <div className="pr-16">
+                      <p className="text-xs text-muted-foreground">{bat.fabricante}</p>
+                      <p className="font-semibold text-sm truncate" title={bat.modelo}>{bat.modelo}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {bat.energia_kwh && (
+                        <Badge variant="outline" className="gap-1 font-mono text-xs bg-primary/10 text-primary border-primary/20"><Zap className="w-3 h-3" />{bat.energia_kwh} kWh</Badge>
+                      )}
+                      <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{bat.tipo_bateria || "—"}</Badge>
+                      {bat.tensao_nominal_v && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">{bat.tensao_nominal_v} V</Badge>}
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {!bat.ativo && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Completude</span>
+                        <span className={`text-xs font-medium ${comp >= 80 ? "text-success" : comp >= 60 ? "text-warning" : "text-destructive"}`}>{comp}%</span>
+                      </div>
+                      <Progress value={comp} className="h-1.5" />
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-border">
+                      <span className="text-xs text-muted-foreground">{bat.ativo ? "Ativo" : "Inativo"}</span>
+                      <Switch checked={bat.ativo} onCheckedChange={(v) => toggleMutation.mutate({ id: bat.id, ativo: v })} className="scale-90" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            }}
+            listClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-1"
+          />
+        ) : (
+          <BateriaTableView baterias={filtered} onView={(b) => setViewItem(b)} onEdit={(b) => openDialog(b)} onDelete={(b) => setDeleting(b)} onToggle={(id, v) => toggleMutation.mutate({ id, ativo: v })} />
+        )}
+
+        {!isLoading && filtered.length > 0 && <p className="text-xs text-muted-foreground text-right">{filtered.length} de {baterias.length} baterias</p>}
       </div>
 
-      {/* Dialog */}
+      {/* Form Dialog */}
       <FormModalTemplate
         open={dialogOpen}
         onOpenChange={setDialogOpen}
