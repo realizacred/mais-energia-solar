@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -457,11 +458,10 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
                                 </div>
                                 <div className="space-y-1">
                                   <Label className="text-xs">Data</Label>
-                                  <Input
-                                    type="date"
+                                  <DateInput
                                     className="h-8 w-36 text-xs"
                                     value={payForm.data_pagamento}
-                                    onChange={(e) => setPayForm((prev) => ({ ...prev, data_pagamento: e.target.value }))}
+                                    onChange={(v) => setPayForm((prev) => ({ ...prev, data_pagamento: v }))}
                                   />
                                 </div>
                                 <Button

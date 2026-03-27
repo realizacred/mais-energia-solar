@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -335,10 +336,9 @@ function LeituraInicialCard({ meterId, meter }: { meterId: string; meter: any })
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Data da leitura</Label>
-            <Input
-              type="date"
+            <DateInput
               value={leituraData}
-              onChange={(e) => setLeituraData(e.target.value)}
+              onChange={setLeituraData}
             />
           </div>
         </div>
