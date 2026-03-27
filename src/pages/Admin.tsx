@@ -81,6 +81,7 @@ const EnergyFinancialPage = lazy(() => import("@/components/admin/energia/Energy
 const ClienteEnergiaDashboardPage = lazy(() => import("@/components/admin/energia/ClienteEnergiaDashboardPage").then(m => ({ default: m.ClienteEnergiaDashboardPage })));
 const EmailIntegrationsPage = lazy(() => import("@/components/admin/email/EmailIntegrationsPage").then(m => ({ default: m.EmailIntegrationsPage })));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
+const FechamentoCaixaPage = lazy(() => import("@/components/admin/FechamentoCaixaPage").then(m => ({ default: m.FechamentoCaixaPage })));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
 const AuditLogsViewer = lazy(() => import("@/components/admin/AuditLogsViewer").then(m => ({ default: m.AuditLogsViewer })));
@@ -658,6 +659,7 @@ export default function Admin() {
                 <Route path="recebimentos" element={<RecebimentosManager />} />
                 <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
                 <Route path="comissoes" element={<ComissoesManager />} />
+                <Route path="fechamento-caixa" element={<FechamentoCaixaPage />} />
                 <Route path="engenharia" element={<Navigate to="/admin/premissas" replace />} />
                 <Route path="financiamento" element={<FinanciamentoConfig />} />
                 <Route path="fiscal" element={<FiscalPage />} />
