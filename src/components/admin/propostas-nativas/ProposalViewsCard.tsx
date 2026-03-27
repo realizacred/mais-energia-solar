@@ -203,7 +203,42 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
             </div>
           </div>
 
-          {/* Aggregated tracking from propostas_nativas */}
+          {/* ── Daily Views Chart ─────────────────────────── */}
+          {dailyViews.length > 1 && (
+            <>
+              <Separator className="my-3" />
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-xs font-medium text-muted-foreground">Visualizações por dia</p>
+              </div>
+              <ResponsiveContainer width="100%" height={140}>
+                <BarChart data={dailyViews} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="dia"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar
+                    dataKey="views"
+                    fill="hsl(var(--primary))"
+                    radius={[3, 3, 0, 0]}
+                    maxBarSize={32}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </>
+          )}
+
           {(primeiroAcessoEm || activeToken?.first_viewed_at) && (
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
               <span>
