@@ -49,19 +49,26 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
   };
 
   const increment = (id: string, field: "num_linhas" | "modulos_por_linha") => {
-    setArranjos(prev => prev.map(a => {
-      if (a.id !== id) return a;
-      const newVal = a[field] + 1;
-      // Auto-calculate the other dimension when single arranjo
-      if (prev.length === 1 && totalModulos > 0) {
-        if (field === "num_linhas") {
-          return { ...a, num_linhas: newVal, modulos_por_linha: Math.max(1, Math.ceil(totalModulos / newVal)) };
-        } else {
-          return { ...a, modulos_por_linha: newVal, num_linhas: Math.max(1, Math.ceil(totalModulos / newVal)) };
+    setArranjos(prev => {
+      // Calculate what the new total would be
+      const updated = prev.map(a => {
+        if (a.id !== id) return a;
+        const newVal = a[field] + 1;
+        // Auto-calculate the other dimension when single arranjo
+        if (prev.length === 1 && totalModulos > 0) {
+          if (field === "num_linhas") {
+            return { ...a, num_linhas: newVal, modulos_por_linha: Math.max(1, Math.ceil(totalModulos / newVal)) };
+          } else {
+            return { ...a, modulos_por_linha: newVal, num_linhas: Math.max(1, Math.ceil(totalModulos / newVal)) };
+          }
         }
-      }
-      return { ...a, [field]: newVal };
-    }));
+        return { ...a, [field]: newVal };
+      });
+      // Block if new total exceeds kit modules
+      const newTotal = updated.reduce((s, a) => s + a.num_linhas * a.modulos_por_linha, 0);
+      if (totalModulos > 0 && newTotal > totalModulos) return prev;
+      return updated;
+    });
   };
 
   const decrement = (id: string, field: "num_linhas" | "modulos_por_linha") => {
@@ -81,20 +88,29 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
   };
 
   const addArranjo = () => {
-    setArranjos(prev => [...prev, {
-      id: crypto.randomUUID(),
-      arranjo_index: prev.length + 1,
-      num_linhas: 1,
-      modulos_por_linha: 1,
-      disposicao: "horizontal",
-    }]);
+    setArranjos(prev => {
+      const currentTotal = prev.reduce((s, a) => s + a.num_linhas * a.modulos_por_linha, 0);
+      // Block adding if already at or over limit
+      if (totalModulos > 0 && currentTotal >= totalModulos) return prev;
+      const remaining = totalModulos > 0 ? totalModulos - currentTotal : 1;
+      return [...prev, {
+        id: crypto.randomUUID(),
+        arranjo_index: prev.length + 1,
+        num_linhas: 1,
+        modulos_por_linha: Math.min(remaining, 1),
+        disposicao: "horizontal",
+      }];
+    });
   };
 
   const removeArranjo = (id: string) => {
     setArranjos(prev => prev.filter(a => a.id !== id).map((a, i) => ({ ...a, arranjo_index: i + 1 })));
   };
 
+  const exceedsLimit = totalModulos > 0 && diff > 0;
+
   const handleSave = () => {
+    if (exceedsLimit) return;
     onSave(arranjos);
     onOpenChange(false);
   };
@@ -226,7 +242,7 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
           ))}
 
           {/* Add Layout */}
-          <Button variant="default" size="sm" className="gap-1.5 text-xs w-full" onClick={addArranjo}>
+          <Button variant="default" size="sm" className="gap-1.5 text-xs w-full" onClick={addArranjo} disabled={totalModulos > 0 && totalUsados >= totalModulos}>
             <Plus className="h-3 w-3" /> Adicionar Layout
           </Button>
 
@@ -252,7 +268,7 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Voltar</Button>
-          <Button variant="default" onClick={handleSave}>Salvar</Button>
+          <Button variant="default" onClick={handleSave} disabled={exceedsLimit}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
