@@ -130,6 +130,8 @@ interface GenerateRequestV2 {
   idempotency_key: string;
   variaveis_custom?: boolean;
   aceite_estimativa?: boolean;
+  /** Wizard-specific state for edit round-trip (passthrough, not used by engine) */
+  _wizard_state?: Record<string, unknown>;
 }
 
 // ─── Catalog Enrichment ─────────────────────────────────────

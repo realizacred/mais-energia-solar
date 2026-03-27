@@ -90,6 +90,8 @@ export interface GenerateProposalPayload {
   observacoes?: string;
   idempotency_key: string;
   aceite_estimativa?: boolean;
+  /** Wizard-specific state preserved for edit round-trip (not used by engine) */
+  _wizard_state?: Record<string, any>;
 }
 
 export interface GenerateProposalResult {
