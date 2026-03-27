@@ -858,9 +858,13 @@ function GerenciamentoTab({
   // Toggle activity status
   const handleToggleActivity = async (activityId: string, currentStatus: string) => {
     const newStatus = currentStatus === "done" ? "pending" : "done";
+    const updates: Record<string, unknown> = { status: newStatus };
+    if (newStatus === "done") updates.completed_at = new Date().toISOString();
+    else updates.completed_at = null;
     try {
-      await supabase.from("deal_activities").update({ status: newStatus }).eq("id", activityId);
+      await supabase.from("deal_activities").update(updates as any).eq("id", activityId);
       setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: newStatus } : a));
+      toast({ title: newStatus === "done" ? "Atividade concluída ✓" : "Atividade reaberta" });
     } catch { /* ignore */ }
   };
 
