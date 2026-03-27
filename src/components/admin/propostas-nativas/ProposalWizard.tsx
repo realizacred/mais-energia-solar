@@ -239,6 +239,10 @@ export function ProposalWizard() {
   const [showPosDialog, setShowPosDialog] = useState(false);
   const [nomeProposta, setNomeProposta] = useState("");
 
+  // Financial Center validation gate
+  const [vendaErros, setVendaErros] = useState<string[]>([]);
+  const [showVendaValidacao, setShowVendaValidacao] = useState(false);
+
   // ─── Enforcement: block modal state
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [blockReason, setBlockReason] = useState<"missing_required" | "estimativa_not_accepted">("missing_required");
