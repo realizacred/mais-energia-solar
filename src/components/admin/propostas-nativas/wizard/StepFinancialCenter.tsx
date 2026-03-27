@@ -64,26 +64,17 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [kitExpanded, setKitExpanded] = useState(false);
   const [kitCustoOverride, setKitCustoOverride] = useState<number | null>(venda.custo_kit_override ?? null);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
+  const { data: pricingConfig } = usePricingConfig();
 
-  // Load pricing defaults from config (SSOT for initial margin)
+  // Apply initial margin from pricing_config (one-time, when venda still has default 20%)
   useEffect(() => {
-    if (loadedDefaults) return;
-    supabase
-      .from("pricing_config")
-      .select("margem_minima_percent, comissao_padrao_percent, desconto_maximo_percent")
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          const d = data as any;
-          if (venda.margem_percentual === 20 && d.margem_minima_percent) {
-            console.debug("[StepFinancialCenter] Margem inicial aplicada:", d.margem_minima_percent, "| Origem: pricing_config");
-            onVendaChange({ ...venda, margem_percentual: d.margem_minima_percent });
-          }
-        }
-        setLoadedDefaults(true);
-      });
-  }, []);
+    if (loadedDefaults || !pricingConfig) return;
+    if (venda.margem_percentual === 20 && pricingConfig.margem_minima_percent) {
+      console.debug("[StepFinancialCenter] Margem inicial aplicada:", pricingConfig.margem_minima_percent, "| Origem: pricing_config");
+      onVendaChange({ ...venda, margem_percentual: pricingConfig.margem_minima_percent });
+    }
+    setLoadedDefaults(true);
+  }, [pricingConfig]);
 
   // ── Auto-load commission from consultant linked to the lead ──
   const [comissaoLoaded, setComissaoLoaded] = useState(false);
