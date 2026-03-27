@@ -131,10 +131,12 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
 
         {generatedDocs.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <FileText className="h-8 w-8 mb-2 opacity-30" />
-              <p className="text-sm font-medium">Nenhum documento gerado</p>
-              <p className="text-xs mt-1">Clique em "Gerar Documento" para criar a partir de um template</p>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                <FileText className="w-6 h-6 text-primary" />
+              </div>
+              <p className="text-sm font-medium text-foreground">Nenhum documento gerado</p>
+              <p className="text-xs text-muted-foreground mt-1">Clique em "Gerar Documento" para criar a partir de um template</p>
             </CardContent>
           </Card>
         ) : (
@@ -269,20 +271,27 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
 
       {/* Generate Document Dialog */}
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
-        <DialogContent className="w-[90vw] max-w-md">
-          <DialogHeader>
-            <DialogTitle>Gerar documento</DialogTitle>
-            <DialogDescription>Selecione um modelo para gerar o documento com os dados do projeto.</DialogDescription>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">Gerar documento</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">Selecione um modelo para gerar o documento com os dados do projeto.</DialogDescription>
+            </div>
           </DialogHeader>
           {templates.length === 0 ? (
-            <div className="py-6 text-center space-y-2">
-              <FileText className="h-10 w-10 mx-auto opacity-30" />
-              <p className="text-sm font-medium">Nenhum modelo de documento cadastrado</p>
+            <div className="p-5 py-10 text-center space-y-2">
+              <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mx-auto mb-3">
+                <FileText className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-foreground">Nenhum modelo de documento cadastrado</p>
               <p className="text-xs text-muted-foreground">Cadastre templates em <strong>Configurações → Documentos</strong> para poder gerar documentos.</p>
             </div>
           ) : (
             <>
-              <div className="space-y-4 py-2">
+              <div className="flex-1 min-h-0 p-5 space-y-4">
                 <div className="space-y-2">
                   <Label>Modelo <span className="text-destructive">*</span></Label>
                   <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
@@ -309,7 +318,7 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
                   </Select>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
                 <Button variant="ghost" onClick={() => setGenerateOpen(false)}>Cancelar</Button>
                 <Button onClick={handleGenerate} disabled={!selectedTemplateId || generateMutation.isPending} className="gap-1.5">
                   {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
