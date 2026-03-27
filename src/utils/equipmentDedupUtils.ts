@@ -51,7 +51,7 @@ export function similarityScore(a: string, b: string): number {
   return 1 - levenshtein(normA, normB) / maxLen;
 }
 
-const SIMILARITY_THRESHOLD = 0.98;
+const SIMILARITY_THRESHOLD = 0.92;
 
 export interface SuspectMatch {
   existingFabricante: string;
