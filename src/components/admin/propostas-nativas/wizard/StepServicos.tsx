@@ -193,7 +193,7 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
                     {kitItens.map((ki, kiIdx) => (
                       <div key={kiIdx} className="grid grid-cols-[1fr_auto_auto] gap-2 px-4 pl-8 py-1.5 text-[11px] items-center">
                         <span className="text-muted-foreground truncate">
-                          {ki.descricao || ki.tipo}
+                          {ki.descricao}
                         </span>
                         <span className="text-center text-muted-foreground/70 w-10">{ki.quantidade}</span>
                         <span className="text-right text-muted-foreground w-24">
