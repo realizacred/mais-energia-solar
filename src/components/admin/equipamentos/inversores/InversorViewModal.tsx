@@ -127,6 +127,7 @@ export function InversorViewModal({ inversor: inv, open, onOpenChange }: Props) 
 
               <Section title="Físico">
                 <Field label="Dimensões" value={inv.dimensoes_mm} />
+                <Field label="Área" value={areaM2} unit=" m²" />
                 <Field label="Peso" value={inv.peso_kg} unit=" kg" />
                 <Field label="Proteção IP" value={inv.ip_protection} />
                 <Field label="Wi-Fi integrado" value={inv.wifi_integrado ? "Sim" : "Não"} />
