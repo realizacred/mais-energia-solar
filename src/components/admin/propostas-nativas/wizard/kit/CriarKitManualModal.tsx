@@ -312,7 +312,7 @@ function filterInversores(
   }
 }
 
-export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, otimizadores = [], onKitCreated, mode, sistema: sistemaProp, topologias: topologiasProp, initialItens, initialCardData }: Props) {
+export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, otimizadores = [], baterias = [], onKitCreated, mode, sistema: sistemaProp, topologias: topologiasProp, initialItens, initialCardData }: Props) {
   // Derive initial values from initialItens when editing
   const initModulos = useMemo(() => {
     if (!initialItens) return [createEmptyModulo()];
