@@ -266,7 +266,7 @@ function mergeResults(
 async function validateDatasheetUrl(url: string): Promise<{ valid: boolean; reason?: string }> {
   try {
     // Block known dead/unreliable domains
-    const blocklist = ["aesolar.com", "longisolartechnology.com", "jinkosolarglobal.com"];
+    const blocklist = ["aesolar.com", "ae-solar.com", "longisolartechnology.com", "jinkosolarglobal.com"];
     const urlHost = new URL(url).hostname.replace("www.", "");
     if (blocklist.some(d => urlHost.includes(d))) {
       return { valid: false, reason: `blocked domain: ${urlHost}` };
