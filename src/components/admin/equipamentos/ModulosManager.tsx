@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
-import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload, FileSpreadsheet, Wand2, X, GitCompareArrows, Package, CheckCircle2, FileWarning, Sparkles } from "lucide-react";
+import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload, FileSpreadsheet, Wand2, X, GitCompareArrows, Package, CheckCircle2, FileWarning, Sparkles, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -312,6 +312,25 @@ export function ModulosManager() {
                 <X className="w-3 h-3" /> Limpar filtros
               </Button>
             )}
+            <Button variant="outline" size="sm" className="gap-2 ml-auto" onClick={() => {
+              const headers = ["Fabricante", "Modelo", "Potência(W)", "Tipo", "Células", "Eficiência(%)", "Tensão", "Status", "Bifacial", "Vmp", "Imp", "Voc", "Isc"];
+              const rows = filtered.map(m => [
+                m.fabricante, m.modelo, m.potencia_wp, m.tipo_celula,
+                m.num_celulas ?? "", m.eficiencia_percent ?? "", m.tensao_sistema ?? "",
+                m.status, m.bifacial ? "Sim" : "Não",
+                m.vmp_v ?? "", m.imp_a ?? "", m.voc_v ?? "", m.isc_a ?? "",
+              ]);
+              const csv = [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
+              const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `modulos_${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}>
+              <Download className="w-4 h-4" /> Exportar CSV
+            </Button>
           </div>
         </div>
 
