@@ -6,6 +6,7 @@ import { RevenueForecastWidget } from "@/components/admin/widgets/RevenueForecas
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import { BarChart3, Users, TrendingUp, Target } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { useAnalyticsLeads, useAnalyticsLeadStatuses, type AnalyticsLead, type AnalyticsLeadStatus } from "@/hooks/useAnalyticsDashboard";
 
 interface AnalyticsDashboardProps {
@@ -83,6 +84,12 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        icon={BarChart3}
+        title="Dashboard"
+        description="Visão geral de leads, conversão e performance"
+      />
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         <Card className="border-l-[3px] border-l-secondary bg-card">
