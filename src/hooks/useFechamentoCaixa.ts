@@ -22,7 +22,6 @@ export interface FechamentoCaixa {
   observacoes: string | null;
   created_at: string;
   updated_at: string;
-  fechado_por_nome?: string;
 }
 
 export interface ResumoFechamento {
@@ -35,7 +34,7 @@ export function useFechamentosCaixa() {
   return useQuery({
     queryKey: ["fechamentos-caixa"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("fechamentos_caixa")
         .select("*")
         .order("created_at", { ascending: false })
@@ -73,6 +72,34 @@ export function useResumoFechamento(dataInicio: string, dataFim: string) {
   });
 }
 
+export function usePagamentosPeriodo(dataInicio: string, dataFim: string) {
+  return useQuery({
+    queryKey: ["pagamentos-periodo", dataInicio, dataFim],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pagamentos")
+        .select(`
+          id, valor_pago, forma_pagamento, data_pagamento, observacoes, created_at,
+          recebimentos(
+            id, valor_total, numero_parcelas, descricao,
+            clientes(id, nome, telefone)
+          )
+        `)
+        .gte("data_pagamento", dataInicio)
+        .lte("data_pagamento", dataFim)
+        .order("data_pagamento", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((p: any) => ({
+        ...p,
+        cliente_nome: p.recebimentos?.clientes?.nome || "—",
+        cliente_telefone: p.recebimentos?.clientes?.telefone || "",
+      }));
+    },
+    staleTime: 1000 * 30,
+    enabled: !!dataInicio && !!dataFim,
+  });
+}
+
 export function useCriarFechamento() {
   const qc = useQueryClient();
   return useMutation({
@@ -86,7 +113,7 @@ export function useCriarFechamento() {
       observacoes?: string;
       fechadoPor: string;
     }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("fechamentos_caixa")
         .insert({
           tipo: payload.tipo,
