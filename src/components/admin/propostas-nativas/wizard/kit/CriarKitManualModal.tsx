@@ -267,19 +267,19 @@ function SearchableEquipSelect({ value, onValueChange, options, placeholder, emp
 }
 
 function createEmptyModulo(): ModuloEntry {
-  return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
+  return { id: crypto.randomUUID(), selectedId: "", quantidade: 1, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
 }
 
 function createEmptyInversor(): InversorEntry {
-  return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0, fases: "", tensaoLinha: 0 };
+  return { id: crypto.randomUUID(), selectedId: "", quantidade: 1, avulso: false, nome: "", fabricante: "", potenciaW: 0, fases: "", tensaoLinha: 0 };
 }
 
 function createEmptyOtimizador(): OtimizadorEntry {
-  return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
+  return { id: crypto.randomUUID(), selectedId: "", quantidade: 1, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
 }
 
 function createEmptyBateria(): BateriaEntry {
-  return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", energiaKwh: 0 };
+  return { id: crypto.randomUUID(), selectedId: "", quantidade: 1, avulso: false, nome: "", fabricante: "", energiaKwh: 0 };
 }
 
 /**
@@ -418,6 +418,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [otimizadorEntries, setOtimizadorEntries] = useState<OtimizadorEntry[]>(initOtimizadores);
   const [bateriaEntries, setBateriaEntries] = useState<BateriaEntry[]>(initBaterias);
   const [componenteEntries, setComponenteEntries] = useState<{ id: string; nome: string; quantidade: number }[]>([]);
+  const [triedSave, setTriedSave] = useState(false);
 
   // Reset form when initialItens changes (open for edit vs create)
   const [lastInitKey, setLastInitKey] = useState<string | null>(null);
@@ -457,6 +458,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   }, 0);
 
   const handleSave = () => {
+    setTriedSave(true);
     // Validation
     const errors: string[] = [];
     if (!distribuidorNome.trim()) errors.push("Nome do distribuidor");
@@ -645,11 +647,11 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Nome do distribuidor *</Label>
-              <Input value={distribuidorNome} onChange={e => setDistribuidorNome(e.target.value)} className="h-8 text-xs" />
+              <Input value={distribuidorNome} onChange={e => setDistribuidorNome(e.target.value)} className={cn("h-8 text-xs", triedSave && !distribuidorNome.trim() && "ring-2 ring-destructive")} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Custo *</Label>
-              <CurrencyInput value={custo} onChange={setCusto} className="h-8 text-xs" placeholder="0,00" />
+              <CurrencyInput value={custo} onChange={setCusto} className={cn("h-8 text-xs", triedSave && custo <= 0 && "ring-2 ring-destructive")} placeholder="0,00" />
             </div>
           </div>
 
@@ -710,7 +712,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                 // Reset inversor selections since the filtered list changed
                 setInversorEntries([createEmptyInversor()]);
               }}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione uma topologia" /></SelectTrigger>
+                <SelectTrigger className={cn("h-8 text-xs", triedSave && !topologia && "ring-2 ring-destructive")}><SelectValue placeholder="Selecione uma topologia" /></SelectTrigger>
                 <SelectContent>
                   {TOPOLOGIAS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
@@ -1068,7 +1070,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                 </Button>
               )}
               {mode === "zero" && (
-                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])}>
+                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 1 }])}>
                   + Componente
                 </Button>
               )}
