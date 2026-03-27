@@ -373,9 +373,9 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+        <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30">
           <Button variant="outline" onClick={handleClose} disabled={importing}>
             {importResult ? "Fechar" : "Cancelar"}
           </Button>
@@ -388,7 +388,7 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
               {importing ? <><Loader2 className="w-4 h-4 animate-spin" /> Importando...</> : `Importar ${newItems.length + overwriteIds.size}`}
             </Button>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

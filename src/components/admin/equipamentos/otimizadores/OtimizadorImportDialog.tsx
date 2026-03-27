@@ -367,9 +367,9 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+        <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30">
           {importResult ? (
             <Button onClick={handleClose}>Fechar</Button>
           ) : parseResult ? (
@@ -382,7 +382,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
           ) : (
             <Button variant="ghost" onClick={handleClose}>Cancelar</Button>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
