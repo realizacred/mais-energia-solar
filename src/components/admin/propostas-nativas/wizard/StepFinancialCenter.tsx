@@ -112,11 +112,14 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         // Try commission_plans first
         const { data: plans } = await supabase
           .from("commission_plans" as any)
-          .select("taxa_base_percent")
-          .eq("ativo", true)
+          .select("parameters, is_active")
+          .eq("is_active", true)
           .limit(1)
           .maybeSingle();
-        const percentual = (plans as any)?.taxa_base_percent ?? 0;
+        const params = (plans as any)?.parameters;
+        const percentual = typeof params === "object" && params !== null
+          ? (Number(params.percentual) || 0)
+          : 0;
         setPercentualComissaoConsultor(percentual);
 
         if (percentual > 0 && comissaoCusto === 0) {
