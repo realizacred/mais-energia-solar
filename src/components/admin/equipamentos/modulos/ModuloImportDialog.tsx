@@ -331,9 +331,15 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) { setParsed(null); setRawText(""); setImportSuspectIds(new Set()); } onOpenChange(v); }}>
-      <DialogContent className="w-[90vw] max-w-3xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Colar Planilha de Módulos</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Upload className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">Colar Planilha de Módulos</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Cole uma tabela (TSV/CSV) ou faça upload de um arquivo</p>
+          </div>
         </DialogHeader>
 
         {!parsed ? (
