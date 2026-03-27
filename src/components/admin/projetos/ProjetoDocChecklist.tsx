@@ -144,7 +144,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
   // ─── Full mode ──────────────────────────────────
   return (
     <Card className="border-border/60">
-      <CardHeader className="pb-3">
+      <CardHeader className="px-4 pt-3 pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-bold flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
@@ -157,7 +157,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
             {completed}/{total}
           </span>
         </div>
-        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-2">
+        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-1">
           <div
             className={cn("h-full rounded-full transition-all duration-300", completed === total ? "bg-success" : "bg-primary")}
             style={{ width: `${progress}%` }}
@@ -165,7 +165,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-1">
+      <CardContent className="space-y-0.5 px-4 pb-2.5 pt-0">
         <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
 
         {useLegacy ? (
@@ -178,7 +178,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
                 onClick={() => handleLegacyToggle(item.key)}
                 disabled={legacyMutation.isPending}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left hover:bg-muted/50",
+                  "w-full flex items-center gap-3 px-3 py-1.5 rounded-lg transition-all text-left hover:bg-muted/50",
                   checked ? "bg-success/5" : "bg-card"
                 )}
               >
@@ -205,7 +205,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
               <div
                 key={item.id}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all",
+                  "flex items-center gap-3 px-3 py-1.5 rounded-lg transition-all",
                   "hover:bg-muted/50",
                   checked ? "bg-success/5" : "bg-card"
                 )}
