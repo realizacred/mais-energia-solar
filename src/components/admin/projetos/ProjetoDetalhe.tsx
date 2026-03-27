@@ -1,7 +1,7 @@
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { formatBRLInteger as formatBRL, formatPhoneBR } from "@/lib/formatters";
-import { useClienteHasRecebimento } from "@/hooks/useClienteRecebimento";
+import { useClienteHasRecebimento, useClienteRecebimentoDetalhes } from "@/hooks/useClienteRecebimento";
 import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
 import { ClienteViewDialog } from "@/components/admin/ClienteViewDialog";
@@ -115,10 +115,65 @@ function RecebimentoCTA({ dealId, customerId, customerName, navigate }: {
   dealId: string; customerId: string | null; customerName: string; navigate: ReturnType<typeof useNavigate>;
 }) {
   const { data: hasRecebimento, isLoading } = useClienteHasRecebimento(customerId);
+  const { data: recebimento } = useClienteRecebimentoDetalhes(
+    hasRecebimento ? customerId : null
+  );
+
+  const STATUS_LABELS: Record<string, string> = {
+    aguardando_instalacao: "Aguardando Instalação",
+    pendente: "Pendente",
+    parcial: "Parcial",
+    quitado: "Quitado",
+    cancelado: "Cancelado",
+  };
+
+  const STATUS_COLORS: Record<string, string> = {
+    aguardando_instalacao: "bg-muted text-muted-foreground",
+    pendente: "bg-warning/10 text-warning",
+    parcial: "bg-info/10 text-info",
+    quitado: "bg-success/10 text-success",
+    cancelado: "bg-destructive/10 text-destructive",
+  };
 
   if (isLoading || hasRecebimento === undefined) return null;
-  if (hasRecebimento) return null;
 
+  // Has linked recebimento — show info card
+  if (hasRecebimento && recebimento) {
+    return (
+      <Card className="mb-2 border-l-[3px] border-l-primary">
+        <CardContent className="flex items-center gap-4 p-4">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
+            <DollarSign className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-foreground">Recebimento vinculado</p>
+              <Badge variant="outline" className={`text-[10px] ${STATUS_COLORS[recebimento.status] || ""}`}>
+                {STATUS_LABELS[recebimento.status] || recebimento.status}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {recebimento.numero_parcelas} parcela{recebimento.numero_parcelas !== 1 ? "s" : ""} · R$ {recebimento.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              {recebimento.proxima_parcela && (
+                <> · Próx: R$ {recebimento.proxima_parcela.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em {new Date(recebimento.proxima_parcela.data_vencimento + "T12:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}</>
+              )}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 gap-1.5"
+            onClick={() => navigate(`/admin/recebimentos?id=${recebimento.id}`)}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Ver
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // No recebimento — show create CTA
   return (
     <Card className="mb-2 border-l-[3px] border-l-success">
       <CardContent className="flex items-center gap-4 p-4">

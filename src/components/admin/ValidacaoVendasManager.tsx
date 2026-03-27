@@ -363,6 +363,35 @@ export function ValidacaoVendasManager() {
 
       console.log("[handleApprove] Venda aprovada atomicamente:", vendaId);
 
+      // Create recebimento automatically (non-blocking)
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("tenant_id")
+          .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
+          .maybeSingle();
+
+        if (profile?.tenant_id && vendaId) {
+          const { data: recData, error: recError } = await supabase.functions.invoke(
+            "create-recebimento-from-venda",
+            {
+              body: {
+                venda_id: vendaId,
+                cliente_id: selectedCliente.id,
+                tenant_id: profile.tenant_id,
+              },
+            }
+          );
+          if (recError) {
+            console.warn("[handleApprove] Recebimento auto-creation failed (non-blocking):", recError);
+          } else {
+            console.log("[handleApprove] Recebimento criado:", recData);
+          }
+        }
+      } catch (recErr) {
+        console.warn("[handleApprove] Recebimento auto-creation error (non-blocking):", recErr);
+      }
+
       toast({
         title: "Venda validada!",
         description: `Venda de ${selectedCliente.nome} aprovada com sucesso.`,
