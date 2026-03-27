@@ -17,7 +17,6 @@ import type { Modulo } from "./types";
 import {
   parseDistributorCSV,
   type ParseResult,
-  type ParsedDistributorModule,
 } from "./parseDistributorCSV";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
@@ -29,16 +28,34 @@ interface Props {
 
 const BATCH_SIZE = 50;
 
+/** Extract distributor names from CSV header columns (format: "19646 - WEG") */
+function extractDistributors(headerLine: string): string[] {
+  const cols = headerLine.split(";").map(c => c.trim());
+  // Skip first 2 columns (Categoria, Item), rest are distributors
+  const names: string[] = [];
+  for (let i = 2; i < cols.length; i++) {
+    const col = cols[i];
+    const match = col.match(/^\d+\s*-\s*(.+)$/);
+    if (match) {
+      names.push(match[1].trim());
+    } else if (col && col !== "") {
+      names.push(col);
+    }
+  }
+  return [...new Set(names)]; // deduplicate
+}
+
 export function DistributorImportDialog({ open, onOpenChange, existingModulos }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
 
   const [fileName, setFileName] = useState("");
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
+  const [distributorNames, setDistributorNames] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [importResult, setImportResult] = useState<{
-    imported: number; skipped: number; errors: number;
+    imported: number; skipped: number; errors: number; fornecedores: number;
   } | null>(null);
 
   // Chave de dedup: fabricante|modelo (lowercase)
@@ -68,10 +85,51 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string || "";
+      // Extract distributor names from header
+      const firstLine = text.split("\n")[0] || "";
+      setDistributorNames(extractDistributors(firstLine));
+      // Parse modules
       const result = parseDistributorCSV(text, "Módulo");
       setParseResult(result);
     };
-    reader.readAsText(file, "utf-8");
+    // CRITICAL: CSV files from distributors use ISO-8859-1 (latin1) encoding
+    reader.readAsText(file, "ISO-8859-1");
+  };
+
+  const importFornecedores = async (tenantId: string): Promise<number> => {
+    if (distributorNames.length === 0) return 0;
+
+    // Get existing fornecedores to avoid duplicates
+    const { data: existing } = await supabase
+      .from("fornecedores")
+      .select("nome")
+      .eq("tenant_id", tenantId)
+      .eq("tipo", "distribuidor");
+
+    const existingNames = new Set(
+      (existing || []).map(f => f.nome.toLowerCase())
+    );
+
+    const toCreate = distributorNames.filter(
+      name => !existingNames.has(name.toLowerCase())
+    );
+
+    if (toCreate.length === 0) return 0;
+
+    const { error } = await supabase
+      .from("fornecedores")
+      .insert(toCreate.map(nome => ({
+        nome,
+        tipo: "distribuidor",
+        tenant_id: tenantId,
+        ativo: true,
+      })));
+
+    if (error) {
+      console.error("Erro ao criar fornecedores:", error.message);
+      return 0;
+    }
+    return toCreate.length;
   };
 
   const handleImport = async () => {
@@ -82,8 +140,11 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
     try {
       const { tenantId } = await getCurrentTenantId();
 
-      // Explicitly exclude area_m2 (GENERATED ALWAYS column) as safety measure
-      const itemsToInsert = newModules.map(({ ...m }) => ({
+      // Import fornecedores from header
+      const fornecedoresCriados = await importFornecedores(tenantId);
+
+      // Explicitly exclude area_m2 (GENERATED ALWAYS column)
+      const itemsToInsert = newModules.map((m) => ({
         fabricante: m.fabricante,
         modelo: m.modelo,
         potencia_wp: m.potencia_wp,
@@ -91,7 +152,6 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
         tipo_celula: m.tipo_celula,
         status: m.status,
         ativo: m.ativo,
-        
         tenant_id: tenantId,
       }));
 
@@ -115,13 +175,15 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
       }
 
       qc.invalidateQueries({ queryKey: [...MODULO_QUERY_KEY] });
-      setImportResult({ imported, skipped: duplicateCount, errors });
+      setImportResult({ imported, skipped: duplicateCount, errors, fornecedores: fornecedoresCriados });
 
       toast({
         title: `${imported} módulos importados`,
-        description: errors > 0
-          ? `${errors} erros durante a importação.`
-          : `${duplicateCount} duplicados ignorados.`,
+        description: [
+          errors > 0 ? `${errors} erros` : null,
+          `${duplicateCount} duplicados ignorados`,
+          fornecedoresCriados > 0 ? `${fornecedoresCriados} fornecedores criados` : null,
+        ].filter(Boolean).join(". ") + ".",
       });
     } catch (err: any) {
       toast({
@@ -138,6 +200,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
     setParseResult(null);
     setFileName("");
     setImportResult(null);
+    setDistributorNames([]);
     setProgress(0);
     onOpenChange(false);
   };
@@ -156,7 +219,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
               Importar CSV de Distribuidora
             </DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Formato: Categoria;Item;Preços... — separa fabricante/modelo automaticamente
+              Formato: Categoria;Item;Preços... — encoding ISO-8859-1 (latin1)
             </p>
           </div>
         </DialogHeader>
@@ -210,6 +273,23 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
                     <p className="text-xs text-muted-foreground">Duplicados (ignorados)</p>
                   </div>
                 </div>
+
+                {/* Distributors found */}
+                {distributorNames.length > 0 && (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      {distributorNames.length} distribuidora(s) detectadas no header
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {distributorNames.slice(0, 10).map((name, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">{name}</Badge>
+                      ))}
+                      {distributorNames.length > 10 && (
+                        <Badge variant="outline" className="text-xs">+{distributorNames.length - 10}</Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Warnings */}
                 {parseResult.warnings.length > 0 && (
@@ -299,6 +379,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
                   <p className="text-sm text-muted-foreground mt-1">
                     {importResult.imported} importados · {importResult.skipped} duplicados ignorados
                     {importResult.errors > 0 && ` · ${importResult.errors} erros`}
+                    {importResult.fornecedores > 0 && ` · ${importResult.fornecedores} fornecedores criados`}
                   </p>
                 </div>
               </div>
@@ -314,7 +395,7 @@ export function DistributorImportDialog({ open, onOpenChange, existingModulos }:
             <>
               <Button
                 variant="ghost"
-                onClick={() => { setParseResult(null); setFileName(""); }}
+                onClick={() => { setParseResult(null); setFileName(""); setDistributorNames([]); }}
                 disabled={importing}
               >
                 Voltar
