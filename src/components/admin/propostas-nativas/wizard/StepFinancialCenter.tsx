@@ -263,17 +263,27 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   );
   const precoVendaSemComissao = roundCurrency(custoSemComissao * (1 + margemPercent / 100));
 
+  // Track if user manually changed commission (breaks auto-recalc)
+  const [comissaoManualOverride, setComissaoManualOverride] = useState(false);
+
   // Auto-recalculate commission whenever base price or percentage changes
   useEffect(() => {
     if (!comissaoEnabled || percentualComissaoConsultor <= 0 || !comissaoLoaded) return;
     if (precoVendaSemComissao <= 0) return;
+    if (comissaoManualOverride) return; // User took manual control
     const calculado = roundCurrency(precoVendaSemComissao * percentualComissaoConsultor / 100);
     // Only update if difference is significant (avoid loops)
     if (Math.abs(comissaoCusto - calculado) > 0.01) {
       console.debug("[StepFinancialCenter] Comissão recalculada:", formatBRL(calculado), `(${percentualComissaoConsultor}% de ${formatBRL(precoVendaSemComissao)})`);
       setComissaoCusto(calculado);
     }
-  }, [precoVendaSemComissao, percentualComissaoConsultor, comissaoEnabled, comissaoLoaded]);
+  }, [precoVendaSemComissao, percentualComissaoConsultor, comissaoEnabled, comissaoLoaded, comissaoManualOverride]);
+
+  // Compute effective percentage based on current comissaoCusto
+  const percentualEfetivo = useMemo(() => {
+    if (precoVendaSemComissao <= 0) return 0;
+    return Math.round((comissaoCusto / precoVendaSemComissao) * 10000) / 100;
+  }, [comissaoCusto, precoVendaSemComissao]);
 
 
   const sliderMin = custoTotal;
