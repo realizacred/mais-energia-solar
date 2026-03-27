@@ -120,9 +120,9 @@ export function StageDealCard({
   const etiquetaCfg = allEtiquetaCfgs[0] || null;
 
   const isInactive = deal.deal_status === "perdido" || deal.deal_status === "cancelado";
-  const propostaInfo = deal.proposta_status ? PROPOSTA_STATUS_MAP[deal.proposta_status] : null;
-  const timeInStage = getTimeInStage(deal.last_stage_change);
-  const stagnation = getStagnationLevel(deal.last_stage_change);
+  const hasActiveProposal = Boolean(deal.proposta_id && deal.proposta_status && deal.proposta_status !== "excluida");
+  const propostaInfo = hasActiveProposal && deal.proposta_status ? PROPOSTA_STATUS_MAP[deal.proposta_status] : null;
+  const stagnation = hasActiveProposal ? getStagnationLevel(deal.last_stage_change) : null;
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const visibleFields = new Set(cardVisibleFields || ["valor_projeto", "potencia_kwp", "cidade"]);
 
@@ -203,7 +203,7 @@ export function StageDealCard({
               </p>
             )}
           </div>
-          {visibleFields.has("potencia_kwp") && deal.deal_kwp > 0 && (
+          {visibleFields.has("potencia_kwp") && hasActiveProposal && deal.deal_kwp > 0 && (
             <Badge variant="outline" className="shrink-0 text-[9px] h-[16px] px-1 font-semibold bg-success/10 text-success border-success/20 gap-0.5">
               <Zap className="h-2.5 w-2.5" />
               {deal.deal_kwp.toFixed(1).replace(".", ",")}
@@ -215,16 +215,17 @@ export function StageDealCard({
         {visibleFields.has("valor_projeto") && (
           <div className="flex items-center gap-1.5 text-xs px-0.5">
             <span className="font-bold tabular-nums text-foreground">
-              {deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
+              {hasActiveProposal && deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
             </span>
             <span className="text-muted-foreground/40">·</span>
             <span className={cn(
               "tabular-nums font-medium",
+              !hasActiveProposal ? "text-muted-foreground" :
               stagnation === "critical" ? "text-destructive" :
               stagnation === "warning" ? "text-warning" :
               "text-muted-foreground"
             )}>
-              {formatTimeInStage(deal.last_stage_change)}
+              {hasActiveProposal ? formatTimeInStage(deal.last_stage_change) : "0h"}
             </span>
             {propostaInfo && (
               <>
