@@ -435,10 +435,68 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                   <p className="text-xs text-muted-foreground/70 mt-1">Cadastre kits em Configurações → Catálogo de Kits</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                <div className={viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+                  : "space-y-2"
+                }>
                   {catalogKits.map(kit => {
                     const summary = catalogSummaries.get(kit.id);
                     const isSelected = selectedCatalogKitId === kit.id;
+
+                    if (viewMode === "list") {
+                      return (
+                        <div
+                          key={kit.id}
+                          className={cn(
+                            "flex items-center gap-4 p-4 rounded-xl border-2 transition-all bg-card cursor-pointer",
+                            isSelected
+                              ? "border-primary shadow-md ring-2 ring-primary/20"
+                              : "border-border/40 hover:border-primary/30"
+                          )}
+                          onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
+                        >
+                          <div className="flex-1 min-w-0 flex items-center gap-4">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold truncate">{kit.name}</p>
+                              {kit.description && (
+                                <p className="text-xs text-muted-foreground truncate mt-0.5">{kit.description}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              {summary && summary.moduloQtd > 0 && (
+                                <span className="text-xs text-muted-foreground">{summary.moduloQtd}x módulos</span>
+                              )}
+                              {summary && summary.inversorQtd > 0 && (
+                                <span className="text-xs text-muted-foreground">{summary.inversorQtd}x inversores</span>
+                              )}
+                              {kit.estimated_kwp != null && kit.estimated_kwp > 0 && (
+                                <Badge variant="secondary" className="text-[10px]">{kit.estimated_kwp} kWp</Badge>
+                              )}
+                              {kit.fixed_price != null && kit.fixed_price > 0 && (
+                                <p className="text-sm font-bold text-primary">{formatBRL(kit.fixed_price)}</p>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant={isSelected ? "outline" : "default"}
+                            className={cn("gap-1.5 h-8 text-xs shrink-0", isSelected && "border-primary text-primary")}
+                            disabled={snapshotLoading === kit.id}
+                            onClick={(e) => { e.stopPropagation(); handleSelectCatalogKit(kit.id, kit.name); }}
+                          >
+                            {snapshotLoading === kit.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : isSelected ? (
+                              <Check className="h-3.5 w-3.5" />
+                            ) : (
+                              <Plus className="h-3.5 w-3.5" />
+                            )}
+                            {isSelected ? "Selecionado" : "Selecionar"}
+                          </Button>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div
                         key={kit.id}
