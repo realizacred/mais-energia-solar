@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Plus, Trash2, Sun, Cpu, Zap, Check, ChevronsUpDown } from "lucide-react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { Plus, Trash2, Sun, Cpu, Zap, Check, ChevronsUpDown, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
