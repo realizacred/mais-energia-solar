@@ -89,7 +89,7 @@ type TabFilter = "all" | "active" | "inactive";
 
 const CATEGORY_ORDER: IntegrationCategory[] = [
   "monitoring", "crm", "billing", "messaging", "calendar", "email",
-  "storage", "meetings", "nf", "api", "automation", "signature",
+  "storage", "meetings", "nf", "api", "automation", "signature", "suppliers",
 ];
 
 export default function IntegrationsCatalogPage() {
