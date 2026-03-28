@@ -721,7 +721,7 @@ function PremissasContent({
                 <div className="relative">
                   <Input
                     type="number" step="0.01"
-                    value={cfg.desempenho ?? ""}
+                    value={cfg.desempenho != null ? Number(cfg.desempenho).toFixed(2) : ""}
                     onChange={e => updateTopoConfig(topo, "desempenho", Number(e.target.value))}
                     className="h-9 text-xs pr-8"
                   />
@@ -740,7 +740,7 @@ function PremissasContent({
                 <div className="relative">
                   <Input
                     type="number" step="0.01"
-                    value={cfg.fator_geracao ?? ""}
+                    value={cfg.fator_geracao != null ? Number(cfg.fator_geracao).toFixed(2) : ""}
                     onChange={e => updateTopoConfig(topo, "fator_geracao", Number(e.target.value))}
                     className="h-9 text-xs pr-16"
                   />
@@ -829,7 +829,7 @@ function EquipamentosPreFilter({ pd, consumoTotal, potenciaIdealByTopo }: {
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className="text-[10px]">{TOPOLOGIA_LABELS[topo]}</Badge>
                 <span className="text-xs text-muted-foreground">Pot. ideal: <span className="font-mono font-bold text-foreground">{potIdeal.toFixed(2)} kWp</span></span>
-                <span className="text-xs text-muted-foreground">Desempenho: <span className="font-mono font-bold text-foreground">{cfg.desempenho}%</span></span>
+                <span className="text-xs text-muted-foreground">Desempenho: <span className="font-mono font-bold text-foreground">{Number(cfg.desempenho).toFixed(2)}%</span></span>
               </div>
               <Badge variant="secondary" className="text-[10px]">
                 {topo === "tradicional" ? "String Inverter" : topo === "microinversor" ? "Micro Inverter" : "Optimizer"}
