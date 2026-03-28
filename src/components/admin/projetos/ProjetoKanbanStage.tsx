@@ -54,6 +54,7 @@ interface Props {
   deals: DealKanbanCard[];
   onMoveToStage: (dealId: string, stageId: string) => void;
   onViewProjeto?: (deal: DealKanbanCard) => void;
+  onViewProjetoTab?: (deal: DealKanbanCard, tab: string) => void;
   onNewProject?: (ctx?: NewProjectContext) => void;
   dynamicEtiquetas?: DynamicEtiqueta[];
   pipelineName?: string;
