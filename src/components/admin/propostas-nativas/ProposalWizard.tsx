@@ -42,6 +42,7 @@ import { StepAdicionais, type AdicionalItem } from "./wizard/StepAdicionais";
 import { StepServicos } from "./wizard/StepServicos";
 import { StepVenda } from "./wizard/StepVenda";
 import { calcPrecoFinal, validateKit } from "./wizard/types";
+import { usePrecoFinal } from "@/hooks/usePrecoFinal";
 import { validatePropostaFinal, type PropostaFinalValidationResult } from "./wizard/validatePropostaFinal";
 import { PreGenerationGateModal } from "./wizard/PreGenerationGateModal";
 import { StepFinancialCenter } from "./wizard/StepFinancialCenter";
@@ -266,13 +267,11 @@ export function ProposalWizard() {
   const [showGateModal, setShowGateModal] = useState(false);
   const [gateValidation, setGateValidation] = useState<PropostaFinalValidationResult | null>(null);
   // ─── Derived
-  const precoFinal = useMemo(() => {
-    const val = calcPrecoFinal(itens, servicos, venda);
-    if (val === 0 && itens.length > 0) {
-      console.warn("[precoFinal] R$ 0,00 com itens:", itens.map(i => ({ nome: i.descricao, qty: i.quantidade, preco: i.preco_unitario })));
-    }
-    return val;
-  }, [itens, servicos, venda]);
+  // J1 — SSOT: use usePrecoFinal hook instead of inline useMemo
+  const precoFinal = usePrecoFinal(itens, servicos, venda);
+  if (precoFinal === 0 && itens.length > 0) {
+    console.warn("[precoFinal] R$ 0,00 com itens:", itens.map(i => ({ nome: i.descricao, qty: i.quantidade, preco: i.preco_unitario })));
+  }
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
   const topologiaAtiva = preDimensionamento.topologias?.[0] || "tradicional";
@@ -314,6 +313,14 @@ export function ProposalWizard() {
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
     step,
     geracaoMensalEstimada,
+    // QW10 — top-level geração keys for backend resolvers
+    geracao_mensal_kwh: geracaoMensalEstimada ?? 0,
+    geracao_anual_kwh: (geracaoMensalEstimada ?? 0) * 12,
+    // QW9 — consultor keys for backend resolvers
+    consultor_nome: (selectedLead as any)?.consultor_nome
+      ?? (selectedLead as any)?.responsavel_nome ?? "",
+    consultor_email: (selectedLead as any)?.consultor_email ?? "",
+    consultor_telefone: (selectedLead as any)?.consultor_telefone ?? "",
   }), [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
     locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,

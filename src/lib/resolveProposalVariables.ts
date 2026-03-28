@@ -223,7 +223,7 @@ function resolveFromContext(
   if (key === "cliente.bairro") return s(ctx.cliente?.bairro);
   if (key === "cliente.cep") return s(ctx.cliente?.cep);
 
-  // ── Comercial ──
+   // ── Comercial ──
   if (key === "comercial.responsavel_nome") return s(ctx.comercial?.responsavel_nome);
   if (key === "comercial.responsavel_email") return s(ctx.comercial?.responsavel_email);
   if (key === "comercial.responsavel_celular") return s(ctx.comercial?.responsavel_celular);
@@ -238,6 +238,24 @@ function resolveFromContext(
   if (key === "comercial.representante_email") return s(ctx.comercial?.representante_email);
   if (key === "comercial.representante_celular") return s(ctx.comercial?.representante_celular);
   if (key === "comercial.empresa_nome") return s(ctx.comercial?.empresa_nome ?? ctx.empresaNome);
+
+  // QW9 — consultor fields
+  if (key === "comercial.consultor_nome") {
+    return s(ctx.consultorNome)
+      ?? s((ctx.finalSnapshot as any)?.consultor_nome)
+      ?? s(ctx.comercial?.responsavel_nome)
+      ?? null;
+  }
+  if (key === "comercial.consultor_telefone") {
+    return s((ctx.finalSnapshot as any)?.consultor_telefone)
+      ?? s(ctx.comercial?.responsavel_celular)
+      ?? null;
+  }
+  if (key === "comercial.consultor_email") {
+    return s((ctx.finalSnapshot as any)?.consultor_email)
+      ?? s(ctx.comercial?.responsavel_email)
+      ?? null;
+  }
 
   // ── Entrada ──
   if (key === "entrada.consumo_mensal") return uc1 ? fmtNumber(uc1.consumo_mensal, 0) : null;

@@ -50,10 +50,13 @@ export function resolveClienteComercial(
   set("proposta_validade", validade.toLocaleDateString("pt-BR"));
   set("proposta_versao", versao.versao_numero);
 
-  set("responsavel_nome", consultor.nome ?? ext?.tenantNome);
-  set("consultor_nome", consultor.nome ?? ext?.tenantNome);
-  set("consultor_telefone", consultor.telefone);
-  set("consultor_email", consultor.email);
+  // QW9 — consultor from ext, then snapshot fallback
+  const consultorNome = str(consultor.nome) ?? str(snap.consultor_nome)
+    ?? str(snap.responsavel_nome) ?? str(ext?.tenantNome);
+  set("responsavel_nome", consultorNome);
+  set("consultor_nome", consultorNome);
+  set("consultor_telefone", consultor.telefone ?? snap.consultor_telefone);
+  set("consultor_email", consultor.email ?? snap.consultor_email);
   set("empresa_nome", ext?.tenantNome);
 
   // ── Conta de Energia ──

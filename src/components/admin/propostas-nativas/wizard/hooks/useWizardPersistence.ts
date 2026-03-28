@@ -57,6 +57,18 @@ export interface WizardSnapshot {
   templateSelecionado: string;
   step: number;
   geracaoMensalEstimada?: number;
+
+  // QW10 — top-level geração keys for backend resolvers
+  geracao_mensal_kwh?: number;
+  geracao_anual_kwh?: number;
+
+  // QW9 — consultor keys for backend resolvers
+  consultor_nome?: string;
+  consultor_email?: string;
+  consultor_telefone?: string;
+
+  // Allow extra keys for forward compatibility
+  [key: string]: unknown;
 }
 
 interface ClienteParams {

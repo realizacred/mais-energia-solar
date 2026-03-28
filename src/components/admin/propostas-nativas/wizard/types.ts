@@ -162,6 +162,32 @@ export interface KitItemRow {
   avulso: boolean;
   /** Referência ao produto de origem (modulos_solares.id, inversores_catalogo.id, etc.) para rastreabilidade do snapshot. */
   produto_ref?: string | null;
+
+  // ── Specs técnicas do módulo (opcionais — preenchidos do catálogo) ──
+  tipo_celula?: string;
+  num_celulas?: number;
+  eficiencia_percent?: number;
+  vmp?: number;
+  voc?: number;
+  imp?: number;
+  isc?: number;
+  comprimento_mm?: number;
+  largura_mm?: number;
+  profundidade_mm?: number;
+  peso_kg?: number;
+  coef_temp_pmax?: number;
+  coef_temp_voc?: number;
+  coef_temp_isc?: number;
+  garantia_produto_anos?: number;
+  garantia_performance_anos?: number;
+  bifacial?: boolean;
+
+  // ── Specs técnicas do inversor (opcionais) ──
+  potencia_saida_w?: number;
+  tensao_entrada_min?: number;
+  tensao_entrada_max?: number;
+  eficiencia_maxima?: number;
+  fases?: string;
 }
 
 /** Rótulos legíveis para cada KitCategoria */
