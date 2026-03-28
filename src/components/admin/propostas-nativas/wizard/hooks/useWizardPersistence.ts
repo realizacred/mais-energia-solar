@@ -99,6 +99,7 @@ export interface AtomicPersistResult {
   propostaId?: string;
   versaoId?: string;
   projetoId?: string;
+  dealId?: string;
   newVersionCreated?: boolean;
   reason?: string;
   message?: string;
