@@ -699,7 +699,6 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                 )}
               </Popover>
             </div>
-            </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-foreground">Custo <span className="text-destructive">*</span></Label>
               <CurrencyInput value={custo} onChange={setCusto} className={cn("h-8 text-xs", triedSave && custo <= 0 && "ring-2 ring-destructive")} placeholder="0,00" />
