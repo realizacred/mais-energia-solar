@@ -436,6 +436,7 @@ function ProjetoDetalheContent() {
               formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
               userNamesMap={userNamesMap}
               onRefreshCustomer={refreshCustomer}
+              onEditCliente={(id) => setEditClienteId(id)}
             />
           )}
           {activeTab === "comunicacao" && (
@@ -1234,7 +1235,7 @@ function GerenciamentoTab({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
                     if (deal.customer_id) {
-                      setEditClienteId(deal.customer_id);
+                      onEditCliente?.(deal.customer_id);
                     }
                   }}>
                     <Pencil className="h-3.5 w-3.5 mr-2" />Editar cliente
