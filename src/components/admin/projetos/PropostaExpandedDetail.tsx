@@ -300,7 +300,7 @@ function SmDadosTab({ snapshot, latestVersao }: { snapshot: any; latestVersao: V
         <DadosField icon="text" label="Consumo Mensal" value={snapshot.consumo_mensal ? `${formatNumberBR(snapshot.consumo_mensal)} kWh` : "—"} />
         <DadosField icon="text" label="Geração Anual" value={snapshot.geracao_anual ? `${formatNumberBR(Number(snapshot.geracao_anual))} kWh` : "—"} />
         <DadosField icon="text" label="Economia %" value={snapshot.economia_mensal_percent ? `${formatNumberBR(snapshot.economia_mensal_percent)}%` : "—"} />
-        <DadosField icon="dollar" label="Tarifa Distribuidora" value={snapshot.tarifa_distribuidora ? `R$ ${Number(snapshot.tarifa_distribuidora).toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}` : "—"} />
+        <DadosField icon="dollar" label="Tarifa Distribuidora" value={snapshot.tarifa_distribuidora ? `R$ ${Number(snapshot.tarifa_distribuidora).toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4, timeZone: "America/Sao_Paulo" })}` : "—"} />
         <DadosField icon="dollar" label="Custo Disponibilidade" value={snapshot.custo_disponibilidade ? formatBRL(snapshot.custo_disponibilidade) : "—"} />
         <DadosField icon="text" label="Sobredimensionamento" value={snapshot.sobredimensionamento ? `${formatNumberBR(snapshot.sobredimensionamento * 100)}%` : "—"} />
         <DadosField icon="text" label="Perda Eficiência/Ano" value={snapshot.perda_eficiencia_anual ? `${formatNumberBR(snapshot.perda_eficiencia_anual * 100)}%` : "—"} />

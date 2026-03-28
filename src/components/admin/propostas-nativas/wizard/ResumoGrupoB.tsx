@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, HelpCircle, Info, Zap, ShieldCheck, ShieldAlert } from "lucide-react";
+import { formatBRL } from "@/lib/formatters";
 import { useState } from "react";
 import { calcGrupoB, type CalcGrupoBInput, type RegraGD, type TipoFase, type TariffComponentes, type CustoDisponibilidade, type NivelPrecisao } from "@/lib/calcGrupoB";
 import { Badge } from "@/components/ui/badge";
@@ -126,7 +127,7 @@ export function ResumoGrupoB({
 
   const hasAlertas = result.alertas.length > 0;
   const fmtKwh = (v: number) => `${v.toFixed(1)} kWh/mês`;
-  const fmtRS = (v: number) => `R$ ${v.toFixed(2)}/mês`;
+  const fmtRS = (v: number) => `${formatBRL(v)}/mês`;
   const fioBPctLabel = result.fio_b_percent_cobrado != null
     ? `${Math.round((1 - result.fio_b_percent_cobrado) * 100)}%`
     : "N/A";
@@ -295,7 +296,7 @@ export function ResumoGrupoB({
           <CalcRow
             label="Economia mensal estimada"
             value={fmtRS(result.economia_mensal_rs)}
-            sub={`${fmtKwh(result.energia_compensada_kwh)} × R$ ${result.valor_credito_kwh.toFixed(4)}/kWh`}
+            sub={`${fmtKwh(result.energia_compensada_kwh)} × ${formatBRL(result.valor_credito_kwh)}/kWh`}
             highlight
           />
 

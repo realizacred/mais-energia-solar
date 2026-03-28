@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatBRL } from "@/lib/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -154,7 +155,7 @@ export function StepResumo({
             </div>
             <div>
               <p className="text-lg font-bold text-foreground leading-none">
-                {(Number(potenciaKwp) || 0) > 0 ? `R$ ${((Number(precoFinal) || 0) / (Number(potenciaKwp) || 1) / 1000).toFixed(2)}/Wp` : "—"}
+                {(Number(potenciaKwp) || 0) > 0 ? `${formatBRL((Number(precoFinal) || 0) / (Number(potenciaKwp) || 1) / 1000)}/Wp` : "—"}
               </p>
               <p className="text-[10px] text-muted-foreground">Custo/Wp</p>
             </div>

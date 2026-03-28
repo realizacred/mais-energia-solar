@@ -574,14 +574,14 @@ export function StepPagamento({
                 {fluxoCaixaData.map(row => (
                   <tr key={row.ano} className="border-b border-border/20 hover:bg-muted/20">
                     <td className="py-2 px-3 font-semibold text-foreground">{row.ano}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{row.geracao.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{row.tarifa.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td className="py-2 px-3 text-right text-foreground">{row.economia.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(row.geracao)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(row.tarifa)}</td>
+                    <td className="py-2 px-3 text-right text-foreground">{formatNumberBR(row.economia)}</td>
                     <td className={cn("py-2 px-3 text-right font-medium", row.investimento < 0 ? "text-warning" : "text-muted-foreground")}>
-                      {row.investimento < 0 ? `-${Math.abs(row.investimento).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}` : row.investimento.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
+                      {row.investimento < 0 ? `-${formatNumberBR(Math.abs(row.investimento))}` : formatNumberBR(row.investimento)}
                     </td>
                     <td className={cn("py-2 px-3 text-right font-semibold", row.fluxoCaixa < 0 ? "text-destructive" : "text-success")}>
-                      {row.fluxoCaixa < 0 ? `-${Math.abs(row.fluxoCaixa).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}` : row.fluxoCaixa.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
+                      {row.fluxoCaixa < 0 ? `-${formatNumberBR(Math.abs(row.fluxoCaixa))}` : formatNumberBR(row.fluxoCaixa)}
                     </td>
                   </tr>
                 ))}

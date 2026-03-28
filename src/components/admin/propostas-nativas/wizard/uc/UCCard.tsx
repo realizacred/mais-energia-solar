@@ -63,14 +63,15 @@ function EditableValue({ label, value, decimals = 5, onChange }: {
     );
   }
 
-  const formatted = `R$${value.toFixed(decimals).replace(".", ",")}`;
+  const formatted = value.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={() => { setTemp(String(value)); setEditing(true); }}
-      className="text-[10px] text-secondary hover:underline inline-flex items-center gap-0.5"
+      className="text-[10px] text-secondary hover:underline inline-flex items-center gap-0.5 h-auto p-0"
     >
-      {label}: {formatted} <Pencil className="h-2.5 w-2.5" />
-    </button>
+      {label}: R${formatted} <Pencil className="h-2.5 w-2.5" />
+    </Button>
   );
 }
 
