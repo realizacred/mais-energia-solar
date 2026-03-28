@@ -387,8 +387,19 @@ function resolveFromContext(
         ) ?? 0;
     return custoKit > 0 ? fmtCurrency(custoKit) : null;
   }
+  if (key === "financeiro.valor_kit_numero") {
+    const custoKit = (ctx.venda as any)?.custo_kit_override > 0
+      ? (ctx.venda as any).custo_kit_override
+      : ((ctx.kit as any)?.itens as Array<Record<string, unknown>> | undefined)?.reduce(
+          (s: number, i: Record<string, unknown>) => s + (Number(i.quantidade ?? 0) * Number(i.preco_unitario ?? 0)), 0
+        ) ?? 0;
+    return custoKit > 0 ? fmtNumber(custoKit, 2) : null;
+  }
   if (key === "financeiro.valor_instalacao" || key === "financeiro.custo_instalacao_total") {
     return (ctx.venda as any)?.custo_instalacao > 0 ? fmtCurrency((ctx.venda as any).custo_instalacao) : null;
+  }
+  if (key === "financeiro.valor_instalacao_numero") {
+    return (ctx.venda as any)?.custo_instalacao > 0 ? fmtNumber((ctx.venda as any).custo_instalacao, 2) : null;
   }
   if (key === "financeiro.valor_comissao" || key === "financeiro.comissao_total") {
     return (ctx.venda as any)?.custo_comissao > 0 ? fmtCurrency((ctx.venda as any).custo_comissao) : null;
