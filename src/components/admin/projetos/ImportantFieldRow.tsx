@@ -67,7 +67,8 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   const displayValue = getDisplayValue(field, value);
   const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
   const CustomIcon = field.icon ? (icons as any)[toPascal(field.icon)] : null;
-  const FieldIcon = CustomIcon || TYPE_ICON_MAP[field.field_type] || Type;
+  const TitleIcon = TITLE_ICON_MAP.find(m => m.pattern.test(field.title))?.icon;
+  const FieldIcon = CustomIcon || TitleIcon || TYPE_ICON_MAP[field.field_type] || Type;
 
   function startEdit() {
     if (field.field_type === "boolean") {
