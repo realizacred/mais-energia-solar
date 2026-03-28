@@ -488,6 +488,14 @@ export function ProjetosManager() {
                 deals={deals}
                 onMoveToStage={moveDealToStage}
                 onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
+                onViewProjetoTab={(deal, tab) => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set("projeto", deal.deal_id);
+                    next.set("tab", tab);
+                    return next;
+                  }, { replace: true });
+                }}
                 pipelineName={pipelines.find(p => p.id === selectedPipelineId)?.name}
                 onNewProject={(ctx) => {
                   setDefaultConsultorId(ctx?.consultorId || (filters.ownerId !== "todos" ? filters.ownerId : undefined));

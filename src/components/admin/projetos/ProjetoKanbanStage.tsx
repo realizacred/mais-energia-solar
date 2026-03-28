@@ -54,6 +54,7 @@ interface Props {
   deals: DealKanbanCard[];
   onMoveToStage: (dealId: string, stageId: string) => void;
   onViewProjeto?: (deal: DealKanbanCard) => void;
+  onViewProjetoTab?: (deal: DealKanbanCard, tab: string) => void;
   onNewProject?: (ctx?: NewProjectContext) => void;
   dynamicEtiquetas?: DynamicEtiqueta[];
   pipelineName?: string;
@@ -102,7 +103,7 @@ function useResizableColumn(initialWidth: number, minWidth = 220, maxWidth = 450
   return { width, onMouseDown };
 }
 
-export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onNewProject, dynamicEtiquetas = [], pipelineName }: Props) {
+export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onViewProjetoTab, onNewProject, dynamicEtiquetas = [], pipelineName }: Props) {
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -360,7 +361,8 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
               onDragLeave={() => setDragOverCol(null)}
               onDrop={(e, stageId) => handleDrop(e, stageId)}
               onDragStart={handleDragStart}
-              onViewProjeto={onViewProjeto}
+               onViewProjeto={onViewProjeto}
+               onViewProjetoTab={onViewProjetoTab}
               onNewProject={onNewProject}
               onAutomationConfig={(stageId) => setAutomationDialogStageId(stageId)}
               getStageNameById={getStageNameById}
@@ -398,6 +400,7 @@ interface ResizableKanbanColumnProps {
   onDrop: (e: React.DragEvent, stageId: string) => void;
   onDragStart: (e: React.DragEvent, dealId: string) => void;
   onViewProjeto?: (deal: DealKanbanCard) => void;
+  onViewProjetoTab?: (deal: DealKanbanCard, tab: string) => void;
   onNewProject?: (ctx?: NewProjectContext) => void;
   onAutomationConfig: (stageId: string) => void;
   getStageNameById: (id: string | null) => string;
@@ -408,7 +411,7 @@ function ResizableKanbanColumn({
   stage, deals, totalValue, totalKwp, count, isOver,
   stageAutomations, permission, draggedId,
   onDragOver, onDragLeave, onDrop, onDragStart,
-  onViewProjeto, onNewProject, onAutomationConfig,
+  onViewProjeto, onViewProjetoTab, onNewProject, onAutomationConfig,
   getStageNameById, dynamicEtiquetas,
 }: ResizableKanbanColumnProps) {
   const { width: resizedWidth, onMouseDown } = useResizableColumn(250);
@@ -622,6 +625,7 @@ function ResizableKanbanColumn({
             isDragging={draggedId === deal.deal_id}
             onDragStart={onDragStart}
             onClick={() => onViewProjeto?.(deal)}
+            onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
             hasAutomation={hasActiveAutomation}
             dynamicEtiquetas={dynamicEtiquetas}
             cardVisibleFields={visibleFields}
