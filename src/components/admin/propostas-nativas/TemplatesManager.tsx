@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { Plus, Trash2, Edit2, Save, X, FileText, Eye, Upload, Download, Loader2, Globe, FileDown, Paintbrush } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
+import { usePropostaTemplatesCrud, useSalvarPropostaTemplate, useDeletarPropostaTemplate, useAtualizarTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
+import type { PropostaTemplateFull } from "@/hooks/usePropostaTemplatesCrud";
 import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
 import type { TemplateBlock } from "@/components/admin/proposal-builder";
 
