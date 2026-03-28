@@ -287,6 +287,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("sistema_solar", "sistema_solar.geracao_dez", "geracao_dez", "Geração Dezembro", "Geração estimada em dezembro", "kWh", "1200"),
   v("sistema_solar", "sistema_solar.geracao_anual_0", "geracao_anual_0", "Geração Anual", "Geração anual (Disponível para os 25 anos: _0 a _25)", "kWh", "6.672"),
   v("sistema_solar", "sistema_solar.geracao_anual_0_uc1", "geracao_anual_0_uc1", "Geração Anual UC #", "Geração anual por UC (Disponível para os 25 anos)", "kWh", "6.672"),
+  v("sistema_solar", "sistema_solar.numero_modulos", "numero_modulos", "Número de Módulos", "Quantidade total de módulos solares", "-", "16"),
   v("sistema_solar", "sistema_solar.kit_fechado_quantidade", "kit_fechado_quantidade", "Qtd. Kits Fechados", "Quantidade de kits fechados utilizados", "-", "3"),
   v("sistema_solar", "sistema_solar.segmentos_utilizados", "segmentos_utilizados", "Qtd. Segmentos Utilizados", "Quantidade de segmentos utilizados (mínimo 1)", "-", "5"),
 
@@ -836,6 +837,9 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.concessionaria_aliquota_icms", "concessionaria_aliquota_icms", "Alíquota ICMS", "Alíquota de ICMS da concessionária", "%", "18"),
   v("comercial", "comercial.concessionaria_percentual_isencao", "concessionaria_percentual_isencao", "% Isenção SCEE", "Percentual de isenção SCEE da concessionária", "%", "100"),
   v("comercial", "comercial.concessionaria_possui_isencao_scee", "concessionaria_possui_isencao_scee", "Possui Isenção SCEE", "Se a concessionária possui isenção SCEE", "-", "Sim"),
+
+  // ── Consultor (nome) ──
+  v("comercial", "comercial.consultor_nome", "consultor_nome", "Nome do Consultor", "Nome completo do consultor responsável", "-", "João Silva"),
 
   // ── Simulação (complementares) ──
   v("comercial", "comercial.simulacao_tipo_conta", "simulacao_tipo_conta", "Tipo de Conta", "Tipo de conta de energia da simulação", "-", "Residencial"),
