@@ -327,6 +327,7 @@ export function ProposalWizard() {
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
+  const [savedDealId, setSavedDealId] = useState<string | null>(null);
   // Track if editing a previously sent/generated proposal (will branch new version)
   const [editingsentProposal, setEditingSentProposal] = useState(false);
   // Track async DB restore to block UI during loading (race condition fix)
@@ -842,6 +843,9 @@ export function ProposalWizard() {
           if (propostaMeta?.projeto_id) {
             setSavedProjetoId(propostaMeta.projeto_id);
           }
+          if (propostaMeta?.deal_id) {
+            setSavedDealId(propostaMeta.deal_id);
+          }
 
           // Enrich selectedLead if missing from snapshot
           if (!s.selectedLead) {
@@ -1014,6 +1018,7 @@ export function ProposalWizard() {
     if (res.propostaId) setSavedPropostaId(res.propostaId);
     if (res.versaoId) setSavedVersaoId(res.versaoId);
     if (res.projetoId) setSavedProjetoId(res.projetoId);
+    if (res.dealId) setSavedDealId(res.dealId);
   }, []);
 
   const handleSaveDraft = useCallback(async () => {
@@ -1676,6 +1681,7 @@ export function ProposalWizard() {
             projetoId = draftRes.projetoId;
             setSavedProjetoId(draftRes.projetoId);
           }
+          if (draftRes.dealId) setSavedDealId(draftRes.dealId);
         }
         if (!projetoId) {
           const errorDetail = draftRes.status === "error"
@@ -2548,11 +2554,11 @@ export function ProposalWizard() {
                 Prosseguir
               </Button>
             )}
-            {isLastStep && (savedProjetoId || resolvedDealId) && (
+            {isLastStep && (savedDealId || resolvedDealId) && (
               <Button
                 size="sm"
                 onClick={() => {
-                  const targetId = savedProjetoId || resolvedDealId;
+                  const targetId = savedDealId || resolvedDealId;
                   if (targetId) navigate(`/admin/projetos?projeto=${targetId}&tab=propostas`);
                 }}
                 className="gap-1.5 h-9 px-5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200"
