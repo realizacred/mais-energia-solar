@@ -714,8 +714,65 @@ export function ProposalWizard() {
           } as any;
           console.log("[ProposalWizard] Normalized engine snapshot to wizard format", { hasWizardState: !!rawSnapshot._wizard_state });
         } else {
-          // Native wizard snapshot — use as-is
+          // Native wizard snapshot — use as-is, with safe defaults for fields added after initial save
           s = rawSnapshot as WizardSnapshot;
+
+          // Normalize missing fields from newer versions (prevents crash on old snapshots)
+          if (!s.venda || typeof s.venda !== "object") {
+            (s as any).venda = {};
+          }
+          (s as any).venda = {
+            custo_kit: 0,
+            custo_instalacao: 0,
+            custo_comissao: 0,
+            custo_outros: 0,
+            margem_percentual: 20,
+            desconto_percentual: 0,
+            observacoes: "",
+            ...s.venda, // preserve existing values
+          };
+
+          if (!s.premissas || typeof s.premissas !== "object") {
+            (s as any).premissas = {
+              imposto: 0,
+              inflacao_energetica: 6.5,
+              inflacao_ipca: 4.5,
+              perda_eficiencia_anual: 0.5,
+              sobredimensionamento: 0,
+              troca_inversor_anos: 15,
+              troca_inversor_custo: 30,
+              vpl_taxa_desconto: 10,
+            };
+          }
+
+          if (!s.preDimensionamento || typeof s.preDimensionamento !== "object") {
+            (s as any).preDimensionamento = {
+              topologias: ["tradicional"],
+              topologia_configs: {},
+              fator_geracao: 108,
+              inclinacao: 20,
+              desvio_azimutal: 0,
+              sombreamento: "Nenhuma",
+              sobredimensionamento: 20,
+              tipo_kit: "customizado",
+              tipos_kit: ["customizado"],
+              sistema: "on_grid",
+              desempenho: 80,
+              dod: 0,
+              fator_geracao_meses: {},
+              margem_pot_ideal: 0,
+              considerar_transformador: true,
+            } as any;
+          }
+
+          if (!Array.isArray(s.servicos)) (s as any).servicos = [];
+          if (!Array.isArray(s.pagamentoOpcoes)) (s as any).pagamentoOpcoes = [];
+          if (!Array.isArray(s.itens)) (s as any).itens = [];
+          if (!Array.isArray(s.adicionais)) (s as any).adicionais = [];
+          if (!Array.isArray(s.ucs)) (s as any).ucs = [];
+          if (!Array.isArray(s.layouts)) (s as any).layouts = [];
+          if (!Array.isArray(s.manualKits)) (s as any).manualKits = [];
+          if (!s.customFieldValues) (s as any).customFieldValues = {};
         }
 
         // Diagnostic: log snapshot data for debugging restore issues
