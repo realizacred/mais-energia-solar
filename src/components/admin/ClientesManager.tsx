@@ -1,5 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
@@ -115,14 +114,12 @@ function KpiCard({
 }
 
 export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { data: clientes = [], isLoading: loading } = useClientes();
   const { data: leads = [] } = useLeadsForClientes();
   const salvarCliente = useSalvarCliente();
   const checkDeps = useCheckClienteDependencies();
   const deletarCliente = useDeletarCliente();
   useClientesRealtime();
-  const autoEditApplied = useRef(false);
 
   const { hasPermission } = useUserPermissions();
   const canDeleteClients = hasPermission("delete_clients");
