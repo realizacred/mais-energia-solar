@@ -59,8 +59,9 @@ const VARIAVEIS_DISPONIVEIS = [
 ];
 
 export function VariaveisCustomManager() {
-  const [variaveis, setVariaveis] = useState<VariavelCustom[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: variaveis = [], isLoading: loading } = useVariaveisCustom();
+  const salvarMutation = useSalvarVariavelCustom();
+  const deletarMutation = useDeletarVariavelCustom();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<VariavelCustom>>({});
   const [editBaseline, setEditBaseline] = useState<string>("");
@@ -69,23 +70,10 @@ export function VariaveisCustomManager() {
   const isEditDirty = useMemo(() => {
     if (!editingId) return false;
     if (editingId === "new") {
-      // For new items, dirty if any required field is filled
       return !!(form.nome && form.nome !== "vc_" && form.label && form.expressao);
     }
     return JSON.stringify(form) !== editBaseline;
   }, [form, editBaseline, editingId]);
-
-  const loadVariaveis = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("proposta_variaveis_custom")
-      .select("id, nome, label, expressao, tipo_resultado, categoria, ordem, ativo, descricao")
-      .order("ordem", { ascending: true });
-    setVariaveis((data as VariavelCustom[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { loadVariaveis(); }, []);
 
   const startNew = () => {
     setEditingId("new");
