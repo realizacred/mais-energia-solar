@@ -709,7 +709,7 @@ export default function PropostaPublica() {
                 className="flex-1 gap-2"
                 size="lg"
                 onClick={handleAccept}
-                disabled={submitting || !nome.trim()}
+                disabled={submitting || !nome.trim() || (formasProprias.length > 0 && !temEscolha)}
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Aceitar Proposta
