@@ -219,6 +219,7 @@ export function ProposalDetail() {
           versaoId={versaoId}
           propostaId={vm.propostaId}
           onGenerated={() => refetch()}
+          initialTemplateId={vm.snapshot.templateSelecionado || undefined}
         />
       )}
 
