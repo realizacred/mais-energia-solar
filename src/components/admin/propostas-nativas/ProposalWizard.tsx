@@ -1,7 +1,7 @@
 // @deprecated: Tabela 'premissas_tecnicas' não é mais usada. Fonte atual: 'tenant_premises' via useSolarPremises.
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { formatNumberBR } from "@/lib/formatters";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useBlocker } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
