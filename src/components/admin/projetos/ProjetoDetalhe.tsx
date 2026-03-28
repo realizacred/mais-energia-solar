@@ -60,6 +60,7 @@ import {
   type EtiquetaItem,
 } from "@/contexts/ProjetoDetalheContext";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { ClienteEditModal } from "./ClienteEditModal";
 
 // ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
