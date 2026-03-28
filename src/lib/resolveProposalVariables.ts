@@ -414,9 +414,6 @@ function resolveFromContext(
   if (key === "financeiro.consultor_comissao") {
     return s((ctx.venda as any)?.consultor_nome_comissao) ?? s(ctx.consultorNome) ?? "-";
   }
-  if (key === "financeiro.valor_comissao" || key === "financeiro.comissao_total") {
-    return (ctx.venda as any)?.custo_comissao > 0 ? fmtCurrency((ctx.venda as any).custo_comissao) : null;
-  }
 
 
   if (kitItens && Array.isArray(kitItens)) {
