@@ -2,7 +2,7 @@
  * Domain resolver: financeiro.* variables
  * Sources: snapshot.financeiro, snapshot top-level, versaoData, ext.projeto
  */
-import { type AnyObj, safeObj, safeArr, str, num, fmtCur, fmtNum, type ResolverExternalContext } from "./types.ts";
+import { type AnyObj, safeObj, safeArr, str, num, fmtCur, fmtNum, fmtVal, type ResolverExternalContext } from "./types.ts";
 
 export function resolveFinanceiro(
   snapshot: AnyObj | null | undefined,
@@ -20,11 +20,12 @@ export function resolveFinanceiro(
     const s = str(v);
     if (s && !out[k]) out[k] = s;
   };
+  // AP-17: all monetary values return pure numbers without R$
   const setCur = (k: string, v: number | null) => {
-    if (v != null && !isNaN(v)) out[k] = fmtCur(v);
+    if (v != null && !isNaN(v)) out[k] = fmtVal(v);
   };
   const setCurIfMissing = (k: string, v: number | null) => {
-    if (!out[k] && v != null && !isNaN(v)) out[k] = fmtCur(v);
+    if (!out[k] && v != null && !isNaN(v)) out[k] = fmtVal(v);
   };
 
   // ── Valor Total / Preço ──
@@ -43,8 +44,8 @@ export function resolveFinanceiro(
     const potencia = num(versao.potencia_kwp) ?? num(projeto.potencia_kwp) ?? num(cliente.potencia_kwp)
       ?? num(snap.potencia_kwp) ?? num(snap.potencia_sistema);
     if (potencia && potencia > 0) {
-      out["preco_kwp"] = fmtCur(valorTotal / potencia);
-      out["preco_watt"] = `${fmtNum(valorTotal / (potencia * 1000), 2)} R$/W`;
+      out["preco_kwp"] = fmtVal(valorTotal / potencia);
+      out["preco_watt"] = fmtNum(valorTotal / (potencia * 1000), 2);
       out["preco_watt_numero"] = fmtNum(valorTotal / (potencia * 1000), 2);
     }
   }
@@ -62,9 +63,10 @@ export function resolveFinanceiro(
 
   // ── Economia Percentual ──
   const econPercent = num(versao.economia_mensal_percent) ?? num(fin.economia_mensal_percent) ?? num(snap.economia_mensal_percent) ?? num(snap.economia_percentual);
+  // AP-17: percentuais return pure number without %
   if (econPercent != null) {
-    out["economia_percentual"] = fmtNum(econPercent, 1) + "%";
-    out["economia_mensal_percent"] = fmtNum(econPercent, 1) + "%";
+    out["economia_percentual"] = fmtNum(econPercent, 1);
+    out["economia_mensal_percent"] = fmtNum(econPercent, 1);
   }
 
   // ── Payback ──
@@ -131,26 +133,26 @@ export function resolveFinanceiro(
   if (valorTotal != null && valorTotal > 0 && custoTotalCalc > 0) {
     setCurIfMissing("margem_valor", valorTotal - custoTotalCalc);
     const margemReal = ((valorTotal - custoTotalCalc) / custoTotalCalc) * 100;
-    if (!out["margem_real"]) out["margem_real"] = `${fmtNum(margemReal, 1)}%`;
+    if (!out["margem_real"]) out["margem_real"] = fmtNum(margemReal, 1);
   }
   const margemPct = num(fin.margem_percentual) ?? num(snap.margem_percentual) ?? num(venda.margem_percentual);
-  if (margemPct != null && !out["margem_percentual"]) out["margem_percentual"] = `${fmtNum(margemPct, 1)}%`;
+  if (margemPct != null && !out["margem_percentual"]) out["margem_percentual"] = fmtNum(margemPct, 1);
 
   // ── Desconto (D1, QW4 — AP-15 parity with frontend) ──
   const descontoPercent = num(snap.desconto_percentual) ?? num(venda.desconto_percentual) ?? num(fin.desconto_percentual) ?? 0;
-  if (!out["desconto_percentual"]) out["desconto_percentual"] = `${fmtNum(descontoPercent, 1)}%`;
+  if (!out["desconto_percentual"]) out["desconto_percentual"] = fmtNum(descontoPercent, 1);
   if (descontoPercent > 0 && valorTotal != null && valorTotal > 0) {
     // valorTotal already has discount applied; reverse to find pre-discount
     const precoPreDesconto = valorTotal / (1 - descontoPercent / 100);
     const descontoValor = Math.round(precoPreDesconto * descontoPercent / 100 * 100) / 100;
-    if (!out["desconto_valor"]) out["desconto_valor"] = fmtCur(descontoValor);
+    if (!out["desconto_valor"]) out["desconto_valor"] = fmtVal(descontoValor);
   } else if (!out["desconto_valor"]) {
-    out["desconto_valor"] = fmtCur(0);
+    out["desconto_valor"] = fmtVal(0);
   }
 
   // ── Comissão do consultor (D3 — AP-15 parity with frontend) ──
   const pctComissao = num(snap.percentual_comissao_consultor) ?? num(venda.percentual_comissao_consultor) ?? num(fin.percentual_comissao_consultor);
-  if (pctComissao != null && !out["percentual_comissao"]) out["percentual_comissao"] = `${fmtNum(pctComissao, 1)}%`;
+  if (pctComissao != null && !out["percentual_comissao"]) out["percentual_comissao"] = fmtNum(pctComissao, 1);
   const consultorNomeComissao = str(snap.consultor_nome_comissao) ?? str(venda.consultor_nome_comissao) ?? str(fin.consultor_nome_comissao);
   if (consultorNomeComissao && !out["consultor_comissao"]) out["consultor_comissao"] = consultorNomeComissao;
 
@@ -237,8 +239,8 @@ export function resolveFinanceiro(
       const custoUn = num(bat.custo_unitario) ?? num(bat.preco_custo);
       const precoUn = num(bat.preco_unitario) ?? num(bat.preco_venda);
       const qty = num(bat.quantidade) ?? 1;
-      if (custoUn != null) { custoUnArr.push(fmtCur(custoUn)); custoTotalArr.push(fmtCur(custoUn * qty)); custoTotalSum += custoUn * qty; }
-      if (precoUn != null) { precoUnArr.push(fmtCur(precoUn)); precoTotalArr.push(fmtCur(precoUn * qty)); precoTotalSum += precoUn * qty; }
+      if (custoUn != null) { custoUnArr.push(fmtVal(custoUn)); custoTotalArr.push(fmtVal(custoUn * qty)); custoTotalSum += custoUn * qty; }
+      if (precoUn != null) { precoUnArr.push(fmtVal(precoUn)); precoTotalArr.push(fmtVal(precoUn * qty)); precoTotalSum += precoUn * qty; }
     });
 
     if (custoUnArr.length > 0) {
@@ -292,9 +294,9 @@ export function resolveFinanceiro(
   // ── Comissão percentual (derivado de comissao_res/rep + valor_total) ──
   if (valorTotal && valorTotal > 0) {
     const comRes = num(snap.comissao_res) ?? num(fin.comissao_res);
-    if (comRes != null) set("comissao_res_p", `${fmtNum((comRes / valorTotal) * 100, 2)}%`);
+    if (comRes != null) set("comissao_res_p", fmtNum((comRes / valorTotal) * 100, 2));
     const comRep = num(snap.comissao_rep) ?? num(fin.comissao_rep);
-    if (comRep != null) set("comissao_rep_p", `${fmtNum((comRep / valorTotal) * 100, 2)}%`);
+    if (comRep != null) set("comissao_rep_p", fmtNum((comRep / valorTotal) * 100, 2));
   }
 
   return out;
