@@ -533,13 +533,18 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         onClick={e => e.stopPropagation()}
                       />
                     ) : (
-                      <span className="flex items-center gap-1.5">
-                        {/* Commission badge — before text in Item column */}
+                      <span className="flex items-center gap-1.5 whitespace-nowrap min-w-0">
+                        {row.item}
+                        {row.id === "comissao" && consultorNome && (
+                          <span className="text-muted-foreground text-[10px] truncate max-w-[120px]" title={consultorNome}>
+                            ({consultorNome})
+                          </span>
+                        )}
+                        {/* Commission badge — after text */}
                         {row.id === "comissao" && percentualComissaoConsultor > 0 && (() => {
                           const isOverride = comissaoManualOverride && Math.abs(percentualEfetivo - percentualComissaoConsultor) > 0.01;
                           const isLower = percentualEfetivo < percentualComissaoConsultor - 0.01;
                           const isHigher = percentualEfetivo > percentualComissaoConsultor + 0.01;
-                          // Colors: lower = destructive, higher = success, normal = warning
                           const badgeBg = isOverride
                             ? (isLower ? "bg-destructive/10 text-destructive border-destructive/30" : isHigher ? "bg-success/10 text-success border-success/30" : "bg-warning/10 text-warning border-warning/30")
                             : "bg-warning/10 text-warning border-warning/30";
@@ -548,7 +553,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge variant="outline"
-                                    className={cn("text-[10px] cursor-help gap-0.5 px-1.5 py-0", badgeBg)}>
+                                    className={cn("text-[10px] cursor-help gap-0.5 px-1.5 py-0 shrink-0", badgeBg)}>
                                     {isOverride ? (
                                       <span>{percentualComissaoConsultor}% → {percentualEfetivo.toFixed(1)}%</span>
                                     ) : (
@@ -585,7 +590,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                             </TooltipProvider>
                           );
                         })()}
-                        {row.item}
                         {isKit && itens.length > 0 && (
                           kitExpanded
                             ? <ChevronUp className="h-3 w-3 text-muted-foreground" />
@@ -593,7 +597,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         )}
                         {row.id === "comissao" && comissaoEnabled && percentualComissaoConsultor === 0 && comissaoLoaded && (
                           <Badge variant="outline"
-                            className="text-[10px] bg-muted text-muted-foreground border-border gap-0.5 px-1.5 py-0">
+                            className="text-[10px] bg-muted text-muted-foreground border-border gap-0.5 px-1.5 py-0 shrink-0">
                             <Pencil className="w-2.5 h-2.5" />
                             Manual
                           </Badge>
