@@ -15269,6 +15269,7 @@ export type Database = {
           decisao: string | null
           expires_at: string
           first_viewed_at: string | null
+          forma_pagamento_escolhida: Json | null
           id: string
           last_viewed_at: string | null
           proposta_id: string
@@ -15294,6 +15295,7 @@ export type Database = {
           decisao?: string | null
           expires_at?: string
           first_viewed_at?: string | null
+          forma_pagamento_escolhida?: Json | null
           id?: string
           last_viewed_at?: string | null
           proposta_id: string
@@ -15319,6 +15321,7 @@ export type Database = {
           decisao?: string | null
           expires_at?: string
           first_viewed_at?: string | null
+          forma_pagamento_escolhida?: Json | null
           id?: string
           last_viewed_at?: string | null
           proposta_id?: string
