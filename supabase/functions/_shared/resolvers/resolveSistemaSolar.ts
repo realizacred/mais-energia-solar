@@ -2,7 +2,7 @@
  * Domain resolver: sistema_solar.* variables
  * Sources: snapshot.itens[], snapshot.tecnico, ext.projeto, ext.cliente
  */
-import { type AnyObj, safeArr, safeObj, str, num, fmtNum, type ResolverExternalContext } from "./types.ts";
+import { type AnyObj, safeArr, safeObj, str, num, fmtNum, fmtVal, type ResolverExternalContext } from "./types.ts";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -94,7 +94,7 @@ export function resolveSistemaSolar(
     ?? num(tecnico.potencia_kwp) ?? num(snap.potencia_kwp) ?? num(snap.potencia_sistema);
   if (potencia != null) {
     const potStr = String(potencia);
-    out["potencia_sistema"] = potStr.includes("kWp") ? potStr : `${fmtNum(potencia)} kWp`;
+    out["potencia_sistema"] = potStr.includes("kWp") ? potStr.replace(/\s*kWp\s*/, "") : fmtNum(potencia);
     out["potencia_kwp"] = String(potencia);
   }
   set("potencia_ideal_total", snap.potencia_ideal_total);
@@ -105,11 +105,11 @@ export function resolveSistemaSolar(
     ?? num(snap.geracaoMensalEstimada) ?? num(snap.geracao_mensal_kwh)
     ?? num(tecnico.geracao_estimada_kwh);
   if (geracaoMensal != null) {
-    out["geracao_mensal"] = `${fmtNum(geracaoMensal, 0)} kWh/mês`;
+    out["geracao_mensal"] = fmtNum(geracaoMensal, 0);
     out["geracao_mensal_numero"] = String(Math.round(geracaoMensal));
     // Geração anual
     const geracaoAnual = num(snap.geracao_anual_kwh) ?? geracaoMensal * 12;
-    if (!out["geracao_anual"]) out["geracao_anual"] = `${fmtNum(geracaoAnual, 0)} kWh`;
+    if (!out["geracao_anual"]) out["geracao_anual"] = fmtNum(geracaoAnual, 0);
     out["geracao_anual_numero"] = String(Math.round(geracaoAnual));
   }
   for (const m of MESES) set(`geracao_${m}`, snap[`geracao_${m}`]);
@@ -138,7 +138,7 @@ export function resolveSistemaSolar(
     set("modulo_modelo", m0.modelo);
     if (m0.potencia_w) {
       const pw = String(m0.potencia_w);
-      out["modulo_potencia"] = pw.includes("Wp") ? pw : `${pw} Wp`;
+      out["modulo_potencia"] = pw.replace(/\s*Wp\s*/, "");
       out["modulo_potencia_numero"] = String(m0.potencia_w);
     }
     set("vc_modulo_potencia", m0.potencia_w);
@@ -162,15 +162,15 @@ export function resolveSistemaSolar(
     // Dimensions — from pre-parsed fields or from dimensoes_mm string
     const dims = (m0.comprimento_mm != null) ? m0 : parseDimensoes(m0.dimensoes_mm);
     if (num(dims.comprimento_mm) != null) {
-      out["modulo_comprimento"] = `${dims.comprimento_mm} mm`;
+      out["modulo_comprimento"] = String(dims.comprimento_mm);
       out["modulo_comprimento_numero"] = String(dims.comprimento_mm);
     }
     if (num(dims.largura_mm) != null) {
-      out["modulo_largura"] = `${dims.largura_mm} mm`;
+      out["modulo_largura"] = String(dims.largura_mm);
       out["modulo_largura_numero"] = String(dims.largura_mm);
     }
     if (num(dims.profundidade_mm) != null) {
-      out["modulo_profundidade"] = `${dims.profundidade_mm} mm`;
+      out["modulo_profundidade"] = String(dims.profundidade_mm);
       out["modulo_profundidade_numero"] = String(dims.profundidade_mm);
     }
 
@@ -179,7 +179,7 @@ export function resolveSistemaSolar(
     const largMm = num(dims.largura_mm);
     if (compMm != null && largMm != null) {
       const areaM2 = (compMm * largMm) / 1_000_000;
-      out["modulo_area"] = `${fmtNum(areaM2, 2)} m²`;
+      out["modulo_area"] = fmtNum(areaM2, 2);
       out["modulo_area_numero"] = fmtNum(areaM2, 2);
     }
 
@@ -201,7 +201,7 @@ export function resolveSistemaSolar(
   set("modulo_fabricante", snap.modulo_fabricante);
   if (snap.modulo_potencia && !out["modulo_potencia"]) {
     const mp = String(snap.modulo_potencia);
-    out["modulo_potencia"] = mp.includes("Wp") ? mp : `${mp} Wp`;
+    out["modulo_potencia"] = mp.replace(/\s*Wp\s*/, "");
   }
 
   // Module snapshot fallbacks for catalog fields
@@ -229,7 +229,7 @@ export function resolveSistemaSolar(
     set("inversor_modelo", inversores[0].modelo);
     if (inversores[0].potencia_w) {
       const pw = String(inversores[0].potencia_w);
-      out["inversor_potencia_nominal"] = pw.includes("W") ? pw : `${pw} W`;
+      out["inversor_potencia_nominal"] = pw.replace(/\s*W\s*$/, "");
       out["inversor_potencia_nominal_numero"] = String(inversores[0].potencia_w);
     }
     const invSummary = inversores
@@ -260,7 +260,7 @@ export function resolveSistemaSolar(
       return s + (potMax * qty);
     }, 0);
     if (totalPotMax > 0) {
-      out["inversores_potencia_maxima_total"] = `${fmtNum(totalPotMax, 0)} W`;
+      out["inversores_potencia_maxima_total"] = fmtNum(totalPotMax, 0);
     }
   }
 
@@ -270,7 +270,7 @@ export function resolveSistemaSolar(
   set("inversor_fabricante_1", snap.inversor_fabricante ?? snap.inversor_fabricante_1);
   if ((snap.inversor_potencia || snap.inversor_potencia_nominal) && !out["inversor_potencia_nominal"]) {
     const ip = String(snap.inversor_potencia ?? snap.inversor_potencia_nominal);
-    out["inversor_potencia_nominal"] = ip.includes("W") ? ip : `${ip} W`;
+    out["inversor_potencia_nominal"] = ip.replace(/\s*W\s*$/, "");
   }
   set("inversores_utilizados", snap.inversores_utilizados ?? (projeto.modelo_inversor ? `1x ${projeto.modelo_inversor}` : undefined));
 
@@ -291,7 +291,7 @@ export function resolveSistemaSolar(
     if (inv.potencia_w) {
       const pw = String(inv.potencia_w);
       if (!out[`inversor_potencia_nominal_${i}`]) {
-        out[`inversor_potencia_nominal_${i}`] = pw.includes("W") ? pw : `${pw} W`;
+        out[`inversor_potencia_nominal_${i}`] = pw.replace(/\s*W\s*$/, "");
       }
     }
     set(`inversor_quantidade_${i}`, inv.quantidade);
@@ -349,9 +349,9 @@ export function resolveSistemaSolar(
 
     // Dimensions from pre-parsed or dimensoes_mm
     const bDims = (b0.comprimento_mm != null) ? b0 : parseDimensoes(b0.dimensoes_mm);
-    if (num(bDims.comprimento_mm) != null) out["bateria_comprimento"] = `${bDims.comprimento_mm} mm`;
-    if (num(bDims.largura_mm) != null) out["bateria_largura"] = `${bDims.largura_mm} mm`;
-    if (num(bDims.profundidade_mm) != null) out["bateria_profundidade"] = `${bDims.profundidade_mm} mm`;
+    if (num(bDims.comprimento_mm) != null) out["bateria_comprimento"] = String(bDims.comprimento_mm);
+    if (num(bDims.largura_mm) != null) out["bateria_largura"] = String(bDims.largura_mm);
+    if (num(bDims.profundidade_mm) != null) out["bateria_profundidade"] = String(bDims.profundidade_mm);
   }
 
   // ── Indexed baterias (with catalog enrichment) ──
@@ -372,9 +372,9 @@ export function resolveSistemaSolar(
     set(`bateria_capacidade_${i}`, bat.capacidade ?? bat.energia_kwh);
 
     const bDims = (bat.comprimento_mm != null) ? bat : parseDimensoes(bat.dimensoes_mm);
-    if (num(bDims.comprimento_mm) != null && !out[`bateria_comprimento_${i}`]) out[`bateria_comprimento_${i}`] = `${bDims.comprimento_mm} mm`;
-    if (num(bDims.largura_mm) != null && !out[`bateria_largura_${i}`]) out[`bateria_largura_${i}`] = `${bDims.largura_mm} mm`;
-    if (num(bDims.profundidade_mm) != null && !out[`bateria_profundidade_${i}`]) out[`bateria_profundidade_${i}`] = `${bDims.profundidade_mm} mm`;
+    if (num(bDims.comprimento_mm) != null && !out[`bateria_comprimento_${i}`]) out[`bateria_comprimento_${i}`] = String(bDims.comprimento_mm);
+    if (num(bDims.largura_mm) != null && !out[`bateria_largura_${i}`]) out[`bateria_largura_${i}`] = String(bDims.largura_mm);
+    if (num(bDims.profundidade_mm) != null && !out[`bateria_profundidade_${i}`]) out[`bateria_profundidade_${i}`] = String(bDims.profundidade_mm);
   });
 
   const bateriaFields = ["bateria_fabricante", "bateria_modelo", "bateria_tipo", "bateria_energia",
