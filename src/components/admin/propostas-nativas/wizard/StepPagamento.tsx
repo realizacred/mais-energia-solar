@@ -792,6 +792,85 @@ export function StepPagamento({
   );
 }
 
+// ─── FormasPagamentoPreview (read-only admin payment methods) ────
+function FormasPagamentoPreview({ precoFinal }: { precoFinal: number }) {
+  const { data: formasConfig } = usePaymentInterestConfigs();
+  const formasAtivas = useMemo(
+    () => (formasConfig ?? []).filter((f) => f.ativo),
+    [formasConfig]
+  );
+
+  return (
+    <div className="space-y-3">
+      {/* Info banner */}
+      <div className="flex items-start gap-3 p-4 rounded-lg bg-info/5 border border-info/20">
+        <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            Formas de pagamento gerenciadas pelo financeiro
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            As condições abaixo são definidas pelo gestor financeiro.
+            O cliente escolherá a forma preferida ao aceitar a proposta.
+          </p>
+        </div>
+      </div>
+
+      {/* Active payment methods preview */}
+      {formasAtivas.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Pagamento Direto — disponível para o cliente
+          </p>
+          {formasAtivas.map((forma) => (
+            <div
+              key={forma.id}
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                  {FORMA_ICONS[forma.forma_pagamento] ?? <DollarSign className="h-4 w-4 text-primary" />}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {FORMA_PAGAMENTO_LABELS[forma.forma_pagamento] ?? forma.forma_pagamento}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {forma.juros_tipo === "sem_juros"
+                      ? `Até ${forma.parcelas_padrao}x sem juros`
+                      : `Até ${forma.parcelas_padrao}x · ${forma.juros_valor}% a.m.`}
+                    {forma.observacoes ? ` · ${forma.observacoes}` : ""}
+                  </p>
+                </div>
+              </div>
+              <Badge
+                variant="outline"
+                className="text-xs bg-success/10 text-success border-success/30"
+              >
+                Disponível
+              </Badge>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Warning if no forms configured */}
+      {formasAtivas.length === 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/5 border border-warning/20">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            Nenhuma forma de pagamento direto configurada.
+            Configure em{" "}
+            <span className="font-medium text-foreground">
+              Admin → Formas de Pagamento
+            </span>.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Sub-components ─────────────────────────────────────────
 
 function GastosModal({ open, onClose, gastosData }: {
