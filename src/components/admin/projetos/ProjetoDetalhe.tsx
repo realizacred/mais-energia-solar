@@ -215,6 +215,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
 function ProjetoDetalheContent() {
   const ctx = useProjetoDetalhe();
   const navigate = useNavigate();
+  const [editClienteId, setEditClienteId] = useState<string | null>(null);
 
   const {
     deal, loading, activeTab, setActiveTab, stages,
@@ -550,6 +551,14 @@ function ProjetoDetalheContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cliente Edit Modal — abre inline sem navegar */}
+      <ClienteEditModal
+        open={!!editClienteId}
+        onOpenChange={(open) => { if (!open) setEditClienteId(null); }}
+        clienteId={editClienteId || ""}
+        onSaved={() => silentRefresh?.()}
+      />
     </div>
   );
 }
