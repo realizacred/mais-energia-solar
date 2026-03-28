@@ -46,6 +46,17 @@ const TYPE_ICON_MAP: Record<string, typeof Type> = {
   file: FileText,
 };
 
+/** Contextual icon fallback based on field title keywords */
+const TITLE_ICON_MAP: Array<{ pattern: RegExp; icon: typeof Type }> = [
+  { pattern: /identidade/i, icon: Paperclip },
+  { pattern: /comprovante/i, icon: Paperclip },
+  { pattern: /wi-?fi/i, icon: Wifi },
+  { pattern: /equipamento/i, icon: Package },
+  { pattern: /disjuntor/i, icon: Zap },
+  { pattern: /localiza/i, icon: MapPin },
+  { pattern: /transformador/i, icon: Settings },
+];
+
 export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator = true }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
