@@ -346,6 +346,8 @@ export default function PropostaPublica() {
     crediario: <Wallet className="h-5 w-5 text-primary" />,
     outro: <DollarSign className="h-5 w-5 text-primary" />,
   };
+
+  return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Proposal Preview — hidden on simulacao view */}
       {html && !isSimulacaoView && (
