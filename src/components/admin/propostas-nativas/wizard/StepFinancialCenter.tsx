@@ -202,7 +202,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     const changed =
       venda.custo_instalacao !== newInstalacao ||
       venda.custo_comissao !== newComissao ||
-      venda.custo_outros !== newOutros;
+      venda.custo_outros !== newOutros ||
+      venda.comissao_manual_override !== comissaoManualOverride;
 
     if (changed) {
       onVendaChange({
@@ -210,9 +211,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         custo_instalacao: newInstalacao,
         custo_comissao: newComissao,
         custo_outros: newOutros,
+        comissao_manual_override: comissaoManualOverride,
       });
     }
-  }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras, outrosServicos, servicosEnabledMap]);
+  }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras, outrosServicos, servicosEnabledMap, comissaoManualOverride]);
 
   // ── Calculations ──
 
