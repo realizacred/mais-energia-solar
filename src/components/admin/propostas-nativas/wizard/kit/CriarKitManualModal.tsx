@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { type KitItemRow, formatBRL } from "../types";
 import { formatKwp } from "@/lib/formatters/index";
+import { useFornecedoresNomes } from "@/hooks/useFornecedoresNomes";
 
 interface CatalogoModulo {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
