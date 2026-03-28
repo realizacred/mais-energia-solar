@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { validateExpression, evaluate, extractVariables } from "@/lib/expressionEngine";
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom } from "@/hooks/useVariaveisCustom";
-import type { VariavelCustom } from "@/hooks/useVariaveisCustom";
+
 
 interface VariavelCustom {
   id: string;
