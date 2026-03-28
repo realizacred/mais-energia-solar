@@ -15281,7 +15281,9 @@ export type Database = {
           first_viewed_at: string | null
           forma_pagamento_escolhida: Json | null
           id: string
+          invalidado_em: string | null
           last_viewed_at: string | null
+          motivo_invalidacao: string | null
           proposta_id: string
           recusa_at: string | null
           recusa_motivo: string | null
@@ -15307,7 +15309,9 @@ export type Database = {
           first_viewed_at?: string | null
           forma_pagamento_escolhida?: Json | null
           id?: string
+          invalidado_em?: string | null
           last_viewed_at?: string | null
+          motivo_invalidacao?: string | null
           proposta_id: string
           recusa_at?: string | null
           recusa_motivo?: string | null
@@ -15333,7 +15337,9 @@ export type Database = {
           first_viewed_at?: string | null
           forma_pagamento_escolhida?: Json | null
           id?: string
+          invalidado_em?: string | null
           last_viewed_at?: string | null
+          motivo_invalidacao?: string | null
           proposta_id?: string
           recusa_at?: string | null
           recusa_motivo?: string | null
@@ -17140,6 +17146,8 @@ export type Database = {
           snapshot_locked: boolean
           sobredimensionamento: number | null
           status: Database["public"]["Enums"]["proposta_nativa_status"]
+          substituida_em: string | null
+          substituida_por: string | null
           tarifa_distribuidora: number | null
           template_id_used: string | null
           tenant_id: string
@@ -17195,6 +17203,8 @@ export type Database = {
           snapshot_locked?: boolean
           sobredimensionamento?: number | null
           status?: Database["public"]["Enums"]["proposta_nativa_status"]
+          substituida_em?: string | null
+          substituida_por?: string | null
           tarifa_distribuidora?: number | null
           template_id_used?: string | null
           tenant_id: string
@@ -17250,6 +17260,8 @@ export type Database = {
           snapshot_locked?: boolean
           sobredimensionamento?: number | null
           status?: Database["public"]["Enums"]["proposta_nativa_status"]
+          substituida_em?: string | null
+          substituida_por?: string | null
           tarifa_distribuidora?: number | null
           template_id_used?: string | null
           tenant_id?: string
@@ -17275,6 +17287,13 @@ export type Database = {
             columns: ["proposta_id"]
             isOneToOne: false
             referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versoes_substituida_por_fkey"
+            columns: ["substituida_por"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
           {
