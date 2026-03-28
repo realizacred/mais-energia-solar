@@ -250,23 +250,6 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     setDialogOpen(true);
   };
 
-  // Auto-open edit dialog when navigating with ?edit=clienteId
-  useEffect(() => {
-    if (autoEditApplied.current || loading || clientes.length === 0) return;
-    const editId = searchParams.get("edit");
-    if (!editId) return;
-    const cliente = clientes.find(c => c.id === editId);
-    if (cliente) {
-      autoEditApplied.current = true;
-      handleEdit(cliente);
-      // Clear the edit param from URL
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete("edit");
-        return next;
-      }, { replace: true });
-    }
-  }, [loading, clientes, searchParams]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este cliente? Todos os registros vinculados serão desassociados.")) return;
