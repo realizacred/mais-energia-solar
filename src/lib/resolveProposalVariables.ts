@@ -322,8 +322,10 @@ function resolveFromContext(
   }
 
   // ── Sistema Solar — Equipamentos ──
-  if (key === "sistema_solar.potencia_sistema") return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
-  if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
+  if (key === "sistema_solar.potencia_sistema") return ctx.potenciaKwp ? `${fmtNumber(ctx.potenciaKwp, 2)} kWp` : null;
+  if (key === "sistema_solar.potencia_sistema_numero") return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
+  if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? `${fmtNumber(ctx.geracaoMensal, 0)} kWh/mês` : null;
+  if (key === "sistema_solar.geracao_mensal_numero") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
   if (key === "sistema_solar.numero_modulos") return ctx.numeroPlacas ? String(ctx.numeroPlacas) : null;
 
   // Equipment from kit items
@@ -336,11 +338,13 @@ function resolveFromContext(
     if (key === "sistema_solar.modulo_fabricante") return s(modulo?.fabricante as string);
     if (key === "sistema_solar.modulo_modelo") return s(modulo?.modelo as string);
     if (key === "sistema_solar.modulo_potencia") return modulo?.potencia_w ? `${modulo.potencia_w} Wp` : null;
+    if (key === "sistema_solar.modulo_potencia_numero") return modulo?.potencia_w ? String(modulo.potencia_w) : null;
     if (key === "sistema_solar.modulo_quantidade") return s((modulo?.quantidade ?? ctx.numeroPlacas) as string | number);
     if (key === "sistema_solar.inversor_fabricante") return s(inversor?.fabricante as string);
     if (key === "sistema_solar.inversor_fabricante_1") return s(inversor?.fabricante as string);
     if (key === "sistema_solar.inversor_modelo") return s(inversor?.modelo as string);
     if (key === "sistema_solar.inversor_potencia_nominal") return inversor?.potencia_w ? `${inversor.potencia_w} W` : null;
+    if (key === "sistema_solar.inversor_potencia_nominal_numero") return inversor?.potencia_w ? String(inversor.potencia_w) : null;
     if (key === "sistema_solar.inversor_quantidade") return s(inversor?.quantidade as string | number);
   }
 
@@ -362,13 +366,17 @@ function resolveFromContext(
   if (key === "financeiro.preco") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
   if (key === "financeiro.preco_final") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
   if (key === "financeiro.valor_total") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
+  if (key === "financeiro.valor_total_numero") return ctx.precoTotal != null ? fmtNumber(ctx.precoTotal, 2) : null;
   if (key === "financeiro.economia_mensal") return ctx.economiaMensal ? fmtCurrency(ctx.economiaMensal) : null;
+  if (key === "financeiro.economia_mensal_numero") return ctx.economiaMensal ? fmtNumber(ctx.economiaMensal, 2) : null;
   if (key === "financeiro.economia_anual") return ctx.economiaAnual ? fmtCurrency(ctx.economiaAnual) : null;
+  if (key === "financeiro.economia_anual_numero") return ctx.economiaAnual ? fmtNumber(ctx.economiaAnual, 2) : null;
   if (key === "financeiro.economia_25_anos") return ctx.economia25Anos ? fmtCurrency(ctx.economia25Anos) : null;
   if (key === "financeiro.payback_anos") return ctx.paybackAnos ? fmtNumber(ctx.paybackAnos, 1) : null;
   if (key === "financeiro.payback_meses") return ctx.paybackAnos ? fmtNumber(ctx.paybackAnos * 12, 0) : null;
   if (key === "financeiro.preco_kwp") return (ctx.precoTotal && ctx.potenciaKwp) ? fmtCurrency(ctx.precoTotal / ctx.potenciaKwp) : null;
   if (key === "financeiro.preco_watt") return (ctx.precoTotal && ctx.potenciaKwp) ? `${fmtNumber(ctx.precoTotal / (ctx.potenciaKwp * 1000), 2)} R$/W` : null;
+  if (key === "financeiro.preco_watt_numero") return (ctx.precoTotal && ctx.potenciaKwp) ? fmtNumber(ctx.precoTotal / (ctx.potenciaKwp * 1000), 2) : null;
 
   // ── Financial Center costs (from VendaData) ──
   if (key === "financeiro.valor_kit" || key === "financeiro.custo_kit") {
@@ -379,8 +387,19 @@ function resolveFromContext(
         ) ?? 0;
     return custoKit > 0 ? fmtCurrency(custoKit) : null;
   }
+  if (key === "financeiro.valor_kit_numero") {
+    const custoKit = (ctx.venda as any)?.custo_kit_override > 0
+      ? (ctx.venda as any).custo_kit_override
+      : ((ctx.kit as any)?.itens as Array<Record<string, unknown>> | undefined)?.reduce(
+          (s: number, i: Record<string, unknown>) => s + (Number(i.quantidade ?? 0) * Number(i.preco_unitario ?? 0)), 0
+        ) ?? 0;
+    return custoKit > 0 ? fmtNumber(custoKit, 2) : null;
+  }
   if (key === "financeiro.valor_instalacao" || key === "financeiro.custo_instalacao_total") {
     return (ctx.venda as any)?.custo_instalacao > 0 ? fmtCurrency((ctx.venda as any).custo_instalacao) : null;
+  }
+  if (key === "financeiro.valor_instalacao_numero") {
+    return (ctx.venda as any)?.custo_instalacao > 0 ? fmtNumber((ctx.venda as any).custo_instalacao, 2) : null;
   }
   if (key === "financeiro.valor_comissao" || key === "financeiro.comissao_total") {
     return (ctx.venda as any)?.custo_comissao > 0 ? fmtCurrency((ctx.venda as any).custo_comissao) : null;
