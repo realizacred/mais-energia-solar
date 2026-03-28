@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo, ReactNode, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { useMotivosPerda } from "@/hooks/useDistribution";
@@ -183,18 +183,21 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
   // ── UI states ──
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab") as TabId | null;
-  const appliedTabRef = useRef(false);
+  
+
+  const validTabs: TabId[] = ["gerenciamento", "comunicacao", "propostas", "documentos", "instalacao"];
 
   const [activeTab, setActiveTabState] = useState<TabId>(
-    (tabFromUrl && ["gerenciamento", "comunicacao", "propostas", "documentos", "instalacao"].includes(tabFromUrl))
+    (tabFromUrl && validTabs.includes(tabFromUrl))
       ? tabFromUrl
       : "gerenciamento"
   );
 
-  // Clear tab param from URL after applying (keep URL clean)
+  // React to tab param changes (e.g. clicking proposal icon on kanban)
   useEffect(() => {
-    if (tabFromUrl && !appliedTabRef.current) {
-      appliedTabRef.current = true;
+    if (tabFromUrl && validTabs.includes(tabFromUrl)) {
+      setActiveTabState(tabFromUrl);
+      // Clear tab param from URL after applying (keep URL clean)
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.delete("tab");
