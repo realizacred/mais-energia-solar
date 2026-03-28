@@ -94,20 +94,6 @@ async function downloadDocx(fileUrl: string) {
   URL.revokeObjectURL(url);
 }
 
-interface PropostaTemplate {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  grupo: string;
-  categoria: string;
-  tipo: string;
-  template_html: string | null;
-  file_url: string | null;
-  thumbnail_url: string | null;
-  ativo: boolean;
-  ordem: number;
-}
-
 const GRUPOS = [
   { value: "B", label: "Grupo B (Baixa Tensão)" },
   { value: "A", label: "Grupo A (Média/Alta Tensão)" },
@@ -115,36 +101,17 @@ const GRUPOS = [
 ];
 
 export function TemplatesManager() {
-  const [templates, setTemplates] = useState<PropostaTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: templates = [], isLoading: loading, refetch: loadTemplates } = usePropostaTemplatesCrud();
+  const salvarMutation = useSalvarPropostaTemplate();
+  const deletarMutation = useDeletarPropostaTemplate();
+  const atualizarHtmlMutation = useAtualizarTemplateHtml();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<Partial<PropostaTemplate>>({});
+  const [form, setForm] = useState<Partial<PropostaTemplateFull>>({});
   const [uploading, setUploading] = useState(false);
   const [tipoTab, setTipoTab] = useState<"html" | "docx">("html");
-  const [previewTemplate, setPreviewTemplate] = useState<PropostaTemplate | null>(null);
-  const [builderTemplate, setBuilderTemplate] = useState<PropostaTemplate | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<PropostaTemplateFull | null>(null);
+  const [builderTemplate, setBuilderTemplate] = useState<PropostaTemplateFull | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const filteredTemplates = useMemo(
-    () => templates.filter(t => t.tipo === tipoTab),
-    [templates, tipoTab]
-  );
-  const htmlCount = useMemo(() => templates.filter(t => t.tipo === "html").length, [templates]);
-  const docxCount = useMemo(() => templates.filter(t => t.tipo === "docx").length, [templates]);
-
-  const loadTemplates = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("proposta_templates")
-      .select("id, nome, descricao, grupo, categoria, tipo, template_html, file_url, thumbnail_url, ativo, ordem")
-      .order("ordem", { ascending: true });
-    
-    const all = (data as PropostaTemplate[]) || [];
-    setTemplates(all);
-    setLoading(false);
-  };
-
-  useEffect(() => { loadTemplates(); }, []);
 
   const seedDefaultTemplates = async () => {
     if (!confirm("Isso vai EXCLUIR todos os templates WEB existentes e criar 3 novos (Grid, Híbrido, Dual). Continuar?")) return;
