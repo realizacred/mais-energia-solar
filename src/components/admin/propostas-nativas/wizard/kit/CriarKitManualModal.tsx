@@ -16,7 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { type KitItemRow, formatBRL } from "../types";
-import { formatKwp } from "@/lib/formatters";
+import { formatKwp } from "@/lib/formatters/index";
 
 interface CatalogoModulo {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
