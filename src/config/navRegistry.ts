@@ -185,7 +185,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "lead-status", label_default: "Status de Leads", group_default: "Configurações", order_default: 1, icon: "Kanban", description: "Personalizar etapas do funil", keywords: ["etapa", "funil", "personalizar", "status"], criticality: "normal", permission: "admin_only" },
   { nav_key: "motivos-perda", label_default: "Motivos de Perda", group_default: "Configurações", order_default: 2, icon: "XCircle", description: "Razões de perda de negócios", keywords: ["perda", "motivo", "relatório", "análise"], criticality: "normal", permission: "admin_only" },
   { nav_key: "loading-config", label_default: "Loading & Mensagens", group_default: "Configurações", order_default: 3, icon: "Sun", description: "Animação e mensagens de carregamento", keywords: ["loading", "carregamento", "mensagem", "animação", "sol", "loader"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "proposta-comercial", label_default: "Variáveis do Sistema", group_default: "Configurações", order_default: 4, icon: "Variable", description: "Catálogo completo de variáveis para templates de proposta e documentos", keywords: ["variável", "template", "placeholder", "catálogo", "chave", "variáveis"], criticality: "normal", permission: "admin_only" },
+  
   { nav_key: "mensagens-proposta", label_default: "Mensagens da Proposta", group_default: "Configurações", order_default: 5, icon: "MessageCircle", description: "Templates, blocos e padrões de mensagens de proposta", keywords: ["mensagem", "proposta", "template", "whatsapp", "email", "configuração"], criticality: "normal", permission: "admin_only" },
 
   // ── 15. Administração ──
