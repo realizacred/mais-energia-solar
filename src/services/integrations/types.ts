@@ -29,7 +29,8 @@ export type IntegrationCategory =
   | "nf"
   | "api"
   | "automation"
-  | "signature";
+  | "signature"
+  | "suppliers";
 
 export interface IntegrationProvider {
   id: string;
@@ -89,6 +90,7 @@ export const CATEGORY_LABELS: Record<IntegrationCategory, string> = {
   api: "API",
   automation: "Automação",
   signature: "Assinatura Digital",
+  suppliers: "Fornecedores",
 };
 
 export const CATEGORY_ICONS: Record<IntegrationCategory, string> = {
@@ -104,4 +106,5 @@ export const CATEGORY_ICONS: Record<IntegrationCategory, string> = {
   api: "Globe",
   automation: "Workflow",
   signature: "FileSignature",
+  suppliers: "PackageSearch",
 };

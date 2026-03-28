@@ -5,7 +5,7 @@ import {
   Plug, RefreshCw, Power, Sun, Clock, CheckCircle2,
   AlertCircle, AlertTriangle, Settings, Zap, Users, HardDrive, Calendar,
   Mail, MessageCircle, Video, CreditCard, ReceiptText,
-  Globe, Workflow, FileSignature, FileOutput,
+  Globe, Workflow, FileSignature, FileOutput, PackageSearch,
 } from "lucide-react";
 import type { IntegrationCategory } from "@/services/integrations/types";
 
@@ -17,6 +17,7 @@ const CATEGORY_FALLBACK_ICONS: Record<IntegrationCategory, React.ElementType> = 
   monitoring: Sun, crm: Users, storage: HardDrive, calendar: Calendar,
   email: Mail, messaging: MessageCircle, meetings: Video, billing: CreditCard,
   nf: ReceiptText, api: Globe, automation: Workflow, signature: FileSignature,
+  suppliers: PackageSearch,
 };
 import { cn } from "@/lib/utils";
 import type { IntegrationProvider, ConnectionStatus } from "@/services/integrations/types";

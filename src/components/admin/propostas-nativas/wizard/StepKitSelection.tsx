@@ -561,6 +561,11 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                               <Badge variant="outline" className="text-[10px]">
                                 {kit.pricing_mode === "fixed" ? "Fixo" : "Calculado"}
                               </Badge>
+                              {(kit as any).source === "edeltec" && (
+                                <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
+                                  Edeltec
+                                </Badge>
+                              )}
                               {summary && (
                                 <Badge variant="outline" className="text-[10px] text-muted-foreground">
                                   {summary.totalItens} itens
