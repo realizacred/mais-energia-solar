@@ -668,7 +668,37 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-foreground">Nome do distribuidor <span className="text-destructive">*</span></Label>
-              <Input value={distribuidorNome} onChange={e => setDistribuidorNome(e.target.value)} className={cn("h-8 text-xs", triedSave && !distribuidorNome.trim() && "ring-2 ring-destructive")} />
+              <Popover open={distribuidorOpen} onOpenChange={setDistribuidorOpen}>
+                <PopoverTrigger asChild>
+                  <div className="relative">
+                    <Input
+                      value={distribuidorNome}
+                      onChange={e => { setDistribuidorNome(e.target.value); if (!distribuidorOpen) setDistribuidorOpen(true); }}
+                      onFocus={() => setDistribuidorOpen(true)}
+                      placeholder="Digite para buscar..."
+                      className={cn("h-8 text-xs", triedSave && !distribuidorNome.trim() && "ring-2 ring-destructive")}
+                      autoComplete="off"
+                    />
+                  </div>
+                </PopoverTrigger>
+                {fornecedoresFiltered.length > 0 && (
+                  <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start" sideOffset={4} onOpenAutoFocus={e => e.preventDefault()}>
+                    <div className="max-h-48 overflow-y-auto">
+                      {fornecedoresFiltered.map(f => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 transition-colors cursor-pointer text-foreground"
+                          onMouseDown={e => { e.preventDefault(); setDistribuidorNome(f.nome); setDistribuidorOpen(false); }}
+                        >
+                          {distribuidorNome.trim() ? highlightMatch(f.nome, distribuidorNome) : f.nome}
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                )}
+              </Popover>
+            </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-foreground">Custo <span className="text-destructive">*</span></Label>
