@@ -21,7 +21,7 @@ export function ProposalKpis({ vm }: ProposalKpisProps) {
       <InfoPill icon={Zap} label="Potência" value={formatKwp(vm.potenciaKwp)} />
       <InfoPill icon={SunMedium} label="Geração Mensal" value={vm.geracaoMensal > 0 ? `${formatKwhValue(vm.geracaoMensal)} kWh` : "—"} />
       <InfoPill icon={DollarSign} label="Valor Total" value={formatBRL(vm.valorTotal)} />
-      <InfoPill icon={TrendingUp} label="R$/Wp" value={vm.wpPrice > 0 ? `R$ ${vm.wpPrice.toFixed(2)}` : "—"} />
+      <InfoPill icon={TrendingUp} label="R$/Wp" value={vm.wpPrice > 0 ? `${formatBRL(vm.wpPrice)}/Wp` : "—"} />
     </div>
   );
 }

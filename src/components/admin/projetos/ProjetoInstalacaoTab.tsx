@@ -250,7 +250,7 @@ function ChecklistCard({
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* Header */}
-      <button onClick={onToggleExpand} className="w-full text-left">
+      <div onClick={onToggleExpand} className="w-full text-left cursor-pointer" role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onToggleExpand()}>
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <div className={cn("w-8 h-8 rounded-md flex items-center justify-center", tipoCfg.iconBg)}>
@@ -280,7 +280,7 @@ function ChecklistCard({
             {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </div>
         </div>
-      </button>
+      </div>
 
       {/* Progress bar */}
       {isExpanded && totalItems > 0 && (

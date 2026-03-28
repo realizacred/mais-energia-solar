@@ -61,7 +61,7 @@ export function ProposalAnalysis({
               <p className="text-sm font-medium">Preço de Venda</p>
             </div>
             <p className="text-xl font-bold">{formatBRL(totalFinal)}</p>
-            <p className="text-xs text-muted-foreground">{wpPrice ? `R$ ${wpPrice} / Wp` : "—"}</p>
+            <p className="text-xs text-muted-foreground">{wpPrice ? `${wpPrice} / Wp` : "—"}</p>
           </CardContent>
         </Card>
 

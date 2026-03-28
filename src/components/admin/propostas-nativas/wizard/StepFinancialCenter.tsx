@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { formatNumberBR } from "@/lib/formatters";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -672,7 +673,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                   {viewMode === "resumido" ? (
                     <>
                       <span className="text-right font-medium">
-                        {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {formatNumberBR(rowTotal)}
                       </span>
                       <span className="text-right text-muted-foreground">
                         {(Number(rowPercent) || 0).toFixed(2)}%
@@ -735,13 +736,13 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         )}
                       </div>
                       <span className="text-right font-medium">
-                        {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {formatNumberBR(rowTotal)}
                       </span>
                       <span className="text-right text-muted-foreground">
-                        {rowMargem.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {formatNumberBR(rowMargem)}
                       </span>
                       <span className="text-right font-medium">
-                        {rowVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {formatNumberBR(rowVenda)}
                       </span>
                     </>
                   )}
@@ -817,7 +818,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
               <span className="text-muted-foreground">Margem (Markup {(Number(margemPercent) || 0).toFixed(2)}%)</span>
               <span />
               <span className="text-right font-medium">
-                {margemValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                {formatNumberBR(margemValor)}
               </span>
               <span className="text-right text-muted-foreground">0,00%</span>
             </div>
@@ -837,7 +838,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
             {viewMode === "resumido" ? (
               <>
                 <span className="text-right text-sm">
-                  {precoVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {formatNumberBR(precoVenda)}
                 </span>
                 <span className="text-right text-sm">100%</span>
               </>
@@ -845,13 +846,13 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
               <>
                 <span />
                 <span className="text-right text-sm">
-                  {custoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {formatNumberBR(custoTotal)}
                 </span>
                 <span className="text-right text-sm">
-                  {margemValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {formatNumberBR(margemValor)}
                 </span>
                 <span className="text-right text-sm">
-                  {precoVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {formatNumberBR(precoVenda)}
                 </span>
               </>
             )}
