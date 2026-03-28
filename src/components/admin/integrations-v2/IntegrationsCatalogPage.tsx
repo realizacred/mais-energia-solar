@@ -79,7 +79,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Sun, Zap, CloudSun, Sprout, Cpu, Gauge, Radio, Users, Building2,
   HardDrive, Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText,
   Globe, Workflow, FileSignature, Calculator, QrCode, Webhook,
-  Plug, LayoutGrid, Power, FileText,
+  Plug, LayoutGrid, Power, FileText, PackageSearch,
 };
 
 function getIcon(key: string | null): React.ElementType {
