@@ -314,6 +314,14 @@ export function ProposalWizard() {
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
     step,
     geracaoMensalEstimada,
+    // QW10 — top-level geração keys for backend resolvers
+    geracao_mensal_kwh: geracaoMensalEstimada ?? 0,
+    geracao_anual_kwh: (geracaoMensalEstimada ?? 0) * 12,
+    // QW9 — consultor keys for backend resolvers
+    consultor_nome: (selectedLead as any)?.consultor_nome
+      ?? (selectedLead as any)?.responsavel_nome ?? "",
+    consultor_email: (selectedLead as any)?.consultor_email ?? "",
+    consultor_telefone: (selectedLead as any)?.consultor_telefone ?? "",
   }), [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
     locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
