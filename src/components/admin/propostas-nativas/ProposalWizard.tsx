@@ -2284,6 +2284,15 @@ export function ProposalWizard() {
                 </div>
               </div>
             )}
+            {geracaoMensalEstimada > 0 && (
+              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30">
+                <SunMedium className="h-3.5 w-3.5 text-warning" />
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground leading-none">Geração Estimada</p>
+                  <p className="text-xs font-bold text-foreground">{formatNumberBR(Math.round(geracaoMensalEstimada))} kWh/mês</p>
+                </div>
+              </div>
+            )}
             {precoFinal > 0 && (
               <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30">
                 <DollarSign className="h-3.5 w-3.5 text-success" />
