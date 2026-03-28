@@ -60,6 +60,7 @@ import {
   type EtiquetaItem,
 } from "@/contexts/ProjetoDetalheContext";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { ClienteEditModal } from "./ClienteEditModal";
 
 // ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
@@ -214,6 +215,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
 function ProjetoDetalheContent() {
   const ctx = useProjetoDetalhe();
   const navigate = useNavigate();
+  const [editClienteId, setEditClienteId] = useState<string | null>(null);
 
   const {
     deal, loading, activeTab, setActiveTab, stages,
@@ -434,6 +436,7 @@ function ProjetoDetalheContent() {
               formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
               userNamesMap={userNamesMap}
               onRefreshCustomer={refreshCustomer}
+              onEditCliente={(id) => setEditClienteId(id)}
             />
           )}
           {activeTab === "comunicacao" && (
@@ -549,6 +552,14 @@ function ProjetoDetalheContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cliente Edit Modal — abre inline sem navegar */}
+      <ClienteEditModal
+        open={!!editClienteId}
+        onOpenChange={(open) => { if (!open) setEditClienteId(null); }}
+        clienteId={editClienteId || ""}
+        onSaved={() => silentRefresh?.()}
+      />
     </div>
   );
 }
@@ -602,7 +613,7 @@ function GerenciamentoTab({
   customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
   ownerName, currentStage, currentPipeline,
   formatDate, formatBRL, getStageNameById, userNamesMap,
-  onRefreshCustomer,
+  onRefreshCustomer, onEditCliente,
 }: {
   deal: DealDetail; history: StageHistory[]; stages: StageInfo[];
   customerName: string; customerPhone: string; customerEmail: string;
@@ -612,6 +623,7 @@ function GerenciamentoTab({
   getStageNameById: (id: string | null) => string;
   userNamesMap: Map<string, string>;
   onRefreshCustomer?: () => void;
+  onEditCliente?: (clienteId: string) => void;
 }) {
   const navigate = useNavigate();
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
@@ -1223,7 +1235,7 @@ function GerenciamentoTab({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
                     if (deal.customer_id) {
-                      navigate(`/admin/clientes?edit=${deal.customer_id}`);
+                      onEditCliente?.(deal.customer_id);
                     }
                   }}>
                     <Pencil className="h-3.5 w-3.5 mr-2" />Editar cliente
