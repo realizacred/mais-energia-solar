@@ -717,62 +717,85 @@ export function ProposalWizard() {
           // Native wizard snapshot — use as-is, with safe defaults for fields added after initial save
           s = rawSnapshot as WizardSnapshot;
 
-          // Normalize missing fields from newer versions (prevents crash on old snapshots)
-          if (!s.venda || typeof s.venda !== "object") {
-            (s as any).venda = {};
-          }
-          (s as any).venda = {
-            custo_kit: 0,
-            custo_instalacao: 0,
-            custo_comissao: 0,
-            custo_outros: 0,
-            margem_percentual: 20,
-            desconto_percentual: 0,
-            observacoes: "",
-            ...s.venda, // preserve existing values
-          };
+          // ── Normalização defensiva do snapshot nativo ──
+          // Garante compatibilidade com snapshots antigos que não têm campos recentes
+          try {
+            // Arrays obrigatórios
+            if (!Array.isArray(s.servicos)) (s as any).servicos = [];
+            if (!Array.isArray(s.pagamentoOpcoes)) (s as any).pagamentoOpcoes = [];
+            if (!Array.isArray(s.itens)) (s as any).itens = [];
+            if (!Array.isArray(s.adicionais)) (s as any).adicionais = [];
+            if (!Array.isArray(s.ucs)) (s as any).ucs = [];
+            if (!Array.isArray(s.layouts)) (s as any).layouts = [];
+            if (!Array.isArray(s.manualKits)) (s as any).manualKits = [];
+            if (!Array.isArray((s as any).formas_pagamento_proprias)) (s as any).formas_pagamento_proprias = [];
 
-          if (!s.premissas || typeof s.premissas !== "object") {
-            (s as any).premissas = {
-              imposto: 0,
-              inflacao_energetica: 6.5,
-              inflacao_ipca: 4.5,
-              perda_eficiencia_anual: 0.5,
-              sobredimensionamento: 0,
-              troca_inversor_anos: 15,
-              troca_inversor_custo: 30,
-              vpl_taxa_desconto: 10,
+            // Objetos obrigatórios
+            if (!s.customFieldValues) (s as any).customFieldValues = {};
+
+            // VendaData — merge com defaults para campos novos
+            const vendaDefaults = {
+              custo_kit: 0,
+              custo_instalacao: 0,
+              custo_comissao: 0,
+              custo_outros: 0,
+              margem_percentual: 20,
+              desconto_percentual: 0,
+              observacoes: "",
+              custo_kit_override: null,
+              comissao_manual_override: false,
+              instalacao_enabled: true,
+              comissao_enabled: true,
+              custos_extras: [],
+              servicos_enabled_map: {},
+              percentual_comissao_consultor: 0,
+              consultor_nome_comissao: "",
             };
-          }
+            (s as any).venda = {
+              ...vendaDefaults,
+              ...(s.venda && typeof s.venda === "object" ? s.venda : {}),
+            };
 
-          if (!s.preDimensionamento || typeof s.preDimensionamento !== "object") {
-            (s as any).preDimensionamento = {
-              topologias: ["tradicional"],
-              topologia_configs: {},
-              fator_geracao: 108,
-              inclinacao: 20,
-              desvio_azimutal: 0,
-              sombreamento: "Nenhuma",
-              sobredimensionamento: 20,
-              tipo_kit: "customizado",
-              tipos_kit: ["customizado"],
-              sistema: "on_grid",
-              desempenho: 80,
-              dod: 0,
-              fator_geracao_meses: {},
-              margem_pot_ideal: 0,
-              considerar_transformador: true,
-            } as any;
-          }
+            if (!s.premissas || typeof s.premissas !== "object") {
+              (s as any).premissas = {
+                imposto: 0,
+                inflacao_energetica: 6.5,
+                inflacao_ipca: 4.5,
+                perda_eficiencia_anual: 0.5,
+                sobredimensionamento: 0,
+                troca_inversor_anos: 15,
+                troca_inversor_custo: 30,
+                vpl_taxa_desconto: 10,
+              };
+            }
 
-          if (!Array.isArray(s.servicos)) (s as any).servicos = [];
-          if (!Array.isArray(s.pagamentoOpcoes)) (s as any).pagamentoOpcoes = [];
-          if (!Array.isArray(s.itens)) (s as any).itens = [];
-          if (!Array.isArray(s.adicionais)) (s as any).adicionais = [];
-          if (!Array.isArray(s.ucs)) (s as any).ucs = [];
-          if (!Array.isArray(s.layouts)) (s as any).layouts = [];
-          if (!Array.isArray(s.manualKits)) (s as any).manualKits = [];
-          if (!s.customFieldValues) (s as any).customFieldValues = {};
+            if (!s.preDimensionamento || typeof s.preDimensionamento !== "object") {
+              (s as any).preDimensionamento = {
+                topologias: ["tradicional"],
+                topologia_configs: {
+                  tradicional: { desempenho: 69.8, fator_geracao: 108 },
+                  microinversor: { desempenho: 72, fator_geracao: 111 },
+                  otimizador: { desempenho: 74, fator_geracao: 114 },
+                },
+                fator_geracao: 108,
+                inclinacao: 20,
+                desvio_azimutal: 0,
+                sombreamento: "Nenhuma",
+                sobredimensionamento: 20,
+                tipo_kit: "customizado",
+                tipos_kit: ["customizado"],
+                sistema: "on_grid",
+                desempenho: 80,
+                dod: 0,
+                fator_geracao_meses: {},
+                margem_pot_ideal: 0,
+                considerar_transformador: true,
+              } as any;
+            }
+          } catch (normErr) {
+            console.error("[ProposalWizard] Erro ao normalizar snapshot nativo:", normErr);
+          }
+          // ── Fim da normalização ──
         }
 
         // Diagnostic: log snapshot data for debugging restore issues
@@ -2179,18 +2202,18 @@ export function ProposalWizard() {
         return wrap("kit", (
           <div className="space-y-4">
             <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} />
-            {kitVal.warnings.length > 0 && (
+            {(kitVal?.warnings ?? []).length > 0 && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
-                {kitVal.warnings.map((w, i) => (
+                {(kitVal?.warnings ?? []).map((w, i) => (
                   <p key={i} className="text-xs text-warning font-medium flex items-center gap-1.5">
                     <span className="shrink-0">⚠</span> {w}
                   </p>
                 ))}
               </div>
             )}
-            {kitVal.errors.length > 0 && (
+            {(kitVal?.errors ?? []).length > 0 && (
               <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-1">
-                {kitVal.errors.map((e, i) => (
+                {(kitVal?.errors ?? []).map((e, i) => (
                   <p key={i} className="text-xs text-destructive font-medium flex items-center gap-1.5">
                     <span className="shrink-0">✕</span> {e}
                   </p>
