@@ -235,7 +235,60 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
   const consumoTotal = filters.buscarValor;
 
-  const mockKits: KitCardData[] = []; // Manual mode only for now
+  // Build KitCardData from current itens for the Edit Kit Fechado modal
+  const currentKitCards = useMemo(() => {
+    if (!itens || itens.length === 0) return [];
+    const card = kitItemsToCardData(itens);
+    return card ? [card] : [];
+  }, [itens]);
+
+  // Filter & sort catalog kits based on sidebar filters
+  const filteredCatalogKits = useMemo(() => {
+    let result = [...catalogKits];
+
+    // Text search by distributor name (match against kit name as proxy)
+    if (filters.searchDistribuidor.trim()) {
+      const q = filters.searchDistribuidor.toLowerCase();
+      result = result.filter(k => k.name.toLowerCase().includes(q) || (k.description || "").toLowerCase().includes(q));
+    }
+
+    // Text search by module description
+    if (filters.searchModulo.trim()) {
+      const q = filters.searchModulo.toLowerCase();
+      result = result.filter(k => {
+        const summary = catalogSummaries.get(k.id);
+        return summary ? summary.moduloDescricao.toLowerCase().includes(q) : true;
+      });
+    }
+
+    // Text search by inverter description
+    if (filters.searchInversor.trim()) {
+      const q = filters.searchInversor.toLowerCase();
+      result = result.filter(k => {
+        const summary = catalogSummaries.get(k.id);
+        return summary ? summary.inversorDescricao.toLowerCase().includes(q) : true;
+      });
+    }
+
+    // Sort
+    if (orderBy === "menor_preco") {
+      result.sort((a, b) => {
+        const pa = a.fixed_price || catalogSummaries.get(a.id)?.custoTotal || 0;
+        const pb = b.fixed_price || catalogSummaries.get(b.id)?.custoTotal || 0;
+        return pa - pb;
+      });
+    } else if (orderBy === "maior_preco") {
+      result.sort((a, b) => {
+        const pa = a.fixed_price || catalogSummaries.get(a.id)?.custoTotal || 0;
+        const pb = b.fixed_price || catalogSummaries.get(b.id)?.custoTotal || 0;
+        return pb - pa;
+      });
+    } else if (orderBy === "potencia") {
+      result.sort((a, b) => (b.estimated_kwp || 0) - (a.estimated_kwp || 0));
+    }
+
+    return result;
+  }, [catalogKits, catalogSummaries, filters.searchDistribuidor, filters.searchModulo, filters.searchInversor, orderBy]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
@@ -320,7 +373,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     );
   }
 
-  const activeKits = tab === "manual" ? [] : mockKits;
+  const activeKits = tab === "manual" ? [] : currentKitCards;
 
   return (
     <div className="space-y-4">
@@ -458,7 +511,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                   ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
                   : "space-y-2"
                 }>
-                  {catalogKits.map(kit => {
+                  {filteredCatalogKits.map(kit => {
                     const summary = catalogSummaries.get(kit.id);
                     const isSelected = selectedCatalogKitId === kit.id;
 
