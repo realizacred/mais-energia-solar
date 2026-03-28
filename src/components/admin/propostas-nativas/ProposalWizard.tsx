@@ -1,7 +1,7 @@
 // @deprecated: Tabela 'premissas_tecnicas' não é mais usada. Fonte atual: 'tenant_premises' via useSolarPremises.
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { formatNumberBR } from "@/lib/formatters";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useBlocker } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
@@ -272,6 +272,40 @@ export function ProposalWizard() {
   // ─── Pre-generation gate state
   const [showGateModal, setShowGateModal] = useState(false);
   const [gateValidation, setGateValidation] = useState<PropostaFinalValidationResult | null>(null);
+
+  // ─── Navigation guard: warn user during generation ───
+  const isGeneratingRef = useRef(false);
+  isGeneratingRef.current = generating;
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isGeneratingRef.current) {
+        e.preventDefault();
+        e.returnValue = "A proposta está sendo gerada. Se você sair, a geração pode ser interrompida.";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
+
+  // React Router blocker for in-app navigation during generation
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      generating && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      const confirmed = window.confirm(
+        "A proposta está sendo gerada. Se você sair agora, o PDF pode não ser finalizado.\n\nDeseja sair mesmo assim?"
+      );
+      if (confirmed) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker]);
   // ─── Derived
   // J1 — SSOT: use usePrecoFinal hook instead of inline useMemo
   const precoFinal = usePrecoFinal(itens, servicos, venda);
