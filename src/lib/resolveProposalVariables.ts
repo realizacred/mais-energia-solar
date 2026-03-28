@@ -322,8 +322,10 @@ function resolveFromContext(
   }
 
   // ── Sistema Solar — Equipamentos ──
-  if (key === "sistema_solar.potencia_sistema") return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
-  if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
+  if (key === "sistema_solar.potencia_sistema") return ctx.potenciaKwp ? `${fmtNumber(ctx.potenciaKwp, 2)} kWp` : null;
+  if (key === "sistema_solar.potencia_sistema_numero") return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
+  if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? `${fmtNumber(ctx.geracaoMensal, 0)} kWh/mês` : null;
+  if (key === "sistema_solar.geracao_mensal_numero") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
   if (key === "sistema_solar.numero_modulos") return ctx.numeroPlacas ? String(ctx.numeroPlacas) : null;
 
   // Equipment from kit items
@@ -336,11 +338,13 @@ function resolveFromContext(
     if (key === "sistema_solar.modulo_fabricante") return s(modulo?.fabricante as string);
     if (key === "sistema_solar.modulo_modelo") return s(modulo?.modelo as string);
     if (key === "sistema_solar.modulo_potencia") return modulo?.potencia_w ? `${modulo.potencia_w} Wp` : null;
+    if (key === "sistema_solar.modulo_potencia_numero") return modulo?.potencia_w ? String(modulo.potencia_w) : null;
     if (key === "sistema_solar.modulo_quantidade") return s((modulo?.quantidade ?? ctx.numeroPlacas) as string | number);
     if (key === "sistema_solar.inversor_fabricante") return s(inversor?.fabricante as string);
     if (key === "sistema_solar.inversor_fabricante_1") return s(inversor?.fabricante as string);
     if (key === "sistema_solar.inversor_modelo") return s(inversor?.modelo as string);
     if (key === "sistema_solar.inversor_potencia_nominal") return inversor?.potencia_w ? `${inversor.potencia_w} W` : null;
+    if (key === "sistema_solar.inversor_potencia_nominal_numero") return inversor?.potencia_w ? String(inversor.potencia_w) : null;
     if (key === "sistema_solar.inversor_quantidade") return s(inversor?.quantidade as string | number);
   }
 
