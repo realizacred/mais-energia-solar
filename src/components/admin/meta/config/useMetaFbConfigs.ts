@@ -96,6 +96,14 @@ export function useSaveMetaAutomation() {
       round_robin_users: string[];
       field_mapping: Record<string, string>;
     }) => {
+      // Resolve tenant_id from current user profile (RLS default)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .single();
+      const tenantId = profile?.tenant_id;
+      if (!tenantId) throw new Error("Tenant não encontrado");
+
       // Upsert: find existing or create
       const { data: existing } = await supabase
         .from("facebook_lead_automations")
