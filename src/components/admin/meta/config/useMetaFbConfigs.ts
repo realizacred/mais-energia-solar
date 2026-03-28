@@ -116,10 +116,10 @@ export function useSaveMetaAutomation() {
       } else {
         const { error } = await supabase
           .from("facebook_lead_automations")
-          .insert({
+          .insert([{
             ...payload,
             active: true,
-          });
+          }]);
         if (error) throw error;
       }
     },
