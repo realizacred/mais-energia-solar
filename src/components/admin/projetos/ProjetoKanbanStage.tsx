@@ -361,7 +361,8 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
               onDragLeave={() => setDragOverCol(null)}
               onDrop={(e, stageId) => handleDrop(e, stageId)}
               onDragStart={handleDragStart}
-              onViewProjeto={onViewProjeto}
+               onViewProjeto={onViewProjeto}
+               onViewProjetoTab={onViewProjetoTab}
               onNewProject={onNewProject}
               onAutomationConfig={(stageId) => setAutomationDialogStageId(stageId)}
               getStageNameById={getStageNameById}
@@ -399,6 +400,7 @@ interface ResizableKanbanColumnProps {
   onDrop: (e: React.DragEvent, stageId: string) => void;
   onDragStart: (e: React.DragEvent, dealId: string) => void;
   onViewProjeto?: (deal: DealKanbanCard) => void;
+  onViewProjetoTab?: (deal: DealKanbanCard, tab: string) => void;
   onNewProject?: (ctx?: NewProjectContext) => void;
   onAutomationConfig: (stageId: string) => void;
   getStageNameById: (id: string | null) => string;
@@ -409,7 +411,7 @@ function ResizableKanbanColumn({
   stage, deals, totalValue, totalKwp, count, isOver,
   stageAutomations, permission, draggedId,
   onDragOver, onDragLeave, onDrop, onDragStart,
-  onViewProjeto, onNewProject, onAutomationConfig,
+  onViewProjeto, onViewProjetoTab, onNewProject, onAutomationConfig,
   getStageNameById, dynamicEtiquetas,
 }: ResizableKanbanColumnProps) {
   const { width: resizedWidth, onMouseDown } = useResizableColumn(250);
