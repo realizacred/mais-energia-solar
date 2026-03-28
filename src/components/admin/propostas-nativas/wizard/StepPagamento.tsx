@@ -450,88 +450,137 @@ export function StepPagamento({
 
       {/* ─── Tab: Pagamento ─────────────────────────────── */}
       {activeTab === "pagamento" && (
-        <div className="space-y-4">
-          {/* ── Info Banner + Admin Payment Methods Preview ── */}
-          <FormasPagamentoPreview precoFinal={precoFinal} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* ── COLUNA ESQUERDA — Pagamento Direto ── */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CreditCard className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Pagamento Direto</p>
+                <p className="text-xs text-muted-foreground">PIX, cartão, cheque e outros</p>
+              </div>
+            </div>
 
-          {/* ── Separator ── */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">Financiamento Bancário</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
-          {/* Sidebar - Banks */}
-          <div className="space-y-1">
-            {bancoGroups.map((g, idx) => (
-              <Button
-                key={g.banco.id}
-                variant="ghost"
-                onClick={() => setSelectedBancoIdx(idx)}
-                className={cn(
-                  "w-full justify-between px-3 py-2.5 h-auto text-sm transition-colors",
-                  selectedBancoIdx === idx
-                    ? "bg-primary/10 text-primary border border-primary/30 font-semibold"
-                    : "hover:bg-muted/50 text-muted-foreground border border-transparent"
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5" />
-                  {g.banco.nome}
-                </span>
-                <Badge variant="outline" className="text-[10px] h-5 px-1.5">{g.opcoes.length}</Badge>
-              </Button>
-            ))}
-            <Button variant="outline" size="sm" className="w-full text-sm gap-1 mt-2 h-9 border-dashed border-primary text-primary hover:bg-primary/10" onClick={() => setShowNovoFinanciamento(true)}>
-              <Plus className="h-3.5 w-3.5" /> Novo financiamento
-            </Button>
-          </div>
-
-          {/* Main - Options for selected bank */}
-          <div className="space-y-3 min-w-0">
-            {bancoGroups[selectedBancoIdx]?.opcoes.map((op, idx) => (
-              <div key={op.id} className="p-4 rounded-xl border border-border/50 bg-card">
-                <div className="flex items-center justify-between mb-3">
-                  <Badge className="text-xs bg-primary/10 text-primary border border-primary/30 rounded-full px-3 py-0.5 font-semibold">Opção {idx + 1}</Badge>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60" onClick={() => removeOpcao(selectedBancoIdx, idx)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+            {/* À Vista card */}
+            <div className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                    <Banknote className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">À Vista</p>
+                    <p className="text-xs text-muted-foreground">Pagamento imediato</p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Financiamento</Label>
-                    <p className="font-semibold mt-0.5">{formatBRL(op.valor_financiado)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Entrada</Label>
-                    <p className="font-semibold mt-0.5">{formatBRL(op.entrada)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Parcelas</Label>
-                    <p className="font-semibold mt-0.5">{op.num_parcelas}x</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Taxa</Label>
-                    <p className="font-semibold mt-0.5">{(Number(op.taxa_mensal) || 0).toFixed(2)}%</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Carência</Label>
-                    <p className="font-semibold mt-0.5">{op.carencia_meses} meses</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Valor parcela</Label>
-                    <p className="font-bold text-primary mt-0.5">{formatBRL(op.valor_parcela)}</p>
-                  </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-foreground">{formatBRL(precoFinal)}</p>
+                  <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">À Vista</Badge>
                 </div>
               </div>
-            ))}
+            </div>
 
-            <Button variant="outline" size="sm" className="text-sm gap-1 h-9 border-dashed border-primary text-primary hover:bg-primary/10" onClick={() => addOpcaoToBanco(selectedBancoIdx)}>
-              <Plus className="h-3.5 w-3.5" /> Adicionar opção
-            </Button>
+            {/* Formas próprias configuradas pelo admin */}
+            <FormasPagamentoPreview precoFinal={precoFinal} />
           </div>
-        </div>
+
+          {/* ── COLUNA DIREITA — Financiamento Bancário ── */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Financiamento Bancário</p>
+                <p className="text-xs text-muted-foreground">Santander, BV, BB, Caixa e outros</p>
+              </div>
+            </div>
+
+            {/* Sidebar banks + options */}
+            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-3">
+              {/* Sidebar - Banks */}
+              <div className="space-y-1">
+                {bancoGroups.map((g, idx) => (
+                  <Button
+                    key={g.banco.id}
+                    variant="ghost"
+                    onClick={() => setSelectedBancoIdx(idx)}
+                    className={cn(
+                      "w-full justify-between px-3 py-2.5 h-auto text-sm transition-colors",
+                      selectedBancoIdx === idx
+                        ? "bg-primary/10 text-primary border border-primary/30 font-semibold"
+                        : "hover:bg-muted/50 text-muted-foreground border border-transparent"
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Building2 className="h-3.5 w-3.5" />
+                      {g.banco.nome}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">{g.opcoes.length}</Badge>
+                  </Button>
+                ))}
+                <Button variant="outline" size="sm" className="w-full text-sm gap-1 mt-2 h-9 border-dashed border-primary text-primary hover:bg-primary/10" onClick={() => setShowNovoFinanciamento(true)}>
+                  <Plus className="h-3.5 w-3.5" /> Novo financiamento
+                </Button>
+              </div>
+
+              {/* Main - Options for selected bank */}
+              <div className="space-y-3 min-w-0">
+                {bancoGroups[selectedBancoIdx]?.opcoes.map((op, idx) => (
+                  <div key={op.id} className="p-4 rounded-xl border border-border/50 bg-card">
+                    <div className="flex items-center justify-between mb-3">
+                      <Badge className="text-xs bg-primary/10 text-primary border border-primary/30 rounded-full px-3 py-0.5 font-semibold">Opção {idx + 1}</Badge>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60" onClick={() => removeOpcao(selectedBancoIdx, idx)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Financiamento</Label>
+                        <p className="font-semibold mt-0.5">{formatBRL(op.valor_financiado)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Entrada</Label>
+                        <p className="font-semibold mt-0.5">{formatBRL(op.entrada)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Parcelas</Label>
+                        <p className="font-semibold mt-0.5">{op.num_parcelas}x</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Taxa</Label>
+                        <p className="font-semibold mt-0.5">{(Number(op.taxa_mensal) || 0).toFixed(2)}%</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Carência</Label>
+                        <p className="font-semibold mt-0.5">{op.carencia_meses} meses</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Valor parcela</Label>
+                        <p className="font-bold text-primary mt-0.5">{formatBRL(op.valor_parcela)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {bancoGroups.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8 text-center rounded-lg border border-dashed border-border bg-muted/20">
+                    <Building2 className="w-8 h-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">Nenhum financiamento adicionado</p>
+                    <p className="text-xs text-muted-foreground mt-1">Clique em "Novo financiamento" ao lado</p>
+                  </div>
+                )}
+
+                {bancoGroups[selectedBancoIdx] && (
+                  <Button variant="outline" size="sm" className="text-sm gap-1 h-9 border-dashed border-primary text-primary hover:bg-primary/10" onClick={() => addOpcaoToBanco(selectedBancoIdx)}>
+                    <Plus className="h-3.5 w-3.5" /> Adicionar opção
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
