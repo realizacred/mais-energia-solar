@@ -281,10 +281,8 @@ export function ProposalWizard() {
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
   // Prioridade: topologia do kit selecionado → primeira checkbox → fallback
-  const topologiaDoKit = itens.length > 1
-    ? (itens.find(i => i.categoria === "inversor")?.topologia
-      ?? itens.find(i => i.topologia)?.topologia
-      ?? null)
+  const topologiaDoKit = manualKits.length > 0
+    ? (manualKits[0]?.card?.topologia?.toLowerCase() ?? null)
     : null;
   const topologiaAtiva = topologiaDoKit || preDimensionamento.topologias?.[0] || "tradicional";
   const fatorGeracaoAtivo =
