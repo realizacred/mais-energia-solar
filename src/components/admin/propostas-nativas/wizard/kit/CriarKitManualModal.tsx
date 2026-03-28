@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { type KitItemRow, formatBRL } from "../types";
+import { formatKwp } from "@/lib/formatters";
 
 interface CatalogoModulo {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
@@ -1117,7 +1118,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           </Button>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">
-              Potência: <span className="font-medium text-foreground">{potenciaTotal.toFixed(2)} kWp</span>
+              Potência: <span className="font-medium text-foreground">{formatKwp(potenciaTotal)}</span>
             </span>
             <Button onClick={handleSave}>
               Salvar
