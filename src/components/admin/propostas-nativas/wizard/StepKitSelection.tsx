@@ -506,6 +506,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                   <p className="text-sm font-medium text-muted-foreground">Nenhum kit ativo no catálogo</p>
                   <p className="text-xs text-muted-foreground/70 mt-1">Cadastre kits em Configurações → Catálogo de Kits</p>
                 </div>
+              ) : filteredCatalogKits.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <BookOpen className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">Nenhum kit corresponde aos filtros</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou limpe para ver todos</p>
+                </div>
               ) : (
                 <div className={viewMode === "grid"
                   ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
