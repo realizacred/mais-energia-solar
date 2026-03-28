@@ -130,7 +130,7 @@ export default function PropostaPublica() {
           if (proposta?.tenant_id) {
             const { data: tenant } = await supabase
               .from("tenants")
-              .select("nome, telefone")
+              .select("nome")
               .eq("id", proposta.tenant_id)
               .maybeSingle();
             const { data: brand } = await supabase
@@ -138,11 +138,19 @@ export default function PropostaPublica() {
               .select("logo_url")
               .eq("tenant_id", proposta.tenant_id)
               .maybeSingle();
+            // Try to get company phone from consultores (first active)
+            const { data: consultor } = await (supabase as any)
+              .from("consultores")
+              .select("telefone")
+              .eq("tenant_id", proposta.tenant_id)
+              .eq("ativo", true)
+              .limit(1)
+              .maybeSingle();
             setInvalidatedInfo({
               invalidado_em: td.invalidado_em,
               empresaNome: tenant?.nome || null,
               empresaLogo: brand?.logo_url || null,
-              empresaTelefone: tenant?.telefone || null,
+              empresaTelefone: consultor?.telefone || null,
             });
             setLoading(false);
             return;
