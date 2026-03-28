@@ -9,6 +9,7 @@ import {
   Banknote, Clock, ArrowDown, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatPhoneBR } from "@/lib/formatters";
 
 interface StepResumoProps {
   // Location
