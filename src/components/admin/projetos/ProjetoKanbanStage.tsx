@@ -103,7 +103,7 @@ function useResizableColumn(initialWidth: number, minWidth = 220, maxWidth = 450
   return { width, onMouseDown };
 }
 
-export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onNewProject, dynamicEtiquetas = [], pipelineName }: Props) {
+export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onViewProjetoTab, onNewProject, dynamicEtiquetas = [], pipelineName }: Props) {
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
