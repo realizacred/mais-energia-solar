@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Trash2, CreditCard, Building2, ChevronRight, Calendar, TrendingUp, DollarSign, X, Search, Info } from "lucide-react";
+import { Plus, Trash2, CreditCard, Building2, ChevronRight, Calendar, TrendingUp, DollarSign, X, Search, Info, AlertTriangle, Smartphone, FileText, Banknote, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,21 @@ import { cn } from "@/lib/utils";
 import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL } from "./types";
 import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
 import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
+import { usePaymentInterestConfigs, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
+import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
+
+const FORMA_ICONS: Record<string, React.ReactNode> = {
+  pix: <Smartphone className="h-4 w-4 text-primary" />,
+  dinheiro: <Banknote className="h-4 w-4 text-primary" />,
+  transferencia: <Wallet className="h-4 w-4 text-primary" />,
+  boleto: <FileText className="h-4 w-4 text-primary" />,
+  cartao_credito: <CreditCard className="h-4 w-4 text-primary" />,
+  cartao_debito: <CreditCard className="h-4 w-4 text-primary" />,
+  cheque: <FileText className="h-4 w-4 text-primary" />,
+  financiamento: <Building2 className="h-4 w-4 text-primary" />,
+  crediario: <Wallet className="h-4 w-4 text-primary" />,
+  outro: <DollarSign className="h-4 w-4 text-primary" />,
+};
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -434,7 +449,18 @@ export function StepPagamento({
 
       {/* ─── Tab: Pagamento ─────────────────────────────── */}
       {activeTab === "pagamento" && (
-        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
+        <div className="space-y-4">
+          {/* ── Info Banner + Admin Payment Methods Preview ── */}
+          <FormasPagamentoPreview precoFinal={precoFinal} />
+
+          {/* ── Separator ── */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">Financiamento Bancário</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
           {/* Sidebar - Banks */}
           <div className="space-y-1">
             {bancoGroups.map((g, idx) => (
