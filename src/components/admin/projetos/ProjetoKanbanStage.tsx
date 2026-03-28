@@ -625,6 +625,7 @@ function ResizableKanbanColumn({
             isDragging={draggedId === deal.deal_id}
             onDragStart={onDragStart}
             onClick={() => onViewProjeto?.(deal)}
+            onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
             hasAutomation={hasActiveAutomation}
             dynamicEtiquetas={dynamicEtiquetas}
             cardVisibleFields={visibleFields}
