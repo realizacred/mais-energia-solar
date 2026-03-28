@@ -79,6 +79,7 @@ export interface StageDealCardProps {
   isDragging: boolean;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onClick: () => void;
+  onProposalClick?: () => void;
   hasAutomation?: boolean;
   dynamicEtiquetas?: DynamicEtiqueta[];
   onArchive?: (deal: DealKanbanCard) => void;
@@ -93,6 +94,7 @@ export function StageDealCard({
   isDragging,
   onDragStart,
   onClick,
+  onProposalClick,
   dynamicEtiquetas = [],
   onArchive,
   onTransfer,
@@ -310,7 +312,7 @@ export function StageDealCard({
                 <TooltipTrigger asChild>
                   <button
                     className="action-icon-btn action-icon-btn--proposal"
-                    onClick={(e) => { e.stopPropagation(); onClick(); }}
+                    onClick={(e) => { e.stopPropagation(); onProposalClick ? onProposalClick() : onClick(); }}
                   >
                     <FileText className="h-2.5 w-2.5" />
                   </button>
