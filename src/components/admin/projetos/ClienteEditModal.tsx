@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
@@ -20,7 +21,7 @@ import { EmailInput } from "@/components/ui/EmailInput";
 import { AddressFields } from "@/components/shared/AddressFields";
 import { Users } from "lucide-react";
 import { useSalvarCliente } from "@/hooks/useClientes";
-import { supabase } from "@/integrations/supabase/client";
+import { useClienteById } from "@/hooks/useClienteById";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -55,44 +56,30 @@ const EMPTY_FORM: FormState = {
 
 export function ClienteEditModal({ open, onOpenChange, clienteId, onSaved }: ClienteEditModalProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const salvarCliente = useSalvarCliente();
   const queryClient = useQueryClient();
+  const { data: clienteData, isLoading: loading } = useClienteById(clienteId, open);
 
-  // Load client data when modal opens
+  // Sync form when data arrives
   useEffect(() => {
-    if (!open || !clienteId) return;
-    setLoading(true);
-    supabase
-      .from("clientes")
-      .select("nome, telefone, email, cpf_cnpj, data_nascimento, cep, estado, cidade, bairro, rua, numero, complemento, observacoes")
-      .eq("id", clienteId)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data) {
-          toast({ title: "Erro ao carregar cliente", variant: "destructive" });
-          onOpenChange(false);
-          return;
-        }
-        setForm({
-          nome: data.nome || "",
-          telefone: data.telefone || "",
-          email: data.email || "",
-          cpf_cnpj: data.cpf_cnpj || "",
-          data_nascimento: data.data_nascimento || "",
-          cep: data.cep || "",
-          estado: data.estado || "",
-          cidade: data.cidade || "",
-          bairro: data.bairro || "",
-          rua: data.rua || "",
-          numero: data.numero || "",
-          complemento: data.complemento || "",
-          observacoes: data.observacoes || "",
-        });
-        setLoading(false);
-      });
-  }, [open, clienteId]);
+    if (!clienteData) return;
+    setForm({
+      nome: clienteData.nome || "",
+      telefone: clienteData.telefone || "",
+      email: clienteData.email || "",
+      cpf_cnpj: clienteData.cpf_cnpj || "",
+      data_nascimento: clienteData.data_nascimento || "",
+      cep: clienteData.cep || "",
+      estado: clienteData.estado || "",
+      cidade: clienteData.cidade || "",
+      bairro: clienteData.bairro || "",
+      rua: clienteData.rua || "",
+      numero: clienteData.numero || "",
+      complemento: clienteData.complemento || "",
+      observacoes: clienteData.observacoes || "",
+    });
+  }, [clienteData]);
 
   const handleSubmit = async () => {
     if (!form.nome || !form.telefone) {
