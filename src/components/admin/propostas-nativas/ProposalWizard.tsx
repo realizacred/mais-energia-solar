@@ -2412,7 +2412,7 @@ export function ProposalWizard() {
                 size="sm"
                 onClick={() => {
                   const targetId = savedProjetoId || resolvedDealId;
-                  if (targetId) navigate(`/admin/projetos/${targetId}?tab=propostas`);
+                  if (targetId) navigate(`/admin/projetos?projeto=${targetId}&tab=propostas`);
                 }}
                 className="gap-1.5 h-9 px-5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200"
               >
