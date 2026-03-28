@@ -4418,6 +4418,80 @@ export type Database = {
           },
         ]
       }
+      facebook_lead_automations: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          field_mapping: Json | null
+          id: string
+          pipeline_id: string | null
+          responsible_user_id: string | null
+          round_robin: boolean | null
+          round_robin_index: number | null
+          round_robin_users: string[] | null
+          stage_id: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          field_mapping?: Json | null
+          id?: string
+          pipeline_id?: string | null
+          responsible_user_id?: string | null
+          round_robin?: boolean | null
+          round_robin_index?: number | null
+          round_robin_users?: string[] | null
+          stage_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          field_mapping?: Json | null
+          id?: string
+          pipeline_id?: string | null
+          responsible_user_id?: string | null
+          round_robin?: boolean | null
+          round_robin_index?: number | null
+          round_robin_users?: string[] | null
+          stage_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facebook_lead_automations_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_lead_automations_responsible_user_id_fkey"
+            columns: ["responsible_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_lead_automations_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_lead_automations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facebook_leads: {
         Row: {
           ad_id: string | null
@@ -4429,6 +4503,7 @@ export type Database = {
           form_id: string | null
           id: string
           lead_email: string | null
+          lead_id: string | null
           lead_name: string | null
           lead_phone: string | null
           page_id: string | null
@@ -4449,6 +4524,7 @@ export type Database = {
           form_id?: string | null
           id?: string
           lead_email?: string | null
+          lead_id?: string | null
           lead_name?: string | null
           lead_phone?: string | null
           page_id?: string | null
@@ -4469,6 +4545,7 @@ export type Database = {
           form_id?: string | null
           id?: string
           lead_email?: string | null
+          lead_id?: string | null
           lead_name?: string | null
           lead_phone?: string | null
           page_id?: string | null
@@ -4480,6 +4557,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "facebook_leads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "facebook_leads_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -9674,9 +9758,15 @@ export type Database = {
       }
       leads: {
         Row: {
+          ad_id: string | null
+          ad_name: string | null
+          adset_id: string | null
+          adset_name: string | null
           area: string
           arquivos_urls: string[] | null
           bairro: string | null
+          campaign_id: string | null
+          campaign_name: string | null
           cep: string | null
           cidade: string
           complemento: string | null
@@ -9689,6 +9779,8 @@ export type Database = {
           deleted_by: string | null
           distribuido_em: string | null
           estado: string
+          facebook_lead_id: string | null
+          form_id: string | null
           id: string
           lead_code: string | null
           media_consumo: number
@@ -9698,6 +9790,7 @@ export type Database = {
           numero: string | null
           observacoes: string | null
           origem: string | null
+          page_id: string | null
           proxima_acao: string | null
           rede_atendimento: string
           rua: string | null
@@ -9708,6 +9801,9 @@ export type Database = {
           tipo_telhado: string
           ultimo_contato: string | null
           updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
           valor_estimado: number | null
           visto: boolean
           visto_admin: boolean
@@ -9716,9 +9812,15 @@ export type Database = {
           wa_welcome_status: string
         }
         Insert: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
           area: string
           arquivos_urls?: string[] | null
           bairro?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
           cep?: string | null
           cidade: string
           complemento?: string | null
@@ -9731,6 +9833,8 @@ export type Database = {
           deleted_by?: string | null
           distribuido_em?: string | null
           estado: string
+          facebook_lead_id?: string | null
+          form_id?: string | null
           id?: string
           lead_code?: string | null
           media_consumo: number
@@ -9740,6 +9844,7 @@ export type Database = {
           numero?: string | null
           observacoes?: string | null
           origem?: string | null
+          page_id?: string | null
           proxima_acao?: string | null
           rede_atendimento: string
           rua?: string | null
@@ -9750,6 +9855,9 @@ export type Database = {
           tipo_telhado: string
           ultimo_contato?: string | null
           updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           valor_estimado?: number | null
           visto?: boolean
           visto_admin?: boolean
@@ -9758,9 +9866,15 @@ export type Database = {
           wa_welcome_status?: string
         }
         Update: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
           area?: string
           arquivos_urls?: string[] | null
           bairro?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
           cep?: string | null
           cidade?: string
           complemento?: string | null
@@ -9773,6 +9887,8 @@ export type Database = {
           deleted_by?: string | null
           distribuido_em?: string | null
           estado?: string
+          facebook_lead_id?: string | null
+          form_id?: string | null
           id?: string
           lead_code?: string | null
           media_consumo?: number
@@ -9782,6 +9898,7 @@ export type Database = {
           numero?: string | null
           observacoes?: string | null
           origem?: string | null
+          page_id?: string | null
           proxima_acao?: string | null
           rede_atendimento?: string
           rua?: string | null
@@ -9792,6 +9909,9 @@ export type Database = {
           tipo_telhado?: string
           ultimo_contato?: string | null
           updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           valor_estimado?: number | null
           visto?: boolean
           visto_admin?: boolean
