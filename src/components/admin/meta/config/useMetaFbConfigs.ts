@@ -126,6 +126,7 @@ export function useSaveMetaAutomation() {
           .from("facebook_lead_automations")
           .insert([{
             ...payload,
+            tenant_id: tenantId,
             active: true,
           }]);
         if (error) throw error;
