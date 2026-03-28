@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
@@ -114,12 +115,14 @@ function KpiCard({
 }
 
 export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: clientes = [], isLoading: loading } = useClientes();
   const { data: leads = [] } = useLeadsForClientes();
   const salvarCliente = useSalvarCliente();
   const checkDeps = useCheckClienteDependencies();
   const deletarCliente = useDeletarCliente();
   useClientesRealtime();
+  const autoEditApplied = useRef(false);
 
   const { hasPermission } = useUserPermissions();
   const canDeleteClients = hasPermission("delete_clients");
@@ -249,6 +252,24 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     });
     setDialogOpen(true);
   };
+
+  // Auto-open edit dialog when navigating with ?edit=clienteId
+  useEffect(() => {
+    if (autoEditApplied.current || loading || clientes.length === 0) return;
+    const editId = searchParams.get("edit");
+    if (!editId) return;
+    const cliente = clientes.find(c => c.id === editId);
+    if (cliente) {
+      autoEditApplied.current = true;
+      handleEdit(cliente);
+      // Clear the edit param from URL
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("edit");
+        return next;
+      }, { replace: true });
+    }
+  }, [loading, clientes, searchParams]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este cliente? Todos os registros vinculados serão desassociados.")) return;
