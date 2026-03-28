@@ -732,6 +732,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("conta_energia", "conta_energia.gasto_total_mensal_atual_0_uc1", "gasto_total_mensal_atual_0_uc1", "Gasto Total Mensal Atual UC # (série)", "Gasto total atual UC série", "R$", "100,00"),
   v("conta_energia", "conta_energia.gasto_total_mensal_novo_0", "gasto_total_mensal_novo_0", "Gasto Total Mensal Novo UCs (série)", "Gasto total novo UCs série", "R$", "100,00"),
   v("conta_energia", "conta_energia.gasto_total_mensal_novo_0_uc1", "gasto_total_mensal_novo_0_uc1", "Gasto Total Mensal Novo UC # (série)", "Gasto total novo UC série", "R$", "100,00"),
+  v("conta_energia", "conta_energia.co2_evitado_ano", "co2_evitado_ano", "CO₂ Evitado por Ano", "Toneladas de CO₂ evitadas anualmente pela geração solar", "kg", "3.240"),
 
   // ──────────────────────────────────────────────────────────────
   // COMERCIAL
