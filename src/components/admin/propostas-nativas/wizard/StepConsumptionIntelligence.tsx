@@ -136,7 +136,7 @@ export function StepConsumptionIntelligence({
         fator_geracao: configs.tradicional?.fator_geracao ?? currentPd.fator_geracao,
       });
     }
-  }, [effectiveIrrad, setPd]);
+  }, [effectiveIrrad, setPd, pd.topologia_configs]);
 
   // ─── Derived metrics
   const consumoTotal = useMemo(() => {
