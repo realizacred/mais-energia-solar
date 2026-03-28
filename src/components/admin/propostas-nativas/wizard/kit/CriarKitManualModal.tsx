@@ -479,8 +479,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
         errors.push(`Módulo ${i + 1}: quantidade`);
     });
     inversorEntries.forEach((inv, i) => {
-      if ((inv.avulso ? !!inv.nome : !!inv.selectedId) && inv.quantidade <= 0)
+      const isValid = inv.avulso ? !!inv.nome : !!inv.selectedId;
+      if (isValid && inv.quantidade <= 0)
         errors.push(`Inversor ${i + 1}: quantidade`);
+      if (isValid && inv.avulso) {
+        if (!inv.fases) errors.push(`Inversor ${i + 1}: fases`);
+        if (!inv.tensaoLinha || inv.tensaoLinha <= 0) errors.push(`Inversor ${i + 1}: tensão de linha`);
+        if (!inv.potenciaW || inv.potenciaW <= 0) errors.push(`Inversor ${i + 1}: potência`);
+      }
     });
 
     if (errors.length > 0) {
