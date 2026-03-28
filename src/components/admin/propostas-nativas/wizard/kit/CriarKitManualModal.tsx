@@ -409,7 +409,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     initialCardData?.topologia ||
     (topologiasProp?.length === 1
       ? (topologiasProp[0] === "tradicional" ? "Tradicional" : topologiasProp[0] === "microinversor" ? "Microinversor" : "Otimizador")
-      : "")
+      : "Tradicional")
   );
   const [distribuidorSelect, setDistribuidorSelect] = useState("");
   const [custosEmbutidos, setCustosEmbutidos] = useState(initialCardData?.custosEmbutidos || { estruturas: false, transformador: false });
@@ -759,22 +759,6 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             )}
           </div>
 
-          {/* Filter info banner */}
-          {topologia && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
-              <Settings2 className="w-3.5 h-3.5 text-primary shrink-0" />
-              <span className="text-xs text-primary">
-                Filtro ativo:{" "}
-                <span className="font-medium">{topologia}</span>
-                {(sistema === "hibrido" || sistema === "off_grid") && (
-                  <> • Sistema <span className="font-medium">{sistema === "hibrido" ? "Híbrido" : "Off grid"}</span> → somente inversores híbridos</>
-                )}
-              </span>
-              <span className="text-xs text-muted-foreground ml-1">
-                ({filteredInversores.length} inversores disponíveis)
-              </span>
-            </div>
-          )}
 
           {/* Itens */}
           <div className="space-y-3">
