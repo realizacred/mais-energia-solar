@@ -32,9 +32,11 @@ interface StepServicosProps {
   /** Kit items for building the Resumo sidebar */
   kitItens?: KitItemRow[];
   potenciaKwp?: number;
+  /** Override manual do custo do kit (do Centro Financeiro) */
+  custoKitOverride?: number | null;
 }
 
-export function StepServicos({ servicos, onServicosChange, kitItens = [], potenciaKwp = 0 }: StepServicosProps) {
+export function StepServicos({ servicos, onServicosChange, kitItens = [], potenciaKwp = 0, custoKitOverride }: StepServicosProps) {
   const [kitExpanded, setKitExpanded] = useState(false);
 
   const addServico = () => {
@@ -54,7 +56,8 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
   };
 
   // ── Build Resumo items ──
-  const kitTotal = kitItens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+  const kitCalculado = kitItens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+  const kitTotal = (custoKitOverride != null && custoKitOverride > 0) ? custoKitOverride : kitCalculado;
   const kitLabel = potenciaKwp > 0
     ? `Kit fotovoltaico ${potenciaKwp.toFixed(2)} kWp`
     : "Kit fotovoltaico";

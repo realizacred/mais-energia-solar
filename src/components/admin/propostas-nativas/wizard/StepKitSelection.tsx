@@ -239,16 +239,29 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
 
   const handleSelectKit = (kit: KitCardData) => {
+    const totalPreco = kit.precoTotal || 0;
+    // Distribute price proportionally by potencia_w weight
+    const moduloPotW = ((kit.moduloPotenciaKwp * 1000) / kit.moduloQtd) * kit.moduloQtd;
+    const inversorPotW = kit.inversorPotenciaKw * 1000 * kit.inversorQtd;
+    const totalWeight = moduloPotW + inversorPotW;
+
+    const moduloPreco = totalWeight > 0 && totalPreco > 0
+      ? Math.round((moduloPotW / totalWeight * totalPreco / kit.moduloQtd) * 100) / 100
+      : 0;
+    const inversorPreco = totalWeight > 0 && totalPreco > 0
+      ? Math.round(((totalPreco - moduloPreco * kit.moduloQtd) / kit.inversorQtd) * 100) / 100
+      : 0;
+
     const newItens: KitItemRow[] = [
       {
         id: crypto.randomUUID(), descricao: `${kit.moduloQtd}x ${kit.moduloDescricao}`,
         fabricante: kit.distribuidorNome, modelo: kit.moduloDescricao, potencia_w: (kit.moduloPotenciaKwp * 1000) / kit.moduloQtd,
-        quantidade: kit.moduloQtd, preco_unitario: 0, categoria: "modulo", avulso: false,
+        quantidade: kit.moduloQtd, preco_unitario: moduloPreco, categoria: "modulo", avulso: false,
       },
       {
         id: crypto.randomUUID(), descricao: `${kit.inversorQtd}x ${kit.inversorDescricao}`,
         fabricante: kit.distribuidorNome, modelo: kit.inversorDescricao, potencia_w: kit.inversorPotenciaKw * 1000,
-        quantidade: kit.inversorQtd, preco_unitario: 0, categoria: "inversor", avulso: false,
+        quantidade: kit.inversorQtd, preco_unitario: inversorPreco, categoria: "inversor", avulso: false,
       },
     ];
     onItensChange(newItens);
@@ -269,14 +282,20 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       if (meta?.custo != null && meta.custo > 0) card.precoTotal = meta.custo;
 
       if (editingKitIndex !== null) {
-        setManualKits(manualKits.map((k, i) => i === editingKitIndex ? { card, itens: newItens, meta } : k));
+        const updatedKits = manualKits.map((k, i) => i === editingKitIndex ? { card, itens: newItens, meta } : k);
+        setManualKits(updatedKits);
         // If the edited kit was the selected one, propagate updated items to parent
         if (selectedManualIdx === editingKitIndex) {
           onItensChange(newItens);
         }
         setEditingKitIndex(null);
       } else {
-        setManualKits([...manualKits, { card, itens: newItens, meta }]);
+        const newKits = [...manualKits, { card, itens: newItens, meta }];
+        setManualKits(newKits);
+        // Auto-select the newly created kit
+        const newIdx = newKits.length - 1;
+        setSelectedManualIdx(newIdx);
+        onItensChange(newItens);
       }
     }
     setManualMode(null);
