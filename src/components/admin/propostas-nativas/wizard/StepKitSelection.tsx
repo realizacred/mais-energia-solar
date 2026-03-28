@@ -70,6 +70,8 @@ interface Props {
   latitude?: number | null;
   ghiSeries?: Record<string, number> | null;
   somenteGhi?: boolean;
+  /** Override de custo do kit definido no Centro Financeiro */
+  custoKitOverride?: number | null;
 }
 
 type TabType = "customizado" | "fechado" | "manual" | "catalogo";
