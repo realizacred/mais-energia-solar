@@ -106,7 +106,7 @@ export function StepResumo({
     ? (Number(custoInstalacao) || 0)
     : servicos.filter((i) => i.incluso_no_preco).reduce((s, i) => s + i.valor, 0);
   const custoBase = custoKit + custoServicosEfetivo + (Number(custoComissao) || 0) + (Number(custoOutros) || 0);
-  const margemRealPercentual = precoFinal > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
+  const margemRealPercentual = custoBase > 0 ? ((precoFinal - custoBase) / custoBase) * 100 : 0;
 
   return (
     <div className="space-y-4">
