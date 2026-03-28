@@ -280,11 +280,13 @@ export function ProposalWizard() {
   }
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
-  // Prioridade: topologia do kit selecionado → primeira checkbox → fallback
-  const topologiaDoKit = manualKits.length > 0
+  // Prioridade: topologia do kit selecionado → fallback "tradicional"
+  // Sem kit → sempre "tradicional"; com kit → topologia do kit
+  const temKit = itens.length > 0;
+  const topologiaDoKit = temKit
     ? (manualKits[0]?.card?.topologia?.toLowerCase() ?? null)
     : null;
-  const topologiaAtiva = topologiaDoKit || preDimensionamento.topologias?.[0] || "tradicional";
+  const topologiaAtiva = topologiaDoKit || "tradicional";
   const fatorGeracaoAtivo =
     preDimensionamento.topologia_configs?.[topologiaAtiva]?.fator_geracao ??
     preDimensionamento.fator_geracao ??
