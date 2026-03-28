@@ -53,10 +53,24 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [showEditModal, setShowEditModal] = useState(false);
   const [editMode, setEditMode] = useState<"margem" | "preco">("margem");
   const [editValue, setEditValue] = useState("0");
-  const [custosExtras, setCustosExtras] = useState<CustoRow[]>([]);
-  // appliedSmartDefaults removed — history no longer auto-applies
-  const [instalacaoEnabled, setInstalacaoEnabled] = useState(true);
-  const [comissaoEnabled, setComissaoEnabled] = useState(true);
+  // Restore custos extras from VendaData (persisted) or start empty
+  const [custosExtras, setCustosExtras] = useState<CustoRow[]>(() => {
+    if (venda.custos_extras && venda.custos_extras.length > 0) {
+      return venda.custos_extras.map(e => ({
+        id: e.id,
+        categoria: "Outros",
+        item: e.item,
+        quantidade: e.quantidade,
+        custoUnitario: e.custo_unitario,
+        fixo: false,
+        checked: e.checked,
+      }));
+    }
+    return [];
+  });
+  // Restore toggles from VendaData (persisted across step navigation)
+  const [instalacaoEnabled, setInstalacaoEnabled] = useState(venda.instalacao_enabled ?? true);
+  const [comissaoEnabled, setComissaoEnabled] = useState(venda.comissao_enabled ?? true);
   const [instalacaoQtd, setInstalacaoQtd] = useState(1);
   const [comissaoQtd, setComissaoQtd] = useState(1);
   // Prefer venda values (persisted across step navigation) over servicos (initial only)
@@ -74,7 +88,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     servicos.filter(s => s.categoria !== "instalacao" && s.categoria !== "comissao" && s.valor > 0),
     [servicos]
   );
-  const [servicosEnabledMap, setServicosEnabledMap] = useState<Record<string, boolean>>({});
+  // Restore servicosEnabledMap from VendaData (persisted)
+  const [servicosEnabledMap, setServicosEnabledMap] = useState<Record<string, boolean>>(venda.servicos_enabled_map ?? {});
   const isServicoEnabled = (id: string) => servicosEnabledMap[id] ?? true;
 
   // Apply initial margin from pricing_config (one-time, when venda still has default 20%)
@@ -201,11 +216,24 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     const extrasTotal = custosExtras.filter(c => c.checked).reduce((s, c) => s + roundCurrency(c.quantidade * c.custoUnitario), 0);
     const newOutros = roundCurrency(servicosOutrosTotal + extrasTotal);
 
+    // Serialize custos extras for persistence
+    const custosExtrasSerialized = custosExtras.map(c => ({
+      id: c.id,
+      item: c.item,
+      quantidade: c.quantidade,
+      custo_unitario: c.custoUnitario,
+      checked: c.checked,
+    }));
+
     const changed =
       venda.custo_instalacao !== newInstalacao ||
       venda.custo_comissao !== newComissao ||
       venda.custo_outros !== newOutros ||
-      venda.comissao_manual_override !== comissaoManualOverride;
+      venda.comissao_manual_override !== comissaoManualOverride ||
+      venda.instalacao_enabled !== instalacaoEnabled ||
+      venda.comissao_enabled !== comissaoEnabled ||
+      JSON.stringify(venda.custos_extras) !== JSON.stringify(custosExtrasSerialized) ||
+      JSON.stringify(venda.servicos_enabled_map) !== JSON.stringify(servicosEnabledMap);
 
     if (changed) {
       onVendaChange({
@@ -214,6 +242,12 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         custo_comissao: newComissao,
         custo_outros: newOutros,
         comissao_manual_override: comissaoManualOverride,
+        instalacao_enabled: instalacaoEnabled,
+        comissao_enabled: comissaoEnabled,
+        custos_extras: custosExtrasSerialized,
+        servicos_enabled_map: servicosEnabledMap,
+        percentual_comissao_consultor: percentualComissaoConsultor,
+        consultor_nome_comissao: consultorNome,
       });
     }
   }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras, outrosServicos, servicosEnabledMap, comissaoManualOverride]);
