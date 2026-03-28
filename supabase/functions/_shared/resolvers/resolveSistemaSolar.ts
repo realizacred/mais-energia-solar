@@ -100,12 +100,18 @@ export function resolveSistemaSolar(
   set("potencia_ideal_total", snap.potencia_ideal_total);
 
   // ── Geração ──
+  // QW10 — add fallback for geracaoMensalEstimada and geracao_mensal_kwh
   const geracaoMensal = num(projeto.geracao_mensal_media_kwh) ?? num(snap.geracao_mensal)
+    ?? num(snap.geracaoMensalEstimada) ?? num(snap.geracao_mensal_kwh)
     ?? num(tecnico.geracao_estimada_kwh);
   if (geracaoMensal != null) {
     out["geracao_mensal"] = `${fmtNum(geracaoMensal, 0)} kWh/mês`;
+    out["geracao_mensal_numero"] = String(Math.round(geracaoMensal));
+    // Geração anual
+    const geracaoAnual = num(snap.geracao_anual_kwh) ?? geracaoMensal * 12;
+    if (!out["geracao_anual"]) out["geracao_anual"] = `${fmtNum(geracaoAnual, 0)} kWh`;
+    out["geracao_anual_numero"] = String(Math.round(geracaoAnual));
   }
-  set("geracao_anual", snap.geracao_anual);
   for (const m of MESES) set(`geracao_${m}`, snap[`geracao_${m}`]);
   for (let i = 0; i <= 25; i++) set(`geracao_anual_${i}`, snap[`geracao_anual_${i}`]);
 
