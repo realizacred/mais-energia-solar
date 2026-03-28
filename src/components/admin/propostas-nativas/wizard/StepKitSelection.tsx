@@ -70,11 +70,13 @@ interface Props {
   latitude?: number | null;
   ghiSeries?: Record<string, number> | null;
   somenteGhi?: boolean;
+  /** Override de custo do kit definido no Centro Financeiro */
+  custoKitOverride?: number | null;
 }
 
 type TabType = "customizado" | "fechado" | "manual" | "catalogo";
 
-function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardData | null {
+function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverride?: number | null): KitCardData | null {
   const modItems = itens.filter(i => i.categoria === "modulo");
   const invItems = itens.filter(i => i.categoria === "inversor");
   if (modItems.length === 0 && invItems.length === 0) return null;
@@ -83,7 +85,8 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardDat
   const totalModKwp = modItems.reduce((s, m) => s + (m.potencia_w * m.quantidade) / 1000, 0);
   const totalInvQtd = invItems.reduce((s, i) => s + i.quantidade, 0);
   const totalInvKw = invItems.reduce((s, i) => s + (i.potencia_w * i.quantidade) / 1000, 0);
-  const precoTotal = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+  const precoFromItems = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+  const precoTotal = (custoOverride != null && custoOverride > 0) ? custoOverride : precoFromItems;
   const precoWp = totalModKwp > 0 ? precoTotal / (totalModKwp * 1000) : 0;
 
   const modDesc = modItems.length > 0
@@ -111,7 +114,7 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardDat
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries, somenteGhi }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries, somenteGhi, custoKitOverride }: Props) {
   // If returning to this step with a kit already restored, auto-switch to "manual" tab
   const [tab, setTab] = useState<TabType>(() => {
     if (manualKitsProp.length > 0) return "manual";
@@ -239,9 +242,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   // Build KitCardData from current itens for the Edit Kit Fechado modal
   const currentKitCards = useMemo(() => {
     if (!itens || itens.length === 0) return [];
-    const card = kitItemsToCardData(itens);
+    const card = kitItemsToCardData(itens, undefined, custoKitOverride);
     return card ? [card] : [];
-  }, [itens]);
+  }, [itens, custoKitOverride]);
 
   // Filter & sort catalog kits based on sidebar filters
   const filteredCatalogKits = useMemo(() => {
