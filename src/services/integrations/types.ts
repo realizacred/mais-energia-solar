@@ -29,7 +29,8 @@ export type IntegrationCategory =
   | "nf"
   | "api"
   | "automation"
-  | "signature";
+  | "signature"
+  | "suppliers";
 
 export interface IntegrationProvider {
   id: string;
