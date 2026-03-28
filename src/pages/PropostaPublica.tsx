@@ -180,10 +180,22 @@ export default function PropostaPublica() {
         }
       }
 
+      // Build payment choice object
+      const formaParaSalvar = formaEscolhida
+        ? {
+            tipo: "forma_propria",
+            forma_id: formaEscolhida,
+            forma_nome: FORMA_LABELS[formasProprias.find((f: any) => f.id === formaEscolhida)?.forma_pagamento ?? "outro"] ?? "Outro",
+            num_parcelas: parcelaEscolhida,
+          }
+        : bancoEscolhido
+          ? { tipo: "financiamento_bancario", banco_nome: bancoEscolhido }
+          : null;
+
       const { error: updateErr } = await (supabase as any)
         .from("proposta_aceite_tokens")
         .update({
-          used_at: new Date().toISOString(),
+          used_at: new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }),
           decisao: "aceita",
           aceite_nome: nome,
           aceite_documento: documento || null,
@@ -192,6 +204,7 @@ export default function PropostaPublica() {
           aceite_ip: "client",
           aceite_user_agent: navigator.userAgent,
           cenario_aceito_id: selectedCenario || null,
+          forma_pagamento_escolhida: formaParaSalvar ? JSON.stringify(formaParaSalvar) : null,
         })
         .eq("id", tokenData.id);
 
