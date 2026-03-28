@@ -44,6 +44,9 @@ const ICON_MAP: Record<string, string> = {
   autentique: "autentique.png",
   d4sign: "d4sign.png",
 
+  // PNG assets (suppliers)
+  edeltec: "edeltec.png",
+
   // SVG assets
   afore: "afore.svg",
   agendor: "agendor.svg",
