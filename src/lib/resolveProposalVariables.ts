@@ -366,13 +366,17 @@ function resolveFromContext(
   if (key === "financeiro.preco") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
   if (key === "financeiro.preco_final") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
   if (key === "financeiro.valor_total") return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
+  if (key === "financeiro.valor_total_numero") return ctx.precoTotal != null ? fmtNumber(ctx.precoTotal, 2) : null;
   if (key === "financeiro.economia_mensal") return ctx.economiaMensal ? fmtCurrency(ctx.economiaMensal) : null;
+  if (key === "financeiro.economia_mensal_numero") return ctx.economiaMensal ? fmtNumber(ctx.economiaMensal, 2) : null;
   if (key === "financeiro.economia_anual") return ctx.economiaAnual ? fmtCurrency(ctx.economiaAnual) : null;
+  if (key === "financeiro.economia_anual_numero") return ctx.economiaAnual ? fmtNumber(ctx.economiaAnual, 2) : null;
   if (key === "financeiro.economia_25_anos") return ctx.economia25Anos ? fmtCurrency(ctx.economia25Anos) : null;
   if (key === "financeiro.payback_anos") return ctx.paybackAnos ? fmtNumber(ctx.paybackAnos, 1) : null;
   if (key === "financeiro.payback_meses") return ctx.paybackAnos ? fmtNumber(ctx.paybackAnos * 12, 0) : null;
   if (key === "financeiro.preco_kwp") return (ctx.precoTotal && ctx.potenciaKwp) ? fmtCurrency(ctx.precoTotal / ctx.potenciaKwp) : null;
   if (key === "financeiro.preco_watt") return (ctx.precoTotal && ctx.potenciaKwp) ? `${fmtNumber(ctx.precoTotal / (ctx.potenciaKwp * 1000), 2)} R$/W` : null;
+  if (key === "financeiro.preco_watt_numero") return (ctx.precoTotal && ctx.potenciaKwp) ? fmtNumber(ctx.precoTotal / (ctx.potenciaKwp * 1000), 2) : null;
 
   // ── Financial Center costs (from VendaData) ──
   if (key === "financeiro.valor_kit" || key === "financeiro.custo_kit") {
