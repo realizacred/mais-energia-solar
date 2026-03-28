@@ -124,29 +124,21 @@ export function VariaveisCustomManager() {
     }
 
     try {
+      const payload: Record<string, unknown> = {
+        nome: form.nome, label: form.label, expressao: form.expressao,
+        tipo_resultado: form.tipo_resultado || "number",
+        categoria: form.categoria || "geral",
+        ordem: form.ordem || 0, ativo: form.ativo ?? true,
+        descricao: form.descricao || null,
+      };
       if (editingId === "new") {
-        const { error } = await supabase.from("proposta_variaveis_custom").insert({
-          nome: form.nome, label: form.label, expressao: form.expressao,
-          tipo_resultado: form.tipo_resultado || "number",
-          categoria: form.categoria || "geral",
-          ordem: form.ordem || 0, ativo: form.ativo ?? true,
-          descricao: form.descricao || null,
-        } as any);
-        if (error) throw error;
+        await salvarMutation.mutateAsync(payload);
         toast({ title: "Variável criada!" });
       } else {
-        const { error } = await supabase.from("proposta_variaveis_custom")
-          .update({
-            nome: form.nome, label: form.label, expressao: form.expressao,
-            tipo_resultado: form.tipo_resultado, categoria: form.categoria,
-            ordem: form.ordem, ativo: form.ativo, descricao: form.descricao,
-          } as any)
-          .eq("id", editingId!);
-        if (error) throw error;
+        await salvarMutation.mutateAsync({ ...payload, id: editingId });
         toast({ title: "Variável atualizada!" });
       }
       cancelEdit();
-      loadVariaveis();
     } catch (e: any) {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     }
@@ -154,9 +146,12 @@ export function VariaveisCustomManager() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir esta variável?")) return;
-    await supabase.from("proposta_variaveis_custom").delete().eq("id", id);
-    toast({ title: "Variável excluída" });
-    loadVariaveis();
+    try {
+      await deletarMutation.mutateAsync(id);
+      toast({ title: "Variável excluída" });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    }
   };
 
   return (

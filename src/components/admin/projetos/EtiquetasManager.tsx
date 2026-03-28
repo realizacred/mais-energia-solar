@@ -18,16 +18,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-interface Etiqueta {
-  id: string;
-  nome: string;
-  cor: string;
-  grupo: string;
-  short: string | null;
-  icon: string | null;
-  ordem: number;
-  ativo: boolean;
-}
+type Etiqueta = ProjetoEtiqueta;
 
 const GRUPO_OPTIONS = [
   { value: "fornecedor", label: "Fornecedor" },
@@ -48,29 +39,13 @@ const COLOR_PRESETS = [
 ];
 
 export function EtiquetasManager() {
-  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: etiquetas = [], isLoading: loading } = useProjetoEtiquetas();
+  const salvarMutation = useSalvarEtiqueta();
+  const deletarMutation = useDeletarEtiqueta();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ nome: "", cor: COLOR_PRESETS[0], grupo: "fornecedor", short: "", icon: "" });
   const { toast } = useToast();
-
-  const fetchEtiquetas = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("projeto_etiquetas")
-      .select("id, nome, cor, grupo, short, icon, ordem, ativo")
-      .order("grupo")
-      .order("ordem");
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      setEtiquetas((data || []) as Etiqueta[]);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchEtiquetas(); }, []);
 
   const openCreate = () => {
     setEditingId(null);
