@@ -267,7 +267,6 @@ export function ProposalWizard() {
   const [showGateModal, setShowGateModal] = useState(false);
   const [gateValidation, setGateValidation] = useState<PropostaFinalValidationResult | null>(null);
   // ─── Derived
-  const precoFinal = useMemo(() => {
   // J1 — SSOT: use usePrecoFinal hook instead of inline useMemo
   const precoFinal = usePrecoFinal(itens, servicos, venda);
   if (precoFinal === 0 && itens.length > 0) {
