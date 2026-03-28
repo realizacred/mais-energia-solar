@@ -322,7 +322,30 @@ export default function PropostaPublica() {
   const pagamentoOpcoes = !hasCenarios ? (versaoData?.snapshot?.pagamento_opcoes || []) : [];
   const isSimulacaoView = viewMode === "simulacao";
 
-  return (
+  // Payment methods from snapshot (admin-configured)
+  const formasProprias: any[] = versaoData?.snapshot?.formas_pagamento_proprias ?? [];
+  const valorTotal = activeCenario?.preco_final ?? versaoData?.valor_total ?? 0;
+  const temEscolha = formaEscolhida !== null || bancoEscolhido !== null;
+
+  const FORMA_LABELS: Record<string, string> = {
+    pix: "Pix", dinheiro: "Dinheiro", transferencia: "Transferência",
+    boleto: "Boleto", cartao_credito: "Cartão de Crédito",
+    cartao_debito: "Cartão Débito", cheque: "Cheque",
+    financiamento: "Financiamento", crediario: "Crediário", outro: "Outro",
+  };
+
+  const FORMA_ICONS_MAP: Record<string, React.ReactNode> = {
+    pix: <Smartphone className="h-5 w-5 text-primary" />,
+    dinheiro: <Banknote className="h-5 w-5 text-primary" />,
+    transferencia: <Wallet className="h-5 w-5 text-primary" />,
+    boleto: <FileText className="h-5 w-5 text-primary" />,
+    cartao_credito: <CreditCard className="h-5 w-5 text-primary" />,
+    cartao_debito: <CreditCard className="h-5 w-5 text-primary" />,
+    cheque: <FileText className="h-5 w-5 text-primary" />,
+    financiamento: <Building2 className="h-5 w-5 text-primary" />,
+    crediario: <Wallet className="h-5 w-5 text-primary" />,
+    outro: <DollarSign className="h-5 w-5 text-primary" />,
+  };
     <div className="min-h-screen bg-background flex flex-col">
       {/* Proposal Preview — hidden on simulacao view */}
       {html && !isSimulacaoView && (
