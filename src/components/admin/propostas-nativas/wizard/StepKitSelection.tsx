@@ -811,21 +811,40 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       <EditarKitFechadoModal
         open={showEditKitFechado}
         onOpenChange={setShowEditKitFechado}
-        kits={mockKits.filter(k => itens.some(i => i.descricao.includes(k.moduloDescricao)))}
+        kits={currentKitCards}
         onSave={(selected) => {
-          // Re-build itens from selected kits
-          const newItens: KitItemRow[] = selected.flatMap(({ kit, quantidade }) => [
-            {
-              id: crypto.randomUUID(), descricao: `${kit.moduloQtd * quantidade}x ${kit.moduloDescricao}`,
-              fabricante: kit.distribuidorNome, modelo: kit.moduloDescricao, potencia_w: (kit.moduloPotenciaKwp * 1000) / kit.moduloQtd,
-              quantidade: kit.moduloQtd * quantidade, preco_unitario: 0, categoria: "modulo" as const, avulso: false,
-            },
-            {
-              id: crypto.randomUUID(), descricao: `${kit.inversorQtd * quantidade}x ${kit.inversorDescricao}`,
-              fabricante: kit.distribuidorNome, modelo: kit.inversorDescricao, potencia_w: kit.inversorPotenciaKw * 1000,
-              quantidade: kit.inversorQtd * quantidade, preco_unitario: 0, categoria: "inversor" as const, avulso: false,
-            },
-          ]);
+          // Preserve existing prices from current itens
+          const existingModPrice = itens.find(i => i.categoria === "modulo")?.preco_unitario || 0;
+          const existingInvPrice = itens.find(i => i.categoria === "inversor")?.preco_unitario || 0;
+          const newItens: KitItemRow[] = selected.flatMap(({ kit, quantidade }) => {
+            // Distribute precoTotal proportionally if available
+            const totalPreco = kit.precoTotal || 0;
+            const moduloQtd = kit.moduloQtd * quantidade;
+            const inversorQtd = kit.inversorQtd * quantidade;
+            const moduloPotW = kit.moduloPotenciaKwp * 1000;
+            const inversorPotW = kit.inversorPotenciaKw * 1000 * kit.inversorQtd;
+            const totalWeight = moduloPotW + inversorPotW;
+
+            const moduloPreco = totalPreco > 0 && totalWeight > 0
+              ? Math.round((moduloPotW / totalWeight * totalPreco / moduloQtd) * 100) / 100
+              : existingModPrice;
+            const inversorPreco = totalPreco > 0 && totalWeight > 0
+              ? Math.round(((totalPreco - moduloPreco * moduloQtd) / inversorQtd) * 100) / 100
+              : existingInvPrice;
+
+            return [
+              {
+                id: crypto.randomUUID(), descricao: `${moduloQtd}x ${kit.moduloDescricao}`,
+                fabricante: kit.distribuidorNome, modelo: kit.moduloDescricao, potencia_w: (kit.moduloPotenciaKwp * 1000) / kit.moduloQtd,
+                quantidade: moduloQtd, preco_unitario: moduloPreco, categoria: "modulo" as const, avulso: false,
+              },
+              {
+                id: crypto.randomUUID(), descricao: `${inversorQtd}x ${kit.inversorDescricao}`,
+                fabricante: kit.distribuidorNome, modelo: kit.inversorDescricao, potencia_w: kit.inversorPotenciaKw * 1000,
+                quantidade: inversorQtd, preco_unitario: inversorPreco, categoria: "inversor" as const, avulso: false,
+              },
+            ];
+          });
           onItensChange(newItens);
           toast({ title: "Kit atualizado" });
         }}
