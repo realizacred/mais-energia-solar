@@ -33,6 +33,7 @@ export function resolveFinanceiro(
   
   if (valorTotal != null && valorTotal > 0) {
     setCur("valor_total", valorTotal);
+    out["valor_total_numero"] = fmtNum(valorTotal, 2);
     setCur("preco_final", valorTotal);
     setCur("preco_total", valorTotal);
     setCur("preco", valorTotal);
@@ -44,6 +45,7 @@ export function resolveFinanceiro(
     if (potencia && potencia > 0) {
       out["preco_kwp"] = fmtCur(valorTotal / potencia);
       out["preco_watt"] = `${fmtNum(valorTotal / (potencia * 1000), 2)} R$/W`;
+      out["preco_watt_numero"] = fmtNum(valorTotal / (potencia * 1000), 2);
     }
   }
 
@@ -51,7 +53,9 @@ export function resolveFinanceiro(
   const econMensal = num(versao.economia_mensal) ?? num(fin.economia_mensal) ?? num(snap.economia_mensal);
   if (econMensal != null) {
     setCur("economia_mensal", econMensal);
+    out["economia_mensal_numero"] = fmtNum(econMensal, 2);
     setCurIfMissing("economia_anual", econMensal * 12);
+    if (!out["economia_anual_numero"]) out["economia_anual_numero"] = fmtNum(econMensal * 12, 2);
     setCurIfMissing("roi_25_anos", econMensal * 12 * 25);
     setCurIfMissing("economia_25_anos", econMensal * 12 * 25);
   }
@@ -111,11 +115,18 @@ export function resolveFinanceiro(
   const custoKit = num(fin.custo_kit) ?? num(snap.custo_kit) ?? num(snap.custo_kit_override) ?? num(venda.custo_kit_override) ?? num(snap.venda_custo_kit_override) ?? 0;
   const custoTotalCalc = custoKit + custoInstalacao + custoComissao + custoOutros;
 
-  if (custoInstalacao > 0) { setCurIfMissing("valor_instalacao", custoInstalacao); setCurIfMissing("custo_instalacao_total", custoInstalacao); }
+  if (custoInstalacao > 0) {
+    setCurIfMissing("valor_instalacao", custoInstalacao);
+    setCurIfMissing("custo_instalacao_total", custoInstalacao);
+    if (!out["valor_instalacao_numero"]) out["valor_instalacao_numero"] = fmtNum(custoInstalacao, 2);
+  }
   if (custoComissao > 0) { setCurIfMissing("valor_comissao", custoComissao); setCurIfMissing("comissao_total", custoComissao); }
   if (custoOutros > 0) setCurIfMissing("valor_outros_custos", custoOutros);
   if (custoInstalacao + custoOutros > 0) setCurIfMissing("valor_servicos", custoInstalacao + custoOutros);
-  if (custoKit > 0) setCurIfMissing("valor_kit", custoKit);
+  if (custoKit > 0) {
+    setCurIfMissing("valor_kit", custoKit);
+    if (!out["valor_kit_numero"]) out["valor_kit_numero"] = fmtNum(custoKit, 2);
+  }
   if (custoTotalCalc > 0) setCurIfMissing("valor_custo_total", custoTotalCalc);
   if (valorTotal != null && valorTotal > 0 && custoTotalCalc > 0) {
     setCurIfMissing("margem_valor", valorTotal - custoTotalCalc);
