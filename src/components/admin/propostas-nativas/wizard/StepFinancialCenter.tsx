@@ -59,8 +59,9 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [comissaoEnabled, setComissaoEnabled] = useState(true);
   const [instalacaoQtd, setInstalacaoQtd] = useState(1);
   const [comissaoQtd, setComissaoQtd] = useState(1);
-  const [instalacaoCusto, setInstalacaoCusto] = useState(instalacaoServico?.valor || 0);
-  const [comissaoCusto, setComissaoCusto] = useState(comissaoServico?.valor || 0);
+  // Prefer venda values (persisted across step navigation) over servicos (initial only)
+  const [instalacaoCusto, setInstalacaoCusto] = useState(venda.custo_instalacao > 0 ? venda.custo_instalacao : (instalacaoServico?.valor || 0));
+  const [comissaoCusto, setComissaoCusto] = useState(venda.custo_comissao > 0 ? venda.custo_comissao : (comissaoServico?.valor || 0));
   const [kitExpanded, setKitExpanded] = useState(false);
   const [kitCustoOverride, setKitCustoOverride] = useState<number | null>(venda.custo_kit_override ?? null);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
