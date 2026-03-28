@@ -139,6 +139,7 @@ export function resolveSistemaSolar(
     if (m0.potencia_w) {
       const pw = String(m0.potencia_w);
       out["modulo_potencia"] = pw.includes("Wp") ? pw : `${pw} Wp`;
+      out["modulo_potencia_numero"] = String(m0.potencia_w);
     }
     set("vc_modulo_potencia", m0.potencia_w);
     const totalMod = modulos.reduce((s, m) => s + Number(m.quantidade ?? 0), 0);
@@ -160,9 +161,18 @@ export function resolveSistemaSolar(
 
     // Dimensions — from pre-parsed fields or from dimensoes_mm string
     const dims = (m0.comprimento_mm != null) ? m0 : parseDimensoes(m0.dimensoes_mm);
-    if (num(dims.comprimento_mm) != null) out["modulo_comprimento"] = `${dims.comprimento_mm} mm`;
-    if (num(dims.largura_mm) != null) out["modulo_largura"] = `${dims.largura_mm} mm`;
-    if (num(dims.profundidade_mm) != null) out["modulo_profundidade"] = `${dims.profundidade_mm} mm`;
+    if (num(dims.comprimento_mm) != null) {
+      out["modulo_comprimento"] = `${dims.comprimento_mm} mm`;
+      out["modulo_comprimento_numero"] = String(dims.comprimento_mm);
+    }
+    if (num(dims.largura_mm) != null) {
+      out["modulo_largura"] = `${dims.largura_mm} mm`;
+      out["modulo_largura_numero"] = String(dims.largura_mm);
+    }
+    if (num(dims.profundidade_mm) != null) {
+      out["modulo_profundidade"] = `${dims.profundidade_mm} mm`;
+      out["modulo_profundidade_numero"] = String(dims.profundidade_mm);
+    }
 
     // Derived: modulo_area (m²)
     const compMm = num(dims.comprimento_mm);
@@ -170,6 +180,7 @@ export function resolveSistemaSolar(
     if (compMm != null && largMm != null) {
       const areaM2 = (compMm * largMm) / 1_000_000;
       out["modulo_area"] = `${fmtNum(areaM2, 2)} m²`;
+      out["modulo_area_numero"] = fmtNum(areaM2, 2);
     }
 
     // Temperature coefficients
@@ -219,6 +230,7 @@ export function resolveSistemaSolar(
     if (inversores[0].potencia_w) {
       const pw = String(inversores[0].potencia_w);
       out["inversor_potencia_nominal"] = pw.includes("W") ? pw : `${pw} W`;
+      out["inversor_potencia_nominal_numero"] = String(inversores[0].potencia_w);
     }
     const invSummary = inversores
       .filter(inv => inv.modelo)
