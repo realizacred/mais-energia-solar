@@ -390,6 +390,34 @@ function resolveFromContext(
     return null;
   }
 
+  // ── Desconto (D1, QW4) ──
+  if (key === "financeiro.desconto_percentual") {
+    const dp = Number((ctx.venda as any)?.desconto_percentual ?? 0);
+    return dp > 0 ? `${fmtNumber(dp, 1)}%` : "0,0%";
+  }
+  if (key === "financeiro.desconto_valor") {
+    const dp2 = Number((ctx.venda as any)?.desconto_percentual ?? 0);
+    if (dp2 > 0 && ctx.precoTotal != null) {
+      // desconto_valor = precoComMargem * desconto / 100
+      // precoTotal already includes discount via calcPrecoFinal — reverse to find pre-discount
+      const precoPreDesconto = ctx.precoTotal / (1 - dp2 / 100);
+      return fmtCurrency(Math.round(precoPreDesconto * dp2 / 100 * 100) / 100);
+    }
+    return "R$ 0,00";
+  }
+
+  // ── Comissão do consultor (D3) ──
+  if (key === "financeiro.percentual_comissao") {
+    const pc = Number((ctx.venda as any)?.percentual_comissao_consultor ?? 0);
+    return `${fmtNumber(pc, 1)}%`;
+  }
+  if (key === "financeiro.consultor_comissao") {
+    return s((ctx.venda as any)?.consultor_nome_comissao) ?? s(ctx.consultorNome) ?? "-";
+  }
+  if (key === "financeiro.valor_comissao" || key === "financeiro.comissao_total") {
+    return (ctx.venda as any)?.custo_comissao > 0 ? fmtCurrency((ctx.venda as any).custo_comissao) : null;
+  }
+
 
   if (kitItens && Array.isArray(kitItens)) {
     const findItem = (cat: string) => kitItens.find((i) => String(i.categoria || i.tipo || "").toLowerCase().includes(cat));

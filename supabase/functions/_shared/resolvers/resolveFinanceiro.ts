@@ -103,10 +103,12 @@ export function resolveFinanceiro(
 
   // ── Equipment costs from snapshot ──
   // ── Financial Center costs (custo_instalacao, custo_comissao, custo_outros) ──
-  const custoInstalacao = num(fin.custo_instalacao) ?? num(snap.custo_instalacao) ?? 0;
-  const custoComissao = num(fin.custo_comissao) ?? num(snap.custo_comissao) ?? 0;
-  const custoOutros = num(fin.custo_outros) ?? num(snap.custo_outros) ?? 0;
-  const custoKit = num(fin.custo_kit) ?? num(snap.custo_kit) ?? 0;
+  // Fallback chains: flat → nested (venda.*) → flattened (venda_*) — AP-15 parity
+  const venda = safeObj(snap.venda);
+  const custoInstalacao = num(fin.custo_instalacao) ?? num(snap.custo_instalacao) ?? num(venda.custo_instalacao) ?? num(snap.venda_custo_instalacao) ?? 0;
+  const custoComissao = num(fin.custo_comissao) ?? num(snap.custo_comissao) ?? num(venda.custo_comissao) ?? num(snap.venda_custo_comissao) ?? 0;
+  const custoOutros = num(fin.custo_outros) ?? num(snap.custo_outros) ?? num(venda.custo_outros) ?? num(snap.venda_custo_outros) ?? 0;
+  const custoKit = num(fin.custo_kit) ?? num(snap.custo_kit) ?? num(snap.custo_kit_override) ?? num(venda.custo_kit_override) ?? num(snap.venda_custo_kit_override) ?? 0;
   const custoTotalCalc = custoKit + custoInstalacao + custoComissao + custoOutros;
 
   if (custoInstalacao > 0) { setCurIfMissing("valor_instalacao", custoInstalacao); setCurIfMissing("custo_instalacao_total", custoInstalacao); }
@@ -120,10 +122,26 @@ export function resolveFinanceiro(
     const margemReal = ((valorTotal - custoTotalCalc) / custoTotalCalc) * 100;
     if (!out["margem_real"]) out["margem_real"] = `${fmtNum(margemReal, 1)}%`;
   }
-  const margemPct = num(fin.margem_percentual) ?? num(snap.margem_percentual);
+  const margemPct = num(fin.margem_percentual) ?? num(snap.margem_percentual) ?? num(venda.margem_percentual);
   if (margemPct != null && !out["margem_percentual"]) out["margem_percentual"] = `${fmtNum(margemPct, 1)}%`;
-  const pctComissao = num(snap.percentual_comissao_consultor) ?? num(fin.percentual_comissao_consultor);
+
+  // ── Desconto (D1, QW4 — AP-15 parity with frontend) ──
+  const descontoPercent = num(snap.desconto_percentual) ?? num(venda.desconto_percentual) ?? num(fin.desconto_percentual) ?? 0;
+  if (!out["desconto_percentual"]) out["desconto_percentual"] = `${fmtNum(descontoPercent, 1)}%`;
+  if (descontoPercent > 0 && valorTotal != null && valorTotal > 0) {
+    // valorTotal already has discount applied; reverse to find pre-discount
+    const precoPreDesconto = valorTotal / (1 - descontoPercent / 100);
+    const descontoValor = Math.round(precoPreDesconto * descontoPercent / 100 * 100) / 100;
+    if (!out["desconto_valor"]) out["desconto_valor"] = fmtCur(descontoValor);
+  } else if (!out["desconto_valor"]) {
+    out["desconto_valor"] = fmtCur(0);
+  }
+
+  // ── Comissão do consultor (D3 — AP-15 parity with frontend) ──
+  const pctComissao = num(snap.percentual_comissao_consultor) ?? num(venda.percentual_comissao_consultor) ?? num(fin.percentual_comissao_consultor);
   if (pctComissao != null && !out["percentual_comissao"]) out["percentual_comissao"] = `${fmtNum(pctComissao, 1)}%`;
+  const consultorNomeComissao = str(snap.consultor_nome_comissao) ?? str(venda.consultor_nome_comissao) ?? str(fin.consultor_nome_comissao);
+  if (consultorNomeComissao && !out["consultor_comissao"]) out["consultor_comissao"] = consultorNomeComissao;
 
   const costFields = [
     "modulo_custo_un", "modulo_preco_un", "modulo_custo_total", "modulo_preco_total",
