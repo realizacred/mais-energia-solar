@@ -268,12 +268,11 @@ export function ProposalWizard() {
   const [gateValidation, setGateValidation] = useState<PropostaFinalValidationResult | null>(null);
   // ─── Derived
   const precoFinal = useMemo(() => {
-    const val = calcPrecoFinal(itens, servicos, venda);
-    if (val === 0 && itens.length > 0) {
-      console.warn("[precoFinal] R$ 0,00 com itens:", itens.map(i => ({ nome: i.descricao, qty: i.quantidade, preco: i.preco_unitario })));
-    }
-    return val;
-  }, [itens, servicos, venda]);
+  // J1 — SSOT: use usePrecoFinal hook instead of inline useMemo
+  const precoFinal = usePrecoFinal(itens, servicos, venda);
+  if (precoFinal === 0 && itens.length > 0) {
+    console.warn("[precoFinal] R$ 0,00 com itens:", itens.map(i => ({ nome: i.descricao, qty: i.quantidade, preco: i.preco_unitario })));
+  }
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
   const topologiaAtiva = preDimensionamento.topologias?.[0] || "tradicional";
