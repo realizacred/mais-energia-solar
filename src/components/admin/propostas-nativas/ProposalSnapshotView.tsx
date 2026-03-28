@@ -89,7 +89,9 @@ export function ProposalSnapshotView({
       // Venda
       precoFinal={precoFinal}
       margemPercentual={norm.venda.margem_percentual}
+      custoInstalacao={norm.venda.custo_instalacao}
       custoComissao={norm.venda.custo_comissao}
+      custoOutros={norm.venda.custo_outros}
       descontoPercentual={norm.venda.desconto_percentual}
       // Pagamento
       pagamentoOpcoes={norm.pagamentoOpcoes.map(p => ({
