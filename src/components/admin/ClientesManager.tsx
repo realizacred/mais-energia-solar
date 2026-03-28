@@ -271,7 +271,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     }
   }, [loading, clientes, searchParams]);
 
-
+  const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este cliente? Todos os registros vinculados serão desassociados.")) return;
 
     try {
