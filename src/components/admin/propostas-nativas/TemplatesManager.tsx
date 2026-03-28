@@ -123,7 +123,7 @@ export function TemplatesManager() {
   const seedDefaultTemplates = async () => {
     if (!confirm("Isso vai EXCLUIR todos os templates WEB existentes e criar 3 novos (Grid, Híbrido, Dual). Continuar?")) return;
     
-    setLoading(true);
+    // loading is managed by react-query now
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
@@ -207,7 +207,7 @@ export function TemplatesManager() {
     } catch (err: any) {
       toast({ title: "Erro ao importar", description: err.message, variant: "destructive" });
     } finally {
-      setLoading(false);
+      // loading managed by react-query
     }
   };
 
@@ -216,7 +216,7 @@ export function TemplatesManager() {
     setForm({ nome: "", descricao: "", grupo: "B", categoria: "geral", tipo: tipoTab, template_html: "", file_url: null, ativo: true, ordem: templates.length });
   };
 
-  const startEdit = (t: PropostaTemplate) => {
+  const startEdit = (t: PropostaTemplateFull) => {
     setEditingId(t.id);
     setForm({ ...t });
   };
