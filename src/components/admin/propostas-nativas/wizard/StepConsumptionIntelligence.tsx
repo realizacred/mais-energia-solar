@@ -102,28 +102,22 @@ export function StepConsumptionIntelligence({
 
   // ─── Derive fator_geracao from POA irradiation ──────────
   // fator_geracao = POA_avg × 30 × (desempenho / 100)
-  const prevEffIrradKey = useRef<string>("");
+  // Uses individual desempenho values as deps to guarantee reactivity.
+  const desempenhoT = pd.topologia_configs?.tradicional?.desempenho ?? DEFAULT_TOPOLOGIA_CONFIGS.tradicional.desempenho;
+  const desempenhoM = pd.topologia_configs?.microinversor?.desempenho ?? DEFAULT_TOPOLOGIA_CONFIGS.microinversor.desempenho;
+  const desempenhoO = pd.topologia_configs?.otimizador?.desempenho ?? DEFAULT_TOPOLOGIA_CONFIGS.otimizador.desempenho;
+
   useEffect(() => {
     if (effectiveIrrad <= 0) return;
 
     const currentPd = pdRef.current;
-    const cfgs = currentPd.topologia_configs || {};
-    const key = [
-      effectiveIrrad.toFixed(4),
-      cfgs.tradicional?.desempenho ?? "",
-      cfgs.microinversor?.desempenho ?? "",
-      cfgs.otimizador?.desempenho ?? "",
-    ].join("|");
-    if (prevEffIrradKey.current === key) return;
-    prevEffIrradKey.current = key;
-
     const configs = { ...currentPd.topologia_configs };
     let changed = false;
 
-    for (const topo of ["tradicional", "microinversor", "otimizador"]) {
+    for (const [topo, desemp] of [["tradicional", desempenhoT], ["microinversor", desempenhoM], ["otimizador", desempenhoO]] as const) {
       const cfg = configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo];
-      const newFator = Math.round(effectiveIrrad * 30 * (cfg.desempenho / 100) * 100) / 100;
-      if (Math.abs(newFator - cfg.fator_geracao) > 0.01) {
+      const newFator = Math.round(effectiveIrrad * 30 * (desemp / 100) * 100) / 100;
+      if (Math.abs(newFator - (cfg.fator_geracao ?? 0)) > 0.01) {
         configs[topo] = { ...cfg, fator_geracao: newFator };
         changed = true;
       }
@@ -136,7 +130,7 @@ export function StepConsumptionIntelligence({
         fator_geracao: configs.tradicional?.fator_geracao ?? currentPd.fator_geracao,
       });
     }
-  }, [effectiveIrrad, setPd, pd.topologia_configs]);
+  }, [effectiveIrrad, desempenhoT, desempenhoM, desempenhoO, setPd]);
 
   // ─── Derived metrics
   const consumoTotal = useMemo(() => {
