@@ -300,18 +300,10 @@ export function StepResumo({
                     <span className="font-medium text-foreground text-right">{formatBRL(custoAdicionais)}</span>
                   </>
                 )}
-                {custoServicos > 0 && (
+                {custoServicosEfetivo > 0 && (
                   <>
-                    <span className="text-muted-foreground">Serviços</span>
-                    <span className="font-medium text-foreground text-right">{formatBRL(custoServicos)}</span>
-                  </>
-                )}
-                <span className="text-muted-foreground">Margem real</span>
-                <span className="font-medium text-foreground text-right">{(Number(margemRealPercentual) || 0).toFixed(1)}%</span>
-                {descontoPercentual > 0 && (
-                  <>
-                    <span className="text-muted-foreground">Desconto</span>
-                    <span className="font-medium text-destructive text-right">-{(Number(descontoPercentual) || 0).toFixed(1)}%</span>
+                    <span className="text-muted-foreground">Instalação</span>
+                    <span className="font-medium text-foreground text-right">{formatBRL(custoServicosEfetivo)}</span>
                   </>
                 )}
                 {custoComissao > 0 && (
@@ -320,6 +312,23 @@ export function StepResumo({
                     <span className="font-medium text-foreground text-right">{formatBRL(custoComissao)}</span>
                   </>
                 )}
+                {(Number(custoOutros) || 0) > 0 && (
+                  <>
+                    <span className="text-muted-foreground">Outros custos</span>
+                    <span className="font-medium text-foreground text-right">{formatBRL(Number(custoOutros))}</span>
+                  </>
+                )}
+                {descontoPercentual > 0 && (
+                  <>
+                    <span className="text-muted-foreground">Desconto</span>
+                    <span className="font-medium text-destructive text-right">-{(Number(descontoPercentual) || 0).toFixed(1)}%</span>
+                  </>
+                )}
+                <Separator className="col-span-2 my-1" />
+                <span className="text-muted-foreground">Custo total</span>
+                <span className="font-medium text-foreground text-right">{formatBRL(custoBase)}</span>
+                <span className="text-muted-foreground">Margem real</span>
+                <span className="font-medium text-foreground text-right">{(Number(margemRealPercentual) || 0).toFixed(1)}%</span>
               </div>
               <Separator className="my-3" />
               <div className="flex justify-between text-base font-bold">
