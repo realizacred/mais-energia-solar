@@ -407,6 +407,21 @@ function resolveFromContext(
     }
     return null;
   }
+  // AP-15: margem_real — markup sobre custo (paridade com backend resolveFinanceiro)
+  if (key === "financeiro.margem_real") {
+    if (ctx.precoTotal != null && (ctx.venda as any)) {
+      const v = ctx.venda as any;
+      const custoTotal = (v.custo_instalacao ?? 0) + (v.custo_comissao ?? 0) + (v.custo_outros ?? 0) +
+        (v.custo_kit_override > 0 ? v.custo_kit_override : ((ctx.kit as any)?.itens as Array<Record<string, unknown>> | undefined)?.reduce(
+          (s: number, i: Record<string, unknown>) => s + (Number(i.quantidade ?? 0) * Number(i.preco_unitario ?? 0)), 0
+        ) ?? 0);
+      if (custoTotal > 0) {
+        const margemReal = ((ctx.precoTotal - custoTotal) / custoTotal) * 100;
+        return `${fmtNumber(margemReal, 1)}%`;
+      }
+    }
+    return null;
+  }
 
   // ── Desconto (D1, QW4) ──
   if (key === "financeiro.desconto_percentual") {
