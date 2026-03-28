@@ -294,8 +294,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   );
   const precoVendaSemComissao = roundCurrency(custoSemComissao * (1 + margemPercent / 100));
 
-  // Track if user manually changed commission (breaks auto-recalc)
-  const [comissaoManualOverride, setComissaoManualOverride] = useState(venda.comissao_manual_override ?? false);
+
 
   // Auto-recalculate commission whenever base price or percentage changes
   useEffect(() => {
