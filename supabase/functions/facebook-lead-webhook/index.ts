@@ -245,6 +245,20 @@ Deno.serve(async (req) => {
         } else {
           processedCount++;
           console.log(`[FB-WEBHOOK] Lead ${fbLeadId} stored`);
+
+          // ── Create CRM lead automatically ─────────────────
+          try {
+            await createCrmLead(supabase, {
+              tenantId,
+              fbLeadId,
+              formId: formId || null,
+              pageId: pageId || null,
+              adId: adId || null,
+              leadgenValue,
+            });
+          } catch (crmErr) {
+            console.error(`[FB-WEBHOOK][CRM] Error creating CRM lead: ${sanitizeError(crmErr)}`);
+          }
         }
       }
     }
