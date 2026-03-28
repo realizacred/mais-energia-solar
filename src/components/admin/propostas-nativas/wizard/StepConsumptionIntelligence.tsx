@@ -66,39 +66,50 @@ export function StepConsumptionIntelligence({
   pdRef.current = pd;
 
   const uc1TipoTelhado = ucs[0]?.tipo_telhado;
+
+  // Derive roof-matched tilt/azimuth synchronously to avoid race condition:
+  // Previously, useEffect set pd.inclinacao AFTER the first render, causing
+  // effectiveIrrad to calculate with fallback 10° instead of the correct value.
+  const roofMatch = useMemo(() => {
+    if (!uc1TipoTelhado || roofFactors.length === 0) return null;
+    return roofFactors.find(rf => getRoofLabel(rf) === uc1TipoTelhado) ?? null;
+  }, [uc1TipoTelhado, roofFactors]);
+
+  // Resolved tilt: pd.inclinacao (user-set) → roof default → null (skip calc)
+  const resolvedTilt = pd.inclinacao ?? roofMatch?.inclinacao_padrao ?? null;
+  const resolvedAzimuth = pd.desvio_azimutal ?? roofMatch?.desvio_azimutal_padrao ?? 0;
+
+  // Persist roof defaults into pd when roof match changes
   useEffect(() => {
-    if (!uc1TipoTelhado || roofFactors.length === 0) return;
-    const match = roofFactors.find(rf => getRoofLabel(rf) === uc1TipoTelhado);
-    if (match) {
-      const current = pdRef.current;
-      const updates: Partial<PreDimensionamentoData> = {};
-      if (match.inclinacao_padrao != null) {
-        updates.inclinacao = match.inclinacao_padrao;
-      }
-      if (match.desvio_azimutal_padrao != null) {
-        updates.desvio_azimutal = match.desvio_azimutal_padrao;
-      }
-      if (Object.keys(updates).length > 0) {
-        setPd({ ...current, ...updates });
-      }
+    if (!roofMatch) return;
+    const current = pdRef.current;
+    const updates: Partial<PreDimensionamentoData> = {};
+    if (roofMatch.inclinacao_padrao != null && current.inclinacao == null) {
+      updates.inclinacao = roofMatch.inclinacao_padrao;
     }
-  }, [uc1TipoTelhado, roofFactors, setPd]);
+    if (roofMatch.desvio_azimutal_padrao != null && current.desvio_azimutal == null) {
+      updates.desvio_azimutal = roofMatch.desvio_azimutal_padrao;
+    }
+    if (Object.keys(updates).length > 0) {
+      setPd({ ...current, ...updates });
+    }
+  }, [roofMatch, setPd]);
 
   // ─── Effective irradiance — SSOT via fatorGeracaoService ──
   // Always use POA transposition when latitude is available (somente_ghi: false).
-  // The user sets tilt/azimuth here and expects them to affect the result.
-  // calcEffectiveIrrad falls back to GHI automatically when latitude is null.
+  // Uses resolvedTilt (synchronous) to avoid stale fallback on first render.
   const effectiveIrrad = useMemo(() => {
     if (!irradiacao || irradiacao <= 0) return 0;
+    if (resolvedTilt == null) return 0; // Wait until tilt is known
     return calcEffectiveIrrad({
       ghiSeries: ghiSeries as Record<string, number> | null | undefined,
       ghiMediaAnual: irradiacao,
       latitude,
-      tilt_deg: pd.inclinacao ?? 10,
-      azimuth_deviation_deg: pd.desvio_azimutal ?? 0,
+      tilt_deg: resolvedTilt,
+      azimuth_deviation_deg: resolvedAzimuth,
       somente_ghi: false,
     });
-  }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal]);
+  }, [irradiacao, ghiSeries, latitude, resolvedTilt, resolvedAzimuth]);
 
   // ─── Derive fator_geracao from POA irradiation ──────────
   // fator_geracao = POA_avg × 30 × (desempenho / 100)
