@@ -75,6 +75,11 @@ export default function PropostaPublica() {
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [recusaMotivo, setRecusaMotivo] = useState("");
 
+  // Payment method selection
+  const [formaEscolhida, setFormaEscolhida] = useState<string | null>(null);
+  const [parcelaEscolhida, setParcelaEscolhida] = useState<number>(1);
+  const [bancoEscolhido, setBancoEscolhido] = useState<string | null>(null);
+
   const sigRef = useRef<ReactSignatureCanvas | null>(null);
 
   useEffect(() => {
