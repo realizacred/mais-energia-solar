@@ -284,11 +284,7 @@ export function ProposalWizard() {
   // Sem kit → sempre "tradicional"; com kit → topologia do kit
   const temKit = itens.length > 0;
   const topologiaDoKit = temKit
-    ? (
-        manualKits[0]?.card?.topologia?.toLowerCase() ??
-        layouts?.[0]?.topologia?.toLowerCase() ??
-        null
-      )
+    ? (manualKits[0]?.card?.topologia?.toLowerCase() ?? null)
     : null;
   const topologiaAtiva = topologiaDoKit || "tradicional";
   const fatorGeracaoAtivo =
