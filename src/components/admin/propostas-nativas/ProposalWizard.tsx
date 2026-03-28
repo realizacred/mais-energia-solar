@@ -1889,6 +1889,19 @@ export function ProposalWizard() {
   const goNext = () => {
     if (step >= activeSteps.length - 1) return;
 
+    // Intercept: validate Kit step — block if kit cost is zero
+    if (currentStepKey === STEP_KEYS.KIT && itens.length > 0) {
+      const custoKit = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+      if (custoKit <= 0) {
+        toast({
+          title: "Kit com custo zerado",
+          description: "O kit selecionado possui custo R$ 0,00. Edite o kit ou selecione outro antes de prosseguir.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // Intercept: validate Financial Center before advancing
     if (currentStepKey === STEP_KEYS.VENDA) {
       const erros: string[] = [];
