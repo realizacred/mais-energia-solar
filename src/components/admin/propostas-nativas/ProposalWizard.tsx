@@ -1463,7 +1463,9 @@ export function ProposalWizard() {
     [STEP_KEYS.LOCALIZACAO]: !!locEstado && !!locCidade && !!locTipoTelhado && !!locDistribuidoraId,
     [STEP_KEYS.UCS]: consumoTotal > 0 && grupoValidation.valid,
     [STEP_KEYS.CAMPOS_PRE]: true,
-    [STEP_KEYS.KIT]: itens.some(i => i.categoria === "modulo" && i.quantidade >= 1 && i.potencia_w > 0) && potenciaKwp > 0,
+    [STEP_KEYS.KIT]: itens.some(i => i.categoria === "modulo" && i.quantidade >= 1 && i.potencia_w > 0)
+      && potenciaKwp > 0
+      && ((venda.custo_kit_override ?? itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0)) > 0),
     [STEP_KEYS.ADICIONAIS]: true,
     [STEP_KEYS.SERVICOS]: true,
     [STEP_KEYS.VENDA]: venda.margem_percentual >= 0,
