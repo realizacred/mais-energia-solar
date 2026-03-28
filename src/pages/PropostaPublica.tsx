@@ -2,8 +2,9 @@ import { formatBRL } from "@/lib/formatters";
 import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock, XCircle, ThumbsDown } from "lucide-react";
+import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock, XCircle, ThumbsDown, CreditCard, Smartphone, FileText, Banknote, Wallet, DollarSign, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ReactSignatureCanvas from "react-signature-canvas";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
+import { cn } from "@/lib/utils";
 
 type TokenData = {
   id: string;
@@ -73,6 +75,11 @@ export default function PropostaPublica() {
   // Reject fields
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [recusaMotivo, setRecusaMotivo] = useState("");
+
+  // Payment method selection
+  const [formaEscolhida, setFormaEscolhida] = useState<string | null>(null);
+  const [parcelaEscolhida, setParcelaEscolhida] = useState<number>(1);
+  const [bancoEscolhido, setBancoEscolhido] = useState<string | null>(null);
 
   const sigRef = useRef<ReactSignatureCanvas | null>(null);
 
@@ -173,10 +180,22 @@ export default function PropostaPublica() {
         }
       }
 
+      // Build payment choice object
+      const formaParaSalvar = formaEscolhida
+        ? {
+            tipo: "forma_propria",
+            forma_id: formaEscolhida,
+            forma_nome: FORMA_LABELS[formasProprias.find((f: any) => f.id === formaEscolhida)?.forma_pagamento ?? "outro"] ?? "Outro",
+            num_parcelas: parcelaEscolhida,
+          }
+        : bancoEscolhido
+          ? { tipo: "financiamento_bancario", banco_nome: bancoEscolhido }
+          : null;
+
       const { error: updateErr } = await (supabase as any)
         .from("proposta_aceite_tokens")
         .update({
-          used_at: new Date().toISOString(),
+          used_at: new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }),
           decisao: "aceita",
           aceite_nome: nome,
           aceite_documento: documento || null,
@@ -185,6 +204,7 @@ export default function PropostaPublica() {
           aceite_ip: "client",
           aceite_user_agent: navigator.userAgent,
           cenario_aceito_id: selectedCenario || null,
+          forma_pagamento_escolhida: formaParaSalvar ? JSON.stringify(formaParaSalvar) : null,
         })
         .eq("id", tokenData.id);
 
@@ -315,6 +335,31 @@ export default function PropostaPublica() {
   const hasCenarios = cenarios.length > 0;
   const pagamentoOpcoes = !hasCenarios ? (versaoData?.snapshot?.pagamento_opcoes || []) : [];
   const isSimulacaoView = viewMode === "simulacao";
+
+  // Payment methods from snapshot (admin-configured)
+  const formasProprias: any[] = versaoData?.snapshot?.formas_pagamento_proprias ?? [];
+  const valorTotal = activeCenario?.preco_final ?? versaoData?.valor_total ?? 0;
+  const temEscolha = formaEscolhida !== null || bancoEscolhido !== null;
+
+  const FORMA_LABELS: Record<string, string> = {
+    pix: "Pix", dinheiro: "Dinheiro", transferencia: "Transferência",
+    boleto: "Boleto", cartao_credito: "Cartão de Crédito",
+    cartao_debito: "Cartão Débito", cheque: "Cheque",
+    financiamento: "Financiamento", crediario: "Crediário", outro: "Outro",
+  };
+
+  const FORMA_ICONS_MAP: Record<string, React.ReactNode> = {
+    pix: <Smartphone className="h-5 w-5 text-primary" />,
+    dinheiro: <Banknote className="h-5 w-5 text-primary" />,
+    transferencia: <Wallet className="h-5 w-5 text-primary" />,
+    boleto: <FileText className="h-5 w-5 text-primary" />,
+    cartao_credito: <CreditCard className="h-5 w-5 text-primary" />,
+    cartao_debito: <CreditCard className="h-5 w-5 text-primary" />,
+    cheque: <FileText className="h-5 w-5 text-primary" />,
+    financiamento: <Building2 className="h-5 w-5 text-primary" />,
+    crediario: <Wallet className="h-5 w-5 text-primary" />,
+    outro: <DollarSign className="h-5 w-5 text-primary" />,
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -461,6 +506,148 @@ export default function PropostaPublica() {
         </div>
       )}
 
+      {/* ── PAYMENT METHOD SELECTION ──────────────── */}
+      {formasProprias.length > 0 && (
+        <div className="max-w-lg mx-auto px-4 pb-4">
+          <Card className="border-border/60">
+            <CardContent className="py-6 space-y-4">
+              <h3 className="text-base font-semibold text-center">Como prefere pagar?</h3>
+              <p className="text-sm text-muted-foreground text-center">
+                Escolha a forma de pagamento. Nossa equipe confirmará os detalhes.
+              </p>
+
+              {formasProprias.map((forma: any) => {
+                const isSelected = formaEscolhida === forma.id;
+                const taxa = forma.juros_tipo === "percentual" ? (forma.juros_valor ?? 0) / 100 : 0;
+                const maxParcelas = forma.parcelas_padrao ?? 1;
+                const formaPag = forma.forma_pagamento ?? "outro";
+
+                const calcParcela = (n: number) =>
+                  taxa === 0 ? valorTotal / n : valorTotal * taxa / (1 - Math.pow(1 + taxa, -n));
+
+                const opcoes = Array.from({ length: maxParcelas }, (_, i) => {
+                  const n = i + 1;
+                  const vp = calcParcela(n);
+                  return { n, valorParcela: Math.round(vp * 100) / 100, total: Math.round(vp * n * 100) / 100, semJuros: taxa === 0 };
+                });
+
+                return (
+                  <div
+                    key={forma.id}
+                    className={cn(
+                      "rounded-xl border-2 transition-all overflow-hidden cursor-pointer",
+                      isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/30"
+                    )}
+                    onClick={() => {
+                      setFormaEscolhida(isSelected ? null : forma.id);
+                      setBancoEscolhido(null);
+                      setParcelaEscolhida(1);
+                    }}
+                  >
+                    <div className="flex items-center justify-between p-4">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", isSelected ? "bg-primary/10" : "bg-muted")}>
+                          {FORMA_ICONS_MAP[formaPag] ?? <DollarSign className="h-5 w-5 text-primary" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{FORMA_LABELS[formaPag] ?? formaPag}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {taxa === 0 ? `Até ${maxParcelas}x sem juros` : `Até ${maxParcelas}x · ${(forma.juros_valor ?? 0)}% a.m.`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", isSelected ? "border-primary bg-primary" : "border-border")}>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-primary-foreground" />}
+                      </div>
+                    </div>
+
+                    {isSelected && maxParcelas > 1 && (
+                      <div className="border-t border-primary/20">
+                        <div className="grid grid-cols-3 px-4 py-2 bg-muted/50 text-xs font-semibold text-muted-foreground uppercase">
+                          <span>Parcelas</span><span>Valor/mês</span><span>Total</span>
+                        </div>
+                        {opcoes.map(op => (
+                          <div
+                            key={op.n}
+                            className={cn(
+                              "grid grid-cols-3 px-4 py-3 cursor-pointer border-t border-primary/10 transition-colors",
+                              parcelaEscolhida === op.n ? "bg-primary/15" : "hover:bg-primary/5"
+                            )}
+                            onClick={e => { e.stopPropagation(); setParcelaEscolhida(op.n); }}
+                          >
+                            <span className="text-sm font-medium text-foreground">{op.n}x</span>
+                            <span className="text-sm text-foreground">
+                              {formatBRL(op.valorParcela)}
+                              {op.semJuros && <Badge variant="outline" className="ml-1 text-[10px] bg-success/10 text-success border-success/30">s/ juros</Badge>}
+                            </span>
+                            <span className="text-sm text-muted-foreground">{formatBRL(op.total)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {isSelected && maxParcelas === 1 && (
+                      <div className="border-t border-primary/20 px-4 py-3 bg-primary/5">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Total à vista</span>
+                          <span className="text-lg font-bold text-foreground">{formatBRL(valorTotal)}</span>
+                        </div>
+                        {forma.observacoes && <p className="text-xs text-muted-foreground mt-1">{forma.observacoes}</p>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Separator for bank financing */}
+              {pagamentoOpcoes.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground">ou Financiamento Bancário</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              )}
+
+              {pagamentoOpcoes.map((op: any, idx: number) => {
+                const isSelected = bancoEscolhido === (op.nome ?? `banco-${idx}`);
+                return (
+                  <div
+                    key={idx}
+                    className={cn(
+                      "rounded-xl border-2 p-4 transition-all cursor-pointer",
+                      isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/30"
+                    )}
+                    onClick={() => {
+                      setBancoEscolhido(isSelected ? null : (op.nome ?? `banco-${idx}`));
+                      setFormaEscolhida(null);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", isSelected ? "bg-primary/10" : "bg-muted")}>
+                          <Building2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{op.nome}</p>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                            {op.entrada > 0 && <span>Entrada: {formatBRL(op.entrada)}</span>}
+                            {op.num_parcelas > 0 && <span>{op.num_parcelas}x de {formatBRL(op.valor_parcela)}</span>}
+                            {op.taxa_mensal > 0 && <span>Taxa: {formatTaxaMensal(op.taxa_mensal)}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", isSelected ? "border-primary bg-primary" : "border-border")}>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-primary-foreground" />}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* ── ACCEPTANCE / REJECTION FORM ──────────────── */}
       <div className="max-w-lg mx-auto px-4 pb-12">
         <Card className="border-border/60">
@@ -522,7 +709,7 @@ export default function PropostaPublica() {
                 className="flex-1 gap-2"
                 size="lg"
                 onClick={handleAccept}
-                disabled={submitting || !nome.trim()}
+                disabled={submitting || !nome.trim() || (formasProprias.length > 0 && !temEscolha)}
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Aceitar Proposta

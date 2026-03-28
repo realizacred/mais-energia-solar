@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Trash2, CreditCard, Building2, ChevronRight, Calendar, TrendingUp, DollarSign, X, Search, Info } from "lucide-react";
+import { Plus, Trash2, CreditCard, Building2, ChevronRight, Calendar, TrendingUp, DollarSign, X, Search, Info, AlertTriangle, Smartphone, FileText, Banknote, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,21 @@ import { cn } from "@/lib/utils";
 import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL } from "./types";
 import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
 import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
+import { usePaymentInterestConfigs, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
+import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
+
+const FORMA_ICONS: Record<string, React.ReactNode> = {
+  pix: <Smartphone className="h-4 w-4 text-primary" />,
+  dinheiro: <Banknote className="h-4 w-4 text-primary" />,
+  transferencia: <Wallet className="h-4 w-4 text-primary" />,
+  boleto: <FileText className="h-4 w-4 text-primary" />,
+  cartao_credito: <CreditCard className="h-4 w-4 text-primary" />,
+  cartao_debito: <CreditCard className="h-4 w-4 text-primary" />,
+  cheque: <FileText className="h-4 w-4 text-primary" />,
+  financiamento: <Building2 className="h-4 w-4 text-primary" />,
+  crediario: <Wallet className="h-4 w-4 text-primary" />,
+  outro: <DollarSign className="h-4 w-4 text-primary" />,
+};
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -434,7 +449,18 @@ export function StepPagamento({
 
       {/* ─── Tab: Pagamento ─────────────────────────────── */}
       {activeTab === "pagamento" && (
-        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
+        <div className="space-y-4">
+          {/* ── Info Banner + Admin Payment Methods Preview ── */}
+          <FormasPagamentoPreview precoFinal={precoFinal} />
+
+          {/* ── Separator ── */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">Financiamento Bancário</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
           {/* Sidebar - Banks */}
           <div className="space-y-1">
             {bancoGroups.map((g, idx) => (
@@ -504,6 +530,7 @@ export function StepPagamento({
               <Plus className="h-3.5 w-3.5" /> Adicionar opção
             </Button>
           </div>
+        </div>
         </div>
       )}
 
@@ -761,6 +788,85 @@ export function StepPagamento({
           </Button>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─── FormasPagamentoPreview (read-only admin payment methods) ────
+function FormasPagamentoPreview({ precoFinal }: { precoFinal: number }) {
+  const { data: formasConfig } = usePaymentInterestConfigs();
+  const formasAtivas = useMemo(
+    () => (formasConfig ?? []).filter((f) => f.ativo),
+    [formasConfig]
+  );
+
+  return (
+    <div className="space-y-3">
+      {/* Info banner */}
+      <div className="flex items-start gap-3 p-4 rounded-lg bg-info/5 border border-info/20">
+        <Info className="w-4 h-4 text-info shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            Formas de pagamento gerenciadas pelo financeiro
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            As condições abaixo são definidas pelo gestor financeiro.
+            O cliente escolherá a forma preferida ao aceitar a proposta.
+          </p>
+        </div>
+      </div>
+
+      {/* Active payment methods preview */}
+      {formasAtivas.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Pagamento Direto — disponível para o cliente
+          </p>
+          {formasAtivas.map((forma) => (
+            <div
+              key={forma.id}
+              className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+                  {FORMA_ICONS[forma.forma_pagamento] ?? <DollarSign className="h-4 w-4 text-primary" />}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {FORMA_PAGAMENTO_LABELS[forma.forma_pagamento] ?? forma.forma_pagamento}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {forma.juros_tipo === "sem_juros"
+                      ? `Até ${forma.parcelas_padrao}x sem juros`
+                      : `Até ${forma.parcelas_padrao}x · ${forma.juros_valor}% a.m.`}
+                    {forma.observacoes ? ` · ${forma.observacoes}` : ""}
+                  </p>
+                </div>
+              </div>
+              <Badge
+                variant="outline"
+                className="text-xs bg-success/10 text-success border-success/30"
+              >
+                Disponível
+              </Badge>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Warning if no forms configured */}
+      {formasAtivas.length === 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/5 border border-warning/20">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            Nenhuma forma de pagamento direto configurada.
+            Configure em{" "}
+            <span className="font-medium text-foreground">
+              Admin → Formas de Pagamento
+            </span>.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
