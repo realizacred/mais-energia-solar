@@ -327,6 +327,7 @@ function resolveFromContext(
   if (key === "sistema_solar.potencia_sistema_numero") return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
   if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
   if (key === "sistema_solar.geracao_mensal_numero") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
+  if (key === "sistema_solar.geracao_anual") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal * 12, 0) : null;
   if (key === "sistema_solar.numero_modulos") return ctx.numeroPlacas ? String(ctx.numeroPlacas) : null;
 
   // Equipment from kit items
@@ -341,6 +342,27 @@ function resolveFromContext(
     if (key === "sistema_solar.modulo_potencia") return modulo?.potencia_w ? String(modulo.potencia_w) : null;
     if (key === "sistema_solar.modulo_potencia_numero") return modulo?.potencia_w ? String(modulo.potencia_w) : null;
     if (key === "sistema_solar.modulo_quantidade") return s((modulo?.quantidade ?? ctx.numeroPlacas) as string | number);
+    // Module dimensions from enriched kit item metadata
+    if (key === "sistema_solar.modulo_comprimento" || key === "sistema_solar.modulo_comprimento_numero") {
+      const dim = String(modulo?.dimensoes_mm || modulo?.dimensoes || "");
+      const parts = dim.split(/[xX×]/);
+      return parts.length >= 1 && Number(parts[0]) > 0 ? String(Math.round(Number(parts[0]))) : null;
+    }
+    if (key === "sistema_solar.modulo_largura" || key === "sistema_solar.modulo_largura_numero") {
+      const dim = String(modulo?.dimensoes_mm || modulo?.dimensoes || "");
+      const parts = dim.split(/[xX×]/);
+      return parts.length >= 2 && Number(parts[1]) > 0 ? String(Math.round(Number(parts[1]))) : null;
+    }
+    if (key === "sistema_solar.modulo_area" || key === "sistema_solar.modulo_area_numero") {
+      const dim = String(modulo?.dimensoes_mm || modulo?.dimensoes || "");
+      const parts = dim.split(/[xX×]/);
+      if (parts.length >= 2) {
+        const compM = Number(parts[0]) / 1000;
+        const largM = Number(parts[1]) / 1000;
+        if (compM > 0 && largM > 0) return fmtNumber(compM * largM, 2);
+      }
+      return null;
+    }
     if (key === "sistema_solar.inversor_fabricante") return s(inversor?.fabricante as string);
     if (key === "sistema_solar.inversor_fabricante_1") return s(inversor?.fabricante as string);
     if (key === "sistema_solar.inversor_modelo") return s(inversor?.modelo as string);

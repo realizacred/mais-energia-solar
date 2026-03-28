@@ -287,6 +287,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("sistema_solar", "sistema_solar.geracao_dez", "geracao_dez", "Geração Dezembro", "Geração estimada em dezembro", "kWh", "1200"),
   v("sistema_solar", "sistema_solar.geracao_anual_0", "geracao_anual_0", "Geração Anual", "Geração anual (Disponível para os 25 anos: _0 a _25)", "kWh", "6.672"),
   v("sistema_solar", "sistema_solar.geracao_anual_0_uc1", "geracao_anual_0_uc1", "Geração Anual UC #", "Geração anual por UC (Disponível para os 25 anos)", "kWh", "6.672"),
+  v("sistema_solar", "sistema_solar.numero_modulos", "numero_modulos", "Número de Módulos", "Quantidade total de módulos solares", "-", "16"),
   v("sistema_solar", "sistema_solar.kit_fechado_quantidade", "kit_fechado_quantidade", "Qtd. Kits Fechados", "Quantidade de kits fechados utilizados", "-", "3"),
   v("sistema_solar", "sistema_solar.segmentos_utilizados", "segmentos_utilizados", "Qtd. Segmentos Utilizados", "Quantidade de segmentos utilizados (mínimo 1)", "-", "5"),
 
@@ -577,6 +578,23 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.baterias_custo_total", "baterias_custo_total", "Baterias Custo Total", "Custo total somado de todas as baterias", "R$", "1000,00"),
   v("financeiro", "financeiro.baterias_preco_total", "baterias_preco_total", "Baterias Preço Total", "Preço de venda total somado de todas as baterias", "R$", "1000,00"),
 
+  // ── Variáveis principais (implementadas no resolver) ──
+  v("financeiro", "financeiro.valor_total", "valor_total", "Valor Total", "Valor total final da proposta", "-", "42.500,00"),
+  v("financeiro", "financeiro.preco_final", "preco_final", "Preço Final", "Preço final após descontos", "-", "42.500,00"),
+  v("financeiro", "financeiro.valor_kit", "valor_kit", "Valor do Kit", "Valor total dos equipamentos", "-", "38.000,00"),
+  v("financeiro", "financeiro.valor_instalacao", "valor_instalacao", "Valor da Instalação", "Valor do serviço de instalação", "-", "2.500,00"),
+  v("financeiro", "financeiro.valor_comissao", "valor_comissao", "Valor da Comissão", "Valor da comissão do consultor", "-", "517,50"),
+  v("financeiro", "financeiro.valor_servicos", "valor_servicos", "Valor dos Serviços", "Total de serviços (instalação + outros)", "-", "3.000,00"),
+  v("financeiro", "financeiro.valor_outros_custos", "valor_outros_custos", "Outros Custos", "Outros custos adicionais", "-", "500,00"),
+  v("financeiro", "financeiro.comissao_total", "comissao_total", "Comissão Total", "Total de comissões pagas", "-", "517,50"),
+  v("financeiro", "financeiro.custo_instalacao_total", "custo_instalacao_total", "Custo Total Instalação", "Custo total do serviço de instalação", "-", "2.500,00"),
+  v("financeiro", "financeiro.margem_valor", "margem_valor", "Margem em Reais", "Valor absoluto da margem de lucro", "-", "1.202,63"),
+  v("financeiro", "financeiro.economia_25_anos", "economia_25_anos", "Economia em 25 Anos", "Economia acumulada em 25 anos", "-", "185.000,00"),
+  v("financeiro", "financeiro.percentual_comissao", "percentual_comissao", "Percentual de Comissão", "% de comissão do consultor", "%", "3,0"),
+  v("financeiro", "financeiro.consultor_comissao", "consultor_comissao", "Consultor da Comissão", "Nome do consultor vinculado à comissão", "-", "João Silva"),
+  v("financeiro", "financeiro.preco_watt", "preco_watt", "Preço por Watt", "Valor em R$/W do sistema", "-", "6,44"),
+  v("financeiro", "financeiro.preco_kwp", "preco_kwp", "Preço por kWp", "Valor em R$/kWp do sistema", "-", "6.439,39"),
+
   // ── Legado (mantido por compatibilidade) ──
   v("financeiro", "financeiro.preco_total", "preco_total", "Preço total (legado)", "Valor total do projeto/proposta (legado)", "R$", "45000.00"),
   v("financeiro", "financeiro.custo_modulos", "custo_modulos", "Custo módulos (legado)", "Custo total dos módulos (legado)", "R$", "12000.00"),
@@ -714,6 +732,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("conta_energia", "conta_energia.gasto_total_mensal_atual_0_uc1", "gasto_total_mensal_atual_0_uc1", "Gasto Total Mensal Atual UC # (série)", "Gasto total atual UC série", "R$", "100,00"),
   v("conta_energia", "conta_energia.gasto_total_mensal_novo_0", "gasto_total_mensal_novo_0", "Gasto Total Mensal Novo UCs (série)", "Gasto total novo UCs série", "R$", "100,00"),
   v("conta_energia", "conta_energia.gasto_total_mensal_novo_0_uc1", "gasto_total_mensal_novo_0_uc1", "Gasto Total Mensal Novo UC # (série)", "Gasto total novo UC série", "R$", "100,00"),
+  v("conta_energia", "conta_energia.co2_evitado_ano", "co2_evitado_ano", "CO₂ Evitado por Ano", "Toneladas de CO₂ evitadas anualmente pela geração solar", "kg", "3.240"),
 
   // ──────────────────────────────────────────────────────────────
   // COMERCIAL
@@ -819,6 +838,9 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.concessionaria_aliquota_icms", "concessionaria_aliquota_icms", "Alíquota ICMS", "Alíquota de ICMS da concessionária", "%", "18"),
   v("comercial", "comercial.concessionaria_percentual_isencao", "concessionaria_percentual_isencao", "% Isenção SCEE", "Percentual de isenção SCEE da concessionária", "%", "100"),
   v("comercial", "comercial.concessionaria_possui_isencao_scee", "concessionaria_possui_isencao_scee", "Possui Isenção SCEE", "Se a concessionária possui isenção SCEE", "-", "Sim"),
+
+  // ── Consultor (nome) ──
+  v("comercial", "comercial.consultor_nome", "consultor_nome", "Nome do Consultor", "Nome completo do consultor responsável", "-", "João Silva"),
 
   // ── Simulação (complementares) ──
   v("comercial", "comercial.simulacao_tipo_conta", "simulacao_tipo_conta", "Tipo de Conta", "Tipo de conta de energia da simulação", "-", "Residencial"),
