@@ -65,40 +65,35 @@ export function EtiquetasManager() {
       return;
     }
 
-    if (editingId) {
-      const { error } = await supabase
-        .from("projeto_etiquetas")
-        .update({ nome: form.nome, cor: form.cor, grupo: form.grupo, short: form.short || null, icon: form.icon || null })
-        .eq("id", editingId);
-      if (error) {
-        toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
-        return;
+    try {
+      if (editingId) {
+        await salvarMutation.mutateAsync({
+          id: editingId,
+          nome: form.nome, cor: form.cor, grupo: form.grupo,
+          short: form.short || null, icon: form.icon || null,
+        });
+        toast({ title: "Etiqueta atualizada" });
+      } else {
+        const ordem = etiquetas.filter(e => e.grupo === form.grupo).length;
+        await salvarMutation.mutateAsync({
+          nome: form.nome, cor: form.cor, grupo: form.grupo,
+          short: form.short || null, icon: form.icon || null, ordem,
+        });
+        toast({ title: "Etiqueta criada" });
       }
-      toast({ title: "Etiqueta atualizada" });
-    } else {
-      const ordem = etiquetas.filter(e => e.grupo === form.grupo).length;
-      const { error } = await supabase
-        .from("projeto_etiquetas")
-        .insert({ nome: form.nome, cor: form.cor, grupo: form.grupo, short: form.short || null, icon: form.icon || null, ordem } as any);
-      if (error) {
-        toast({ title: "Erro ao criar", description: error.message, variant: "destructive" });
-        return;
-      }
-      toast({ title: "Etiqueta criada" });
+      setDialogOpen(false);
+    } catch (e: any) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     }
-
-    setDialogOpen(false);
-    fetchEtiquetas();
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("projeto_etiquetas").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-      return;
+    try {
+      await deletarMutation.mutateAsync(id);
+      toast({ title: "Etiqueta excluída" });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
     }
-    toast({ title: "Etiqueta excluída" });
-    fetchEtiquetas();
   };
 
   const grouped = GRUPO_OPTIONS.map(g => ({

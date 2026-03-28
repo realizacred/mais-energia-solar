@@ -20,21 +20,7 @@ interface StageOption {
   position: number;
 }
 
-interface Automation {
-  id: string;
-  nome: string;
-  ativo: boolean;
-  tipo_gatilho: string;
-  tempo_horas: number;
-  tipo_acao: string;
-  destino_stage_id: string | null;
-  notificar_responsavel: boolean;
-  mensagem_notificacao: string | null;
-  stage_id: string;
-  pipeline_id: string;
-  execucoes_total: number;
-  ultima_execucao: string | null;
-}
+type Automation = PipelineAutomation;
 
 interface Props {
   pipelineId: string;
