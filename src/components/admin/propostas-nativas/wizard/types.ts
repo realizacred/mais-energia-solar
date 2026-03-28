@@ -272,6 +272,8 @@ export interface VendaData {
   observacoes: string;
   /** Override manual do custo do kit no Centro Financeiro */
   custo_kit_override?: number | null;
+  /** Flag indicando que o usuário alterou manualmente a comissão */
+  comissao_manual_override?: boolean;
 }
 
 export interface PagamentoOpcao {

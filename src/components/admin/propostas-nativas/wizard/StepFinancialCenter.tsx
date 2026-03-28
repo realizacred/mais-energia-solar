@@ -64,6 +64,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [comissaoCusto, setComissaoCusto] = useState(venda.custo_comissao > 0 ? venda.custo_comissao : (comissaoServico?.valor || 0));
   const [kitExpanded, setKitExpanded] = useState(false);
   const [kitCustoOverride, setKitCustoOverride] = useState<number | null>(venda.custo_kit_override ?? null);
+  // Track if user manually changed commission (breaks auto-recalc) — declared early for sync effect
+  const [comissaoManualOverride, setComissaoManualOverride] = useState(venda.comissao_manual_override ?? false);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
   const { data: pricingConfig } = usePricingConfig();
 
@@ -202,7 +204,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     const changed =
       venda.custo_instalacao !== newInstalacao ||
       venda.custo_comissao !== newComissao ||
-      venda.custo_outros !== newOutros;
+      venda.custo_outros !== newOutros ||
+      venda.comissao_manual_override !== comissaoManualOverride;
 
     if (changed) {
       onVendaChange({
@@ -210,9 +213,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         custo_instalacao: newInstalacao,
         custo_comissao: newComissao,
         custo_outros: newOutros,
+        comissao_manual_override: comissaoManualOverride,
       });
     }
-  }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras, outrosServicos, servicosEnabledMap]);
+  }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras, outrosServicos, servicosEnabledMap, comissaoManualOverride]);
 
   // ── Calculations ──
 
@@ -290,8 +294,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   );
   const precoVendaSemComissao = roundCurrency(custoSemComissao * (1 + margemPercent / 100));
 
-  // Track if user manually changed commission (breaks auto-recalc)
-  const [comissaoManualOverride, setComissaoManualOverride] = useState(false);
+
 
   // Auto-recalculate commission whenever base price or percentage changes
   useEffect(() => {
