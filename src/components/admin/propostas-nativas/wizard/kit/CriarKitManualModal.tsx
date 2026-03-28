@@ -878,8 +878,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                         <Input value={inv.fabricante} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, fabricante: e.target.value } : x))} className="h-7 text-xs" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Potência (W)</Label>
-                        <Input type="number" min="0" value={inv.potenciaW || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, potenciaW: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
+                        <Label className="text-[10px]">Potência (W) <span className="text-destructive">*</span></Label>
+                        <Input type="number" min="0" value={inv.potenciaW || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, potenciaW: Math.max(0, Number(e.target.value) || 0) } : x))} className={cn("h-7 text-xs", triedSave && (!inv.potenciaW || inv.potenciaW <= 0) && "ring-2 ring-destructive")} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
