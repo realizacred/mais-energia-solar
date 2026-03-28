@@ -113,6 +113,13 @@ export function TemplatesManager() {
   const [builderTemplate, setBuilderTemplate] = useState<PropostaTemplateFull | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const filteredTemplates = useMemo(
+    () => templates.filter(t => t.tipo === tipoTab),
+    [templates, tipoTab]
+  );
+  const htmlCount = useMemo(() => templates.filter(t => t.tipo === "html").length, [templates]);
+  const docxCount = useMemo(() => templates.filter(t => t.tipo === "docx").length, [templates]);
+
   const seedDefaultTemplates = async () => {
     if (!confirm("Isso vai EXCLUIR todos os templates WEB existentes e criar 3 novos (Grid, Híbrido, Dual). Continuar?")) return;
     
