@@ -531,6 +531,7 @@ export function StepPagamento({
             </Button>
           </div>
         </div>
+        </div>
       )}
 
       {/* ─── Tab: Fluxo de caixa ──────────────────────────── */}
