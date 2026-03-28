@@ -98,9 +98,10 @@ export interface ResolverResult {
 
 // ── Formatters ───────────────────────────────────────────────
 
+// AP-17: all values return pure numbers — template adds units
 function fmtCurrency(v: number | null | undefined): string {
   if (v == null) return "-";
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 }).format(v);
+  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 }
 
 function fmtNumber(v: number | null | undefined, decimals = 2): string {
@@ -110,12 +111,12 @@ function fmtNumber(v: number | null | undefined, decimals = 2): string {
 
 function fmtPercent(v: number | null | undefined): string {
   if (v == null) return "-";
-  return `${fmtNumber(v)}%`;
+  return fmtNumber(v);
 }
 
 function fmtKwh(v: number | null | undefined): string {
   if (v == null) return "-";
-  return `${fmtNumber(v, 1)} kWh`;
+  return fmtNumber(v, 1);
 }
 
 // ── Deep get helper ──────────────────────────────────────────
@@ -188,16 +189,16 @@ function resolveFromContext(
   // ── GD ──
   if (key === "gd.regra") return gd ? gd.regra_aplicada.replace("_", " ") : null;
   if (key === "gd.ano_aplicado") return gd ? String(2026) : null;
-  if (key === "gd.fio_b_percent_cobrado") return gd?.fio_b_percent_cobrado != null ? fmtPercent(gd.fio_b_percent_cobrado * 100) : "-";
-  if (key === "gd.fio_b_percent_compensado") return gd?.fio_b_percent_cobrado != null ? fmtPercent((1 - gd.fio_b_percent_cobrado) * 100) : "-";
+  if (key === "gd.fio_b_percent_cobrado") return gd?.fio_b_percent_cobrado != null ? fmtNumber(gd.fio_b_percent_cobrado * 100, 1) : "-";
+  if (key === "gd.fio_b_percent_compensado") return gd?.fio_b_percent_cobrado != null ? fmtNumber((1 - gd.fio_b_percent_cobrado) * 100, 1) : "-";
 
   // ── Cálculo ──
   if (key === "calculo.consumo_mensal_kwh") return gd ? fmtKwh(gd.consumo_kwh) : s(ctx.ucs?.[0]?.consumo_mensal);
-  if (key === "calculo.custo_disponibilidade_kwh") return gd ? `${gd.custo_disponibilidade_kwh} kWh` : null;
+  if (key === "calculo.custo_disponibilidade_kwh") return gd ? String(gd.custo_disponibilidade_kwh) : null;
   if (key === "calculo.consumo_compensavel_kwh") return gd ? fmtKwh(gd.consumo_compensavel_kwh) : null;
   if (key === "calculo.geracao_mensal_kwh") return gd ? fmtKwh(gd.geracao_kwh) : (ctx.geracaoMensal ? fmtKwh(ctx.geracaoMensal) : null);
   if (key === "calculo.energia_compensada_kwh") return gd ? fmtKwh(gd.energia_compensada_kwh) : null;
-  if (key === "calculo.valor_credito_kwh") return gd ? `R$ ${gd.valor_credito_kwh.toFixed(6)}/kWh` : null;
+  if (key === "calculo.valor_credito_kwh") return gd ? gd.valor_credito_kwh.toFixed(6) : null;
   if (key === "calculo.economia_mensal_rs") return gd ? fmtCurrency(gd.economia_mensal_rs) : (ctx.economiaMensal ? fmtCurrency(ctx.economiaMensal) : null);
   if (key === "alerta.estimado.texto_pdf") {
     const precisao = t?.precisao ?? gd?.precisao;
@@ -322,9 +323,9 @@ function resolveFromContext(
   }
 
   // ── Sistema Solar — Equipamentos ──
-  if (key === "sistema_solar.potencia_sistema") return ctx.potenciaKwp ? `${fmtNumber(ctx.potenciaKwp, 2)} kWp` : null;
+  if (key === "sistema_solar.potencia_sistema") return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
   if (key === "sistema_solar.potencia_sistema_numero") return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
-  if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? `${fmtNumber(ctx.geracaoMensal, 0)} kWh/mês` : null;
+  if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
   if (key === "sistema_solar.geracao_mensal_numero") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
   if (key === "sistema_solar.numero_modulos") return ctx.numeroPlacas ? String(ctx.numeroPlacas) : null;
 
@@ -337,13 +338,13 @@ function resolveFromContext(
 
     if (key === "sistema_solar.modulo_fabricante") return s(modulo?.fabricante as string);
     if (key === "sistema_solar.modulo_modelo") return s(modulo?.modelo as string);
-    if (key === "sistema_solar.modulo_potencia") return modulo?.potencia_w ? `${modulo.potencia_w} Wp` : null;
+    if (key === "sistema_solar.modulo_potencia") return modulo?.potencia_w ? String(modulo.potencia_w) : null;
     if (key === "sistema_solar.modulo_potencia_numero") return modulo?.potencia_w ? String(modulo.potencia_w) : null;
     if (key === "sistema_solar.modulo_quantidade") return s((modulo?.quantidade ?? ctx.numeroPlacas) as string | number);
     if (key === "sistema_solar.inversor_fabricante") return s(inversor?.fabricante as string);
     if (key === "sistema_solar.inversor_fabricante_1") return s(inversor?.fabricante as string);
     if (key === "sistema_solar.inversor_modelo") return s(inversor?.modelo as string);
-    if (key === "sistema_solar.inversor_potencia_nominal") return inversor?.potencia_w ? `${inversor.potencia_w} W` : null;
+    if (key === "sistema_solar.inversor_potencia_nominal") return inversor?.potencia_w ? String(inversor.potencia_w) : null;
     if (key === "sistema_solar.inversor_potencia_nominal_numero") return inversor?.potencia_w ? String(inversor.potencia_w) : null;
     if (key === "sistema_solar.inversor_quantidade") return s(inversor?.quantidade as string | number);
   }
@@ -375,7 +376,7 @@ function resolveFromContext(
   if (key === "financeiro.payback_anos") return ctx.paybackAnos ? fmtNumber(ctx.paybackAnos, 1) : null;
   if (key === "financeiro.payback_meses") return ctx.paybackAnos ? fmtNumber(ctx.paybackAnos * 12, 0) : null;
   if (key === "financeiro.preco_kwp") return (ctx.precoTotal && ctx.potenciaKwp) ? fmtCurrency(ctx.precoTotal / ctx.potenciaKwp) : null;
-  if (key === "financeiro.preco_watt") return (ctx.precoTotal && ctx.potenciaKwp) ? `${fmtNumber(ctx.precoTotal / (ctx.potenciaKwp * 1000), 2)} R$/W` : null;
+  if (key === "financeiro.preco_watt") return (ctx.precoTotal && ctx.potenciaKwp) ? fmtNumber(ctx.precoTotal / (ctx.potenciaKwp * 1000), 2) : null;
   if (key === "financeiro.preco_watt_numero") return (ctx.precoTotal && ctx.potenciaKwp) ? fmtNumber(ctx.precoTotal / (ctx.potenciaKwp * 1000), 2) : null;
 
   // ── Financial Center costs (from VendaData) ──
@@ -413,7 +414,7 @@ function resolveFromContext(
     return (inst + outros) > 0 ? fmtCurrency(inst + outros) : null;
   }
   if (key === "financeiro.margem_percentual") {
-    return (ctx.venda as any)?.margem_percentual != null ? `${fmtNumber((ctx.venda as any).margem_percentual, 1)}%` : null;
+    return (ctx.venda as any)?.margem_percentual != null ? fmtNumber((ctx.venda as any).margem_percentual, 1) : null;
   }
   if (key === "financeiro.margem_valor") {
     if (ctx.precoTotal != null && (ctx.venda as any)) {
@@ -436,7 +437,7 @@ function resolveFromContext(
         ) ?? 0);
       if (custoTotal > 0) {
         const margemReal = ((ctx.precoTotal - custoTotal) / custoTotal) * 100;
-        return `${fmtNumber(margemReal, 1)}%`;
+        return fmtNumber(margemReal, 1);
       }
     }
     return null;
@@ -445,7 +446,7 @@ function resolveFromContext(
   // ── Desconto (D1, QW4) ──
   if (key === "financeiro.desconto_percentual") {
     const dp = Number((ctx.venda as any)?.desconto_percentual ?? 0);
-    return dp > 0 ? `${fmtNumber(dp, 1)}%` : "0,0%";
+    return dp > 0 ? fmtNumber(dp, 1) : "0,0";
   }
   if (key === "financeiro.desconto_valor") {
     const dp2 = Number((ctx.venda as any)?.desconto_percentual ?? 0);
@@ -455,13 +456,13 @@ function resolveFromContext(
       const precoPreDesconto = ctx.precoTotal / (1 - dp2 / 100);
       return fmtCurrency(Math.round(precoPreDesconto * dp2 / 100 * 100) / 100);
     }
-    return "R$ 0,00";
+    return "0,00";
   }
 
   // ── Comissão do consultor (D3) ──
   if (key === "financeiro.percentual_comissao") {
     const pc = Number((ctx.venda as any)?.percentual_comissao_consultor ?? 0);
-    return `${fmtNumber(pc, 1)}%`;
+    return fmtNumber(pc, 1);
   }
   if (key === "financeiro.consultor_comissao") {
     return s((ctx.venda as any)?.consultor_nome_comissao) ?? s(ctx.consultorNome) ?? "-";
@@ -501,7 +502,7 @@ function resolveFromContext(
     for (let i = 0; i < Math.min(fins.length, 3); i++) {
       const f = fins[i] as any;
       if (key === `customizada.vc_parcela_${i + 1}`) return f.valor_parcela ? fmtCurrency(Number(f.valor_parcela)) : null;
-      if (key === `customizada.vc_taxa_${i + 1}`) return f.taxa_mensal ? `${fmtNumber(Number(f.taxa_mensal), 2)}%` : null;
+      if (key === `customizada.vc_taxa_${i + 1}`) return f.taxa_mensal ? fmtNumber(Number(f.taxa_mensal), 2) : null;
       if (key === `customizada.vc_prazo_${i + 1}`) return f.num_parcelas ? String(f.num_parcelas) : null;
       if (key === `customizada.vc_entrada_${i + 1}`) return f.entrada ? fmtCurrency(Number(f.entrada)) : null;
     }
@@ -512,7 +513,7 @@ function resolveFromContext(
       const p = allOps[i];
       if (key === `financeiro.f_nome_${i + 1}`) return s(p.nome ?? p.banco);
       if (key === `financeiro.f_parcela_${i + 1}`) return p.valor_parcela ? fmtCurrency(Number(p.valor_parcela)) : null;
-      if (key === `financeiro.f_taxa_${i + 1}`) return p.taxa_mensal ? `${fmtNumber(Number(p.taxa_mensal), 2)}%` : null;
+      if (key === `financeiro.f_taxa_${i + 1}`) return p.taxa_mensal ? fmtNumber(Number(p.taxa_mensal), 2) : null;
       if (key === `financeiro.f_prazo_${i + 1}`) return p.num_parcelas ? String(p.num_parcelas) : null;
       if (key === `financeiro.f_entrada_${i + 1}`) return p.entrada ? fmtCurrency(Number(p.entrada)) : null;
       if (key === `financeiro.f_valor_${i + 1}`) return p.valor_financiado ? fmtCurrency(Number(p.valor_financiado)) : null;
@@ -523,7 +524,7 @@ function resolveFromContext(
       const fa = finAtiva as any;
       if (key === "financeiro.f_ativo_nome") return s(fa.nome ?? fa.banco);
       if (key === "financeiro.f_ativo_parcela") return fa.valor_parcela ? fmtCurrency(Number(fa.valor_parcela)) : null;
-      if (key === "financeiro.f_ativo_taxa") return fa.taxa_mensal ? `${fmtNumber(Number(fa.taxa_mensal), 2)}%` : null;
+      if (key === "financeiro.f_ativo_taxa") return fa.taxa_mensal ? fmtNumber(Number(fa.taxa_mensal), 2) : null;
       if (key === "financeiro.f_ativo_prazo") return fa.num_parcelas ? String(fa.num_parcelas) : null;
       if (key === "financeiro.f_ativo_entrada") return fa.entrada ? fmtCurrency(Number(fa.entrada)) : null;
       if (key === "financeiro.f_ativo_valor") return fa.valor_financiado ? fmtCurrency(Number(fa.valor_financiado)) : null;
@@ -549,7 +550,7 @@ function resolveFromContext(
   if (key === "conta_energia.economia_percentual" && ctx.economiaMensal && ctx.gdResult) {
     const tarifa = (ctx.gdResult.valor_credito_breakdown as any)?.tarifa_energia ?? ctx.gdResult.valor_credito_breakdown?.te ?? 0;
     const gastoAtual = ctx.gdResult.consumo_kwh * tarifa;
-    if (gastoAtual > 0) return `${fmtNumber((ctx.economiaMensal / gastoAtual) * 100, 0)}%`;
+    if (gastoAtual > 0) return fmtNumber((ctx.economiaMensal / gastoAtual) * 100, 0);
   }
 
   // ── Extras override ──
