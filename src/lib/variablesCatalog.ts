@@ -456,6 +456,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ── Legado (mantido por compatibilidade) ──
   v("sistema_solar", "sistema_solar.geracao_anual", "geracao_anual", "Geração anual (legado)", "Geração anual total no ano 0 (legado)", "kWh", "13200"),
   v("sistema_solar", "sistema_solar.modulo_area", "modulo_area", "Área do módulo (legado)", "Área de um módulo (legado)", "m²", "2.58"),
+  v("sistema_solar", "sistema_solar.modulo_area_numero", "modulo_area_numero", "Área do módulo (número)", "Área sem m² — para templates com unidade hardcoded", "-", "2,58"),
   v("sistema_solar", "sistema_solar.modulo_garantia", "modulo_garantia", "Garantia módulo (legado)", "Garantia do fabricante do módulo (legado)", "anos", "25"),
   v("sistema_solar", "sistema_solar.inversor_garantia", "inversor_garantia", "Garantia inversor (legado)", "Garantia do fabricante do inversor (legado)", "anos", "10"),
 
