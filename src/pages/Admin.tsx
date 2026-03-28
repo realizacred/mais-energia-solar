@@ -682,7 +682,7 @@ export default function Admin() {
                 <Route path="aneel-sync-status" element={<AneelSyncStatusPage />} />
                 <Route path="config" element={<CalculadoraConfig />} />
                 <Route path="conf-solar" element={<ConfSolarPage />} />
-                <Route path="variaveis-sistema" element={<VariaveisSystemPage />} />
+                <Route path="variaveis-sistema" element={<Navigate to="/admin/proposta-comercial" replace />} />
                 <Route path="mensagens-proposta" element={<Suspense fallback={<LoadingSpinner />}><ProposalMessageConfigPage /></Suspense>} />
                 <Route path="premissas" element={<PremissasPage />} />
                 <Route path="irradiancia" element={<Navigate to="/admin/meteorologia" replace />} />
