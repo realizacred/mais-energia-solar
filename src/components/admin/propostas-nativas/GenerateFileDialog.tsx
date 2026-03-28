@@ -28,6 +28,8 @@ interface GenerateFileDialogProps {
   versaoId: string;
   propostaId: string;
   onGenerated: (html: string | null) => void;
+  /** Template usado na geração original — inicializa o dropdown */
+  initialTemplateId?: string;
 }
 
 /** Helper to call template-preview and get raw DOCX blob */
@@ -88,6 +90,7 @@ export function GenerateFileDialog({
   versaoId,
   propostaId,
   onGenerated,
+  initialTemplateId,
 }: GenerateFileDialogProps) {
   const [templates, setTemplates] = useState<PropostaTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
@@ -119,9 +122,9 @@ export function GenerateFileDialog({
     setTemplates(tpls);
     setLoadingTemplates(false);
 
-    if (tpls.length > 0) {
-      setSelectedTemplate(tpls[0].id);
-    }
+    // Inicializar com template usado na geração (se existir na lista), senão primeiro
+    const matchInitial = initialTemplateId && tpls.some(t => t.id === initialTemplateId);
+    setSelectedTemplate(matchInitial ? initialTemplateId : (tpls[0]?.id ?? ""));
   };
 
   const webTemplates = useMemo(() => templates.filter(t => t.tipo === "html"), [templates]);
