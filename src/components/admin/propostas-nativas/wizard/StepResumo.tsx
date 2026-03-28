@@ -59,9 +59,6 @@ interface StepResumoProps {
   }>;
 }
 
-function formatBRL(v: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-}
 
 function SectionHeader({ icon: Icon, label }: { icon: any; label: string }) {
   return (
