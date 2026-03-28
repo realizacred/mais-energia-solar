@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, FileText, AlignLeft, icons } from "lucide-react";
+import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, FileText, AlignLeft, Paperclip, Wifi, Package, Zap, MapPin, Settings, icons } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +46,17 @@ const TYPE_ICON_MAP: Record<string, typeof Type> = {
   file: FileText,
 };
 
+/** Contextual icon fallback based on field title keywords */
+const TITLE_ICON_MAP: Array<{ pattern: RegExp; icon: typeof Type }> = [
+  { pattern: /identidade/i, icon: Paperclip },
+  { pattern: /comprovante/i, icon: Paperclip },
+  { pattern: /wi-?fi/i, icon: Wifi },
+  { pattern: /equipamento/i, icon: Package },
+  { pattern: /disjuntor/i, icon: Zap },
+  { pattern: /localiza/i, icon: MapPin },
+  { pattern: /transformador/i, icon: Settings },
+];
+
 export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator = true }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -56,7 +67,8 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   const displayValue = getDisplayValue(field, value);
   const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
   const CustomIcon = field.icon ? (icons as any)[toPascal(field.icon)] : null;
-  const FieldIcon = CustomIcon || TYPE_ICON_MAP[field.field_type] || Type;
+  const TitleIcon = TITLE_ICON_MAP.find(m => m.pattern.test(field.title))?.icon;
+  const FieldIcon = CustomIcon || TitleIcon || TYPE_ICON_MAP[field.field_type] || Type;
 
   function startEdit() {
     if (field.field_type === "boolean") {
