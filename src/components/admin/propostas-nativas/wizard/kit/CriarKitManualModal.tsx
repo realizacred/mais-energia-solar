@@ -884,9 +884,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Fases do inversor</Label>
+                        <Label className="text-[10px]">Fases do inversor <span className="text-destructive">*</span></Label>
                         <Select value={inv.fases} onValueChange={v => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, fases: v } : x))}>
-                          <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Selecione uma fase" /></SelectTrigger>
+                          <SelectTrigger className={cn("h-7 text-xs", triedSave && !inv.fases && "ring-2 ring-destructive")}><SelectValue placeholder="Selecione uma fase" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="monofasico">Monofásico</SelectItem>
                             <SelectItem value="bifasico">Bifásico</SelectItem>
@@ -895,8 +895,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Tensão de linha (V)</Label>
-                        <Input type="number" min="0" value={inv.tensaoLinha || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, tensaoLinha: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
+                        <Label className="text-[10px]">Tensão de linha (V) <span className="text-destructive">*</span></Label>
+                        <Input type="number" min="0" value={inv.tensaoLinha || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, tensaoLinha: Math.max(0, Number(e.target.value) || 0) } : x))} className={cn("h-7 text-xs", triedSave && (!inv.tensaoLinha || inv.tensaoLinha <= 0) && "ring-2 ring-destructive")} />
                       </div>
                     </div>
                   </>
