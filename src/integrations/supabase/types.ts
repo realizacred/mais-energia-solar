@@ -7383,6 +7383,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           credentials: Json
+          fornecedor_id: string | null
           id: string
           is_active: boolean
           last_sync_at: string | null
@@ -7401,6 +7402,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           credentials?: Json
+          fornecedor_id?: string | null
           id?: string
           is_active?: boolean
           last_sync_at?: string | null
@@ -7419,6 +7421,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           credentials?: Json
+          fornecedor_id?: string | null
           id?: string
           is_active?: boolean
           last_sync_at?: string | null
@@ -7433,6 +7436,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "integrations_api_configs_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "integrations_api_configs_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -19407,10 +19417,15 @@ export type Database = {
           created_at: string
           description: string | null
           estimated_kwp: number | null
+          external_data: Json | null
+          external_id: string | null
           fixed_price: number | null
+          fornecedor_id: string | null
           id: string
+          last_synced_at: string | null
           name: string
           pricing_mode: string
+          source: string | null
           status: string
           tenant_id: string
           updated_at: string
@@ -19419,10 +19434,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimated_kwp?: number | null
+          external_data?: Json | null
+          external_id?: string | null
           fixed_price?: number | null
+          fornecedor_id?: string | null
           id?: string
+          last_synced_at?: string | null
           name: string
           pricing_mode?: string
+          source?: string | null
           status?: string
           tenant_id: string
           updated_at?: string
@@ -19431,15 +19451,27 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimated_kwp?: number | null
+          external_data?: Json | null
+          external_id?: string | null
           fixed_price?: number | null
+          fornecedor_id?: string | null
           id?: string
+          last_synced_at?: string | null
           name?: string
           pricing_mode?: string
+          source?: string | null
           status?: string
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "solar_kit_catalog_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "solar_kit_catalog_tenant_id_fkey"
             columns: ["tenant_id"]
