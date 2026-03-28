@@ -1,38 +1,51 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { formatBRL, formatInteger } from "@/lib/formatters/index";
 import { useMetaAdsData } from "@/hooks/useMetaAdsData";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Megaphone, ChevronDown, ChevronUp, ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/ui-kit/StatCard";
+import { MetaNavTabs } from "@/components/admin/meta/MetaNavTabs";
+import { CampaignsGuideSheet } from "@/components/admin/meta/CampaignsGuideSheet";
+import { SearchInput } from "@/components/ui-kit/SearchInput";
+import { Megaphone, ChevronDown, ChevronUp, ArrowUpDown, RefreshCw, DollarSign, Eye, MousePointerClick, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 type SortKey = "campaign_name" | "spend" | "impressions" | "reach" | "clicks" | "ctr" | "leads_count" | "cpl";
 type SortDir = "asc" | "desc";
+type StatusFilter = "ALL" | "ACTIVE" | "PAUSED";
 
 const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: "bg-success/10 text-success",
-  PAUSED: "bg-warning/10 text-warning",
-  DELETED: "bg-destructive/10 text-destructive",
-  ARCHIVED: "bg-muted text-muted-foreground",
+  ACTIVE: "bg-success/10 text-success border-success/30",
+  PAUSED: "bg-warning/10 text-warning border-warning/30",
+  DELETED: "bg-destructive/10 text-destructive border-destructive/30",
+  ARCHIVED: "bg-muted text-muted-foreground border-border",
 };
 
 function StatusBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-xs text-muted-foreground">—</span>;
-  const colorClass = STATUS_COLORS[status] || "bg-muted text-muted-foreground";
+  const colorClass = STATUS_COLORS[status] || "bg-muted text-muted-foreground border-border";
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase tracking-wider ${colorClass}`}>
+    <Badge variant="outline" className={cn("text-[10px] font-semibold uppercase tracking-wider", colorClass)}>
       {status}
-    </span>
+    </Badge>
   );
 }
 
 export default function MetaCampaignsPage() {
-  const { data, isLoading } = useMetaAdsData(30);
+  const { data, isLoading, refetch } = useMetaAdsData(30);
   const campaigns = data?.campaigns ?? [];
+  const { toast } = useToast();
 
   const [sortKey, setSortKey] = useState<SortKey>("spend");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [search, setSearch] = useState("");
+  const [syncing, setSyncing] = useState(false);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -43,18 +56,62 @@ export default function MetaCampaignsPage() {
     }
   };
 
-  const sorted = [...campaigns].sort((a, b) => {
-    const aVal = a[sortKey];
-    const bVal = b[sortKey];
-    if (typeof aVal === "string" && typeof bVal === "string") {
-      return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+  const filtered = useMemo(() => {
+    let result = campaigns;
+    if (statusFilter !== "ALL") {
+      result = result.filter((c) => c.effective_status === statusFilter);
     }
-    return sortDir === "asc" ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
-  });
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((c) => c.campaign_name?.toLowerCase().includes(q));
+    }
+    return result;
+  }, [campaigns, statusFilter, search]);
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const aVal = a[sortKey];
+      const bVal = b[sortKey];
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortDir === "asc" ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
+    });
+  }, [filtered, sortKey, sortDir]);
+
+  // Summary of filtered campaigns
+  const summary = useMemo(() => {
+    return filtered.reduce(
+      (acc, c) => ({
+        spend: acc.spend + c.spend,
+        impressions: acc.impressions + c.impressions,
+        clicks: acc.clicks + c.clicks,
+        reach: acc.reach + c.reach,
+      }),
+      { spend: 0, impressions: 0, clicks: 0, reach: 0 }
+    );
+  }, [filtered]);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const { error } = await supabase.functions.invoke("meta-ads-sync");
+      if (error) throw error;
+      toast({ title: "Sincronização concluída" });
+      refetch();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const SortHeader = ({ label, field, align = "right" }: { label: string; field: SortKey; align?: "left" | "right" }) => (
     <th
-      className={`pb-2 font-medium cursor-pointer hover:text-foreground transition-colors select-none ${align === "right" ? "text-right" : "text-left"}`}
+      className={cn(
+        "pb-2 font-medium cursor-pointer hover:text-foreground transition-colors select-none",
+        align === "right" ? "text-right" : "text-left"
+      )}
       onClick={() => toggleSort(field)}
     >
       <span className="inline-flex items-center gap-1">
@@ -73,15 +130,66 @@ export default function MetaCampaignsPage() {
       <PageHeader
         icon={Megaphone}
         title="Meta Ads — Campanhas"
-        description="Performance por campanha nos últimos 30 dias"
+        description="Visualize suas campanhas de anúncios"
+        actions={
+          <div className="flex items-center gap-2">
+            <CampaignsGuideSheet />
+            <Button
+              onClick={handleSync}
+              disabled={syncing}
+              size="sm"
+              className="gap-1.5"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", syncing && "animate-spin")} />
+              Atualizar
+            </Button>
+          </div>
+        }
       />
+
+      <MetaNavTabs />
+
+      {/* Summary cards */}
+      {!isLoading && filtered.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <StatCard icon={DollarSign} label="Investimento" value={formatBRL(summary.spend)} />
+          <StatCard icon={Users} label="Alcance" value={formatInteger(summary.reach)} />
+          <StatCard icon={Eye} label="Impressões" value={formatInteger(summary.impressions)} />
+          <StatCard icon={MousePointerClick} label="Cliques" value={formatInteger(summary.clicks)} />
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="inline-flex h-9 items-center rounded-md bg-muted p-1 text-muted-foreground">
+          {(["ALL", "ACTIVE", "PAUSED"] as StatusFilter[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={cn(
+                "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-xs font-medium transition-all",
+                statusFilter === s
+                  ? "bg-background text-foreground shadow-sm"
+                  : "hover:bg-background/50 hover:text-foreground"
+              )}
+            >
+              {s === "ALL" ? "Todas" : s === "ACTIVE" ? "Ativas" : "Pausadas"}
+            </button>
+          ))}
+        </div>
+        <SearchInput value={search} onChange={setSearch} placeholder="Buscar campanha..." />
+      </div>
 
       {isLoading ? (
         <Card className="animate-pulse"><CardContent className="p-6 h-40" /></Card>
-      ) : !campaigns.length ? (
+      ) : !sorted.length ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">
-            Nenhuma campanha encontrada. As métricas serão populadas conforme dados forem sincronizados.
+            <Megaphone className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+            <p>Nenhuma campanha encontrada neste período</p>
+            <a href="/admin/meta-facebook-config" className="text-primary text-sm underline mt-1 inline-block">
+              Configurar integração
+            </a>
           </CardContent>
         </Card>
       ) : (
@@ -89,7 +197,7 @@ export default function MetaCampaignsPage() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Megaphone className="h-4 w-4" />
-              Campanhas ({campaigns.length})
+              Campanhas ({sorted.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -112,11 +220,9 @@ export default function MetaCampaignsPage() {
                 <tbody>
                   {sorted.map((c) => {
                     const isExpanded = expandedId === c.campaign_id;
-
                     return (
-                      <>
+                      <React.Fragment key={c.campaign_id}>
                         <tr
-                          key={c.campaign_id}
                           className="border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => setExpandedId(isExpanded ? null : c.campaign_id)}
                         >
@@ -127,12 +233,8 @@ export default function MetaCampaignsPage() {
                               <ChevronDown className="h-4 w-4 text-muted-foreground" />
                             )}
                           </td>
-                          <td className="py-2.5 max-w-[200px] truncate font-medium">
-                            {c.campaign_name}
-                          </td>
-                          <td className="py-2.5 text-center">
-                            <StatusBadge status={c.effective_status} />
-                          </td>
+                          <td className="py-2.5 max-w-[200px] truncate font-medium">{c.campaign_name}</td>
+                          <td className="py-2.5 text-center"><StatusBadge status={c.effective_status} /></td>
                           <td className="py-2.5 text-right font-medium text-primary">{formatBRL(c.spend)}</td>
                           <td className="py-2.5 text-right">{formatInteger(c.impressions)}</td>
                           <td className="py-2.5 text-right">{formatInteger(c.reach)}</td>
@@ -142,7 +244,7 @@ export default function MetaCampaignsPage() {
                           <td className="py-2.5 text-right">{formatBRL(c.cpl)}</td>
                         </tr>
                         {isExpanded && (
-                          <tr key={`${c.campaign_id}-detail`} className="bg-muted/30">
+                          <tr className="bg-muted/30">
                             <td colSpan={10} className="p-4">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                                 <div>
@@ -169,7 +271,7 @@ export default function MetaCampaignsPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
@@ -181,3 +283,5 @@ export default function MetaCampaignsPage() {
     </div>
   );
 }
+
+import React from "react";
