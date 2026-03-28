@@ -303,7 +303,7 @@ export function TemplatesManager() {
 
       if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         nome: form.nome,
         descricao: form.descricao || null,
         grupo: form.grupo,
@@ -319,17 +319,14 @@ export function TemplatesManager() {
       };
 
       if (editingId === "new") {
-        const { error } = await supabase.from("proposta_templates").insert(payload as any);
-        if (error) throw error;
+        await salvarMutation.mutateAsync(payload);
         toast({ title: "Template criado!" });
       } else {
         const { variaveis_disponiveis, tenant_id, ...updatePayload } = payload;
-        const { error } = await supabase.from("proposta_templates").update(updatePayload as any).eq("id", editingId!);
-        if (error) throw error;
+        await salvarMutation.mutateAsync({ ...updatePayload, id: editingId! });
         toast({ title: "Template atualizado!" });
       }
       cancelEdit();
-      loadTemplates();
     } catch (e: any) {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     }
@@ -338,17 +335,8 @@ export function TemplatesManager() {
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este template? Esta ação não pode ser desfeita.")) return;
     try {
-      // First try to delete related records that reference this template
-      const { error: versionsError } = await supabase
-        .from("proposta_versoes" as any)
-        .update({ template_id_used: null } as any)
-        .eq("template_id_used", id);
-      if (versionsError) console.warn("[TemplatesManager] Erro ao desvincular versões:", versionsError.message);
-
-      const { error } = await supabase.from("proposta_templates").delete().eq("id", id);
-      if (error) throw error;
+      await deletarMutation.mutateAsync(id);
       toast({ title: "Template excluído com sucesso" });
-      loadTemplates();
     } catch (e: any) {
       console.error("[TemplatesManager] Erro ao excluir template:", e);
       toast({
@@ -363,13 +351,8 @@ export function TemplatesManager() {
 
   const handleBuilderSave = useCallback(async (jsonData: string) => {
     if (!builderTemplate) return;
-    const { error } = await supabase
-      .from("proposta_templates")
-      .update({ template_html: jsonData } as any)
-      .eq("id", builderTemplate.id);
-    if (error) throw error;
-    loadTemplates();
-  }, [builderTemplate]);
+    await atualizarHtmlMutation.mutateAsync({ id: builderTemplate.id, template_html: jsonData });
+  }, [builderTemplate, atualizarHtmlMutation]);
 
   const isDocx = form.tipo === "docx";
   const dialogOpen = editingId !== null;
