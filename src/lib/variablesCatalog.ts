@@ -332,6 +332,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("sistema_solar", "sistema_solar.inversor_modelo", "inversor_modelo", "Inversor Modelo", "Modelos de todos os inversores concatenados", "-", "UNO-DM / ECO 25"),
   v("sistema_solar", "sistema_solar.inversor_quantidade", "inversor_quantidade", "Inversor Quantidade", "Quantidades de todos os inversores concatenadas", "-", "1 / 2"),
   v("sistema_solar", "sistema_solar.inversor_potencia_nominal", "inversor_potencia_nominal", "Inversor Potência Nominal", "Potências nominais concatenadas", "-", "2.700 / 24.000"),
+  v("sistema_solar", "sistema_solar.inversor_potencia_nominal_numero", "inversor_potencia_nominal_numero", "Inversor Potência Nominal (número)", "Potência sem W — para templates com unidade hardcoded", "-", "8000"),
   v("sistema_solar", "sistema_solar.inversor_potencia", "inversor_potencia", "Inversor Potência Máxima", "Potências máximas concatenadas", "W", "3.000 / 25.000"),
   v("sistema_solar", "sistema_solar.inversor_tensao", "inversor_tensao", "Inversor Tensão", "Tensões concatenadas", "V", "127 / 480"),
   v("sistema_solar", "sistema_solar.inversor_tipo", "inversor_tipo", "Inversor Tipo", "Tipos concatenados", "-", "Monofásico / Trifásico"),
