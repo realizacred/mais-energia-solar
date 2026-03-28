@@ -16,7 +16,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
-import { EmailInput } from "@/components/ui-kit/inputs/EmailInput";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { AddressFields } from "@/components/shared/AddressFields";
 import { Users } from "lucide-react";
 import { useSalvarCliente } from "@/hooks/useClientes";
