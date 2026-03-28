@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { Plus, Trash2, SunMedium, Cable, Zap, BatteryCharging, Check, ChevronsUpDown, X, Package, Settings2, Boxes } from "lucide-react";
+import { Plus, Trash2, SunMedium, Cable, Zap, BatteryCharging, Check, ChevronsUpDown, X, Package, Boxes } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
