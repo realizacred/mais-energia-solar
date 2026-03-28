@@ -280,7 +280,7 @@ function ChecklistCard({
             {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </div>
         </div>
-      </button>
+      </div>
 
       {/* Progress bar */}
       {isExpanded && totalItems > 0 && (
