@@ -576,6 +576,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.custo_instalacao", "custo_instalacao", "Custo instalação (legado)", "Custo de mão de obra (legado)", "R$", "5000.00"),
   v("financeiro", "financeiro.custo_kit", "custo_kit", "Custo do kit (legado)", "Custo total do kit (legado)", "R$", "21000.00"),
   v("financeiro", "financeiro.margem_percentual", "margem_percentual", "Margem % (legado)", "Margem percentual sobre o custo (legado)", "%", "35"),
+  v("financeiro", "financeiro.margem_real", "margem_real", "Margem real (ROI)", "Markup sobre custo: (preço - custo) / custo × 100", "%", "15.0"),
   v("financeiro", "financeiro.desconto_percentual", "desconto_percentual", "Desconto % (legado)", "Desconto aplicado (legado)", "%", "5"),
   v("financeiro", "financeiro.desconto_valor", "desconto_valor", "Desconto R$ (legado)", "Valor do desconto em reais (legado)", "R$", "2250.00"),
   v("financeiro", "financeiro.economia_mensal", "economia_mensal", "Economia mensal (legado)", "Economia mensal estimada (legado)", "R$", "850.00"),
