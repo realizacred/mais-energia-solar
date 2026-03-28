@@ -327,6 +327,7 @@ export function ProposalWizard() {
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
+  const [savedDealId, setSavedDealId] = useState<string | null>(null);
   // Track if editing a previously sent/generated proposal (will branch new version)
   const [editingsentProposal, setEditingSentProposal] = useState(false);
   // Track async DB restore to block UI during loading (race condition fix)
