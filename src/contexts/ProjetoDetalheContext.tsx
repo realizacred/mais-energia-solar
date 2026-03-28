@@ -183,7 +183,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
   // ── UI states ──
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab") as TabId | null;
-  const appliedTabRef = useRef(false);
+  
 
   const validTabs: TabId[] = ["gerenciamento", "comunicacao", "propostas", "documentos", "instalacao"];
 
