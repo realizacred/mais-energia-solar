@@ -274,6 +274,26 @@ export interface VendaData {
   custo_kit_override?: number | null;
   /** Flag indicando que o usuário alterou manualmente a comissão */
   comissao_manual_override?: boolean;
+
+  // Centro Financeiro — estados persistidos (E5/E6/E7)
+  /** Toggle de instalação habilitado */
+  instalacao_enabled?: boolean;
+  /** Toggle de comissão habilitado */
+  comissao_enabled?: boolean;
+  /** Percentual de comissão do consultor (ex: 3.5) */
+  percentual_comissao_consultor?: number;
+  /** Nome do consultor para comissão */
+  consultor_nome_comissao?: string;
+  /** Custos extras adicionados manualmente pelo usuário */
+  custos_extras?: Array<{
+    id: string;
+    item: string;
+    quantidade: number;
+    custo_unitario: number;
+    checked: boolean;
+  }>;
+  /** Mapa de serviços habilitados/desabilitados (id → boolean) */
+  servicos_enabled_map?: Record<string, boolean>;
 }
 
 export interface PagamentoOpcao {
