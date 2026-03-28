@@ -1224,7 +1224,7 @@ function GerenciamentoTab({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
                     if (deal.customer_id) {
-                      navigate(`/admin/clientes?edit=${deal.customer_id}`);
+                      setEditClienteId(deal.customer_id);
                     }
                   }}>
                     <Pencil className="h-3.5 w-3.5 mr-2" />Editar cliente
