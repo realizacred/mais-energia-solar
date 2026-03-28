@@ -577,6 +577,23 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.baterias_custo_total", "baterias_custo_total", "Baterias Custo Total", "Custo total somado de todas as baterias", "R$", "1000,00"),
   v("financeiro", "financeiro.baterias_preco_total", "baterias_preco_total", "Baterias Preço Total", "Preço de venda total somado de todas as baterias", "R$", "1000,00"),
 
+  // ── Variáveis principais (implementadas no resolver) ──
+  v("financeiro", "financeiro.valor_total", "valor_total", "Valor Total", "Valor total final da proposta", "-", "42.500,00"),
+  v("financeiro", "financeiro.preco_final", "preco_final", "Preço Final", "Preço final após descontos", "-", "42.500,00"),
+  v("financeiro", "financeiro.valor_kit", "valor_kit", "Valor do Kit", "Valor total dos equipamentos", "-", "38.000,00"),
+  v("financeiro", "financeiro.valor_instalacao", "valor_instalacao", "Valor da Instalação", "Valor do serviço de instalação", "-", "2.500,00"),
+  v("financeiro", "financeiro.valor_comissao", "valor_comissao", "Valor da Comissão", "Valor da comissão do consultor", "-", "517,50"),
+  v("financeiro", "financeiro.valor_servicos", "valor_servicos", "Valor dos Serviços", "Total de serviços (instalação + outros)", "-", "3.000,00"),
+  v("financeiro", "financeiro.valor_outros_custos", "valor_outros_custos", "Outros Custos", "Outros custos adicionais", "-", "500,00"),
+  v("financeiro", "financeiro.comissao_total", "comissao_total", "Comissão Total", "Total de comissões pagas", "-", "517,50"),
+  v("financeiro", "financeiro.custo_instalacao_total", "custo_instalacao_total", "Custo Total Instalação", "Custo total do serviço de instalação", "-", "2.500,00"),
+  v("financeiro", "financeiro.margem_valor", "margem_valor", "Margem em Reais", "Valor absoluto da margem de lucro", "-", "1.202,63"),
+  v("financeiro", "financeiro.economia_25_anos", "economia_25_anos", "Economia em 25 Anos", "Economia acumulada em 25 anos", "-", "185.000,00"),
+  v("financeiro", "financeiro.percentual_comissao", "percentual_comissao", "Percentual de Comissão", "% de comissão do consultor", "%", "3,0"),
+  v("financeiro", "financeiro.consultor_comissao", "consultor_comissao", "Consultor da Comissão", "Nome do consultor vinculado à comissão", "-", "João Silva"),
+  v("financeiro", "financeiro.preco_watt", "preco_watt", "Preço por Watt", "Valor em R$/W do sistema", "-", "6,44"),
+  v("financeiro", "financeiro.preco_kwp", "preco_kwp", "Preço por kWp", "Valor em R$/kWp do sistema", "-", "6.439,39"),
+
   // ── Legado (mantido por compatibilidade) ──
   v("financeiro", "financeiro.preco_total", "preco_total", "Preço total (legado)", "Valor total do projeto/proposta (legado)", "R$", "45000.00"),
   v("financeiro", "financeiro.custo_modulos", "custo_modulos", "Custo módulos (legado)", "Custo total dos módulos (legado)", "R$", "12000.00"),
