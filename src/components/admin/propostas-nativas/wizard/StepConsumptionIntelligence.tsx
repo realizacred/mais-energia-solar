@@ -107,7 +107,13 @@ export function StepConsumptionIntelligence({
     if (effectiveIrrad <= 0) return;
 
     const currentPd = pdRef.current;
-    const key = `${effectiveIrrad.toFixed(4)}`;
+    const cfgs = currentPd.topologia_configs || {};
+    const key = [
+      effectiveIrrad.toFixed(4),
+      cfgs.tradicional?.desempenho ?? "",
+      cfgs.microinversor?.desempenho ?? "",
+      cfgs.otimizador?.desempenho ?? "",
+    ].join("|");
     if (prevEffIrradKey.current === key) return;
     prevEffIrradKey.current = key;
 
@@ -130,7 +136,7 @@ export function StepConsumptionIntelligence({
         fator_geracao: configs.tradicional?.fator_geracao ?? currentPd.fator_geracao,
       });
     }
-  }, [effectiveIrrad, setPd]);
+  }, [effectiveIrrad, setPd, pd.topologia_configs]);
 
   // ─── Derived metrics
   const consumoTotal = useMemo(() => {
