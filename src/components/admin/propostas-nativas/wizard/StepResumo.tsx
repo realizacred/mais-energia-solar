@@ -41,7 +41,9 @@ interface StepResumoProps {
   // Venda
   precoFinal: number;
   margemPercentual: number;
+  custoInstalacao: number;
   custoComissao: number;
+  custoOutros: number;
   descontoPercentual: number;
   // Pagamento
   pagamentoOpcoes: Array<{
@@ -94,13 +96,19 @@ export function StepResumo({
   clienteNome, clienteCelular, clienteEmail, clienteEmpresa, leadNome,
   potenciaKwp, consumoTotal, geracaoMensalKwh, numUcs, grupo,
   itens, custoKitOverride, adicionais, servicos,
-  precoFinal, margemPercentual, custoComissao, descontoPercentual,
+  precoFinal, margemPercentual, custoInstalacao, custoComissao, custoOutros, descontoPercentual,
   pagamentoOpcoes,
 }: StepResumoProps) {
   const custoKitCalculado = itens.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
   const custoKit = (custoKitOverride != null && custoKitOverride > 0) ? custoKitOverride : custoKitCalculado;
   const custoAdicionais = adicionais.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
   const custoServicos = servicos.reduce((s, i) => s + i.valor, 0);
+  const hasFCCosts = (Number(custoInstalacao) || 0) > 0 || (Number(custoComissao) || 0) > 0 || (Number(custoOutros) || 0) > 0;
+  const custoServicosEfetivo = hasFCCosts
+    ? (Number(custoInstalacao) || 0)
+    : servicos.filter((i) => i.incluso_no_preco).reduce((s, i) => s + i.valor, 0);
+  const custoBase = custoKit + custoServicosEfetivo + (Number(custoComissao) || 0) + (Number(custoOutros) || 0);
+  const margemRealPercentual = precoFinal > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
 
   return (
     <div className="space-y-4">
@@ -300,8 +308,8 @@ export function StepResumo({
                     <span className="font-medium text-foreground text-right">{formatBRL(custoServicos)}</span>
                   </>
                 )}
-                <span className="text-muted-foreground">Margem</span>
-                <span className="font-medium text-foreground text-right">{(Number(margemPercentual) || 0).toFixed(1)}%</span>
+                <span className="text-muted-foreground">Margem real</span>
+                <span className="font-medium text-foreground text-right">{(Number(margemRealPercentual) || 0).toFixed(1)}%</span>
                 {descontoPercentual > 0 && (
                   <>
                     <span className="text-muted-foreground">Desconto</span>

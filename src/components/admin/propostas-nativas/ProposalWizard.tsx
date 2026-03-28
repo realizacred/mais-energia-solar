@@ -2145,7 +2145,9 @@ export function ProposalWizard() {
             servicos={servicos}
             precoFinal={precoFinal}
             margemPercentual={venda.margem_percentual}
+            custoInstalacao={venda.custo_instalacao}
             custoComissao={venda.custo_comissao}
+            custoOutros={venda.custo_outros}
             descontoPercentual={venda.desconto_percentual}
             pagamentoOpcoes={pagamentoOpcoes}
           />
