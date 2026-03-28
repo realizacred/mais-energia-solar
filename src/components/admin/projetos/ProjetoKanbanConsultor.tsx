@@ -25,6 +25,7 @@ interface Props {
   ownerColumns: OwnerColumn[];
   allDeals: DealKanbanCard[];
   onViewProjeto?: (deal: DealKanbanCard) => void;
+  onViewProjetoTab?: (deal: DealKanbanCard, tab: string) => void;
   onNewProject?: (consultorId: string) => void;
   onMoveDealToOwner?: (dealId: string, ownerId: string) => void;
   dynamicEtiquetas?: DynamicEtiqueta[];
@@ -40,7 +41,7 @@ const formatKwp = (v: number) => {
   return _formatKwp(v, 1);
 };
 
-export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, onNewProject, onMoveDealToOwner, dynamicEtiquetas = [] }: Props) {
+export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, onViewProjetoTab, onNewProject, onMoveDealToOwner, dynamicEtiquetas = [] }: Props) {
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -110,6 +111,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                         isDragging={false}
                         onDragStart={() => {}}
                         onClick={() => onViewProjeto?.(deal)}
+                        onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
                         dynamicEtiquetas={dynamicEtiquetas}
                       />
                     ))
@@ -214,6 +216,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                       isDragging={draggedId === deal.deal_id}
                       onDragStart={e => handleDragStart(e, deal.deal_id)}
                       onClick={() => onViewProjeto?.(deal)}
+                      onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
                       dynamicEtiquetas={dynamicEtiquetas}
                     />
                   ))

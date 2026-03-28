@@ -510,6 +510,14 @@ export function ProjetosManager() {
                 ownerColumns={ownerColumns}
                 allDeals={deals}
                 onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
+                onViewProjetoTab={(deal, tab) => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set("projeto", deal.deal_id);
+                    next.set("tab", tab);
+                    return next;
+                  }, { replace: true });
+                }}
                 onMoveDealToOwner={moveDealToOwner}
                 onNewProject={(consultorId) => {
                   setDefaultConsultorId(consultorId);
