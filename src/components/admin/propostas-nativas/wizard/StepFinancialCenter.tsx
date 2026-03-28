@@ -521,23 +521,17 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                       />
                     ) : (
                       <span className="flex items-center gap-1.5">
-                        {row.item}
-                        {isKit && itens.length > 0 && (
-                          kitExpanded
-                            ? <ChevronUp className="h-3 w-3 text-muted-foreground" />
-                            : <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                        )}
-                        {/* Commission badge — in Item column */}
+                        {/* Commission badge — before text in Item column */}
                         {row.id === "comissao" && percentualComissaoConsultor > 0 && (() => {
                           const isOverride = comissaoManualOverride && Math.abs(percentualEfetivo - percentualComissaoConsultor) > 0.01;
                           const isLower = percentualEfetivo < percentualComissaoConsultor - 0.01;
                           const isHigher = percentualEfetivo > percentualComissaoConsultor + 0.01;
-                          // Colors: lower = destructive, higher = success, same = primary (normal)
+                          // Colors: lower = destructive, higher = success, normal = warning
                           const badgeBg = isOverride
-                            ? (isLower ? "bg-destructive/10 text-destructive border-destructive/30" : isHigher ? "bg-success/10 text-success border-success/30" : "bg-primary/10 text-primary border-primary/30")
-                            : "bg-primary/10 text-primary border-primary/30";
+                            ? (isLower ? "bg-destructive/10 text-destructive border-destructive/30" : isHigher ? "bg-success/10 text-success border-success/30" : "bg-warning/10 text-warning border-warning/30")
+                            : "bg-warning/10 text-warning border-warning/30";
                           return (
-                            <TooltipProvider>
+                            <TooltipProvider delayDuration={0}>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Badge variant="outline"
@@ -561,7 +555,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                                       <p className="text-xs text-muted-foreground">
                                         Original: {percentualComissaoConsultor}% de {formatBRL(precoVendaSemComissao)} = {formatBRL(precoVendaSemComissao * percentualComissaoConsultor / 100)}
                                       </p>
-                                      <p className={cn("text-xs font-medium", isLower ? "text-destructive" : isHigher ? "text-success" : "text-primary")}>
+                                      <p className={cn("text-xs font-medium", isLower ? "text-destructive" : isHigher ? "text-success" : "text-warning")}>
                                         Atual: {percentualEfetivo.toFixed(2)}% → {formatBRL(comissaoCusto)}
                                       </p>
                                     </>
@@ -578,6 +572,12 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                             </TooltipProvider>
                           );
                         })()}
+                        {row.item}
+                        {isKit && itens.length > 0 && (
+                          kitExpanded
+                            ? <ChevronUp className="h-3 w-3 text-muted-foreground" />
+                            : <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                        )}
                         {row.id === "comissao" && comissaoEnabled && percentualComissaoConsultor === 0 && comissaoLoaded && (
                           <Badge variant="outline"
                             className="text-[10px] bg-muted text-muted-foreground border-border gap-0.5 px-1.5 py-0">
