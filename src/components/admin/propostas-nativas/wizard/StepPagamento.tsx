@@ -159,16 +159,36 @@ export function StepPagamento({
   const [novoPrazo, setNovoPrazo] = useState("");
   const [novoCarencia, setNovoCarencia] = useState("0");
 
+  // Sync precoFinal into existing banco groups — update valor_financiado + recalc parcela
   useEffect(() => {
-    if (hasUserEditedBancoGroups) return;
-    if (opcoes.length > 0) {
-      setBancoGroups(mapOpcoesToBancoGroups(opcoes, bancos, precoFinal));
-      return;
-    }
-    if (bancos.length > 0) {
-      setBancoGroups(buildBancoGroups(bancos, precoFinal));
-    }
-  }, [opcoes, bancos, precoFinal, hasUserEditedBancoGroups]);
+    if (precoFinal <= 0) return;
+    setBancoGroups(prev => {
+      // If no groups yet, build from scratch
+      if (prev.length === 0 && bancos.length > 0) {
+        return buildBancoGroups(bancos, precoFinal);
+      }
+      // Update valor_financiado and recalculate valor_parcela in all existing options
+      return prev.map(g => ({
+        ...g,
+        opcoes: g.opcoes.map(op => {
+          const newFinanciado = precoFinal - (op.entrada || 0);
+          const vf = Math.max(0, newFinanciado);
+          return {
+            ...op,
+            valor_financiado: precoFinal,
+            valor_parcela: calcParcela({
+              valor_financiado: vf,
+              entrada: op.entrada || 0,
+              num_parcelas: op.num_parcelas,
+              taxa_mensal: op.taxa_mensal,
+              tipo: "financiamento",
+              carencia_meses: op.carencia_meses || 0,
+            }),
+          };
+        }),
+      }));
+    });
+  }, [precoFinal, bancos]);
 
   useEffect(() => {
     onOpcoesChange(flattenBancoGroupsToOpcoes(bancoGroups, precoFinal));
