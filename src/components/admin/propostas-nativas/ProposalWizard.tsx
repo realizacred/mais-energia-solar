@@ -1015,6 +1015,7 @@ export function ProposalWizard() {
     if (res.propostaId) setSavedPropostaId(res.propostaId);
     if (res.versaoId) setSavedVersaoId(res.versaoId);
     if (res.projetoId) setSavedProjetoId(res.projetoId);
+    if (res.dealId) setSavedDealId(res.dealId);
   }, []);
 
   const handleSaveDraft = useCallback(async () => {
