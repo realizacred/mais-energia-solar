@@ -126,8 +126,13 @@ export function ProjetoOutrosCampos({ clienteId, dealId, importantFields, custom
     );
   }
 
+  // Build set of important field titles (lowercased) to exclude from "Outros campos"
+  const importantTitlesLower = new Set(
+    importantFields.map(f => f.title.toLowerCase().trim())
+  );
+
   // ── "Outros campos" rows definition ──
-  const outrosCamposRows: OutroCampoRow[] = [
+  const allOutrosCamposRows: OutroCampoRow[] = [
     {
       key: "identidade",
       label: "Identidade",
@@ -193,6 +198,11 @@ export function ProjetoOutrosCampos({ clienteId, dealId, importantFields, custom
       dbField: "observacoes",
     },
   ];
+
+  // Filter out rows already shown in "Campos importantes"
+  const outrosCamposRows = allOutrosCamposRows.filter(
+    row => !importantTitlesLower.has(row.label.toLowerCase().trim())
+  );
 
   return (
     <div className="space-y-2">
