@@ -48,6 +48,7 @@ import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
 import { useQuery } from "@tanstack/react-query";
+import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import { usePropostasProjetoTab, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
 import {
   ProjetoDetalheProvider,
