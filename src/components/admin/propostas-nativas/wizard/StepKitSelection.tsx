@@ -242,9 +242,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   // Build KitCardData from current itens for the Edit Kit Fechado modal
   const currentKitCards = useMemo(() => {
     if (!itens || itens.length === 0) return [];
-    const card = kitItemsToCardData(itens);
+    const card = kitItemsToCardData(itens, undefined, custoKitOverride);
     return card ? [card] : [];
-  }, [itens]);
+  }, [itens, custoKitOverride]);
 
   // Filter & sort catalog kits based on sidebar filters
   const filteredCatalogKits = useMemo(() => {
