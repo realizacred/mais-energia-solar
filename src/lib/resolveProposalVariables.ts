@@ -327,6 +327,7 @@ function resolveFromContext(
   if (key === "sistema_solar.potencia_sistema_numero") return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
   if (key === "sistema_solar.geracao_mensal") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
   if (key === "sistema_solar.geracao_mensal_numero") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal, 0) : null;
+  if (key === "sistema_solar.geracao_anual") return ctx.geracaoMensal ? fmtNumber(ctx.geracaoMensal * 12, 0) : null;
   if (key === "sistema_solar.numero_modulos") return ctx.numeroPlacas ? String(ctx.numeroPlacas) : null;
 
   // Equipment from kit items
