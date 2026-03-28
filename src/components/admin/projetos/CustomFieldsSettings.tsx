@@ -1305,6 +1305,8 @@ function SwitchRow({ label, checked, onChange }: { label: string; checked: boole
 
 function SwitchCell({ value, fieldId, column, onUpdate }: { value: boolean; fieldId: string; column: string; onUpdate: () => void }) {
   const [checked, setChecked] = useState(value);
+  // Sync local state when parent re-renders with updated value
+  useEffect(() => { setChecked(value); }, [value]);
   return (
     <Switch
       checked={checked}
