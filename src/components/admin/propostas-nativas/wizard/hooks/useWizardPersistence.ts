@@ -292,6 +292,7 @@ async function persistProposalAtomic(
         propostaId: result.proposta_id,
         versaoId: result.versao_id,
         projetoId: result.projeto_id,
+        dealId: result.deal_id,
         newVersionCreated: false,
         message: "Proposta criada com sucesso",
       };
