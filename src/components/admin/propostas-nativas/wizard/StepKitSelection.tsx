@@ -235,7 +235,60 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
   const consumoTotal = filters.buscarValor;
 
-  const mockKits: KitCardData[] = []; // Manual mode only for now
+  // Build KitCardData from current itens for the Edit Kit Fechado modal
+  const currentKitCards = useMemo(() => {
+    if (!itens || itens.length === 0) return [];
+    const card = kitItemsToCardData(itens);
+    return card ? [card] : [];
+  }, [itens]);
+
+  // Filter & sort catalog kits based on sidebar filters
+  const filteredCatalogKits = useMemo(() => {
+    let result = [...catalogKits];
+
+    // Text search by distributor name (match against kit name as proxy)
+    if (filters.searchDistribuidor.trim()) {
+      const q = filters.searchDistribuidor.toLowerCase();
+      result = result.filter(k => k.name.toLowerCase().includes(q) || (k.description || "").toLowerCase().includes(q));
+    }
+
+    // Text search by module description
+    if (filters.searchModulo.trim()) {
+      const q = filters.searchModulo.toLowerCase();
+      result = result.filter(k => {
+        const summary = catalogSummaries.get(k.id);
+        return summary ? summary.moduloDescricao.toLowerCase().includes(q) : true;
+      });
+    }
+
+    // Text search by inverter description
+    if (filters.searchInversor.trim()) {
+      const q = filters.searchInversor.toLowerCase();
+      result = result.filter(k => {
+        const summary = catalogSummaries.get(k.id);
+        return summary ? summary.inversorDescricao.toLowerCase().includes(q) : true;
+      });
+    }
+
+    // Sort
+    if (orderBy === "menor_preco") {
+      result.sort((a, b) => {
+        const pa = a.fixed_price || catalogSummaries.get(a.id)?.custoTotal || 0;
+        const pb = b.fixed_price || catalogSummaries.get(b.id)?.custoTotal || 0;
+        return pa - pb;
+      });
+    } else if (orderBy === "maior_preco") {
+      result.sort((a, b) => {
+        const pa = a.fixed_price || catalogSummaries.get(a.id)?.custoTotal || 0;
+        const pb = b.fixed_price || catalogSummaries.get(b.id)?.custoTotal || 0;
+        return pb - pa;
+      });
+    } else if (orderBy === "potencia") {
+      result.sort((a, b) => (b.estimated_kwp || 0) - (a.estimated_kwp || 0));
+    }
+
+    return result;
+  }, [catalogKits, catalogSummaries, filters.searchDistribuidor, filters.searchModulo, filters.searchInversor, orderBy]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
@@ -320,7 +373,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     );
   }
 
-  const activeKits = tab === "manual" ? [] : mockKits;
+  const activeKits = tab === "manual" ? [] : currentKitCards;
 
   return (
     <div className="space-y-4">
@@ -453,12 +506,18 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                   <p className="text-sm font-medium text-muted-foreground">Nenhum kit ativo no catálogo</p>
                   <p className="text-xs text-muted-foreground/70 mt-1">Cadastre kits em Configurações → Catálogo de Kits</p>
                 </div>
+              ) : filteredCatalogKits.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <BookOpen className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">Nenhum kit corresponde aos filtros</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou limpe para ver todos</p>
+                </div>
               ) : (
                 <div className={viewMode === "grid"
                   ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
                   : "space-y-2"
                 }>
-                  {catalogKits.map(kit => {
+                  {filteredCatalogKits.map(kit => {
                     const summary = catalogSummaries.get(kit.id);
                     const isSelected = selectedCatalogKitId === kit.id;
 
@@ -758,21 +817,40 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       <EditarKitFechadoModal
         open={showEditKitFechado}
         onOpenChange={setShowEditKitFechado}
-        kits={mockKits.filter(k => itens.some(i => i.descricao.includes(k.moduloDescricao)))}
+        kits={currentKitCards}
         onSave={(selected) => {
-          // Re-build itens from selected kits
-          const newItens: KitItemRow[] = selected.flatMap(({ kit, quantidade }) => [
-            {
-              id: crypto.randomUUID(), descricao: `${kit.moduloQtd * quantidade}x ${kit.moduloDescricao}`,
-              fabricante: kit.distribuidorNome, modelo: kit.moduloDescricao, potencia_w: (kit.moduloPotenciaKwp * 1000) / kit.moduloQtd,
-              quantidade: kit.moduloQtd * quantidade, preco_unitario: 0, categoria: "modulo" as const, avulso: false,
-            },
-            {
-              id: crypto.randomUUID(), descricao: `${kit.inversorQtd * quantidade}x ${kit.inversorDescricao}`,
-              fabricante: kit.distribuidorNome, modelo: kit.inversorDescricao, potencia_w: kit.inversorPotenciaKw * 1000,
-              quantidade: kit.inversorQtd * quantidade, preco_unitario: 0, categoria: "inversor" as const, avulso: false,
-            },
-          ]);
+          // Preserve existing prices from current itens
+          const existingModPrice = itens.find(i => i.categoria === "modulo")?.preco_unitario || 0;
+          const existingInvPrice = itens.find(i => i.categoria === "inversor")?.preco_unitario || 0;
+          const newItens: KitItemRow[] = selected.flatMap(({ kit, quantidade }) => {
+            // Distribute precoTotal proportionally if available
+            const totalPreco = kit.precoTotal || 0;
+            const moduloQtd = kit.moduloQtd * quantidade;
+            const inversorQtd = kit.inversorQtd * quantidade;
+            const moduloPotW = kit.moduloPotenciaKwp * 1000;
+            const inversorPotW = kit.inversorPotenciaKw * 1000 * kit.inversorQtd;
+            const totalWeight = moduloPotW + inversorPotW;
+
+            const moduloPreco = totalPreco > 0 && totalWeight > 0
+              ? Math.round((moduloPotW / totalWeight * totalPreco / moduloQtd) * 100) / 100
+              : existingModPrice;
+            const inversorPreco = totalPreco > 0 && totalWeight > 0
+              ? Math.round(((totalPreco - moduloPreco * moduloQtd) / inversorQtd) * 100) / 100
+              : existingInvPrice;
+
+            return [
+              {
+                id: crypto.randomUUID(), descricao: `${moduloQtd}x ${kit.moduloDescricao}`,
+                fabricante: kit.distribuidorNome, modelo: kit.moduloDescricao, potencia_w: (kit.moduloPotenciaKwp * 1000) / kit.moduloQtd,
+                quantidade: moduloQtd, preco_unitario: moduloPreco, categoria: "modulo" as const, avulso: false,
+              },
+              {
+                id: crypto.randomUUID(), descricao: `${inversorQtd}x ${kit.inversorDescricao}`,
+                fabricante: kit.distribuidorNome, modelo: kit.inversorDescricao, potencia_w: kit.inversorPotenciaKw * 1000,
+                quantidade: inversorQtd, preco_unitario: inversorPreco, categoria: "inversor" as const, avulso: false,
+              },
+            ];
+          });
           onItensChange(newItens);
           toast({ title: "Kit atualizado" });
         }}

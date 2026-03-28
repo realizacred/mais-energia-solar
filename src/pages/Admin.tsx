@@ -37,6 +37,7 @@ const PerformanceDashboard = lazy(() => import("@/components/admin/PerformanceDa
 const VendedoresManager = lazy(() => import("@/components/admin/VendedoresManager"));
 const CalculadoraConfig = lazy(() => import("@/components/admin/CalculadoraConfig"));
 const FinanciamentoConfig = lazy(() => import("@/components/admin/FinanciamentoConfig"));
+const FormasPagamentoPage = lazy(() => import("@/components/admin/FormasPagamentoPage").then(m => ({ default: m.FormasPagamentoPage })));
 const WebhookManager = lazy(() => import("@/components/admin/WebhookManager"));
 const ClientesManager = lazy(() => import("@/components/admin/ClientesManager").then(m => ({ default: m.ClientesManager })));
 const RecebimentosManager = lazy(() => import("@/components/admin/RecebimentosManager").then(m => ({ default: m.RecebimentosManager })));
@@ -662,6 +663,7 @@ export default function Admin() {
                 <Route path="fechamento-caixa" element={<FechamentoCaixaPage />} />
                 <Route path="engenharia" element={<Navigate to="/admin/premissas" replace />} />
                 <Route path="financiamento" element={<FinanciamentoConfig />} />
+                <Route path="formas-pagamento" element={<FormasPagamentoPage />} />
                 <Route path="fiscal" element={<FiscalPage />} />
                 
                 {/* Cadastros */}
