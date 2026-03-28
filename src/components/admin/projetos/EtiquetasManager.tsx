@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { useProjetoEtiquetas, useSalvarEtiqueta, useDeletarEtiqueta } from "@/hooks/useProjetoEtiquetas";
+import type { ProjetoEtiqueta } from "@/hooks/useProjetoEtiquetas";
 import { useToast } from "@/hooks/use-toast";
 import { Tag, Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";

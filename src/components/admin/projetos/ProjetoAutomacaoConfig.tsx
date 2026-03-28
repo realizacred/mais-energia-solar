@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { usePipelineAutomations, useCriarAutomacao, useAtualizarAutomacao, useDeletarAutomacao } from "@/hooks/usePipelineAutomations";
+import type { PipelineAutomation } from "@/hooks/usePipelineAutomations";
 import { toast } from "@/hooks/use-toast";
 import { Zap, Plus, Trash2, Power, PowerOff, Clock, ArrowRight, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";

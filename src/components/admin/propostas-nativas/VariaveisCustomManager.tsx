@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Trash2, Edit2, Save, X, Variable, TestTube, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { validateExpression, evaluate, extractVariables } from "@/lib/expressionEngine";
+import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom } from "@/hooks/useVariaveisCustom";
+import type { VariavelCustom } from "@/hooks/useVariaveisCustom";
 
 interface VariavelCustom {
   id: string;
