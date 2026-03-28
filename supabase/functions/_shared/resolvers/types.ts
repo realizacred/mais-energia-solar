@@ -28,6 +28,11 @@ export function fmtCur(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 }).format(v);
 }
 
+/** Format number without currency symbol — AP-17: variables return pure values */
+export function fmtVal(v: number, decimals = 2): string {
+  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v);
+}
+
 export function fmtNum(v: number, decimals = 2): string {
   return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v);
 }
