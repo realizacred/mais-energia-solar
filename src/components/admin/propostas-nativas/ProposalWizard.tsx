@@ -843,6 +843,9 @@ export function ProposalWizard() {
           if (propostaMeta?.projeto_id) {
             setSavedProjetoId(propostaMeta.projeto_id);
           }
+          if (propostaMeta?.deal_id) {
+            setSavedDealId(propostaMeta.deal_id);
+          }
 
           // Enrich selectedLead if missing from snapshot
           if (!s.selectedLead) {
