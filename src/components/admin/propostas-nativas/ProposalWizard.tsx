@@ -49,6 +49,7 @@ import { StepFinancialCenter } from "./wizard/StepFinancialCenter";
 import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
 import { useWizardPersistence, type WizardSnapshot, type PersistenceParams, type AtomicPersistResult } from "./wizard/hooks/useWizardPersistence";
 import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
+import { usePaymentInterestConfigs } from "@/hooks/usePaymentInterestConfig";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepResumo } from "./wizard/StepResumo";
 import { StepDocumento } from "./wizard/StepDocumento";
