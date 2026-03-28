@@ -327,6 +327,8 @@ export function ProposalWizard() {
       ?? (selectedLead as any)?.responsavel_nome ?? "",
     consultor_email: (selectedLead as any)?.consultor_email ?? "",
     consultor_telefone: (selectedLead as any)?.consultor_telefone ?? "",
+    // Formas de pagamento próprias (admin-configured) — embedded for public page
+    formas_pagamento_proprias: formasPagamentoProprias,
   }), [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
     locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
@@ -334,7 +336,7 @@ export function ProposalWizard() {
     customFieldValues, premissas, preDimensionamento,
     itens, layouts, manualKits, adicionais, servicos, venda,
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
-    step, geracaoMensalEstimada,
+    step, geracaoMensalEstimada, formasPagamentoProprias,
   ]);
 
   // ─── Local draft: auto-save to localStorage on every state change
