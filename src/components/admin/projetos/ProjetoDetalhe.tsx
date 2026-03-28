@@ -612,7 +612,7 @@ function GerenciamentoTab({
   customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
   ownerName, currentStage, currentPipeline,
   formatDate, formatBRL, getStageNameById, userNamesMap,
-  onRefreshCustomer,
+  onRefreshCustomer, onEditCliente,
 }: {
   deal: DealDetail; history: StageHistory[]; stages: StageInfo[];
   customerName: string; customerPhone: string; customerEmail: string;
@@ -622,6 +622,7 @@ function GerenciamentoTab({
   getStageNameById: (id: string | null) => string;
   userNamesMap: Map<string, string>;
   onRefreshCustomer?: () => void;
+  onEditCliente?: (clienteId: string) => void;
 }) {
   const navigate = useNavigate();
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
