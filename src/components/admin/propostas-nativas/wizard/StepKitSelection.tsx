@@ -200,9 +200,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       // Find catalog kit for full metadata
       const catalogKit = catalogKits.find(k => k.id === kitId);
       const summary = catalogSummaries.get(kitId);
-      // Detect topology from kit items (otimizador items → otimizador, else fallback)
-      const hasOtimizador = rows.some(r => r.categoria === "otimizador");
-      const topoLabel = hasOtimizador ? "Otimizador" : (pd?.topologias?.[0] || "Tradicional");
+      // Default catalog kits to "Tradicional" — kit topology is not stored in catalog table
+      const topoLabel = "Tradicional";
       const card = kitItemsToCardData(rows, topoLabel);
 
       // Cost: prefer fixed_price from catalog, then calculated from item unit_prices
