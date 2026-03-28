@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { toast } from "@/hooks/use-toast";
 import { type LeadSelection, type ClienteData, UF_LIST } from "./types";
+import { formatPhoneBR } from "@/lib/formatters";
 
 interface Props {
   selectedLead: LeadSelection | null;
@@ -219,7 +220,7 @@ function LeadsSemProposta({
                 <div>
                   <p className="font-medium text-sm truncate">{l.nome}</p>
                   <p className="text-xs text-muted-foreground">
-                    {l.telefone} • {l.lead_code || "—"}
+                    {formatPhoneBR(l.telefone)} • {l.lead_code || "—"}
                     {l.media_consumo ? ` • ${l.media_consumo} kWh` : ""}
                     {l.estado ? ` • ${l.estado}` : ""}
                   </p>
@@ -256,7 +257,7 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
             <div>
               <p className="text-xs text-muted-foreground">Lead vinculado</p>
               <p className="font-semibold text-sm">{selectedLead.nome}</p>
-              <p className="text-xs text-muted-foreground">{selectedLead.telefone} • {selectedLead.lead_code}</p>
+              <p className="text-xs text-muted-foreground">{formatPhoneBR(selectedLead.telefone)} • {selectedLead.lead_code}</p>
             </div>
             <Button variant="ghost" size="sm" onClick={onClearLead}>Desvincular</Button>
           </div>
@@ -443,7 +444,7 @@ function StepClienteForm({
         <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/15">
           <div>
             <p className="font-semibold">{selectedLead.nome}</p>
-            <p className="text-sm text-muted-foreground">{selectedLead.telefone} • {selectedLead.lead_code}</p>
+            <p className="text-sm text-muted-foreground">{formatPhoneBR(selectedLead.telefone)} • {selectedLead.lead_code}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={onClearLead}>Trocar</Button>
         </div>
@@ -463,7 +464,7 @@ function StepClienteForm({
               {leads.map(l => (
                 <Button key={l.id} variant="ghost" className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors h-auto justify-start flex-col items-start rounded-none" onClick={() => handleSelect(l)}>
                   <p className="font-medium text-sm truncate">{l.nome}</p>
-                  <p className="text-xs text-muted-foreground">{l.telefone} • {l.lead_code}{l.estado ? ` • ${l.estado}` : ""}</p>
+                  <p className="text-xs text-muted-foreground">{formatPhoneBR(l.telefone)} • {l.lead_code}{l.estado ? ` • ${l.estado}` : ""}</p>
                 </Button>
               ))}
             </div>
