@@ -166,7 +166,7 @@ export function StepResumo({
               <span className="text-muted-foreground">Empresa</span>
               <span className="font-medium text-foreground">{clienteEmpresa || "—"}</span>
               <span className="text-muted-foreground">Telefone</span>
-              <span className="font-medium text-foreground">{clienteCelular || "—"}</span>
+              <span className="font-medium text-foreground">{clienteCelular ? formatPhoneBR(clienteCelular) : "—"}</span>
               <span className="text-muted-foreground">E-mail</span>
               <span className="font-medium text-foreground">{clienteEmail || "—"}</span>
               <span className="text-muted-foreground">Grupo</span>
