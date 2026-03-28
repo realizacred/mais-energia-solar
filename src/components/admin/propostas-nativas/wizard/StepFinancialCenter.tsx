@@ -64,6 +64,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [comissaoCusto, setComissaoCusto] = useState(venda.custo_comissao > 0 ? venda.custo_comissao : (comissaoServico?.valor || 0));
   const [kitExpanded, setKitExpanded] = useState(false);
   const [kitCustoOverride, setKitCustoOverride] = useState<number | null>(venda.custo_kit_override ?? null);
+  // Track if user manually changed commission (breaks auto-recalc) — declared early for sync effect
+  const [comissaoManualOverride, setComissaoManualOverride] = useState(venda.comissao_manual_override ?? false);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
   const { data: pricingConfig } = usePricingConfig();
 
