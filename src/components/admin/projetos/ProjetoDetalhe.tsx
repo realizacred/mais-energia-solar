@@ -48,6 +48,7 @@ import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
 import { useQuery } from "@tanstack/react-query";
+import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import { usePropostasProjetoTab, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
 import {
   ProjetoDetalheProvider,
@@ -568,16 +569,10 @@ function ProjetoDetalheContent() {
 // ─── Consultor Options (lazy loaded) ─────────────
 // ═══════════════════════════════════════════════════
 function ConsultorOptions({ onResolveName }: { onResolveName?: (id: string, name: string) => void }) {
-  const [consultores, setConsultores] = useState<{ id: string; nome: string }[]>([]);
+  const { data: consultores = [] } = useConsultoresAtivos();
   useEffect(() => {
-    supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome")
-      .then(({ data }) => {
-        if (data) {
-          setConsultores(data as any[]);
-          if (onResolveName) (data as any[]).forEach(c => onResolveName(c.id, c.nome));
-        }
-      });
-  }, []);
+    if (onResolveName) consultores.forEach(c => onResolveName(c.id, c.nome));
+  }, [consultores, onResolveName]);
   return <>{consultores.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</>;
 }
 

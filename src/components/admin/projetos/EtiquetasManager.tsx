@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { useProjetoEtiquetas, useSalvarEtiqueta, useDeletarEtiqueta } from "@/hooks/useProjetoEtiquetas";
+import type { ProjetoEtiqueta } from "@/hooks/useProjetoEtiquetas";
 import { useToast } from "@/hooks/use-toast";
 import { Tag, Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,16 +18,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-interface Etiqueta {
-  id: string;
-  nome: string;
-  cor: string;
-  grupo: string;
-  short: string | null;
-  icon: string | null;
-  ordem: number;
-  ativo: boolean;
-}
+type Etiqueta = ProjetoEtiqueta;
 
 const GRUPO_OPTIONS = [
   { value: "fornecedor", label: "Fornecedor" },
@@ -47,29 +39,13 @@ const COLOR_PRESETS = [
 ];
 
 export function EtiquetasManager() {
-  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: etiquetas = [], isLoading: loading } = useProjetoEtiquetas();
+  const salvarMutation = useSalvarEtiqueta();
+  const deletarMutation = useDeletarEtiqueta();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ nome: "", cor: COLOR_PRESETS[0], grupo: "fornecedor", short: "", icon: "" });
   const { toast } = useToast();
-
-  const fetchEtiquetas = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("projeto_etiquetas")
-      .select("id, nome, cor, grupo, short, icon, ordem, ativo")
-      .order("grupo")
-      .order("ordem");
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      setEtiquetas((data || []) as Etiqueta[]);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchEtiquetas(); }, []);
 
   const openCreate = () => {
     setEditingId(null);
@@ -89,40 +65,35 @@ export function EtiquetasManager() {
       return;
     }
 
-    if (editingId) {
-      const { error } = await supabase
-        .from("projeto_etiquetas")
-        .update({ nome: form.nome, cor: form.cor, grupo: form.grupo, short: form.short || null, icon: form.icon || null })
-        .eq("id", editingId);
-      if (error) {
-        toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
-        return;
+    try {
+      if (editingId) {
+        await salvarMutation.mutateAsync({
+          id: editingId,
+          nome: form.nome, cor: form.cor, grupo: form.grupo,
+          short: form.short || null, icon: form.icon || null,
+        });
+        toast({ title: "Etiqueta atualizada" });
+      } else {
+        const ordem = etiquetas.filter(e => e.grupo === form.grupo).length;
+        await salvarMutation.mutateAsync({
+          nome: form.nome, cor: form.cor, grupo: form.grupo,
+          short: form.short || null, icon: form.icon || null, ordem,
+        });
+        toast({ title: "Etiqueta criada" });
       }
-      toast({ title: "Etiqueta atualizada" });
-    } else {
-      const ordem = etiquetas.filter(e => e.grupo === form.grupo).length;
-      const { error } = await supabase
-        .from("projeto_etiquetas")
-        .insert({ nome: form.nome, cor: form.cor, grupo: form.grupo, short: form.short || null, icon: form.icon || null, ordem } as any);
-      if (error) {
-        toast({ title: "Erro ao criar", description: error.message, variant: "destructive" });
-        return;
-      }
-      toast({ title: "Etiqueta criada" });
+      setDialogOpen(false);
+    } catch (e: any) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     }
-
-    setDialogOpen(false);
-    fetchEtiquetas();
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("projeto_etiquetas").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-      return;
+    try {
+      await deletarMutation.mutateAsync(id);
+      toast({ title: "Etiqueta excluída" });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
     }
-    toast({ title: "Etiqueta excluída" });
-    fetchEtiquetas();
   };
 
   const grouped = GRUPO_OPTIONS.map(g => ({

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Trash2, Edit2, Save, X, Variable, TestTube, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { validateExpression, evaluate, extractVariables } from "@/lib/expressionEngine";
+import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom } from "@/hooks/useVariaveisCustom";
+
 
 interface VariavelCustom {
   id: string;
@@ -58,8 +59,9 @@ const VARIAVEIS_DISPONIVEIS = [
 ];
 
 export function VariaveisCustomManager() {
-  const [variaveis, setVariaveis] = useState<VariavelCustom[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: variaveis = [], isLoading: loading } = useVariaveisCustom();
+  const salvarMutation = useSalvarVariavelCustom();
+  const deletarMutation = useDeletarVariavelCustom();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<VariavelCustom>>({});
   const [editBaseline, setEditBaseline] = useState<string>("");
@@ -68,23 +70,10 @@ export function VariaveisCustomManager() {
   const isEditDirty = useMemo(() => {
     if (!editingId) return false;
     if (editingId === "new") {
-      // For new items, dirty if any required field is filled
       return !!(form.nome && form.nome !== "vc_" && form.label && form.expressao);
     }
     return JSON.stringify(form) !== editBaseline;
   }, [form, editBaseline, editingId]);
-
-  const loadVariaveis = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("proposta_variaveis_custom")
-      .select("id, nome, label, expressao, tipo_resultado, categoria, ordem, ativo, descricao")
-      .order("ordem", { ascending: true });
-    setVariaveis((data as VariavelCustom[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { loadVariaveis(); }, []);
 
   const startNew = () => {
     setEditingId("new");
@@ -135,29 +124,21 @@ export function VariaveisCustomManager() {
     }
 
     try {
+      const payload: Record<string, unknown> = {
+        nome: form.nome, label: form.label, expressao: form.expressao,
+        tipo_resultado: form.tipo_resultado || "number",
+        categoria: form.categoria || "geral",
+        ordem: form.ordem || 0, ativo: form.ativo ?? true,
+        descricao: form.descricao || null,
+      };
       if (editingId === "new") {
-        const { error } = await supabase.from("proposta_variaveis_custom").insert({
-          nome: form.nome, label: form.label, expressao: form.expressao,
-          tipo_resultado: form.tipo_resultado || "number",
-          categoria: form.categoria || "geral",
-          ordem: form.ordem || 0, ativo: form.ativo ?? true,
-          descricao: form.descricao || null,
-        } as any);
-        if (error) throw error;
+        await salvarMutation.mutateAsync(payload);
         toast({ title: "Variável criada!" });
       } else {
-        const { error } = await supabase.from("proposta_variaveis_custom")
-          .update({
-            nome: form.nome, label: form.label, expressao: form.expressao,
-            tipo_resultado: form.tipo_resultado, categoria: form.categoria,
-            ordem: form.ordem, ativo: form.ativo, descricao: form.descricao,
-          } as any)
-          .eq("id", editingId!);
-        if (error) throw error;
+        await salvarMutation.mutateAsync({ ...payload, id: editingId });
         toast({ title: "Variável atualizada!" });
       }
       cancelEdit();
-      loadVariaveis();
     } catch (e: any) {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     }
@@ -165,9 +146,12 @@ export function VariaveisCustomManager() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir esta variável?")) return;
-    await supabase.from("proposta_variaveis_custom").delete().eq("id", id);
-    toast({ title: "Variável excluída" });
-    loadVariaveis();
+    try {
+      await deletarMutation.mutateAsync(id);
+      toast({ title: "Variável excluída" });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    }
   };
 
   return (

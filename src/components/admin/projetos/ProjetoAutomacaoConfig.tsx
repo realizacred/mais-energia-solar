@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { usePipelineAutomations, useCriarAutomacao, useAtualizarAutomacao, useDeletarAutomacao } from "@/hooks/usePipelineAutomations";
+import type { PipelineAutomation } from "@/hooks/usePipelineAutomations";
 import { toast } from "@/hooks/use-toast";
 import { Zap, Plus, Trash2, Power, PowerOff, Clock, ArrowRight, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,21 +20,7 @@ interface StageOption {
   position: number;
 }
 
-interface Automation {
-  id: string;
-  nome: string;
-  ativo: boolean;
-  tipo_gatilho: string;
-  tempo_horas: number;
-  tipo_acao: string;
-  destino_stage_id: string | null;
-  notificar_responsavel: boolean;
-  mensagem_notificacao: string | null;
-  stage_id: string;
-  pipeline_id: string;
-  execucoes_total: number;
-  ultima_execucao: string | null;
-}
+type Automation = PipelineAutomation;
 
 interface Props {
   pipelineId: string;
@@ -41,63 +28,45 @@ interface Props {
 }
 
 export function ProjetoAutomacaoConfig({ pipelineId, stages }: Props) {
-  const [automations, setAutomations] = useState<Automation[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchAutomations = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("pipeline_automations")
-      .select("id, nome, ativo, tipo_gatilho, tempo_horas, tipo_acao, destino_stage_id, notificar_responsavel, mensagem_notificacao, stage_id, pipeline_id, execucoes_total, ultima_execucao")
-      .eq("pipeline_id", pipelineId)
-      .order("created_at");
-    
-    if (!error && data) setAutomations(data as any[]);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchAutomations(); }, [pipelineId]);
+  const { data: automations = [], isLoading: loading } = usePipelineAutomations(pipelineId);
+  const criarMutation = useCriarAutomacao();
+  const atualizarMutation = useAtualizarAutomacao();
+  const deletarMutation = useDeletarAutomacao();
 
   const handleCreate = async () => {
     const firstStage = stages[0];
     if (!firstStage) return;
 
-    const { error } = await supabase.from("pipeline_automations").insert({
-      pipeline_id: pipelineId,
-      stage_id: firstStage.id,
-      nome: "Nova automação",
-      tempo_horas: 48,
-      tipo_gatilho: "tempo_parado",
-      tipo_acao: "mover_etapa",
-    } as any);
-
-    if (error) {
-      toast({ title: "Erro ao criar automação", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await criarMutation.mutateAsync({
+        pipeline_id: pipelineId,
+        stage_id: firstStage.id,
+        nome: "Nova automação",
+        tempo_horas: 48,
+        tipo_gatilho: "tempo_parado",
+        tipo_acao: "mover_etapa",
+      });
       toast({ title: "Automação criada!" });
-      fetchAutomations();
+    } catch (e: any) {
+      toast({ title: "Erro ao criar automação", description: e.message, variant: "destructive" });
     }
   };
 
   const handleUpdate = async (id: string, patch: Partial<Automation>) => {
-    const { error } = await supabase
-      .from("pipeline_automations")
-      .update(patch as any)
-      .eq("id", id);
-
-    if (error) {
-      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
-    } else {
-      setAutomations(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a));
+    try {
+      await atualizarMutation.mutateAsync({ id, patch: patch as Record<string, unknown> });
+    } catch (e: any) {
+      toast({ title: "Erro ao atualizar", description: e.message, variant: "destructive" });
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir esta automação?")) return;
-    const { error } = await supabase.from("pipeline_automations").delete().eq("id", id);
-    if (!error) {
-      setAutomations(prev => prev.filter(a => a.id !== id));
+    try {
+      await deletarMutation.mutateAsync(id);
       toast({ title: "Automação excluída" });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
     }
   };
 
