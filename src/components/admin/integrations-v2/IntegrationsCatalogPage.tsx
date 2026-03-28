@@ -16,6 +16,7 @@ import {
   Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText, Globe,
   Workflow, FileSignature, Zap, CloudSun, Sprout, Cpu, Gauge, Radio,
   Building2, Calculator, QrCode, Webhook, LayoutGrid, Power, ArrowLeft,
+  PackageSearch,
 } from "lucide-react";
 import {
   listProviders,
