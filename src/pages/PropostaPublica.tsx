@@ -31,6 +31,8 @@ type TokenData = {
   decisao: string | null;
   view_count: number;
   first_viewed_at: string | null;
+  invalidado_em: string | null;
+  motivo_invalidacao: string | null;
 };
 
 type CenarioData = {
@@ -60,6 +62,12 @@ export default function PropostaPublica() {
   const [html, setHtml] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [invalidatedInfo, setInvalidatedInfo] = useState<{
+    invalidado_em: string;
+    empresaNome: string | null;
+    empresaLogo: string | null;
+    empresaTelefone: string | null;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [decision, setDecision] = useState<"aceita" | "recusada" | null>(null);
   const [showSignature, setShowSignature] = useState(false);
@@ -104,11 +112,46 @@ export default function PropostaPublica() {
     try {
       const { data: td, error: tdErr } = await (supabase as any)
         .from("proposta_aceite_tokens")
-        .select("id, token, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at")
+        .select("id, token, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at, invalidado_em, motivo_invalidacao")
         .eq("token", token!)
         .maybeSingle();
 
       if (tdErr || !td) { setError("Link inválido ou expirado."); setLoading(false); return; }
+
+      // Check if token was invalidated (new version created)
+      if (td.invalidado_em) {
+        // Fetch tenant info for branded error screen
+        try {
+          const { data: proposta } = await (supabase as any)
+            .from("propostas_nativas")
+            .select("tenant_id")
+            .eq("id", td.proposta_id)
+            .maybeSingle();
+          if (proposta?.tenant_id) {
+            const { data: tenant } = await supabase
+              .from("tenants")
+              .select("nome, telefone")
+              .eq("id", proposta.tenant_id)
+              .maybeSingle();
+            const { data: brand } = await supabase
+              .from("brand_settings")
+              .select("logo_url")
+              .eq("tenant_id", proposta.tenant_id)
+              .maybeSingle();
+            setInvalidatedInfo({
+              invalidado_em: td.invalidado_em,
+              empresaNome: tenant?.nome || null,
+              empresaLogo: brand?.logo_url || null,
+              empresaTelefone: tenant?.telefone || null,
+            });
+            setLoading(false);
+            return;
+          }
+        } catch { /* fallback to generic error */ }
+        setError("Este link não está mais disponível. Uma nova versão da proposta foi gerada.");
+        setLoading(false);
+        return;
+      }
       if (td.used_at) {
         setDecision(td.decisao || "aceita");
         setTokenData(td);
