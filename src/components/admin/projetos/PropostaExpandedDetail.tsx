@@ -606,6 +606,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
   const [messageDrawerOpen, setMessageDrawerOpen] = useState(false);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [reabrirDialogOpen, setReabrirDialogOpen] = useState(false);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
 
   // Restore the template used during generation from snapshot
