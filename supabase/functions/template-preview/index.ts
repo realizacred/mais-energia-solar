@@ -966,6 +966,15 @@ Deno.serve(async (req) => {
         clienteData: (clienteR.data ?? {}) as Record<string, unknown>,
       });
 
+      // If specific variable_key requested, return only that
+      const varKey = body.variable_key as string | undefined;
+      if (varKey) {
+        const value = resolved[varKey] ?? null;
+        return new Response(JSON.stringify({ resolved_variables: { [varKey]: value }, value }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       return new Response(JSON.stringify({ resolved_variables: resolved }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
