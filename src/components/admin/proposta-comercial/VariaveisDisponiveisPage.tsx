@@ -764,6 +764,7 @@ export function VariaveisDisponiveisPage() {
                 { key: "texto", label: `Texto (${kpiStats.texto})` },
                 { key: "documento", label: `Documento (${kpiStats.documento})` },
                 { key: "aspiracional", label: `Aspiracional (${kpiStats.aspiracional})` },
+                ...(kpiStats.campoDinamico > 0 ? [{ key: "campo_dinamico" as StatusFilter, label: `Campos Dinâmicos (${kpiStats.campoDinamico})` }] : []),
               ] as { key: StatusFilter; label: string }[]).map((f) => (
                 <Button
                   key={f.key}
