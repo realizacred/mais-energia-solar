@@ -61,6 +61,9 @@ interface PropostaData {
   created_at: string;
   cliente_nome: string | null;
   is_principal: boolean;
+  aceita_at: string | null;
+  enviada_at: string | null;
+  recusada_at: string | null;
   versoes: VersaoData[];
 }
 
