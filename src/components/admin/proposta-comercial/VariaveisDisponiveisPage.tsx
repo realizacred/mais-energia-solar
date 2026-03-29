@@ -323,8 +323,39 @@ export function VariaveisDisponiveisPage() {
       }
     });
 
+    // Dynamic deal custom fields (pre/pos/projeto)
+    dealCustomFields.forEach((dcf) => {
+      const alreadyExists = items.some((i) => i.key === dcf.field_key);
+      if (!alreadyExists) {
+        const contextLabel = FIELD_CONTEXT_LABELS[dcf.field_context] ?? dcf.field_context;
+        const usageInfo = usageMap.get(dcf.field_key);
+        const inDocx = usageInfo?.inDocx ?? false;
+        items.push({
+          key: dcf.field_key,
+          canonicalKey: `{{campo_custom.${dcf.field_key}}}`,
+          legacyKey: `[${dcf.field_key}]`,
+          label: dcf.title,
+          description: `Campo dinâmico (${contextLabel}) — tipo: ${dcf.field_type}`,
+          category: "customizada" as VariableCategory,
+          unit: "",
+          example: "",
+          isCustom: false,
+          source: "snapshot" as VariableSource,
+          resolver: "snapshot passthrough (customFieldValues)",
+          inDocx,
+          docxBroken: false,
+          docxNull: false,
+          status: "ok",
+          governance: undefined,
+          tipoResultado: dcf.field_type === "number" || dcf.field_type === "currency" ? "number" : "text",
+          escopo: undefined,
+          _dynamicContext: dcf.field_context,
+        } as EnrichedVariable & { _dynamicContext?: string });
+      }
+    });
+
     return items;
-  }, [customVarsRaw, resolverMap, usageMap]);
+  }, [customVarsRaw, resolverMap, usageMap, dealCustomFields]);
 
   // ── Governance-enriched: mark legacy/wizard input vars ──
   const governanceVariables = useMemo(() => {
