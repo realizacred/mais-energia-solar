@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { useMotivosPerda } from "@/hooks/useDistribution";
@@ -176,7 +177,19 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
   const [loading, setLoading] = useState(true);
   const [pipelines, setPipelines] = useState<PipelineInfo[]>([]);
   const [allStagesMap, setAllStagesMap] = useState<Map<string, StageInfo[]>>(new Map());
-  const [propostasCount, setPropostasCount] = useState(0);
+  const { data: propostasCount = 0 } = useQuery({
+    queryKey: ["deal-proposals-count", dealId],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("propostas_nativas")
+        .select("id", { count: "exact", head: true })
+        .eq("deal_id", dealId)
+        .neq("status", "excluida");
+      return count || 0;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!dealId,
+  });
   const [docsCount, setDocsCount] = useState(0);
   const [userNamesMap, setUserNamesMap] = useState<Map<string, string>>(new Map());
 
@@ -437,31 +450,8 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     }
   }, [lossMotivo, lossObs, deal, stages, updateDealLocal, silentRefresh]);
 
-  // ── Effects ──
 
-  // Refresh proposals count on focus or after proposal changes
-  useEffect(() => {
-    const refreshCount = async () => {
-      const { count } = await supabase
-        .from("propostas_nativas")
-        .select("id", { count: "exact", head: true })
-        .eq("deal_id", dealId)
-        .neq("status", "excluida");
-      setPropostasCount(count || 0);
-    };
-    refreshCount();
-    const handleFocus = () => refreshCount();
-    const handleVisibility = () => { if (document.visibilityState === "visible") refreshCount(); };
-    const handlePropostasChanged = () => refreshCount();
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("propostas-changed", handlePropostasChanged);
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("propostas-changed", handlePropostasChanged);
-    };
-  }, [dealId]);
+  // ── Effects ──
 
   // Load deal data
   useEffect(() => {
