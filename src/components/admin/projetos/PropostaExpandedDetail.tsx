@@ -1028,7 +1028,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={copyTrackedLink} disabled={!latestVersao}>
-                  <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar/Copiar link rastreável
+                  <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Copiar link rastreável
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)} disabled={!latestVersao}>
                   <MessageSquareText className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar mensagem
