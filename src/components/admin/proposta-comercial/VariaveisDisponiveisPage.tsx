@@ -257,6 +257,7 @@ export function VariaveisDisponiveisPage() {
         docxBroken,
         docxNull,
         status,
+        escopo: v.escopo,
       });
     });
 
@@ -336,6 +337,7 @@ export function VariaveisDisponiveisPage() {
         case "custom": items = items.filter((v) => v.isCustom); break;
         case "legado": items = items.filter((v) => v.governance === "legado" || v.governance === "input_wizard"); break;
         case "texto": items = items.filter((v) => v.governance === "texto" || v.tipoResultado === "text"); break;
+        case "documento": items = items.filter((v) => v.escopo === "documento"); break;
       }
     }
 
@@ -376,7 +378,8 @@ export function VariaveisDisponiveisPage() {
     const custom = governanceVariables.filter((v) => v.isCustom).length;
     const legado = governanceVariables.filter((v) => v.governance === "legado" || v.governance === "input_wizard").length;
     const texto = governanceVariables.filter((v) => v.governance === "texto" || v.tipoResultado === "text").length;
-    return { total, inUse, ok, warnings, errors, custom, legado, texto };
+    const documento = governanceVariables.filter((v) => v.escopo === "documento").length;
+    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento };
   }, [governanceVariables]);
 
   // ── Custom var handlers ──
@@ -641,6 +644,7 @@ export function VariaveisDisponiveisPage() {
                 { key: "custom", label: "Custom" },
                 { key: "legado", label: `Legado (${kpiStats.legado})` },
                 { key: "texto", label: `Texto (${kpiStats.texto})` },
+                { key: "documento", label: `Documento (${kpiStats.documento})` },
               ] as { key: StatusFilter; label: string }[]).map((f) => (
                 <Button
                   key={f.key}
