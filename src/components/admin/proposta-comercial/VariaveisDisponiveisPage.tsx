@@ -44,6 +44,7 @@ import {
 } from "@/lib/variablesCatalog";
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, type VariavelCustom } from "@/hooks/useVariaveisCustom";
 import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
+import { useVariableUsage } from "@/hooks/useVariableUsage";
 import { AuditTabContent } from "./AuditTabContent";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 
@@ -108,25 +109,7 @@ function toDbCustomVar(v: VariavelCustom): DbCustomVar {
   return { id: v.id, nome: v.nome, label: v.label, expressao: v.expressao, tipo_resultado: v.tipo_resultado, categoria: v.categoria, precisao: v.ordem, ativo: v.ativo };
 }
 
-/* ── DOCX forensic data (from validated audit) ── */
-const DOCX_REAL_VARS = new Set([
-  "valor_total", "potencia_kwp", "preco_final", "valor_kit", "valor_instalacao",
-  "valor_servicos", "margem_percentual", "margem_valor", "preco_watt",
-  "geracao_mensal_media", "geracao_anual", "economia_mensal",
-  "vc_consumo", "vc_aumento", "vc_media_sonsumo_mensal", "vc_consumo_anual",
-  "vc_garantiaservico", "vc_calculo_seguro", "vc_string_box_cc",
-  "vc_total_modulo", "vc_p_total_cc", "vc_potencia_sistema",
-  "vc_modulo_potencia", "vc_inversor_potencia_nominal", "vc_estrutura",
-  "modulo_fabricante", "modulo_modelo", "modulo_potencia",
-  "inversor_fabricante_1", "inversor_modelo_1", "inversores_utilizados",
-  "cliente_nome", "cliente_cpf_cnpj", "cliente_endereco", "cliente_cidade",
-  "empresa_nome", "empresa_cnpj_cpf", "empresa_telefone", "empresa_email",
-  "consultor_nome", "consultor_telefone", "consultor_email",
-  "capo_m", "capo_seguro",
-]);
-
-const DOCX_BROKEN = new Set(["capo_m", "capo_seguro"]);
-const DOCX_NULL_VARS = new Set(["vc_aumento", "vc_calculo_seguro", "vc_garantiaservico", "vc_string_box_cc"]);
+/* ── DOCX hardcodes removed — now provided by useVariableUsage hook ── */
 
 const PRECISAO_OPTIONS = [
   { value: 0, label: "Nenhuma casa decimal" },
@@ -167,7 +150,7 @@ type ActiveView = VariableCategory | "todas" | "auditoria";
 
 /* ── Semantic explanations for known variables ── */
 const SEMANTIC_EXPLANATIONS: Record<string, string> = {
-  vc_aumento: "Representa o percentual de geração de energia solar acima do consumo médio mensal. Ex: consumo = 500 kWh, geração = 1.000 kWh → aumento = 100%. Se o valor está nulo, significa que os dados de consumo ou geração não foram preenchidos no wizard.",
+  vc_aumento: "Variável custom calculada pela expressão armazenada em proposta_variaveis_custom. Avaliada no backend (proposal-generate) usando evaluateExpression() com contexto numérico: [geracao_estimada], [consumo_total], [economia_mensal], etc. Se retorna null, significa que a expressão referencia campos ausentes no contexto ou a fórmula é inválida. Semântica esperada: percentual de geração acima do consumo (ex: consumo=500, geração=1000 → aumento=100%). Verificar a expressão cadastrada na tabela proposta_variaveis_custom.",
   vc_calculo_seguro: "Valor calculado do seguro da instalação fotovoltaica. Depende de dados do kit (potência, valor) e configuração de seguro do tenant. Retorna nulo quando esses dados não estão disponíveis.",
   vc_garantiaservico: "Texto descritivo da garantia de serviço oferecida pela empresa. Geralmente extraído de configurações do tenant ou campo customizado no wizard.",
   vc_string_box_cc: "Configuração de string-box e corrente contínua do sistema. Depende de dados técnicos do kit selecionado no wizard.",
@@ -209,6 +192,9 @@ export function VariaveisDisponiveisPage() {
   // Audit data for resolver coverage + source info
   const { categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
+  // Dynamic variable usage data (replaces hardcoded DOCX_REAL_VARS / DOCX_BROKEN / DOCX_NULL_VARS)
+  const { isInDocx, hasError, hasWarning } = useVariableUsage();
+
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
     const map: Record<string, { source: VariableSource; resolver: string }> = {};
@@ -230,15 +216,15 @@ export function VariaveisDisponiveisPage() {
       const rm = resolverMap[key];
       const source = rm?.source ?? "unknown";
       const resolver = rm?.resolver ?? "";
-      const inDocx = DOCX_REAL_VARS.has(key);
-      const docxBroken = DOCX_BROKEN.has(key);
-      const docxNull = DOCX_NULL_VARS.has(key);
+      const inDocx = isInDocx(key);
+      const docxBroken = hasError(key);
+      const docxNull = hasWarning(key);
 
       let status: EnrichedVariable["status"] = "ok";
       if (v.notImplemented) status = "pending";
       else if (docxBroken) status = "error";
       else if (docxNull) status = "warning";
-      else if (source === "unknown") status = "unused";
+      else if (source === "unknown" && !inDocx) status = "unused";
 
       items.push({
         key,
@@ -265,8 +251,8 @@ export function VariaveisDisponiveisPage() {
     customVarsRaw.forEach((cv) => {
       const alreadyInCatalog = items.some((i) => i.key === cv.nome);
       if (!alreadyInCatalog) {
-        const inDocx = DOCX_REAL_VARS.has(cv.nome);
-        const docxNull = DOCX_NULL_VARS.has(cv.nome);
+        const inDocx = isInDocx(cv.nome);
+        const docxNull = hasWarning(cv.nome);
         items.push({
           key: cv.nome,
           canonicalKey: `{{customizada.${cv.nome}}}`,
@@ -1047,12 +1033,12 @@ export function VariaveisDisponiveisPage() {
               <p>
                 Você está prestes a excluir a variável <code className="font-mono text-foreground bg-muted px-1.5 py-0.5 rounded text-xs">[{deleteTarget?.nome}]</code> ({deleteTarget?.label}).
               </p>
-              {deleteTarget && DOCX_REAL_VARS.has(deleteTarget.nome) && (
+              {deleteTarget && isInDocx(deleteTarget.nome) && (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
                   <strong>⚠️ Atenção:</strong> Esta variável está em uso em templates DOCX ativos. Excluí-la pode causar placeholders não resolvidos no PDF gerado.
                 </div>
               )}
-              {deleteTarget && DOCX_NULL_VARS.has(deleteTarget.nome) && (
+              {deleteTarget && hasWarning(deleteTarget.nome) && (
                 <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-warning">
                   <strong>⚠️ Aviso:</strong> Esta variável já apresenta valor nulo em algumas gerações.
                 </div>
