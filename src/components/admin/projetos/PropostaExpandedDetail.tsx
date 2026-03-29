@@ -1375,6 +1375,30 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Reabrir confirmation */}
+      <AlertDialog open={reabrirDialogOpen} onOpenChange={setReabrirDialogOpen}>
+        <AlertDialogContent className="w-[90vw] max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                <RotateCcw className="w-5 h-5 text-warning" />
+              </div>
+              <AlertDialogTitle>Reabrir proposta?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription>
+              A proposta voltará para o status "Enviada" e poderá ser aceita ou rejeitada novamente. Esta ação será registrada no histórico.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reabrindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReabrir} disabled={reabrindo} className="bg-warning text-warning-foreground hover:bg-warning/90">
+              {reabrindo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RotateCcw className="h-4 w-4 mr-1" />}
+              Reabrir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Message history */}
       {isExpanded && (
         <div className="mt-4 space-y-2">
