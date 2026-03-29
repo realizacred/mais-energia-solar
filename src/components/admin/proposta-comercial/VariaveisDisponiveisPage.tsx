@@ -228,7 +228,7 @@ export function VariaveisDisponiveisPage() {
       if (!term) return true;
       return normalize(v.label).includes(term) ||
         normalize(v.legacyKey).includes(term) ||
-        normalize(v.canonical).includes(term) ||
+        normalize(v.canonicalKey).includes(term) ||
         (v.description && normalize(v.description).includes(term));
     });
   }, [varPickerSearch]);
@@ -1130,7 +1130,7 @@ export function VariaveisDisponiveisPage() {
                           const key = v.legacyKey.replace(/^\[|\]$/g, "");
                           return (
                             <button
-                              key={v.canonical}
+                              key={v.canonicalKey}
                               type="button"
                               className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-primary/10 transition-colors flex items-center justify-between gap-2 group"
                               onClick={() => {
