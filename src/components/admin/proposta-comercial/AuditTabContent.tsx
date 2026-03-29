@@ -162,7 +162,7 @@ export function AuditTabContent({
               <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" />
             </TooltipTrigger>
             <TooltipContent side="right" className="max-w-[300px] text-xs">
-              <p>Dados extraídos dos {DOCX_AUDIT.templatesAtivos} templates DOCX ativos no sistema. Reflete apenas variáveis realmente usadas na geração de propostas/PDF.</p>
+              <p>Dados extraídos dos {docxAudit.templatesAtivos} templates DOCX ativos no sistema. Reflete apenas variáveis realmente usadas na geração de propostas/PDF.</p>
             </TooltipContent>
           </Tooltip>
         </div>
@@ -171,50 +171,50 @@ export function AuditTabContent({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 space-y-0.5">
             <p className="text-[9px] text-primary uppercase tracking-wider font-medium">Templates DOCX</p>
-            <p className="text-lg font-bold text-primary tabular-nums">{DOCX_AUDIT.templatesAtivos}</p>
+            <p className="text-lg font-bold text-primary tabular-nums">{docxAudit.templatesAtivos}</p>
             <p className="text-[10px] text-muted-foreground">Ativos</p>
           </div>
           <div className="rounded-lg border border-border bg-card p-2.5 space-y-0.5">
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Variáveis Reais</p>
-            <p className="text-lg font-bold text-foreground tabular-nums">{DOCX_AUDIT.totalVariaveis}</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{docxAudit.totalVariaveis}</p>
             <p className="text-[10px] text-muted-foreground">Encontradas nos DOCX</p>
           </div>
           <div className="rounded-lg border border-success/30 bg-success/5 p-2.5 space-y-0.5">
             <p className="text-[9px] text-success uppercase tracking-wider font-medium">OK Explícitas</p>
-            <p className="text-lg font-bold text-success tabular-nums">{DOCX_AUDIT.okExplicitas}</p>
+            <p className="text-lg font-bold text-success tabular-nums">{docxAudit.okExplicitas}</p>
             <p className="text-[10px] text-muted-foreground">Resolver explícito</p>
           </div>
           <div className="rounded-lg border border-info/30 bg-info/5 p-2.5 space-y-0.5">
             <p className="text-[9px] text-info uppercase tracking-wider font-medium">Custom/Snapshot</p>
-            <p className="text-lg font-bold text-info tabular-nums">{DOCX_AUDIT.viaCustomSnapshot}</p>
+            <p className="text-lg font-bold text-info tabular-nums">{docxAudit.viaCustomSnapshot}</p>
             <p className="text-[10px] text-muted-foreground">Via passthrough</p>
           </div>
           <div className={cn(
             "rounded-lg border p-2.5 space-y-0.5",
-            DOCX_AUDIT.quebradas > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
+            docxAudit.quebradas > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
           )}>
             <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Quebradas</p>
-            <p className="text-lg font-bold text-destructive tabular-nums">{DOCX_AUDIT.quebradas}</p>
+            <p className="text-lg font-bold text-destructive tabular-nums">{docxAudit.quebradas}</p>
             <p className="text-[10px] text-muted-foreground">Sem resolver</p>
           </div>
           <div className={cn(
             "rounded-lg border p-2.5 space-y-0.5",
-            DOCX_AUDIT.comValorNulo > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"
+            docxAudit.comValorNulo > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"
           )}>
             <p className="text-[9px] text-warning uppercase tracking-wider font-medium">Valor Nulo</p>
-            <p className="text-lg font-bold text-warning tabular-nums">{DOCX_AUDIT.comValorNulo}</p>
+            <p className="text-lg font-bold text-warning tabular-nums">{docxAudit.comValorNulo}</p>
             <p className="text-[10px] text-muted-foreground">Fórmula retorna null</p>
           </div>
         </div>
 
         {/* Problems table */}
-        {DOCX_AUDIT.problemas.length > 0 && (
+        {docxAudit.problemas.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Bug className="h-3.5 w-3.5 text-destructive" />
               <span className="text-xs font-semibold text-foreground">Problemas Reais dos Templates Ativos</span>
               <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
-                {DOCX_AUDIT.problemas.length}
+                {docxAudit.problemas.length}
               </Badge>
             </div>
             <div className="rounded-lg border border-destructive/20 overflow-hidden">
@@ -229,7 +229,7 @@ export function AuditTabContent({
                   </ShadTableRow>
                 </ShadTableHeader>
                 <ShadTableBody>
-                  {DOCX_AUDIT.problemas.map((p) => (
+                  {docxAudit.problemas.map((p) => (
                     <ShadTableRow key={p.variavel}>
                       <ShadTableCell className="py-2">
                         {p.status === "quebrada" ? (
@@ -268,7 +268,7 @@ export function AuditTabContent({
 
         <div className="text-[9px] text-muted-foreground/60 flex items-center gap-1">
           <Clock className="h-2.5 w-2.5" />
-          Auditoria forense: {DOCX_AUDIT.lastAuditDate} · {DOCX_AUDIT.templatesAtivos} templates · {DOCX_AUDIT.totalVariaveis} variáveis extraídas
+          Auditoria forense: {docxAudit.lastAuditDate} · {docxAudit.templatesAtivos} templates · {docxAudit.totalVariaveis} variáveis extraídas
         </div>
       </div>
 
