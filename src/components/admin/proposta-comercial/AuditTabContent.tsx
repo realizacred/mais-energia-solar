@@ -103,7 +103,12 @@ export function AuditTabContent({
       {/* ════════════════════════════════════════════════════════ */}
       {/* SUMMARY KPIS */}
       {/* ════════════════════════════════════════════════════════ */}
-      <div className="px-4 py-3">
+      <div className="px-4 py-3 space-y-3">
+        {/* Row 1: Schema mapping KPIs */}
+        <div className="flex items-center gap-2 mb-1">
+          <TableProperties className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cobertura de Schema (catálogo × banco)</span>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="rounded-lg border border-border bg-card p-2.5 space-y-0.5">
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Campos no Banco</p>
@@ -130,6 +135,48 @@ export function AuditTabContent({
             <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Variáveis Fantasma</p>
             <p className="text-lg font-bold text-destructive tabular-nums">{ghostVariables.length}</p>
             <p className="text-[10px] text-muted-foreground">Sem coluna no banco</p>
+          </div>
+        </div>
+
+        {/* Row 2: Resolver coverage KPIs — honest view */}
+        <div className="flex items-center gap-2 mt-4 mb-1">
+          <Zap className="h-3.5 w-3.5 text-primary" />
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cobertura Real de Resolver (catálogo × implementação)</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[280px] text-xs">
+              <p>Indica quantas variáveis do catálogo têm resolver mapeado (RESOLVER_MAP). Variáveis com fonte "Desconhecida" não têm resolver identificado e podem sair em branco no PDF.</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="rounded-lg border border-border bg-card p-2.5 space-y-0.5">
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Total Catálogo</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{resolverCoverage.totalCatalog}</p>
+          </div>
+          <div className="rounded-lg border border-success/30 bg-success/5 p-2.5 space-y-0.5">
+            <p className="text-[9px] text-success uppercase tracking-wider font-medium">Com Resolver</p>
+            <p className="text-lg font-bold text-success tabular-nums">{resolverCoverage.withResolver}</p>
+          </div>
+          <div className={cn(
+            "rounded-lg border p-2.5 space-y-0.5",
+            resolverCoverage.ghostCount > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
+          )}>
+            <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Sem Resolver</p>
+            <p className="text-lg font-bold text-destructive tabular-nums">{resolverCoverage.ghostCount}</p>
+          </div>
+          <div className={cn(
+            "rounded-lg border p-2.5 space-y-0.5",
+            resolverCoverage.pendingCount > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"
+          )}>
+            <p className="text-[9px] text-warning uppercase tracking-wider font-medium">Pendentes</p>
+            <p className="text-lg font-bold text-warning tabular-nums">{resolverCoverage.pendingCount}</p>
+          </div>
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 space-y-0.5">
+            <p className="text-[9px] text-primary uppercase tracking-wider font-medium">Cobertura Real</p>
+            <p className="text-lg font-bold text-primary tabular-nums">{resolverCoverage.coveragePct}%</p>
           </div>
         </div>
       </div>
