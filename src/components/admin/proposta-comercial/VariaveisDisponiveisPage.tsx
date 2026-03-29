@@ -232,6 +232,10 @@ export function VariaveisDisponiveisPage() {
   // Historical health data
   const { healthMap, summary: healthSummary, hasData: hasHealthData } = useVariableHealth();
 
+  // Governance classification
+  const dynamicFieldKeysList = useMemo(() => dealCustomFields.map(d => d.field_key), [dealCustomFields]);
+  const { records: govRecords, summary: govSummary, getRecord: getGovRecord, filterOptions: govFilterOptions } = useVariableGovernance(customVarsRaw, dynamicFieldKeysList);
+
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
     const map: Record<string, { source: VariableSource; resolver: string }> = {};
