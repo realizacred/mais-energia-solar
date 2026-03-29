@@ -1238,6 +1238,13 @@ export function VariaveisDisponiveisPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── AI Formula Suggest ── */}
+      <FormulaAISuggest
+        open={aiSuggestOpen}
+        onOpenChange={setAiSuggestOpen}
+        onAccept={(formula) => setForm((f) => ({ ...f, expressao: formula }))}
+      />
     </div>
   );
 }
