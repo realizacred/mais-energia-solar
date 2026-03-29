@@ -7,7 +7,7 @@ import { StepDocumento } from "@/components/admin/propostas-nativas/wizard/StepD
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
-  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, FolderOpen, MessageSquareText,
+  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, FolderOpen, MessageSquareText, RotateCcw,
   FilePlus, FileCheck, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ import { ProposalMessageHistory } from "./ProposalMessageHistory";
 import { ClonePropostaModal } from "./ClonePropostaModal";
 import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
 import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaAuditLogs, type UCDetailData } from "@/hooks/usePropostaExpandedData";
+import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -605,6 +606,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
   const [messageDrawerOpen, setMessageDrawerOpen] = useState(false);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [reabrirDialogOpen, setReabrirDialogOpen] = useState(false);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
 
   // Restore the template used during generation from snapshot
@@ -713,6 +715,19 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         onRefresh();
       },
       onSettled: () => setDeleteOpen(false),
+    });
+  };
+
+  // Reabrir handler
+  const { data: isAdminOrGerente } = useIsAdminOrGerente();
+  const { mutate: reabrirProposta, isPending: reabrindo } = useReabrirProposta();
+  const canReabrir = isAdminOrGerente && (p.status === "accepted" || p.status === "rejected");
+  const handleReabrir = () => {
+    reabrirProposta(p.id, {
+      onSuccess: () => {
+        setReabrirDialogOpen(false);
+        onRefresh();
+      },
     });
   };
 
@@ -1102,6 +1117,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 <DropdownMenuItem onClick={() => setCloneModalOpen(true)}>
                   <Copy className="h-3.5 w-3.5 mr-2 text-primary" /> Clonar proposta
                 </DropdownMenuItem>
+                {canReabrir && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setReabrirDialogOpen(true)}>
+                      <RotateCcw className="h-3.5 w-3.5 mr-2 text-warning" /> Reabrir proposta
+                    </DropdownMenuItem>
+                  </>
+                )}
                 {onArchive && p.status !== "arquivada" && (
                   <DropdownMenuItem onClick={onArchive}>
                     <FolderOpen className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Arquivar
@@ -1347,6 +1370,30 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reabrir confirmation */}
+      <AlertDialog open={reabrirDialogOpen} onOpenChange={setReabrirDialogOpen}>
+        <AlertDialogContent className="w-[90vw] max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                <RotateCcw className="w-5 h-5 text-warning" />
+              </div>
+              <AlertDialogTitle>Reabrir proposta?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription>
+              A proposta voltará para o status "Enviada" e poderá ser aceita ou rejeitada novamente. Esta ação será registrada no histórico.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reabrindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReabrir} disabled={reabrindo} className="bg-warning text-warning-foreground hover:bg-warning/90">
+              {reabrindo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RotateCcw className="h-4 w-4 mr-1" />}
+              Reabrir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

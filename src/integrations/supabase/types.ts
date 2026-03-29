@@ -15801,6 +15801,54 @@ export type Database = {
           },
         ]
       }
+      proposta_historico: {
+        Row: {
+          acao: string
+          created_at: string | null
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          proposta_id: string
+          tenant_id: string
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          proposta_id: string
+          tenant_id: string
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          proposta_id?: string
+          tenant_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_historico_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_historico_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_kit_itens: {
         Row: {
           avulso: boolean | null
@@ -17408,6 +17456,8 @@ export type Database = {
           projeto_id: string
           proposta_num: number
           public_token: string | null
+          reaberta_em: string | null
+          reaberta_por: string | null
           recusa_motivo: string | null
           recusada_at: string | null
           regra_gd: string | null
@@ -17416,6 +17466,9 @@ export type Database = {
           sm_raw_payload: Json | null
           snapshot_hash: string | null
           status: string
+          status_anterior:
+            | Database["public"]["Enums"]["proposta_nativa_status"]
+            | null
           status_visualizacao: string
           tariff_version_id: string | null
           template_id: string | null
@@ -17459,6 +17512,8 @@ export type Database = {
           projeto_id: string
           proposta_num: number
           public_token?: string | null
+          reaberta_em?: string | null
+          reaberta_por?: string | null
           recusa_motivo?: string | null
           recusada_at?: string | null
           regra_gd?: string | null
@@ -17467,6 +17522,9 @@ export type Database = {
           sm_raw_payload?: Json | null
           snapshot_hash?: string | null
           status?: string
+          status_anterior?:
+            | Database["public"]["Enums"]["proposta_nativa_status"]
+            | null
           status_visualizacao?: string
           tariff_version_id?: string | null
           template_id?: string | null
@@ -17510,6 +17568,8 @@ export type Database = {
           projeto_id?: string
           proposta_num?: number
           public_token?: string | null
+          reaberta_em?: string | null
+          reaberta_por?: string | null
           recusa_motivo?: string | null
           recusada_at?: string | null
           regra_gd?: string | null
@@ -17518,6 +17578,9 @@ export type Database = {
           sm_raw_payload?: Json | null
           snapshot_hash?: string | null
           status?: string
+          status_anterior?:
+            | Database["public"]["Enums"]["proposta_nativa_status"]
+            | null
           status_visualizacao?: string
           tariff_version_id?: string | null
           template_id?: string | null
@@ -26376,6 +26439,10 @@ export type Database = {
             }
             Returns: Json
           }
+      proposal_reabrir: {
+        Args: { p_proposta_id: string; p_user_id: string }
+        Returns: Json
+      }
       proposal_update_status: {
         Args: { p_motivo?: string; p_new_status: string; p_proposta_id: string }
         Returns: Json
