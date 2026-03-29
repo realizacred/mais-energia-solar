@@ -1587,8 +1587,12 @@ export function ProposalWizard() {
     return warnings;
   }, [itens, venda.custo_instalacao, venda.custo_comissao, venda.custo_outros, venda.margem_percentual, precoFinal]);
 
-  // ─── Pre-generation: validation already ran at Resumo→Proposta gate, go straight to generate
+  // ─── Pre-generation: validate template before generating
   const handlePreGenerate = () => {
+    if (!templateSelecionado) {
+      toast({ title: "Template obrigatório", description: "Selecione um template de proposta antes de gerar.", variant: "destructive" });
+      return;
+    }
     handleGenerate();
   };
 
@@ -2075,6 +2079,7 @@ export function ProposalWizard() {
         locCidade,
         locDistribuidoraNome: locDistribuidoraNome,
         templateSelecionado,
+        skipTemplateCheck: true, // Template is selected in the Proposta step — don't block here
       });
 
       console.debug("[ProposalWizard] Resumo→Proposta validation:", validation);
