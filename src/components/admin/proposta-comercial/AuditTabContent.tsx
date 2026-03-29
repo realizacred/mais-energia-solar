@@ -1,12 +1,20 @@
 import { useMemo, useState } from "react";
 import {
   ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Loader2,
-  ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers
+  ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Table as ShadTable,
+  TableBody as ShadTableBody,
+  TableCell as ShadTableCell,
+  TableHead as ShadTableHead,
+  TableHeader as ShadTableHeader,
+  TableRow as ShadTableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import {
   useVariablesAudit,
