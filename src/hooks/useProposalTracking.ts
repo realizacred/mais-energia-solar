@@ -23,6 +23,14 @@ export interface TokenData {
   created_at: string;
   expires_at: string;
   cenario_aceito_id: string | null;
+  duracao_total_segundos: number;
+}
+
+export interface ProposalEventData {
+  id: string;
+  tipo: string;
+  payload: Record<string, any> | null;
+  created_at: string;
 }
 
 export interface ViewData {
@@ -59,7 +67,7 @@ export function useProposalTracking(propostaId: string | null, versaoId?: string
 
       const tokensPromise = (supabase as any)
         .from("proposta_aceite_tokens")
-        .select("id, token, decisao, aceite_nome, aceite_documento, aceite_observacoes, assinatura_url, recusa_motivo, recusa_at, view_count, first_viewed_at, last_viewed_at, used_at, created_at, expires_at, cenario_aceito_id")
+        .select("id, token, decisao, aceite_nome, aceite_documento, aceite_observacoes, assinatura_url, recusa_motivo, recusa_at, view_count, first_viewed_at, last_viewed_at, used_at, created_at, expires_at, cenario_aceito_id, duracao_total_segundos")
         .eq("proposta_id", propostaId)
         .order("created_at", { ascending: false });
 
@@ -71,8 +79,16 @@ export function useProposalTracking(propostaId: string | null, versaoId?: string
             .order("enviado_em", { ascending: false })
         : Promise.resolve({ data: [] });
 
-      const [viewsRes, tokensRes, enviosRes] = await Promise.all([
-        viewsPromise, tokensPromise, enviosPromise,
+      const eventsPromise = (supabase as any)
+        .from("proposal_events")
+        .select("id, tipo, payload, created_at")
+        .eq("proposta_id", propostaId)
+        .in("tipo", ["proposta_visualizada", "proposta_enviada", "proposta_aceita", "proposta_recusada", "status_change", "version_created"])
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      const [viewsRes, tokensRes, enviosRes, eventsRes] = await Promise.all([
+        viewsPromise, tokensPromise, enviosPromise, eventsPromise,
       ]);
 
       return {
@@ -80,6 +96,7 @@ export function useProposalTracking(propostaId: string | null, versaoId?: string
         totalViews: (viewsRes.count || 0) as number,
         tokens: (tokensRes.data || []) as TokenData[],
         envios: (enviosRes.data || []) as EnvioData[],
+        events: (eventsRes.data || []) as ProposalEventData[],
       };
     },
     staleTime: STALE_TIME,

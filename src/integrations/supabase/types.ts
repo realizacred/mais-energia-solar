@@ -15277,6 +15277,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           decisao: string | null
+          duracao_total_segundos: number
           expires_at: string
           first_viewed_at: string | null
           forma_pagamento_escolhida: Json | null
@@ -15305,6 +15306,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           decisao?: string | null
+          duracao_total_segundos?: number
           expires_at?: string
           first_viewed_at?: string | null
           forma_pagamento_escolhida?: Json | null
@@ -15333,6 +15335,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           decisao?: string | null
+          duracao_total_segundos?: number
           expires_at?: string
           first_viewed_at?: string | null
           forma_pagamento_escolhida?: Json | null
@@ -26381,6 +26384,10 @@ export type Database = {
       purge_old_payloads: { Args: never; Returns: Json }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       refresh_dashboard_views_v2: { Args: never; Returns: undefined }
+      registrar_heartbeat_proposta: {
+        Args: { p_segundos?: number; p_token: string }
+        Returns: Json
+      }
       registrar_view_proposta: {
         Args: {
           p_ip?: string

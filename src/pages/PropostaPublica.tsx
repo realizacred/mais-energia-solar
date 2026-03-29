@@ -33,6 +33,7 @@ type TokenData = {
   first_viewed_at: string | null;
   invalidado_em: string | null;
   motivo_invalidacao: string | null;
+  tipo: string;
 };
 
 type CenarioData = {
@@ -91,6 +92,62 @@ export default function PropostaPublica() {
 
   const sigRef = useRef<ReactSignatureCanvas | null>(null);
 
+  // ─── Heartbeat for duration tracking (tracked tokens only) ─────
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const heartbeatTokenRef = useRef<string | null>(null);
+
+  const startHeartbeat = (tokenValue: string) => {
+    if (heartbeatRef.current) return; // already running
+    heartbeatTokenRef.current = tokenValue;
+    heartbeatRef.current = setInterval(async () => {
+      if (heartbeatTokenRef.current) {
+        try {
+          await supabase.rpc("registrar_heartbeat_proposta" as any, {
+            p_token: heartbeatTokenRef.current,
+            p_segundos: 30,
+          });
+        } catch { /* best-effort */ }
+      }
+    }, 30_000); // every 30 seconds
+  };
+
+  const stopHeartbeat = () => {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+    heartbeatTokenRef.current = null;
+  };
+
+  // Stop heartbeat on unmount or visibility hidden
+  useEffect(() => {
+    const handleVisibility = async () => {
+      if (document.visibilityState === "hidden") {
+        // Send final heartbeat before pausing
+        if (heartbeatTokenRef.current) {
+          try {
+            await supabase.rpc("registrar_heartbeat_proposta" as any, {
+              p_token: heartbeatTokenRef.current,
+              p_segundos: 15,
+            });
+          } catch { /* best-effort */ }
+        }
+        stopHeartbeat();
+      } else if (document.visibilityState === "visible" && tokenData?.token) {
+        // Resume heartbeat when page becomes visible again
+        const td = tokenData;
+        if (td && !td.used_at && td.token) {
+          startHeartbeat(td.token);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      stopHeartbeat();
+    };
+  }, [tokenData]);
+
   useEffect(() => {
     if (token) loadProposal();
   }, [token]);
@@ -112,7 +169,7 @@ export default function PropostaPublica() {
     try {
       const { data: td, error: tdErr } = await (supabase as any)
         .from("proposta_aceite_tokens")
-        .select("id, token, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at, invalidado_em, motivo_invalidacao")
+        .select("id, token, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at, invalidado_em, motivo_invalidacao, tipo")
         .eq("token", token!)
         .maybeSingle();
 
@@ -170,6 +227,10 @@ export default function PropostaPublica() {
 
       setTokenData(td);
       trackView(td);
+      // Start heartbeat for tracked tokens
+      if (td.tipo !== "public") {
+        startHeartbeat(td.token);
+      }
 
       const [renderRes, versaoRes, cenariosRes] = await Promise.all([
         supabase.from("proposta_renders")
