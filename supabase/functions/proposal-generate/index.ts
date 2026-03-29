@@ -712,6 +712,23 @@ Deno.serve(async (req) => {
               });
               continue;
             }
+
+            // ── Text-type detection: if expression has no math operators
+            //    and no [variable] references, treat as fixed text ──
+            const trimmedExpr = vc.expressao.trim();
+            const hasVarRefs = /\[[^\]]+\]/.test(trimmedExpr);
+            const hasMathOps = /[+\-*\/()]/.test(trimmedExpr);
+            const isTextoFixo = !hasVarRefs && !hasMathOps;
+
+            if (isTextoFixo || vc.tipo_resultado === "text") {
+              // Fixed text variable — return expression as-is
+              vcResults.push({
+                variavel_id: vc.id, nome: vc.nome, label: vc.label,
+                expressao: vc.expressao, valor_calculado: trimmedExpr,
+              });
+              continue;
+            }
+
             const val = evaluateExpression(vc.expressao, ctx);
             if (val === null) {
               // Check if it's a syntax issue or missing deps
