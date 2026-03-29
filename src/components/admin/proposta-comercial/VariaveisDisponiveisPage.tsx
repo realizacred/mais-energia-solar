@@ -3,6 +3,7 @@ import {
   Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2,
   ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, List, Info,
   Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
+  FlaskConical, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, 
 import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
 import { useVariableUsage } from "@/hooks/useVariableUsage";
 import { AuditTabContent } from "./AuditTabContent";
+import { FormulaAISuggest } from "./FormulaAISuggest";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 
 /* ── Tiny copy button ───────────────────────────────────── */
