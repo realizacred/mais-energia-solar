@@ -916,6 +916,61 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { template_id, proposta_id, lead_id: bodyLeadId, diagnostic, debug_docx_pdf } = body;
 
+    // ── RESOLVE VARIABLES MODE (no template needed) ──────
+    if (body.mode === "resolve_variables" && proposta_id) {
+      // Fetch proposal + latest version snapshot
+      const { data: prop, error: propErr } = await adminClient
+        .from("propostas_nativas")
+        .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id")
+        .eq("id", proposta_id)
+        .eq("tenant_id", tenantId)
+        .single();
+      if (propErr || !prop) return jsonError("Proposta não encontrada", 404);
+
+      const { data: versao } = await adminClient
+        .from("proposta_versoes")
+        .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
+        .eq("proposta_id", proposta_id)
+        .order("versao_numero", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const [leadR, clienteR, projetoR, consultorR, tenantR, brandR] = await Promise.all([
+        prop.lead_id
+          ? adminClient.from("leads").select("*").eq("id", prop.lead_id).eq("tenant_id", tenantId).single()
+          : Promise.resolve({ data: null, error: null }),
+        prop.cliente_id
+          ? adminClient.from("clientes").select("*").eq("id", prop.cliente_id).eq("tenant_id", tenantId).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        prop.projeto_id
+          ? adminClient.from("projetos").select("*").eq("id", prop.projeto_id).eq("tenant_id", tenantId).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        prop.consultor_id
+          ? adminClient.from("consultores").select("nome, telefone, email, codigo").eq("id", prop.consultor_id).eq("tenant_id", tenantId).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        adminClient.from("tenants").select("nome").eq("id", tenantId).maybeSingle(),
+        adminClient.from("brand_settings").select("logo_url, representante_legal, representante_cpf, representante_cargo").eq("tenant_id", tenantId).maybeSingle(),
+      ]);
+
+      const snapshot = versao?.snapshot as Record<string, unknown> | null;
+      const resolved = flattenSnapshot(snapshot, {
+        lead: leadR.data,
+        cliente: clienteR.data,
+        projeto: projetoR.data,
+        consultor: consultorR.data,
+        tenantNome: tenantR.data?.nome,
+        versaoData: versao as Record<string, unknown>,
+        propostaData: prop as Record<string, unknown>,
+        brandSettings: (brandR.data ?? {}) as Record<string, unknown>,
+        projetoData: (projetoR.data ?? {}) as Record<string, unknown>,
+        clienteData: (clienteR.data ?? {}) as Record<string, unknown>,
+      });
+
+      return new Response(JSON.stringify({ resolved_variables: resolved }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!template_id) {
       return jsonError("template_id é obrigatório", 400);
     }
