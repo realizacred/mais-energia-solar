@@ -44,6 +44,7 @@ import {
 } from "@/lib/variablesCatalog";
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, type VariavelCustom } from "@/hooks/useVariaveisCustom";
 import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
+import { useVariableUsage } from "@/hooks/useVariableUsage";
 import { AuditTabContent } from "./AuditTabContent";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 
@@ -108,25 +109,7 @@ function toDbCustomVar(v: VariavelCustom): DbCustomVar {
   return { id: v.id, nome: v.nome, label: v.label, expressao: v.expressao, tipo_resultado: v.tipo_resultado, categoria: v.categoria, precisao: v.ordem, ativo: v.ativo };
 }
 
-/* ── DOCX forensic data (from validated audit) ── */
-const DOCX_REAL_VARS = new Set([
-  "valor_total", "potencia_kwp", "preco_final", "valor_kit", "valor_instalacao",
-  "valor_servicos", "margem_percentual", "margem_valor", "preco_watt",
-  "geracao_mensal_media", "geracao_anual", "economia_mensal",
-  "vc_consumo", "vc_aumento", "vc_media_sonsumo_mensal", "vc_consumo_anual",
-  "vc_garantiaservico", "vc_calculo_seguro", "vc_string_box_cc",
-  "vc_total_modulo", "vc_p_total_cc", "vc_potencia_sistema",
-  "vc_modulo_potencia", "vc_inversor_potencia_nominal", "vc_estrutura",
-  "modulo_fabricante", "modulo_modelo", "modulo_potencia",
-  "inversor_fabricante_1", "inversor_modelo_1", "inversores_utilizados",
-  "cliente_nome", "cliente_cpf_cnpj", "cliente_endereco", "cliente_cidade",
-  "empresa_nome", "empresa_cnpj_cpf", "empresa_telefone", "empresa_email",
-  "consultor_nome", "consultor_telefone", "consultor_email",
-  "capo_m", "capo_seguro",
-]);
-
-const DOCX_BROKEN = new Set(["capo_m", "capo_seguro"]);
-const DOCX_NULL_VARS = new Set(["vc_aumento", "vc_calculo_seguro", "vc_garantiaservico", "vc_string_box_cc"]);
+/* ── DOCX hardcodes removed — now provided by useVariableUsage hook ── */
 
 const PRECISAO_OPTIONS = [
   { value: 0, label: "Nenhuma casa decimal" },
