@@ -20,6 +20,8 @@ export interface PropostaFinalValidationInput {
   locCidade: string;
   locDistribuidoraNome: string;
   templateSelecionado: string;
+  /** Skip template validation (used at Resumo→Proposta gate where template isn't selected yet) */
+  skipTemplateCheck?: boolean;
 }
 
 export interface PropostaFinalValidationResult {
@@ -92,8 +94,9 @@ export function validatePropostaFinal(
     errors.push("Consumo total das UCs deve ser maior que zero.");
   }
 
-  // 8. Template selecionado
-  if (!templateSelecionado) {
+  // 8. Template selecionado — only validate when skipTemplateCheck is not set
+  //    (template is selected in the Proposta step, so we skip this at Resumo→Proposta gate)
+  if (!templateSelecionado && !input.skipTemplateCheck) {
     errors.push("Nenhum template de proposta selecionado.");
   }
 
