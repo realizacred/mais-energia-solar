@@ -307,7 +307,7 @@ export function AuditTabContent({
         {/* Row 2: Resolver coverage KPIs — honest view */}
         <div className="flex items-center gap-2 mt-4 mb-1">
           <Zap className="h-3.5 w-3.5 text-primary" />
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cobertura Real de Resolver (catálogo × implementação)</span>
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Catálogo Global — Cobertura de Resolver (catálogo × implementação)</span>
           <Tooltip>
             <TooltipTrigger asChild>
               <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" />
