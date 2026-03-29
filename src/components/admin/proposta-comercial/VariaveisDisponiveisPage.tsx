@@ -41,6 +41,7 @@ import {
   CATEGORY_ORDER,
   type VariableCategory,
   type CatalogVariable,
+  type VariableEscopo,
 } from "@/lib/variablesCatalog";
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, type VariavelCustom } from "@/hooks/useVariaveisCustom";
 import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
