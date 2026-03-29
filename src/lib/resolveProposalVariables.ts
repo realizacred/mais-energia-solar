@@ -240,6 +240,21 @@ function resolveFromContext(
   if (key === "comercial.representante_celular") return s(ctx.comercial?.representante_celular);
   if (key === "comercial.empresa_nome") return s(ctx.comercial?.empresa_nome ?? ctx.empresaNome);
 
+  // P3: proposta_identificador — paridade FE
+  if (key === "comercial.proposta_identificador") {
+    return s(
+      (ctx.finalSnapshot as any)?.proposta_identificador
+      ?? (ctx.finalSnapshot as any)?.codigo
+      ?? (ctx.extras as any)?.proposta_identificador
+    );
+  }
+  if (key === "comercial.proposta_titulo") {
+    return s(
+      (ctx.finalSnapshot as any)?.proposta_titulo
+      ?? (ctx.extras as any)?.proposta_titulo
+    );
+  }
+
   // QW9 — consultor fields
   if (key === "comercial.consultor_nome") {
     return s(ctx.consultorNome)
