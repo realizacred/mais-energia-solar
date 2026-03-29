@@ -1268,3 +1268,43 @@ function jsonError(message: string, status = 400) {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
+
+// ── P1: Flatten 25-year series into snapshot ───────────────
+// Writes fluxo_caixa_acumulado_anual_X, economia_anual_valor_X, investimento_anual_X
+// so backend resolvers can read them directly from snap[key].
+function flattenSeries25(
+  series: Array<{ ano: number; economia_liquida: number; economia_acumulada: number; fluxo_caixa: number; fluxo_caixa_acumulado: number }>,
+  valorTotal: number,
+): Record<string, number> {
+  const flat: Record<string, number> = {};
+  for (const s of series) {
+    flat[`economia_anual_valor_${s.ano}`] = round2(s.economia_liquida);
+    flat[`fluxo_caixa_acumulado_anual_${s.ano}`] = round2(s.fluxo_caixa_acumulado);
+    // investimento_anual_X is the cumulative investment offset
+    flat[`investimento_anual_${s.ano}`] = s.ano === 0 ? -valorTotal : 0;
+  }
+  return flat;
+}
+
+// ── P4: Calculate area_util from kit items ─────────────────
+function calcAreaUtil(
+  itens: Array<{ categoria: string; quantidade: number; dimensoes_mm?: string; [k: string]: unknown }>,
+  ucs: Array<{ area_util?: number; area_util_m2?: number; [k: string]: unknown }>,
+): number | undefined {
+  // Try from UCs first
+  const ucArea = ucs[0]?.area_util ?? ucs[0]?.area_util_m2;
+  if (ucArea != null && Number(ucArea) > 0) return Number(ucArea);
+  // Fallback: compute from module dimensions × quantity
+  const mod = itens.find(it => it.categoria === "modulo");
+  if (mod && mod.dimensoes_mm) {
+    const parts = String(mod.dimensoes_mm).split(/[xX×]/);
+    if (parts.length >= 2) {
+      const compM = Number(parts[0]) / 1000;
+      const largM = Number(parts[1]) / 1000;
+      if (compM > 0 && largM > 0) {
+        return round2(compM * largM * mod.quantidade);
+      }
+    }
+  }
+  return undefined;
+}
