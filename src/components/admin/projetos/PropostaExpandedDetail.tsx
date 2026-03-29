@@ -172,7 +172,7 @@ function getStatusDateLabel(
   return `Criada em ${formatDateTime(created_at || "")}`;
 }
 
-
+function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: boolean }) {
   const s = getProposalStatusConfig(status);
   const colorCls = s?.iconCls || (isPrincipal ? "text-primary" : "text-muted-foreground");
   const isAccepted = ["aceita", "ganha"].includes(status);
