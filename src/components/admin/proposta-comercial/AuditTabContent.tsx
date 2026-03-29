@@ -106,6 +106,8 @@ export function AuditTabContent({
     setIsRefreshing(true);
     try {
       await onRefresh();
+      // Also invalidate the generation audit reports query to get fresh DOCX data
+      await queryClient.invalidateQueries({ queryKey: ["generation-audit-reports-latest"] });
       toast.success("Análise concluída com sucesso");
     } catch {
       toast.error("Erro ao reanalisar variáveis");
@@ -113,7 +115,7 @@ export function AuditTabContent({
       setLastRefresh(new Date());
       setTimeout(() => setIsRefreshing(false), 600);
     }
-  }, [onRefresh]);
+  }, [onRefresh, queryClient]);
 
   // ── Filtered schema fields ──────────────────────────────────
   const filteredFields = useMemo(() => {
