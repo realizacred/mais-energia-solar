@@ -3,8 +3,9 @@ import {
   Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2,
   ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, List, Info,
   Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
-  FlaskConical, Sparkles,
+  FlaskConical, Sparkles, Activity, HeartPulse,
 } from "lucide-react";
+import { useVariableHealth, type HealthClassification } from "@/hooks/useVariableHealth";
 import { VariableTester } from "./VariableTester";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
