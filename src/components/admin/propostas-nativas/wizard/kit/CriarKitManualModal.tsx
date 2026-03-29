@@ -665,7 +665,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
         <ScrollArea className="flex-1 min-h-0">
         <div className="p-5 space-y-4">
           {/* Header fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs font-medium text-foreground">Nome do distribuidor <span className="text-destructive">*</span></Label>
               <Popover open={distribuidorOpen} onOpenChange={setDistribuidorOpen}>
