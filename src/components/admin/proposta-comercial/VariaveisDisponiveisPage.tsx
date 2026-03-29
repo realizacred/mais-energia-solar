@@ -3,9 +3,10 @@ import {
   Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2,
   ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, List, Info,
   Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
-  FlaskConical, Sparkles, Activity, HeartPulse,
+  FlaskConical, Sparkles, Activity, HeartPulse, Shield,
 } from "lucide-react";
 import { useVariableHealth, type HealthClassification } from "@/hooks/useVariableHealth";
+import { useVariableGovernance, type GovernanceFilter, type GovernanceRecord } from "@/hooks/useVariableGovernance";
 import { VariableTester } from "./VariableTester";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -211,6 +212,7 @@ export function VariaveisDisponiveisPage() {
   const [aiSuggestOpen, setAiSuggestOpen] = useState(false);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testVar, setTestVar] = useState("");
+  const [govFilter, setGovFilter] = useState<GovernanceFilter>("todas");
 
   // §16: queries only in hooks
   const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
@@ -229,6 +231,10 @@ export function VariaveisDisponiveisPage() {
 
   // Historical health data
   const { healthMap, summary: healthSummary, hasData: hasHealthData } = useVariableHealth();
+
+  // Governance classification
+  const dynamicFieldKeysList = useMemo(() => dealCustomFields.map(d => d.field_key), [dealCustomFields]);
+  const { records: govRecords, summary: govSummary, getRecord: getGovRecord, filterOptions: govFilterOptions } = useVariableGovernance(customVarsRaw, dynamicFieldKeysList);
 
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
@@ -549,13 +555,43 @@ export function VariaveisDisponiveisPage() {
   };
 
   // ── Status badge ──
-  const StatusBadgeVar = ({ status, inDocx }: { status: EnrichedVariable["status"]; inDocx: boolean }) => {
+  const StatusBadgeVar = ({ status, inDocx, govRecord }: { status: EnrichedVariable["status"]; inDocx: boolean; govRecord?: GovernanceRecord }) => {
+    // Use governance classification if available (replaces "sem resolver")
+    if (govRecord) {
+      const colorMap: Record<string, string> = {
+        success: "bg-success/15 text-success border-success/20",
+        info: "bg-info/15 text-info border-info/20",
+        warning: "bg-warning/15 text-warning border-warning/20",
+        muted: "bg-muted text-muted-foreground border-border",
+        destructive: "bg-destructive/15 text-destructive border-destructive/20",
+        primary: "bg-primary/15 text-primary border-primary/20",
+        secondary: "bg-secondary/15 text-secondary-foreground border-secondary/20",
+      };
+      return (
+        <div className="flex items-center gap-1">
+          <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium", colorMap[govRecord.statusColor] ?? colorMap.muted)}>
+            {govRecord.statusLabel}
+          </Badge>
+          {inDocx && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium">
+              Em uso
+            </Badge>
+          )}
+          {govRecord.templateWarning === "block" && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-destructive/20 bg-destructive/10 text-destructive font-medium">
+              🚫
+            </Badge>
+          )}
+        </div>
+      );
+    }
+
     const config = {
       ok: { label: "OK", className: "bg-success/15 text-success border-success/20" },
       warning: { label: "Warning", className: "bg-warning/15 text-warning border-warning/20" },
       error: { label: "Erro", className: "bg-destructive/15 text-destructive border-destructive/20" },
       pending: { label: "Pendente", className: "bg-muted text-muted-foreground border-border" },
-      unused: { label: "Sem resolver", className: "bg-muted text-muted-foreground border-border" },
+      unused: { label: "Sem dados", className: "bg-muted text-muted-foreground border-border" },
     };
     const c = config[status];
     return (
@@ -952,7 +988,7 @@ export function VariaveisDisponiveisPage() {
 
                     {/* Status */}
                     <TableCell className="py-2">
-                      <StatusBadgeVar status={v.status} inDocx={v.inDocx} />
+                      <StatusBadgeVar status={v.status} inDocx={v.inDocx} govRecord={getGovRecord(v.key)} />
                     </TableCell>
 
                     {/* Chave Legada */}
@@ -1117,7 +1153,7 @@ export function VariaveisDisponiveisPage() {
               <div className="p-5 space-y-5">
                 {/* Status + Type */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadgeVar status={detailVar.status} inDocx={detailVar.inDocx} />
+                  <StatusBadgeVar status={detailVar.status} inDocx={detailVar.inDocx} govRecord={getGovRecord(detailVar.key)} />
                   <Badge variant="outline" className={cn(
                     "text-[10px] px-1.5 py-0.5",
                     detailVar.isCustom ? "border-primary/30 text-primary" : "border-border text-muted-foreground"
