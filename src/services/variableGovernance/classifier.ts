@@ -95,7 +95,7 @@ export function classifyGovernance(
   const isPassthrough = PASSTHROUGH_GROUPS.has(group);
   const isLegacy = LEGACY_VARS.has(flatKey);
   const isWizardInput = WIZARD_INPUT_VARS.has(flatKey);
-  const isCdd = group === CDD_CATEGORY || !!v.notImplemented;
+  const isCdd = (group as string) === CDD_CATEGORY || !!v.notImplemented;
   const isDynamicField = dynamicFieldKeys.has(flatKey);
 
   // ── Determine classification ──
@@ -205,7 +205,7 @@ export function classifyGovernance(
   if (classification === "FANTASMA_REAL") {
     templateWarning = "block";
     safeForNewTemplates = false;
-  } else if (classification === "ALIAS_LEGADO" || classification === "TEMPLATE_LEGADO") {
+  } else if (classification === "ALIAS_LEGADO") {
     templateWarning = "warn";
     safeForNewTemplates = false;
   } else if (classification === "FEATURE_NAO_IMPLEMENTADA" || classification === "CDD") {
