@@ -22426,6 +22426,65 @@ export type Database = {
           },
         ]
       }
+      variable_audit_reports: {
+        Row: {
+          analise_ia: string | null
+          criado_em: string
+          id: string
+          mode: string
+          nulas: number
+          ok: number
+          prompt_lovable: string | null
+          quebradas: number
+          templates_ativos: number
+          tenant_id: string
+          total_variaveis: number
+          variaveis_encontradas: Json | null
+          variaveis_nulas: Json | null
+          variaveis_quebradas: Json | null
+        }
+        Insert: {
+          analise_ia?: string | null
+          criado_em?: string
+          id?: string
+          mode?: string
+          nulas?: number
+          ok?: number
+          prompt_lovable?: string | null
+          quebradas?: number
+          templates_ativos?: number
+          tenant_id: string
+          total_variaveis?: number
+          variaveis_encontradas?: Json | null
+          variaveis_nulas?: Json | null
+          variaveis_quebradas?: Json | null
+        }
+        Update: {
+          analise_ia?: string | null
+          criado_em?: string
+          id?: string
+          mode?: string
+          nulas?: number
+          ok?: number
+          prompt_lovable?: string | null
+          quebradas?: number
+          templates_ativos?: number
+          tenant_id?: string
+          total_variaveis?: number
+          variaveis_encontradas?: Json | null
+          variaveis_nulas?: Json | null
+          variaveis_quebradas?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variable_audit_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       venda_pagamento_itens: {
         Row: {
           created_at: string
