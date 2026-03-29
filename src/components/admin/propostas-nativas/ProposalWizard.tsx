@@ -1876,11 +1876,12 @@ export function ProposalWizard() {
           if (genResult.versao_id) {
             supabase
               .from("proposta_versoes")
-              .update({ generation_audit_json: auditReport as any })
+              .update({ generation_audit_json: auditReport } as any)
               .eq("id", genResult.versao_id)
               .then(({ error: auditErr }) => {
                 if (auditErr) console.warn("[ProposalWizard] Failed to persist audit:", auditErr.message);
                 else console.log("[ProposalWizard] Audit persisted to proposta_versoes");
+              });
               });
           }
 
