@@ -105,9 +105,48 @@ interface SnapshotData {
 // ─── Status Badge (SSOT from proposalStatusConfig) ───
 import { getProposalStatusConfig } from "@/lib/proposalStatusConfig";
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }: { status: string; aceita_at?: string | null; enviada_at?: string | null; recusada_at?: string | null; created_at?: string | null }) {
   const s = getProposalStatusConfig(status);
-  return <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.className)}>{s.label}</span>;
+
+  // Build tooltip text based on status
+  const getTooltipText = () => {
+    const lines: string[] = [];
+    if (["aceita", "accepted", "aprovada", "ganha"].includes(status) && aceita_at) {
+      lines.push(`Aceita em ${formatDateTime(aceita_at)}`);
+    }
+    if (["recusada", "rejected", "rejeitada", "perdida"].includes(status) && recusada_at) {
+      lines.push(`Recusada em ${formatDateTime(recusada_at)}`);
+    }
+    if (["enviada", "sent"].includes(status) && enviada_at) {
+      lines.push(`Enviada em ${formatDateTime(enviada_at)}`);
+    }
+    if (["gerada", "generated"].includes(status) && created_at) {
+      lines.push(`Gerada em ${formatDateTime(created_at)}`);
+    }
+    if (lines.length === 0 && created_at) {
+      lines.push(`Criada em ${formatDateTime(created_at)}`);
+    }
+    return lines.join("\n");
+  };
+
+  const tooltipText = getTooltipText();
+
+  if (!tooltipText) {
+    return <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.className)}>{s.label}</span>;
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap cursor-help", s.className)}>{s.label}</span>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">
+          {tooltipText}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: boolean }) {
