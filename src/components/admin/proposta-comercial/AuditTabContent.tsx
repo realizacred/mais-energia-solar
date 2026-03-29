@@ -5,6 +5,7 @@ import {
   FileText, Clock, Bug
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useVariableUsage } from "@/hooks/useVariableUsage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,18 +62,45 @@ export function AuditTabContent({
 
   const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences, categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
-  // Dynamic variable usage data (replaces hardcoded DOCX_AUDIT)
-  const { summary: usageSummary } = useVariableUsage();
+  // Dynamic variable usage data — 100% evidence-based from generation_audit_json
+  const { summary: usageSummary, usageMap } = useVariableUsage();
+  const queryClient = useQueryClient();
+
+  // Derive real problems dynamically from audit evidence
+  const dynamicProblems = useMemo(() => {
+    const problems: Array<{ variavel: string; tipo: string; status: "nulo" | "resolvido" | "quebrada"; causa: string; correcao: string }> = [];
+    for (const [key, info] of usageMap.entries()) {
+      if (info.isBroken) {
+        problems.push({
+          variavel: key,
+          tipo: "Sem resolver",
+          status: "quebrada",
+          causa: "Placeholder encontrado no DOCX mas sem resolver mapeado",
+          correcao: "Adicionar resolver no frontend e backend ou remover do template DOCX",
+        });
+      } else if (info.isNull) {
+        problems.push({
+          variavel: key,
+          tipo: "Valor nulo",
+          status: "nulo",
+          causa: "Resolver existe mas retornou null na última geração",
+          correcao: "Verificar dados de entrada ou fallback do resolver",
+        });
+      }
+    }
+    return problems;
+  }, [usageMap]);
+
   const docxAudit = useMemo(() => ({
     templatesAtivos: usageSummary.totalTemplates,
     totalVariaveis: usageSummary.totalInDocx + usageSummary.totalBroken + usageSummary.totalNull,
     okExplicitas: usageSummary.totalOk,
-    viaCustomSnapshot: usageSummary.totalInDocx - usageSummary.totalOk, // approximate
+    viaCustomSnapshot: usageSummary.totalInDocx - usageSummary.totalOk,
     quebradas: usageSummary.totalBroken,
     comValorNulo: usageSummary.totalNull,
     lastAuditDate: usageSummary.lastAuditDate ?? new Date().toISOString().slice(0, 10),
-    problemas: KNOWN_PROBLEMS,
-  }), [usageSummary]);
+    problemas: dynamicProblems,
+  }), [usageSummary, dynamicProblems]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
