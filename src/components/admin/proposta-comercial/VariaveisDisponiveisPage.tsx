@@ -988,7 +988,7 @@ export function VariaveisDisponiveisPage() {
 
                     {/* Status */}
                     <TableCell className="py-2">
-                      <StatusBadgeVar status={v.status} inDocx={v.inDocx} />
+                      <StatusBadgeVar status={v.status} inDocx={v.inDocx} govRecord={getGovRecord(v.key)} />
                     </TableCell>
 
                     {/* Chave Legada */}
