@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import type { GenerationAuditReport } from "@/services/generationAudit";
 import {
   FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
   Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
@@ -58,6 +59,7 @@ interface StepDocumentoProps {
   customFieldValues?: Record<string, any>;
   onCustomFieldValuesChange?: (values: Record<string, any>) => void;
   docxBlob?: Blob | null;
+  generationAuditReport?: GenerationAuditReport | null;
 }
 
 // ─── Main Component ───────────────────────────────────────
@@ -74,6 +76,7 @@ export function StepDocumento({
   onGenerate, onNewVersion, onViewDetail,
   customFieldValues = {}, onCustomFieldValuesChange,
   docxBlob,
+  generationAuditReport,
 }: StepDocumentoProps) {
   // ─── Queries via hooks (§16 AGENTS.md) ──────────────────
   const queryClient = useQueryClient();
