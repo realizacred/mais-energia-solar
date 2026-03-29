@@ -841,6 +841,22 @@ export function VariaveisDisponiveisPage() {
                           </TooltipTrigger>
                           <TooltipContent side="top" className="text-[10px]">Ver detalhes</TooltipContent>
                         </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-success"
+                              onClick={() => {
+                                const key = v.key;
+                                window.open(`/admin/proposta-comercial?tab=testador&var=${encodeURIComponent(key)}`, "_self");
+                              }}
+                            >
+                              <FlaskConical className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-[10px]">Testar</TooltipContent>
+                        </Tooltip>
                         {v.customId && (
                           <>
                             <Tooltip>
