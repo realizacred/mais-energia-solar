@@ -403,6 +403,7 @@ export function VariaveisDisponiveisPage() {
         case "texto": items = items.filter((v) => v.governance === "texto" || v.tipoResultado === "text"); break;
         case "documento": items = items.filter((v) => v.escopo === "documento"); break;
         case "aspiracional": items = items.filter((v) => v.escopo === "aspiracional"); break;
+        case "campo_dinamico": items = items.filter((v) => !!v._dynamicContext); break;
       }
     }
 
@@ -453,7 +454,19 @@ export function VariaveisDisponiveisPage() {
     const texto = governanceVariables.filter((v) => v.governance === "texto" || v.tipoResultado === "text").length;
     const documento = governanceVariables.filter((v) => v.escopo === "documento").length;
     const aspiracional = governanceVariables.filter((v) => v.escopo === "aspiracional").length;
-    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional };
+    const campoDinamico = governanceVariables.filter((v) => !!v._dynamicContext).length;
+    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional, campoDinamico };
+  }, [governanceVariables]);
+
+  // ── Dynamic field context counts ──
+  const dynamicContextCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    governanceVariables.forEach((v) => {
+      if (v._dynamicContext) {
+        counts[v._dynamicContext] = (counts[v._dynamicContext] || 0) + 1;
+      }
+    });
+    return counts;
   }, [governanceVariables]);
 
   // ── Custom var handlers ──
