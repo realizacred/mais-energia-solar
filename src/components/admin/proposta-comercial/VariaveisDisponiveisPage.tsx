@@ -157,6 +157,10 @@ interface EnrichedVariable {
   escopo?: VariableEscopo;
   /** Dynamic field context (projeto, pre_dimensionamento, pos_dimensionamento) */
   _dynamicContext?: string;
+  /** Health classification from historical analysis */
+  healthClassification?: HealthClassification;
+  /** Health score 0-100 */
+  healthScore?: number;
 }
 
 type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional" | "campo_dinamico";
