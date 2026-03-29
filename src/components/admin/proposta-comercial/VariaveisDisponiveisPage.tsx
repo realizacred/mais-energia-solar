@@ -148,6 +148,8 @@ interface EnrichedVariable {
   governance?: "legado" | "texto" | "input_wizard";
   /** tipo_resultado from DB for custom vars */
   tipoResultado?: string;
+  /** Escopo: proposta (default) ou documento */
+  escopo?: VariableEscopo;
 }
 
 type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto";
