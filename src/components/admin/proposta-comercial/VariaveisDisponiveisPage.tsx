@@ -3,6 +3,7 @@ import {
   Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2,
   ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, List, Info,
   Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
+  FlaskConical, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, 
 import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
 import { useVariableUsage } from "@/hooks/useVariableUsage";
 import { AuditTabContent } from "./AuditTabContent";
+import { FormulaAISuggest } from "./FormulaAISuggest";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 
 /* ── Tiny copy button ───────────────────────────────────── */
@@ -197,6 +199,7 @@ export function VariaveisDisponiveisPage() {
   const [detailVar, setDetailVar] = useState<EnrichedVariable | null>(null);
   const [varPickerOpen, setVarPickerOpen] = useState(false);
   const [varPickerSearch, setVarPickerSearch] = useState("");
+  const [aiSuggestOpen, setAiSuggestOpen] = useState(false);
 
   // §16: queries only in hooks
   const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
@@ -838,6 +841,22 @@ export function VariaveisDisponiveisPage() {
                           </TooltipTrigger>
                           <TooltipContent side="top" className="text-[10px]">Ver detalhes</TooltipContent>
                         </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-success"
+                              onClick={() => {
+                                const key = v.key;
+                                window.open(`/admin/proposta-comercial?tab=testador&var=${encodeURIComponent(key)}`, "_self");
+                              }}
+                            >
+                              <FlaskConical className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-[10px]">Testar</TooltipContent>
+                        </Tooltip>
                         {v.customId && (
                           <>
                             <Tooltip>
@@ -1107,7 +1126,12 @@ export function VariaveisDisponiveisPage() {
                 </div>
               )}
               <div>
-                <Label className="text-xs">Expressão:</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Expressão:</Label>
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-primary gap-1" onClick={() => setAiSuggestOpen(true)}>
+                    <Sparkles className="h-3 w-3" /> Sugerir com IA
+                  </Button>
+                </div>
                 <Textarea id="expressao-textarea" value={form.expressao} onChange={(e) => setForm((f) => ({ ...f, expressao: e.target.value }))} placeholder="[preco]*(1+0.074)^25" className="min-h-[80px] text-sm font-mono mt-1" />
               </div>
               {/* ── Variable picker for expression ── */}
@@ -1214,6 +1238,13 @@ export function VariaveisDisponiveisPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── AI Formula Suggest ── */}
+      <FormulaAISuggest
+        open={aiSuggestOpen}
+        onOpenChange={setAiSuggestOpen}
+        onAccept={(formula) => setForm((f) => ({ ...f, expressao: formula }))}
+      />
     </div>
   );
 }

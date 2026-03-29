@@ -322,3 +322,6 @@ verify_jwt = false
 
 [functions.notify-consultores-weekly]
 verify_jwt = false
+
+[functions.suggest-formula]
+verify_jwt = false

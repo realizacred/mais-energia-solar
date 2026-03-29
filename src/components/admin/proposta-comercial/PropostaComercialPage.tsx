@@ -1,10 +1,11 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Variable, FileText, Mail, Settings, BarChart3 } from "lucide-react";
+import { Variable, FileText, Mail, Settings, BarChart3, FlaskConical } from "lucide-react";
 import { VariaveisDisponiveisPage } from "./VariaveisDisponiveisPage";
 import { TemplatesManager } from "@/components/admin/propostas-nativas/TemplatesManager";
 import { EmailTemplatesPage } from "./EmailTemplatesPage";
 import { PropostaConfigPage } from "./PropostaConfigPage";
 import { ProposalChartsManager } from "./ProposalChartsManager";
+import { VariableTester } from "./VariableTester";
 
 export function PropostaComercialPage() {
   return (
@@ -15,6 +16,11 @@ export function PropostaComercialPage() {
             <Variable className="h-4 w-4" />
             <span className="hidden sm:inline">Variáveis Disponíveis</span>
             <span className="sm:hidden">Variáveis</span>
+          </TabsTrigger>
+          <TabsTrigger value="testador" className="gap-1.5 text-xs sm:text-sm">
+            <FlaskConical className="h-4 w-4" />
+            <span className="hidden sm:inline">Testador</span>
+            <span className="sm:hidden">Testar</span>
           </TabsTrigger>
           <TabsTrigger value="modelos-proposta" className="gap-1.5 text-xs sm:text-sm">
             <FileText className="h-4 w-4" />
@@ -40,6 +46,9 @@ export function PropostaComercialPage() {
 
         <TabsContent value="variaveis">
           <VariaveisDisponiveisPage />
+        </TabsContent>
+        <TabsContent value="testador">
+          <VariableTester />
         </TabsContent>
         <TabsContent value="modelos-proposta">
           <TemplatesManager />
