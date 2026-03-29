@@ -155,7 +155,7 @@ export function useNotifications() {
       try {
         const { data: proposalEvents } = await (supabase as any)
           .from("proposal_events")
-          .select("id, proposta_id, tipo, payload, created_at")
+          .select("id, proposta_id, tipo, payload, created_at, propostas_nativas!inner(projeto_id, cliente_nome, codigo)")
           .eq("tipo", "proposta_visualizada")
           .gte("created_at", last24h)
           .order("created_at", { ascending: false })
@@ -169,13 +169,18 @@ export function useNotifications() {
             const payload = typeof ev.payload === "string" ? JSON.parse(ev.payload) : ev.payload;
             const isFirst = payload?.first_view === true;
             const viewCount = payload?.view_count || 1;
+            const projetoId = ev.propostas_nativas?.projeto_id;
+            const clienteNome = ev.propostas_nativas?.cliente_nome || ev.propostas_nativas?.codigo || "Proposta";
+            const link = projetoId
+              ? `/admin/projetos?projeto=${projetoId}&tab=propostas`
+              : "/admin/projetos";
             items.push({
               id: `pv-${ev.id}`,
               type: "proposal_view",
               title: isFirst ? "Proposta aberta pela 1ª vez 👀" : `Proposta visualizada (${viewCount}x)`,
-              description: `Proposta acessada via link rastreado`,
+              description: `${clienteNome} — via link rastreado`,
               timestamp: ev.created_at,
-              link: "/admin/projetos",
+              link,
             });
           }
         }
