@@ -654,12 +654,18 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   // Auto-populate publicUrl from public_slug
   useEffect(() => {
-    if (!isExpanded || publicUrl) return;
-    const slug = latestVersao?.public_slug;
-    if (slug) {
-      setPublicUrl(`${window.location.origin}/p/${slug}`);
-    }
-  }, [isExpanded, latestVersao?.public_slug]);
+    if (!isExpanded || publicUrl || !latestVersao?.id || !p.id) return;
+    // Auto-populate publicUrl using token-based link (not slug)
+    (async () => {
+      try {
+        const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
+        const token = await getOrCreateProposalToken(p.id, latestVersao.id, "public");
+        setPublicUrl(`${window.location.origin}/proposta/${token}`);
+      } catch {
+        // Silent — will be populated on manual copy
+      }
+    })();
+  }, [isExpanded, latestVersao?.id, p.id]);
 
   // Auto-render ONLY when no persisted PDF exists and status indicates generation happened
   // If output_pdf_path exists, the Arquivo tab will use signed URL instead
