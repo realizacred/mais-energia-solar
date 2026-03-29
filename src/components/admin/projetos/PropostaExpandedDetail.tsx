@@ -1117,6 +1117,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 <DropdownMenuItem onClick={() => setCloneModalOpen(true)}>
                   <Copy className="h-3.5 w-3.5 mr-2 text-primary" /> Clonar proposta
                 </DropdownMenuItem>
+                {canReabrir && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setReabrirDialogOpen(true)}>
+                      <RotateCcw className="h-3.5 w-3.5 mr-2 text-warning" /> Reabrir proposta
+                    </DropdownMenuItem>
+                  </>
+                )}
                 {onArchive && p.status !== "arquivada" && (
                   <DropdownMenuItem onClick={onArchive}>
                     <FolderOpen className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Arquivar
