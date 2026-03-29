@@ -214,6 +214,9 @@ export function VariaveisDisponiveisPage() {
   // Dynamic variable usage data (replaces hardcoded DOCX_REAL_VARS / DOCX_BROKEN / DOCX_NULL_VARS)
   const { usageMap } = useVariableUsage();
 
+  // Dynamic custom fields from deal_custom_fields table
+  const { data: dealCustomFields = [] } = useDealCustomFields();
+
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
     const map: Record<string, { source: VariableSource; resolver: string }> = {};
