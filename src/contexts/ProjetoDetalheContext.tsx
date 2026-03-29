@@ -439,7 +439,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
 
   // ── Effects ──
 
-  // Refresh proposals count on focus
+  // Refresh proposals count on focus or after proposal changes
   useEffect(() => {
     const refreshCount = async () => {
       const { count } = await supabase
@@ -452,11 +452,14 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     refreshCount();
     const handleFocus = () => refreshCount();
     const handleVisibility = () => { if (document.visibilityState === "visible") refreshCount(); };
+    const handlePropostasChanged = () => refreshCount();
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("propostas-changed", handlePropostasChanged);
     return () => {
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("propostas-changed", handlePropostasChanged);
     };
   }, [dealId]);
 

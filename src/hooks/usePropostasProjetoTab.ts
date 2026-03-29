@@ -293,6 +293,8 @@ export function useExcluirProposta() {
       queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] });
       // Also invalidate deal pipeline to refresh kanban cards
       queryClient.invalidateQueries({ queryKey: ["deal-pipeline"] });
+      // Notify ProjetoDetalheContext to refresh proposals count immediately
+      window.dispatchEvent(new CustomEvent("propostas-changed"));
       toast({ title: "Proposta excluída" });
     },
     onError: (err: any) => {
