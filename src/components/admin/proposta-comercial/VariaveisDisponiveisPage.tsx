@@ -478,7 +478,11 @@ export function VariaveisDisponiveisPage() {
     const documento = governanceVariables.filter((v) => v.escopo === "documento").length;
     const aspiracional = governanceVariables.filter((v) => v.escopo === "aspiracional").length;
     const campoDinamico = governanceVariables.filter((v) => !!v._dynamicContext).length;
-    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional, campoDinamico };
+    const healthCritical = governanceVariables.filter((v) => v.healthClassification === "critical").length;
+    const healthUnstable = governanceVariables.filter((v) => v.healthClassification === "unstable").length;
+    const healthHealthy = governanceVariables.filter((v) => v.healthClassification === "healthy").length;
+    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional, campoDinamico, healthCritical, healthUnstable, healthHealthy };
+
   }, [governanceVariables]);
 
   // ── Dynamic field context counts ──
