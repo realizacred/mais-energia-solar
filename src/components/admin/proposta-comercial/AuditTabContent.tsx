@@ -37,24 +37,16 @@ const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: stri
   missing_db: { icon: XCircle, color: "text-destructive", label: "Falta no banco" },
 };
 
-// ── DOCX forensic data (validated in Fase 3.1) ─────────────
-const DOCX_AUDIT = {
-  templatesAtivos: 3,
-  totalVariaveis: 42,
-  okExplicitas: 34,
-  viaCustomSnapshot: 6,
-  quebradas: 2,
-  comValorNulo: 4,
-  lastAuditDate: "2026-03-29",
-  problemas: [
-    { variavel: "capo_m", tipo: "Placeholder legado", status: "quebrada" as const, causa: "Não existe no catálogo nem nos resolvers — aparece como texto cru no PDF", correcao: "Remover do template DOCX ou criar como variável custom" },
-    { variavel: "capo_seguro", tipo: "Placeholder legado", status: "quebrada" as const, causa: "Não existe no catálogo nem nos resolvers — aparece como texto cru no PDF", correcao: "Remover do template DOCX ou criar como variável custom" },
-    { variavel: "vc_aumento", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de entrada estão ausentes", correcao: "Revisar fórmula no wizard ou adicionar fallback" },
-    { variavel: "vc_calculo_seguro", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de entrada estão ausentes", correcao: "Revisar fórmula no wizard ou adicionar fallback" },
-    { variavel: "vc_garantiaservico", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de entrada estão ausentes", correcao: "Revisar fórmula no wizard ou adicionar fallback" },
-    { variavel: "vc_string_box_cc", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de entrada estão ausentes", correcao: "Revisar fórmula no wizard ou adicionar fallback" },
-  ],
-};
+// ── DOCX audit data — now sourced from useVariableUsage hook ──
+// Known issues baseline (used when no generation reports are available)
+const KNOWN_PROBLEMS = [
+  { variavel: "capo_m", tipo: "Placeholder legado", status: "quebrada" as const, causa: "Não existe no catálogo nem nos resolvers — aparece como texto cru no PDF", correcao: "Remover do template DOCX ou criar como variável custom" },
+  { variavel: "capo_seguro", tipo: "Placeholder legado", status: "quebrada" as const, causa: "Não existe no catálogo nem nos resolvers — aparece como texto cru no PDF", correcao: "Remover do template DOCX ou criar como variável custom" },
+  { variavel: "vc_aumento", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de consumo/geração estão ausentes no contexto", correcao: "Verificar se consumo_total e geracao_estimada estão no snapshot" },
+  { variavel: "vc_calculo_seguro", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de entrada estão ausentes", correcao: "Revisar fórmula no wizard ou adicionar fallback" },
+  { variavel: "vc_garantiaservico", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de entrada estão ausentes", correcao: "Revisar fórmula no wizard ou adicionar fallback" },
+  { variavel: "vc_string_box_cc", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de entrada estão ausentes", correcao: "Revisar fórmula no wizard ou adicionar fallback" },
+];
 
 // ── Main Component ──────────────────────────────────────────
 export function AuditTabContent({
