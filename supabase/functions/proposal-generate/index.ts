@@ -702,6 +702,9 @@ Deno.serve(async (req) => {
           roi_25_anos: calcResult.roi25Anos,
           num_modulos: numModulos,
           num_ucs: body.ucs.length,
+          // Aliases for custom variable expressions
+          vc_consumo: consumoTotal,
+          consumo: consumoTotal,
         };
 
         for (const vc of vcDefs) {
