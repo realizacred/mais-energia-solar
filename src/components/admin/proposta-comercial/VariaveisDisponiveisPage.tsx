@@ -555,13 +555,43 @@ export function VariaveisDisponiveisPage() {
   };
 
   // ── Status badge ──
-  const StatusBadgeVar = ({ status, inDocx }: { status: EnrichedVariable["status"]; inDocx: boolean }) => {
+  const StatusBadgeVar = ({ status, inDocx, govRecord }: { status: EnrichedVariable["status"]; inDocx: boolean; govRecord?: GovernanceRecord }) => {
+    // Use governance classification if available (replaces "sem resolver")
+    if (govRecord) {
+      const colorMap: Record<string, string> = {
+        success: "bg-success/15 text-success border-success/20",
+        info: "bg-info/15 text-info border-info/20",
+        warning: "bg-warning/15 text-warning border-warning/20",
+        muted: "bg-muted text-muted-foreground border-border",
+        destructive: "bg-destructive/15 text-destructive border-destructive/20",
+        primary: "bg-primary/15 text-primary border-primary/20",
+        secondary: "bg-secondary/15 text-secondary-foreground border-secondary/20",
+      };
+      return (
+        <div className="flex items-center gap-1">
+          <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium", colorMap[govRecord.statusColor] ?? colorMap.muted)}>
+            {govRecord.statusLabel}
+          </Badge>
+          {inDocx && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium">
+              Em uso
+            </Badge>
+          )}
+          {govRecord.templateWarning === "block" && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-destructive/20 bg-destructive/10 text-destructive font-medium">
+              🚫
+            </Badge>
+          )}
+        </div>
+      );
+    }
+
     const config = {
       ok: { label: "OK", className: "bg-success/15 text-success border-success/20" },
       warning: { label: "Warning", className: "bg-warning/15 text-warning border-warning/20" },
       error: { label: "Erro", className: "bg-destructive/15 text-destructive border-destructive/20" },
       pending: { label: "Pendente", className: "bg-muted text-muted-foreground border-border" },
-      unused: { label: "Sem resolver", className: "bg-muted text-muted-foreground border-border" },
+      unused: { label: "Sem dados", className: "bg-muted text-muted-foreground border-border" },
     };
     const c = config[status];
     return (
