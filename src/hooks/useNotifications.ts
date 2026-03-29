@@ -182,10 +182,9 @@ export function useNotifications() {
             const payload = typeof ev.payload === "string" ? JSON.parse(ev.payload) : ev.payload;
             const isFirst = payload?.first_view === true;
             const viewCount = payload?.view_count || 1;
-            const proposta = propostaMap.get(ev.proposta_id);
+            const proposta: any = propostaMap.get(ev.proposta_id);
             const projetoId = proposta?.projeto_id;
-            const clienteNome = proposta?.cliente_nome || proposta?.codigo || "Proposta";
-            const link = projetoId
+            const clienteLabel = proposta?.codigo || "Proposta";
               ? `/admin/projetos?projeto=${projetoId}&tab=propostas`
               : "/admin/projetos";
             items.push({
