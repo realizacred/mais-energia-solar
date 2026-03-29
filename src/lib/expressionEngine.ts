@@ -171,6 +171,42 @@ export function evaluate(expression: string, context: ExpressionContext): number
 }
 
 /**
+ * Check if an expression is fixed text (no math operators, no variable refs).
+ * Used for custom variables of type "text" that should not be evaluated numerically.
+ */
+export function isFixedText(expression: string): boolean {
+  if (!expression || expression.trim() === "") return false;
+  const trimmed = expression.trim();
+  const hasVarRefs = /\[[^\]]+\]/.test(trimmed);
+  const hasMathOps = /[+\-*\/()]/.test(trimmed);
+  return !hasVarRefs && !hasMathOps;
+}
+
+/**
+ * Evaluate a custom variable expression, handling both numeric and text types.
+ * - If tipo_resultado is "text" or expression has no math/var refs → returns text as-is
+ * - Otherwise evaluates numerically
+ * Returns string result or null on error.
+ */
+export function evaluateCustomVar(
+  expression: string,
+  context: ExpressionContext,
+  tipoResultado?: string,
+): string | null {
+  if (!expression || expression.trim() === "") return null;
+  const trimmed = expression.trim();
+
+  // Text-type: return as-is
+  if (tipoResultado === "text" || isFixedText(trimmed)) {
+    return trimmed;
+  }
+
+  // Numeric evaluation
+  const val = evaluate(trimmed, context);
+  return val !== null ? String(val) : null;
+}
+
+/**
  * Extract all variable names referenced in an expression.
  * Example: extractVariables("[a] + [b] * 2") → ["a", "b"]
  */
