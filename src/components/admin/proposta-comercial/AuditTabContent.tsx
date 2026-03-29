@@ -232,8 +232,8 @@ export function AuditTabContent({
                   {docxAudit.problemas.map((p) => (
                     <ShadTableRow key={p.variavel}>
                       <ShadTableCell className="py-2">
-                        {p.status === "quebrada" ? (
-                          <XCircle className="h-3 w-3 text-destructive" />
+                        {p.status === "resolvido" ? (
+                          <CheckCircle2 className="h-3 w-3 text-success" />
                         ) : (
                           <AlertTriangle className="h-3 w-3 text-warning" />
                         )}
@@ -241,13 +241,13 @@ export function AuditTabContent({
                       <ShadTableCell className="py-2">
                         <code className={cn(
                           "font-mono px-1.5 py-0.5 rounded text-[10px]",
-                          p.status === "quebrada" ? "text-destructive bg-destructive/5" : "text-warning bg-warning/5"
+                          p.status === "resolvido" ? "text-success bg-success/5" : "text-warning bg-warning/5"
                         )}>[{p.variavel}]</code>
                       </ShadTableCell>
                       <ShadTableCell className="py-2">
                         <Badge variant="outline" className={cn(
                           "text-[8px]",
-                          p.status === "quebrada" ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-warning/10 text-warning border-warning/20"
+                          p.status === "resolvido" ? "bg-success/10 text-success border-success/20" : "bg-warning/10 text-warning border-warning/20"
                         )}>
                           {p.tipo}
                         </Badge>
