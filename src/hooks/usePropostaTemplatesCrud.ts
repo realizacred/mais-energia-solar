@@ -30,12 +30,31 @@ export function usePropostaTemplatesCrud() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("proposta_templates")
-        .select("id, nome, descricao, grupo, categoria, tipo, template_html, file_url, thumbnail_url, ativo, ordem")
+        .select("id, nome, descricao, grupo, categoria, tipo, file_url, thumbnail_url, ativo, ordem")
         .order("ordem", { ascending: true });
       if (error) throw error;
       return (data as PropostaTemplateFull[]) || [];
     },
     staleTime: STALE_TIME,
+  });
+}
+
+/** Fetch template_html on demand (can be very large JSON) */
+export function usePropostaTemplateHtml(id: string | null) {
+  return useQuery({
+    queryKey: [QUERY_KEY, "html", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from("proposta_templates")
+        .select("template_html")
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+      return data?.template_html as string | null;
+    },
+    staleTime: STALE_TIME,
+    enabled: !!id,
   });
 }
 

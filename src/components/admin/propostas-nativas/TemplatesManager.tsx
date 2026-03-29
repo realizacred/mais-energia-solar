@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
-import { usePropostaTemplatesCrud, useSalvarPropostaTemplate, useDeletarPropostaTemplate, useAtualizarTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
+import { usePropostaTemplatesCrud, useSalvarPropostaTemplate, useDeletarPropostaTemplate, useAtualizarTemplateHtml, usePropostaTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
 import type { PropostaTemplateFull } from "@/hooks/usePropostaTemplatesCrud";
 import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
 import type { TemplateBlock } from "@/components/admin/proposal-builder";
@@ -109,9 +109,13 @@ export function TemplatesManager() {
   const [form, setForm] = useState<Partial<PropostaTemplateFull>>({});
   const [uploading, setUploading] = useState(false);
   const [tipoTab, setTipoTab] = useState<"html" | "docx">("html");
-  const [previewTemplate, setPreviewTemplate] = useState<PropostaTemplateFull | null>(null);
-  const [builderTemplate, setBuilderTemplate] = useState<PropostaTemplateFull | null>(null);
+  const [previewTemplateId, setPreviewTemplateId] = useState<PropostaTemplateFull | null>(null);
+  const [builderTemplateId, setBuilderTemplateId] = useState<PropostaTemplateFull | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // On-demand fetch of template_html for preview/builder
+  const activeHtmlId = previewTemplateId?.id ?? builderTemplateId?.id ?? null;
+  const { data: loadedTemplateHtml } = usePropostaTemplateHtml(activeHtmlId);
 
   const filteredTemplates = useMemo(
     () => templates.filter(t => t.tipo === tipoTab),
@@ -350,9 +354,9 @@ export function TemplatesManager() {
   };
 
   const handleBuilderSave = useCallback(async (jsonData: string) => {
-    if (!builderTemplate) return;
-    await atualizarHtmlMutation.mutateAsync({ id: builderTemplate.id, template_html: jsonData });
-  }, [builderTemplate, atualizarHtmlMutation]);
+    if (!builderTemplateId) return;
+    await atualizarHtmlMutation.mutateAsync({ id: builderTemplateId.id, template_html: jsonData });
+  }, [builderTemplateId, atualizarHtmlMutation]);
 
   const isDocx = form.tipo === "docx";
   const dialogOpen = editingId !== null;
@@ -587,17 +591,17 @@ export function TemplatesManager() {
                     variant="outline"
                     size="sm"
                     className="h-7 gap-1.5 text-[10px] font-semibold border-primary/30 text-primary hover:bg-primary/10"
-                    onClick={() => setBuilderTemplate(t)}
+                    onClick={() => setBuilderTemplateId(t)}
                   >
                     <Paintbrush className="h-3 w-3" />
                     Editar Visual
                   </Button>
                 )}
                 <TooltipProvider delayDuration={600}>
-                  {((t.tipo === "html" && t.template_html) || (t.tipo === "docx" && t.file_url)) && (
+                  {((t.tipo === "html") || (t.tipo === "docx" && t.file_url)) && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => setPreviewTemplate(t)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => setPreviewTemplateId(t)}>
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -638,32 +642,32 @@ export function TemplatesManager() {
       )}
 
       {/* Preview Dialog */}
-      {previewTemplate && (previewTemplate.template_html || previewTemplate.file_url) && (
+      {previewTemplateId && (loadedTemplateHtml || previewTemplateId.file_url) && (
         <TemplatePreviewDialog
-          open={!!previewTemplate}
-          onOpenChange={(open) => { if (!open) setPreviewTemplate(null); }}
-          templateHtml={previewTemplate.template_html}
-          templateNome={previewTemplate.nome}
-          templateId={previewTemplate.id}
-          templateTipo={previewTemplate.tipo as "html" | "docx"}
-          fileUrl={previewTemplate.file_url}
+          open={!!previewTemplateId}
+          onOpenChange={(open) => { if (!open) setPreviewTemplateId(null); }}
+          templateHtml={loadedTemplateHtml ?? null}
+          templateNome={previewTemplateId.nome}
+          templateId={previewTemplateId.id}
+          templateTipo={previewTemplateId.tipo as "html" | "docx"}
+          fileUrl={previewTemplateId.file_url}
         />
       )}
 
       {/* Visual Builder Overlay */}
-      {builderTemplate && (
+      {builderTemplateId && (
         <ProposalBuilderEditor
           initialData={(() => {
             try {
-              const parsed = JSON.parse(builderTemplate.template_html || "[]");
+              const parsed = JSON.parse(loadedTemplateHtml || "[]");
               return Array.isArray(parsed) ? parsed as TemplateBlock[] : [];
             } catch {
               return [];
             }
           })()}
-          templateName={builderTemplate.nome}
+          templateName={builderTemplateId.nome}
           onSave={handleBuilderSave}
-          onClose={() => setBuilderTemplate(null)}
+          onClose={() => setBuilderTemplateId(null)}
         />
       )}
     </div>
