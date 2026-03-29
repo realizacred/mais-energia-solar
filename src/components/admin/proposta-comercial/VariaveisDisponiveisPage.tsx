@@ -950,7 +950,34 @@ export function VariaveisDisponiveisPage() {
                       </span>
                     </TableCell>
 
-                    {/* Unidade */}
+                    {/* Saúde */}
+                    <TableCell className="py-2 text-center">
+                      {v.healthClassification && v.healthClassification !== "unused" ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[8px] px-1.5 py-0 h-4 font-medium",
+                                v.healthClassification === "healthy" && "bg-success/15 text-success border-success/20",
+                                v.healthClassification === "unstable" && "bg-warning/15 text-warning border-warning/20",
+                                v.healthClassification === "critical" && "bg-destructive/15 text-destructive border-destructive/20",
+                              )}
+                            >
+                              {v.healthClassification === "healthy" ? "🟢" : v.healthClassification === "unstable" ? "🟡" : "🔴"}
+                              {" "}{v.healthScore}%
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-[10px]">
+                            Score de saúde: {v.healthScore}% ({v.healthClassification})
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/40">—</span>
+                      )}
+                    </TableCell>
+
+
                     <TableCell className="py-2 text-center">
                       <span className="text-[10px] text-muted-foreground font-mono">{v.unit || "—"}</span>
                     </TableCell>
