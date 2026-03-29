@@ -2662,7 +2662,7 @@ export function ProposalWizard() {
           open={showGateModal}
           onOpenChange={setShowGateModal}
           validation={gateValidation}
-          onConfirmGenerate={handleGenerate}
+          onConfirmGenerate={handleGateConfirmed}
         />
       )}
     </div>
