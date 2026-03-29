@@ -1041,6 +1041,9 @@ Deno.serve(async (req) => {
       tenantNome: tenantInfo?.nome,
       versaoData: versaoData as Record<string, unknown>,
       propostaData: propostaData as Record<string, unknown>,
+      brandSettings: (brandSettingsRes.data ?? {}) as Record<string, unknown>,
+      projetoData: (projeto ?? {}) as Record<string, unknown>,
+      clienteData: (cliente ?? {}) as Record<string, unknown>,
     });
 
     console.log(`[template-preview] Variables resolved via domain resolvers: ${Object.keys(vars).length} keys`);
