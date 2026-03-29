@@ -229,12 +229,18 @@ export function AuditTabContent({
           </div>
         </div>
 
-        {/* Problems table */}
+        {/* Problems table — dynamic from generation audit evidence */}
+        {!usageSummary.hasAuditData && (
+          <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-center gap-2">
+            <Info className="h-3.5 w-3.5 shrink-0" />
+            <span>Nenhum relatório de geração encontrado. Gere uma proposta para popular os dados de auditoria real dos templates DOCX.</span>
+          </div>
+        )}
         {docxAudit.problemas.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Bug className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-xs font-semibold text-foreground">Problemas Reais dos Templates Ativos</span>
+              <span className="text-xs font-semibold text-foreground">Problemas Detectados nos Templates</span>
               <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
                 {docxAudit.problemas.length}
               </Badge>
