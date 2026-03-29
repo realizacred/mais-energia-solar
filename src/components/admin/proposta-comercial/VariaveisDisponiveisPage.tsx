@@ -150,7 +150,7 @@ type ActiveView = VariableCategory | "todas" | "auditoria";
 
 /* ── Semantic explanations for known variables ── */
 const SEMANTIC_EXPLANATIONS: Record<string, string> = {
-  vc_aumento: "Representa o percentual de geração de energia solar acima do consumo médio mensal. Ex: consumo = 500 kWh, geração = 1.000 kWh → aumento = 100%. Se o valor está nulo, significa que os dados de consumo ou geração não foram preenchidos no wizard.",
+  vc_aumento: "Variável custom calculada pela expressão armazenada em proposta_variaveis_custom. Avaliada no backend (proposal-generate) usando evaluateExpression() com contexto numérico: [geracao_estimada], [consumo_total], [economia_mensal], etc. Se retorna null, significa que a expressão referencia campos ausentes no contexto ou a fórmula é inválida. Semântica esperada: percentual de geração acima do consumo (ex: consumo=500, geração=1000 → aumento=100%). Verificar a expressão cadastrada na tabela proposta_variaveis_custom.",
   vc_calculo_seguro: "Valor calculado do seguro da instalação fotovoltaica. Depende de dados do kit (potência, valor) e configuração de seguro do tenant. Retorna nulo quando esses dados não estão disponíveis.",
   vc_garantiaservico: "Texto descritivo da garantia de serviço oferecida pela empresa. Geralmente extraído de configurações do tenant ou campo customizado no wizard.",
   vc_string_box_cc: "Configuração de string-box e corrente contínua do sistema. Depende de dados técnicos do kit selecionado no wizard.",
