@@ -11,7 +11,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui-kit/inputs";
@@ -668,8 +667,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
-        <div className="p-4 sm:p-5 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
           {/* Header fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -1140,7 +1138,6 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           </div>
 
         </div>
-        </ScrollArea>
 
         {/* Footer */}
         <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30 shrink-0">
