@@ -320,7 +320,7 @@ export function VariaveisDisponiveisPage() {
     });
 
     return items;
-  }, [customVarsRaw, resolverMap]);
+  }, [customVarsRaw, resolverMap, usageMap]);
 
   // ── Governance-enriched: mark legacy/wizard input vars ──
   const governanceVariables = useMemo(() => {
