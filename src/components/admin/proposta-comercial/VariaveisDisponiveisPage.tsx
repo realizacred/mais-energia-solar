@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, PenLine, CreditCard, List } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -11,14 +11,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   VARIABLES_CATALOG,
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   type VariableCategory,
 } from "@/lib/variablesCatalog";
-import { supabase } from "@/integrations/supabase/client";
+import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, type VariavelCustom } from "@/hooks/useVariaveisCustom";
 import { AuditTabContent } from "./AuditTabContent";
-import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 
 /* ── Tiny copy button ───────────────────────────────────── */
 function CopyButton({ text }: { text: string }) {
@@ -42,14 +59,17 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-/* ── Category icons ─────────────────────────────────────── */
-const CATEGORY_ICONS: Partial<Record<VariableCategory, string>> = {
+/* ── Category icons — complete for all VariableCategory ── */
+const CATEGORY_ICONS: Record<VariableCategory, string> = {
   entrada: "📥",
   sistema_solar: "☀️",
   financeiro: "💰",
   conta_energia: "⚡",
   comercial: "🏢",
   cliente: "👤",
+  contrato: "📄",
+  assinatura: "✍️",
+  pagamento: "💳",
   tabelas: "📊",
   series: "📈",
   premissas: "⚙️",
@@ -61,8 +81,8 @@ const CATEGORY_ICONS: Partial<Record<VariableCategory, string>> = {
   customizada: "🧩",
 };
 
-/* ── Custom variable from DB ────────────────────────────── */
-interface DbCustomVar {
+/* ── Adapter: VariavelCustom → DbCustomVar shape used by AuditTabContent ── */
+export interface DbCustomVar {
   id: string;
   nome: string;
   label: string;
@@ -73,30 +93,50 @@ interface DbCustomVar {
   ativo: boolean;
 }
 
+function toDbCustomVar(v: VariavelCustom): DbCustomVar {
+  return {
+    id: v.id,
+    nome: v.nome,
+    label: v.label,
+    expressao: v.expressao,
+    tipo_resultado: v.tipo_resultado,
+    categoria: v.categoria,
+    precisao: v.ordem, // legacy field mapping
+    ativo: v.ativo,
+  };
+}
+
 const PRECISAO_OPTIONS = [
   { value: 0, label: "Nenhuma casa decimal" },
   { value: 1, label: "1 casa decimal" },
   { value: 2, label: "2 casas decimais" },
   { value: 3, label: "3 casas decimais" },
 ];
+
 function normalize(str: string) {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
+type ActiveView = VariableCategory | "todas" | "auditoria";
+
 export function VariaveisDisponiveisPage() {
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<VariableCategory | "auditoria">("entrada");
-  const [dbCustomVars, setDbCustomVars] = useState<DbCustomVar[]>([]);
-  const [loadingCustom, setLoadingCustom] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<ActiveView>("todas");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingVar, setEditingVar] = useState<DbCustomVar | null>(null);
+  const [editingVar, setEditingVar] = useState<VariavelCustom | null>(null);
   const [form, setForm] = useState({ nome: "vc_", label: "", expressao: "", precisao: 2 });
   const [sortCol, setSortCol] = useState<string>("label");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  // Pre-load custom vars on mount (avoids delay when switching tabs)
-  useEffect(() => { loadCustomVars(); }, []);
-  
+  // §16 / RB-04: queries only in hooks
+  const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
+  const salvarMutation = useSalvarVariavelCustom();
+  const deletarMutation = useDeletarVariavelCustom();
+
+  // Adapter for AuditTabContent compatibility
+  const dbCustomVars = useMemo(() => customVarsRaw.map(toDbCustomVar), [customVarsRaw]);
+
   const toggleSort = useCallback((col: string) => {
     if (sortCol === col) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -106,33 +146,15 @@ export function VariaveisDisponiveisPage() {
     }
   }, [sortCol]);
 
-  const loadCustomVars = () => {
-    setLoadingCustom(true);
-    supabase
-      .from("proposta_variaveis_custom")
-      .select("id, nome, label, expressao, tipo_resultado, categoria, precisao, ativo")
-      .order("ordem", { ascending: true })
-      .then(({ data }) => {
-        setDbCustomVars((data as DbCustomVar[]) || []);
-        setLoadingCustom(false);
-      });
-  };
-
-  // Load custom vars from DB when tab is selected
-  useEffect(() => {
-    if (activeCategory !== "customizada" && activeCategory !== "auditoria") return;
-    loadCustomVars();
-  }, [activeCategory]);
-
   const openNewModal = () => {
     setEditingVar(null);
     setForm({ nome: "vc_", label: "", expressao: "", precisao: 2 });
     setModalOpen(true);
   };
 
-  const openEditModal = (v: DbCustomVar) => {
+  const openEditModal = (v: VariavelCustom) => {
     setEditingVar(v);
-    setForm({ nome: v.nome, label: v.label, expressao: v.expressao, precisao: v.precisao ?? 2 });
+    setForm({ nome: v.nome, label: v.label, expressao: v.expressao, precisao: v.ordem ?? 2 });
     setModalOpen(true);
   };
 
@@ -146,38 +168,39 @@ export function VariaveisDisponiveisPage() {
       return;
     }
     try {
-      if (editingVar) {
-        const { error } = await supabase
-          .from("proposta_variaveis_custom")
-          .update({ nome: form.nome, label: form.label, expressao: form.expressao, precisao: form.precisao } as any)
-          .eq("id", editingVar.id);
-        if (error) throw error;
-        toast.success("Variável atualizada!");
-      } else {
-        const { error } = await supabase
-          .from("proposta_variaveis_custom")
-          .insert({ nome: form.nome, label: form.label, expressao: form.expressao, precisao: form.precisao, tipo_resultado: "number", categoria: "geral", ordem: dbCustomVars.length, ativo: true } as any);
-        if (error) throw error;
-        toast.success("Variável cadastrada!");
-      }
+      await salvarMutation.mutateAsync({
+        id: editingVar?.id ?? null,
+        nome: form.nome,
+        label: form.label,
+        expressao: form.expressao,
+        ordem: form.precisao,
+        tipo_resultado: "number",
+        categoria: "geral",
+        ativo: true,
+      });
+      toast.success(editingVar ? "Variável atualizada!" : "Variável cadastrada!");
       setModalOpen(false);
-      loadCustomVars();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
     }
   };
 
-  const handleDeleteCustom = async (id: string) => {
-    if (!confirm("Excluir esta variável customizada?")) return;
-    const { error } = await supabase.from("proposta_variaveis_custom").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Variável excluída");
-    loadCustomVars();
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deletarMutation.mutateAsync(deleteTarget);
+      toast.success("Variável excluída");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao excluir");
+    }
+    setDeleteTarget(null);
   };
 
-  // Static catalog items for current category (includes customizada)
+  // Static catalog items for current category (includes "todas" view)
   const filtered = useMemo(() => {
-    let items = VARIABLES_CATALOG.filter((v) => v.category === activeCategory);
+    let items = activeCategory === "todas"
+      ? [...VARIABLES_CATALOG]
+      : VARIABLES_CATALOG.filter((v) => v.category === activeCategory);
     if (search.trim()) {
       const q = normalize(search);
       items = items.filter(
@@ -197,7 +220,9 @@ export function VariaveisDisponiveisPage() {
   }, [search, activeCategory, sortCol, sortDir]);
 
   const totalCount = useMemo(() => {
+    if (activeCategory === "todas") return VARIABLES_CATALOG.length;
     if (activeCategory === "customizada") return dbCustomVars.length;
+    if (activeCategory === "auditoria") return 0;
     return VARIABLES_CATALOG.filter((v) => v.category === activeCategory).length;
   }, [activeCategory, dbCustomVars]);
 
@@ -208,6 +233,8 @@ export function VariaveisDisponiveisPage() {
         return normalize(v.label).includes(q) || normalize(v.nome).includes(q) || normalize(v.expressao).includes(q);
       }).length
     : filtered.length;
+
+  const isStandardCatalogView = activeCategory !== "auditoria" && activeCategory !== "customizada";
 
   return (
     <div className="space-y-4">
@@ -235,6 +262,25 @@ export function VariaveisDisponiveisPage() {
         {/* Category tabs — auto-wrap responsivo */}
         <div className="border-b border-border bg-muted/20 px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
+            {/* "Todas" filter — always first */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveCategory("todas")}
+              className={cn(
+                "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
+                activeCategory === "todas"
+                  ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20 hover:bg-primary/90"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
+              )}
+            >
+              <List className="h-3.5 w-3.5 mr-1" />
+              <span>Todas</span>
+              <span className={cn("text-[9px] font-mono tabular-nums ml-0.5 min-w-[1.2rem] text-center", activeCategory === "todas" ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
+                {VARIABLES_CATALOG.length}
+              </span>
+            </Button>
+
             {CATEGORY_ORDER.map((cat) => {
               const isActive = activeCategory === cat;
               const count = cat === "customizada"
@@ -302,7 +348,7 @@ export function VariaveisDisponiveisPage() {
           <AuditTabContent
             dbCustomVars={dbCustomVars}
             loadingCustom={loadingCustom}
-            onRefresh={loadCustomVars}
+            onRefresh={() => refetchCustom()}
             onRequestCreateVariable={(suggested) => {
               setEditingVar(null);
               const tableCategoria: Record<string, string> = {
@@ -316,13 +362,12 @@ export function VariaveisDisponiveisPage() {
                 concessionarias: "tarifa",
               };
               const categoria = tableCategoria[suggested.table] || "geral";
-              // Auto-detect expression based on column type
               const colType = suggested.colType || "string";
               let expressao = `return snapshot?.${suggested.table}?.${suggested.column} ?? "-";`;
               if (colType === "number") {
                 expressao = `// Tipo: number\nconst val = snapshot?.${suggested.table}?.${suggested.column};\nreturn typeof val === "number" ? val : 0;`;
               } else if (colType === "date") {
-                expressao = `// Tipo: date — formato DD/MM/YYYY\nconst val = snapshot?.${suggested.table}?.${suggested.column};\nif (!val) return "-";\nconst d = new Date(val);\nreturn formatDate(d);`;
+                expressao = `// Tipo: date — formato DD/MM/YYYY\nconst val = snapshot?.${suggested.table}?.${suggested.column};\nif (!val) return "-";\nconst d = new Date(val);\nreturn d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });`;
               } else if (colType === "boolean") {
                 expressao = `// Tipo: boolean\nreturn snapshot?.${suggested.table}?.${suggested.column} ? "Sim" : "Não";`;
               }
@@ -359,17 +404,17 @@ export function VariaveisDisponiveisPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-muted/30 border-b border-border">
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Item</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Expressão</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[160px]">Precisão</th>
-                      <th className="text-center px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[80px]">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="text-[10px]">Item</TableHead>
+                      <TableHead className="text-[10px]">Chave</TableHead>
+                      <TableHead className="text-[10px]">Expressão</TableHead>
+                      <TableHead className="text-[10px] w-[160px]">Precisão</TableHead>
+                      <TableHead className="text-center text-[10px] w-[80px]">Ação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {[...dbCustomVars]
                       .filter((v) => {
                         if (!search.trim()) return true;
@@ -377,41 +422,44 @@ export function VariaveisDisponiveisPage() {
                         return normalize(v.label).includes(q) || normalize(v.nome).includes(q) || normalize(v.expressao).includes(q);
                       })
                       .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"))
-                      .map((v, idx) => (
-                        <tr key={v.id} className={`border-b border-border/40 group transition-colors ${idx % 2 === 0 ? "bg-card" : "bg-muted/10"} hover:bg-accent/5`}>
-                          <td className="px-3 py-2.5">
-                            <span className="font-medium text-foreground text-[11px]">{v.label}</span>
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <div className="flex items-center gap-1">
-                              <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">[{v.nome}]</code>
-                              <CopyButton text={`[${v.nome}]`} />
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <code className="font-mono text-muted-foreground text-[10px] max-w-[350px] truncate block" title={v.expressao}>
-                              {v.expressao}
-                            </code>
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <span className="text-[10px] text-muted-foreground">
-                              {v.precisao === 0 ? "Nenhuma casa decimal" : `${v.precisao} casa${v.precisao > 1 ? "s" : ""} decimal${v.precisao > 1 ? "is" : ""}`}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-center">
-                            <div className="flex items-center justify-center gap-0.5">
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEditModal(v)}>
-                                <Edit2 className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteCustom(v.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
+                      .map((v) => {
+                        const original = customVarsRaw.find(cv => cv.id === v.id);
+                        return (
+                          <TableRow key={v.id}>
+                            <TableCell>
+                              <span className="font-medium text-foreground text-[11px]">{v.label}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">[{v.nome}]</code>
+                                <CopyButton text={`[${v.nome}]`} />
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <code className="font-mono text-muted-foreground text-[10px] max-w-[350px] truncate block" title={v.expressao}>
+                                {v.expressao}
+                              </code>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-[10px] text-muted-foreground">
+                                {v.precisao === 0 ? "Nenhuma casa decimal" : `${v.precisao} casa${v.precisao > 1 ? "s" : ""} decimal${v.precisao > 1 ? "is" : ""}`}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-0.5">
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => original && openEditModal(original)}>
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(v.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
               </div>
             )}
 
@@ -473,26 +521,50 @@ export function VariaveisDisponiveisPage() {
                 </div>
                 <DialogFooter className="gap-2">
                   <Button variant="ghost" onClick={() => setModalOpen(false)}>Fechar</Button>
-                  <Button onClick={handleSaveCustom}>Cadastrar</Button>
+                  <Button onClick={handleSaveCustom} disabled={salvarMutation.isPending}>
+                    {salvarMutation.isPending ? "Salvando..." : "Cadastrar"}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* AlertDialog for delete confirmation */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir variável customizada?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. A variável será removida permanentemente do banco de dados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleConfirmDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         ) : (
+          /* Standard catalog table (for "todas" and individual categories) */
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-muted/30 border-b border-border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
                   {[
-                    { key: "label", label: "Variável", align: "text-left", width: "w-[28%]" },
-                    { key: "legacyKey", label: "Chave Legada", align: "text-left", width: "w-[22%]" },
-                    { key: "canonicalKey", label: "Chave Canônica", align: "text-left", width: "w-[28%]" },
-                    { key: "unit", label: "Unidade", align: "text-center", width: "w-[10%]" },
-                    { key: "example", label: "Exemplo", align: "text-right", width: "w-[12%]" },
+                    { key: "label", label: "Variável", width: "w-[28%]" },
+                    { key: "legacyKey", label: "Chave Legada", width: "w-[22%]" },
+                    { key: "canonicalKey", label: "Chave Canônica", width: "w-[28%]" },
+                    { key: "unit", label: "Unidade", width: "w-[10%]" },
+                    { key: "example", label: "Exemplo", width: "w-[12%]" },
                   ].map((col) => (
-                    <th
+                    <TableHead
                       key={col.key}
-                      className={`${col.align} px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] ${col.width} cursor-pointer hover:text-foreground select-none transition-colors`}
+                      className={cn("text-[10px] cursor-pointer hover:text-foreground select-none transition-colors", col.width)}
                       onClick={() => toggleSort(col.key)}
                     >
                       <span className="inline-flex items-center gap-1">
@@ -503,32 +575,32 @@ export function VariaveisDisponiveisPage() {
                           <ArrowUpDown className="h-3 w-3 opacity-30" />
                         )}
                       </span>
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((v, idx) => (
-                  <tr
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((v) => (
+                  <TableRow
                     key={v.canonicalKey}
-                    className={`
-                      border-b border-border/40 transition-colors group
-                      ${idx % 2 === 0 ? "bg-card" : "bg-muted/10"}
-                      hover:bg-accent/5
-                      ${v.notImplemented ? "opacity-40" : ""}
-                    `}
+                    className={cn(v.notImplemented && "opacity-40")}
                   >
-                    <td className="px-3 py-2">
+                    <TableCell className="py-2">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex items-center gap-1.5 cursor-help">
-                            <ChevronRight className="h-3 w-3 text-primary/30 group-hover:text-primary transition-colors shrink-0" />
+                            <ChevronRight className="h-3 w-3 text-primary/30 shrink-0" />
                             <span className="font-medium text-foreground text-[11px] leading-tight">{v.label}</span>
                             {v.isSeries && (
                               <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-secondary/40 text-secondary font-mono">série</Badge>
                             )}
                             {v.notImplemented && (
                               <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-destructive/30 text-destructive font-mono">pendente</Badge>
+                            )}
+                            {activeCategory === "todas" && (
+                              <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-border text-muted-foreground font-mono">
+                                {CATEGORY_ICONS[v.category]} {CATEGORY_LABELS[v.category]}
+                              </Badge>
                             )}
                           </div>
                         </TooltipTrigger>
@@ -537,34 +609,33 @@ export function VariaveisDisponiveisPage() {
                           <p className="text-muted-foreground">{v.description}</p>
                         </TooltipContent>
                       </Tooltip>
-                    </td>
+                    </TableCell>
 
-
-                    <td className="px-3 py-2">
+                    <TableCell className="py-2">
                       <div className="flex items-center gap-1">
                         <code className="font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded text-[10px]">{v.legacyKey}</code>
                         <CopyButton text={v.legacyKey} />
                       </div>
-                    </td>
+                    </TableCell>
 
-                    <td className="px-3 py-2">
+                    <TableCell className="py-2">
                       <div className="flex items-center gap-1">
                         <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">{v.canonicalKey}</code>
                         <CopyButton text={v.canonicalKey} />
                       </div>
-                    </td>
+                    </TableCell>
 
-                    <td className="px-3 py-2 text-center">
+                    <TableCell className="py-2 text-center">
                       <span className="text-[10px] text-muted-foreground font-mono">{v.unit || "—"}</span>
-                    </td>
+                    </TableCell>
 
-                    <td className="px-3 py-2 text-right">
+                    <TableCell className="py-2 text-right">
                       <span className="text-[10px] text-foreground/60 font-mono tabular-nums">{v.example}</span>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
 
             {filtered.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
