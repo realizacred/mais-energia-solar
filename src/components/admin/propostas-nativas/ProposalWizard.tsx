@@ -1587,37 +1587,17 @@ export function ProposalWizard() {
     return warnings;
   }, [itens, venda.custo_instalacao, venda.custo_comissao, venda.custo_outros, venda.margem_percentual, precoFinal]);
 
-  // ─── Pre-generation: run canonical validation and show gate modal
+  // ─── Pre-generation: validation already ran at Resumo→Proposta gate, go straight to generate
   const handlePreGenerate = () => {
-    const validation = validatePropostaFinal({
-      cliente,
-      selectedLead,
-      ucs,
-      itens,
-      servicos,
-      venda,
-      pagamentoOpcoes,
-      potenciaKwp,
-      precoFinal,
-      geracaoMensalKwh: geracaoMensalEstimada,
-      consumoTotal,
-      locEstado,
-      locCidade,
-      locDistribuidoraNome: locDistribuidoraNome,
-      templateSelecionado,
-    });
+    handleGenerate();
+  };
 
-    console.debug("[ProposalWizard] Pre-generation validation:", validation);
-
-    // If perfectly clean — skip modal, go straight to generate
-    if (validation.canGenerate && !validation.needsConfirmation) {
-      handleGenerate();
-      return;
+  // ─── Gate modal confirmed (warnings accepted) → proceed to pos-dimensionamento
+  const handleGateConfirmed = () => {
+    if (!nomeProposta && (cliente.nome || selectedLead?.nome)) {
+      setNomeProposta(cliente.nome || selectedLead?.nome || "");
     }
-
-    // Show gate modal for errors or warnings
-    setGateValidation(validation);
-    setShowGateModal(true);
+    setShowPosDialog(true);
   };
 
   // ─── Generate (with enforcement gate)
