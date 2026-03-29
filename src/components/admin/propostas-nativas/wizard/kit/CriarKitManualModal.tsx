@@ -428,19 +428,18 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [bateriaEntries, setBateriaEntries] = useState<BateriaEntry[]>(initBaterias);
   const [componenteEntries, setComponenteEntries] = useState<{ id: string; nome: string; quantidade: number }[]>([]);
   const [triedSave, setTriedSave] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Reset form when initialItens changes (open for edit vs create)
-  const [lastInitKey, setLastInitKey] = useState<string | null>(null);
   const initKey = initialItens ? initialItens.map(i => i.id).join(",") : "new";
-  if (initKey !== lastInitKey && open) {
-    setLastInitKey(initKey);
+
+  useEffect(() => {
+    if (!open) return;
     setModuloEntries(initModulos);
     setInversorEntries(initInversores);
     setOtimizadorEntries(initOtimizadores);
     setBateriaEntries(initBaterias);
-    // Prefer meta custo over calculated initCusto (catalog items have preco_unitario=0)
     setCusto(initialCardData?.custo || initCusto);
-    // Restore header fields from card data
     if (initialCardData) {
       setDistribuidorNome(initialCardData.distribuidorNome || "");
       setNomeKit(initialCardData.nomeKit || "");
@@ -449,7 +448,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       if (initialCardData.sistema) setSistema(initialCardData.sistema);
       if (initialCardData.custosEmbutidos) setCustosEmbutidos(initialCardData.custosEmbutidos);
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initKey]);
 
   // Filtered inversores based on sistema + topologia
   const filteredInversores = useMemo(
@@ -466,8 +466,11 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     return s + ((cat?.potencia_wp || 0) * m.quantidade) / 1000;
   }, 0);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setTriedSave(true);
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
     // Validation
     const errors: string[] = [];
     if (!distribuidorNome.trim()) errors.push("Nome do distribuidor");
@@ -642,6 +645,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     onKitCreated(itens, meta);
     onOpenChange(false);
     toast({ title: "Kit criado manualmente", description: `${itens.length} itens adicionados` });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const title = mode === "equipamentos" ? "Criar kit manualmente" : "Criar kit manual do zero";
@@ -731,15 +737,15 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
           {mode === "equipamentos" && (
             <div className="space-y-1">
-              <Label className="text-xs">Tipo do Kit *</Label>
+              <Label className="text-xs font-medium text-foreground">Tipo do Kit *</Label>
               <RadioGroup value={tipoKit} onValueChange={v => setTipoKit(v as any)} className="flex gap-4">
                 <div className="flex items-center gap-1.5">
                   <RadioGroupItem value="customizado" id="tk-c" className="h-3.5 w-3.5" />
-                  <Label htmlFor="tk-c" className="text-xs cursor-pointer">Customizado</Label>
+                  <Label htmlFor="tk-c" className="text-xs cursor-pointer text-foreground">Customizado</Label>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <RadioGroupItem value="fechado" id="tk-f" className="h-3.5 w-3.5" />
-                  <Label htmlFor="tk-f" className="text-xs cursor-pointer">Fechado</Label>
+                  <Label htmlFor="tk-f" className="text-xs cursor-pointer text-foreground">Fechado</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -770,22 +776,22 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             </div>
             {mode === "zero" && (
               <div className="space-y-1">
-                <Label className="text-xs">Custos embutidos</Label>
+                <Label className="text-xs font-medium text-foreground">Custos embutidos</Label>
                 <div className="flex gap-4 pt-1">
                   <div className="flex items-center gap-1.5">
                     <Checkbox checked={custosEmbutidos.estruturas} onCheckedChange={v => setCustosEmbutidos(p => ({ ...p, estruturas: !!v }))} className="h-3.5 w-3.5" />
-                    <Label className="text-xs cursor-pointer">Estruturas</Label>
+                    <Label className="text-xs cursor-pointer text-foreground">Estruturas</Label>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Checkbox checked={custosEmbutidos.transformador} onCheckedChange={v => setCustosEmbutidos(p => ({ ...p, transformador: !!v }))} className="h-3.5 w-3.5" />
-                    <Label className="text-xs cursor-pointer">Transformador</Label>
+                    <Label className="text-xs cursor-pointer text-foreground">Transformador</Label>
                   </div>
                 </div>
               </div>
             )}
             {mode === "equipamentos" && (
               <div className="space-y-1">
-                <Label className="text-xs">Distribuidor *</Label>
+                <Label className="text-xs font-medium text-foreground">Distribuidor *</Label>
                 <Select value={distribuidorSelect} onValueChange={setDistribuidorSelect}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione o distribuidor" /></SelectTrigger>
                   <SelectContent>
@@ -821,19 +827,19 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                 {m.avulso ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Nome do módulo *</Label>
+                      <Label className="text-[10px] text-muted-foreground">Nome do módulo *</Label>
                       <Input value={m.nome} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, nome: e.target.value } : x))} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Qtd. *</Label>
+                      <Label className="text-[10px] text-muted-foreground">Qtd. *</Label>
                       <Input type="number" min="0" value={m.quantidade || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Fabricante</Label>
+                      <Label className="text-[10px] text-muted-foreground">Fabricante</Label>
                       <Input value={m.fabricante} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, fabricante: e.target.value } : x))} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Potência (W)</Label>
+                      <Label className="text-[10px] text-muted-foreground">Potência (W)</Label>
                       <Input type="number" min="0" value={m.potenciaW || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, potenciaW: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs" />
                     </div>
                   </div>
@@ -853,7 +859,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       emptyText="Nenhum módulo encontrado"
                       className="flex-1"
                     />
-                    <Input type="number" min="0" value={m.quantidade || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-20" placeholder="0" />
+                    <Input type="number" min="0" value={m.quantidade || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16 shrink-0" placeholder="0" />
                   </div>
                 )}
 
@@ -885,25 +891,25 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                   <>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Nome do {inversorLabel.toLowerCase()} *</Label>
+                        <Label className="text-[10px] text-muted-foreground">Nome do {inversorLabel.toLowerCase()} *</Label>
                         <Input value={inv.nome} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, nome: e.target.value } : x))} className="h-8 text-xs" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Qtd. *</Label>
+                        <Label className="text-[10px] text-muted-foreground">Qtd. *</Label>
                         <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Fabricante</Label>
+                        <Label className="text-[10px] text-muted-foreground">Fabricante</Label>
                         <Input value={inv.fabricante} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, fabricante: e.target.value } : x))} className="h-8 text-xs" />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Potência (W) <span className="text-destructive">*</span></Label>
+                        <Label className="text-[10px] text-muted-foreground">Potência (W) <span className="text-destructive">*</span></Label>
                         <Input type="number" min="0" value={inv.potenciaW || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, potenciaW: Math.max(0, Number(e.target.value) || 0) } : x))} className={cn("h-8 text-xs", triedSave && (!inv.potenciaW || inv.potenciaW <= 0) && "ring-2 ring-destructive")} />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Fases do inversor <span className="text-destructive">*</span></Label>
+                        <Label className="text-[10px] text-muted-foreground">Fases do inversor <span className="text-destructive">*</span></Label>
                         <Select value={inv.fases} onValueChange={v => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, fases: v } : x))}>
                           <SelectTrigger className={cn("h-8 text-xs", triedSave && !inv.fases && "ring-2 ring-destructive")}><SelectValue placeholder="Selecione uma fase" /></SelectTrigger>
                           <SelectContent>
@@ -914,7 +920,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Tensão de linha (V) <span className="text-destructive">*</span></Label>
+                        <Label className="text-[10px] text-muted-foreground">Tensão de linha (V) <span className="text-destructive">*</span></Label>
                         <Input type="number" min="0" value={inv.tensaoLinha || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, tensaoLinha: Math.max(0, Number(e.target.value) || 0) } : x))} className={cn("h-8 text-xs", triedSave && (!inv.tensaoLinha || inv.tensaoLinha <= 0) && "ring-2 ring-destructive")} />
                       </div>
                     </div>
@@ -935,7 +941,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       emptyText="Nenhum inversor encontrado para esta topologia/sistema"
                       className="flex-1"
                     />
-                    <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-20" placeholder="0" />
+                    <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16 shrink-0" placeholder="0" />
                   </div>
                 )}
 
@@ -971,19 +977,19 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                 {ot.avulso ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Nome do otimizador *</Label>
+                      <Label className="text-[10px] text-muted-foreground">Nome do otimizador *</Label>
                       <Input value={ot.nome} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, nome: e.target.value } : x))} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Qtd. *</Label>
+                      <Label className="text-[10px] text-muted-foreground">Qtd. *</Label>
                       <Input type="number" min="0" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Fabricante</Label>
+                      <Label className="text-[10px] text-muted-foreground">Fabricante</Label>
                       <Input value={ot.fabricante} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, fabricante: e.target.value } : x))} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Potência (W)</Label>
+                      <Label className="text-[10px] text-muted-foreground">Potência (W)</Label>
                       <Input type="number" min="0" value={ot.potenciaW || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, potenciaW: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs" />
                     </div>
                   </div>
@@ -1001,7 +1007,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       emptyText="Nenhum otimizador cadastrado"
                       className="flex-1"
                     />
-                    <Input type="number" min="0" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-20" placeholder="0" />
+                    <Input type="number" min="0" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16 shrink-0" placeholder="0" />
                   </div>
                 )}
 
@@ -1037,7 +1043,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     </div>
                     <div className="flex items-center gap-2">
                       <Input value={c.nome} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, nome: e.target.value } : x))} className="h-8 text-xs flex-1" placeholder="Nome do componente" />
-                      <Input type="number" min="0" value={c.quantidade || ""} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-20" placeholder="0" />
+                      <Input type="number" min="0" value={c.quantidade || ""} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16 shrink-0" placeholder="0" />
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])} className="text-xs text-primary font-medium h-7 hover:bg-primary/10">
                       + Adicionar mais
@@ -1065,19 +1071,19 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                 {bat.avulso ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Nome da bateria *</Label>
+                      <Label className="text-[10px] text-muted-foreground">Nome da bateria *</Label>
                       <Input value={bat.nome} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, nome: e.target.value } : x))} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Qtd. *</Label>
+                      <Label className="text-[10px] text-muted-foreground">Qtd. *</Label>
                       <Input type="number" min="0" value={bat.quantidade || ""} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Fabricante</Label>
+                      <Label className="text-[10px] text-muted-foreground">Fabricante</Label>
                       <Input value={bat.fabricante} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, fabricante: e.target.value } : x))} className="h-8 text-xs" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Energia (kWh)</Label>
+                      <Label className="text-[10px] text-muted-foreground">Energia (kWh)</Label>
                       <Input type="number" min="0" step="0.1" value={bat.energiaKwh || ""} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, energiaKwh: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs" />
                     </div>
                   </div>
@@ -1095,7 +1101,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       emptyText="Nenhuma bateria cadastrada"
                       className="flex-1"
                     />
-                    <Input type="number" min="0" value={bat.quantidade || ""} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-20" placeholder="0" />
+                    <Input type="number" min="0" value={bat.quantidade || ""} onChange={e => setBateriaEntries(p => p.map(x => x.id === bat.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16 shrink-0" placeholder="0" />
                   </div>
                 )}
 
@@ -1145,8 +1151,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             <span className="text-sm text-muted-foreground">
               Potência: <span className="font-medium text-foreground">{formatKwp(potenciaTotal)}</span>
             </span>
-            <Button onClick={handleSave}>
-              Salvar
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         </div>
