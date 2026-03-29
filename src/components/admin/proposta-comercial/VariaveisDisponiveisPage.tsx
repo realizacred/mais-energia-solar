@@ -860,6 +860,7 @@ export function VariaveisDisponiveisPage() {
                     { key: "legacyKey", label: "Chave Legada", width: "w-[140px]" },
                     { key: "canonicalKey", label: "Chave Canônica", width: "w-[180px]" },
                     { key: "source", label: "Origem", width: "w-[100px]" },
+                    { key: "health", label: "Saúde", width: "w-[80px]" },
                     { key: "unit", label: "Un.", width: "w-[60px]" },
                   ].map((col) => (
                     <TableHead
