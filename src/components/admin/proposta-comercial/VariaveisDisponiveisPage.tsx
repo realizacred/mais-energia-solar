@@ -373,15 +373,23 @@ export function VariaveisDisponiveisPage() {
   // ── Governance-enriched: mark legacy/wizard input vars ──
   const governanceVariables = useMemo(() => {
     return allVariables.map((v) => {
+      const health = healthMap.get(v.key);
+      const enriched = { ...v } as EnrichedVariable;
+
+      if (health && health.totalExecutions > 0) {
+        enriched.healthClassification = health.classification;
+        enriched.healthScore = health.healthScore;
+      }
+
       if (LEGACY_HIDDEN_VARS.has(v.key)) {
-        return { ...v, governance: "legado" as const, status: "unused" as const };
+        enriched.governance = "legado";
+        enriched.status = "unused";
+      } else if (WIZARD_INPUT_VARS.has(v.key)) {
+        enriched.governance = "input_wizard";
       }
-      if (WIZARD_INPUT_VARS.has(v.key)) {
-        return { ...v, governance: "input_wizard" as const };
-      }
-      return v;
+      return enriched;
     });
-  }, [allVariables]);
+  }, [allVariables, healthMap]);
 
   // ── Filtered + sorted ──
   const filtered = useMemo(() => {
