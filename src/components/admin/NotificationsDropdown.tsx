@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Bell, UserPlus, MessageCircle, Calendar, AlertTriangle } from "lucide-react";
+import { Bell, UserPlus, MessageCircle, Calendar, AlertTriangle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -20,6 +20,7 @@ const TYPE_CONFIG: Record<NotificationItem["type"], { icon: typeof Bell; color: 
   whatsapp: { icon: MessageCircle, color: "text-success", bg: "bg-success/10" },
   appointment: { icon: Calendar, color: "text-info", bg: "bg-info/10" },
   sla: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10" },
+  proposal_view: { icon: Eye, color: "text-warning", bg: "bg-warning/10" },
 };
 
 export function NotificationsDropdown() {

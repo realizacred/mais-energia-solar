@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export interface NotificationItem {
   id: string;
-  type: "lead" | "whatsapp" | "appointment" | "sla";
+  type: "lead" | "whatsapp" | "appointment" | "sla" | "proposal_view";
   title: string;
   description: string;
   timestamp: string;
@@ -41,7 +41,6 @@ export function useNotifications() {
       const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
       // 1. New leads (last 24h)
-      // Admin: all leads | Consultant: only assigned leads (owner_user_id)
       try {
         let q: any = supabase
           .from("leads")
@@ -67,12 +66,9 @@ export function useNotifications() {
             });
           }
         }
-      } catch {
-        // ignore errors fetching leads
-      }
+      } catch {}
 
       // 2. Unread WhatsApp conversations
-      // Admin: all open | Consultant: assigned_to me or unassigned
       try {
         let q2: any = supabase
           .from("wa_conversations")
@@ -99,12 +95,9 @@ export function useNotifications() {
             });
           }
         }
-      } catch {
-        // ignore errors fetching WhatsApp conversations
-      }
+      } catch {}
 
       // 3. Upcoming appointments (next 4 hours)
-      // Admin: all | Consultant: assigned_to me or created_by me
       try {
         const in4h = new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
         let q3: any = supabase
@@ -134,12 +127,9 @@ export function useNotifications() {
             });
           }
         }
-      } catch {
-        // ignore errors fetching appointments
-      }
+      } catch {}
 
       // 4. SLA alerts
-      // Admin: all | Consultant: only via RLS (already filtered by RLS)
       try {
         const { data: slaAlerts } = await supabase
           .from("wa_sla_alerts" as any)
@@ -159,9 +149,37 @@ export function useNotifications() {
             });
           }
         }
-      } catch {
-        // ignore errors fetching SLA alerts
-      }
+      } catch {}
+
+      // 5. Proposal views (tracked tokens opened in last 24h)
+      try {
+        const { data: proposalEvents } = await (supabase as any)
+          .from("proposal_events")
+          .select("id, proposta_id, tipo, payload, created_at")
+          .eq("tipo", "proposta_visualizada")
+          .gte("created_at", last24h)
+          .order("created_at", { ascending: false })
+          .limit(10);
+        if (proposalEvents) {
+          // Deduplicate: show only the LATEST event per proposta_id
+          const seenPropostas = new Set<string>();
+          for (const ev of proposalEvents as any[]) {
+            if (seenPropostas.has(ev.proposta_id)) continue;
+            seenPropostas.add(ev.proposta_id);
+            const payload = typeof ev.payload === "string" ? JSON.parse(ev.payload) : ev.payload;
+            const isFirst = payload?.first_view === true;
+            const viewCount = payload?.view_count || 1;
+            items.push({
+              id: `pv-${ev.id}`,
+              type: "proposal_view",
+              title: isFirst ? "Proposta aberta pela 1ª vez 👀" : `Proposta visualizada (${viewCount}x)`,
+              description: `Proposta acessada via link rastreado`,
+              timestamp: ev.created_at,
+              link: "/admin/projetos",
+            });
+          }
+        }
+      } catch {}
 
       // Sort by timestamp desc
       items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -179,6 +197,7 @@ export function useNotifications() {
     whatsapp: notifications.filter((n) => n.type === "whatsapp").length,
     appointment: notifications.filter((n) => n.type === "appointment").length,
     sla: notifications.filter((n) => n.type === "sla").length,
+    proposal_view: notifications.filter((n) => n.type === "proposal_view").length,
   };
 
   return { notifications, totalCount, countByType, isLoading };
