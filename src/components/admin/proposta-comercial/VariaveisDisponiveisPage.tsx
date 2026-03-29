@@ -195,6 +195,8 @@ export function VariaveisDisponiveisPage() {
   const [deleteTarget, setDeleteTarget] = useState<VariavelCustom | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todas");
   const [detailVar, setDetailVar] = useState<EnrichedVariable | null>(null);
+  const [varPickerOpen, setVarPickerOpen] = useState(false);
+  const [varPickerSearch, setVarPickerSearch] = useState("");
 
   // §16: queries only in hooks
   const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
