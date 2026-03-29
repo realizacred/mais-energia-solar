@@ -453,6 +453,7 @@ export function VariaveisDisponiveisPage() {
         case "category": return CATEGORY_LABELS[v.category] ?? v.category;
         case "status": return v.status;
         case "source": return SOURCE_LABELS[v.source]?.label ?? v.source;
+        case "health": return String(v.healthScore ?? -1).padStart(4, "0");
         case "unit": return v.unit;
         default: return v.label;
       }
