@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers, Zap,
   FileText, Clock, Bug
 } from "lucide-react";
+import { toast } from "sonner";
 import { useVariableUsage } from "@/hooks/useVariableUsage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -86,11 +87,11 @@ export function AuditTabContent({
     setIsRefreshing(true);
     try {
       await onRefresh();
+      toast.success("Análise concluída com sucesso");
     } catch {
-      // ignore
+      toast.error("Erro ao reanalisar variáveis");
     } finally {
       setLastRefresh(new Date());
-      // Small delay so user sees the spinner
       setTimeout(() => setIsRefreshing(false), 600);
     }
   }, [onRefresh]);
