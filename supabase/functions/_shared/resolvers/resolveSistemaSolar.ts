@@ -252,8 +252,8 @@ export function resolveSistemaSolar(
     // corrente_max_mppt_a is DC input current — NEVER use here.
     // No AC output current column exists yet → will remain empty (fallback in PDF).
     set("inversor_mppts_utilizados", inversores[0].mppts);
-    // NOTE: codigo and garantia columns do not exist in inversores table yet.
-    // These will only resolve from snapshot passthrough if previously set.
+    // ── Inverter warranty from catalog ──
+    set("inversor_garantia", inversores[0].garantia_anos);
 
     // Derived: inversores_potencia_maxima_total
     const totalPotMax = inversores.reduce((s, inv) => {
