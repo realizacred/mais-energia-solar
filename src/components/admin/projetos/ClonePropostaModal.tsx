@@ -4,7 +4,7 @@
  * §25-S1: Modal padrão com w-[90vw]
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -13,11 +13,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Copy, Loader2 } from "lucide-react";
+import { Copy, Loader2, AlertTriangle } from "lucide-react";
 import { useCloneProposta, useProjetosParaClone } from "@/hooks/useCloneProposta";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ClonePropostaModalProps {
   open: boolean;
@@ -26,6 +29,25 @@ interface ClonePropostaModalProps {
   propostaTitulo: string | null;
   dealId: string;
   customerId: string | null;
+}
+
+function useProjetoTemPropostaAceita(projetoId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["proposta-aceita-check", projetoId],
+    queryFn: async () => {
+      if (!projetoId) return false;
+      const { data } = await supabase
+        .from("propostas_nativas" as any)
+        .select("id")
+        .eq("projeto_id", projetoId)
+        .eq("status", "accepted")
+        .limit(1)
+        .maybeSingle();
+      return !!data;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: enabled && !!projetoId,
+  });
 }
 
 export function ClonePropostaModal({
@@ -42,6 +64,16 @@ export function ClonePropostaModal({
 
   const { mutate: clonar, isPending } = useCloneProposta();
   const { data: projetos, isLoading: loadingProjetos } = useProjetosParaClone(outroProjeto && open);
+
+  const activeTargetId = useMemo(
+    () => (outroProjeto ? targetDealId : dealId),
+    [outroProjeto, targetDealId, dealId],
+  );
+
+  const { data: hasPropostaAceita, isLoading: loadingAceita } = useProjetoTemPropostaAceita(
+    activeTargetId,
+    open && !!activeTargetId,
+  );
 
   // Reset on open
   useEffect(() => {
@@ -87,6 +119,24 @@ export function ClonePropostaModal({
 
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-5 space-y-5">
+            {/* Alerta proposta aceita */}
+            {loadingAceita && activeTargetId ? (
+              <Skeleton className="h-16 w-full rounded-lg" />
+            ) : hasPropostaAceita ? (
+              <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 flex gap-2 items-start">
+                <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-warning">
+                    Este projeto já tem uma proposta aceita
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Criar outra proposta aqui pode gerar confusão com o cliente.
+                    Considere clonar para um projeto diferente.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
             {/* Título */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Nome da nova proposta</Label>
