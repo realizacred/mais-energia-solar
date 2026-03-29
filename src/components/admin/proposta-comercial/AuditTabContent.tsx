@@ -101,7 +101,7 @@ export function AuditTabContent({
     }, 2500);
 
     try {
-      const result = await fullAuditMutation.mutateAsync();
+      const result = await fullAuditMutation.mutateAsync(undefined);
       setFullAuditResult(result);
       toast.success("Auditoria com IA concluída!");
     } catch (e: any) {
