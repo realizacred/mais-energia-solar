@@ -139,7 +139,7 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.className)}>{s.label}</span>
+          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap cursor-default", s.className)}>{s.label}</span>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="text-xs">
           {tooltipText}
