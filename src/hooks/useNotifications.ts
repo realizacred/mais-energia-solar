@@ -155,22 +155,36 @@ export function useNotifications() {
       try {
         const { data: proposalEvents } = await (supabase as any)
           .from("proposal_events")
-          .select("id, proposta_id, tipo, payload, created_at, propostas_nativas!inner(projeto_id, cliente_nome, codigo)")
+          .select("id, proposta_id, tipo, payload, created_at")
           .eq("tipo", "proposta_visualizada")
           .gte("created_at", last24h)
           .order("created_at", { ascending: false })
           .limit(10);
-        if (proposalEvents) {
-          // Deduplicate: show only the LATEST event per proposta_id
+        if (proposalEvents && proposalEvents.length > 0) {
+          // Deduplicate: only latest per proposta_id
           const seenPropostas = new Set<string>();
+          const uniqueEvents: any[] = [];
           for (const ev of proposalEvents as any[]) {
             if (seenPropostas.has(ev.proposta_id)) continue;
             seenPropostas.add(ev.proposta_id);
+            uniqueEvents.push(ev);
+          }
+
+          // Batch-fetch projeto_id + cliente_nome for unique proposta_ids
+          const propostaIds = uniqueEvents.map((e) => e.proposta_id);
+          const { data: propostas } = await supabase
+            .from("propostas_nativas")
+            .select("id, projeto_id, cliente_nome, codigo")
+            .in("id", propostaIds);
+          const propostaMap = new Map((propostas || []).map((p) => [p.id, p]));
+
+          for (const ev of uniqueEvents) {
             const payload = typeof ev.payload === "string" ? JSON.parse(ev.payload) : ev.payload;
             const isFirst = payload?.first_view === true;
             const viewCount = payload?.view_count || 1;
-            const projetoId = ev.propostas_nativas?.projeto_id;
-            const clienteNome = ev.propostas_nativas?.cliente_nome || ev.propostas_nativas?.codigo || "Proposta";
+            const proposta = propostaMap.get(ev.proposta_id);
+            const projetoId = proposta?.projeto_id;
+            const clienteNome = proposta?.cliente_nome || proposta?.codigo || "Proposta";
             const link = projetoId
               ? `/admin/projetos?projeto=${projetoId}&tab=propostas`
               : "/admin/projetos";
