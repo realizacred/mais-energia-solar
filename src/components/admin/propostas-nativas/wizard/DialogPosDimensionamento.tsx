@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Building2, Zap, DollarSign, CheckCircle } from "lucide-react";
+import { User, Building2, Zap, DollarSign, CheckCircle, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -42,6 +42,7 @@ interface Props {
   onDescricaoPropostaChange: (v: string) => void;
   customFieldValues: Record<string, any>;
   onCustomFieldValuesChange: (v: Record<string, any>) => void;
+  financialWarnings?: string[];
   onConfirm: () => void;
   /** Save actions */
   onSaveDraft?: () => void;
@@ -56,6 +57,7 @@ export function DialogPosDimensionamento({
   nomeProposta, onNomePropostaChange,
   descricaoProposta, onDescricaoPropostaChange,
   customFieldValues, onCustomFieldValuesChange,
+  financialWarnings = [],
   onConfirm,
   onSaveDraft, onSaveActive, saving, savedPropostaId,
 }: Props) {
@@ -141,6 +143,28 @@ export function DialogPosDimensionamento({
               </div>
 
               <div className="border-t border-border" />
+
+              {financialWarnings.length > 0 && (
+                <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                    <p className="text-xs font-semibold uppercase tracking-wide text-warning">
+                      Atenção comercial
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    {financialWarnings.map((warning, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-2 rounded-md border border-warning/20 bg-background/70 p-2.5"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
+                        <p className="text-xs text-foreground leading-relaxed">{warning}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Nome da Proposta <span className="text-destructive">*</span></Label>
