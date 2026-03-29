@@ -3,8 +3,9 @@ import {
   Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2,
   ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, List, Info,
   Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
-  FlaskConical, Sparkles,
+  FlaskConical, Sparkles, Activity, HeartPulse,
 } from "lucide-react";
+import { useVariableHealth, type HealthClassification } from "@/hooks/useVariableHealth";
 import { VariableTester } from "./VariableTester";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -156,9 +157,13 @@ interface EnrichedVariable {
   escopo?: VariableEscopo;
   /** Dynamic field context (projeto, pre_dimensionamento, pos_dimensionamento) */
   _dynamicContext?: string;
+  /** Health classification from historical analysis */
+  healthClassification?: HealthClassification;
+  /** Health score 0-100 */
+  healthScore?: number;
 }
 
-type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional" | "campo_dinamico";
+type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional" | "campo_dinamico" | "health_critical" | "health_unstable" | "health_healthy" | "health_unused";
 type ActiveView = VariableCategory | "todas" | "auditoria" | "campo_pre" | "campo_pos" | "campo_projeto";
 
 /* ── Semantic explanations for known variables ── */
@@ -221,6 +226,9 @@ export function VariaveisDisponiveisPage() {
 
   // Dynamic custom fields from deal_custom_fields table
   const { data: dealCustomFields = [] } = useDealCustomFields();
+
+  // Historical health data
+  const { healthMap, summary: healthSummary, hasData: hasHealthData } = useVariableHealth();
 
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
@@ -365,15 +373,23 @@ export function VariaveisDisponiveisPage() {
   // ── Governance-enriched: mark legacy/wizard input vars ──
   const governanceVariables = useMemo(() => {
     return allVariables.map((v) => {
+      const health = healthMap.get(v.key);
+      const enriched = { ...v } as EnrichedVariable;
+
+      if (health && health.totalExecutions > 0) {
+        enriched.healthClassification = health.classification;
+        enriched.healthScore = health.healthScore;
+      }
+
       if (LEGACY_HIDDEN_VARS.has(v.key)) {
-        return { ...v, governance: "legado" as const, status: "unused" as const };
+        enriched.governance = "legado";
+        enriched.status = "unused";
+      } else if (WIZARD_INPUT_VARS.has(v.key)) {
+        enriched.governance = "input_wizard";
       }
-      if (WIZARD_INPUT_VARS.has(v.key)) {
-        return { ...v, governance: "input_wizard" as const };
-      }
-      return v;
+      return enriched;
     });
-  }, [allVariables]);
+  }, [allVariables, healthMap]);
 
   // ── Filtered + sorted ──
   const filtered = useMemo(() => {
@@ -407,6 +423,10 @@ export function VariaveisDisponiveisPage() {
         case "documento": items = items.filter((v) => v.escopo === "documento"); break;
         case "aspiracional": items = items.filter((v) => v.escopo === "aspiracional"); break;
         case "campo_dinamico": items = items.filter((v) => !!v._dynamicContext); break;
+        case "health_critical": items = items.filter((v) => v.healthClassification === "critical"); break;
+        case "health_unstable": items = items.filter((v) => v.healthClassification === "unstable"); break;
+        case "health_healthy": items = items.filter((v) => v.healthClassification === "healthy"); break;
+        case "health_unused": items = items.filter((v) => !v.healthClassification || v.healthClassification === "unused"); break;
       }
     }
 
@@ -433,6 +453,7 @@ export function VariaveisDisponiveisPage() {
         case "category": return CATEGORY_LABELS[v.category] ?? v.category;
         case "status": return v.status;
         case "source": return SOURCE_LABELS[v.source]?.label ?? v.source;
+        case "health": return String(v.healthScore ?? -1).padStart(4, "0");
         case "unit": return v.unit;
         default: return v.label;
       }
@@ -458,7 +479,11 @@ export function VariaveisDisponiveisPage() {
     const documento = governanceVariables.filter((v) => v.escopo === "documento").length;
     const aspiracional = governanceVariables.filter((v) => v.escopo === "aspiracional").length;
     const campoDinamico = governanceVariables.filter((v) => !!v._dynamicContext).length;
-    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional, campoDinamico };
+    const healthCritical = governanceVariables.filter((v) => v.healthClassification === "critical").length;
+    const healthUnstable = governanceVariables.filter((v) => v.healthClassification === "unstable").length;
+    const healthHealthy = governanceVariables.filter((v) => v.healthClassification === "healthy").length;
+    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional, campoDinamico, healthCritical, healthUnstable, healthHealthy };
+
   }, [governanceVariables]);
 
   // ── Dynamic field context counts ──
@@ -640,6 +665,33 @@ export function VariaveisDisponiveisPage() {
         </Card>
       </div>
 
+      {/* Critical health alert */}
+      {hasHealthData && kpiStats.healthCritical > 0 && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="flex items-center gap-3 p-3">
+            <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <HeartPulse className="h-4 w-4 text-destructive" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-destructive">
+                {kpiStats.healthCritical} variável(is) crítica(s) detectada(s)
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Baseado em {healthSummary.totalReportsAnalyzed} auditorias históricas. Essas variáveis falham em mais de 70% das execuções.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0"
+              onClick={() => setStatusFilter("health_critical")}
+            >
+              Ver críticas
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main card container */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         {/* Category tabs */}
@@ -768,6 +820,11 @@ export function VariaveisDisponiveisPage() {
                 { key: "documento", label: `Documento (${kpiStats.documento})` },
                 { key: "aspiracional", label: `Aspiracional (${kpiStats.aspiracional})` },
                 ...(kpiStats.campoDinamico > 0 ? [{ key: "campo_dinamico" as StatusFilter, label: `Campos Dinâmicos (${kpiStats.campoDinamico})` }] : []),
+                ...(hasHealthData ? [
+                  { key: "health_critical" as StatusFilter, label: `🔴 Críticas (${kpiStats.healthCritical})` },
+                  { key: "health_unstable" as StatusFilter, label: `🟡 Instáveis (${kpiStats.healthUnstable})` },
+                  { key: "health_healthy" as StatusFilter, label: `🟢 Saudáveis (${kpiStats.healthHealthy})` },
+                ] : []),
               ] as { key: StatusFilter; label: string }[]).map((f) => (
                 <Button
                   key={f.key}
@@ -831,6 +888,7 @@ export function VariaveisDisponiveisPage() {
                     { key: "legacyKey", label: "Chave Legada", width: "w-[140px]" },
                     { key: "canonicalKey", label: "Chave Canônica", width: "w-[180px]" },
                     { key: "source", label: "Origem", width: "w-[100px]" },
+                    { key: "health", label: "Saúde", width: "w-[80px]" },
                     { key: "unit", label: "Un.", width: "w-[60px]" },
                   ].map((col) => (
                     <TableHead
@@ -920,7 +978,34 @@ export function VariaveisDisponiveisPage() {
                       </span>
                     </TableCell>
 
-                    {/* Unidade */}
+                    {/* Saúde */}
+                    <TableCell className="py-2 text-center">
+                      {v.healthClassification && v.healthClassification !== "unused" ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[8px] px-1.5 py-0 h-4 font-medium",
+                                v.healthClassification === "healthy" && "bg-success/15 text-success border-success/20",
+                                v.healthClassification === "unstable" && "bg-warning/15 text-warning border-warning/20",
+                                v.healthClassification === "critical" && "bg-destructive/15 text-destructive border-destructive/20",
+                              )}
+                            >
+                              {v.healthClassification === "healthy" ? "🟢" : v.healthClassification === "unstable" ? "🟡" : "🔴"}
+                              {" "}{v.healthScore}%
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-[10px]">
+                            Score de saúde: {v.healthScore}% ({v.healthClassification})
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/40">—</span>
+                      )}
+                    </TableCell>
+
+
                     <TableCell className="py-2 text-center">
                       <span className="text-[10px] text-muted-foreground font-mono">{v.unit || "—"}</span>
                     </TableCell>
