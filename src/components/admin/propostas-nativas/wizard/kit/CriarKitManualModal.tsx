@@ -705,7 +705,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs font-medium text-foreground">Nome do Kit <span className="text-destructive">*</span></Label>
               <Input value={nomeKit} onChange={e => setNomeKit(e.target.value)} className={cn("h-8 text-xs", triedSave && !nomeKit.trim() && "ring-2 ring-destructive")} />
@@ -746,7 +746,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           )}
 
           {/* Topologia + Custos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs font-medium text-foreground">Topologia <span className="text-destructive">*</span></Label>
               <Select value={topologia} onValueChange={v => {
@@ -1139,7 +1139,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30 shrink-0">
+        <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30 shrink-0">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Voltar
           </Button>
