@@ -1023,25 +1023,25 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             {mode === "zero" && (
               <>
                 {componenteEntries.map(c => (
-                  <div key={c.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
+                  <div key={c.id} className="rounded-lg border border-border bg-card p-3 sm:p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center shrink-0">
                           <Boxes className="w-3.5 h-3.5 text-muted-foreground" />
                         </div>
                         <span className="text-sm font-semibold text-foreground">Componente <span className="text-destructive">*</span></span>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setComponenteEntries(p => p.filter(x => x.id !== c.id))}>
-                        <Trash2 className="h-3 w-3" />
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive hover:bg-destructive/10" onClick={() => setComponenteEntries(p => p.filter(x => x.id !== c.id))}>
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Input value={c.nome} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, nome: e.target.value } : x))} className="h-7 text-xs flex-1" placeholder="Nome do componente" />
-                      <Input type="number" min="0" value={c.quantidade || ""} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs w-16" placeholder="0" />
-                      <Button variant="ghost" size="sm" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])} className="text-[11px] text-primary font-medium h-6 whitespace-nowrap">
-                        + Adicionar mais
-                      </Button>
+                      <Input value={c.nome} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, nome: e.target.value } : x))} className="h-8 text-xs flex-1" placeholder="Nome do componente" />
+                      <Input type="number" min="0" value={c.quantidade || ""} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-20" placeholder="0" />
                     </div>
+                    <Button variant="ghost" size="sm" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])} className="text-xs text-primary font-medium h-7 hover:bg-primary/10">
+                      + Adicionar mais
+                    </Button>
                   </div>
                 ))}
               </>
