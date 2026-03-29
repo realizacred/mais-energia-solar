@@ -442,6 +442,14 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
     };
     const tablePrefixes = new Map<string, string>(Object.entries(EXPLICIT_PREFIXES));
 
+    // Variables that use a table prefix but are resolved by resolvers (not direct columns)
+    const RESOLVER_RESOLVED_KEYS = new Set([
+      "consultor_comissao", // Resolved from snapshot by resolveFinanceiro, not a consultores column
+      "consultor_nome",     // Resolved from ext.consultor by resolveClienteComercial
+      "consultor_telefone", // Resolved from ext.consultor
+      "consultor_email",    // Resolved from ext.consultor
+    ]);
+
     for (const v of VARIABLES_CATALOG) {
       if (v.category === "customizada") continue; // custom vars are tracked separately
       if (v.notImplemented) continue;
@@ -449,6 +457,8 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
       const key = v.legacyKey.replace(/^\[|\]$/g, "");
       // Check if this key appears in any schema table's expectedKey
       if (allExpectedKeys.has(key)) continue; // It's mapped, all good
+      // Skip keys known to be resolved by resolvers, not direct DB columns
+      if (RESOLVER_RESOLVED_KEYS.has(key)) continue;
 
       // Check if key looks like it should be in a schema table (e.g. "cliente_nome" → "clientes")
       for (const [prefix, tableName] of tablePrefixes) {
