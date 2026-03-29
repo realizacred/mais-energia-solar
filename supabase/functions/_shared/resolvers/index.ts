@@ -113,6 +113,16 @@ export function resolveAllVariables(
     if (!vars[key]) vars[key] = String(value);
   }
 
+  // Step 1b: Flatten customFieldValues directly as flat keys (pos_*, pre_*, cap_*)
+  const cfv = snap.customFieldValues ?? snap.custom_field_values ?? {};
+  if (typeof cfv === "object" && !Array.isArray(cfv)) {
+    for (const [cfKey, cfValue] of Object.entries(cfv as AnyObj)) {
+      if (cfValue !== null && cfValue !== undefined && cfValue !== "" && typeof cfValue !== "object") {
+        if (!vars[cfKey]) vars[cfKey] = String(cfValue);
+      }
+    }
+  }
+
   // Step 2: Run domain resolvers (setIfMissing semantics — first source wins)
   const entrada = resolveEntrada(snapshot, ext);
   const financeiro = resolveFinanceiro(snapshot, ext);
