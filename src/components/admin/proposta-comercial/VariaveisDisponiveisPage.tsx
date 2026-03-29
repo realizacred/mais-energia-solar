@@ -47,6 +47,7 @@ import {
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, type VariavelCustom } from "@/hooks/useVariaveisCustom";
 import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
 import { useVariableUsage } from "@/hooks/useVariableUsage";
+import { useDealCustomFields, FIELD_CONTEXT_LABELS, FIELD_CONTEXT_ICONS } from "@/hooks/useDealCustomFields";
 import { AuditTabContent } from "./AuditTabContent";
 import { FormulaAISuggest } from "./FormulaAISuggest";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
