@@ -1884,6 +1884,28 @@ export function ProposalWizard() {
               });
           }
 
+          // ── Block generation if critical audit errors detected ──
+          if (shouldBlockGeneration(auditReport)) {
+            const criticalVars = auditReport.items
+              .filter(i => i.severity === "error" && (i.status === "error_unresolved" || i.status === "error_expression"))
+              .map(i => i.variable);
+            console.error("[ProposalWizard] Generation blocked by audit:", criticalVars);
+            setGenerationStatus("error");
+            setGenerationError(
+              `Variáveis críticas não resolvidas: ${criticalVars.join(", ")}. Corrija os dados antes de gerar.`
+            );
+            toast({
+              title: "Geração bloqueada",
+              description: `${criticalVars.length} variável(is) crítica(s) com erro. Verifique os dados da proposta.`,
+              variant: "destructive",
+            });
+            setRendering(false);
+            setGenerating(false);
+            clearTimeout(progressTimer);
+            clearTimeout(progressTimer2);
+            return;
+          }
+
           // Store persisted paths
           setOutputDocxPath(artifactResult.output_docx_path || null);
           setOutputPdfPath(artifactResult.output_pdf_path || null);
