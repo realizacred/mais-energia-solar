@@ -572,7 +572,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.poupanca_25", "poupanca_25", "Poupança 25 anos", "Se investisse o mesmo valor na poupança", "R$", "R$ 98.000,00"),
 
   // ── Legados (templates DOCX antigos) ──
-  v("financeiro", "financeiro.capo_m", "capo_m", "Garantia dos Módulos (anos) — LEGADO", "⚠️ LEGADO: Substituir por [modulo_garantia]. Tempo de garantia dos módulos fotovoltaicos em anos.", "anos", "25", "BT e MT", { escopo: "nativa", legacyReplacement: "modulo_garantia" }),
+  v("financeiro", "financeiro.capo_m", "capo_m", "Garantia dos Módulos (anos) — LEGADO", "⚠️ LEGADO: Substituir por [modulo_garantia]. Tempo de garantia dos módulos fotovoltaicos em anos.", "anos", "25"),
   v("financeiro", "financeiro.capo_seguro", "capo_seguro", "Capital + Seguro (input wizard)", "Input do wizard para cálculo de seguro — persistido no snapshot", "R$", ""),
 
   // ── Baterias ──
