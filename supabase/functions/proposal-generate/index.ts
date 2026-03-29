@@ -893,6 +893,12 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       // Flattened financial keys by category (baterias, transformadores, kit_fechado)
       // Spread at root level so resolveFinanceiro can read them via snap[key]
       ...flatItensFinanceiros,
+      // P1: Flatten 25-year series into snapshot so resolvers can access them
+      // without depending on relational tables (fluxo_caixa_acumulado_anual_X, economia_anual_valor_X, etc.)
+      ...flattenSeries25(calcResult.series, valorTotal),
+      // P2/P4: Persist wizard inputs that resolvers need from snapshot
+      capo_seguro: body._wizard_state?.capo_seguro ?? body.capo_seguro ?? undefined,
+      area_util: calcAreaUtil(body.itens, body.ucs),
       ai_justificativa: aiJustificativa ?? undefined,
       // Wizard-specific state for edit round-trip (passthrough, not used by engine)
       _wizard_state: body._wizard_state ?? undefined,
