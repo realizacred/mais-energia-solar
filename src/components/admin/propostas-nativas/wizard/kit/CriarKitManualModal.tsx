@@ -866,48 +866,46 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Inversores (filtered by topologia + sistema) */}
             {inversorEntries.map((inv, idx) => (
-              <div key={inv.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
+              <div key={inv.id} className="rounded-lg border border-border bg-card p-3 sm:p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                       <Cable className="w-3.5 h-3.5 text-primary" />
                     </div>
                     <span className="text-sm font-semibold text-foreground">{inversorLabel} <span className="text-destructive">*</span></span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {inversorEntries.length > 1 && (
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setInversorEntries(p => p.filter(x => x.id !== inv.id))}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
+                  {inversorEntries.length > 1 && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive hover:bg-destructive/10" onClick={() => setInversorEntries(p => p.filter(x => x.id !== inv.id))}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
 
                 {inv.avulso ? (
                   <>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-[10px]">Nome do {inversorLabel.toLowerCase()} *</Label>
-                        <Input value={inv.nome} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, nome: e.target.value } : x))} className="h-7 text-xs" />
+                        <Input value={inv.nome} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, nome: e.target.value } : x))} className="h-8 text-xs" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px]">Qtd. *</Label>
-                        <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
+                        <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px]">Fabricante</Label>
-                        <Input value={inv.fabricante} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, fabricante: e.target.value } : x))} className="h-7 text-xs" />
+                        <Input value={inv.fabricante} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, fabricante: e.target.value } : x))} className="h-8 text-xs" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px]">Potência (W) <span className="text-destructive">*</span></Label>
-                        <Input type="number" min="0" value={inv.potenciaW || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, potenciaW: Math.max(0, Number(e.target.value) || 0) } : x))} className={cn("h-7 text-xs", triedSave && (!inv.potenciaW || inv.potenciaW <= 0) && "ring-2 ring-destructive")} />
+                        <Input type="number" min="0" value={inv.potenciaW || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, potenciaW: Math.max(0, Number(e.target.value) || 0) } : x))} className={cn("h-8 text-xs", triedSave && (!inv.potenciaW || inv.potenciaW <= 0) && "ring-2 ring-destructive")} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-[10px]">Fases do inversor <span className="text-destructive">*</span></Label>
                         <Select value={inv.fases} onValueChange={v => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, fases: v } : x))}>
-                          <SelectTrigger className={cn("h-7 text-xs", triedSave && !inv.fases && "ring-2 ring-destructive")}><SelectValue placeholder="Selecione uma fase" /></SelectTrigger>
+                          <SelectTrigger className={cn("h-8 text-xs", triedSave && !inv.fases && "ring-2 ring-destructive")}><SelectValue placeholder="Selecione uma fase" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="monofasico">Monofásico</SelectItem>
                             <SelectItem value="bifasico">Bifásico</SelectItem>
@@ -917,7 +915,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px]">Tensão de linha (V) <span className="text-destructive">*</span></Label>
-                        <Input type="number" min="0" value={inv.tensaoLinha || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, tensaoLinha: Math.max(0, Number(e.target.value) || 0) } : x))} className={cn("h-7 text-xs", triedSave && (!inv.tensaoLinha || inv.tensaoLinha <= 0) && "ring-2 ring-destructive")} />
+                        <Input type="number" min="0" value={inv.tensaoLinha || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, tensaoLinha: Math.max(0, Number(e.target.value) || 0) } : x))} className={cn("h-8 text-xs", triedSave && (!inv.tensaoLinha || inv.tensaoLinha <= 0) && "ring-2 ring-destructive")} />
                       </div>
                     </div>
                   </>
@@ -937,14 +935,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       emptyText="Nenhum inversor encontrado para esta topologia/sistema"
                       className="flex-1"
                     />
-                    <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
+                    <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-20" placeholder="0" />
                   </div>
                 )}
 
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Switch checked={inv.avulso} onCheckedChange={v => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, avulso: v } : x))} className="scale-75" />
-                    <span className="text-[10px] text-muted-foreground">Avulso?</span>
+                    <span className="text-[11px] text-muted-foreground">Avulso?</span>
                   </div>
                   {idx === inversorEntries.length - 1 && (
                     <Button variant="ghost" size="sm" onClick={() => setInversorEntries(p => [...p, createEmptyInversor()])} className="text-xs text-primary font-medium h-7 hover:bg-primary/10">
