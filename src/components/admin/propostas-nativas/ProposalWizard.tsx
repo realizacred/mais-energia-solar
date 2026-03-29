@@ -1,6 +1,6 @@
 // @deprecated: Tabela 'premissas_tecnicas' não é mais usada. Fonte atual: 'tenant_premises' via useSolarPremises.
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { buildGenerationAuditReport, type GenerationAuditReport } from "@/services/generationAudit";
+import { buildGenerationAuditReport, shouldBlockGeneration, type GenerationAuditReport } from "@/services/generationAudit";
 import { formatNumberBR } from "@/lib/formatters";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
