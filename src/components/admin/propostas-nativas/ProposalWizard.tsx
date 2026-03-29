@@ -1882,7 +1882,6 @@ export function ProposalWizard() {
                 if (auditErr) console.warn("[ProposalWizard] Failed to persist audit:", auditErr.message);
                 else console.log("[ProposalWizard] Audit persisted to proposta_versoes");
               });
-              });
           }
 
           // Store persisted paths
