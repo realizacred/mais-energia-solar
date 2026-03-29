@@ -120,7 +120,7 @@ export default function PropostaPublica() {
 
   // Stop heartbeat on unmount or visibility hidden
   useEffect(() => {
-    const handleVisibility = () => {
+    const handleVisibility = async () => {
       if (document.visibilityState === "hidden") {
         // Send final heartbeat before pausing
         if (heartbeatTokenRef.current) {
