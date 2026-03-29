@@ -69,6 +69,19 @@ export function AuditTabContent({
 
   const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences, categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
+  // Dynamic variable usage data (replaces hardcoded DOCX_AUDIT)
+  const { summary: usageSummary } = useVariableUsage();
+  const docxAudit = useMemo(() => ({
+    templatesAtivos: usageSummary.totalTemplates,
+    totalVariaveis: usageSummary.totalInDocx + usageSummary.totalBroken + usageSummary.totalNull,
+    okExplicitas: usageSummary.totalOk,
+    viaCustomSnapshot: usageSummary.totalInDocx - usageSummary.totalOk, // approximate
+    quebradas: usageSummary.totalBroken,
+    comValorNulo: usageSummary.totalNull,
+    lastAuditDate: usageSummary.lastAuditDate ?? new Date().toISOString().slice(0, 10),
+    problemas: KNOWN_PROBLEMS,
+  }), [usageSummary]);
+
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
