@@ -428,19 +428,18 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [bateriaEntries, setBateriaEntries] = useState<BateriaEntry[]>(initBaterias);
   const [componenteEntries, setComponenteEntries] = useState<{ id: string; nome: string; quantidade: number }[]>([]);
   const [triedSave, setTriedSave] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Reset form when initialItens changes (open for edit vs create)
-  const [lastInitKey, setLastInitKey] = useState<string | null>(null);
   const initKey = initialItens ? initialItens.map(i => i.id).join(",") : "new";
-  if (initKey !== lastInitKey && open) {
-    setLastInitKey(initKey);
+
+  useEffect(() => {
+    if (!open) return;
     setModuloEntries(initModulos);
     setInversorEntries(initInversores);
     setOtimizadorEntries(initOtimizadores);
     setBateriaEntries(initBaterias);
-    // Prefer meta custo over calculated initCusto (catalog items have preco_unitario=0)
     setCusto(initialCardData?.custo || initCusto);
-    // Restore header fields from card data
     if (initialCardData) {
       setDistribuidorNome(initialCardData.distribuidorNome || "");
       setNomeKit(initialCardData.nomeKit || "");
@@ -449,7 +448,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       if (initialCardData.sistema) setSistema(initialCardData.sistema);
       if (initialCardData.custosEmbutidos) setCustosEmbutidos(initialCardData.custosEmbutidos);
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initKey]);
 
   // Filtered inversores based on sistema + topologia
   const filteredInversores = useMemo(
@@ -466,8 +466,11 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     return s + ((cat?.potencia_wp || 0) * m.quantidade) / 1000;
   }, 0);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setTriedSave(true);
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
     // Validation
     const errors: string[] = [];
     if (!distribuidorNome.trim()) errors.push("Nome do distribuidor");
@@ -642,6 +645,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     onKitCreated(itens, meta);
     onOpenChange(false);
     toast({ title: "Kit criado manualmente", description: `${itens.length} itens adicionados` });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const title = mode === "equipamentos" ? "Criar kit manualmente" : "Criar kit manual do zero";
@@ -731,15 +737,15 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
           {mode === "equipamentos" && (
             <div className="space-y-1">
-              <Label className="text-xs">Tipo do Kit *</Label>
+              <Label className="text-xs font-medium text-foreground">Tipo do Kit *</Label>
               <RadioGroup value={tipoKit} onValueChange={v => setTipoKit(v as any)} className="flex gap-4">
                 <div className="flex items-center gap-1.5">
                   <RadioGroupItem value="customizado" id="tk-c" className="h-3.5 w-3.5" />
-                  <Label htmlFor="tk-c" className="text-xs cursor-pointer">Customizado</Label>
+                  <Label htmlFor="tk-c" className="text-xs cursor-pointer text-foreground">Customizado</Label>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <RadioGroupItem value="fechado" id="tk-f" className="h-3.5 w-3.5" />
-                  <Label htmlFor="tk-f" className="text-xs cursor-pointer">Fechado</Label>
+                  <Label htmlFor="tk-f" className="text-xs cursor-pointer text-foreground">Fechado</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -770,22 +776,22 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             </div>
             {mode === "zero" && (
               <div className="space-y-1">
-                <Label className="text-xs">Custos embutidos</Label>
+                <Label className="text-xs font-medium text-foreground">Custos embutidos</Label>
                 <div className="flex gap-4 pt-1">
                   <div className="flex items-center gap-1.5">
                     <Checkbox checked={custosEmbutidos.estruturas} onCheckedChange={v => setCustosEmbutidos(p => ({ ...p, estruturas: !!v }))} className="h-3.5 w-3.5" />
-                    <Label className="text-xs cursor-pointer">Estruturas</Label>
+                    <Label className="text-xs cursor-pointer text-foreground">Estruturas</Label>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Checkbox checked={custosEmbutidos.transformador} onCheckedChange={v => setCustosEmbutidos(p => ({ ...p, transformador: !!v }))} className="h-3.5 w-3.5" />
-                    <Label className="text-xs cursor-pointer">Transformador</Label>
+                    <Label className="text-xs cursor-pointer text-foreground">Transformador</Label>
                   </div>
                 </div>
               </div>
             )}
             {mode === "equipamentos" && (
               <div className="space-y-1">
-                <Label className="text-xs">Distribuidor *</Label>
+                <Label className="text-xs font-medium text-foreground">Distribuidor *</Label>
                 <Select value={distribuidorSelect} onValueChange={setDistribuidorSelect}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione o distribuidor" /></SelectTrigger>
                   <SelectContent>
