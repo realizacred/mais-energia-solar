@@ -153,6 +153,8 @@ interface EnrichedVariable {
   tipoResultado?: string;
   /** Escopo: proposta (default) ou documento */
   escopo?: VariableEscopo;
+  /** Dynamic field context (projeto, pre_dimensionamento, pos_dimensionamento) */
+  _dynamicContext?: string;
 }
 
 type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional" | "campo_dinamico";
