@@ -1203,6 +1203,160 @@ Deno.serve(async (req) => {
       // Non-blocking — proposal continues without charts
     }
 
+    // ── 8c. BACKEND AUDIT: Build audit report + block on critical errors ──
+    const CRITICAL_VARIABLES = new Set([
+      "nome", "cliente_nome", "potencia_kwp", "valor_total",
+      "cidade", "estado", "distribuidora",
+      "modulo_fabricante", "modulo_modelo", "numero_modulos",
+    ]);
+
+    const auditItems: Array<{
+      variable: string;
+      status: string;
+      severity: string;
+      value: string | null;
+      origin: string;
+      message: string;
+      suggestion?: string;
+    }> = [];
+
+    for (const v of processedMissingVars) {
+      const clean = v.replace(/[[\]{}]/g, "");
+      const isCritical = CRITICAL_VARIABLES.has(clean);
+      auditItems.push({
+        variable: clean,
+        status: "error_unresolved",
+        severity: isCritical ? "error" : "warning",
+        value: null,
+        origin: "template",
+        message: isCritical
+          ? `Variável crítica "${clean}" não foi resolvida`
+          : `Placeholder "${clean}" não encontrado nos resolvers`,
+        suggestion: isCritical
+          ? "Verificar dados de entrada da proposta"
+          : "Verificar se a variável existe no catálogo ou é custom",
+      });
+    }
+
+    for (const v of processedEmptyVars) {
+      const clean = v.replace(/[[\]{}]/g, "");
+      const isCritical = CRITICAL_VARIABLES.has(clean);
+      auditItems.push({
+        variable: clean,
+        status: "warning_null",
+        severity: isCritical ? "error" : "warning",
+        value: "",
+        origin: "resolver",
+        message: isCritical
+          ? `Variável crítica "${clean}" está vazia`
+          : `Variável "${clean}" resolveu como vazia`,
+        suggestion: isCritical
+          ? "Verificar se os dados foram preenchidos no formulário"
+          : undefined,
+      });
+    }
+
+    const auditErrorCount = auditItems.filter(i => i.severity === "error").length;
+    const auditWarningCount = auditItems.filter(i => i.severity === "warning").length;
+    const resolvedVarsCountAudit = Object.keys(vars).length - processedMissingVars.length - processedEmptyVars.length;
+    const totalPlaceholders = resolvedVarsCountAudit + processedMissingVars.length;
+    const healthScore = totalPlaceholders > 0
+      ? Math.max(0, Math.min(100, Math.round(((totalPlaceholders - auditErrorCount * 2 - auditWarningCount) / totalPlaceholders) * 100)))
+      : 100;
+
+    const auditHealth = (healthScore < 80 || auditErrorCount > 0)
+      ? "critica"
+      : (healthScore < 95 || auditWarningCount > 0)
+        ? "atencao"
+        : "saudavel";
+
+    const generationAuditJson = {
+      templateId: template_id,
+      templateName: template.nome,
+      propostaId: proposta_id || "",
+      generatedAt: new Date().toISOString(),
+      totalPlaceholders,
+      resolved: resolvedVarsCountAudit,
+      resolvedViaSnapshot: 0,
+      unresolvedPlaceholders: processedMissingVars.map((v: string) => v.replace(/[[\]{}]/g, "")),
+      nullValues: processedEmptyVars.map((v: string) => v.replace(/[[\]{}]/g, "")),
+      emptyValues: processedEmptyVars.map((v: string) => v.replace(/[[\]{}]/g, "")),
+      items: auditItems,
+      healthScore,
+      health: auditHealth,
+      errorCount: auditErrorCount,
+      warningCount: auditWarningCount,
+      okCount: Math.max(0, resolvedVarsCountAudit - processedEmptyVars.length),
+    };
+
+    // Check if generation should be blocked (critical errors)
+    const hasCriticalErrors = auditItems.some(
+      i => i.severity === "error" && (i.status === "error_unresolved" || i.status === "error_expression")
+    );
+
+    // Persist audit to proposta_versoes (backend-side, not fire-and-forget)
+    if (proposta_id) {
+      const { data: auditVersao } = await adminClient
+        .from("proposta_versoes")
+        .select("id")
+        .eq("proposta_id", proposta_id)
+        .order("versao_numero", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (auditVersao) {
+        const { error: auditPersistErr } = await adminClient
+          .from("proposta_versoes")
+          .update({ generation_audit_json: generationAuditJson } as any)
+          .eq("id", auditVersao.id);
+        if (auditPersistErr) {
+          console.error("[template-preview] Failed to persist audit:", auditPersistErr.message);
+        } else {
+          console.log(`[template-preview] Audit persisted to proposta_versoes ${auditVersao.id}`);
+        }
+      }
+    }
+
+    // ── BLOCK if critical errors detected ──
+    if (hasCriticalErrors) {
+      const criticalVars = auditItems
+        .filter(i => i.severity === "error" && (i.status === "error_unresolved" || i.status === "error_expression"))
+        .map(i => i.variable);
+
+      console.error(`[template-preview] ❌ GENERATION BLOCKED — ${criticalVars.length} critical variable(s): ${criticalVars.join(", ")}`);
+
+      // Upload DOCX only (for debugging), but do NOT generate PDF or promote status
+      await adminClient.storage
+        .from("proposta-documentos")
+        .upload(
+          `${tenantId}/propostas/${proposta_id || "draft"}/${Date.now()}_blocked_${template.nome.replace(/[^a-zA-Z0-9]/g, "_")}.docx`,
+          report,
+          {
+            contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            upsert: true,
+          }
+        );
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          blocked_by_audit: true,
+          critical_variables: criticalVars,
+          audit: generationAuditJson,
+          error: `Geração bloqueada: ${criticalVars.length} variável(is) crítica(s) não resolvida(s): ${criticalVars.join(", ")}`,
+          missing_vars: processedMissingVars,
+          empty_vars: processedEmptyVars,
+          resolved_vars_count: resolvedVarsCountAudit,
+        }),
+        {
+          status: 422,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log(`[template-preview] Audit passed: health=${auditHealth}, score=${healthScore}, errors=${auditErrorCount}, warnings=${auditWarningCount}`);
+
     // ── 9. BUILD FILE NAME + PERSIST TO STORAGE ──────────
     const clienteNome = cliente?.nome || lead?.nome || "preview";
     const proposalNumber = propostaData?.codigo || null;
@@ -1484,6 +1638,7 @@ Deno.serve(async (req) => {
         skipped: chartInjectionResult.chartsSkipped,
         reasons: chartInjectionResult.reasons || {},
       } : null,
+      audit: generationAuditJson,
     };
 
     // Include debug path in response if debug mode
