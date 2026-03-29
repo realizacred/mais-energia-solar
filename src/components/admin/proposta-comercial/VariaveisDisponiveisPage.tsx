@@ -152,7 +152,7 @@ interface EnrichedVariable {
   escopo?: VariableEscopo;
 }
 
-type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento";
+type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional";
 type ActiveView = VariableCategory | "todas" | "auditoria";
 
 /* ── Semantic explanations for known variables ── */
@@ -338,6 +338,7 @@ export function VariaveisDisponiveisPage() {
         case "legado": items = items.filter((v) => v.governance === "legado" || v.governance === "input_wizard"); break;
         case "texto": items = items.filter((v) => v.governance === "texto" || v.tipoResultado === "text"); break;
         case "documento": items = items.filter((v) => v.escopo === "documento"); break;
+        case "aspiracional": items = items.filter((v) => v.escopo === "aspiracional"); break;
       }
     }
 
