@@ -199,6 +199,7 @@ export function VariaveisDisponiveisPage() {
   const [detailVar, setDetailVar] = useState<EnrichedVariable | null>(null);
   const [varPickerOpen, setVarPickerOpen] = useState(false);
   const [varPickerSearch, setVarPickerSearch] = useState("");
+  const [aiSuggestOpen, setAiSuggestOpen] = useState(false);
 
   // §16: queries only in hooks
   const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
