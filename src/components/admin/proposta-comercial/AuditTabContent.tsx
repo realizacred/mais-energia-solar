@@ -1,12 +1,20 @@
 import { useMemo, useState } from "react";
 import {
   ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Loader2,
-  ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers
+  ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Table as ShadTable,
+  TableBody as ShadTableBody,
+  TableCell as ShadTableCell,
+  TableHead as ShadTableHead,
+  TableHeader as ShadTableHeader,
+  TableRow as ShadTableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import {
   useVariablesAudit,
@@ -44,7 +52,7 @@ export function AuditTabContent({
   const [activeTable, setActiveTable] = useState<string | null>(null);
   const [showDescIssues, setShowDescIssues] = useState(false);
 
-  const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences, categoryAudit } = useVariablesAudit(dbCustomVars);
+  const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences, categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
   // ── Filtered schema fields ──────────────────────────────────
   const filteredFields = useMemo(() => {
@@ -95,7 +103,12 @@ export function AuditTabContent({
       {/* ════════════════════════════════════════════════════════ */}
       {/* SUMMARY KPIS */}
       {/* ════════════════════════════════════════════════════════ */}
-      <div className="px-4 py-3">
+      <div className="px-4 py-3 space-y-3">
+        {/* Row 1: Schema mapping KPIs */}
+        <div className="flex items-center gap-2 mb-1">
+          <TableProperties className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cobertura de Schema (catálogo × banco)</span>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="rounded-lg border border-border bg-card p-2.5 space-y-0.5">
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Campos no Banco</p>
@@ -124,6 +137,48 @@ export function AuditTabContent({
             <p className="text-[10px] text-muted-foreground">Sem coluna no banco</p>
           </div>
         </div>
+
+        {/* Row 2: Resolver coverage KPIs — honest view */}
+        <div className="flex items-center gap-2 mt-4 mb-1">
+          <Zap className="h-3.5 w-3.5 text-primary" />
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cobertura Real de Resolver (catálogo × implementação)</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[280px] text-xs">
+              <p>Indica quantas variáveis do catálogo têm resolver mapeado (RESOLVER_MAP). Variáveis com fonte "Desconhecida" não têm resolver identificado e podem sair em branco no PDF.</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="rounded-lg border border-border bg-card p-2.5 space-y-0.5">
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Total Catálogo</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{resolverCoverage.totalCatalog}</p>
+          </div>
+          <div className="rounded-lg border border-success/30 bg-success/5 p-2.5 space-y-0.5">
+            <p className="text-[9px] text-success uppercase tracking-wider font-medium">Com Resolver</p>
+            <p className="text-lg font-bold text-success tabular-nums">{resolverCoverage.withResolver}</p>
+          </div>
+          <div className={cn(
+            "rounded-lg border p-2.5 space-y-0.5",
+            resolverCoverage.ghostCount > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
+          )}>
+            <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Sem Resolver</p>
+            <p className="text-lg font-bold text-destructive tabular-nums">{resolverCoverage.ghostCount}</p>
+          </div>
+          <div className={cn(
+            "rounded-lg border p-2.5 space-y-0.5",
+            resolverCoverage.pendingCount > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"
+          )}>
+            <p className="text-[9px] text-warning uppercase tracking-wider font-medium">Pendentes</p>
+            <p className="text-lg font-bold text-warning tabular-nums">{resolverCoverage.pendingCount}</p>
+          </div>
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 space-y-0.5">
+            <p className="text-[9px] text-primary uppercase tracking-wider font-medium">Cobertura Real</p>
+            <p className="text-lg font-bold text-primary tabular-nums">{resolverCoverage.coveragePct}%</p>
+          </div>
+        </div>
       </div>
 
       {/* ════════════════════════════════════════════════════════ */}
@@ -145,26 +200,26 @@ export function AuditTabContent({
             <span className="text-[10px] text-muted-foreground">— Referenciam colunas que não existem mais no banco</span>
           </div>
           <div className="rounded-lg border border-destructive/20 overflow-hidden">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-destructive/5 border-b border-destructive/10">
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[30px]">⚠️</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Variável</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Problema</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ghostVariables.map((g, idx) => (
-                  <tr key={g.key} className={cn("border-b border-border/40", idx % 2 === 0 ? "bg-card" : "bg-muted/10")}>
-                    <td className="px-3 py-2"><Ghost className="h-3 w-3 text-destructive" /></td>
-                    <td className="px-3 py-2"><span className="text-[11px] font-medium text-foreground">{g.label}</span></td>
-                    <td className="px-3 py-2"><code className="font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded text-[10px]">[{g.key}]</code></td>
-                    <td className="px-3 py-2"><span className="text-[10px] text-destructive">{g.reason}</span></td>
-                  </tr>
+            <ShadTable>
+              <ShadTableHeader>
+                <ShadTableRow className="bg-destructive/5 hover:bg-destructive/5">
+                  <ShadTableHead className="text-[10px] w-[30px]">⚠️</ShadTableHead>
+                  <ShadTableHead className="text-[10px]">Variável</ShadTableHead>
+                  <ShadTableHead className="text-[10px]">Chave</ShadTableHead>
+                  <ShadTableHead className="text-[10px]">Problema</ShadTableHead>
+                </ShadTableRow>
+              </ShadTableHeader>
+              <ShadTableBody>
+                {ghostVariables.map((g) => (
+                  <ShadTableRow key={g.key}>
+                    <ShadTableCell className="py-2"><Ghost className="h-3 w-3 text-destructive" /></ShadTableCell>
+                    <ShadTableCell className="py-2"><span className="text-[11px] font-medium text-foreground">{g.label}</span></ShadTableCell>
+                    <ShadTableCell className="py-2"><code className="font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded text-[10px]">[{g.key}]</code></ShadTableCell>
+                    <ShadTableCell className="py-2"><span className="text-[10px] text-destructive">{g.reason}</span></ShadTableCell>
+                  </ShadTableRow>
                 ))}
-              </tbody>
-            </table>
+              </ShadTableBody>
+            </ShadTable>
           </div>
         </div>
       )}

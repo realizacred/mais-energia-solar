@@ -815,6 +815,27 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
     return entries;
   }, []);
 
+  // ── Resolver coverage stats (honest KPI) ────────────────
+  const resolverCoverage = useMemo(() => {
+    const totalCatalog = VARIABLES_CATALOG.length;
+    const withResolver = categoryAudit.reduce((sum, cat) => {
+      return sum + cat.variables.filter(v => !v.notImplemented && v.source !== "unknown").length;
+    }, 0);
+    const ghostCount = categoryAudit.reduce((sum, cat) => {
+      return sum + cat.variables.filter(v => v.source === "unknown" && !v.notImplemented).length;
+    }, 0);
+    const pendingCount = categoryAudit.reduce((sum, cat) => {
+      return sum + cat.variables.filter(v => v.notImplemented).length;
+    }, 0);
+    return {
+      totalCatalog,
+      withResolver,
+      ghostCount,
+      pendingCount,
+      coveragePct: totalCatalog > 0 ? Math.round((withResolver / totalCatalog) * 100) : 0,
+    };
+  }, [categoryAudit]);
+
   return {
     customAudit,
     schemaAudit,
@@ -822,6 +843,7 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
     ghostVariables,
     totalCustomDivergences,
     categoryAudit,
+    resolverCoverage,
     SORTED_TABLES,
     FLOW_GROUPS,
   };
