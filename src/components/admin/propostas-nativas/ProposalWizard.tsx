@@ -1,5 +1,6 @@
 // @deprecated: Tabela 'premissas_tecnicas' não é mais usada. Fonte atual: 'tenant_premises' via useSolarPremises.
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { buildGenerationAuditReport, type GenerationAuditReport } from "@/services/generationAudit";
 import { formatNumberBR } from "@/lib/formatters";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -248,6 +249,7 @@ export function ProposalWizard() {
   const [generationStatus, setGenerationStatus] = useState<"idle" | "calculating" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error">("idle");
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [missingVars, setMissingVars] = useState<string[]>([]);
+  const [generationAuditReport, setGenerationAuditReport] = useState<GenerationAuditReport | null>(null);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
   const [preDimensionamento, setPreDimensionamento] = useState<PreDimensionamentoData>(DEFAULT_PRE_DIMENSIONAMENTO);
 
@@ -1838,12 +1840,28 @@ export function ProposalWizard() {
           console.log("[ProposalWizard] Artifact result:", artifactResult);
 
           // Handle missing_vars from backend — store for UI display
-          if (artifactResult.missing_vars?.length > 0) {
-            console.warn("[ProposalWizard] Missing vars in template:", artifactResult.missing_vars);
-            setMissingVars(artifactResult.missing_vars);
-          } else {
-            setMissingVars([]);
-          }
+          const backendMissing: string[] = artifactResult.missing_vars ?? [];
+          const backendEmpty: string[] = artifactResult.empty_vars ?? [];
+          const resolvedCount: number = artifactResult.resolved_vars_count ?? 0;
+          setMissingVars(backendMissing);
+
+          // Build generation audit report
+          const auditReport = buildGenerationAuditReport({
+            templateId: templateSelecionado,
+            templateName: artifactResult.template_name || "",
+            propostaId: genResult.proposta_id || "",
+            totalVarsProvided: resolvedCount + backendMissing.length,
+            missingVars: backendMissing,
+            emptyVars: backendEmpty,
+            resolvedCount,
+          });
+          setGenerationAuditReport(auditReport);
+          console.log("[ProposalWizard] Generation audit:", {
+            health: auditReport.health,
+            score: auditReport.healthScore,
+            errors: auditReport.errorCount,
+            warnings: auditReport.warningCount,
+          });
 
           // Store persisted paths
           setOutputDocxPath(artifactResult.output_docx_path || null);
@@ -1967,6 +1985,7 @@ export function ProposalWizard() {
       setGenerationStatus("idle");
       setGenerationError(null);
       setMissingVars([]);
+      setGenerationAuditReport(null);
     }
   }, [result, pdfBlobUrl]);
 
@@ -2316,6 +2335,7 @@ export function ProposalWizard() {
               customFieldValues={customFieldValues}
               onCustomFieldValuesChange={setCustomFieldValues}
               docxBlob={docxBlob}
+              generationAuditReport={generationAuditReport}
             />
           </>
         ));

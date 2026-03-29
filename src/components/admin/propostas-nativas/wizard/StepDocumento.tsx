@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import type { GenerationAuditReport } from "@/services/generationAudit";
 import {
   FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
   Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
@@ -58,6 +59,7 @@ interface StepDocumentoProps {
   customFieldValues?: Record<string, any>;
   onCustomFieldValuesChange?: (values: Record<string, any>) => void;
   docxBlob?: Blob | null;
+  generationAuditReport?: GenerationAuditReport | null;
 }
 
 // ─── Main Component ───────────────────────────────────────
@@ -74,6 +76,7 @@ export function StepDocumento({
   onGenerate, onNewVersion, onViewDetail,
   customFieldValues = {}, onCustomFieldValuesChange,
   docxBlob,
+  generationAuditReport,
 }: StepDocumentoProps) {
   // ─── Queries via hooks (§16 AGENTS.md) ──────────────────
   const queryClient = useQueryClient();
@@ -808,8 +811,89 @@ export function StepDocumento({
             </div>
           )}
 
-          {/* Missing variables warning */}
-          {missingVars.length > 0 && (
+          {/* Generation Quality Score + Missing variables */}
+          {generationAuditReport && (
+            <div className={cn(
+              "rounded-lg border p-2.5 space-y-2",
+              generationAuditReport.health === "critica"
+                ? "border-destructive/30 bg-destructive/5"
+                : generationAuditReport.health === "atencao"
+                  ? "border-warning/30 bg-warning/5"
+                  : "border-success/30 bg-success/5"
+            )}>
+              {/* Health badge */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  {generationAuditReport.health === "critica" ? (
+                    <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                  ) : generationAuditReport.health === "atencao" ? (
+                    <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5 text-success shrink-0" />
+                  )}
+                  <span className={cn(
+                    "text-xs font-semibold",
+                    generationAuditReport.health === "critica" ? "text-destructive"
+                      : generationAuditReport.health === "atencao" ? "text-warning"
+                        : "text-success"
+                  )}>
+                    Qualidade da Geração: {generationAuditReport.health === "saudavel" ? "Saudável" : generationAuditReport.health === "atencao" ? "Atenção" : "Crítica"}
+                  </span>
+                </div>
+                <Badge variant="outline" className={cn(
+                  "text-[10px]",
+                  generationAuditReport.healthScore >= 90 ? "bg-success/10 text-success border-success/20"
+                    : generationAuditReport.healthScore >= 70 ? "bg-warning/10 text-warning border-warning/20"
+                      : "bg-destructive/10 text-destructive border-destructive/20"
+                )}>
+                  {generationAuditReport.healthScore}%
+                </Badge>
+              </div>
+              {/* Summary stats */}
+              <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+                <span>{generationAuditReport.resolved} resolvidas</span>
+                {generationAuditReport.errorCount > 0 && (
+                  <span className="text-destructive font-medium">{generationAuditReport.errorCount} erro(s)</span>
+                )}
+                {generationAuditReport.warningCount > 0 && (
+                  <span className="text-warning font-medium">{generationAuditReport.warningCount} aviso(s)</span>
+                )}
+              </div>
+              {/* Unresolved placeholders */}
+              {generationAuditReport.unresolvedPlaceholders.length > 0 && (
+                <div className="space-y-1">
+                  <span className="text-[10px] font-medium text-foreground">Placeholders não resolvidos:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {generationAuditReport.unresolvedPlaceholders.map(v => (
+                      <Badge key={v} variant="outline" className="text-[10px] border-destructive/30 text-destructive bg-destructive/10">
+                        {v}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Null values */}
+              {generationAuditReport.nullValues.length > 0 && (
+                <div className="space-y-1">
+                  <span className="text-[10px] font-medium text-foreground">Variáveis com valor vazio:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {generationAuditReport.nullValues.map(v => (
+                      <Badge key={v} variant="outline" className="text-[10px] border-warning/30 text-warning bg-warning/10">
+                        {v}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {generationAuditReport.items.filter(i => i.suggestion).length > 0 && (
+                <p className="text-[10px] text-muted-foreground">
+                  Esses campos ficaram em branco no documento. Verifique os dados nas etapas anteriores.
+                </p>
+              )}
+            </div>
+          )}
+          {/* Fallback: show simple missing vars if no audit report yet */}
+          {!generationAuditReport && missingVars.length > 0 && (
             <div className="rounded-lg border border-warning/30 bg-warning/5 p-2.5 space-y-1.5">
               <div className="flex items-center gap-1.5">
                 <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
