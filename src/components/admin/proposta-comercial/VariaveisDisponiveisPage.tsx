@@ -152,7 +152,7 @@ interface EnrichedVariable {
   escopo?: VariableEscopo;
 }
 
-type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto";
+type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento";
 type ActiveView = VariableCategory | "todas" | "auditoria";
 
 /* ── Semantic explanations for known variables ── */
