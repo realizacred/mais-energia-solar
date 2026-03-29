@@ -812,10 +812,29 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.projeto_prazo_estimado_dias", "projeto_prazo_estimado_dias", "Prazo Estimado (dias)", "Prazo estimado em dias para conclusão do projeto", "dias", "30", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_prazo_vistoria_dias", "projeto_prazo_vistoria_dias", "Prazo Vistoria (dias)", "Prazo em dias para vistoria da concessionária", "dias", "15", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
 
-  // ── Projeto (endereço — aspiracional, usar cliente.* em vez disso) ──
+  // ── Projeto (endereço de instalação) ──
+  v("comercial", "comercial.projeto_rua_instalacao", "projeto_rua_instalacao", "Rua de Instalação", "Rua/logradouro do local de instalação", "-", "Rua das Flores"),
+  v("comercial", "comercial.projeto_numero_instalacao", "projeto_numero_instalacao", "Número de Instalação", "Número do endereço de instalação", "-", "123"),
+  v("comercial", "comercial.projeto_complemento_instalacao", "projeto_complemento_instalacao", "Complemento de Instalação", "Complemento do endereço de instalação", "-", "Bloco A"),
+  v("comercial", "comercial.projeto_bairro_instalacao", "projeto_bairro_instalacao", "Bairro de Instalação", "Bairro do local de instalação", "-", "Centro"),
+  v("comercial", "comercial.projeto_cidade_instalacao", "projeto_cidade_instalacao", "Cidade de Instalação", "Cidade do local de instalação", "-", "Belo Horizonte"),
+  v("comercial", "comercial.projeto_uf_instalacao", "projeto_uf_instalacao", "UF de Instalação", "Estado/UF do local de instalação", "-", "MG"),
+  v("comercial", "comercial.projeto_cep_instalacao", "projeto_cep_instalacao", "CEP de Instalação", "CEP do local de instalação", "-", "30130-000"),
   v("comercial", "comercial.projeto_lat_instalacao", "projeto_lat_instalacao", "Latitude Instalação", "Latitude do local de instalação", "-", "-19.9167", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_lon_instalacao", "projeto_lon_instalacao", "Longitude Instalação", "Longitude do local de instalação", "-", "-43.9345", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_observacoes", "projeto_observacoes", "Observações do Projeto", "Observações e notas do projeto", "-", "Telhado com inclinação de 15°"),
+
+  // ── Proposta (metadados complementares) ──
+  v("comercial", "comercial.proposta_versao_atual", "proposta_versao_atual", "Versão Atual da Proposta", "Número da versão atual da proposta", "-", "3"),
+  v("comercial", "comercial.proposta_valido_ate", "proposta_valido_ate", "Proposta Válida Até", "Data limite de validade da proposta", "data", "15/04/2026"),
+  v("comercial", "comercial.proposta_enviado_em", "proposta_enviado_em", "Enviada Em", "Data em que a proposta foi enviada ao cliente", "data", "01/03/2026"),
+  v("comercial", "comercial.proposta_aceito_em", "proposta_aceito_em", "Aceita Em", "Data em que a proposta foi aceita pelo cliente", "data", "05/03/2026"),
+  v("comercial", "comercial.proposta_rejeitado_em", "proposta_rejeitado_em", "Rejeitada Em", "Data em que a proposta foi rejeitada pelo cliente", "data", "05/03/2026"),
+  v("comercial", "comercial.proposta_motivo_rejeicao", "proposta_motivo_rejeicao", "Motivo de Rejeição", "Motivo informado para a rejeição da proposta", "-", "Preço acima do orçamento"),
+  v("comercial", "comercial.proposta_observacoes", "proposta_observacoes", "Observações da Proposta", "Observações gerais da proposta", "-", "Cliente prefere financiamento"),
+
+  // ── Simulação (complementar) ──
+  v("comercial", "comercial.simulacao_co2_evitado_kg", "simulacao_co2_evitado_kg", "CO₂ Evitado (kg/ano)", "Quantidade de CO₂ evitada por ano com energia solar", "kg", "4.500"),
 
   // ── Consultor (complementares) ──
   v("comercial", "comercial.consultor_telefone", "consultor_telefone", "Telefone do Consultor", "Telefone de contato do consultor", "-", "(31) 99999-0000"),

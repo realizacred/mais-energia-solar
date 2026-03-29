@@ -110,6 +110,40 @@ export function resolveClienteComercial(
   set("projeto_status", projeto.status);
   set("projeto_observacoes", snap.observacoes ?? projeto.observacoes);
 
+  // ── Projeto (endereço de instalação) ──
+  set("projeto_rua_instalacao", projeto.rua_instalacao ?? lead.rua ?? snapCliente.rua);
+  set("projeto_numero_instalacao", projeto.numero_instalacao ?? lead.numero ?? snapCliente.numero);
+  set("projeto_complemento_instalacao", projeto.complemento_instalacao ?? lead.complemento ?? snapCliente.complemento);
+  set("projeto_bairro_instalacao", projeto.bairro_instalacao ?? lead.bairro ?? snapCliente.bairro);
+  set("projeto_cidade_instalacao", projeto.cidade_instalacao ?? lead.cidade ?? snapCliente.cidade);
+  set("projeto_uf_instalacao", projeto.uf_instalacao ?? lead.estado ?? snapCliente.estado);
+  set("projeto_cep_instalacao", projeto.cep_instalacao ?? lead.cep ?? snapCliente.cep);
+
+  // ── Proposta (metadados complementares) ──
+  set("proposta_versao_atual", proposta.versao_atual ?? versao.versao_numero);
+  set("proposta_enviado_em", fmtDate(versao.enviado_em ?? proposta.sent_at));
+  set("proposta_aceito_em", fmtDate(versao.aceito_em ?? proposta.accepted_at));
+  set("proposta_rejeitado_em", fmtDate(versao.rejeitado_em ?? proposta.rejected_at));
+  set("proposta_motivo_rejeicao", versao.motivo_rejeicao ?? proposta.rejection_reason);
+  set("proposta_observacoes", versao.observacoes ?? snap.observacoes ?? snap.vc_observacao);
+
+  // proposta_valido_ate — data de validade
+  const validadeDias2 = num(versao.validade_dias) ?? 15;
+  if (versao.valido_ate) {
+    set("proposta_valido_ate", fmtDate(versao.valido_ate));
+  } else {
+    const dataVal = new Date();
+    dataVal.setDate(dataVal.getDate() + validadeDias2);
+    set("proposta_valido_ate", dataVal.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }));
+  }
+
+  // ── CO₂ evitado (simulação) ──
+  const geracaoMensalCo2 = num(snap.geracao_mensal);
+  if (geracaoMensalCo2 != null) {
+    const co2Kg = geracaoMensalCo2 * 12 * 0.075;
+    set("simulacao_co2_evitado_kg", fmtNum(co2Kg, 0));
+  }
+
   // Pagamento (from pagamento_opcoes array)
   const pagOpcoes = safeArr(snap.pagamentoOpcoes ?? snap.pagamento_opcoes);
   if (pagOpcoes.length > 0) {

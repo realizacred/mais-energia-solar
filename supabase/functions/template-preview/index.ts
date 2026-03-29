@@ -997,7 +997,7 @@ Deno.serve(async (req) => {
       propostaData?.projeto_id
         ? adminClient
             .from("projetos")
-            .select("codigo, status, potencia_kwp, valor_total, numero_modulos, modelo_inversor, modelo_modulos, data_instalacao, geracao_mensal_media_kwh, tipo_instalacao, forma_pagamento, created_at, observacoes, titulo")
+            .select("codigo, status, potencia_kwp, valor_total, numero_modulos, modelo_inversor, modelo_modulos, data_instalacao, geracao_mensal_media_kwh, tipo_instalacao, forma_pagamento, created_at, observacoes, titulo, rua_instalacao, numero_instalacao, complemento_instalacao, bairro_instalacao, cidade_instalacao, uf_instalacao, cep_instalacao")
             .eq("id", propostaData.projeto_id)
             .eq("tenant_id", tenantId)
             .maybeSingle()
