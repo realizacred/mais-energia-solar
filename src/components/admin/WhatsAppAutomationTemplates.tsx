@@ -383,7 +383,7 @@ export function WhatsAppAutomationTemplates() {
 
       {/* Dialog para criar/editar template */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="w-[90vw] max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[90vw] max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingTemplate ? "Editar Template" : "Novo Template de Automação"}</DialogTitle>
             <DialogDescription>

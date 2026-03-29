@@ -297,7 +297,7 @@ export function HelpCenterDrawer({ open: controlledOpen, onOpenChange }: HelpCen
   if (isDesktop) {
     return (
         <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : handleFechar())}>
-          <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[80vh]">
+          <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
             <DialogHeader className="shrink-0 p-5 pb-3 border-b border-border flex flex-row items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <BookOpen className="w-5 h-5 text-primary" />

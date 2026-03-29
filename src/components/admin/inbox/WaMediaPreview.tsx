@@ -29,7 +29,7 @@ export function WaMediaPreview({ mediaPreview, onClose }: WaMediaPreviewProps) {
 
   return (
     <Dialog open={!!mediaPreview} onOpenChange={(open) => { if (!open) { setZoom(1); onClose(); } }}>
-      <DialogContent className="w-[90vw] max-w-3xl max-h-[90vh] p-0 overflow-hidden bg-black/95 border-none">
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[calc(100dvh-2rem)] p-0 overflow-hidden bg-black/95 border-none">
         <DialogTitle className="sr-only">Visualizar mídia</DialogTitle>
         <div className="relative flex flex-col items-center justify-center min-h-[300px]">
           {/* Top bar */}

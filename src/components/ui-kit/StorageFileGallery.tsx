@@ -134,7 +134,7 @@ function FilePreviewOverlay({ files, currentIndex, onIndexChange, onClose }: Fil
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[90vw] max-w-4xl max-h-[90vh] p-0 gap-0 [&>button]:hidden">
+      <DialogContent className="w-[90vw] max-w-4xl max-h-[calc(100dvh-2rem)] p-0 gap-0 [&>button]:hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b bg-background">
           <span className="text-sm font-medium truncate max-w-[50%]">{file.name}</span>

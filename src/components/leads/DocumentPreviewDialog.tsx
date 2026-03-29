@@ -77,7 +77,7 @@ export function DocumentPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-4xl max-h-[90vh] p-0 gap-0">
+      <DialogContent className="w-[90vw] max-w-4xl max-h-[calc(100dvh-2rem)] p-0 gap-0">
         <DialogHeader className="p-4 border-b">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base flex items-center gap-2">

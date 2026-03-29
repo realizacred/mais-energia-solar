@@ -313,7 +313,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
 
       {/* Add subgrupo dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-[90vw] max-w-md max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[90vw] max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" />
