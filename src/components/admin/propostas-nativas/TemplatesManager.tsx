@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
-import { usePropostaTemplatesCrud, useSalvarPropostaTemplate, useDeletarPropostaTemplate, useAtualizarTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
+import { usePropostaTemplatesCrud, useSalvarPropostaTemplate, useDeletarPropostaTemplate, useAtualizarTemplateHtml, usePropostaTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
 import type { PropostaTemplateFull } from "@/hooks/usePropostaTemplatesCrud";
 import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
 import type { TemplateBlock } from "@/components/admin/proposal-builder";
@@ -109,9 +109,13 @@ export function TemplatesManager() {
   const [form, setForm] = useState<Partial<PropostaTemplateFull>>({});
   const [uploading, setUploading] = useState(false);
   const [tipoTab, setTipoTab] = useState<"html" | "docx">("html");
-  const [previewTemplate, setPreviewTemplate] = useState<PropostaTemplateFull | null>(null);
-  const [builderTemplate, setBuilderTemplate] = useState<PropostaTemplateFull | null>(null);
+  const [previewTemplateId, setPreviewTemplateId] = useState<PropostaTemplateFull | null>(null);
+  const [builderTemplateId, setBuilderTemplateId] = useState<PropostaTemplateFull | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // On-demand fetch of template_html for preview/builder
+  const activeHtmlId = previewTemplateId?.id ?? builderTemplateId?.id ?? null;
+  const { data: loadedTemplateHtml } = usePropostaTemplateHtml(activeHtmlId);
 
   const filteredTemplates = useMemo(
     () => templates.filter(t => t.tipo === tipoTab),
