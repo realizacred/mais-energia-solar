@@ -1126,7 +1126,12 @@ export function VariaveisDisponiveisPage() {
                 </div>
               )}
               <div>
-                <Label className="text-xs">Expressão:</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Expressão:</Label>
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-primary gap-1" onClick={() => setAiSuggestOpen(true)}>
+                    <Sparkles className="h-3 w-3" /> Sugerir com IA
+                  </Button>
+                </div>
                 <Textarea id="expressao-textarea" value={form.expressao} onChange={(e) => setForm((f) => ({ ...f, expressao: e.target.value }))} placeholder="[preco]*(1+0.074)^25" className="min-h-[80px] text-sm font-mono mt-1" />
               </div>
               {/* ── Variable picker for expression ── */}
