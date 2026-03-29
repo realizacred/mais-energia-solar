@@ -20,8 +20,8 @@ import { EmailInput } from "@/components/ui/EmailInput";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter
-} from "@/components/ui/sheet";
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -230,24 +230,22 @@ export function ProposalMessageDrawer({
   const isSending = sendMutation.isPending;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[90vw] max-w-md flex flex-col p-0 gap-0 overflow-hidden">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[90vw] max-w-xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         {/* Header — §25: ícone + título + subtítulo */}
-        <SheetHeader className="px-5 pt-5 pb-4 border-b border-border shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <MessageCircle className="w-5 h-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <SheetTitle className="text-base font-semibold text-foreground leading-tight">
-                Mensagem da Proposta
-              </SheetTitle>
-              <SheetDescription className="text-[11px] text-muted-foreground mt-0.5">
-                Gere, edite e envie ao cliente ou consultor
-              </SheetDescription>
-            </div>
+        <DialogHeader className="flex flex-row items-center gap-3 px-5 pt-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <MessageCircle className="w-5 h-5 text-primary" />
           </div>
-        </SheetHeader>
+          <div className="flex-1 min-w-0">
+            <DialogTitle className="text-base font-semibold text-foreground leading-tight">
+              Mensagem da Proposta
+            </DialogTitle>
+            <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">
+              Gere, edite e envie ao cliente ou consultor
+            </DialogDescription>
+          </div>
+        </DialogHeader>
 
         {/* Body — §36: flex-1 min-h-0 scroll interno */}
         <ScrollArea className="flex-1 min-h-0">
@@ -434,7 +432,7 @@ export function ProposalMessageDrawer({
             <TooltipContent>Enviar via e-mail</TooltipContent>
           </Tooltip>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
