@@ -652,18 +652,18 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
-        <DialogHeader className="flex flex-row items-center gap-2.5 px-4 py-3 border-b border-border shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Package className="w-4 h-4 text-primary" />
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1">
-            <DialogTitle className="text-sm font-semibold text-foreground">{title}</DialogTitle>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Configure os componentes e custos do kit</p>
+            <DialogTitle className="text-base font-semibold text-foreground">{title}</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Configure os componentes e custos do kit</p>
           </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
-        <div className="p-4 space-y-3">
+        <div className="p-5 space-y-4">
           {/* Header fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1">
