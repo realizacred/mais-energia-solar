@@ -665,9 +665,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
         <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-3">
           {/* Header fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-foreground">Nome do distribuidor <span className="text-destructive">*</span></Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-foreground">Nome do distribuidor <span className="text-destructive">*</span></Label>
               <Popover open={distribuidorOpen} onOpenChange={setDistribuidorOpen}>
                 <PopoverTrigger asChild>
                   <div className="relative">
@@ -699,31 +699,31 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                 )}
               </Popover>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-foreground">Custo <span className="text-destructive">*</span></Label>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-foreground">Custo <span className="text-destructive">*</span></Label>
               <CurrencyInput value={custo} onChange={setCusto} className={cn("h-8 text-xs", triedSave && custo <= 0 && "ring-2 ring-destructive")} placeholder="0,00" />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-foreground">Nome do Kit <span className="text-destructive">*</span></Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-foreground">Nome do Kit <span className="text-destructive">*</span></Label>
               <Input value={nomeKit} onChange={e => setNomeKit(e.target.value)} className={cn("h-8 text-xs", triedSave && !nomeKit.trim() && "ring-2 ring-destructive")} />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-foreground">Código do Kit <span className="text-destructive">*</span></Label>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-foreground">Código do Kit <span className="text-destructive">*</span></Label>
               <Input value={codigoKit} onChange={e => setCodigoKit(e.target.value)} className={cn("h-8 text-xs", triedSave && !codigoKit.trim() && "ring-2 ring-destructive")} />
             </div>
           </div>
 
           {/* Sistema */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">Sistema</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">Sistema</Label>
             <RadioGroup value={sistema} onValueChange={v => setSistema(v as any)} className="flex gap-4">
               {[{ v: "on_grid", l: "On grid" }, { v: "hibrido", l: "Híbrido" }, { v: "off_grid", l: "Off grid" }].map(o => (
                 <div key={o.v} className="flex items-center gap-2">
                   <RadioGroupItem value={o.v} id={`s-${o.v}`} className="h-4 w-4" />
-                  <Label htmlFor={`s-${o.v}`} className="text-sm cursor-pointer text-foreground">{o.l}</Label>
+                  <Label htmlFor={`s-${o.v}`} className="text-xs cursor-pointer text-foreground">{o.l}</Label>
                 </div>
               ))}
             </RadioGroup>
@@ -746,9 +746,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           )}
 
           {/* Topologia + Custos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-foreground">Topologia <span className="text-destructive">*</span></Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-foreground">Topologia <span className="text-destructive">*</span></Label>
               <Select value={topologia} onValueChange={v => {
                 setTopologia(v);
                 // Auto-add otimizador entry when switching to Otimizador
@@ -798,12 +798,12 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
 
           {/* Itens */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label className="text-xs font-bold">Itens</Label>
 
             {/* Módulos */}
             {moduloEntries.map((m, idx) => (
-              <div key={m.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
+              <div key={m.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-md bg-warning/10 flex items-center justify-center">
@@ -866,7 +866,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Inversores (filtered by topologia + sistema) */}
             {inversorEntries.map((inv, idx) => (
-              <div key={inv.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
+              <div key={inv.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
@@ -957,7 +957,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Otimizadores (only when topologia = Otimizador) */}
             {showOtimizadores && otimizadorEntries.map((ot, idx) => (
-              <div key={ot.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
+              <div key={ot.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-md bg-info/10 flex items-center justify-center">
@@ -1025,7 +1025,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             {mode === "zero" && (
               <>
                 {componenteEntries.map(c => (
-                  <div key={c.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
+                  <div key={c.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
@@ -1051,7 +1051,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Baterias */}
             {bateriaEntries.map((bat, idx) => (
-              <div key={bat.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
+              <div key={bat.id} className="rounded-lg border border-border bg-card p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-md bg-success/10 flex items-center justify-center">
@@ -1139,7 +1139,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30 shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30 shrink-0">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Voltar
           </Button>
