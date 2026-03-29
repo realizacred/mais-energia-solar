@@ -423,6 +423,10 @@ export function VariaveisDisponiveisPage() {
         case "documento": items = items.filter((v) => v.escopo === "documento"); break;
         case "aspiracional": items = items.filter((v) => v.escopo === "aspiracional"); break;
         case "campo_dinamico": items = items.filter((v) => !!v._dynamicContext); break;
+        case "health_critical": items = items.filter((v) => v.healthClassification === "critical"); break;
+        case "health_unstable": items = items.filter((v) => v.healthClassification === "unstable"); break;
+        case "health_healthy": items = items.filter((v) => v.healthClassification === "healthy"); break;
+        case "health_unused": items = items.filter((v) => !v.healthClassification || v.healthClassification === "unused"); break;
       }
     }
 
