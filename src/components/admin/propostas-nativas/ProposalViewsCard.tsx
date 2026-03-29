@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Eye, Clock, Smartphone, Monitor, Send, CheckCircle2, XCircle, UserCheck, Globe, MessageCircle, Link2, Mail, BarChart3 } from "lucide-react";
+import { Eye, Clock, Smartphone, Monitor, Send, CheckCircle2, XCircle, UserCheck, Globe, MessageCircle, Link2, Mail, BarChart3, FileText, RefreshCw, Timer } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
   const totalViews = data?.totalViews ?? 0;
   const tokens = data?.tokens ?? [];
   const envios = data?.envios ?? [];
+  const events = data?.events ?? [];
 
   const deviceBreakdown = useMemo(() => {
     let mobile = 0, desktop = 0;
@@ -48,6 +49,30 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
   }, [views]);
 
   const activeToken = tokens.find(t => t.decisao) || tokens[0] || null;
+
+  // Total duration across all tracked tokens
+  const totalDuration = useMemo(() => {
+    return tokens.reduce((sum, t) => sum + (t.duracao_total_segundos || 0), 0);
+  }, [tokens]);
+
+  const formatDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    if (min < 60) return `${min}min ${sec > 0 ? `${sec}s` : ""}`.trim();
+    const hrs = Math.floor(min / 60);
+    const remMin = min % 60;
+    return `${hrs}h ${remMin > 0 ? `${remMin}min` : ""}`.trim();
+  };
+
+  const EVENT_LABELS: Record<string, { label: string; icon: typeof Eye }> = {
+    proposta_visualizada: { label: "Cliente visualizou", icon: Eye },
+    proposta_enviada: { label: "Proposta enviada", icon: Send },
+    proposta_aceita: { label: "Proposta aceita", icon: CheckCircle2 },
+    proposta_recusada: { label: "Proposta recusada", icon: XCircle },
+    status_change: { label: "Status alterado", icon: RefreshCw },
+    version_created: { label: "Nova versão criada", icon: FileText },
+  };
 
   // Daily views aggregation for chart
   const dailyViews = useMemo(() => {
@@ -307,10 +332,54 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
             </>
           )}
 
-          {views.length === 0 && envios.length === 0 && (
+          {views.length === 0 && envios.length === 0 && events.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-4">
               Nenhuma atividade registrada ainda.
             </p>
+          )}
+
+          {/* ── Duration ─────────────────────────────────── */}
+          {totalDuration > 0 && (
+            <>
+              <Separator className="my-3" />
+              <div className="flex items-center gap-2 text-xs">
+                <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-muted-foreground">Tempo total na proposta:</span>
+                <span className="font-semibold text-foreground">{formatDuration(totalDuration)}</span>
+              </div>
+            </>
+          )}
+
+          {/* ── Events Timeline ──────────────────────────── */}
+          {events.length > 0 && (
+            <>
+              <Separator className="my-3" />
+              <p className="text-xs font-medium text-muted-foreground mb-2">Linha do Tempo</p>
+              <div className="space-y-1.5">
+                {events.slice(0, 12).map(ev => {
+                  const config = EVENT_LABELS[ev.tipo] || { label: ev.tipo, icon: Eye };
+                  const EvIcon = config.icon;
+                  const payload = ev.payload || {};
+                  const extra = ev.tipo === "proposta_visualizada" && payload.view_count
+                    ? ` (${payload.view_count}ª vez)`
+                    : ev.tipo === "status_change" && payload.new_status
+                      ? ` → ${payload.new_status}`
+                      : "";
+                  return (
+                    <div key={ev.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <EvIcon className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{config.label}{extra}</span>
+                      <span className="ml-auto whitespace-nowrap text-[10px]">
+                        {format(new Date(ev.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                      </span>
+                    </div>
+                  );
+                })}
+                {events.length > 12 && (
+                  <p className="text-[10px] text-muted-foreground">+{events.length - 12} eventos anteriores</p>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
