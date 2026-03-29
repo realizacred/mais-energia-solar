@@ -792,6 +792,11 @@ export function VariaveisDisponiveisPage() {
                 { key: "documento", label: `Documento (${kpiStats.documento})` },
                 { key: "aspiracional", label: `Aspiracional (${kpiStats.aspiracional})` },
                 ...(kpiStats.campoDinamico > 0 ? [{ key: "campo_dinamico" as StatusFilter, label: `Campos Dinâmicos (${kpiStats.campoDinamico})` }] : []),
+                ...(hasHealthData ? [
+                  { key: "health_critical" as StatusFilter, label: `🔴 Críticas (${kpiStats.healthCritical})` },
+                  { key: "health_unstable" as StatusFilter, label: `🟡 Instáveis (${kpiStats.healthUnstable})` },
+                  { key: "health_healthy" as StatusFilter, label: `🟢 Saudáveis (${kpiStats.healthHealthy})` },
+                ] : []),
               ] as { key: StatusFilter; label: string }[]).map((f) => (
                 <Button
                   key={f.key}
