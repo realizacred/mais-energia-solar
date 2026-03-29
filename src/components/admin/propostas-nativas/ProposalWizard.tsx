@@ -5,15 +5,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
-  Zap, AlertTriangle, AlertCircle, Phone, Save, CheckCircle2,
+  Zap, AlertTriangle, Phone, Save, CheckCircle2,
   SunMedium, LayoutGrid, HardHat, Calculator, Wallet, ClipboardCheck, ScrollText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogAction,
-} from "@/components/ui/alert-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -258,10 +254,6 @@ export function ProposalWizard() {
   // Pos-dimensionamento dialog
   const [showPosDialog, setShowPosDialog] = useState(false);
   const [nomeProposta, setNomeProposta] = useState("");
-
-  // Financial Center validation gate
-  const [vendaErros, setVendaErros] = useState<string[]>([]);
-  const [showVendaValidacao, setShowVendaValidacao] = useState(false);
 
   // ─── Enforcement: block modal state
   const [showBlockModal, setShowBlockModal] = useState(false);
@@ -1569,13 +1561,29 @@ export function ProposalWizard() {
       && ((venda.custo_kit_override ?? itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0)) > 0),
     [STEP_KEYS.ADICIONAIS]: true,
     [STEP_KEYS.SERVICOS]: true,
-    [STEP_KEYS.VENDA]: venda.margem_percentual >= 0,
+    [STEP_KEYS.VENDA]: true,
     [STEP_KEYS.PAGAMENTO]: true,
     [STEP_KEYS.RESUMO]: true,
     [STEP_KEYS.PROPOSTA]: grupoValidation.valid,
   };
 
   const canCurrentStep = canAdvance[currentStepKey] ?? true;
+
+  const resumoFinancialWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    const custoBase = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+    const custoTotal = custoBase + venda.custo_instalacao + venda.custo_comissao + venda.custo_outros;
+
+    if (precoFinal > 0 && custoTotal > 0 && precoFinal < custoTotal) {
+      warnings.push(
+        `Margem real negativa: o preço de venda (${formatBRL(precoFinal)}) está abaixo do custo total (${formatBRL(custoTotal)}).`
+      );
+    } else if (venda.margem_percentual <= 0) {
+      warnings.push("Margem de lucro zerada ou negativa. O preço final pode não cobrir custos.");
+    }
+
+    return warnings;
+  }, [itens, venda.custo_instalacao, venda.custo_comissao, venda.custo_outros, venda.margem_percentual, precoFinal]);
 
   // ─── Pre-generation: run canonical validation and show gate modal
   const handlePreGenerate = () => {
@@ -2002,27 +2010,6 @@ export function ProposalWizard() {
           description: "O kit selecionado possui custo R$ 0,00. Edite o kit ou selecione outro antes de prosseguir.",
           variant: "destructive",
         });
-        return;
-      }
-    }
-
-    // Intercept: validate Financial Center before advancing
-    if (currentStepKey === STEP_KEYS.VENDA) {
-      const erros: string[] = [];
-      if (venda.custo_instalacao > 0 || venda.custo_comissao > 0 || venda.custo_outros > 0) {
-        // Financial center is active — validate costs
-        // Negative margin check
-        const custoBase = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-        const custoTotal = custoBase + venda.custo_instalacao + venda.custo_comissao + venda.custo_outros;
-        if (precoFinal > 0 && precoFinal < custoTotal) {
-          erros.push(
-            `Preço de venda (${formatBRL(precoFinal)}) está abaixo do custo total (${formatBRL(custoTotal)}). Margem negativa!`
-          );
-        }
-      }
-      if (erros.length > 0) {
-        setVendaErros(erros);
-        setShowVendaValidacao(true);
         return;
       }
     }
@@ -2583,6 +2570,7 @@ export function ProposalWizard() {
         onDescricaoPropostaChange={setDescricaoProposta}
         customFieldValues={customFieldValues}
         onCustomFieldValuesChange={setCustomFieldValues}
+        financialWarnings={resumoFinancialWarnings}
         onConfirm={handlePosDialogConfirm}
         onSaveDraft={() => handleUpdate(false)}
         onSaveActive={() => handleUpdate(true)}
@@ -2607,42 +2595,6 @@ export function ProposalWizard() {
           onConfirmGenerate={handleGenerate}
         />
       )}
-
-      {/* Financial Center validation gate */}
-      <AlertDialog open={showVendaValidacao} onOpenChange={setShowVendaValidacao}>
-        <AlertDialogContent className="w-[90vw] max-w-md">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5 text-destructive" />
-              </div>
-              <AlertDialogTitle className="text-base font-semibold text-foreground">
-                Corrija antes de prosseguir
-              </AlertDialogTitle>
-            </div>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  Os itens abaixo precisam ser ajustados:
-                </p>
-                <ul className="space-y-2 mt-2">
-                  {vendaErros.map((erro, i) => (
-                    <li key={i} className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-                      <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-                      <span className="text-sm text-foreground">{erro}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowVendaValidacao(false)} className="w-full">
-              Entendi, vou corrigir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
