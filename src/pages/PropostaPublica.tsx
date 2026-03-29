@@ -33,6 +33,7 @@ type TokenData = {
   first_viewed_at: string | null;
   invalidado_em: string | null;
   motivo_invalidacao: string | null;
+  tipo: string;
 };
 
 type CenarioData = {
