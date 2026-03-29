@@ -267,13 +267,13 @@ export function AuditTabContent({
       </div>
 
       {/* ════════════════════════════════════════════════════════ */}
-      {/* SUMMARY KPIS */}
+      {/* CATÁLOGO GLOBAL — Schema + Resolver coverage           */}
       {/* ════════════════════════════════════════════════════════ */}
       <div className="px-4 py-3 space-y-3">
-        {/* Row 1: Schema mapping KPIs */}
+        {/* Section label */}
         <div className="flex items-center gap-2 mb-1">
-          <TableProperties className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cobertura de Schema (catálogo × banco)</span>
+          <Database className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Catálogo Global — Cobertura de Schema (catálogo × banco)</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="rounded-lg border border-border bg-card p-2.5 space-y-0.5">
