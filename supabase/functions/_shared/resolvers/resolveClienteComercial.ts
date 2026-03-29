@@ -2,9 +2,19 @@
  * Domain resolver: cliente.* + comercial.* + conta_energia.* + premissas.*
  * Sources: snapshot.cliente, ext.cliente, ext.lead, ext.consultor, ext.tenantNome
  */
-import { type AnyObj, safeObj, str, num, fmtNum, fmtCur, type ResolverExternalContext } from "./types.ts";
+import { type AnyObj, safeObj, safeArr, str, num, fmtNum, fmtCur, fmtVal, type ResolverExternalContext } from "./types.ts";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** Format date in pt-BR locale */
+function fmtDate(v: unknown): string | undefined {
+  if (!v) return undefined;
+  try {
+    const d = new Date(String(v));
+    if (isNaN(d.getTime())) return undefined;
+    return d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  } catch { return undefined; }
+}
 
 export function resolveClienteComercial(
   snapshot: AnyObj | null | undefined,
@@ -18,6 +28,9 @@ export function resolveClienteComercial(
   const consultor = ext?.consultor ?? {};
   const versao = ext?.versaoData ?? {};
   const proposta = ext?.propostaData ?? {};
+  const brand = ext?.brandSettings ?? {};
+  const projeto = ext?.projetoData ?? {};
+  const clienteData = ext?.clienteData ?? {};
 
   const set = (k: string, v: unknown) => {
     const s = str(v);
@@ -58,6 +71,79 @@ export function resolveClienteComercial(
   set("consultor_telefone", consultor.telefone ?? snap.consultor_telefone);
   set("consultor_email", consultor.email ?? snap.consultor_email);
   set("empresa_nome", ext?.tenantNome);
+
+  // ── Proposta (metadados) ──
+  set("proposta_status", proposta.status);
+  set("proposta_aceita_at", fmtDate(proposta.accepted_at));
+  set("proposta_enviada_at", fmtDate(proposta.sent_at));
+  set("proposta_recusa_motivo", proposta.rejection_reason);
+  set("proposta_recusada_at", fmtDate(proposta.rejected_at));
+  set("proposta_viewed_at", fmtDate(proposta.viewed_at));
+  set("proposta_versao_status", versao.status);
+  set("proposta_output_docx_path", versao.docx_path);
+  set("proposta_output_pdf_path", versao.pdf_path);
+  const propostaNum = str(proposta.numero) ?? (str(proposta.id) ? String(proposta.id).substring(0, 8) : undefined);
+  set("proposta_num", propostaNum);
+
+  // ── Premissas da proposta ──
+  set("proposta_inflacao_energetica", snap.inflacao_energetica);
+  set("proposta_perda_eficiencia_anual", snap.perda_eficiencia_anual);
+  set("proposta_sobredimensionamento", snap.sobredimensionamento);
+
+  // ── Empresa (brand_settings) ──
+  set("empresa_cnpj_cpf", brand.cnpj ?? brand.cpf_cnpj);
+  set("empresa_cidade", brand.cidade);
+  set("empresa_estado", brand.estado);
+  set("empresa_logo_url", brand.logo_url);
+  set("empresa_representante_legal", brand.representante_legal);
+  set("empresa_representante_cpf", brand.representante_cpf);
+  set("empresa_representante_cargo", brand.representante_cargo);
+
+  // ── Projeto ──
+  set("projeto_id_externo", snap.projeto_id_externo);
+  const valorKit = num(snap.valor_kit);
+  if (valorKit != null) set("projeto_valor_equipamentos", fmtVal(valorKit));
+  const valorInst = num(snap.valor_instalacao);
+  if (valorInst != null) set("projeto_valor_mao_obra", fmtVal(valorInst));
+  set("projeto_data_venda", fmtDate(projeto.created_at));
+  set("projeto_data_instalacao", fmtDate(clienteData.data_instalacao));
+  set("projeto_status", projeto.status);
+  set("projeto_observacoes", snap.observacoes ?? projeto.observacoes);
+
+  // Pagamento (from pagamento_opcoes array)
+  const pagOpcoes = safeArr(snap.pagamentoOpcoes ?? snap.pagamento_opcoes);
+  if (pagOpcoes.length > 0) {
+    const pag0 = pagOpcoes[0];
+    set("projeto_forma_pagamento", pag0.tipo);
+    const entradaVal = num(pag0.entrada_valor);
+    if (entradaVal != null) set("projeto_valor_entrada", fmtVal(entradaVal));
+    set("projeto_numero_parcelas", pag0.parcelas);
+    const parcelaVal = num(pag0.valor_parcela);
+    if (parcelaVal != null) set("projeto_valor_parcela", fmtVal(parcelaVal));
+
+    // Valor financiado = valor_total - entrada_valor
+    const vTotal = num(snap.valor_total);
+    if (vTotal != null && entradaVal != null) {
+      set("projeto_valor_financiado", fmtVal(vTotal - entradaVal));
+    }
+  }
+
+  // ── Concessionária ──
+  set("concessionaria_sigla", snap.dis_energia);
+  set("concessionaria_estado", snap.estado);
+  const fioB = num(snap.fio_b_usado_kwh);
+  if (fioB != null) set("concessionaria_tarifa_fio_b", fmtVal(fioB, 4));
+  set("concessionaria_custo_disponibilidade_monofasico", snap.custo_disponibilidade_kwh);
+  set("concessionaria_custo_disponibilidade_bifasico", snap.custo_disponibilidade_kwh);
+  set("concessionaria_custo_disponibilidade_trifasico", snap.custo_disponibilidade_kwh);
+  const impostoEnergia = num(snap.imposto_energia);
+  if (impostoEnergia != null) set("concessionaria_aliquota_icms", fmtVal(impostoEnergia));
+  // Isenção SCEE derivada da regra GD
+  const gdRegra = safeObj(snap.gd);
+  set("concessionaria_possui_isencao_scee", gdRegra.regra ? "Sim" : "Não");
+
+  // ── Simulação ──
+  set("simulacao_tipo_conta", snap.subgrupo ?? "BT");
 
   // ── Conta de Energia ──
   const contaFields = [
