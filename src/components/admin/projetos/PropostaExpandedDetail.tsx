@@ -139,7 +139,7 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap cursor-help", s.className)}>{s.label}</span>
+          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.className)}>{s.label}</span>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="text-xs">
           {tooltipText}
@@ -982,7 +982,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               )}
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              Criada em {formatDate(p.created_at)}
+              {getStatusDateLabel(p.status, p.aceita_at, p.enviada_at, p.recusada_at, p.created_at)}
             </p>
           </div>
 
