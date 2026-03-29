@@ -885,6 +885,24 @@ export function StepDocumento({
                   </div>
                 </div>
               )}
+              {/* Custom var expression errors */}
+              {generationAuditReport.items.filter(i => i.status === "error_expression").length > 0 && (
+                <div className="space-y-1">
+                  <span className="text-[10px] font-medium text-foreground">Variáveis custom com erro:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {generationAuditReport.items.filter(i => i.status === "error_expression").map(i => (
+                      <Tooltip key={i.variable}>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive bg-destructive/10 cursor-help">
+                            {i.variable}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-[10px] max-w-[200px]">{i.message}</TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                </div>
+              )}
               {generationAuditReport.items.filter(i => i.suggestion).length > 0 && (
                 <p className="text-[10px] text-muted-foreground">
                   Esses campos ficaram em branco no documento. Verifique os dados nas etapas anteriores.
