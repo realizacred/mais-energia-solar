@@ -1,5 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
-import { Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, PenLine, CreditCard, List } from "lucide-react";
+import {
+  Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2,
+  ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, List, Info,
+  Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -7,9 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,14 +34,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   VARIABLES_CATALOG,
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   type VariableCategory,
+  type CatalogVariable,
 } from "@/lib/variablesCatalog";
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, type VariavelCustom } from "@/hooks/useVariaveisCustom";
+import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
 import { AuditTabContent } from "./AuditTabContent";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 
 /* ── Tiny copy button ───────────────────────────────────── */
 function CopyButton({ text }: { text: string }) {
@@ -46,7 +56,8 @@ function CopyButton({ text }: { text: string }) {
           variant="ghost"
           size="icon"
           className="h-5 w-5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             navigator.clipboard.writeText(text);
             toast.success(`Copiado: ${text}`);
           }}
@@ -59,7 +70,7 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-/* ── Category icons — complete for all VariableCategory ── */
+/* ── Category icons ── */
 const CATEGORY_ICONS: Record<VariableCategory, string> = {
   entrada: "📥",
   sistema_solar: "☀️",
@@ -81,7 +92,7 @@ const CATEGORY_ICONS: Record<VariableCategory, string> = {
   customizada: "🧩",
 };
 
-/* ── Adapter: VariavelCustom → DbCustomVar shape used by AuditTabContent ── */
+/* ── Adapter: VariavelCustom → DbCustomVar ── */
 export interface DbCustomVar {
   id: string;
   nome: string;
@@ -94,17 +105,28 @@ export interface DbCustomVar {
 }
 
 function toDbCustomVar(v: VariavelCustom): DbCustomVar {
-  return {
-    id: v.id,
-    nome: v.nome,
-    label: v.label,
-    expressao: v.expressao,
-    tipo_resultado: v.tipo_resultado,
-    categoria: v.categoria,
-    precisao: v.ordem, // legacy field mapping
-    ativo: v.ativo,
-  };
+  return { id: v.id, nome: v.nome, label: v.label, expressao: v.expressao, tipo_resultado: v.tipo_resultado, categoria: v.categoria, precisao: v.ordem, ativo: v.ativo };
 }
+
+/* ── DOCX forensic data (from validated audit) ── */
+const DOCX_REAL_VARS = new Set([
+  "valor_total", "potencia_kwp", "preco_final", "valor_kit", "valor_instalacao",
+  "valor_servicos", "margem_percentual", "margem_valor", "preco_watt",
+  "geracao_mensal_media", "geracao_anual", "economia_mensal",
+  "vc_consumo", "vc_aumento", "vc_media_sonsumo_mensal", "vc_consumo_anual",
+  "vc_garantiaservico", "vc_calculo_seguro", "vc_string_box_cc",
+  "vc_total_modulo", "vc_p_total_cc", "vc_potencia_sistema",
+  "vc_modulo_potencia", "vc_inversor_potencia_nominal", "vc_estrutura",
+  "modulo_fabricante", "modulo_modelo", "modulo_potencia",
+  "inversor_fabricante_1", "inversor_modelo_1", "inversores_utilizados",
+  "cliente_nome", "cliente_cpf_cnpj", "cliente_endereco", "cliente_cidade",
+  "empresa_nome", "empresa_cnpj_cpf", "empresa_telefone", "empresa_email",
+  "consultor_nome", "consultor_telefone", "consultor_email",
+  "capo_m", "capo_seguro",
+]);
+
+const DOCX_BROKEN = new Set(["capo_m", "capo_seguro"]);
+const DOCX_NULL_VARS = new Set(["vc_aumento", "vc_calculo_seguro", "vc_garantiaservico", "vc_string_box_cc"]);
 
 const PRECISAO_OPTIONS = [
   { value: 0, label: "Nenhuma casa decimal" },
@@ -117,8 +139,55 @@ function normalize(str: string) {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
+/* ── Enriched variable item for unified display ── */
+interface EnrichedVariable {
+  key: string;
+  canonicalKey: string;
+  legacyKey: string;
+  label: string;
+  description: string;
+  category: VariableCategory;
+  unit: string;
+  example: string;
+  isSeries?: boolean;
+  notImplemented?: boolean;
+  isCustom: boolean;
+  customId?: string;
+  expressao?: string;
+  source: VariableSource;
+  resolver: string;
+  inDocx: boolean;
+  docxBroken: boolean;
+  docxNull: boolean;
+  status: "ok" | "warning" | "error" | "pending" | "unused";
+}
+
+type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom";
 type ActiveView = VariableCategory | "todas" | "auditoria";
 
+/* ── Semantic explanations for known variables ── */
+const SEMANTIC_EXPLANATIONS: Record<string, string> = {
+  vc_aumento: "Representa o percentual de geração de energia solar acima do consumo médio mensal. Ex: consumo = 500 kWh, geração = 1.000 kWh → aumento = 100%. Se o valor está nulo, significa que os dados de consumo ou geração não foram preenchidos no wizard.",
+  vc_calculo_seguro: "Valor calculado do seguro da instalação fotovoltaica. Depende de dados do kit (potência, valor) e configuração de seguro do tenant. Retorna nulo quando esses dados não estão disponíveis.",
+  vc_garantiaservico: "Texto descritivo da garantia de serviço oferecida pela empresa. Geralmente extraído de configurações do tenant ou campo customizado no wizard.",
+  vc_string_box_cc: "Configuração de string-box e corrente contínua do sistema. Depende de dados técnicos do kit selecionado no wizard.",
+  capo_m: "Placeholder legado presente no template DOCX, mas sem mapeamento no sistema. Aparece como texto cru '[capo_m]' no PDF gerado. Necessário remover do template ou criar como variável custom.",
+  capo_seguro: "Placeholder legado presente no template DOCX, mas sem mapeamento no sistema. Aparece como texto cru '[capo_seguro]' no PDF gerado. Necessário remover do template ou criar como variável custom.",
+  valor_total: "Valor total final da proposta comercial, já incluindo kit, instalação, serviços, margem e comissão. Formato sem unidade (ex: 42.500,00) — o template DOCX insere 'R$' no texto fixo.",
+  potencia_kwp: "Potência total do sistema fotovoltaico em kilowatt-pico. Soma das potências de todos os módulos selecionados.",
+  preco_watt: "Preço por watt-pico do sistema (R$/Wp). Calculado como valor_total / (potência_kWp × 1000).",
+  geracao_mensal_media: "Geração média mensal estimada do sistema solar, baseada na irradiação local e potência do kit.",
+  economia_mensal: "Economia mensal estimada na conta de energia após instalação do sistema solar.",
+};
+
+/* ── Source display ── */
+function getSourceLabel(source: VariableSource): { label: string; color: string } {
+  const info = SOURCE_LABELS[source];
+  if (info) return { label: info.label, color: info.color };
+  return { label: "Desconhecida", color: "text-muted-foreground" };
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
 export function VariaveisDisponiveisPage() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<ActiveView>("todas");
@@ -127,25 +196,170 @@ export function VariaveisDisponiveisPage() {
   const [form, setForm] = useState({ nome: "vc_", label: "", expressao: "", precisao: 2 });
   const [sortCol, setSortCol] = useState<string>("label");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<VariavelCustom | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("todas");
+  const [detailVar, setDetailVar] = useState<EnrichedVariable | null>(null);
 
-  // §16 / RB-04: queries only in hooks
+  // §16: queries only in hooks
   const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
   const salvarMutation = useSalvarVariavelCustom();
   const deletarMutation = useDeletarVariavelCustom();
-
-  // Adapter for AuditTabContent compatibility
   const dbCustomVars = useMemo(() => customVarsRaw.map(toDbCustomVar), [customVarsRaw]);
 
-  const toggleSort = useCallback((col: string) => {
-    if (sortCol === col) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortCol(col);
-      setSortDir("asc");
+  // Audit data for resolver coverage + source info
+  const { categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
+
+  // Build resolver map from categoryAudit
+  const resolverMap = useMemo(() => {
+    const map: Record<string, { source: VariableSource; resolver: string }> = {};
+    categoryAudit.forEach((cat) => {
+      cat.variables.forEach((v) => {
+        map[v.key] = { source: v.source, resolver: v.resolver };
+      });
+    });
+    return map;
+  }, [categoryAudit]);
+
+  // ── Enriched variables list (catalog + custom merged) ──
+  const allVariables = useMemo((): EnrichedVariable[] => {
+    const items: EnrichedVariable[] = [];
+
+    // Catalog variables
+    VARIABLES_CATALOG.forEach((v) => {
+      const key = v.legacyKey.replace(/^\[|\]$/g, "");
+      const rm = resolverMap[key];
+      const source = rm?.source ?? "unknown";
+      const resolver = rm?.resolver ?? "";
+      const inDocx = DOCX_REAL_VARS.has(key);
+      const docxBroken = DOCX_BROKEN.has(key);
+      const docxNull = DOCX_NULL_VARS.has(key);
+
+      let status: EnrichedVariable["status"] = "ok";
+      if (v.notImplemented) status = "pending";
+      else if (docxBroken) status = "error";
+      else if (docxNull) status = "warning";
+      else if (source === "unknown") status = "unused";
+
+      items.push({
+        key,
+        canonicalKey: v.canonicalKey,
+        legacyKey: v.legacyKey,
+        label: v.label,
+        description: v.description,
+        category: v.category,
+        unit: v.unit,
+        example: v.example,
+        isSeries: v.isSeries,
+        notImplemented: v.notImplemented,
+        isCustom: v.category === "customizada",
+        source,
+        resolver,
+        inDocx,
+        docxBroken,
+        docxNull,
+        status,
+      });
+    });
+
+    // Custom vars not already in catalog
+    customVarsRaw.forEach((cv) => {
+      const alreadyInCatalog = items.some((i) => i.key === cv.nome);
+      if (!alreadyInCatalog) {
+        const inDocx = DOCX_REAL_VARS.has(cv.nome);
+        const docxNull = DOCX_NULL_VARS.has(cv.nome);
+        items.push({
+          key: cv.nome,
+          canonicalKey: `{{customizada.${cv.nome}}}`,
+          legacyKey: `[${cv.nome}]`,
+          label: cv.label,
+          description: cv.descricao || cv.expressao,
+          category: "customizada",
+          unit: "",
+          example: "",
+          isCustom: true,
+          customId: cv.id,
+          expressao: cv.expressao,
+          source: "custom_vc",
+          resolver: "proposal-generate (evaluateExpression)",
+          inDocx,
+          docxBroken: false,
+          docxNull,
+          status: docxNull ? "warning" : "ok",
+        });
+      } else {
+        // Attach customId to existing catalog entry
+        const existing = items.find((i) => i.key === cv.nome);
+        if (existing) {
+          existing.customId = cv.id;
+          existing.expressao = cv.expressao;
+        }
+      }
+    });
+
+    return items;
+  }, [customVarsRaw, resolverMap]);
+
+  // ── Filtered + sorted ──
+  const filtered = useMemo(() => {
+    let items = [...allVariables];
+
+    // Category filter
+    if (activeCategory !== "todas" && activeCategory !== "auditoria") {
+      items = items.filter((v) => v.category === activeCategory);
     }
+
+    // Status filter
+    if (statusFilter !== "todas") {
+      switch (statusFilter) {
+        case "em_uso": items = items.filter((v) => v.inDocx); break;
+        case "ok": items = items.filter((v) => v.status === "ok"); break;
+        case "warning": items = items.filter((v) => v.status === "warning"); break;
+        case "error": items = items.filter((v) => v.status === "error"); break;
+        case "pending": items = items.filter((v) => v.status === "pending"); break;
+        case "nativa": items = items.filter((v) => !v.isCustom); break;
+        case "custom": items = items.filter((v) => v.isCustom); break;
+      }
+    }
+
+    // Search
+    if (search.trim()) {
+      const q = normalize(search);
+      items = items.filter(
+        (v) =>
+          normalize(v.label).includes(q) ||
+          normalize(v.description).includes(q) ||
+          normalize(v.canonicalKey).includes(q) ||
+          normalize(v.legacyKey).includes(q) ||
+          normalize(v.key).includes(q)
+      );
+    }
+
+    // Sort
+    const dir = sortDir === "asc" ? 1 : -1;
+    return items.sort((a, b) => {
+      const aVal = sortCol === "label" ? a.label : sortCol === "legacyKey" ? a.legacyKey : sortCol === "canonicalKey" ? a.canonicalKey : sortCol === "category" ? CATEGORY_LABELS[a.category] : a.label;
+      const bVal = sortCol === "label" ? b.label : sortCol === "legacyKey" ? b.legacyKey : sortCol === "canonicalKey" ? b.canonicalKey : sortCol === "category" ? CATEGORY_LABELS[b.category] : b.label;
+      return dir * aVal.localeCompare(bVal, "pt-BR");
+    });
+  }, [allVariables, activeCategory, statusFilter, search, sortCol, sortDir]);
+
+  const toggleSort = useCallback((col: string) => {
+    if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortCol(col); setSortDir("asc"); }
   }, [sortCol]);
 
+  // ── KPI stats ──
+  const kpiStats = useMemo(() => {
+    const total = allVariables.length;
+    const inUse = allVariables.filter((v) => v.inDocx).length;
+    const ok = allVariables.filter((v) => v.status === "ok").length;
+    const warnings = allVariables.filter((v) => v.status === "warning").length;
+    const errors = allVariables.filter((v) => v.status === "error").length;
+    const custom = allVariables.filter((v) => v.isCustom).length;
+    return { total, inUse, ok, warnings, errors, custom };
+  }, [allVariables]);
+
+  // ── Custom var handlers ──
   const openNewModal = () => {
     setEditingVar(null);
     setForm({ nome: "vc_", label: "", expressao: "", precisao: 2 });
@@ -188,7 +402,7 @@ export function VariaveisDisponiveisPage() {
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await deletarMutation.mutateAsync(deleteTarget);
+      await deletarMutation.mutateAsync(deleteTarget.id);
       toast.success("Variável excluída");
     } catch (e: any) {
       toast.error(e.message || "Erro ao excluir");
@@ -196,73 +410,128 @@ export function VariaveisDisponiveisPage() {
     setDeleteTarget(null);
   };
 
-  // Static catalog items for current category (includes "todas" view)
-  const filtered = useMemo(() => {
-    let items = activeCategory === "todas"
-      ? [...VARIABLES_CATALOG]
-      : VARIABLES_CATALOG.filter((v) => v.category === activeCategory);
-    if (search.trim()) {
-      const q = normalize(search);
-      items = items.filter(
-        (v) =>
-          normalize(v.label).includes(q) ||
-          normalize(v.description).includes(q) ||
-          normalize(v.canonicalKey).includes(q) ||
-          normalize(v.legacyKey).includes(q)
-      );
-    }
-    const dir = sortDir === "asc" ? 1 : -1;
-    return [...items].sort((a, b) => {
-      const aVal = sortCol === "label" ? a.label : sortCol === "legacyKey" ? a.legacyKey : sortCol === "canonicalKey" ? a.canonicalKey : sortCol === "unit" ? (a.unit || "") : a.label;
-      const bVal = sortCol === "label" ? b.label : sortCol === "legacyKey" ? b.legacyKey : sortCol === "canonicalKey" ? b.canonicalKey : sortCol === "unit" ? (b.unit || "") : b.label;
-      return dir * aVal.localeCompare(bVal, "pt-BR");
-    });
-  }, [search, activeCategory, sortCol, sortDir]);
+  // ── Status badge ──
+  const StatusBadgeVar = ({ status, inDocx }: { status: EnrichedVariable["status"]; inDocx: boolean }) => {
+    const config = {
+      ok: { label: "OK", className: "bg-success/15 text-success border-success/20" },
+      warning: { label: "Warning", className: "bg-warning/15 text-warning border-warning/20" },
+      error: { label: "Erro", className: "bg-destructive/15 text-destructive border-destructive/20" },
+      pending: { label: "Pendente", className: "bg-muted text-muted-foreground border-border" },
+      unused: { label: "Sem resolver", className: "bg-muted text-muted-foreground border-border" },
+    };
+    const c = config[status];
+    return (
+      <div className="flex items-center gap-1">
+        <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium", c.className)}>
+          {c.label}
+        </Badge>
+        {inDocx && (
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium">
+            Em uso
+          </Badge>
+        )}
+      </div>
+    );
+  };
 
-  const totalCount = useMemo(() => {
-    if (activeCategory === "todas") return VARIABLES_CATALOG.length;
-    if (activeCategory === "customizada") return dbCustomVars.length;
-    if (activeCategory === "auditoria") return 0;
-    return VARIABLES_CATALOG.filter((v) => v.category === activeCategory).length;
-  }, [activeCategory, dbCustomVars]);
+  const isAuditView = activeCategory === "auditoria";
 
-  const currentCount = activeCategory === "customizada"
-    ? dbCustomVars.filter((v) => {
-        if (!search.trim()) return true;
-        const q = normalize(search);
-        return normalize(v.label).includes(q) || normalize(v.nome).includes(q) || normalize(v.expressao).includes(q);
-      }).length
-    : filtered.length;
-
-  const isStandardCatalogView = activeCategory !== "auditoria" && activeCategory !== "customizada";
+  if (loadingCustom) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-xl" />
+          ))}
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-secondary/10 flex items-center justify-center">
-            <Database className="h-4 w-4 text-secondary" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-foreground tracking-tight">Catálogo de variáveis</h1>
-            <p className="text-[11px] text-muted-foreground">
-              Use <code className="text-primary font-semibold bg-primary/8 px-1 py-0.5 rounded text-[10px]">{"{{grupo.campo}}"}</code> ou{" "}
-              <code className="text-muted-foreground font-medium bg-muted px-1 py-0.5 rounded text-[10px]">{"[campo]"}</code>
-            </p>
-          </div>
-        </div>
-        <Badge variant="outline" className="text-[10px] font-mono border-border text-muted-foreground shrink-0">
-          {currentCount}/{totalCount}
-        </Badge>
+      {/* §26: Header padrão AGENTS */}
+      <PageHeader
+        icon={Database}
+        title="Variáveis do Sistema"
+        description="Consulte, filtre e gerencie as variáveis usadas nos templates de proposta e contrato."
+        actions={
+          <Button size="sm" onClick={openNewModal} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> Nova Custom
+          </Button>
+        }
+      />
+
+      {/* §27: KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <Card className="border-l-[3px] border-l-primary">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Database className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.total}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Total catálogo</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-info">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
+              <FileText className="h-4 w-4 text-info" />
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.inUse}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Em uso (DOCX)</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-success">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.ok}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">OK</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-warning">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.warnings}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Warnings</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-destructive">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <XCircle className="h-4 w-4 text-destructive" />
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.errors}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Erros</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Card container */}
+      {/* Main card container */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        {/* Category tabs — auto-wrap responsivo */}
+        {/* Category tabs */}
         <div className="border-b border-border bg-muted/20 px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            {/* "Todas" filter — always first */}
             <Button
               variant="ghost"
               size="sm"
@@ -276,16 +545,15 @@ export function VariaveisDisponiveisPage() {
             >
               <List className="h-3.5 w-3.5 mr-1" />
               <span>Todas</span>
-              <span className={cn("text-[9px] font-mono tabular-nums ml-0.5 min-w-[1.2rem] text-center", activeCategory === "todas" ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
-                {VARIABLES_CATALOG.length}
+              <span className={cn("text-[9px] font-mono tabular-nums ml-0.5", activeCategory === "todas" ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
+                {allVariables.length}
               </span>
             </Button>
 
             {CATEGORY_ORDER.map((cat) => {
               const isActive = activeCategory === cat;
-              const count = cat === "customizada"
-                ? dbCustomVars.length
-                : VARIABLES_CATALOG.filter((v) => v.category === cat).length;
+              const count = allVariables.filter((v) => v.category === cat).length;
+              if (count === 0) return null;
               return (
                 <Button
                   key={cat}
@@ -301,13 +569,12 @@ export function VariaveisDisponiveisPage() {
                 >
                   <span className="text-xs">{CATEGORY_ICONS[cat]}</span>
                   <span>{CATEGORY_LABELS[cat]}</span>
-                  <span className={cn("text-[9px] font-mono tabular-nums ml-0.5 min-w-[1.2rem] text-center", isActive ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
+                  <span className={cn("text-[9px] font-mono tabular-nums ml-0.5", isActive ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
                     {count}
                   </span>
                 </Button>
               );
             })}
-            {/* Audit tab */}
             <Button
               variant="ghost"
               size="sm"
@@ -325,26 +592,63 @@ export function VariaveisDisponiveisPage() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="px-3 py-2.5 border-b border-border">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
-            <Input
-              placeholder="Buscar variável..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-8 text-xs bg-muted/20 border-border focus:bg-card"
-            />
-            {search && (
-              <Button variant="ghost" size="icon" className="absolute right-0.5 top-1/2 -translate-y-1/2 h-6 w-6" onClick={() => setSearch("")}>
-                <X className="h-3 w-3" />
-              </Button>
-            )}
+        {/* Search + status filters */}
+        {!isAuditView && (
+          <div className="px-3 py-2.5 border-b border-border flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+              <Input
+                placeholder="Buscar nome, chave, descrição..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-8 text-xs bg-muted/20 border-border focus:bg-card"
+              />
+              {search && (
+                <Button variant="ghost" size="icon" className="absolute right-0.5 top-1/2 -translate-y-1/2 h-6 w-6" onClick={() => setSearch("")}>
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-1">
+              {([
+                { key: "todas", label: "Todas" },
+                { key: "em_uso", label: "Em uso" },
+                { key: "ok", label: "OK" },
+                { key: "warning", label: "Warning" },
+                { key: "error", label: "Erro" },
+                { key: "pending", label: "Pendente" },
+                { key: "nativa", label: "Nativa" },
+                { key: "custom", label: "Custom" },
+              ] as { key: StatusFilter; label: string }[]).map((f) => (
+                <Button
+                  key={f.key}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStatusFilter(f.key)}
+                  className={cn(
+                    "h-6 px-2 text-[10px] rounded-md",
+                    statusFilter === f.key
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {f.label}
+                </Button>
+              ))}
+              {statusFilter !== "todas" && (
+                <Button variant="ghost" size="sm" onClick={() => setStatusFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
+                  Limpar
+                </Button>
+              )}
+            </div>
+            <Badge variant="outline" className="text-[10px] font-mono border-border text-muted-foreground shrink-0 ml-auto">
+              {filtered.length}/{allVariables.length}
+            </Badge>
           </div>
-        </div>
+        )}
 
         {/* Content */}
-        {activeCategory === "auditoria" ? (
+        {isAuditView ? (
           <AuditTabContent
             dbCustomVars={dbCustomVars}
             loadingCustom={loadingCustom}
@@ -352,215 +656,33 @@ export function VariaveisDisponiveisPage() {
             onRequestCreateVariable={(suggested) => {
               setEditingVar(null);
               const tableCategoria: Record<string, string> = {
-                clientes: "cliente",
-                deals: "comercial",
-                projetos: "comercial",
-                propostas_nativas: "comercial",
-                proposta_versoes: "financeiro",
-                simulacoes: "calculo",
-                consultores: "comercial",
-                concessionarias: "tarifa",
+                clientes: "cliente", deals: "comercial", projetos: "comercial",
+                propostas_nativas: "comercial", proposta_versoes: "financeiro",
+                simulacoes: "calculo", consultores: "comercial", concessionarias: "tarifa",
               };
               const categoria = tableCategoria[suggested.table] || "geral";
               const colType = suggested.colType || "string";
               let expressao = `return snapshot?.${suggested.table}?.${suggested.column} ?? "-";`;
-              if (colType === "number") {
-                expressao = `// Tipo: number\nconst val = snapshot?.${suggested.table}?.${suggested.column};\nreturn typeof val === "number" ? val : 0;`;
-              } else if (colType === "date") {
-                expressao = `// Tipo: date — formato DD/MM/YYYY\nconst val = snapshot?.${suggested.table}?.${suggested.column};\nif (!val) return "-";\nconst d = new Date(val);\nreturn d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });`;
-              } else if (colType === "boolean") {
-                expressao = `// Tipo: boolean\nreturn snapshot?.${suggested.table}?.${suggested.column} ? "Sim" : "Não";`;
-              }
-              setForm({
-                nome: `vc_${suggested.nome}`,
-                label: suggested.label,
-                expressao,
-                precisao: colType === "number" ? 2 : 0,
-              });
+              if (colType === "number") expressao = `const val = snapshot?.${suggested.table}?.${suggested.column};\nreturn typeof val === "number" ? val : 0;`;
+              else if (colType === "date") expressao = `const val = snapshot?.${suggested.table}?.${suggested.column};\nif (!val) return "-";\nconst d = new Date(val);\nreturn d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });`;
+              else if (colType === "boolean") expressao = `return snapshot?.${suggested.table}?.${suggested.column} ? "Sim" : "Não";`;
+              setForm({ nome: `vc_${suggested.nome}`, label: suggested.label, expressao, precisao: colType === "number" ? 2 : 0 });
               setModalOpen(true);
             }}
           />
-        ) : activeCategory === "customizada" ? (
-          <div>
-            {/* Header with Add button */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/10">
-              <span className="text-xs text-muted-foreground font-medium">
-                {dbCustomVars.length} variável(is) customizada(s)
-              </span>
-              <Button size="sm" onClick={openNewModal} className="h-7 text-xs gap-1">
-                <Plus className="h-3 w-3" /> Nova Variável
-              </Button>
-            </div>
-
-            {loadingCustom ? (
-              <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-xs">Carregando...</span>
-              </div>
-            ) : dbCustomVars.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground">
-                <p className="text-xs">Nenhuma variável customizada cadastrada.</p>
-                <Button variant="default" size="sm" onClick={openNewModal} className="mt-1 text-xs">Criar primeira variável</Button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30 hover:bg-muted/30">
-                      <TableHead className="text-[10px]">Item</TableHead>
-                      <TableHead className="text-[10px]">Chave</TableHead>
-                      <TableHead className="text-[10px]">Expressão</TableHead>
-                      <TableHead className="text-[10px] w-[160px]">Precisão</TableHead>
-                      <TableHead className="text-center text-[10px] w-[80px]">Ação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {[...dbCustomVars]
-                      .filter((v) => {
-                        if (!search.trim()) return true;
-                        const q = normalize(search);
-                        return normalize(v.label).includes(q) || normalize(v.nome).includes(q) || normalize(v.expressao).includes(q);
-                      })
-                      .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"))
-                      .map((v) => {
-                        const original = customVarsRaw.find(cv => cv.id === v.id);
-                        return (
-                          <TableRow key={v.id}>
-                            <TableCell>
-                              <span className="font-medium text-foreground text-[11px]">{v.label}</span>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">[{v.nome}]</code>
-                                <CopyButton text={`[${v.nome}]`} />
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <code className="font-mono text-muted-foreground text-[10px] max-w-[350px] truncate block" title={v.expressao}>
-                                {v.expressao}
-                              </code>
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-[10px] text-muted-foreground">
-                                {v.precisao === 0 ? "Nenhuma casa decimal" : `${v.precisao} casa${v.precisao > 1 ? "s" : ""} decimal${v.precisao > 1 ? "is" : ""}`}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-0.5">
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => original && openEditModal(original)}>
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(v.id)}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-
-            {/* Modal de Edição/Criação */}
-            <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-              <DialogContent className="w-[90vw] max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="text-base">Variável Customizada</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-2">
-                  <div className="text-xs text-muted-foreground">
-                    Chave: <code className="text-primary font-semibold bg-primary/5 px-1.5 py-0.5 rounded">[{form.nome}]</code>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Título:</Label>
-                    <Input
-                      value={form.label}
-                      onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
-                      placeholder="Nome da variável"
-                      className="h-9 text-sm mt-1"
-                    />
-                  </div>
-                  {!editingVar && (
-                    <div>
-                      <Label className="text-xs">Chave (vc_*):</Label>
-                      <Input
-                        value={form.nome}
-                        onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
-                        placeholder="vc_minha_variavel"
-                        className="h-9 text-sm font-mono mt-1"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <Label className="text-xs">Expressão:</Label>
-                    <Textarea
-                      value={form.expressao}
-                      onChange={(e) => setForm((f) => ({ ...f, expressao: e.target.value }))}
-                      placeholder="[preco]*(1+0.074)^25"
-                      className="min-h-[80px] text-sm font-mono mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Precisão decimal (caso se aplique):</Label>
-                    <Select
-                      value={String(form.precisao)}
-                      onValueChange={(v) => setForm((f) => ({ ...f, precisao: Number(v) }))}
-                    >
-                      <SelectTrigger className="h-9 text-sm mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRECISAO_OPTIONS.map((o) => (
-                          <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter className="gap-2">
-                  <Button variant="ghost" onClick={() => setModalOpen(false)}>Fechar</Button>
-                  <Button onClick={handleSaveCustom} disabled={salvarMutation.isPending}>
-                    {salvarMutation.isPending ? "Salvando..." : "Cadastrar"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            {/* AlertDialog for delete confirmation */}
-            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Excluir variável customizada?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. A variável será removida permanentemente do banco de dados.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleConfirmDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Excluir
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
         ) : (
-          /* Standard catalog table (for "todas" and individual categories) */
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
                   {[
-                    { key: "label", label: "Variável", width: "w-[28%]" },
-                    { key: "legacyKey", label: "Chave Legada", width: "w-[22%]" },
-                    { key: "canonicalKey", label: "Chave Canônica", width: "w-[28%]" },
-                    { key: "unit", label: "Unidade", width: "w-[10%]" },
-                    { key: "example", label: "Exemplo", width: "w-[12%]" },
+                    { key: "label", label: "Variável", width: "min-w-[180px]" },
+                    { key: "category", label: "Categoria", width: "w-[120px]" },
+                    { key: "status", label: "Status", width: "w-[140px]" },
+                    { key: "legacyKey", label: "Chave Legada", width: "w-[140px]" },
+                    { key: "canonicalKey", label: "Chave Canônica", width: "w-[180px]" },
+                    { key: "source", label: "Origem", width: "w-[100px]" },
+                    { key: "unit", label: "Un.", width: "w-[60px]" },
                   ].map((col) => (
                     <TableHead
                       key={col.key}
@@ -577,60 +699,122 @@ export function VariaveisDisponiveisPage() {
                       </span>
                     </TableHead>
                   ))}
+                  <TableHead className="text-[10px] w-[80px] text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((v) => (
                   <TableRow
-                    key={v.canonicalKey}
-                    className={cn(v.notImplemented && "opacity-40")}
+                    key={v.key}
+                    className={cn(
+                      "hover:bg-muted/30 cursor-pointer transition-colors",
+                      v.notImplemented && "opacity-40",
+                      v.status === "error" && "bg-destructive/5",
+                    )}
+                    onClick={() => setDetailVar(v)}
                   >
+                    {/* Variável */}
                     <TableCell className="py-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-1.5 cursor-help">
-                            <ChevronRight className="h-3 w-3 text-primary/30 shrink-0" />
-                            <span className="font-medium text-foreground text-[11px] leading-tight">{v.label}</span>
-                            {v.isSeries && (
-                              <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-secondary/40 text-secondary font-mono">série</Badge>
-                            )}
-                            {v.notImplemented && (
-                              <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-destructive/30 text-destructive font-mono">pendente</Badge>
-                            )}
-                            {activeCategory === "todas" && (
-                              <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-border text-muted-foreground font-mono">
-                                {CATEGORY_ICONS[v.category]} {CATEGORY_LABELS[v.category]}
-                              </Badge>
-                            )}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-[280px] text-xs">
-                          <p className="font-medium mb-0.5">{v.label}</p>
-                          <p className="text-muted-foreground">{v.description}</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <div className="flex items-center gap-1.5">
+                        <ChevronRight className="h-3 w-3 text-primary/30 shrink-0" />
+                        <span className="font-medium text-foreground text-[11px] leading-tight">{v.label}</span>
+                        {v.isCustom && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-primary/30 text-primary font-mono">custom</Badge>
+                        )}
+                        {v.isSeries && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-secondary/40 text-secondary font-mono">série</Badge>
+                        )}
+                      </div>
                     </TableCell>
 
+                    {/* Categoria */}
+                    <TableCell className="py-2">
+                      <span className="text-[10px] text-muted-foreground">
+                        {CATEGORY_ICONS[v.category]} {CATEGORY_LABELS[v.category]}
+                      </span>
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell className="py-2">
+                      <StatusBadgeVar status={v.status} inDocx={v.inDocx} />
+                    </TableCell>
+
+                    {/* Chave Legada */}
                     <TableCell className="py-2">
                       <div className="flex items-center gap-1">
-                        <code className="font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded text-[10px]">{v.legacyKey}</code>
+                        <code className="font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded text-[10px] truncate max-w-[120px]">{v.legacyKey}</code>
                         <CopyButton text={v.legacyKey} />
                       </div>
                     </TableCell>
 
+                    {/* Chave Canônica */}
                     <TableCell className="py-2">
                       <div className="flex items-center gap-1">
-                        <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">{v.canonicalKey}</code>
+                        <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px] truncate max-w-[160px]">{v.canonicalKey}</code>
                         <CopyButton text={v.canonicalKey} />
                       </div>
                     </TableCell>
 
+                    {/* Origem */}
+                    <TableCell className="py-2">
+                      <span className={cn("text-[10px] font-medium", getSourceLabel(v.source).color)}>
+                        {getSourceLabel(v.source).label}
+                      </span>
+                    </TableCell>
+
+                    {/* Unidade */}
                     <TableCell className="py-2 text-center">
                       <span className="text-[10px] text-muted-foreground font-mono">{v.unit || "—"}</span>
                     </TableCell>
 
-                    <TableCell className="py-2 text-right">
-                      <span className="text-[10px] text-foreground/60 font-mono tabular-nums">{v.example}</span>
+                    {/* Ações */}
+                    <TableCell className="py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-center gap-0.5">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => setDetailVar(v)}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-[10px]">Ver detalhes</TooltipContent>
+                        </Tooltip>
+                        {v.customId && (
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-warning"
+                                  onClick={() => {
+                                    const original = customVarsRaw.find(cv => cv.id === v.customId);
+                                    if (original) openEditModal(original);
+                                  }}
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-[10px]">Editar</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                  onClick={() => {
+                                    const original = customVarsRaw.find(cv => cv.id === v.customId);
+                                    if (original) setDeleteTarget(original);
+                                  }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-[10px]">Excluir</TooltipContent>
+                            </Tooltip>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -641,11 +825,252 @@ export function VariaveisDisponiveisPage() {
               <div className="text-center py-12 text-muted-foreground">
                 <Search className="h-8 w-8 mx-auto opacity-15 mb-2" />
                 <p className="text-xs font-medium">Nenhuma variável encontrada</p>
+                {statusFilter !== "todas" && (
+                  <Button variant="link" size="sm" onClick={() => setStatusFilter("todas")} className="text-xs mt-1">
+                    Limpar filtros
+                  </Button>
+                )}
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* ── Variable Detail Dialog ── */}
+      <Dialog open={!!detailVar} onOpenChange={(open) => !open && setDetailVar(null)}>
+        <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Info className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                {detailVar?.label}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Detalhes e explicação da variável
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 min-h-0">
+            {detailVar && (
+              <div className="p-5 space-y-5">
+                {/* Status + Type */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadgeVar status={detailVar.status} inDocx={detailVar.inDocx} />
+                  <Badge variant="outline" className={cn(
+                    "text-[10px] px-1.5 py-0.5",
+                    detailVar.isCustom ? "border-primary/30 text-primary" : "border-border text-muted-foreground"
+                  )}>
+                    {detailVar.isCustom ? "🧩 Custom" : "⚙️ Nativa"}
+                  </Badge>
+                </div>
+
+                {/* Keys */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Chave Legada</p>
+                    <div className="flex items-center gap-1.5">
+                      <code className="font-mono text-muted-foreground bg-muted/40 px-2 py-1 rounded text-xs">{detailVar.legacyKey}</code>
+                      <CopyButton text={detailVar.legacyKey} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Chave Canônica</p>
+                    <div className="flex items-center gap-1.5">
+                      <code className="font-mono text-primary bg-primary/5 px-2 py-1 rounded text-xs">{detailVar.canonicalKey}</code>
+                      <CopyButton text={detailVar.canonicalKey} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Categoria</p>
+                    <p className="text-xs text-foreground mt-0.5">{CATEGORY_ICONS[detailVar.category]} {CATEGORY_LABELS[detailVar.category]}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Origem</p>
+                    <p className={cn("text-xs mt-0.5", getSourceLabel(detailVar.source).color)}>{getSourceLabel(detailVar.source).label}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Unidade</p>
+                    <p className="text-xs text-foreground mt-0.5 font-mono">{detailVar.unit || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Exemplo</p>
+                    <p className="text-xs text-foreground mt-0.5 font-mono">{detailVar.example || "—"}</p>
+                  </div>
+                </div>
+
+                {/* Resolver */}
+                {detailVar.resolver && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Resolver</p>
+                    <code className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded block mt-0.5 font-mono">{detailVar.resolver}</code>
+                  </div>
+                )}
+
+                {/* Expression (custom) */}
+                {detailVar.expressao && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Expressão</p>
+                    <pre className="text-xs text-foreground bg-muted/20 px-3 py-2 rounded-lg mt-0.5 font-mono overflow-x-auto whitespace-pre-wrap">{detailVar.expressao}</pre>
+                  </div>
+                )}
+
+                {/* Description */}
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Descrição</p>
+                  <p className="text-xs text-foreground leading-relaxed mt-0.5">{detailVar.description}</p>
+                </div>
+
+                {/* Semantic explanation */}
+                {SEMANTIC_EXPLANATIONS[detailVar.key] && (
+                  <div className="rounded-lg border border-info/20 bg-info/5 p-3">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <HelpCircle className="h-3.5 w-3.5 text-info" />
+                      <p className="text-[10px] font-semibold text-info uppercase tracking-wider">Explicação Semântica</p>
+                    </div>
+                    <p className="text-xs text-foreground leading-relaxed">{SEMANTIC_EXPLANATIONS[detailVar.key]}</p>
+                  </div>
+                )}
+
+                {/* Not editable warning for native */}
+                {!detailVar.isCustom && !detailVar.customId && (
+                  <div className="rounded-lg border border-border bg-muted/20 p-3">
+                    <p className="text-[10px] text-muted-foreground">
+                      ⚙️ <strong>Variável nativa do sistema</strong> — não pode ser excluída ou editada. Para personalizar o comportamento, crie uma variável custom referenciando esta.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </ScrollArea>
+
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            {detailVar?.customId && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  onClick={() => {
+                    const original = customVarsRaw.find(cv => cv.id === detailVar.customId);
+                    if (original) { setDeleteTarget(original); setDetailVar(null); }
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const original = customVarsRaw.find(cv => cv.id === detailVar.customId);
+                    if (original) { openEditModal(original); setDetailVar(null); }
+                  }}
+                >
+                  <Edit2 className="h-3.5 w-3.5 mr-1" /> Editar
+                </Button>
+              </>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => setDetailVar(null)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Create/Edit Custom Variable Modal ── */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Zap className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                {editingVar ? "Editar Variável" : "Nova Variável Custom"}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Variáveis custom usam prefixo vc_ e são avaliadas na geração
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="p-5 space-y-4">
+              <div className="text-xs text-muted-foreground">
+                Chave: <code className="text-primary font-semibold bg-primary/5 px-1.5 py-0.5 rounded">[{form.nome}]</code>
+              </div>
+              <div>
+                <Label className="text-xs">Título:</Label>
+                <Input value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} placeholder="Nome da variável" className="h-9 text-sm mt-1" />
+              </div>
+              {!editingVar && (
+                <div>
+                  <Label className="text-xs">Chave (vc_*):</Label>
+                  <Input value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} placeholder="vc_minha_variavel" className="h-9 text-sm font-mono mt-1" />
+                </div>
+              )}
+              <div>
+                <Label className="text-xs">Expressão:</Label>
+                <Textarea value={form.expressao} onChange={(e) => setForm((f) => ({ ...f, expressao: e.target.value }))} placeholder="[preco]*(1+0.074)^25" className="min-h-[80px] text-sm font-mono mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs">Precisão decimal:</Label>
+                <Select value={String(form.precisao)} onValueChange={(v) => setForm((f) => ({ ...f, precisao: Number(v) }))}>
+                  <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PRECISAO_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </ScrollArea>
+          <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveCustom} disabled={salvarMutation.isPending}>
+              {salvarMutation.isPending ? "Salvando..." : editingVar ? "Salvar" : "Cadastrar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation AlertDialog ── */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir variável customizada?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Você está prestes a excluir a variável <code className="font-mono text-foreground bg-muted px-1.5 py-0.5 rounded text-xs">[{deleteTarget?.nome}]</code> ({deleteTarget?.label}).
+              </p>
+              {deleteTarget && DOCX_REAL_VARS.has(deleteTarget.nome) && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+                  <strong>⚠️ Atenção:</strong> Esta variável está em uso em templates DOCX ativos. Excluí-la pode causar placeholders não resolvidos no PDF gerado.
+                </div>
+              )}
+              {deleteTarget && DOCX_NULL_VARS.has(deleteTarget.nome) && (
+                <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-warning">
+                  <strong>⚠️ Aviso:</strong> Esta variável já apresenta valor nulo em algumas gerações.
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Esta ação não pode ser desfeita.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletarMutation.isPending ? "Excluindo..." : "Excluir permanentemente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
