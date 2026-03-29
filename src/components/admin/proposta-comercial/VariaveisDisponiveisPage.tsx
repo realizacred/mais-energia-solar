@@ -212,6 +212,7 @@ export function VariaveisDisponiveisPage() {
   const [aiSuggestOpen, setAiSuggestOpen] = useState(false);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testVar, setTestVar] = useState("");
+  const [govFilter, setGovFilter] = useState<GovernanceFilter>("todas");
 
   // §16: queries only in hooks
   const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
