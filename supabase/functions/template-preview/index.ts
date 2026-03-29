@@ -1638,6 +1638,7 @@ Deno.serve(async (req) => {
         skipped: chartInjectionResult.chartsSkipped,
         reasons: chartInjectionResult.reasons || {},
       } : null,
+      audit: generationAuditJson,
     };
 
     // Include debug path in response if debug mode
