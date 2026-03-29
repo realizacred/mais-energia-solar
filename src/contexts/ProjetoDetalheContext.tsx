@@ -177,7 +177,19 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
   const [loading, setLoading] = useState(true);
   const [pipelines, setPipelines] = useState<PipelineInfo[]>([]);
   const [allStagesMap, setAllStagesMap] = useState<Map<string, StageInfo[]>>(new Map());
-  // propostasCount via useQuery — see below
+  const { data: propostasCount = 0 } = useQuery({
+    queryKey: ["deal-proposals-count", dealId],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("propostas_nativas")
+        .select("id", { count: "exact", head: true })
+        .eq("deal_id", dealId)
+        .neq("status", "excluida");
+      return count || 0;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!dealId,
+  });
   const [docsCount, setDocsCount] = useState(0);
   const [userNamesMap, setUserNamesMap] = useState<Map<string, string>>(new Map());
 
@@ -438,20 +450,6 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     }
   }, [lossMotivo, lossObs, deal, stages, updateDealLocal, silentRefresh]);
 
-  // ── Proposals count via useQuery (SSOT) ──
-  const { data: propostasCount = 0 } = useQuery({
-    queryKey: ["deal-proposals-count", dealId],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from("propostas_nativas")
-        .select("id", { count: "exact", head: true })
-        .eq("deal_id", dealId)
-        .neq("status", "excluida");
-      return count || 0;
-    },
-    staleTime: 1000 * 60 * 5, // §23: 5 min
-    enabled: !!dealId,
-  });
 
   // ── Effects ──
 
