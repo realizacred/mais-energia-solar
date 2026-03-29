@@ -95,6 +95,7 @@ export function resolveSistemaSolar(
   if (potencia != null) {
     const potStr = String(potencia);
     out["potencia_sistema"] = potStr.includes("kWp") ? potStr.replace(/\s*kWp\s*/, "") : fmtNum(potencia);
+    out["potencia_sistema_numero"] = fmtNum(potencia);
     out["potencia_kwp"] = String(potencia);
   }
   set("potencia_ideal_total", snap.potencia_ideal_total);
