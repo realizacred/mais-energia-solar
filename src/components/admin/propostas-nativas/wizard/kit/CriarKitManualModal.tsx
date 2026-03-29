@@ -1151,8 +1151,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             <span className="text-sm text-muted-foreground">
               Potência: <span className="font-medium text-foreground">{formatKwp(potenciaTotal)}</span>
             </span>
-            <Button onClick={handleSave}>
-              Salvar
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         </div>
