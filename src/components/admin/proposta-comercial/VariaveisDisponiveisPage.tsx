@@ -47,6 +47,7 @@ import {
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, type VariavelCustom } from "@/hooks/useVariaveisCustom";
 import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
 import { useVariableUsage } from "@/hooks/useVariableUsage";
+import { useDealCustomFields, FIELD_CONTEXT_LABELS, FIELD_CONTEXT_ICONS } from "@/hooks/useDealCustomFields";
 import { AuditTabContent } from "./AuditTabContent";
 import { FormulaAISuggest } from "./FormulaAISuggest";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
@@ -152,10 +153,12 @@ interface EnrichedVariable {
   tipoResultado?: string;
   /** Escopo: proposta (default) ou documento */
   escopo?: VariableEscopo;
+  /** Dynamic field context (projeto, pre_dimensionamento, pos_dimensionamento) */
+  _dynamicContext?: string;
 }
 
-type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional";
-type ActiveView = VariableCategory | "todas" | "auditoria";
+type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional" | "campo_dinamico";
+type ActiveView = VariableCategory | "todas" | "auditoria" | "campo_pre" | "campo_pos" | "campo_projeto";
 
 /* ── Semantic explanations for known variables ── */
 const SEMANTIC_EXPLANATIONS: Record<string, string> = {
@@ -212,6 +215,9 @@ export function VariaveisDisponiveisPage() {
 
   // Dynamic variable usage data (replaces hardcoded DOCX_REAL_VARS / DOCX_BROKEN / DOCX_NULL_VARS)
   const { usageMap } = useVariableUsage();
+
+  // Dynamic custom fields from deal_custom_fields table
+  const { data: dealCustomFields = [] } = useDealCustomFields();
 
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
@@ -319,8 +325,39 @@ export function VariaveisDisponiveisPage() {
       }
     });
 
+    // Dynamic deal custom fields (pre/pos/projeto)
+    dealCustomFields.forEach((dcf) => {
+      const alreadyExists = items.some((i) => i.key === dcf.field_key);
+      if (!alreadyExists) {
+        const contextLabel = FIELD_CONTEXT_LABELS[dcf.field_context] ?? dcf.field_context;
+        const usageInfo = usageMap.get(dcf.field_key);
+        const inDocx = usageInfo?.inDocx ?? false;
+        items.push({
+          key: dcf.field_key,
+          canonicalKey: `{{campo_custom.${dcf.field_key}}}`,
+          legacyKey: `[${dcf.field_key}]`,
+          label: dcf.title,
+          description: `Campo dinâmico (${contextLabel}) — tipo: ${dcf.field_type}`,
+          category: "customizada" as VariableCategory,
+          unit: "",
+          example: "",
+          isCustom: false,
+          source: "snapshot" as VariableSource,
+          resolver: "snapshot passthrough (customFieldValues)",
+          inDocx,
+          docxBroken: false,
+          docxNull: false,
+          status: "ok",
+          governance: undefined,
+          tipoResultado: dcf.field_type === "number" || dcf.field_type === "currency" ? "number" : "text",
+          escopo: undefined,
+          _dynamicContext: dcf.field_context,
+        } as EnrichedVariable & { _dynamicContext?: string });
+      }
+    });
+
     return items;
-  }, [customVarsRaw, resolverMap, usageMap]);
+  }, [customVarsRaw, resolverMap, usageMap, dealCustomFields]);
 
   // ── Governance-enriched: mark legacy/wizard input vars ──
   const governanceVariables = useMemo(() => {
@@ -341,7 +378,15 @@ export function VariaveisDisponiveisPage() {
 
     // Category filter
     if (activeCategory !== "todas" && activeCategory !== "auditoria") {
-      items = items.filter((v) => v.category === activeCategory);
+      if (activeCategory === "campo_pre") {
+        items = items.filter((v) => v._dynamicContext === "pre_dimensionamento");
+      } else if (activeCategory === "campo_pos") {
+        items = items.filter((v) => v._dynamicContext === "pos_dimensionamento");
+      } else if (activeCategory === "campo_projeto") {
+        items = items.filter((v) => v._dynamicContext === "projeto");
+      } else {
+        items = items.filter((v) => v.category === activeCategory);
+      }
     }
 
     // Status filter
@@ -358,6 +403,7 @@ export function VariaveisDisponiveisPage() {
         case "texto": items = items.filter((v) => v.governance === "texto" || v.tipoResultado === "text"); break;
         case "documento": items = items.filter((v) => v.escopo === "documento"); break;
         case "aspiracional": items = items.filter((v) => v.escopo === "aspiracional"); break;
+        case "campo_dinamico": items = items.filter((v) => !!v._dynamicContext); break;
       }
     }
 
@@ -408,7 +454,19 @@ export function VariaveisDisponiveisPage() {
     const texto = governanceVariables.filter((v) => v.governance === "texto" || v.tipoResultado === "text").length;
     const documento = governanceVariables.filter((v) => v.escopo === "documento").length;
     const aspiracional = governanceVariables.filter((v) => v.escopo === "aspiracional").length;
-    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional };
+    const campoDinamico = governanceVariables.filter((v) => !!v._dynamicContext).length;
+    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional, campoDinamico };
+  }, [governanceVariables]);
+
+  // ── Dynamic field context counts ──
+  const dynamicContextCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    governanceVariables.forEach((v) => {
+      if (v._dynamicContext) {
+        counts[v._dynamicContext] = (counts[v._dynamicContext] || 0) + 1;
+      }
+    });
+    return counts;
   }, [governanceVariables]);
 
   // ── Custom var handlers ──
@@ -627,6 +685,37 @@ export function VariaveisDisponiveisPage() {
                 </Button>
               );
             })}
+
+            {/* Dynamic deal custom field category tabs */}
+            {(["pre_dimensionamento", "pos_dimensionamento", "projeto"] as const).map((ctx) => {
+              const count = dynamicContextCounts[ctx] || 0;
+              if (count === 0) return null;
+              const viewKey = ctx === "pre_dimensionamento" ? "campo_pre" : ctx === "pos_dimensionamento" ? "campo_pos" : "campo_projeto";
+              const isActive = activeCategory === viewKey;
+              const icon = FIELD_CONTEXT_ICONS[ctx] ?? "📋";
+              const label = ctx === "pre_dimensionamento" ? "Pré-dim" : ctx === "pos_dimensionamento" ? "Pós-dim" : "Projeto";
+              return (
+                <Button
+                  key={viewKey}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveCategory(viewKey)}
+                  className={cn(
+                    "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
+                    isActive
+                      ? "bg-info text-info-foreground shadow-sm ring-1 ring-info/20 hover:bg-info/90"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
+                  )}
+                >
+                  <span className="text-xs">{icon}</span>
+                  <span>{label}</span>
+                  <span className={cn("text-[9px] font-mono tabular-nums ml-0.5", isActive ? "text-info-foreground/70" : "text-muted-foreground/40")}>
+                    {count}
+                  </span>
+                </Button>
+              );
+            })}
+
             <Button
               variant="ghost"
               size="sm"
@@ -675,6 +764,7 @@ export function VariaveisDisponiveisPage() {
                 { key: "texto", label: `Texto (${kpiStats.texto})` },
                 { key: "documento", label: `Documento (${kpiStats.documento})` },
                 { key: "aspiracional", label: `Aspiracional (${kpiStats.aspiracional})` },
+                ...(kpiStats.campoDinamico > 0 ? [{ key: "campo_dinamico" as StatusFilter, label: `Campos Dinâmicos (${kpiStats.campoDinamico})` }] : []),
               ] as { key: StatusFilter; label: string }[]).map((f) => (
                 <Button
                   key={f.key}
