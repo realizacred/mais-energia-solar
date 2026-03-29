@@ -221,6 +221,18 @@ export function VariaveisDisponiveisPage() {
     return map;
   }, [categoryAudit]);
 
+  // ── Filtered variables for expression picker ──
+  const filteredPickerVars = useMemo(() => {
+    const term = normalize(varPickerSearch);
+    return VARIABLES_CATALOG.filter((v) => {
+      if (!term) return true;
+      return normalize(v.label).includes(term) ||
+        normalize(v.legacyKey).includes(term) ||
+        normalize(v.canonical).includes(term) ||
+        (v.description && normalize(v.description).includes(term));
+    });
+  }, [varPickerSearch]);
+
   // ── Enriched variables list (catalog + custom merged) ──
   const allVariables = useMemo((): EnrichedVariable[] => {
     const items: EnrichedVariable[] = [];
