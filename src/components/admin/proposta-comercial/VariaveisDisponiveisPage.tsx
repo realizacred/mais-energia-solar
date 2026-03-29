@@ -192,6 +192,9 @@ export function VariaveisDisponiveisPage() {
   // Audit data for resolver coverage + source info
   const { categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
+  // Dynamic variable usage data (replaces hardcoded DOCX_REAL_VARS / DOCX_BROKEN / DOCX_NULL_VARS)
+  const { isInDocx, hasError, hasWarning } = useVariableUsage();
+
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
     const map: Record<string, { source: VariableSource; resolver: string }> = {};
@@ -213,15 +216,15 @@ export function VariaveisDisponiveisPage() {
       const rm = resolverMap[key];
       const source = rm?.source ?? "unknown";
       const resolver = rm?.resolver ?? "";
-      const inDocx = DOCX_REAL_VARS.has(key);
-      const docxBroken = DOCX_BROKEN.has(key);
-      const docxNull = DOCX_NULL_VARS.has(key);
+      const inDocx = isInDocx(key);
+      const docxBroken = hasError(key);
+      const docxNull = hasWarning(key);
 
       let status: EnrichedVariable["status"] = "ok";
       if (v.notImplemented) status = "pending";
       else if (docxBroken) status = "error";
       else if (docxNull) status = "warning";
-      else if (source === "unknown") status = "unused";
+      else if (source === "unknown" && !inDocx) status = "unused";
 
       items.push({
         key,
