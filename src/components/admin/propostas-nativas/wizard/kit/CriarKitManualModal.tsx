@@ -663,7 +663,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
-        <div className="p-5 space-y-4">
+        <div className="p-4 sm:p-5 space-y-4">
           {/* Header fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
