@@ -64,7 +64,7 @@ export function AuditTabContent({
 }: {
   dbCustomVars: DbCustomVar[];
   loadingCustom: boolean;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<any>;
   onRequestCreateVariable?: (suggested: { nome: string; label: string; table: string; column: string; colType?: string }) => void;
 }) {
   const [showSynced, setShowSynced] = useState(false);
