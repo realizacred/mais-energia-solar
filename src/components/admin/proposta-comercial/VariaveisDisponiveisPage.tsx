@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import {
   Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2,
   ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, List, Info,
-  Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle,
+  Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -143,25 +143,35 @@ interface EnrichedVariable {
   docxBroken: boolean;
   docxNull: boolean;
   status: "ok" | "warning" | "error" | "pending" | "unused";
+  /** Governance classification for audit */
+  governance?: "legado" | "texto" | "input_wizard";
+  /** tipo_resultado from DB for custom vars */
+  tipoResultado?: string;
 }
 
-type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom";
+type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto";
 type ActiveView = VariableCategory | "todas" | "auditoria";
 
 /* ── Semantic explanations for known variables ── */
 const SEMANTIC_EXPLANATIONS: Record<string, string> = {
-  vc_aumento: "Variável custom calculada pela expressão armazenada em proposta_variaveis_custom. Avaliada no backend (proposal-generate) usando evaluateExpression() com contexto numérico: [geracao_estimada], [consumo_total], [economia_mensal], etc. Se retorna null, significa que a expressão referencia campos ausentes no contexto ou a fórmula é inválida. Semântica esperada: percentual de geração acima do consumo (ex: consumo=500, geração=1000 → aumento=100%). Verificar a expressão cadastrada na tabela proposta_variaveis_custom.",
+  vc_aumento: "Variável custom avaliada no backend via evaluateExpression(). Expressão real: 100*(([geracao_mensal]/[vc_consumo])-1) — matematicamente equivalente a ((geração - consumo) / consumo) × 100. Usa [vc_consumo] (consumo unificado BT/MT) como base. Se retorna null, [geracao_mensal] ou [vc_consumo] estão ausentes/zero. Semântica: percentual de geração acima do consumo (ex: consumo=500, geração=1000 → aumento=100%). Expressão auditada e confirmada como CORRETA.",
   vc_calculo_seguro: "Valor calculado do seguro da instalação fotovoltaica. Depende de dados do kit (potência, valor) e configuração de seguro do tenant. Retorna nulo quando esses dados não estão disponíveis.",
-  vc_garantiaservico: "Texto descritivo da garantia de serviço oferecida pela empresa. Geralmente extraído de configurações do tenant ou campo customizado no wizard.",
-  vc_string_box_cc: "Configuração de string-box e corrente contínua do sistema. Depende de dados técnicos do kit selecionado no wizard.",
-  capo_m: "Placeholder legado presente no template DOCX, mas sem mapeamento no sistema. Aparece como texto cru '[capo_m]' no PDF gerado. Necessário remover do template ou criar como variável custom.",
-  capo_seguro: "Placeholder legado presente no template DOCX, mas sem mapeamento no sistema. Aparece como texto cru '[capo_seguro]' no PDF gerado. Necessário remover do template ou criar como variável custom.",
+  vc_garantiaservico: "⚠️ VARIÁVEL DE TEXTO — Retorna texto literal ('2 ano'), não cálculo numérico. tipo_resultado=text no banco. Corretamente classificada. Não tratar como expressão aritmética.",
+  vc_string_box_cc: "⚠️ VARIÁVEL DE TEXTO — Retorna texto condicional sobre string box CC baseado em [capo_string_box]. tipo_resultado=text no banco. Corretamente classificada. Não tratar como expressão aritmética.",
+  capo_m: "🏚️ PLACEHOLDER LEGADO — Presente em templates DOCX antigos, sem mapeamento no sistema. Aparece como texto cru '[capo_m]' no PDF. Deve ser removido do template DOCX. NÃO criar resolver.",
+  capo_seguro: "🔗 INPUT DO WIZARD — Referenciado como dependência em vc_calculo_seguro e vc_incluir_seguro. Deve ser preenchido como campo custom no wizard (campo de proposta). NÃO é um fantasma — é uma entrada do formulário.",
   valor_total: "Valor total final da proposta comercial, já incluindo kit, instalação, serviços, margem e comissão. Formato sem unidade (ex: 42.500,00) — o template DOCX insere 'R$' no texto fixo.",
   potencia_kwp: "Potência total do sistema fotovoltaico em kilowatt-pico. Soma das potências de todos os módulos selecionados.",
   preco_watt: "Preço por watt-pico do sistema (R$/Wp). Calculado como valor_total / (potência_kWp × 1000).",
   geracao_mensal_media: "Geração média mensal estimada do sistema solar, baseada na irradiação local e potência do kit.",
   economia_mensal: "Economia mensal estimada na conta de energia após instalação do sistema solar.",
 };
+
+/** Variables classified as legacy/hidden — shown with special governance badge */
+const LEGACY_HIDDEN_VARS = new Set(["capo_m"]);
+
+/** Variables that are wizard input fields (not ghosts, but dependencies) */
+const WIZARD_INPUT_VARS = new Set(["capo_seguro", "capo_desconto", "capo_string_box"]);
 
 /* ── Source display ── */
 function getSourceLabel(source: VariableSource): { label: string; color: string } {
@@ -253,6 +263,8 @@ export function VariaveisDisponiveisPage() {
       if (!alreadyInCatalog) {
         const inDocx = isInDocx(cv.nome);
         const docxNull = hasWarning(cv.nome);
+      const tipoResultado = cv.tipo_resultado || "number";
+      const isTextVar = tipoResultado === "text";
         items.push({
           key: cv.nome,
           canonicalKey: `{{customizada.${cv.nome}}}`,
@@ -271,6 +283,8 @@ export function VariaveisDisponiveisPage() {
           docxBroken: false,
           docxNull,
           status: docxNull ? "warning" : "ok",
+        governance: isTextVar ? "texto" : undefined,
+        tipoResultado,
         });
       } else {
         // Attach customId to existing catalog entry
@@ -285,9 +299,22 @@ export function VariaveisDisponiveisPage() {
     return items;
   }, [customVarsRaw, resolverMap]);
 
+  // ── Governance-enriched: mark legacy/wizard input vars ──
+  const governanceVariables = useMemo(() => {
+    return allVariables.map((v) => {
+      if (LEGACY_HIDDEN_VARS.has(v.key)) {
+        return { ...v, governance: "legado" as const, status: "unused" as const };
+      }
+      if (WIZARD_INPUT_VARS.has(v.key)) {
+        return { ...v, governance: "input_wizard" as const };
+      }
+      return v;
+    });
+  }, [allVariables]);
+
   // ── Filtered + sorted ──
   const filtered = useMemo(() => {
-    let items = [...allVariables];
+    let items = [...governanceVariables];
 
     // Category filter
     if (activeCategory !== "todas" && activeCategory !== "auditoria") {
@@ -304,6 +331,8 @@ export function VariaveisDisponiveisPage() {
         case "pending": items = items.filter((v) => v.status === "pending"); break;
         case "nativa": items = items.filter((v) => !v.isCustom); break;
         case "custom": items = items.filter((v) => v.isCustom); break;
+        case "legado": items = items.filter((v) => v.governance === "legado" || v.governance === "input_wizard"); break;
+        case "texto": items = items.filter((v) => v.governance === "texto" || v.tipoResultado === "text"); break;
       }
     }
 
@@ -327,7 +356,7 @@ export function VariaveisDisponiveisPage() {
       const bVal = sortCol === "label" ? b.label : sortCol === "legacyKey" ? b.legacyKey : sortCol === "canonicalKey" ? b.canonicalKey : sortCol === "category" ? CATEGORY_LABELS[b.category] : b.label;
       return dir * aVal.localeCompare(bVal, "pt-BR");
     });
-  }, [allVariables, activeCategory, statusFilter, search, sortCol, sortDir]);
+  }, [governanceVariables, activeCategory, statusFilter, search, sortCol, sortDir]);
 
   const toggleSort = useCallback((col: string) => {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -336,14 +365,16 @@ export function VariaveisDisponiveisPage() {
 
   // ── KPI stats ──
   const kpiStats = useMemo(() => {
-    const total = allVariables.length;
-    const inUse = allVariables.filter((v) => v.inDocx).length;
-    const ok = allVariables.filter((v) => v.status === "ok").length;
-    const warnings = allVariables.filter((v) => v.status === "warning").length;
-    const errors = allVariables.filter((v) => v.status === "error").length;
-    const custom = allVariables.filter((v) => v.isCustom).length;
-    return { total, inUse, ok, warnings, errors, custom };
-  }, [allVariables]);
+    const total = governanceVariables.length;
+    const inUse = governanceVariables.filter((v) => v.inDocx).length;
+    const ok = governanceVariables.filter((v) => v.status === "ok").length;
+    const warnings = governanceVariables.filter((v) => v.status === "warning").length;
+    const errors = governanceVariables.filter((v) => v.status === "error").length;
+    const custom = governanceVariables.filter((v) => v.isCustom).length;
+    const legado = governanceVariables.filter((v) => v.governance === "legado" || v.governance === "input_wizard").length;
+    const texto = governanceVariables.filter((v) => v.governance === "texto" || v.tipoResultado === "text").length;
+    return { total, inUse, ok, warnings, errors, custom, legado, texto };
+  }, [governanceVariables]);
 
   // ── Custom var handlers ──
   const openNewModal = () => {
@@ -605,6 +636,8 @@ export function VariaveisDisponiveisPage() {
                 { key: "pending", label: "Pendente" },
                 { key: "nativa", label: "Nativa" },
                 { key: "custom", label: "Custom" },
+                { key: "legado", label: `Legado (${kpiStats.legado})` },
+                { key: "texto", label: `Texto (${kpiStats.texto})` },
               ] as { key: StatusFilter; label: string }[]).map((f) => (
                 <Button
                   key={f.key}
@@ -709,6 +742,15 @@ export function VariaveisDisponiveisPage() {
                         )}
                         {v.isSeries && (
                           <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-secondary/40 text-secondary font-mono">série</Badge>
+                        )}
+                        {v.governance === "legado" && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-warning/40 bg-warning/10 text-warning font-mono">legado</Badge>
+                        )}
+                        {v.governance === "input_wizard" && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-info/40 bg-info/10 text-info font-mono">input</Badge>
+                        )}
+                        {v.governance === "texto" && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-muted-foreground/40 text-muted-foreground font-mono">texto</Badge>
                         )}
                       </div>
                     </TableCell>
@@ -851,6 +893,26 @@ export function VariaveisDisponiveisPage() {
                   )}>
                     {detailVar.isCustom ? "🧩 Custom" : "⚙️ Nativa"}
                   </Badge>
+                  {detailVar.governance === "legado" && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-warning/30 bg-warning/10 text-warning">
+                      🏚️ Legado
+                    </Badge>
+                  )}
+                  {detailVar.governance === "input_wizard" && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-info/30 bg-info/10 text-info">
+                      🔗 Input Wizard
+                    </Badge>
+                  )}
+                  {detailVar.governance === "texto" && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-muted-foreground/30 text-muted-foreground">
+                      📝 Texto (não numérica)
+                    </Badge>
+                  )}
+                  {detailVar.tipoResultado && detailVar.isCustom && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-border text-muted-foreground font-mono">
+                      tipo: {detailVar.tipoResultado}
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Keys */}
@@ -921,6 +983,20 @@ export function VariaveisDisponiveisPage() {
                       <p className="text-[10px] font-semibold text-info uppercase tracking-wider">Explicação Semântica</p>
                     </div>
                     <p className="text-xs text-foreground leading-relaxed">{SEMANTIC_EXPLANATIONS[detailVar.key]}</p>
+                  </div>
+                )}
+
+                {/* Governance warning for legacy vars */}
+                {detailVar.governance === "legado" && (
+                  <div className="rounded-lg border border-warning/20 bg-warning/5 p-3">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Archive className="h-3.5 w-3.5 text-warning" />
+                      <p className="text-[10px] font-semibold text-warning uppercase tracking-wider">Variável Legada</p>
+                    </div>
+                    <p className="text-xs text-foreground leading-relaxed">
+                      Esta variável é um placeholder legado presente em templates DOCX antigos. Não possui resolver no sistema e aparece como texto cru no PDF.
+                      <strong> Ação recomendada:</strong> Remover do template DOCX. Não criar resolver.
+                    </p>
                   </div>
                 )}
 
