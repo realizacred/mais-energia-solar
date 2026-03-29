@@ -124,7 +124,7 @@ export function ServicoValidacaoDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="w-[90vw] max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="w-[90vw] max-w-3xl max-h-[calc(100dvh-2rem)] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wrench className="h-5 w-5 text-primary" />
@@ -337,7 +337,7 @@ export function ServicoValidacaoDialog({
             <img
               src={selectedPhoto}
               alt="Foto ampliada"
-              className="w-full max-h-[80vh] object-contain rounded-lg"
+              className="w-full max-h-[calc(100dvh-2rem)] object-contain rounded-lg"
             />
           </DialogContent>
         </Dialog>

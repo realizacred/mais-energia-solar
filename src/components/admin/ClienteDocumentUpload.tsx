@@ -230,7 +230,7 @@ export function ClienteDocumentUpload({ clienteId, documents, onDocumentsChange 
 
       {/* Full-screen preview */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="w-[90vw] max-w-4xl max-h-[90vh] p-0">
+        <DialogContent className="w-[90vw] max-w-4xl max-h-[calc(100dvh-2rem)] p-0">
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="text-sm">{previewLabel}</DialogTitle>
           </DialogHeader>

@@ -453,7 +453,7 @@ export function RecebimentosManager() {
               Novo Recebimento
             </Button>
           </DialogTrigger>
-          <DialogContent className="w-[90vw] max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-none">
+          <DialogContent className="w-[90vw] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-h-none">
             <DialogHeader>
               <DialogTitle>
                 {editingRecebimento ? "Editar Recebimento" : "Novo Recebimento"}

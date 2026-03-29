@@ -1026,7 +1026,7 @@ function VariaveisModal({ open, onClose }: { open: boolean; onClose: () => void 
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="w-[90vw] max-w-3xl max-h-[80vh]">
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[calc(100dvh-2rem)]">
         <DialogHeader>
           <DialogTitle className="text-base font-bold">Variáveis</DialogTitle>
         </DialogHeader>
