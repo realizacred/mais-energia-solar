@@ -85,6 +85,8 @@ export const CATEGORY_ORDER: VariableCategory[] = [
 
 export type VariableAppliesTo = "BT" | "MT" | "BT e MT";
 
+export type VariableEscopo = "proposta" | "documento";
+
 export interface CatalogVariable {
   /** Chave canônica: {{grupo.campo}} */
   canonicalKey: string;
@@ -106,6 +108,8 @@ export interface CatalogVariable {
   isSeries?: boolean;
   /** Se ainda não está implantado */
   notImplemented?: boolean;
+  /** Escopo: proposta (default) ou documento (contratos/termos) */
+  escopo?: VariableEscopo;
 }
 
 // ── Helper para criar variáveis rapidamente ──────────────────
@@ -119,7 +123,7 @@ function v(
   unit: string,
   example: string,
   appliesTo: VariableAppliesTo = "BT e MT",
-  opts?: { isSeries?: boolean; notImplemented?: boolean }
+  opts?: { isSeries?: boolean; notImplemented?: boolean; escopo?: VariableEscopo }
 ): CatalogVariable {
   return {
     canonicalKey: `{{${canonical}}}`,
@@ -879,29 +883,29 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ──────────────────────────────────────────────────────────────
   // CONTRATO
   // ──────────────────────────────────────────────────────────────
-  v("contrato", "contrato.numero", "contrato_numero", "Número do Contrato", "Número sequencial do contrato (ex: 0042)", "-", "0042"),
-  v("contrato", "contrato.data", "contrato_data", "Data do Contrato", "Data de geração do contrato (dd/mm/yyyy)", "data", "26/03/2026"),
-  v("contrato", "contrato.data_extenso", "contrato_data_extenso", "Data do Contrato por Extenso", "Data de geração do contrato por extenso (ex: 26 de março de 2026)", "data", "26 de março de 2026"),
-  v("contrato", "contrato.validade", "contrato_validade", "Validade do Contrato", "Data de validade do contrato (hoje + 30 dias)", "data", "25/04/2026"),
+  v("contrato", "contrato.numero", "contrato_numero", "Número do Contrato", "Número sequencial do contrato (ex: 0042)", "-", "0042", "BT e MT", { escopo: "documento" }),
+  v("contrato", "contrato.data", "contrato_data", "Data do Contrato", "Data de geração do contrato (dd/mm/yyyy)", "data", "26/03/2026", "BT e MT", { escopo: "documento" }),
+  v("contrato", "contrato.data_extenso", "contrato_data_extenso", "Data do Contrato por Extenso", "Data de geração do contrato por extenso (ex: 26 de março de 2026)", "data", "26 de março de 2026", "BT e MT", { escopo: "documento" }),
+  v("contrato", "contrato.validade", "contrato_validade", "Validade do Contrato", "Data de validade do contrato (hoje + 30 dias)", "data", "25/04/2026", "BT e MT", { escopo: "documento" }),
 
   // ──────────────────────────────────────────────────────────────
   // ASSINATURA
   // ──────────────────────────────────────────────────────────────
-  v("assinatura", "assinatura.local", "assinatura_local", "Local da Assinatura", "Cidade onde o contrato foi assinado", "-", "Belo Horizonte"),
-  v("assinatura", "assinatura.data", "assinatura_data", "Data da Assinatura", "Data da assinatura do contrato (dd/mm/yyyy)", "data", "26/03/2026"),
-  v("assinatura", "assinatura.data_extenso", "assinatura_data_extenso", "Data da Assinatura por Extenso", "Data da assinatura por extenso (ex: 26 de março de 2026)", "data", "26 de março de 2026"),
+  v("assinatura", "assinatura.local", "assinatura_local", "Local da Assinatura", "Cidade onde o contrato foi assinado", "-", "Belo Horizonte", "BT e MT", { escopo: "documento" }),
+  v("assinatura", "assinatura.data", "assinatura_data", "Data da Assinatura", "Data da assinatura do contrato (dd/mm/yyyy)", "data", "26/03/2026", "BT e MT", { escopo: "documento" }),
+  v("assinatura", "assinatura.data_extenso", "assinatura_data_extenso", "Data da Assinatura por Extenso", "Data da assinatura por extenso (ex: 26 de março de 2026)", "data", "26 de março de 2026", "BT e MT", { escopo: "documento" }),
 
   // ──────────────────────────────────────────────────────────────
   // PAGAMENTO (Contrato)
   // ──────────────────────────────────────────────────────────────
-  v("pagamento", "pagamento.forma_descrita", "pagamento_forma_descrita", "Forma de Pagamento Descrita", "Descrição legível da forma de pagamento (ex: R$ 5.000 entrada + 12x R$ 850)", "-", "R$ 5.000,00 entrada + 12x R$ 850,00"),
-  v("pagamento", "pagamento.entrada_valor", "pagamento_entrada_valor", "Valor da Entrada", "Valor de entrada formatado em BRL", "R$", "R$ 5.000,00"),
-  v("pagamento", "pagamento.entrada_percentual", "pagamento_entrada_percentual", "% da Entrada", "Percentual da entrada sobre o valor total", "%", "30%"),
-  v("pagamento", "pagamento.total_financiado", "pagamento_total_financiado", "Total Financiado", "Valor total financiado em BRL", "R$", "R$ 35.000,00"),
-  v("pagamento", "pagamento.parcelas_quantidade", "pagamento_parcelas_quantidade", "Quantidade de Parcelas", "Número de parcelas do financiamento", "UN", "12"),
-  v("pagamento", "pagamento.parcelas_valor", "pagamento_parcelas_valor", "Valor da Parcela", "Valor de cada parcela em BRL", "R$", "R$ 850,00"),
-  v("pagamento", "pagamento.banco_nome", "pagamento_banco_nome", "Nome do Banco/Financeira", "Nome do banco ou financeira do financiamento", "-", "BV Financeira"),
-  v("pagamento", "pagamento.condicoes_completas", "pagamento_condicoes_completas", "Condições Completas", "Resumo de todas as condições de pagamento", "-", "Entrada R$ 5.000 + 12x R$ 850 via BV Financeira"),
+  v("pagamento", "pagamento.forma_descrita", "pagamento_forma_descrita", "Forma de Pagamento Descrita", "Descrição legível da forma de pagamento (ex: R$ 5.000 entrada + 12x R$ 850)", "-", "R$ 5.000,00 entrada + 12x R$ 850,00", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.entrada_valor", "pagamento_entrada_valor", "Valor da Entrada", "Valor de entrada formatado em BRL", "R$", "R$ 5.000,00", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.entrada_percentual", "pagamento_entrada_percentual", "% da Entrada", "Percentual da entrada sobre o valor total", "%", "30%", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.total_financiado", "pagamento_total_financiado", "Total Financiado", "Valor total financiado em BRL", "R$", "R$ 35.000,00", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.parcelas_quantidade", "pagamento_parcelas_quantidade", "Quantidade de Parcelas", "Número de parcelas do financiamento", "UN", "12", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.parcelas_valor", "pagamento_parcelas_valor", "Valor da Parcela", "Valor de cada parcela em BRL", "R$", "R$ 850,00", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.banco_nome", "pagamento_banco_nome", "Nome do Banco/Financeira", "Nome do banco ou financeira do financiamento", "-", "BV Financeira", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.condicoes_completas", "pagamento_condicoes_completas", "Condições Completas", "Resumo de todas as condições de pagamento", "-", "Entrada R$ 5.000 + 12x R$ 850 via BV Financeira", "BT e MT", { escopo: "documento" }),
 
   // ──────────────────────────────────────────────────────────────
   v("tabelas", "tabelas.consumo_mensal", "tabela_consumo_mensal", "Tabela consumo mensal", "Tabela com consumo por mês (jan-dez)", "kWh", "{jan:500,...,dez:490}", "BT e MT", { isSeries: true }),
