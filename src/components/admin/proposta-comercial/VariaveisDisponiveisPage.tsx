@@ -664,6 +664,33 @@ export function VariaveisDisponiveisPage() {
         </Card>
       </div>
 
+      {/* Critical health alert */}
+      {hasHealthData && kpiStats.healthCritical > 0 && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="flex items-center gap-3 p-3">
+            <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <HeartPulse className="h-4 w-4 text-destructive" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-destructive">
+                {kpiStats.healthCritical} variável(is) crítica(s) detectada(s)
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Baseado em {healthSummary.totalReportsAnalyzed} auditorias históricas. Essas variáveis falham em mais de 70% das execuções.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0"
+              onClick={() => setStatusFilter("health_critical")}
+            >
+              Ver críticas
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main card container */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         {/* Category tabs */}
