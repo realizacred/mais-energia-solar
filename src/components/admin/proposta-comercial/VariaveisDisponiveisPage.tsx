@@ -155,8 +155,8 @@ interface EnrichedVariable {
   escopo?: VariableEscopo;
 }
 
-type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional";
-type ActiveView = VariableCategory | "todas" | "auditoria";
+type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional" | "campo_dinamico";
+type ActiveView = VariableCategory | "todas" | "auditoria" | "campo_pre" | "campo_pos" | "campo_projeto";
 
 /* ── Semantic explanations for known variables ── */
 const SEMANTIC_EXPLANATIONS: Record<string, string> = {
