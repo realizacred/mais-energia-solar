@@ -702,6 +702,9 @@ Deno.serve(async (req) => {
           roi_25_anos: calcResult.roi25Anos,
           num_modulos: numModulos,
           num_ucs: body.ucs.length,
+          // Aliases for custom variable expressions
+          vc_consumo: consumoTotal,
+          consumo: consumoTotal,
         };
 
         for (const vc of vcDefs) {
@@ -749,6 +752,8 @@ Deno.serve(async (req) => {
                 variavel_id: vc.id, nome: vc.nome, label: vc.label,
                 expressao: vc.expressao, valor_calculado: String(val),
               });
+              // Feed result back into ctx so dependent vars can use it
+              ctx[vc.nome] = val;
             }
           } catch (e) {
             vcResults.push({
