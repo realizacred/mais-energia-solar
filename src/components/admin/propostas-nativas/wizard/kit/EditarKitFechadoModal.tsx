@@ -49,7 +49,7 @@ export function EditarKitFechadoModal({ open, onOpenChange, kits, onSave }: Edit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="w-[90vw] max-w-2xl max-h-[calc(100dvh-2rem)] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base">Editar kit fechado</DialogTitle>
         </DialogHeader>

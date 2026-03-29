@@ -595,7 +595,7 @@ export function StepConsumptionIntelligence({
 
       {/* Pre-dimensionamento modal (from header click) */}
       <Dialog open={preDimModal} onOpenChange={setPreDimModal}>
-        <DialogContent className="w-[90vw] max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[90vw] max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Pré-dimensionamento</DialogTitle>
           </DialogHeader>

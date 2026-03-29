@@ -124,7 +124,7 @@ export function WaOrcamentosDrawer({
   return (
     <>
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[85vh]">
+        <DrawerContent className="max-h-[calc(100dvh-2rem)]">
           <DrawerHeader className="pb-2">
             <DrawerTitle className="flex items-center gap-2 text-base">
               <FileText className="h-4 w-4 text-primary" />
