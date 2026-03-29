@@ -281,7 +281,7 @@ export function AuditTabContent({
                         <span className="text-[10px] text-foreground font-medium">{p.correcao}</span>
                       </ShadTableCell>
                     </ShadTableRow>
-                  }
+                  ))}
                 </ShadTableBody>
               </ShadTable>
             </div>
