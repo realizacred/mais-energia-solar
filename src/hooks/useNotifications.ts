@@ -185,13 +185,14 @@ export function useNotifications() {
             const proposta: any = propostaMap.get(ev.proposta_id);
             const projetoId = proposta?.projeto_id;
             const clienteLabel = proposta?.codigo || "Proposta";
+            const link = projetoId
               ? `/admin/projetos?projeto=${projetoId}&tab=propostas`
               : "/admin/projetos";
             items.push({
               id: `pv-${ev.id}`,
               type: "proposal_view",
               title: isFirst ? "Proposta aberta pela 1ª vez 👀" : `Proposta visualizada (${viewCount}x)`,
-              description: `${clienteNome} — via link rastreado`,
+              description: `${clienteLabel} — via link rastreado`,
               timestamp: ev.created_at,
               link,
             });
