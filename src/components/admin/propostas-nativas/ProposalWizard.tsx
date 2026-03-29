@@ -1845,15 +1845,24 @@ export function ProposalWizard() {
           const resolvedCount: number = artifactResult.resolved_vars_count ?? 0;
           setMissingVars(backendMissing);
 
-          // Build generation audit report
+          // Build generation audit report (with custom var validation)
+          const customVarResults = artifactResult.custom_var_results ?? artifactResult.variaveis_custom ?? [];
           const auditReport = buildGenerationAuditReport({
             templateId: templateSelecionado,
             templateName: artifactResult.template_name || "",
             propostaId: genResult.proposta_id || "",
+            versaoId: genResult.versao_id || undefined,
             totalVarsProvided: resolvedCount + backendMissing.length,
             missingVars: backendMissing,
             emptyVars: backendEmpty,
             resolvedCount,
+            customVarResults: customVarResults.length > 0 ? customVarResults.map((cv: any) => ({
+              nome: cv.nome,
+              expressao: cv.expressao,
+              valor_calculado: cv.valor_calculado,
+              error: cv.error ?? false,
+              error_message: cv.error_message,
+            })) : undefined,
           });
           setGenerationAuditReport(auditReport);
           console.log("[ProposalWizard] Generation audit:", {
@@ -1862,6 +1871,18 @@ export function ProposalWizard() {
             errors: auditReport.errorCount,
             warnings: auditReport.warningCount,
           });
+
+          // Persist audit report in proposta_versoes
+          if (genResult.versao_id) {
+            supabase
+              .from("proposta_versoes")
+              .update({ generation_audit_json: auditReport as any })
+              .eq("id", genResult.versao_id)
+              .then(({ error: auditErr }) => {
+                if (auditErr) console.warn("[ProposalWizard] Failed to persist audit:", auditErr.message);
+                else console.log("[ProposalWizard] Audit persisted to proposta_versoes");
+              });
+          }
 
           // Store persisted paths
           setOutputDocxPath(artifactResult.output_docx_path || null);
