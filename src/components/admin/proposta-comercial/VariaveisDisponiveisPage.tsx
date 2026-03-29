@@ -1153,7 +1153,7 @@ export function VariaveisDisponiveisPage() {
               <div className="p-5 space-y-5">
                 {/* Status + Type */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadgeVar status={detailVar.status} inDocx={detailVar.inDocx} />
+                  <StatusBadgeVar status={detailVar.status} inDocx={detailVar.inDocx} govRecord={getGovRecord(detailVar.key)} />
                   <Badge variant="outline" className={cn(
                     "text-[10px] px-1.5 py-0.5",
                     detailVar.isCustom ? "border-primary/30 text-primary" : "border-border text-muted-foreground"
