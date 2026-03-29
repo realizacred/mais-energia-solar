@@ -251,8 +251,8 @@ export function VariaveisDisponiveisPage() {
     customVarsRaw.forEach((cv) => {
       const alreadyInCatalog = items.some((i) => i.key === cv.nome);
       if (!alreadyInCatalog) {
-        const inDocx = DOCX_REAL_VARS.has(cv.nome);
-        const docxNull = DOCX_NULL_VARS.has(cv.nome);
+        const inDocx = isInDocx(cv.nome);
+        const docxNull = hasWarning(cv.nome);
         items.push({
           key: cv.nome,
           canonicalKey: `{{customizada.${cv.nome}}}`,
@@ -1033,12 +1033,12 @@ export function VariaveisDisponiveisPage() {
               <p>
                 Você está prestes a excluir a variável <code className="font-mono text-foreground bg-muted px-1.5 py-0.5 rounded text-xs">[{deleteTarget?.nome}]</code> ({deleteTarget?.label}).
               </p>
-              {deleteTarget && DOCX_REAL_VARS.has(deleteTarget.nome) && (
+              {deleteTarget && isInDocx(deleteTarget.nome) && (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
                   <strong>⚠️ Atenção:</strong> Esta variável está em uso em templates DOCX ativos. Excluí-la pode causar placeholders não resolvidos no PDF gerado.
                 </div>
               )}
-              {deleteTarget && DOCX_NULL_VARS.has(deleteTarget.nome) && (
+              {deleteTarget && hasWarning(deleteTarget.nome) && (
                 <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-warning">
                   <strong>⚠️ Aviso:</strong> Esta variável já apresenta valor nulo em algumas gerações.
                 </div>
