@@ -356,6 +356,16 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "projeto_id_externo", "projeto_valor_equipamentos", "projeto_valor_mao_obra",
   "projeto_data_venda", "projeto_data_instalacao", "projeto_status",
   "projeto_observacoes", "projeto_forma_pagamento", "projeto_valor_entrada",
+  // Projeto endereço de instalação
+  "projeto_rua_instalacao", "projeto_numero_instalacao", "projeto_complemento_instalacao",
+  "projeto_bairro_instalacao", "projeto_cidade_instalacao", "projeto_uf_instalacao",
+  "projeto_cep_instalacao",
+  // Proposta metadados complementares
+  "proposta_versao_atual", "proposta_valido_ate", "proposta_enviado_em",
+  "proposta_aceito_em", "proposta_rejeitado_em", "proposta_motivo_rejeicao",
+  "proposta_observacoes",
+  // Simulação CO2
+  "simulacao_co2_evitado_kg",
   "projeto_numero_parcelas", "projeto_valor_parcela", "projeto_valor_financiado",
   // Concessionária (new)
   "concessionaria_sigla", "concessionaria_estado", "concessionaria_tarifa_fio_b",
