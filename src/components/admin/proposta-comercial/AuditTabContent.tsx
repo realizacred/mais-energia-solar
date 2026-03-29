@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers, Zap,
   FileText, Clock, Bug
 } from "lucide-react";
+import { useVariableUsage } from "@/hooks/useVariableUsage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
