@@ -123,7 +123,7 @@ function v(
   unit: string,
   example: string,
   appliesTo: VariableAppliesTo = "BT e MT",
-  opts?: { isSeries?: boolean; notImplemented?: boolean }
+  opts?: { isSeries?: boolean; notImplemented?: boolean; escopo?: VariableEscopo }
 ): CatalogVariable {
   return {
     canonicalKey: `{{${canonical}}}`,
