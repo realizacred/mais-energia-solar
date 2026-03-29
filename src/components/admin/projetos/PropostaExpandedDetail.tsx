@@ -139,7 +139,7 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap cursor-help", s.className)}>{s.label}</span>
+          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.className)}>{s.label}</span>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="text-xs">
           {tooltipText}
@@ -147,6 +147,29 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
       </Tooltip>
     </TooltipProvider>
   );
+}
+
+/** Returns contextual date label based on proposal status */
+function getStatusDateLabel(
+  status: string,
+  aceita_at: string | null,
+  enviada_at: string | null,
+  recusada_at: string | null,
+  created_at: string | null,
+): string {
+  if (["aceita", "accepted", "aprovada", "ganha"].includes(status) && aceita_at) {
+    return `Aceita em ${formatDateTime(aceita_at)}`;
+  }
+  if (["recusada", "rejected", "rejeitada", "perdida"].includes(status) && recusada_at) {
+    return `Recusada em ${formatDateTime(recusada_at)}`;
+  }
+  if (["enviada", "sent"].includes(status) && enviada_at) {
+    return `Enviada em ${formatDateTime(enviada_at)}`;
+  }
+  if (["expirada", "expired"].includes(status) && created_at) {
+    return `Expirada • Criada em ${formatDateTime(created_at)}`;
+  }
+  return `Criada em ${formatDateTime(created_at || "")}`;
 }
 
 function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: boolean }) {
@@ -982,7 +1005,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               )}
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              Criada em {formatDate(p.created_at)}
+              {getStatusDateLabel(p.status, p.aceita_at, p.enviada_at, p.recusada_at, p.created_at)}
             </p>
           </div>
 
