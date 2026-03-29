@@ -81,7 +81,7 @@ export function BateriaViewModal({ bateria: b, open, onOpenChange }: Props) {
           </div>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-y-auto max-h-[85vh] p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto max-h-[calc(100dvh-2rem)] p-5">
           {/* Completude */}
           <div className="space-y-1.5 mb-4">
             <div className="flex items-center justify-between">

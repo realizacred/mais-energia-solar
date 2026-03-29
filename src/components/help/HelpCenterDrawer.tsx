@@ -320,7 +320,7 @@ export function HelpCenterDrawer({ open: controlledOpen, onOpenChange }: HelpCen
   // Mobile: Drawer
   return (
       <Drawer open={open} onOpenChange={(v) => (v ? setOpen(true) : handleFechar())}>
-        <DrawerContent className="max-h-[85vh] flex flex-col">
+        <DrawerContent className="max-h-[calc(100dvh-2rem)] flex flex-col">
           <DrawerHeader className="shrink-0 border-b border-border pb-3">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
