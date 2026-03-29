@@ -691,7 +691,9 @@ Deno.serve(async (req) => {
           payback_anos: calcResult.paybackAnos,
           potencia_kwp: potenciaKwp,
           consumo_total: consumoTotal,
+          consumo_mensal: consumoTotal, // alias for formulas using [consumo_mensal]
           geracao_estimada: round2(geracaoEstimada),
+          geracao_mensal: round2(geracaoEstimada), // alias for formulas using [geracao_mensal]
           custo_kit: round2(custoKit),
           margem_percentual: venda.margem_percentual,
           desconto_percentual: venda.desconto_percentual,

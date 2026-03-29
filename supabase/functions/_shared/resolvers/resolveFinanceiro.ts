@@ -299,8 +299,9 @@ export function resolveFinanceiro(
     if (comRep != null) set("comissao_rep_p", fmtNum((comRep / valorTotal) * 100, 2));
   }
 
-  // ── Legados: capo_m, capo_seguro (templates DOCX antigos) ──
-  set("capo_m", snap.capo_m ?? snap.capital_melhoria ?? fin.capo_m ?? "");
+  // ── Legados: capo_m = garantia módulos, capo_seguro = seguro ──
+  // capo_m is resolved in resolveSistemaSolar as modulo_garantia; keep passthrough fallback only
+  set("capo_m", snap.capo_m ?? snap.modulo_garantia ?? snap.capital_melhoria ?? fin.capo_m ?? "");
   set("capo_seguro", snap.capo_seguro ?? snap.capital_seguro ?? fin.capo_seguro ?? "");
 
   return out;

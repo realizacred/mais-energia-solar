@@ -193,7 +193,9 @@ export function resolveSistemaSolar(
     set("modulo_coef_temp_voc", snap.modulo_coef_temp_voc);
     set("modulo_coef_temp_isc", snap.modulo_coef_temp_isc);
 
-    // NOTE: modulo_garantia — no 'garantia'/'garantia_anos' column in modulos_fotovoltaicos yet. Passthrough only.
+    // ── Module warranty from catalog enrichment ──
+    set("modulo_garantia", m0.garantia_produto_anos);
+    set("modulo_garantia_performance", m0.garantia_performance_anos);
   }
 
   // Fallback from snapshot direct keys
@@ -250,8 +252,8 @@ export function resolveSistemaSolar(
     // corrente_max_mppt_a is DC input current — NEVER use here.
     // No AC output current column exists yet → will remain empty (fallback in PDF).
     set("inversor_mppts_utilizados", inversores[0].mppts);
-    // NOTE: codigo and garantia columns do not exist in inversores table yet.
-    // These will only resolve from snapshot passthrough if previously set.
+    // ── Inverter warranty from catalog ──
+    set("inversor_garantia", inversores[0].garantia_anos);
 
     // Derived: inversores_potencia_maxima_total
     const totalPotMax = inversores.reduce((s, inv) => {
