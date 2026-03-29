@@ -2335,6 +2335,7 @@ export function ProposalWizard() {
               customFieldValues={customFieldValues}
               onCustomFieldValuesChange={setCustomFieldValues}
               docxBlob={docxBlob}
+              generationAuditReport={generationAuditReport}
             />
           </>
         ));
