@@ -571,6 +571,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.renda_25", "renda_25", "Renda Fixa 25 anos", "Se investisse o mesmo valor em renda fixa", "R$", "R$ 120.200,00"),
   v("financeiro", "financeiro.poupanca_25", "poupanca_25", "Poupança 25 anos", "Se investisse o mesmo valor na poupança", "R$", "R$ 98.000,00"),
 
+  // ── Legados (templates DOCX antigos) ──
+  v("financeiro", "financeiro.capo_m", "capo_m", "Capital de Melhoria", "Placeholder legado de templates DOCX antigos", "R$", ""),
+  v("financeiro", "financeiro.capo_seguro", "capo_seguro", "Capital + Seguro", "Placeholder legado de templates DOCX antigos — input do wizard para cálculo de seguro", "R$", ""),
+
   // ── Baterias ──
   v("financeiro", "financeiro.bateria_custo_un_1", "bateria_custo_un_1", "Bateria Custo Unitário 1", "Custo unitário da bateria 1 (O número é incremental)", "R$", "1000,00"),
   v("financeiro", "financeiro.bateria_preco_un_1", "bateria_preco_un_1", "Bateria Preço Unitário 1", "Preço de venda unitário da bateria 1 (O número é incremental)", "R$", "1000,00"),
