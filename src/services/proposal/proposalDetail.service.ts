@@ -127,6 +127,7 @@ export async function getOrCreateProposalToken(
     .eq("proposta_id", propostaId)
     .eq("versao_id", versaoId)
     .eq("tipo", tipo)
+    .is("invalidado_em", null)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
