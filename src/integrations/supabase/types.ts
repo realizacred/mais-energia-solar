@@ -17117,6 +17117,7 @@ export type Database = {
           final_snapshot: Json | null
           finalized_at: string | null
           generated_at: string | null
+          generation_audit_json: Json | null
           generation_error: string | null
           generation_status: string | null
           geracao_anual: number | null
@@ -17174,6 +17175,7 @@ export type Database = {
           final_snapshot?: Json | null
           finalized_at?: string | null
           generated_at?: string | null
+          generation_audit_json?: Json | null
           generation_error?: string | null
           generation_status?: string | null
           geracao_anual?: number | null
@@ -17231,6 +17233,7 @@ export type Database = {
           final_snapshot?: Json | null
           finalized_at?: string | null
           generated_at?: string | null
+          generation_audit_json?: Json | null
           generation_error?: string | null
           generation_status?: string | null
           geracao_anual?: number | null
