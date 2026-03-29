@@ -195,6 +195,8 @@ export function VariaveisDisponiveisPage() {
   const [deleteTarget, setDeleteTarget] = useState<VariavelCustom | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todas");
   const [detailVar, setDetailVar] = useState<EnrichedVariable | null>(null);
+  const [varPickerOpen, setVarPickerOpen] = useState(false);
+  const [varPickerSearch, setVarPickerSearch] = useState("");
 
   // §16: queries only in hooks
   const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
@@ -218,6 +220,18 @@ export function VariaveisDisponiveisPage() {
     });
     return map;
   }, [categoryAudit]);
+
+  // ── Filtered variables for expression picker ──
+  const filteredPickerVars = useMemo(() => {
+    const term = normalize(varPickerSearch);
+    return VARIABLES_CATALOG.filter((v) => {
+      if (!term) return true;
+      return normalize(v.label).includes(term) ||
+        normalize(v.legacyKey).includes(term) ||
+        normalize(v.canonicalKey).includes(term) ||
+        (v.description && normalize(v.description).includes(term));
+    });
+  }, [varPickerSearch]);
 
   // ── Enriched variables list (catalog + custom merged) ──
   const allVariables = useMemo((): EnrichedVariable[] => {
@@ -1086,7 +1100,56 @@ export function VariaveisDisponiveisPage() {
               )}
               <div>
                 <Label className="text-xs">Expressão:</Label>
-                <Textarea value={form.expressao} onChange={(e) => setForm((f) => ({ ...f, expressao: e.target.value }))} placeholder="[preco]*(1+0.074)^25" className="min-h-[80px] text-sm font-mono mt-1" />
+                <Textarea id="expressao-textarea" value={form.expressao} onChange={(e) => setForm((f) => ({ ...f, expressao: e.target.value }))} placeholder="[preco]*(1+0.074)^25" className="min-h-[80px] text-sm font-mono mt-1" />
+              </div>
+              {/* ── Variable picker for expression ── */}
+              <div className="border border-border rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+                  onClick={() => setVarPickerOpen((o) => !o)}
+                >
+                  <span className="flex items-center gap-1.5"><Database className="h-3 w-3" /> Inserir variável na expressão</span>
+                  <ChevronRight className={cn("h-3 w-3 transition-transform", varPickerOpen && "rotate-90")} />
+                </button>
+                {varPickerOpen && (
+                  <div className="border-t border-border">
+                    <div className="p-2">
+                      <Input
+                        value={varPickerSearch}
+                        onChange={(e) => setVarPickerSearch(e.target.value)}
+                        placeholder="Buscar variável por nome, descrição..."
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div className="max-h-[180px] overflow-y-auto px-2 pb-2 space-y-0.5">
+                      {filteredPickerVars.length === 0 ? (
+                        <p className="text-[10px] text-muted-foreground text-center py-3">Nenhuma variável encontrada</p>
+                      ) : (
+                        filteredPickerVars.slice(0, 50).map((v) => {
+                          const key = v.legacyKey.replace(/^\[|\]$/g, "");
+                          return (
+                            <button
+                              key={v.canonicalKey}
+                              type="button"
+                              className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-primary/10 transition-colors flex items-center justify-between gap-2 group"
+                              onClick={() => {
+                                setForm((f) => ({ ...f, expressao: f.expressao + `[${key}]` }));
+                                toast.success(`[${key}] inserido na expressão`);
+                              }}
+                            >
+                              <div className="min-w-0">
+                                <span className="font-mono text-primary text-[10px]">[{key}]</span>
+                                <span className="text-muted-foreground ml-1.5">{v.label}</span>
+                              </div>
+                              <Plus className="h-3 w-3 text-primary opacity-0 group-hover:opacity-100 shrink-0" />
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <Label className="text-xs">Precisão decimal:</Label>
