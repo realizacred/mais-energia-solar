@@ -718,6 +718,19 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     });
   };
 
+  // Reabrir handler
+  const { data: isAdminOrGerente } = useIsAdminOrGerente();
+  const { mutate: reabrirProposta, isPending: reabrindo } = useReabrirProposta();
+  const canReabrir = isAdminOrGerente && (p.status === "accepted" || p.status === "rejected");
+  const handleReabrir = () => {
+    reabrirProposta(p.id, {
+      onSuccess: () => {
+        setReabrirDialogOpen(false);
+        onRefresh();
+      },
+    });
+  };
+
   // Render proposal HTML
   const handleRender = async () => {
     if (!latestVersao?.id) return;
