@@ -211,7 +211,7 @@ export function VariaveisDisponiveisPage() {
   const { categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
   // Dynamic variable usage data (replaces hardcoded DOCX_REAL_VARS / DOCX_BROKEN / DOCX_NULL_VARS)
-  const { isInDocx, hasError, hasWarning } = useVariableUsage();
+  const { usageMap } = useVariableUsage();
 
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
