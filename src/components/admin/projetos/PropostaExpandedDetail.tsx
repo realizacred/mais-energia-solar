@@ -969,7 +969,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               <p className="text-sm font-semibold text-foreground truncate">
                 {p.cliente_nome || p.titulo || p.codigo || `Proposta #${p.proposta_num}`}
               </p>
-              <StatusBadge status={p.status} />
+              <StatusBadge status={p.status} aceita_at={p.aceita_at} enviada_at={p.enviada_at} recusada_at={p.recusada_at} created_at={p.created_at} />
               {isPrincipal && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/10 text-warning">
                   <Star className="h-2.5 w-2.5 inline mr-0.5 -mt-0.5" />Principal
