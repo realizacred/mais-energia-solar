@@ -31,6 +31,9 @@ export interface PropostaNativaProjetoTab {
   created_at: string;
   cliente_nome: string | null;
   is_principal: boolean;
+  aceita_at: string | null;
+  enviada_at: string | null;
+  recusada_at: string | null;
   versoes: VersaoProjetoTab[];
 }
 
@@ -49,7 +52,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
 
       let query = (supabase as any)
         .from("propostas_nativas")
-        .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at, is_principal, cliente_id, clientes(nome)")
+        .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at, is_principal, aceita_at, enviada_at, recusada_at, cliente_id, clientes(nome)")
         .neq("status", "excluida")
         .order("created_at", { ascending: false })
         .limit(20);
@@ -99,6 +102,9 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
         created_at: p.created_at,
         cliente_nome: p.clientes?.nome || null,
         is_principal: p.is_principal ?? false,
+        aceita_at: p.aceita_at || null,
+        enviada_at: p.enviada_at || null,
+        recusada_at: p.recusada_at || null,
         versoes: (versoes || [])
           .filter((v: any) => v.proposta_id === p.id)
           .map((v: any) => {
