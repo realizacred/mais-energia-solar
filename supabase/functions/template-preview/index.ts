@@ -977,7 +977,7 @@ Deno.serve(async (req) => {
     }
 
     // ── 5. BUSCAR DADOS RELACIONADOS ──────────────────────
-    const [leadRes, clienteRes, projetoRes, consultorRes, tenantRes] = await Promise.all([
+    const [leadRes, clienteRes, projetoRes, consultorRes, tenantRes, brandSettingsRes] = await Promise.all([
       leadId
         ? adminClient
             .from("leads")
@@ -989,7 +989,7 @@ Deno.serve(async (req) => {
       propostaData?.cliente_id
         ? adminClient
             .from("clientes")
-            .select("nome, telefone, email, cpf_cnpj, cidade, estado, bairro, rua, numero, cep, potencia_kwp, valor_projeto, empresa, complemento, data_nascimento, numero_placas, modelo_inversor")
+            .select("nome, telefone, email, cpf_cnpj, cidade, estado, bairro, rua, numero, cep, potencia_kwp, valor_projeto, empresa, complemento, data_nascimento, numero_placas, modelo_inversor, data_instalacao, observacoes")
             .eq("id", propostaData.cliente_id)
             .eq("tenant_id", tenantId)
             .maybeSingle()
@@ -997,7 +997,7 @@ Deno.serve(async (req) => {
       propostaData?.projeto_id
         ? adminClient
             .from("projetos")
-            .select("codigo, status, potencia_kwp, valor_total, numero_modulos, modelo_inversor, modelo_modulos, data_instalacao, geracao_mensal_media_kwh, tipo_instalacao, forma_pagamento")
+            .select("codigo, status, potencia_kwp, valor_total, numero_modulos, modelo_inversor, modelo_modulos, data_instalacao, geracao_mensal_media_kwh, tipo_instalacao, forma_pagamento, created_at, observacoes, titulo")
             .eq("id", propostaData.projeto_id)
             .eq("tenant_id", tenantId)
             .maybeSingle()
@@ -1015,6 +1015,12 @@ Deno.serve(async (req) => {
         .from("tenants")
         .select("nome")
         .eq("id", tenantId)
+        .maybeSingle(),
+      // Brand settings for commercial variables (empresa_*, representante_*)
+      adminClient
+        .from("brand_settings")
+        .select("logo_url, representante_legal, representante_cpf, representante_cargo")
+        .eq("tenant_id", tenantId)
         .maybeSingle(),
     ]);
 
@@ -1035,6 +1041,9 @@ Deno.serve(async (req) => {
       tenantNome: tenantInfo?.nome,
       versaoData: versaoData as Record<string, unknown>,
       propostaData: propostaData as Record<string, unknown>,
+      brandSettings: (brandSettingsRes.data ?? {}) as Record<string, unknown>,
+      projetoData: (projeto ?? {}) as Record<string, unknown>,
+      clienteData: (cliente ?? {}) as Record<string, unknown>,
     });
 
     console.log(`[template-preview] Variables resolved via domain resolvers: ${Object.keys(vars).length} keys`);
