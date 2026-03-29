@@ -8,4 +8,5 @@ export type {
   VariableUsageInfo,
   VariableUsageSummary,
   VariableRealStatus,
+  EvidenceSource,
 } from "./types";
