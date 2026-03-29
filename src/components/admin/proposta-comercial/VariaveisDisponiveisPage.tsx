@@ -227,6 +227,9 @@ export function VariaveisDisponiveisPage() {
   // Dynamic custom fields from deal_custom_fields table
   const { data: dealCustomFields = [] } = useDealCustomFields();
 
+  // Historical health data
+  const { healthMap, summary: healthSummary, hasData: hasHealthData } = useVariableHealth();
+
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
     const map: Record<string, { source: VariableSource; resolver: string }> = {};
