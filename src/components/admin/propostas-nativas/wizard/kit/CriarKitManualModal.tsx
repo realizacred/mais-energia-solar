@@ -652,20 +652,20 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
-        <DialogHeader className="flex flex-row items-center gap-2.5 px-4 py-3 border-b border-border shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Package className="w-4 h-4 text-primary" />
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1">
-            <DialogTitle className="text-sm font-semibold text-foreground">{title}</DialogTitle>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Configure os componentes e custos do kit</p>
+            <DialogTitle className="text-base font-semibold text-foreground">{title}</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Configure os componentes e custos do kit</p>
           </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
-        <div className="p-4 space-y-3">
+        <div className="p-5 space-y-4">
           {/* Header fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs font-medium text-foreground">Nome do distribuidor <span className="text-destructive">*</span></Label>
               <Popover open={distribuidorOpen} onOpenChange={setDistribuidorOpen}>
@@ -705,7 +705,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs font-medium text-foreground">Nome do Kit <span className="text-destructive">*</span></Label>
               <Input value={nomeKit} onChange={e => setNomeKit(e.target.value)} className={cn("h-8 text-xs", triedSave && !nomeKit.trim() && "ring-2 ring-destructive")} />
@@ -746,7 +746,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           )}
 
           {/* Topologia + Custos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs font-medium text-foreground">Topologia <span className="text-destructive">*</span></Label>
               <Select value={topologia} onValueChange={v => {
@@ -1139,7 +1139,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30 shrink-0">
+        <div className="flex items-center justify-between p-4 border-t border-border bg-muted/30 shrink-0">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Voltar
           </Button>
