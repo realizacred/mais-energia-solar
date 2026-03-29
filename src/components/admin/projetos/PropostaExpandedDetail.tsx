@@ -588,50 +588,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       if (error) throw error;
       if ((rpcResult as any)?.error) throw new Error((rpcResult as any).error);
 
-      // ── Gerar comissão ao aceitar ──
-      if (newStatus === "aceita" && latestVersao && customerId) {
-        try {
-          let consultorId: string | null = null;
-          const { data: propData } = await supabase
-            .from("propostas_nativas")
-            .select("lead_id")
-            .eq("id", p.id)
-            .maybeSingle();
-          if (propData?.lead_id) {
-            const { data: lead } = await supabase
-              .from("leads")
-              .select("consultor_id")
-              .eq("id", propData.lead_id)
-              .maybeSingle();
-            consultorId = lead?.consultor_id || null;
-          }
-          if (consultorId && latestVersao.valor_total > 0) {
-            const { data: plan } = await supabase
-              .from("commission_plans")
-              .select("parameters")
-              .eq("is_active", true)
-              .limit(1)
-              .maybeSingle();
-            const percentual = (plan?.parameters as any)?.percentual ?? 5;
-            const now = new Date();
-            await supabase.from("comissoes").insert({
-              consultor_id: consultorId,
-              cliente_id: customerId,
-              projeto_id: dealId || null,
-              descricao: `Proposta aceita - ${p.cliente_nome || "Cliente"} (${latestVersao.potencia_kwp || 0}kWp)`,
-              valor_base: latestVersao.valor_total,
-              percentual_comissao: percentual,
-              valor_comissao: (latestVersao.valor_total * percentual) / 100,
-              mes_referencia: now.getMonth() + 1,
-              ano_referencia: now.getFullYear(),
-              status: "pendente",
-            });
-          }
-        } catch (comErr: any) {
-          console.error("Erro ao gerar comissão:", comErr);
-          toast({ title: "Proposta aceita, mas erro na comissão", description: comErr.message, variant: "destructive" });
-        }
-      }
+      // ── Comissão ao aceitar é gerada automaticamente pelo trigger trg_proposta_aceita_comissao ──
 
       // ── Cancelar comissão se recusada ──
       if (newStatus === "recusada" && dealId) {
