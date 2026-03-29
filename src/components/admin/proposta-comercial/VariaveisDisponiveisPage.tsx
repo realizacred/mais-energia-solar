@@ -5,6 +5,7 @@ import {
   Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
   FlaskConical, Sparkles,
 } from "lucide-react";
+import { VariableTester } from "./VariableTester";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -203,6 +204,8 @@ export function VariaveisDisponiveisPage() {
   const [varPickerOpen, setVarPickerOpen] = useState(false);
   const [varPickerSearch, setVarPickerSearch] = useState("");
   const [aiSuggestOpen, setAiSuggestOpen] = useState(false);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [testVar, setTestVar] = useState("");
 
   // §16: queries only in hooks
   const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
@@ -940,8 +943,8 @@ export function VariaveisDisponiveisPage() {
                               size="icon"
                               className="h-7 w-7 text-muted-foreground hover:text-success"
                               onClick={() => {
-                                const key = v.key;
-                                window.open(`/admin/proposta-comercial?tab=testador&var=${encodeURIComponent(key)}`, "_self");
+                                setTestVar(v.key);
+                                setTestDialogOpen(true);
                               }}
                             >
                               <FlaskConical className="h-3.5 w-3.5" />
@@ -1337,6 +1340,30 @@ export function VariaveisDisponiveisPage() {
         onOpenChange={setAiSuggestOpen}
         onAccept={(formula) => setForm((f) => ({ ...f, expressao: formula }))}
       />
+
+      {/* Test variable dialog */}
+      <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
+        <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <FlaskConical className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                Testar Variável
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Teste a variável contra uma proposta real
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="p-5">
+              <VariableTester initialVariable={testVar} />
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
