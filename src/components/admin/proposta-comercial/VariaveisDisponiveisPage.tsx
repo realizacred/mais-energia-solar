@@ -371,11 +371,19 @@ export function VariaveisDisponiveisPage() {
 
     // Sort
     const dir = sortDir === "asc" ? 1 : -1;
-    return items.sort((a, b) => {
-      const aVal = sortCol === "label" ? a.label : sortCol === "legacyKey" ? a.legacyKey : sortCol === "canonicalKey" ? a.canonicalKey : sortCol === "category" ? CATEGORY_LABELS[a.category] : a.label;
-      const bVal = sortCol === "label" ? b.label : sortCol === "legacyKey" ? b.legacyKey : sortCol === "canonicalKey" ? b.canonicalKey : sortCol === "category" ? CATEGORY_LABELS[b.category] : b.label;
-      return dir * aVal.localeCompare(bVal, "pt-BR");
-    });
+    const getVal = (v: EnrichedVariable): string => {
+      switch (sortCol) {
+        case "label": return v.label;
+        case "legacyKey": return v.legacyKey;
+        case "canonicalKey": return v.canonicalKey;
+        case "category": return CATEGORY_LABELS[v.category] ?? v.category;
+        case "status": return v.status;
+        case "source": return SOURCE_LABELS[v.source]?.label ?? v.source;
+        case "unit": return v.unit;
+        default: return v.label;
+      }
+    };
+    return items.sort((a, b) => dir * getVal(a).localeCompare(getVal(b), "pt-BR"));
   }, [governanceVariables, activeCategory, statusFilter, search, sortCol, sortDir]);
 
   const toggleSort = useCallback((col: string) => {
