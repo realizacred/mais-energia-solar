@@ -1,6 +1,6 @@
 // @deprecated: Tabela 'premissas_tecnicas' não é mais usada. Fonte atual: 'tenant_premises' via useSolarPremises.
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { buildGenerationAuditReport, type GenerationAuditReport } from "@/services/generationAudit";
+import { buildGenerationAuditReport, shouldBlockGeneration, type GenerationAuditReport } from "@/services/generationAudit";
 import { formatNumberBR } from "@/lib/formatters";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -1882,6 +1882,28 @@ export function ProposalWizard() {
                 if (auditErr) console.warn("[ProposalWizard] Failed to persist audit:", auditErr.message);
                 else console.log("[ProposalWizard] Audit persisted to proposta_versoes");
               });
+          }
+
+          // ── Block generation if critical audit errors detected ──
+          if (shouldBlockGeneration(auditReport)) {
+            const criticalVars = auditReport.items
+              .filter(i => i.severity === "error" && (i.status === "error_unresolved" || i.status === "error_expression"))
+              .map(i => i.variable);
+            console.error("[ProposalWizard] Generation blocked by audit:", criticalVars);
+            setGenerationStatus("error");
+            setGenerationError(
+              `Variáveis críticas não resolvidas: ${criticalVars.join(", ")}. Corrija os dados antes de gerar.`
+            );
+            toast({
+              title: "Geração bloqueada",
+              description: `${criticalVars.length} variável(is) crítica(s) com erro. Verifique os dados da proposta.`,
+              variant: "destructive",
+            });
+            setRendering(false);
+            setGenerating(false);
+            clearTimeout(progressTimer);
+            clearTimeout(progressTimer2);
+            return;
           }
 
           // Store persisted paths
