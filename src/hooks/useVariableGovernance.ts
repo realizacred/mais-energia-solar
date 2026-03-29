@@ -108,22 +108,22 @@ export function useVariableGovernance(
 
   const filterOptions = useMemo((): GovernanceFilterOption[] => {
     const s = summary;
-    return [
-      { key: "todas", label: "Todas", count: s.total },
-      { key: "implementada", label: "🟢 Implementadas", count: s.implementada },
-      { key: "be_only", label: "🟡 Backend/Snapshot", count: s.parcial_be_only },
-      { key: "passthrough", label: "🔵 Passthrough", count: s.passthrough },
-      { key: "custom", label: "🧩 Custom", count: s.custom_backend + s.custom_impl },
-      { key: "input_wizard", label: "📥 Input Wizard", count: s.input_wizard },
-      { key: "documento", label: "📄 Documento", count: s.documento },
-      { key: "fe_only", label: "🟠 Só Frontend", count: s.parcial_fe_only },
-      { key: "mapeavel", label: "🟠 Mapeáveis", count: s.mapeavel },
-      { key: "legado", label: "🏚️ Legado", count: s.alias_legado + s.template_legado },
-      { key: "futura", label: "🟣 Futuras", count: s.feature_nao_implementada },
-      { key: "cdd", label: "🔗 CDD", count: s.cdd },
-      { key: "fantasma", label: "🔴 Fantasmas", count: s.fantasma_real },
-      { key: "block_template", label: "🚫 Bloquear Template", count: records.filter(r => r.templateWarning === "block").length },
-    ].filter(o => o.count > 0 || o.key === "todas");
+    return ([
+      { key: "todas" as GovernanceFilter, label: "Todas", count: s.total },
+      { key: "implementada" as GovernanceFilter, label: "🟢 Implementadas", count: s.implementada },
+      { key: "be_only" as GovernanceFilter, label: "🟡 Backend/Snapshot", count: s.parcial_be_only },
+      { key: "passthrough" as GovernanceFilter, label: "🔵 Passthrough", count: s.passthrough },
+      { key: "custom" as GovernanceFilter, label: "🧩 Custom", count: s.custom_backend + s.custom_impl },
+      { key: "input_wizard" as GovernanceFilter, label: "📥 Input Wizard", count: s.input_wizard },
+      { key: "documento" as GovernanceFilter, label: "📄 Documento", count: s.documento },
+      { key: "fe_only" as GovernanceFilter, label: "🟠 Só Frontend", count: s.parcial_fe_only },
+      { key: "mapeavel" as GovernanceFilter, label: "🟠 Mapeáveis", count: s.mapeavel },
+      { key: "legado" as GovernanceFilter, label: "🏚️ Legado", count: s.alias_legado + s.template_legado },
+      { key: "futura" as GovernanceFilter, label: "🟣 Futuras", count: s.feature_nao_implementada },
+      { key: "cdd" as GovernanceFilter, label: "🔗 CDD", count: s.cdd },
+      { key: "fantasma" as GovernanceFilter, label: "🔴 Fantasmas", count: s.fantasma_real },
+      { key: "block_template" as GovernanceFilter, label: "🚫 Bloquear Template", count: records.filter(r => r.templateWarning === "block").length },
+    ] as GovernanceFilterOption[]).filter(o => o.count > 0 || o.key === "todas");
   }, [summary, records]);
 
   return { records, summary, getRecord, filterOptions, filterRecords };
