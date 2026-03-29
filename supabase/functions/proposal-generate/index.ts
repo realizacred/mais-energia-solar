@@ -752,6 +752,8 @@ Deno.serve(async (req) => {
                 variavel_id: vc.id, nome: vc.nome, label: vc.label,
                 expressao: vc.expressao, valor_calculado: String(val),
               });
+              // Feed result back into ctx so dependent vars can use it
+              ctx[vc.nome] = val;
             }
           } catch (e) {
             vcResults.push({
