@@ -654,12 +654,18 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   // Auto-populate publicUrl from public_slug
   useEffect(() => {
-    if (!isExpanded || publicUrl) return;
-    const slug = latestVersao?.public_slug;
-    if (slug) {
-      setPublicUrl(`${window.location.origin}/p/${slug}`);
-    }
-  }, [isExpanded, latestVersao?.public_slug]);
+    if (!isExpanded || publicUrl || !latestVersao?.id || !p.id) return;
+    // Auto-populate publicUrl using token-based link (not slug)
+    (async () => {
+      try {
+        const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
+        const token = await getOrCreateProposalToken(p.id, latestVersao.id, "public");
+        setPublicUrl(`${window.location.origin}/proposta/${token}`);
+      } catch {
+        // Silent — will be populated on manual copy
+      }
+    })();
+  }, [isExpanded, latestVersao?.id, p.id]);
 
   // Auto-render ONLY when no persisted PDF exists and status indicates generation happened
   // If output_pdf_path exists, the Arquivo tab will use signed URL instead
@@ -795,73 +801,29 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  // Copy public link (token-based, no tracking)
-  const copyPublicLink = async () => {
+  // Copy link (unified: uses centralized getOrCreateProposalToken)
+  const handleCopyLink = async (withTracking: boolean) => {
     if (!p.id || !latestVersao?.id) {
-      toast({ title: "Link público não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
+      toast({ title: "Link não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
       return;
     }
     try {
-      const slug = latestVersao?.public_slug;
-      if (slug) {
-        const url = `${window.location.origin}/p/${slug}`;
-        await navigator.clipboard.writeText(url);
-        toast({ title: "Link público copiado!" });
-        return;
-      }
-      // Fallback: create/get a public token
       const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
-      const token = await getOrCreateProposalToken(p.id, latestVersao.id, "public");
+      const tipo = withTracking ? "tracked" : "public";
+      const token = await getOrCreateProposalToken(p.id, latestVersao.id, tipo);
       const url = `${window.location.origin}/proposta/${token}`;
-      await navigator.clipboard.writeText(url);
-      toast({ title: "Link público copiado!" });
-    } catch (e: any) {
-      toast({ title: "Erro ao gerar link público", description: e.message, variant: "destructive" });
-    }
-  };
-
-  // Generate/copy tracked link (token-based)
-  const copyTrackedLink = async () => {
-    if (!p.id || !latestVersao?.id) return;
-    try {
-      // Try to find existing valid token
-      const { data: existingToken } = await (supabase as any)
-        .from("proposta_aceite_tokens")
-        .select("token")
-        .eq("proposta_id", p.id)
-        .eq("versao_id", latestVersao.id)
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      let token = existingToken?.token;
-
-      if (!token) {
-        // Generate new token
-        const { data: newToken, error } = await (supabase as any)
-          .from("proposta_aceite_tokens")
-          .insert({
-            proposta_id: p.id,
-            versao_id: latestVersao.id,
-            tenant_id: tenantCtx?.tenantId,
-            token: crypto.randomUUID(),
-            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-            tipo: "tracked",
-          })
-          .select("token")
-          .single();
-        if (error) throw error;
-        token = newToken.token;
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        window.prompt("Copie o link abaixo:", url);
       }
-
-      const url = `${window.location.origin}/proposta/${token}`;
-      navigator.clipboard.writeText(url);
-      toast({ title: "Link rastreável copiado!" });
+      toast({ title: withTracking ? "Link rastreável copiado! 🔗" : "Link público copiado! 🔗" });
     } catch (e: any) {
-      toast({ title: "Erro ao gerar link rastreável", description: e.message, variant: "destructive" });
+      toast({ title: "Erro ao gerar link", description: e.message, variant: "destructive" });
     }
   };
+  const copyPublicLink = () => handleCopyLink(false);
+  const copyTrackedLink = () => handleCopyLink(true);
 
   const validadeDate = latestVersao ? (() => {
     const snap = snapshot as Record<string, any>;
