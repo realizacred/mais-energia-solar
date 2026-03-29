@@ -193,7 +193,7 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   // resolveSistemaSolar.ts
   // ══════════════════════════════════════════
   // Potência e geração
-  "potencia_sistema", "potencia_kwp", "potencia_ideal_total",
+  "potencia_sistema", "potencia_sistema_numero", "potencia_kwp", "potencia_ideal_total",
   "geracao_mensal", "geracao_mensal_numero", "geracao_anual", "geracao_anual_numero",
   // Geração mensal por mês
   "geracao_jan", "geracao_fev", "geracao_mar", "geracao_abr", "geracao_mai", "geracao_jun",
@@ -271,6 +271,7 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   // resolveFinanceiro.ts
   // ══════════════════════════════════════════
   "valor_total", "valor_total_numero", "preco_final", "preco_total", "preco", "capo_i",
+  "capo_m", "capo_seguro",
   "vc_a_vista", "preco_kwp", "preco_watt", "preco_watt_numero",
   "economia_mensal", "economia_mensal_numero", "economia_anual", "economia_anual_numero",
   "roi_25_anos", "economia_25_anos",
