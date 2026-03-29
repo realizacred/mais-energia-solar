@@ -2,15 +2,16 @@ import { useMemo, useState, useCallback } from "react";
 import {
   ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Loader2,
   ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers, Zap,
-  FileText, Clock, Bug
+  FileText, Clock, Bug, Sparkles, Copy, Bot
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useVariableUsage } from "@/hooks/useVariableUsage";
+import { useQuickAudit, useFullAudit, type FullAuditResult } from "@/hooks/useRealAudit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table as ShadTable,
   TableBody as ShadTableBody,
@@ -39,7 +40,14 @@ const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: stri
   missing_db: { icon: XCircle, color: "text-destructive", label: "Falta no banco" },
 };
 
-// Problems are now derived dynamically from useVariableUsage — no hardcoded list.
+// AI loading step messages
+const AI_STEPS = [
+  "Lendo templates DOCX ativos...",
+  "Extraindo placeholders dos templates...",
+  "Testando variáveis na proposta...",
+  "Consultando IA para análise...",
+  "Gerando relatório...",
+];
 
 // ── Main Component ──────────────────────────────────────────
 export function AuditTabContent({
@@ -59,55 +67,21 @@ export function AuditTabContent({
   const [showDescIssues, setShowDescIssues] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [aiStepIdx, setAiStepIdx] = useState(0);
+  const [fullAuditResult, setFullAuditResult] = useState<FullAuditResult | null>(null);
 
   const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences, categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
-  // Dynamic variable usage data — 100% evidence-based from generation_audit_json
-  const { summary: usageSummary, usageMap } = useVariableUsage();
+  // Real-time audit data from edge function
+  const { data: quickAudit, isLoading: quickLoading } = useQuickAudit();
+  const fullAuditMutation = useFullAudit();
   const queryClient = useQueryClient();
-
-  // Derive real problems dynamically from audit evidence
-  const dynamicProblems = useMemo(() => {
-    const problems: Array<{ variavel: string; tipo: string; status: "nulo" | "resolvido" | "quebrada"; causa: string; correcao: string }> = [];
-    for (const [key, info] of usageMap.entries()) {
-      if (info.isBroken) {
-        problems.push({
-          variavel: key,
-          tipo: "Sem resolver",
-          status: "quebrada",
-          causa: "Placeholder encontrado no DOCX mas sem resolver mapeado",
-          correcao: "Adicionar resolver no frontend e backend ou remover do template DOCX",
-        });
-      } else if (info.isNull) {
-        problems.push({
-          variavel: key,
-          tipo: "Valor nulo",
-          status: "nulo",
-          causa: "Resolver existe mas retornou null na última geração",
-          correcao: "Verificar dados de entrada ou fallback do resolver",
-        });
-      }
-    }
-    return problems;
-  }, [usageMap]);
-
-  const docxAudit = useMemo(() => ({
-    templatesAtivos: usageSummary.totalTemplates,
-    totalVariaveis: usageSummary.totalInDocx + usageSummary.totalBroken + usageSummary.totalNull,
-    okExplicitas: usageSummary.totalOk,
-    viaCustomSnapshot: usageSummary.totalInDocx - usageSummary.totalOk,
-    quebradas: usageSummary.totalBroken,
-    comValorNulo: usageSummary.totalNull,
-    lastAuditDate: usageSummary.lastAuditDate ?? new Date().toISOString().slice(0, 10),
-    problemas: dynamicProblems,
-  }), [usageSummary, dynamicProblems]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       await onRefresh();
-      // Also invalidate the generation audit reports query to get fresh DOCX data
-      await queryClient.invalidateQueries({ queryKey: ["generation-audit-reports-latest"] });
+      await queryClient.invalidateQueries({ queryKey: ["audit-variables"] });
       toast.success("Análise concluída com sucesso");
     } catch {
       toast.error("Erro ao reanalisar variáveis");
@@ -116,6 +90,26 @@ export function AuditTabContent({
       setTimeout(() => setIsRefreshing(false), 600);
     }
   }, [onRefresh, queryClient]);
+
+  const handleFullAudit = useCallback(async () => {
+    setAiStepIdx(0);
+    setFullAuditResult(null);
+
+    // Animate steps
+    const interval = setInterval(() => {
+      setAiStepIdx((prev) => Math.min(prev + 1, AI_STEPS.length - 1));
+    }, 2500);
+
+    try {
+      const result = await fullAuditMutation.mutateAsync();
+      setFullAuditResult(result);
+      toast.success("Auditoria com IA concluída!");
+    } catch (e: any) {
+      toast.error(e.message || "Erro na auditoria com IA");
+    } finally {
+      clearInterval(interval);
+    }
+  }, [fullAuditMutation]);
 
   // ── Filtered schema fields ──────────────────────────────────
   const filteredFields = useMemo(() => {
@@ -156,7 +150,7 @@ export function AuditTabContent({
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-warning" />
           <span className="text-xs font-semibold text-foreground">Auditoria de Variáveis</span>
-          <span className="text-[10px] text-muted-foreground">— Cruzamento catálogo × banco × schema × DOCX</span>
+          <span className="text-[10px] text-muted-foreground">— Tempo real · Templates × Resolvers × IA</span>
         </div>
         <div className="flex items-center gap-2">
           {lastRefresh && (
@@ -173,130 +167,216 @@ export function AuditTabContent({
       </div>
 
       {/* ════════════════════════════════════════════════════════ */}
-      {/* DOCX ATIVOS — Auditoria Operacional Real               */}
+      {/* REAL-TIME DOCX AUDIT — from edge function               */}
       {/* ════════════════════════════════════════════════════════ */}
       <div className="px-4 py-3 space-y-3">
         <div className="flex items-center gap-2 mb-1">
           <FileText className="h-3.5 w-3.5 text-primary" />
-          <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">DOCX Ativos — Uso Real nos Templates</span>
+          <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">DOCX Ativos — Auditoria em Tempo Real</span>
           <Tooltip>
             <TooltipTrigger asChild>
               <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" />
             </TooltipTrigger>
             <TooltipContent side="right" className="max-w-[300px] text-xs">
-              <p>Dados extraídos dos {docxAudit.templatesAtivos} templates DOCX ativos no sistema. Reflete apenas variáveis realmente usadas na geração de propostas/PDF.</p>
+              <p>Dados extraídos em tempo real dos templates DOCX ativos. O sistema lê cada template, extrai [placeholders] e testa contra a última proposta gerada.</p>
             </TooltipContent>
           </Tooltip>
         </div>
 
-        {/* DOCX KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 space-y-0.5">
-            <p className="text-[9px] text-primary uppercase tracking-wider font-medium">Templates DOCX</p>
-            <p className="text-lg font-bold text-primary tabular-nums">{docxAudit.templatesAtivos}</p>
-            <p className="text-[10px] text-muted-foreground">Ativos</p>
+        {/* KPIs */}
+        {quickLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 rounded-lg" />
+            ))}
           </div>
-          <div className="rounded-lg border border-border bg-card p-2.5 space-y-0.5">
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Variáveis Reais</p>
-            <p className="text-lg font-bold text-foreground tabular-nums">{docxAudit.totalVariaveis}</p>
-            <p className="text-[10px] text-muted-foreground">Encontradas nos DOCX</p>
-          </div>
-          <div className="rounded-lg border border-success/30 bg-success/5 p-2.5 space-y-0.5">
-            <p className="text-[9px] text-success uppercase tracking-wider font-medium">OK Explícitas</p>
-            <p className="text-lg font-bold text-success tabular-nums">{docxAudit.okExplicitas}</p>
-            <p className="text-[10px] text-muted-foreground">Resolver explícito</p>
-          </div>
-          <div className="rounded-lg border border-info/30 bg-info/5 p-2.5 space-y-0.5">
-            <p className="text-[9px] text-info uppercase tracking-wider font-medium">Custom/Snapshot</p>
-            <p className="text-lg font-bold text-info tabular-nums">{docxAudit.viaCustomSnapshot}</p>
-            <p className="text-[10px] text-muted-foreground">Via passthrough</p>
-          </div>
-          <div className={cn(
-            "rounded-lg border p-2.5 space-y-0.5",
-            docxAudit.quebradas > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
-          )}>
-            <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Quebradas</p>
-            <p className="text-lg font-bold text-destructive tabular-nums">{docxAudit.quebradas}</p>
-            <p className="text-[10px] text-muted-foreground">Sem resolver</p>
-          </div>
-          <div className={cn(
-            "rounded-lg border p-2.5 space-y-0.5",
-            docxAudit.comValorNulo > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"
-          )}>
-            <p className="text-[9px] text-warning uppercase tracking-wider font-medium">Valor Nulo</p>
-            <p className="text-lg font-bold text-warning tabular-nums">{docxAudit.comValorNulo}</p>
-            <p className="text-[10px] text-muted-foreground">Fórmula retorna null</p>
-          </div>
-        </div>
+        ) : quickAudit ? (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 space-y-0.5">
+                <p className="text-[9px] text-primary uppercase tracking-wider font-medium">Templates DOCX</p>
+                <p className="text-lg font-bold text-primary tabular-nums">{quickAudit.templates_ativos}</p>
+                <p className="text-[10px] text-muted-foreground">Ativos</p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-2.5 space-y-0.5">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Variáveis Reais</p>
+                <p className="text-lg font-bold text-foreground tabular-nums">{quickAudit.total_variaveis}</p>
+                <p className="text-[10px] text-muted-foreground">Encontradas nos DOCX</p>
+              </div>
+              <div className="rounded-lg border border-success/30 bg-success/5 p-2.5 space-y-0.5">
+                <p className="text-[9px] text-success uppercase tracking-wider font-medium">OK</p>
+                <p className="text-lg font-bold text-success tabular-nums">{quickAudit.ok.length}</p>
+                <p className="text-[10px] text-muted-foreground">Resolver OK</p>
+              </div>
+              <div className={cn(
+                "rounded-lg border p-2.5 space-y-0.5",
+                quickAudit.quebradas.length > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
+              )}>
+                <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Quebradas</p>
+                <p className="text-lg font-bold text-destructive tabular-nums">{quickAudit.quebradas.length}</p>
+                <p className="text-[10px] text-muted-foreground">Sem resolver</p>
+              </div>
+              <div className={cn(
+                "rounded-lg border p-2.5 space-y-0.5",
+                quickAudit.nulas.length > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"
+              )}>
+                <p className="text-[9px] text-warning uppercase tracking-wider font-medium">Valor Nulo</p>
+                <p className="text-lg font-bold text-warning tabular-nums">{quickAudit.nulas.length}</p>
+                <p className="text-[10px] text-muted-foreground">Retorna vazio</p>
+              </div>
+              <div className="rounded-lg border border-info/30 bg-info/5 p-2.5 space-y-0.5">
+                <p className="text-[9px] text-info uppercase tracking-wider font-medium">Cobertura</p>
+                <p className="text-lg font-bold text-info tabular-nums">
+                  {quickAudit.total_variaveis > 0
+                    ? Math.round((quickAudit.ok.length / quickAudit.total_variaveis) * 100)
+                    : 0}%
+                </p>
+                <p className="text-[10px] text-muted-foreground">Resolução real</p>
+              </div>
+            </div>
 
-        {/* Problems table — dynamic from generation audit evidence */}
-        {!usageSummary.hasAuditData && (
+            {/* Broken variables table */}
+            {quickAudit.quebradas.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Bug className="h-3.5 w-3.5 text-destructive" />
+                  <span className="text-xs font-semibold text-foreground">Variáveis Quebradas</span>
+                  <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
+                    {quickAudit.quebradas.length}
+                  </Badge>
+                </div>
+                <div className="rounded-lg border border-destructive/20 overflow-hidden">
+                  <ShadTable>
+                    <ShadTableHeader>
+                      <ShadTableRow className="bg-destructive/5 hover:bg-destructive/5">
+                        <ShadTableHead className="text-[10px] w-[30px]">⚠️</ShadTableHead>
+                        <ShadTableHead className="text-[10px]">Variável</ShadTableHead>
+                        <ShadTableHead className="text-[10px]">Status</ShadTableHead>
+                      </ShadTableRow>
+                    </ShadTableHeader>
+                    <ShadTableBody>
+                      {quickAudit.quebradas.map((v) => (
+                        <ShadTableRow key={v}>
+                          <ShadTableCell className="py-2">
+                            <XCircle className="h-3 w-3 text-destructive" />
+                          </ShadTableCell>
+                          <ShadTableCell className="py-2">
+                            <code className="font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded text-[10px]">[{v}]</code>
+                          </ShadTableCell>
+                          <ShadTableCell className="py-2">
+                            <Badge variant="outline" className="text-[8px] bg-destructive/10 text-destructive border-destructive/20">
+                              Sem resolver
+                            </Badge>
+                          </ShadTableCell>
+                        </ShadTableRow>
+                      ))}
+                    </ShadTableBody>
+                  </ShadTable>
+                </div>
+              </div>
+            )}
+
+            {/* Null variables */}
+            {quickAudit.nulas.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                  <span className="text-xs font-semibold text-foreground">Variáveis com Valor Nulo</span>
+                  <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20">
+                    {quickAudit.nulas.length}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {quickAudit.nulas.map((v) => (
+                    <code key={v} className="font-mono text-warning bg-warning/5 px-1.5 py-0.5 rounded text-[10px] border border-warning/20">
+                      [{v}]
+                    </code>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
           <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-center gap-2">
             <Info className="h-3.5 w-3.5 shrink-0" />
-            <span>Nenhum relatório de geração encontrado. Gere uma proposta para popular os dados de auditoria real dos templates DOCX.</span>
+            <span>Erro ao carregar auditoria. Clique em Reanalisar para tentar novamente.</span>
           </div>
         )}
-        {docxAudit.problemas.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Bug className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-xs font-semibold text-foreground">Problemas Detectados nos Templates</span>
-              <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
-                {docxAudit.problemas.length}
-              </Badge>
-            </div>
-            <div className="rounded-lg border border-destructive/20 overflow-hidden">
-              <ShadTable>
-                <ShadTableHeader>
-                  <ShadTableRow className="bg-destructive/5 hover:bg-destructive/5">
-                    <ShadTableHead className="text-[10px] w-[30px]">⚠️</ShadTableHead>
-                    <ShadTableHead className="text-[10px]">Variável</ShadTableHead>
-                    <ShadTableHead className="text-[10px]">Tipo</ShadTableHead>
-                    <ShadTableHead className="text-[10px]">Causa Raiz</ShadTableHead>
-                    <ShadTableHead className="text-[10px]">Correção</ShadTableHead>
-                  </ShadTableRow>
-                </ShadTableHeader>
-                <ShadTableBody>
-                  {docxAudit.problemas.map((p) => (
-                    <ShadTableRow key={p.variavel}>
-                      <ShadTableCell className="py-2">
-                        {p.status === "quebrada" ? (
-                          <XCircle className="h-3 w-3 text-destructive" />
-                        ) : (
-                          <AlertTriangle className="h-3 w-3 text-warning" />
-                        )}
-                      </ShadTableCell>
-                      <ShadTableCell className="py-2">
-                        <code className={cn(
-                          "font-mono px-1.5 py-0.5 rounded text-[10px]",
-                          p.status === "quebrada" ? "text-destructive bg-destructive/5" : "text-warning bg-warning/5"
-                        )}>[{p.variavel}]</code>
-                      </ShadTableCell>
-                      <ShadTableCell className="py-2">
-                        <Badge variant="outline" className={cn(
-                          "text-[8px]",
-                          p.status === "quebrada" ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-warning/10 text-warning border-warning/20"
-                        )}>
-                          {p.tipo}
-                        </Badge>
-                      </ShadTableCell>
-                      <ShadTableCell className="py-2">
-                        <span className="text-[10px] text-muted-foreground">{p.causa}</span>
-                      </ShadTableCell>
-                      <ShadTableCell className="py-2">
-                        <span className="text-[10px] text-foreground font-medium">{p.correcao}</span>
-                      </ShadTableCell>
-                    </ShadTableRow>
-                  ))}
-                </ShadTableBody>
-              </ShadTable>
-            </div>
+
+        {/* AI Audit Button */}
+        <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            onClick={handleFullAudit}
+            disabled={fullAuditMutation.isPending}
+            className="gap-1.5 text-xs"
+          >
+            {fullAuditMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            {fullAuditMutation.isPending ? "Auditando..." : "✨ Auditar com IA"}
+          </Button>
+          {fullAuditMutation.isPending && (
+            <span className="text-[11px] text-muted-foreground animate-pulse">
+              {AI_STEPS[aiStepIdx]}
+            </span>
+          )}
+        </div>
+
+        {/* AI Analysis Result */}
+        {fullAuditResult?.analise_ia && (
+          <div className="space-y-3">
+            {/* AI Analysis Card */}
+            <Card className="border-info/30 bg-info/5">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-4 w-4 text-info" />
+                  <span className="text-xs font-semibold text-foreground">Análise da IA</span>
+                </div>
+                <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                  {fullAuditResult.analise_ia}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Prompt for Lovable */}
+            {fullAuditResult.prompt_lovable && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold text-foreground">Prompt para Lovable</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                      onClick={() => {
+                        navigator.clipboard.writeText(fullAuditResult.prompt_lovable!);
+                        toast.success("Prompt copiado para a área de transferência!");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copiar prompt
+                    </Button>
+                  </div>
+                  <pre className="text-[10px] text-foreground/80 whitespace-pre-wrap bg-background/50 rounded-lg p-3 border border-border/50 max-h-[300px] overflow-y-auto font-mono leading-relaxed">
+                    {fullAuditResult.prompt_lovable}
+                  </pre>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
         <div className="text-[9px] text-muted-foreground/60 flex items-center gap-1">
           <Clock className="h-2.5 w-2.5" />
-          Auditoria forense: {docxAudit.lastAuditDate} · {docxAudit.templatesAtivos} templates · {docxAudit.totalVariaveis} variáveis extraídas
+          {quickAudit?.gerado_em
+            ? `Varredura: ${new Date(quickAudit.gerado_em).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} · ${quickAudit.templates_ativos} templates · ${quickAudit.total_variaveis} variáveis`
+            : "Auditoria pendente"}
         </div>
       </div>
 
