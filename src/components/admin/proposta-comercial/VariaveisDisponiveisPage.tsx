@@ -380,7 +380,8 @@ export function VariaveisDisponiveisPage() {
     const legado = governanceVariables.filter((v) => v.governance === "legado" || v.governance === "input_wizard").length;
     const texto = governanceVariables.filter((v) => v.governance === "texto" || v.tipoResultado === "text").length;
     const documento = governanceVariables.filter((v) => v.escopo === "documento").length;
-    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento };
+    const aspiracional = governanceVariables.filter((v) => v.escopo === "aspiracional").length;
+    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional };
   }, [governanceVariables]);
 
   // ── Custom var handlers ──
@@ -646,6 +647,7 @@ export function VariaveisDisponiveisPage() {
                 { key: "legado", label: `Legado (${kpiStats.legado})` },
                 { key: "texto", label: `Texto (${kpiStats.texto})` },
                 { key: "documento", label: `Documento (${kpiStats.documento})` },
+                { key: "aspiracional", label: `Aspiracional (${kpiStats.aspiracional})` },
               ] as { key: StatusFilter; label: string }[]).map((f) => (
                 <Button
                   key={f.key}
