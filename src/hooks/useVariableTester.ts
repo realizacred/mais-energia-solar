@@ -87,6 +87,7 @@ export function useVariableTester() {
           body: {
             proposta_id: propostaId,
             mode: "resolve_variables",
+            variable_key: cleanKey,
           },
           headers: { "x-client-timeout": "30" },
         });
