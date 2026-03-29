@@ -756,6 +756,9 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
       "vc_incluir_seguro", "vc_calculo_seguro",
     ], "custom_vc", "proposal-generate (evaluateExpression)");
 
+    // ── Legados (templates DOCX antigos) ──
+    addToMap(["capo_m", "capo_seguro"], "snapshot", "resolveFinanceiro");
+
     // ── Tarifa / Distribuidora (frontend: resolveProposalVariables → tariff engine) ──
     addToMap([
       "tarifa_te_kwh", "tarifa_tusd_total_kwh", "tarifa_fio_b_real_kwh", "tarifa_fio_b_usado_kwh",

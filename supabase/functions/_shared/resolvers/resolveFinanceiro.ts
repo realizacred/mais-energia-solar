@@ -299,5 +299,9 @@ export function resolveFinanceiro(
     if (comRep != null) set("comissao_rep_p", fmtNum((comRep / valorTotal) * 100, 2));
   }
 
+  // ── Legados: capo_m, capo_seguro (templates DOCX antigos) ──
+  set("capo_m", snap.capo_m ?? snap.capital_melhoria ?? fin.capo_m ?? "");
+  set("capo_seguro", snap.capo_seguro ?? snap.capital_seguro ?? fin.capo_seguro ?? "");
+
   return out;
 }

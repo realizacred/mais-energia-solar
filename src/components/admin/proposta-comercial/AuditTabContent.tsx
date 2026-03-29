@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers, Zap,
   FileText, Clock, Bug
 } from "lucide-react";
+import { toast } from "sonner";
 import { useVariableUsage } from "@/hooks/useVariableUsage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,12 +41,12 @@ const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: stri
 // ── DOCX audit data — now sourced from useVariableUsage hook ──
 // Known issues baseline (used when no generation reports are available)
 const KNOWN_PROBLEMS = [
-  { variavel: "capo_m", tipo: "Placeholder legado", status: "quebrada" as const, causa: "Não existe no catálogo nem nos resolvers — aparece como texto cru no PDF", correcao: "Remover do template DOCX ou criar como variável custom" },
-  { variavel: "capo_seguro", tipo: "Placeholder legado", status: "quebrada" as const, causa: "Não existe no catálogo nem nos resolvers — aparece como texto cru no PDF", correcao: "Remover do template DOCX ou criar como variável custom" },
-  { variavel: "vc_aumento", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de consumo/geração estão ausentes no contexto", correcao: "Verificar se consumo_total e geracao_estimada estão no snapshot" },
-  { variavel: "vc_calculo_seguro", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de entrada estão ausentes", correcao: "Revisar fórmula no wizard ou adicionar fallback" },
-  { variavel: "vc_garantiaservico", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de entrada estão ausentes", correcao: "Revisar fórmula no wizard ou adicionar fallback" },
-  { variavel: "vc_string_box_cc", tipo: "Custom — valor nulo", status: "nulo" as const, causa: "Fórmula do wizard retorna null quando dados de entrada estão ausentes", correcao: "Revisar fórmula no wizard ou adicionar fallback" },
+  { variavel: "capo_m", tipo: "Placeholder legado", status: "resolvido" as const, causa: "Resolver adicionado em resolveFinanceiro — fallback para snapshot.capo_m / capital_melhoria", correcao: "✅ Corrigido — retorna vazio se não definido no snapshot" },
+  { variavel: "capo_seguro", tipo: "Placeholder legado", status: "resolvido" as const, causa: "Resolver adicionado em resolveFinanceiro — fallback para snapshot.capo_seguro / capital_seguro", correcao: "✅ Corrigido — input do wizard para cálculo de seguro" },
+  { variavel: "vc_aumento", tipo: "Custom — expressão", status: "nulo" as const, causa: "Fórmula depende de consumo_total e geracao_estimada — contexto já fornecido no proposal-generate", correcao: "Verificar se expressão no banco está correta e usa [consumo_total] / [geracao_estimada]" },
+  { variavel: "vc_calculo_seguro", tipo: "Custom — expressão", status: "nulo" as const, causa: "Fórmula depende de capo_seguro e valor_total — valor depende do input do wizard", correcao: "Verificar se capo_seguro é preenchido no wizard da proposta" },
+  { variavel: "vc_garantiaservico", tipo: "Custom — texto", status: "nulo" as const, causa: "Variável de texto (tipo_resultado=text) — avaliada como expressão numérica retorna null", correcao: "Variável de texto é passada via snapshot, não via evaluateExpression. Verificar se está no snapshot." },
+  { variavel: "vc_string_box_cc", tipo: "Custom — texto", status: "nulo" as const, causa: "Variável de texto condicional — avaliada como expressão numérica retorna null", correcao: "Variável de texto é passada via snapshot, não via evaluateExpression. Verificar se está no snapshot." },
 ];
 
 // ── Main Component ──────────────────────────────────────────
@@ -86,11 +87,11 @@ export function AuditTabContent({
     setIsRefreshing(true);
     try {
       await onRefresh();
+      toast.success("Análise concluída com sucesso");
     } catch {
-      // ignore
+      toast.error("Erro ao reanalisar variáveis");
     } finally {
       setLastRefresh(new Date());
-      // Small delay so user sees the spinner
       setTimeout(() => setIsRefreshing(false), 600);
     }
   }, [onRefresh]);
@@ -232,8 +233,8 @@ export function AuditTabContent({
                   {docxAudit.problemas.map((p) => (
                     <ShadTableRow key={p.variavel}>
                       <ShadTableCell className="py-2">
-                        {p.status === "quebrada" ? (
-                          <XCircle className="h-3 w-3 text-destructive" />
+                        {p.status === "resolvido" ? (
+                          <CheckCircle2 className="h-3 w-3 text-success" />
                         ) : (
                           <AlertTriangle className="h-3 w-3 text-warning" />
                         )}
@@ -241,13 +242,13 @@ export function AuditTabContent({
                       <ShadTableCell className="py-2">
                         <code className={cn(
                           "font-mono px-1.5 py-0.5 rounded text-[10px]",
-                          p.status === "quebrada" ? "text-destructive bg-destructive/5" : "text-warning bg-warning/5"
+                          p.status === "resolvido" ? "text-success bg-success/5" : "text-warning bg-warning/5"
                         )}>[{p.variavel}]</code>
                       </ShadTableCell>
                       <ShadTableCell className="py-2">
                         <Badge variant="outline" className={cn(
                           "text-[8px]",
-                          p.status === "quebrada" ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-warning/10 text-warning border-warning/20"
+                          p.status === "resolvido" ? "bg-success/10 text-success border-success/20" : "bg-warning/10 text-warning border-warning/20"
                         )}>
                           {p.tipo}
                         </Badge>
