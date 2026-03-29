@@ -38,16 +38,7 @@ const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: stri
   missing_db: { icon: XCircle, color: "text-destructive", label: "Falta no banco" },
 };
 
-// ── DOCX audit data — now sourced from useVariableUsage hook ──
-// Known issues baseline (used when no generation reports are available)
-const KNOWN_PROBLEMS = [
-  { variavel: "capo_m", tipo: "Placeholder legado", status: "resolvido" as const, causa: "Resolver adicionado em resolveFinanceiro — fallback para snapshot.capo_m / capital_melhoria", correcao: "✅ Corrigido — retorna vazio se não definido no snapshot" },
-  { variavel: "capo_seguro", tipo: "Placeholder legado", status: "resolvido" as const, causa: "Resolver adicionado em resolveFinanceiro — fallback para snapshot.capo_seguro / capital_seguro", correcao: "✅ Corrigido — input do wizard para cálculo de seguro" },
-  { variavel: "vc_aumento", tipo: "Custom — expressão", status: "nulo" as const, causa: "Fórmula depende de consumo_total e geracao_estimada — contexto já fornecido no proposal-generate", correcao: "Verificar se expressão no banco está correta e usa [consumo_total] / [geracao_estimada]" },
-  { variavel: "vc_calculo_seguro", tipo: "Custom — expressão", status: "nulo" as const, causa: "Fórmula depende de capo_seguro e valor_total — valor depende do input do wizard", correcao: "Verificar se capo_seguro é preenchido no wizard da proposta" },
-  { variavel: "vc_garantiaservico", tipo: "Custom — texto", status: "nulo" as const, causa: "Variável de texto (tipo_resultado=text) — avaliada como expressão numérica retorna null", correcao: "Variável de texto é passada via snapshot, não via evaluateExpression. Verificar se está no snapshot." },
-  { variavel: "vc_string_box_cc", tipo: "Custom — texto", status: "nulo" as const, causa: "Variável de texto condicional — avaliada como expressão numérica retorna null", correcao: "Variável de texto é passada via snapshot, não via evaluateExpression. Verificar se está no snapshot." },
-];
+// Problems are now derived dynamically from useVariableUsage — no hardcoded list.
 
 // ── Main Component ──────────────────────────────────────────
 export function AuditTabContent({
