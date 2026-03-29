@@ -5,6 +5,7 @@ import {
   Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
   AlertTriangle, ExternalLink, Sparkles, RefreshCw,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -881,6 +882,24 @@ export function StepDocumento({
                       <Badge key={v} variant="outline" className="text-[10px] border-warning/30 text-warning bg-warning/10">
                         {v}
                       </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Custom var expression errors */}
+              {generationAuditReport.items.filter(i => i.status === "error_expression").length > 0 && (
+                <div className="space-y-1">
+                  <span className="text-[10px] font-medium text-foreground">Variáveis custom com erro:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {generationAuditReport.items.filter(i => i.status === "error_expression").map(i => (
+                      <Tooltip key={i.variable}>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive bg-destructive/10 cursor-help">
+                            {i.variable}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-[10px] max-w-[200px]">{i.message}</TooltipContent>
+                      </Tooltip>
                     ))}
                   </div>
                 </div>

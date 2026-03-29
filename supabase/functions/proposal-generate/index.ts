@@ -673,7 +673,7 @@ Deno.serve(async (req) => {
     const cenarioResults = cenarioInputs.map(ci => calcCenario(calcInputs, ci));
 
     // ── 5c. CUSTOM VARIABLES (vc_*) ─────────────────────────
-    let vcResults: Array<{ variavel_id: string; nome: string; label: string; expressao: string; valor_calculado: string | null }> = [];
+    let vcResults: Array<{ variavel_id: string; nome: string; label: string; expressao: string; valor_calculado: string | null; error?: boolean; error_message?: string }> = [];
 
     if (body.variaveis_custom !== false) {
       const { data: vcDefs } = await adminClient
@@ -703,11 +703,41 @@ Deno.serve(async (req) => {
         };
 
         for (const vc of vcDefs) {
-          const val = evaluateExpression(vc.expressao, ctx);
-          vcResults.push({
-            variavel_id: vc.id, nome: vc.nome, label: vc.label,
-            expressao: vc.expressao, valor_calculado: val !== null ? String(val) : null,
-          });
+          try {
+            if (!vc.expressao || vc.expressao.trim() === "") {
+              vcResults.push({
+                variavel_id: vc.id, nome: vc.nome, label: vc.label,
+                expressao: vc.expressao, valor_calculado: null,
+                error: true, error_message: "Expressão vazia",
+              });
+              continue;
+            }
+            const val = evaluateExpression(vc.expressao, ctx);
+            if (val === null) {
+              // Check if it's a syntax issue or missing deps
+              const deps = (vc.expressao.match(/\[([^\]]+)\]/g) || []).map((m: string) => m.slice(1, -1).trim());
+              const missingDeps = deps.filter((d: string) => ctx[d] === undefined);
+              vcResults.push({
+                variavel_id: vc.id, nome: vc.nome, label: vc.label,
+                expressao: vc.expressao, valor_calculado: null,
+                error: true,
+                error_message: missingDeps.length > 0
+                  ? `Dependências ausentes: ${missingDeps.join(", ")}`
+                  : "Expressão retornou null (possível erro de sintaxe ou resultado inválido)",
+              });
+            } else {
+              vcResults.push({
+                variavel_id: vc.id, nome: vc.nome, label: vc.label,
+                expressao: vc.expressao, valor_calculado: String(val),
+              });
+            }
+          } catch (e) {
+            vcResults.push({
+              variavel_id: vc.id, nome: vc.nome, label: vc.label,
+              expressao: vc.expressao, valor_calculado: null,
+              error: true, error_message: `Erro de execução: ${(e as Error).message}`,
+            });
+          }
         }
       }
     }

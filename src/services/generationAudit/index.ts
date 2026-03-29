@@ -5,4 +5,5 @@ export type {
   GenerationVarStatus,
   GenerationSeverity,
   GenerationHealth,
+  CustomVarResult,
 } from "./types";

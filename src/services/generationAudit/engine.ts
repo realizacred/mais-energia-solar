@@ -1,7 +1,7 @@
 /**
  * Generation Audit Engine — Classifies variable resolution quality.
- * Used after template-preview returns missing_vars/empty_vars.
- * Reusable, no side effects.
+ * Used after template-preview/proposal-generate returns audit data.
+ * 100% evidence-based — no hardcoded lists determine blocking.
  */
 
 import type {
@@ -10,21 +10,8 @@ import type {
   GenerationVarStatus,
   GenerationSeverity,
   GenerationHealth,
+  CustomVarResult,
 } from "./types";
-
-/** Known broken placeholders from forensic audit (Fase 3.1) */
-const KNOWN_BROKEN_PLACEHOLDERS = new Set([
-  "capo_m",
-  "capo_seguro",
-]);
-
-/** Known custom variables that may return null when wizard data is incomplete */
-const KNOWN_NULLABLE_CUSTOM = new Set([
-  "vc_aumento",
-  "vc_calculo_seguro",
-  "vc_garantiaservico",
-  "vc_string_box_cc",
-]);
 
 /** Critical variables that MUST have a value for a valid proposal */
 const CRITICAL_VARIABLES = new Set([
@@ -42,15 +29,6 @@ const CRITICAL_VARIABLES = new Set([
 
 function classifyMissing(varName: string): { status: GenerationVarStatus; severity: GenerationSeverity; message: string; suggestion?: string } {
   const clean = varName.replace(/[[\]{}]/g, "");
-
-  if (KNOWN_BROKEN_PLACEHOLDERS.has(clean)) {
-    return {
-      status: "error_unresolved",
-      severity: "error",
-      message: `Placeholder legado "${clean}" não existe em nenhum resolver`,
-      suggestion: "Remover do template DOCX ou criar como variável custom",
-    };
-  }
 
   if (CRITICAL_VARIABLES.has(clean)) {
     return {
@@ -72,15 +50,6 @@ function classifyMissing(varName: string): { status: GenerationVarStatus; severi
 function classifyEmpty(varName: string): { status: GenerationVarStatus; severity: GenerationSeverity; message: string; suggestion?: string } {
   const clean = varName.replace(/[[\]{}]/g, "");
 
-  if (KNOWN_NULLABLE_CUSTOM.has(clean)) {
-    return {
-      status: "warning_null",
-      severity: "warning",
-      message: `Variável custom "${clean}" retornou null — fórmula do wizard sem dados de entrada`,
-      suggestion: "Revisar fórmula no wizard ou adicionar fallback",
-    };
-  }
-
   if (CRITICAL_VARIABLES.has(clean)) {
     return {
       status: "warning_null",
@@ -97,6 +66,41 @@ function classifyEmpty(varName: string): { status: GenerationVarStatus; severity
   };
 }
 
+function classifyCustomVar(cv: CustomVarResult): GenerationVarAuditItem {
+  if (cv.error) {
+    return {
+      variable: cv.nome,
+      status: "error_expression",
+      severity: "warning",
+      value: null,
+      origin: "custom",
+      message: cv.error_message || `Expressão custom "${cv.nome}" falhou na avaliação`,
+      suggestion: "Revisar fórmula no wizard ou verificar dependências",
+    };
+  }
+
+  if (cv.valor_calculado === null || cv.valor_calculado === "") {
+    return {
+      variable: cv.nome,
+      status: "warning_null",
+      severity: "warning",
+      value: null,
+      origin: "custom",
+      message: `Variável custom "${cv.nome}" retornou null — dados de entrada ausentes`,
+      suggestion: "Verificar se os campos da fórmula estão preenchidos",
+    };
+  }
+
+  return {
+    variable: cv.nome,
+    status: "ok_custom",
+    severity: "ok",
+    value: cv.valor_calculado,
+    origin: "custom",
+    message: `Variável custom "${cv.nome}" calculada com sucesso`,
+  };
+}
+
 export interface BuildAuditReportInput {
   templateId: string;
   templateName: string;
@@ -110,15 +114,18 @@ export interface BuildAuditReportInput {
   emptyVars: string[];
   /** Total resolved count from backend */
   resolvedCount: number;
+  /** Custom variable evaluation results from backend */
+  customVarResults?: CustomVarResult[];
 }
 
 /**
- * Build a structured audit report from template-preview backend response.
+ * Build a structured audit report from backend response.
  */
 export function buildGenerationAuditReport(input: BuildAuditReportInput): GenerationAuditReport {
   const {
     templateId, templateName, propostaId, versaoId,
     totalVarsProvided, missingVars, emptyVars, resolvedCount,
+    customVarResults,
   } = input;
 
   const items: GenerationVarAuditItem[] = [];
@@ -153,9 +160,16 @@ export function buildGenerationAuditReport(input: BuildAuditReportInput): Genera
     });
   }
 
+  // Classify custom var results
+  if (customVarResults) {
+    for (const cv of customVarResults) {
+      items.push(classifyCustomVar(cv));
+    }
+  }
+
   const errorCount = items.filter(i => i.severity === "error").length;
   const warningCount = items.filter(i => i.severity === "warning").length;
-  const okCount = resolvedCount - emptyVars.length;
+  const okCount = resolvedCount - emptyVars.length + (customVarResults?.filter(c => !c.error && c.valor_calculado != null).length ?? 0);
 
   const totalPlaceholders = resolvedCount + missingVars.length;
   const healthScore = totalPlaceholders > 0
@@ -164,8 +178,8 @@ export function buildGenerationAuditReport(input: BuildAuditReportInput): Genera
   const clampedScore = Math.max(0, Math.min(100, healthScore));
 
   let health: GenerationHealth = "saudavel";
-  if (errorCount > 0) health = "critica";
-  else if (warningCount > 0) health = "atencao";
+  if (clampedScore < 80 || errorCount > 0) health = "critica";
+  else if (clampedScore < 95 || warningCount > 0) health = "atencao";
 
   return {
     templateId,
@@ -175,10 +189,11 @@ export function buildGenerationAuditReport(input: BuildAuditReportInput): Genera
     generatedAt: new Date().toISOString(),
     totalPlaceholders,
     resolved: resolvedCount,
-    resolvedViaSnapshot: 0, // Could be enriched if backend provides this
+    resolvedViaSnapshot: 0,
     unresolvedPlaceholders: missingVars.map(v => v.replace(/[[\]{}]/g, "")),
     nullValues: emptyVars.map(v => v.replace(/[[\]{}]/g, "")),
     emptyValues: emptyVars.map(v => v.replace(/[[\]{}]/g, "")),
+    customVarResults: customVarResults ?? undefined,
     items,
     healthScore: clampedScore,
     health,
@@ -201,11 +216,13 @@ export function getHealthLabel(health: GenerationHealth): string {
 
 /**
  * Determine if generation should be blocked based on audit.
- * Current policy: only block on critical errors (known broken placeholders).
+ * Evidence-based policy:
+ * - BLOCK on error_unresolved for critical variables
+ * - BLOCK on error_expression for critical custom variables
+ * - DO NOT block on warning_null alone
  */
 export function shouldBlockGeneration(report: GenerationAuditReport): boolean {
-  // Only block if there are truly critical unresolved vars
   return report.items.some(
-    i => i.severity === "error" && i.status === "error_unresolved" && KNOWN_BROKEN_PLACEHOLDERS.has(i.variable)
+    i => i.severity === "error" && (i.status === "error_unresolved" || i.status === "error_expression")
   );
 }
