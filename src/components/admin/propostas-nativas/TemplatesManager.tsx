@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
@@ -112,6 +113,7 @@ export function TemplatesManager() {
   const [previewTemplateId, setPreviewTemplateId] = useState<PropostaTemplateFull | null>(null);
   const [builderTemplateId, setBuilderTemplateId] = useState<PropostaTemplateFull | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // On-demand fetch of template_html for preview/builder
   const activeHtmlId = previewTemplateId?.id ?? builderTemplateId?.id ?? null;
@@ -337,7 +339,6 @@ export function TemplatesManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Excluir este template? Esta ação não pode ser desfeita.")) return;
     try {
       await deletarMutation.mutateAsync(id);
       toast({ title: "Template excluído com sucesso" });
@@ -350,6 +351,8 @@ export function TemplatesManager() {
           : e.message,
         variant: "destructive",
       });
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -628,7 +631,7 @@ export function TemplatesManager() {
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(t.id)} disabled={dialogOpen}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteConfirmId(t.id)} disabled={dialogOpen}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
@@ -670,6 +673,27 @@ export function TemplatesManager() {
           onClose={() => setBuilderTemplateId(null)}
         />
       )}
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O template será removido permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+              disabled={deletarMutation.isPending}
+            >
+              {deletarMutation.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
