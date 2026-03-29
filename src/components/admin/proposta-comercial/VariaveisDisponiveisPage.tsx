@@ -211,7 +211,7 @@ export function VariaveisDisponiveisPage() {
   const { categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
   // Dynamic variable usage data (replaces hardcoded DOCX_REAL_VARS / DOCX_BROKEN / DOCX_NULL_VARS)
-  const { isInDocx, hasError, hasWarning } = useVariableUsage();
+  const { usageMap } = useVariableUsage();
 
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
@@ -246,9 +246,10 @@ export function VariaveisDisponiveisPage() {
       const rm = resolverMap[key];
       const source = rm?.source ?? "unknown";
       const resolver = rm?.resolver ?? "";
-      const inDocx = isInDocx(key);
-      const docxBroken = hasError(key);
-      const docxNull = hasWarning(key);
+      const usageInfo = usageMap.get(key);
+      const inDocx = usageInfo?.inDocx ?? false;
+      const docxBroken = usageInfo?.isBroken ?? false;
+      const docxNull = usageInfo?.isNull ?? false;
 
       let status: EnrichedVariable["status"] = "ok";
       if (v.notImplemented) status = "pending";
@@ -282,8 +283,9 @@ export function VariaveisDisponiveisPage() {
     customVarsRaw.forEach((cv) => {
       const alreadyInCatalog = items.some((i) => i.key === cv.nome);
       if (!alreadyInCatalog) {
-        const inDocx = isInDocx(cv.nome);
-        const docxNull = hasWarning(cv.nome);
+        const cvUsage = usageMap.get(cv.nome);
+        const inDocx = cvUsage?.inDocx ?? false;
+        const docxNull = cvUsage?.isNull ?? false;
       const tipoResultado = cv.tipo_resultado || "number";
       const isTextVar = tipoResultado === "text";
         items.push({
@@ -318,7 +320,7 @@ export function VariaveisDisponiveisPage() {
     });
 
     return items;
-  }, [customVarsRaw, resolverMap]);
+  }, [customVarsRaw, resolverMap, usageMap]);
 
   // ── Governance-enriched: mark legacy/wizard input vars ──
   const governanceVariables = useMemo(() => {
@@ -1214,12 +1216,12 @@ export function VariaveisDisponiveisPage() {
               <p>
                 Você está prestes a excluir a variável <code className="font-mono text-foreground bg-muted px-1.5 py-0.5 rounded text-xs">[{deleteTarget?.nome}]</code> ({deleteTarget?.label}).
               </p>
-              {deleteTarget && isInDocx(deleteTarget.nome) && (
+               {deleteTarget && (usageMap.get(deleteTarget.nome)?.inDocx ?? false) && (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-                  <strong>⚠️ Atenção:</strong> Esta variável está em uso em templates DOCX ativos. Excluí-la pode causar placeholders não resolvidos no PDF gerado.
-                </div>
-              )}
-              {deleteTarget && hasWarning(deleteTarget.nome) && (
+                   <strong>⚠️ Atenção:</strong> Esta variável está em uso em templates DOCX ativos. Excluí-la pode causar placeholders não resolvidos no PDF gerado.
+                 </div>
+               )}
+               {deleteTarget && (usageMap.get(deleteTarget.nome)?.isNull ?? false) && (
                 <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-warning">
                   <strong>⚠️ Aviso:</strong> Esta variável já apresenta valor nulo em algumas gerações.
                 </div>
