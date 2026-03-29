@@ -200,26 +200,26 @@ export function AuditTabContent({
             <span className="text-[10px] text-muted-foreground">— Referenciam colunas que não existem mais no banco</span>
           </div>
           <div className="rounded-lg border border-destructive/20 overflow-hidden">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-destructive/5 border-b border-destructive/10">
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[30px]">⚠️</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Variável</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Problema</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ghostVariables.map((g, idx) => (
-                  <tr key={g.key} className={cn("border-b border-border/40", idx % 2 === 0 ? "bg-card" : "bg-muted/10")}>
-                    <td className="px-3 py-2"><Ghost className="h-3 w-3 text-destructive" /></td>
-                    <td className="px-3 py-2"><span className="text-[11px] font-medium text-foreground">{g.label}</span></td>
-                    <td className="px-3 py-2"><code className="font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded text-[10px]">[{g.key}]</code></td>
-                    <td className="px-3 py-2"><span className="text-[10px] text-destructive">{g.reason}</span></td>
-                  </tr>
+            <ShadTable>
+              <ShadTableHeader>
+                <ShadTableRow className="bg-destructive/5 hover:bg-destructive/5">
+                  <ShadTableHead className="text-[10px] w-[30px]">⚠️</ShadTableHead>
+                  <ShadTableHead className="text-[10px]">Variável</ShadTableHead>
+                  <ShadTableHead className="text-[10px]">Chave</ShadTableHead>
+                  <ShadTableHead className="text-[10px]">Problema</ShadTableHead>
+                </ShadTableRow>
+              </ShadTableHeader>
+              <ShadTableBody>
+                {ghostVariables.map((g) => (
+                  <ShadTableRow key={g.key}>
+                    <ShadTableCell className="py-2"><Ghost className="h-3 w-3 text-destructive" /></ShadTableCell>
+                    <ShadTableCell className="py-2"><span className="text-[11px] font-medium text-foreground">{g.label}</span></ShadTableCell>
+                    <ShadTableCell className="py-2"><code className="font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded text-[10px]">[{g.key}]</code></ShadTableCell>
+                    <ShadTableCell className="py-2"><span className="text-[10px] text-destructive">{g.reason}</span></ShadTableCell>
+                  </ShadTableRow>
                 ))}
-              </tbody>
-            </table>
+              </ShadTableBody>
+            </ShadTable>
           </div>
         </div>
       )}
