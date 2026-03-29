@@ -85,7 +85,7 @@ export const CATEGORY_ORDER: VariableCategory[] = [
 
 export type VariableAppliesTo = "BT" | "MT" | "BT e MT";
 
-export type VariableEscopo = "proposta" | "documento";
+export type VariableEscopo = "proposta" | "documento" | "aspiracional";
 
 export interface CatalogVariable {
   /** Chave canônica: {{grupo.campo}} */
