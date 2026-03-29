@@ -82,12 +82,11 @@ export function useVariableTester() {
           .replace(/^\{\{|\}\}$/g, "")
           .replace(/\./g, "_");
 
-        // Call template-preview to resolve variables
+        // Call template-preview in resolve_variables mode (no template needed)
         const data = await invokeEdgeFunction<any>("template-preview", {
           body: {
             proposta_id: propostaId,
             mode: "resolve_variables",
-            variables: [cleanKey],
           },
           headers: { "x-client-timeout": "30" },
         });
