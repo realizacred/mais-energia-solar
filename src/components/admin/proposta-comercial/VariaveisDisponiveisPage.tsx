@@ -378,7 +378,15 @@ export function VariaveisDisponiveisPage() {
 
     // Category filter
     if (activeCategory !== "todas" && activeCategory !== "auditoria") {
-      items = items.filter((v) => v.category === activeCategory);
+      if (activeCategory === "campo_pre") {
+        items = items.filter((v) => v._dynamicContext === "pre_dimensionamento");
+      } else if (activeCategory === "campo_pos") {
+        items = items.filter((v) => v._dynamicContext === "pos_dimensionamento");
+      } else if (activeCategory === "campo_projeto") {
+        items = items.filter((v) => v._dynamicContext === "projeto");
+      } else {
+        items = items.filter((v) => v.category === activeCategory);
+      }
     }
 
     // Status filter
