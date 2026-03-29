@@ -5,6 +5,7 @@ import {
   FileText, Clock, Bug
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useVariableUsage } from "@/hooks/useVariableUsage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,16 +39,7 @@ const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: stri
   missing_db: { icon: XCircle, color: "text-destructive", label: "Falta no banco" },
 };
 
-// ── DOCX audit data — now sourced from useVariableUsage hook ──
-// Known issues baseline (used when no generation reports are available)
-const KNOWN_PROBLEMS = [
-  { variavel: "capo_m", tipo: "Placeholder legado", status: "resolvido" as const, causa: "Resolver adicionado em resolveFinanceiro — fallback para snapshot.capo_m / capital_melhoria", correcao: "✅ Corrigido — retorna vazio se não definido no snapshot" },
-  { variavel: "capo_seguro", tipo: "Placeholder legado", status: "resolvido" as const, causa: "Resolver adicionado em resolveFinanceiro — fallback para snapshot.capo_seguro / capital_seguro", correcao: "✅ Corrigido — input do wizard para cálculo de seguro" },
-  { variavel: "vc_aumento", tipo: "Custom — expressão", status: "nulo" as const, causa: "Fórmula depende de consumo_total e geracao_estimada — contexto já fornecido no proposal-generate", correcao: "Verificar se expressão no banco está correta e usa [consumo_total] / [geracao_estimada]" },
-  { variavel: "vc_calculo_seguro", tipo: "Custom — expressão", status: "nulo" as const, causa: "Fórmula depende de capo_seguro e valor_total — valor depende do input do wizard", correcao: "Verificar se capo_seguro é preenchido no wizard da proposta" },
-  { variavel: "vc_garantiaservico", tipo: "Custom — texto", status: "nulo" as const, causa: "Variável de texto (tipo_resultado=text) — avaliada como expressão numérica retorna null", correcao: "Variável de texto é passada via snapshot, não via evaluateExpression. Verificar se está no snapshot." },
-  { variavel: "vc_string_box_cc", tipo: "Custom — texto", status: "nulo" as const, causa: "Variável de texto condicional — avaliada como expressão numérica retorna null", correcao: "Variável de texto é passada via snapshot, não via evaluateExpression. Verificar se está no snapshot." },
-];
+// Problems are now derived dynamically from useVariableUsage — no hardcoded list.
 
 // ── Main Component ──────────────────────────────────────────
 export function AuditTabContent({
@@ -70,23 +62,52 @@ export function AuditTabContent({
 
   const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences, categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
-  // Dynamic variable usage data (replaces hardcoded DOCX_AUDIT)
-  const { summary: usageSummary } = useVariableUsage();
+  // Dynamic variable usage data — 100% evidence-based from generation_audit_json
+  const { summary: usageSummary, usageMap } = useVariableUsage();
+  const queryClient = useQueryClient();
+
+  // Derive real problems dynamically from audit evidence
+  const dynamicProblems = useMemo(() => {
+    const problems: Array<{ variavel: string; tipo: string; status: "nulo" | "resolvido" | "quebrada"; causa: string; correcao: string }> = [];
+    for (const [key, info] of usageMap.entries()) {
+      if (info.isBroken) {
+        problems.push({
+          variavel: key,
+          tipo: "Sem resolver",
+          status: "quebrada",
+          causa: "Placeholder encontrado no DOCX mas sem resolver mapeado",
+          correcao: "Adicionar resolver no frontend e backend ou remover do template DOCX",
+        });
+      } else if (info.isNull) {
+        problems.push({
+          variavel: key,
+          tipo: "Valor nulo",
+          status: "nulo",
+          causa: "Resolver existe mas retornou null na última geração",
+          correcao: "Verificar dados de entrada ou fallback do resolver",
+        });
+      }
+    }
+    return problems;
+  }, [usageMap]);
+
   const docxAudit = useMemo(() => ({
     templatesAtivos: usageSummary.totalTemplates,
     totalVariaveis: usageSummary.totalInDocx + usageSummary.totalBroken + usageSummary.totalNull,
     okExplicitas: usageSummary.totalOk,
-    viaCustomSnapshot: usageSummary.totalInDocx - usageSummary.totalOk, // approximate
+    viaCustomSnapshot: usageSummary.totalInDocx - usageSummary.totalOk,
     quebradas: usageSummary.totalBroken,
     comValorNulo: usageSummary.totalNull,
     lastAuditDate: usageSummary.lastAuditDate ?? new Date().toISOString().slice(0, 10),
-    problemas: KNOWN_PROBLEMS,
-  }), [usageSummary]);
+    problemas: dynamicProblems,
+  }), [usageSummary, dynamicProblems]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       await onRefresh();
+      // Also invalidate the generation audit reports query to get fresh DOCX data
+      await queryClient.invalidateQueries({ queryKey: ["generation-audit-reports-latest"] });
       toast.success("Análise concluída com sucesso");
     } catch {
       toast.error("Erro ao reanalisar variáveis");
@@ -94,7 +115,7 @@ export function AuditTabContent({
       setLastRefresh(new Date());
       setTimeout(() => setIsRefreshing(false), 600);
     }
-  }, [onRefresh]);
+  }, [onRefresh, queryClient]);
 
   // ── Filtered schema fields ──────────────────────────────────
   const filteredFields = useMemo(() => {
@@ -208,12 +229,18 @@ export function AuditTabContent({
           </div>
         </div>
 
-        {/* Problems table */}
+        {/* Problems table — dynamic from generation audit evidence */}
+        {!usageSummary.hasAuditData && (
+          <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-center gap-2">
+            <Info className="h-3.5 w-3.5 shrink-0" />
+            <span>Nenhum relatório de geração encontrado. Gere uma proposta para popular os dados de auditoria real dos templates DOCX.</span>
+          </div>
+        )}
         {docxAudit.problemas.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Bug className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-xs font-semibold text-foreground">Problemas Reais dos Templates Ativos</span>
+              <span className="text-xs font-semibold text-foreground">Problemas Detectados nos Templates</span>
               <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
                 {docxAudit.problemas.length}
               </Badge>
@@ -233,8 +260,8 @@ export function AuditTabContent({
                   {docxAudit.problemas.map((p) => (
                     <ShadTableRow key={p.variavel}>
                       <ShadTableCell className="py-2">
-                        {p.status === "resolvido" ? (
-                          <CheckCircle2 className="h-3 w-3 text-success" />
+                        {p.status === "quebrada" ? (
+                          <XCircle className="h-3 w-3 text-destructive" />
                         ) : (
                           <AlertTriangle className="h-3 w-3 text-warning" />
                         )}
@@ -242,13 +269,13 @@ export function AuditTabContent({
                       <ShadTableCell className="py-2">
                         <code className={cn(
                           "font-mono px-1.5 py-0.5 rounded text-[10px]",
-                          p.status === "resolvido" ? "text-success bg-success/5" : "text-warning bg-warning/5"
+                          p.status === "quebrada" ? "text-destructive bg-destructive/5" : "text-warning bg-warning/5"
                         )}>[{p.variavel}]</code>
                       </ShadTableCell>
                       <ShadTableCell className="py-2">
                         <Badge variant="outline" className={cn(
                           "text-[8px]",
-                          p.status === "resolvido" ? "bg-success/10 text-success border-success/20" : "bg-warning/10 text-warning border-warning/20"
+                          p.status === "quebrada" ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-warning/10 text-warning border-warning/20"
                         )}>
                           {p.tipo}
                         </Badge>
