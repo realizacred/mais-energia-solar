@@ -85,6 +85,8 @@ export const CATEGORY_ORDER: VariableCategory[] = [
 
 export type VariableAppliesTo = "BT" | "MT" | "BT e MT";
 
+export type VariableEscopo = "proposta" | "documento";
+
 export interface CatalogVariable {
   /** Chave canônica: {{grupo.campo}} */
   canonicalKey: string;
@@ -106,6 +108,8 @@ export interface CatalogVariable {
   isSeries?: boolean;
   /** Se ainda não está implantado */
   notImplemented?: boolean;
+  /** Escopo: proposta (default) ou documento (contratos/termos) */
+  escopo?: VariableEscopo;
 }
 
 // ── Helper para criar variáveis rapidamente ──────────────────
