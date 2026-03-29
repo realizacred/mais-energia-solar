@@ -103,7 +103,7 @@ export default function PropostaPublica() {
         supabase.rpc("registrar_heartbeat_proposta" as any, {
           p_token: heartbeatTokenRef.current,
           p_segundos: 30,
-        }).catch(() => {}); // best-effort
+        }).then(() => {}).catch?.(() => {}); // best-effort
       }
     }, 30_000); // every 30 seconds
   };
@@ -125,7 +125,7 @@ export default function PropostaPublica() {
           supabase.rpc("registrar_heartbeat_proposta" as any, {
             p_token: heartbeatTokenRef.current,
             p_segundos: 15, // partial interval
-          }).catch(() => {});
+          }).then(() => {}).catch?.(() => {});
         }
         stopHeartbeat();
       } else if (document.visibilityState === "visible" && tokenData?.token) {
