@@ -172,11 +172,11 @@ export function useNotifications() {
 
           // Batch-fetch projeto_id + cliente_nome for unique proposta_ids
           const propostaIds = uniqueEvents.map((e) => e.proposta_id);
-          const { data: propostas } = await supabase
+          const { data: propostas } = await (supabase as any)
             .from("propostas_nativas")
-            .select("id, projeto_id, cliente_nome, codigo")
+            .select("id, projeto_id, codigo")
             .in("id", propostaIds);
-          const propostaMap = new Map((propostas || []).map((p) => [p.id, p]));
+          const propostaMap = new Map((propostas || []).map((p: any) => [p.id, p]));
 
           for (const ev of uniqueEvents) {
             const payload = typeof ev.payload === "string" ? JSON.parse(ev.payload) : ev.payload;
