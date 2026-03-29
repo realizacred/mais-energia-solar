@@ -160,22 +160,41 @@ export function useNotifications() {
           .gte("created_at", last24h)
           .order("created_at", { ascending: false })
           .limit(10);
-        if (proposalEvents) {
-          // Deduplicate: show only the LATEST event per proposta_id
+        if (proposalEvents && proposalEvents.length > 0) {
+          // Deduplicate: only latest per proposta_id
           const seenPropostas = new Set<string>();
+          const uniqueEvents: any[] = [];
           for (const ev of proposalEvents as any[]) {
             if (seenPropostas.has(ev.proposta_id)) continue;
             seenPropostas.add(ev.proposta_id);
+            uniqueEvents.push(ev);
+          }
+
+          // Batch-fetch projeto_id + cliente_nome for unique proposta_ids
+          const propostaIds = uniqueEvents.map((e) => e.proposta_id);
+          const { data: propostas } = await (supabase as any)
+            .from("propostas_nativas")
+            .select("id, projeto_id, codigo")
+            .in("id", propostaIds);
+          const propostaMap = new Map((propostas || []).map((p: any) => [p.id, p]));
+
+          for (const ev of uniqueEvents) {
             const payload = typeof ev.payload === "string" ? JSON.parse(ev.payload) : ev.payload;
             const isFirst = payload?.first_view === true;
             const viewCount = payload?.view_count || 1;
+            const proposta: any = propostaMap.get(ev.proposta_id);
+            const projetoId = proposta?.projeto_id;
+            const clienteLabel = proposta?.codigo || "Proposta";
+            const link = projetoId
+              ? `/admin/projetos?projeto=${projetoId}&tab=propostas`
+              : "/admin/projetos";
             items.push({
               id: `pv-${ev.id}`,
               type: "proposal_view",
               title: isFirst ? "Proposta aberta pela 1ª vez 👀" : `Proposta visualizada (${viewCount}x)`,
-              description: `Proposta acessada via link rastreado`,
+              description: `${clienteLabel} — via link rastreado`,
               timestamp: ev.created_at,
-              link: "/admin/projetos",
+              link,
             });
           }
         }
