@@ -98,12 +98,14 @@ export default function PropostaPublica() {
   const startHeartbeat = (tokenValue: string) => {
     if (heartbeatRef.current) return; // already running
     heartbeatTokenRef.current = tokenValue;
-    heartbeatRef.current = setInterval(() => {
+    heartbeatRef.current = setInterval(async () => {
       if (heartbeatTokenRef.current) {
-        supabase.rpc("registrar_heartbeat_proposta" as any, {
-          p_token: heartbeatTokenRef.current,
-          p_segundos: 30,
-        }).then(() => {}).catch?.(() => {}); // best-effort
+        try {
+          await supabase.rpc("registrar_heartbeat_proposta" as any, {
+            p_token: heartbeatTokenRef.current,
+            p_segundos: 30,
+          });
+        } catch { /* best-effort */ }
       }
     }, 30_000); // every 30 seconds
   };
@@ -122,10 +124,12 @@ export default function PropostaPublica() {
       if (document.visibilityState === "hidden") {
         // Send final heartbeat before pausing
         if (heartbeatTokenRef.current) {
-          supabase.rpc("registrar_heartbeat_proposta" as any, {
-            p_token: heartbeatTokenRef.current,
-            p_segundos: 15, // partial interval
-          }).then(() => {}).catch?.(() => {});
+          try {
+            await supabase.rpc("registrar_heartbeat_proposta" as any, {
+              p_token: heartbeatTokenRef.current,
+              p_segundos: 15,
+            });
+          } catch { /* best-effort */ }
         }
         stopHeartbeat();
       } else if (document.visibilityState === "visible" && tokenData?.token) {
