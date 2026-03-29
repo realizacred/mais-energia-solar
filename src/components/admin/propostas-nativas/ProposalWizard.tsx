@@ -2075,10 +2075,38 @@ export function ProposalWizard() {
       }
     }
 
-    // Intercept: when advancing FROM Resumo → show pos-dimensionamento dialog
+    // Intercept: when advancing FROM Resumo → run validation gate THEN pos-dimensionamento
     const nextKey = activeSteps[step + 1]?.key;
     if (currentStepKey === STEP_KEYS.RESUMO && nextKey === STEP_KEYS.PROPOSTA) {
-      // Auto-fill nome if empty
+      // Run canonical validation before allowing navigation
+      const validation = validatePropostaFinal({
+        cliente,
+        selectedLead,
+        ucs,
+        itens,
+        servicos,
+        venda,
+        pagamentoOpcoes,
+        potenciaKwp,
+        precoFinal,
+        geracaoMensalKwh: geracaoMensalEstimada,
+        consumoTotal,
+        locEstado,
+        locCidade,
+        locDistribuidoraNome: locDistribuidoraNome,
+        templateSelecionado,
+      });
+
+      console.debug("[ProposalWizard] Resumo→Proposta validation:", validation);
+
+      // If there are errors or warnings → show gate modal (blocks navigation)
+      if (!validation.canGenerate || validation.needsConfirmation) {
+        setGateValidation(validation);
+        setShowGateModal(true);
+        return;
+      }
+
+      // Validation clean → show pos-dimensionamento dialog
       if (!nomeProposta && (cliente.nome || selectedLead?.nome)) {
         setNomeProposta(cliente.nome || selectedLead?.nome || "");
       }
