@@ -685,6 +685,37 @@ export function VariaveisDisponiveisPage() {
                 </Button>
               );
             })}
+
+            {/* Dynamic deal custom field category tabs */}
+            {(["pre_dimensionamento", "pos_dimensionamento", "projeto"] as const).map((ctx) => {
+              const count = dynamicContextCounts[ctx] || 0;
+              if (count === 0) return null;
+              const viewKey = ctx === "pre_dimensionamento" ? "campo_pre" : ctx === "pos_dimensionamento" ? "campo_pos" : "campo_projeto";
+              const isActive = activeCategory === viewKey;
+              const icon = FIELD_CONTEXT_ICONS[ctx] ?? "📋";
+              const label = ctx === "pre_dimensionamento" ? "Pré-dim" : ctx === "pos_dimensionamento" ? "Pós-dim" : "Projeto";
+              return (
+                <Button
+                  key={viewKey}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveCategory(viewKey)}
+                  className={cn(
+                    "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
+                    isActive
+                      ? "bg-info text-info-foreground shadow-sm ring-1 ring-info/20 hover:bg-info/90"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
+                  )}
+                >
+                  <span className="text-xs">{icon}</span>
+                  <span>{label}</span>
+                  <span className={cn("text-[9px] font-mono tabular-nums ml-0.5", isActive ? "text-info-foreground/70" : "text-muted-foreground/40")}>
+                    {count}
+                  </span>
+                </Button>
+              );
+            })}
+
             <Button
               variant="ghost"
               size="sm"
