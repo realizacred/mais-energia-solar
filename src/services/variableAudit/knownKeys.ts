@@ -342,6 +342,29 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "consultor_nome", "responsavel_nome", "consultor_telefone", "consultor_email",
   "empresa_nome", "proposta_data", "proposta_titulo", "proposta_identificador",
   "proposta_validade", "proposta_versao",
+  // Proposta metadados (new)
+  "proposta_status", "proposta_aceita_at", "proposta_enviada_at",
+  "proposta_recusa_motivo", "proposta_recusada_at", "proposta_viewed_at",
+  "proposta_versao_status", "proposta_output_docx_path", "proposta_output_pdf_path",
+  "proposta_num",
+  // Premissas da proposta (new)
+  "proposta_inflacao_energetica", "proposta_perda_eficiencia_anual", "proposta_sobredimensionamento",
+  // Empresa / brand_settings (new)
+  "empresa_cnpj_cpf", "empresa_cidade", "empresa_estado", "empresa_logo_url",
+  "empresa_representante_legal", "empresa_representante_cpf", "empresa_representante_cargo",
+  // Projeto (new)
+  "projeto_id_externo", "projeto_valor_equipamentos", "projeto_valor_mao_obra",
+  "projeto_data_venda", "projeto_data_instalacao", "projeto_status",
+  "projeto_observacoes", "projeto_forma_pagamento", "projeto_valor_entrada",
+  "projeto_numero_parcelas", "projeto_valor_parcela", "projeto_valor_financiado",
+  // Concessionária (new)
+  "concessionaria_sigla", "concessionaria_estado", "concessionaria_tarifa_fio_b",
+  "concessionaria_custo_disponibilidade_monofasico",
+  "concessionaria_custo_disponibilidade_bifasico",
+  "concessionaria_custo_disponibilidade_trifasico",
+  "concessionaria_aliquota_icms", "concessionaria_possui_isencao_scee",
+  // Simulação (new)
+  "simulacao_tipo_conta",
   // Conta energia (passthrough from snapshot)
   "gasto_atual_mensal", "gasto_com_solar_mensal", "economia_percentual",
   "creditos_mensal", "tarifa_atual", "imposto_percentual", "bandeira_tarifaria",
