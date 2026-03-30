@@ -603,6 +603,7 @@ export function VariaveisDisponiveisPage() {
   };
 
   const isAuditView = activeCategory === "auditoria";
+  const isCleanupView = activeCategory === "limpeza";
 
   if (loadingCustom) {
     return (
