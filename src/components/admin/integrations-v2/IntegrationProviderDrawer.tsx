@@ -44,6 +44,7 @@ export function IntegrationProviderDrawer({
   const [saving, setSaving] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
+  const [savedSecrets, setSavedSecrets] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
 
   const isConnected = connStatus === "connected";
@@ -53,6 +54,11 @@ export function IntegrationProviderDrawer({
   const hasFields = fields.length > 0 && !isComingSoon;
 
   const iconUrl = getProviderIconUrl(provider.id);
+
+  const isSecretField = (field: CredentialField) => {
+    const key = field.key.toLowerCase();
+    return field.type === "password" || key.includes("secret") || key.includes("token") || key.includes("password");
+  };
 
   // Pre-fill credentials
   useEffect(() => {
@@ -89,23 +95,46 @@ export function IntegrationProviderDrawer({
         }
 
         const prefilled: Record<string, string> = {};
+        const secrets: Record<string, boolean> = {};
+
         for (const field of fields) {
           const val = merged[field.key];
-          if (val && typeof val === "string" && field.type !== "password" && !field.key.toLowerCase().includes("secret")) {
+          if (!val || typeof val !== "string") continue;
+
+          if (isSecretField(field)) {
+            secrets[field.key] = true;
+          } else {
             prefilled[field.key] = val;
           }
         }
+
         if (Object.keys(prefilled).length > 0) setFormValues(prefilled);
-      } catch { /* silent */ }
+        if (Object.keys(secrets).length > 0) setSavedSecrets(secrets);
+      } catch {
+        // silent
+      }
       setLoaded(true);
     })();
   }, [open, provider.id, loaded]);
 
   const handleFieldChange = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormValues((prev) => ({ ...prev, [key]: e.target.value }));
+    const value = e.target.value;
+    setFormValues((prev) => ({ ...prev, [key]: value }));
+
+    if (value.trim() !== "") {
+      setSavedSecrets((prev) => {
+        if (!prev[key]) return prev;
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
   };
 
-  const isValid = fields.every((f) => !f.required || (formValues[f.key] && formValues[f.key].trim() !== ""));
+  const isValid = fields.every((f) => {
+    if (!f.required) return true;
+    return !!formValues[f.key]?.trim() || !!savedSecrets[f.key];
+  });
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -134,6 +163,7 @@ export function IntegrationProviderDrawer({
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       setFormValues({});
+      setSavedSecrets({});
       setLoaded(false);
     }
     onOpenChange(isOpen);
