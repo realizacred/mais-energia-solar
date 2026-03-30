@@ -166,7 +166,29 @@ function sanitizeSnapshot(snapshot: any): Record<string, unknown> {
   if (!snapshot) return snapshot;
    
   const { mapSnapshots, ...rest } = snapshot;
-  return { ...rest, grupo: normalizeGrupo(rest.grupo), schema_version: SNAPSHOT_SCHEMA_VERSION };
+  const result: Record<string, unknown> = { ...rest, grupo: normalizeGrupo(rest.grupo), schema_version: SNAPSHOT_SCHEMA_VERSION };
+
+  // ── Enrich: flatten warranty from kit items into snapshot root ──
+  // Ensures modulo_garantia and inversor_garantia are persisted for resolvers
+  try {
+    const itens = (result.itens ?? (result as any).kit?.itens) as Array<Record<string, any>> | undefined;
+    if (Array.isArray(itens)) {
+      const modulo = itens.find((i) => {
+        const cat = String(i.categoria || i.tipo || "").toLowerCase();
+        return cat.includes("modulo") || cat.includes("painel") || cat.includes("placa");
+      });
+      const inversor = itens.find((i) => String(i.categoria || i.tipo || "").toLowerCase().includes("inversor"));
+
+      if (modulo?.garantia_produto_anos != null && !result.modulo_garantia) {
+        result.modulo_garantia = String(modulo.garantia_produto_anos);
+      }
+      if (inversor?.garantia_anos != null && !result.inversor_garantia) {
+        result.inversor_garantia = String(inversor.garantia_anos);
+      }
+    }
+  } catch { /* never break save for enrichment */ }
+
+  return result;
 }
 
 function buildIntentKey(params: PersistenceParams, intent: SaveIntent): string {
