@@ -146,6 +146,7 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       setFormValues({});
+      setSavedSecrets({});
       setLoaded(false);
     }
     onOpenChange(isOpen);
