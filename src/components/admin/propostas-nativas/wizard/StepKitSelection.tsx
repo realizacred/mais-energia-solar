@@ -168,7 +168,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     if (tab !== "catalogo" || catalogLoaded.current) return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits(true) // only generators
+    fetchActiveKits(false) // show all products including components from all brands
       .then(async (kits) => {
         setCatalogKits(kits);
         catalogLoaded.current = true;
@@ -257,10 +257,36 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         } : {}),
       };
 
-      if (card) {
-        card.distribuidorNome = distribLabel;
-        if (meta.custo) card.precoTotal = meta.custo;
-        setManualKits([{ card, itens: rows, meta }]);
+      // For integrated kits, build fallback card from catalog metadata if rows-based card fails
+      let finalCard = card;
+      if (!finalCard && isIntegratedKit && catalogKit) {
+        const estKwp = catalogKit.estimated_kwp || 0;
+        const invKw = catalogKit.potencia_inversor || 0;
+        finalCard = {
+          id: `catalog-${kitId}`,
+          distribuidorNome: distribLabel,
+          moduloDescricao: catalogKit.potencia_modulo
+            ? `${catalogKit.fabricante || "Módulo"} ${catalogKit.potencia_modulo}W`
+            : catalogKit.name,
+          moduloQtd: estKwp > 0 && catalogKit.potencia_modulo
+            ? Math.round((estKwp * 1000) / catalogKit.potencia_modulo)
+            : 1,
+          moduloPotenciaKwp: estKwp,
+          inversorDescricao: invKw > 0
+            ? `${catalogKit.fabricante || "Inversor"} ${invKw}kW`
+            : "—",
+          inversorQtd: invKw > 0 ? 1 : 0,
+          inversorPotenciaKw: invKw,
+          topologia: topoLabel,
+          precoTotal: meta.custo || 0,
+          precoWp: estKwp > 0 ? (meta.custo || 0) / (estKwp * 1000) : 0,
+          updatedAt: formatDate(new Date()),
+        };
+      }
+      if (finalCard) {
+        finalCard.distribuidorNome = distribLabel;
+        if (meta.custo) finalCard.precoTotal = meta.custo;
+        setManualKits([{ card: finalCard, itens: rows, meta }]);
       }
 
       const itemLabel = rows.length > 0 ? `${rows.length} item(ns).` : "Kit integrado selecionado.";
