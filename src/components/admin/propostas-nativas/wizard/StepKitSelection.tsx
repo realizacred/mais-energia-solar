@@ -401,7 +401,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       }
     }
     setManualMode(null);
-    setTab("manual");
+    setTab("customizado");
   };
 
   const handleDeleteManualKit = (index: number) => {
