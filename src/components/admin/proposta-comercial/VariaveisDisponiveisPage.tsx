@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { useVariableHealth, type HealthClassification } from "@/hooks/useVariableHealth";
 import { useVariableGovernance, type GovernanceFilter, type GovernanceRecord } from "@/hooks/useVariableGovernance";
+import { useVariableCleanup } from "@/hooks/useVariableCleanup";
+import { CleanupPanel } from "./CleanupPanel";
 import { VariableTester } from "./VariableTester";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -163,7 +165,7 @@ interface EnrichedVariable {
 }
 
 type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "documento" | "aspiracional" | "campo_dinamico" | "health_critical" | "health_unstable" | "health_healthy" | "health_unused";
-type ActiveView = VariableCategory | "todas" | "auditoria" | "campo_pre" | "campo_pos" | "campo_projeto";
+type ActiveView = VariableCategory | "todas" | "auditoria" | "limpeza" | "campo_pre" | "campo_pos" | "campo_projeto";
 
 /* ── Semantic explanations for known variables ── */
 const SEMANTIC_EXPLANATIONS: Record<string, string> = {
@@ -229,6 +231,9 @@ export function VariaveisDisponiveisPage() {
   // Governance classification
   const dynamicFieldKeysList = useMemo(() => dealCustomFields.map(d => d.field_key), [dealCustomFields]);
   const { records: govRecords, summary: govSummary, getRecord: getGovRecord, filterOptions: govFilterOptions, filterRecords: govFilterRecords } = useVariableGovernance(customVarsRaw, dynamicFieldKeysList);
+
+  // Cleanup engine
+  const { records: cleanupRecords, summary: cleanupSummary } = useVariableCleanup(govRecords, usageMap);
 
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
@@ -388,7 +393,7 @@ export function VariaveisDisponiveisPage() {
     let items = [...governanceVariables];
 
     // Category filter
-    if (activeCategory !== "todas" && activeCategory !== "auditoria") {
+    if (activeCategory !== "todas" && activeCategory !== "auditoria" && activeCategory !== "limpeza") {
       if (activeCategory === "campo_pre") {
         items = items.filter((v) => v._dynamicContext === "pre_dimensionamento");
       } else if (activeCategory === "campo_pos") {
@@ -598,6 +603,7 @@ export function VariaveisDisponiveisPage() {
   };
 
   const isAuditView = activeCategory === "auditoria";
+  const isCleanupView = activeCategory === "limpeza";
 
   if (loadingCustom) {
     return (
@@ -833,11 +839,25 @@ export function VariaveisDisponiveisPage() {
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Auditoria</span>
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveCategory("limpeza")}
+              className={cn(
+                "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
+                activeCategory === "limpeza"
+                  ? "bg-destructive text-destructive-foreground shadow-sm ring-1 ring-destructive/20 hover:bg-destructive/90"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
+              )}
+            >
+              <Archive className="h-3.5 w-3.5" />
+              <span>Limpeza</span>
+            </Button>
           </div>
         </div>
 
         {/* Search + status filters */}
-        {!isAuditView && (
+        {!isAuditView && !isCleanupView && (
           <div className="px-3 py-2.5 border-b border-border flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[200px] max-w-sm">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
@@ -950,6 +970,10 @@ export function VariaveisDisponiveisPage() {
               setModalOpen(true);
             }}
           />
+        ) : isCleanupView ? (
+          <div className="p-4">
+            <CleanupPanel records={cleanupRecords} summary={cleanupSummary} />
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
