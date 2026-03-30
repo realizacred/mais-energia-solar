@@ -1,10 +1,9 @@
-import { useState } from "react";
-import { Search, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface FilterSection {
@@ -27,37 +26,44 @@ function CollapsibleFilter({ label, open, onToggle, children }: FilterSection) {
 }
 
 export interface KitFiltersState {
-  tipoSistema: "on_grid" | "hibrido" | "off_grid";
-  buscarPor: "consumo" | "potencia" | "quantidade" | "area";
-  buscarValor: number;
-  tipoKit: { customizado: boolean; fechado: boolean };
-  topologia: { microinversor: boolean; otimizador: boolean; tradicional: boolean };
+  potenciaMin: number;
+  potenciaMax: number;
+  searchText: string;
+  fabricanteInversor: string; // "" = Todos
+  inversorModelo: string; // "" = Todos
   searchDistribuidor: string;
   searchModulo: string;
   searchInversor: string;
 }
 
 export const DEFAULT_FILTERS: KitFiltersState = {
-  tipoSistema: "on_grid",
-  buscarPor: "consumo",
-  buscarValor: 0,
-  tipoKit: { customizado: true, fechado: true },
-  topologia: { microinversor: true, otimizador: true, tradicional: true },
+  potenciaMin: 0,
+  potenciaMax: 1000,
+  searchText: "",
+  fabricanteInversor: "",
+  inversorModelo: "",
   searchDistribuidor: "",
   searchModulo: "",
   searchInversor: "",
 };
 
+/** Options extracted from catalog data for dynamic dropdowns */
+export interface KitFilterOptions {
+  fabricantesInversor: string[];
+  modelosInversor: string[];
+}
+
 interface KitFiltersProps {
   filters: KitFiltersState;
   onFiltersChange: (f: KitFiltersState) => void;
   consumoMensal?: number;
+  options?: KitFilterOptions;
 }
 
-export function KitFilters({ filters, onFiltersChange, consumoMensal }: KitFiltersProps) {
+export function KitFilters({ filters, onFiltersChange, consumoMensal, options }: KitFiltersProps) {
   const [openSections, setOpenSections] = useState({
-    sistema: true, buscar: true, tipo: true, topologia: true,
-    distribuidor: true, modulos: false, inversores: false,
+    potencia: true, buscar: true, fabricanteInv: true,
+    inversores: true, distribuidor: false, modulos: false,
   });
 
   const toggle = (key: keyof typeof openSections) =>
@@ -66,105 +72,98 @@ export function KitFilters({ filters, onFiltersChange, consumoMensal }: KitFilte
   const update = (partial: Partial<KitFiltersState>) =>
     onFiltersChange({ ...filters, ...partial });
 
-  const clearFilters = () => onFiltersChange({ ...DEFAULT_FILTERS, buscarValor: consumoMensal || 0 });
+  const clearFilters = () => onFiltersChange({ ...DEFAULT_FILTERS });
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      filters.potenciaMin > 0 ||
+      filters.potenciaMax < 1000 ||
+      filters.searchText.trim() !== "" ||
+      filters.fabricanteInversor !== "" ||
+      filters.inversorModelo !== "" ||
+      filters.searchDistribuidor.trim() !== "" ||
+      filters.searchModulo.trim() !== "" ||
+      filters.searchInversor.trim() !== ""
+    );
+  }, [filters]);
 
   return (
     <div className="space-y-4 w-full">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-bold text-foreground">Filtros</h4>
-        <Button variant="link" onClick={clearFilters} className="text-[11px] text-primary hover:underline font-medium h-auto p-0">
-          Limpar filtro
-        </Button>
-      </div>
-
-      <div className="rounded-lg border border-info/30 bg-info/5 px-3 py-2">
-        <p className="text-[10px] text-info leading-tight">
-          ⓘ Aplicar um filtro poderá afetar outros filtros
-        </p>
+        {hasActiveFilters && (
+          <Button variant="link" onClick={clearFilters} className="text-[11px] text-primary hover:underline font-medium h-auto p-0 gap-1">
+            <X className="h-3 w-3" /> Limpar
+          </Button>
+        )}
       </div>
 
       <div className="space-y-4">
-        {/* Tipo de Sistema */}
-        <CollapsibleFilter label="Tipo de Sistema" open={openSections.sistema} onToggle={() => toggle("sistema")}>
-          <RadioGroup value={filters.tipoSistema} onValueChange={(v) => update({ tipoSistema: v as any })} className="space-y-1.5">
-            {[
-              { value: "on_grid", label: "On grid" },
-              { value: "hibrido", label: "Híbrido" },
-              { value: "off_grid", label: "Off grid" },
-            ].map(o => (
-              <div key={o.value} className="flex items-center gap-2">
-                <RadioGroupItem value={o.value} id={`sys-${o.value}`} className="h-3.5 w-3.5" />
-                <Label htmlFor={`sys-${o.value}`} className="text-xs cursor-pointer">{o.label}</Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </CollapsibleFilter>
-
-        {/* Buscar kits por */}
-        <CollapsibleFilter label="Buscar kits por" open={openSections.buscar} onToggle={() => toggle("buscar")}>
-          <RadioGroup value={filters.buscarPor} onValueChange={(v) => update({ buscarPor: v as any })} className="space-y-1.5">
-            {[
-              { value: "consumo", label: "Consumo médio mensal" },
-              { value: "potencia", label: "Potência do sistema" },
-              { value: "quantidade", label: "Quantidade de módulos" },
-              { value: "area", label: "Área útil" },
-            ].map(o => (
-              <div key={o.value} className="flex items-center gap-2">
-                <RadioGroupItem value={o.value} id={`bp-${o.value}`} className="h-3.5 w-3.5" />
-                <Label htmlFor={`bp-${o.value}`} className="text-xs cursor-pointer">{o.label}</Label>
-              </div>
-            ))}
-          </RadioGroup>
-          <div className="flex items-center gap-2 mt-2">
+        {/* Potência do Kit */}
+        <CollapsibleFilter label="Potência do Kit" open={openSections.potencia} onToggle={() => toggle("potencia")}>
+          <div className="flex items-center gap-2">
             <Input
               type="number"
-              value={filters.buscarValor || ""}
-              onChange={e => update({ buscarValor: Number(e.target.value) })}
-              className="h-7 text-xs w-24"
+              value={filters.potenciaMin || ""}
+              onChange={e => update({ potenciaMin: Number(e.target.value) || 0 })}
+              className="h-7 text-xs flex-1"
               placeholder="0"
+              min={0}
             />
-            <span className="text-[10px] text-muted-foreground">
-              {filters.buscarPor === "consumo" ? "kWh/mês" : filters.buscarPor === "potencia" ? "kWp" : filters.buscarPor === "quantidade" ? "módulos" : "m²"}
-            </span>
+            <span className="text-[10px] text-muted-foreground">a</span>
+            <Input
+              type="number"
+              value={filters.potenciaMax || ""}
+              onChange={e => update({ potenciaMax: Number(e.target.value) || 1000 })}
+              className="h-7 text-xs flex-1"
+              placeholder="1000"
+              min={0}
+            />
+            <span className="text-[10px] text-muted-foreground shrink-0">kWp</span>
           </div>
         </CollapsibleFilter>
 
-        {/* Tipo de kit */}
-        <CollapsibleFilter label="Tipo de kit" open={openSections.tipo} onToggle={() => toggle("tipo")}>
-          <div className="space-y-1.5">
-            {(["customizado", "fechado"] as const).map(key => (
-              <div key={key} className="flex items-center gap-2">
-                <Checkbox
-                  id={`tk-${key}`}
-                  checked={filters.tipoKit[key]}
-                  onCheckedChange={(v) => update({ tipoKit: { ...filters.tipoKit, [key]: !!v } })}
-                  className="h-3.5 w-3.5"
-                />
-                <Label htmlFor={`tk-${key}`} className="text-xs cursor-pointer capitalize">{key}</Label>
-              </div>
-            ))}
+        {/* Buscar */}
+        <CollapsibleFilter label="Buscar" open={openSections.buscar} onToggle={() => toggle("buscar")}>
+          <div className="relative">
+            <Search className="absolute left-2 top-1.5 h-3 w-3 text-muted-foreground" />
+            <Input
+              value={filters.searchText}
+              onChange={e => update({ searchText: e.target.value })}
+              placeholder="Buscar por..."
+              className="h-7 text-xs pl-7"
+            />
           </div>
         </CollapsibleFilter>
 
-        {/* Topologia */}
-        <CollapsibleFilter label="Topologia" open={openSections.topologia} onToggle={() => toggle("topologia")}>
-          <div className="space-y-1.5">
-            {([
-              { key: "microinversor" as const, label: "Microinversor" },
-              { key: "otimizador" as const, label: "Otimizador" },
-              { key: "tradicional" as const, label: "Tradicional" },
-            ]).map(o => (
-              <div key={o.key} className="flex items-center gap-2">
-                <Checkbox
-                  id={`tp-${o.key}`}
-                  checked={filters.topologia[o.key]}
-                  onCheckedChange={(v) => update({ topologia: { ...filters.topologia, [o.key]: !!v } })}
-                  className="h-3.5 w-3.5"
-                />
-                <Label htmlFor={`tp-${o.key}`} className="text-xs cursor-pointer">{o.label}</Label>
-              </div>
-            ))}
-          </div>
+        {/* Fabricante Inversor */}
+        <CollapsibleFilter label="Fabricante Inversor" open={openSections.fabricanteInv} onToggle={() => toggle("fabricanteInv")}>
+          <Select value={filters.fabricanteInversor || "__all__"} onValueChange={v => update({ fabricanteInversor: v === "__all__" ? "" : v })}>
+            <SelectTrigger className="h-7 text-xs">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos</SelectItem>
+              {(options?.fabricantesInversor ?? []).map(f => (
+                <SelectItem key={f} value={f}>{f}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CollapsibleFilter>
+
+        {/* Inversores */}
+        <CollapsibleFilter label="Inversores" open={openSections.inversores} onToggle={() => toggle("inversores")}>
+          <Select value={filters.inversorModelo || "__all__"} onValueChange={v => update({ inversorModelo: v === "__all__" ? "" : v })}>
+            <SelectTrigger className="h-7 text-xs">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todos</SelectItem>
+              {(options?.modelosInversor ?? []).map(m => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CollapsibleFilter>
 
         {/* Distribuidor */}
@@ -187,19 +186,6 @@ export function KitFilters({ filters, onFiltersChange, consumoMensal }: KitFilte
             <Input
               value={filters.searchModulo}
               onChange={e => update({ searchModulo: e.target.value })}
-              placeholder="Buscar..."
-              className="h-7 text-xs pl-7"
-            />
-          </div>
-        </CollapsibleFilter>
-
-        {/* Inversores */}
-        <CollapsibleFilter label="Inversores" open={openSections.inversores} onToggle={() => toggle("inversores")}>
-          <div className="relative">
-            <Search className="absolute left-2 top-1.5 h-3 w-3 text-muted-foreground" />
-            <Input
-              value={filters.searchInversor}
-              onChange={e => update({ searchInversor: e.target.value })}
               placeholder="Buscar..."
               className="h-7 text-xs pl-7"
             />

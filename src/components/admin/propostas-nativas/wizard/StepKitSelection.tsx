@@ -24,7 +24,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { fetchActiveKits, snapshotCatalogKitToKitItemRows, fetchKitsSummary, type CatalogKit, type CatalogKitSummary } from "@/services/kitCatalogService";
 import { formatNumberBR } from "@/lib/formatters";
 
-import { KitFilters, DEFAULT_FILTERS, type KitFiltersState } from "./kit/KitFilters";
+import { KitFilters, DEFAULT_FILTERS, type KitFiltersState, type KitFilterOptions } from "./kit/KitFilters";
 import { KitCard, type KitCardData } from "./kit/KitCard";
 import { CriarKitManualModal, type KitMeta } from "./kit/CriarKitManualModal";
 import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
@@ -122,7 +122,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     return "catalogo";
   });
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS, buscarValor: 0 });
+  const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS });
   const [orderBy, setOrderBy] = useState("melhor_kwp");
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [manualMode, setManualMode] = useState<"equipamentos" | "zero" | null>(null);
@@ -274,7 +274,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
   };
 
-  const consumoTotal = filters.buscarValor;
+  const consumoTotal = 0;
 
   // Build KitCardData from current itens for the Edit Kit Fechado modal
   const currentKitCards = useMemo(() => {
@@ -283,11 +283,71 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     return card ? [card] : [];
   }, [itens, custoKitOverride]);
 
+  // Extract dynamic filter options from catalog data
+  const filterOptions = useMemo<KitFilterOptions>(() => {
+    const fabricantesSet = new Set<string>();
+    const modelosSet = new Set<string>();
+
+    catalogKits.forEach(kit => {
+      // Fabricante from catalog or summary inversor
+      if (kit.fabricante) fabricantesSet.add(kit.fabricante);
+      const summary = catalogSummaries.get(kit.id);
+      if (summary?.inversorDescricao) {
+        modelosSet.add(summary.inversorDescricao);
+        // Try to extract fabricante from inversor description (first word)
+        const parts = summary.inversorDescricao.split(" ");
+        if (parts.length > 0 && parts[0].length > 2) fabricantesSet.add(parts[0]);
+      }
+    });
+
+    return {
+      fabricantesInversor: Array.from(fabricantesSet).sort(),
+      modelosInversor: Array.from(modelosSet).sort(),
+    };
+  }, [catalogKits, catalogSummaries]);
+
   // Filter & sort catalog kits based on sidebar filters
   const filteredCatalogKits = useMemo(() => {
     let result = [...catalogKits];
 
-    // Text search by distributor name (match against kit name as proxy)
+    // Potência range filter
+    if (filters.potenciaMin > 0 || filters.potenciaMax < 1000) {
+      result = result.filter(k => {
+        const kwp = k.estimated_kwp ?? 0;
+        return kwp >= filters.potenciaMin && kwp <= filters.potenciaMax;
+      });
+    }
+
+    // General text search (name, description, fabricante)
+    if (filters.searchText.trim()) {
+      const q = filters.searchText.toLowerCase();
+      result = result.filter(k =>
+        k.name.toLowerCase().includes(q) ||
+        (k.description || "").toLowerCase().includes(q) ||
+        (k.fabricante || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Fabricante Inversor dropdown
+    if (filters.fabricanteInversor) {
+      const q = filters.fabricanteInversor.toLowerCase();
+      result = result.filter(k => {
+        if (k.fabricante?.toLowerCase() === q) return true;
+        const summary = catalogSummaries.get(k.id);
+        return summary ? summary.inversorDescricao.toLowerCase().includes(q) : false;
+      });
+    }
+
+    // Inversor modelo dropdown
+    if (filters.inversorModelo) {
+      const q = filters.inversorModelo.toLowerCase();
+      result = result.filter(k => {
+        const summary = catalogSummaries.get(k.id);
+        return summary ? summary.inversorDescricao.toLowerCase().includes(q) : false;
+      });
+    }
+
+    // Text search by distributor name
     if (filters.searchDistribuidor.trim()) {
       const q = filters.searchDistribuidor.toLowerCase();
       result = result.filter(k => k.name.toLowerCase().includes(q) || (k.description || "").toLowerCase().includes(q));
@@ -299,15 +359,6 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       result = result.filter(k => {
         const summary = catalogSummaries.get(k.id);
         return summary ? summary.moduloDescricao.toLowerCase().includes(q) : true;
-      });
-    }
-
-    // Text search by inverter description
-    if (filters.searchInversor.trim()) {
-      const q = filters.searchInversor.toLowerCase();
-      result = result.filter(k => {
-        const summary = catalogSummaries.get(k.id);
-        return summary ? summary.inversorDescricao.toLowerCase().includes(q) : true;
       });
     }
 
@@ -337,7 +388,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
 
     return result;
-  }, [catalogKits, catalogSummaries, filters.searchDistribuidor, filters.searchModulo, filters.searchInversor, orderBy]);
+  }, [catalogKits, catalogSummaries, filters, orderBy]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
@@ -452,7 +503,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       <div className="flex gap-5 min-h-[500px]">
         {/* ── Sidebar Filters ── */}
         <aside className="w-[200px] shrink-0 hidden lg:block overflow-y-auto max-h-[calc(100vh-240px)] pr-1">
-          <KitFilters filters={filters} onFiltersChange={setFilters} consumoMensal={consumoTotal} />
+          <KitFilters filters={filters} onFiltersChange={setFilters} consumoMensal={consumoTotal} options={filterOptions} />
         </aside>
 
         {/* ── Main Content Area ── */}
