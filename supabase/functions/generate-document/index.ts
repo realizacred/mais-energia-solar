@@ -2,9 +2,14 @@
  * Edge Function: generate-document
  * Downloads a DOCX template, replaces {{variables}} with real data,
  * saves the filled DOCX to storage, and updates generated_documents.
+ * 
+ * UNIFIED PIPELINE: Uses flattenSnapshot + official domain resolvers
+ * as the SINGLE SOURCE OF TRUTH — same base as template-preview.
+ * Document-only vars (contrato, assinatura) are added as isolated enrichment.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
+import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
 import {
   withRetry,
   fetchWithTimeout,
@@ -39,16 +44,6 @@ function replaceVars(text: string, ctx: Record<string, string>): string {
 function formatBRL(v: number | null | undefined): string {
   if (v == null) return "";
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-/** Format date to pt-BR */
-function formatDateBR(d: string | null | undefined): string {
-  if (!d) return "";
-  try {
-    return new Date(d).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
-  } catch {
-    return d;
-  }
 }
 
 /** Format date extenso in pt-BR with Brasília timezone */
@@ -127,123 +122,48 @@ function buildPaymentDescription(composition: any[], valorTotal: number | null):
   return result;
 }
 
-/** Build flat variable context from loaded data */
-function buildContext(
+/**
+ * Build DOCUMENT-ONLY enrichment variables.
+ * These are vars that only exist in the contract/document context,
+ * NOT in the proposal preview. Kept isolated from flattenSnapshot.
+ */
+function buildDocumentEnrichment(
   cliente: Record<string, any> | null,
-  projeto: Record<string, any> | null,
-  tenant: Record<string, any> | null,
-  proposta: Record<string, any> | null,
-  brandSettings: Record<string, any> | null,
   contratoNumero: string,
 ): Record<string, string> {
   const ctx: Record<string, string> = {};
-  const set = (key: string, val: any) => {
-    if (val !== null && val !== undefined && val !== "") {
-      ctx[key] = String(val);
-    }
-  };
-  /** Set both flat and dotted key for compatibility */
   const setDual = (flat: string, dotted: string, val: any) => {
     const s = val !== null && val !== undefined && val !== "" ? String(val) : "—";
     ctx[flat] = s;
     ctx[dotted] = s;
   };
 
-  // Cliente
-  if (cliente) {
-    set("cliente_nome", cliente.nome);
-    set("cliente_cpf_cnpj", cliente.cpf_cnpj);
-    set("cliente_telefone", cliente.telefone);
-    set("cliente_email", cliente.email);
-    set("cliente_rg", cliente.identidade_url); // fallback
-    set("cliente_data_nascimento", formatDateBR(cliente.data_nascimento));
-    const endereco = [cliente.rua, cliente.numero, cliente.complemento, cliente.bairro, cliente.cidade, cliente.estado, cliente.cep].filter(Boolean).join(", ");
-    set("cliente_endereco", endereco);
-    set("cliente_rua", cliente.rua);
-    set("cliente_numero", cliente.numero);
-    set("cliente_bairro", cliente.bairro);
-    set("cliente_cidade", cliente.cidade);
-    set("cliente_estado", cliente.estado);
-    set("cliente_cep", cliente.cep);
-    set("cliente_complemento", cliente.complemento);
-
-    // Pagamento (from payment_composition JSONB)
-    const valorTotal = projeto?.valor_total ?? null;
-    if (cliente.payment_composition) {
-      const payVars = buildPaymentDescription(cliente.payment_composition, valorTotal);
-      Object.assign(ctx, payVars);
-    }
-  }
-
-  // Projeto
-  if (projeto) {
-    set("potencia_sistema", projeto.potencia_kwp);
-    set("potencia_kwp", projeto.potencia_kwp);
-    set("modulo_quantidade", projeto.numero_modulos);
-    set("modulo_marca", projeto.modelo_modulos);
-    set("inversor_modelo", projeto.modelo_inversor);
-    set("inversores_utilizados", projeto.numero_inversores);
-    set("area_util", projeto.area_util_m2);
-    set("geracao_mensal_media", projeto.geracao_mensal_media_kwh);
-    set("valor_venda_total", formatBRL(projeto.valor_total));
-    set("valor_total", formatBRL(projeto.valor_total));
-    set("forma_pagamento", projeto.forma_pagamento);
-    set("valor_entrada", formatBRL(projeto.valor_entrada));
-    set("valor_financiado", formatBRL(projeto.valor_financiado));
-    set("numero_parcelas", projeto.numero_parcelas);
-    set("valor_parcela", formatBRL(projeto.valor_parcela));
-    set("prazo_estimado_dias", projeto.prazo_estimado_dias);
-    set("prazo_vistoria", projeto.prazo_vistoria_dias);
-  }
-
-  // Tenant / Empresa
-  if (tenant) {
-    set("empresa_nome", tenant.nome);
-    set("empresa_cnpj", tenant.documento);
-    set("empresa_telefone", tenant.telefone);
-    set("empresa_email", tenant.email);
-    set("empresa_endereco", tenant.endereco);
-  }
-
-  // Brand Settings — Representante Legal
-  if (brandSettings) {
-    setDual("empresa_representante_legal", "comercial.empresa_representante_legal", brandSettings.representante_legal);
-    setDual("empresa_representante_cpf", "comercial.empresa_representante_cpf", brandSettings.representante_cpf);
-    setDual("empresa_representante_cargo", "comercial.empresa_representante_cargo", brandSettings.representante_cargo);
-  }
-
-  // Proposta snapshot (if exists)
-  if (proposta) {
-    const snap = proposta.snapshot || {};
-    // Overlay snapshot vars — they have richer data
-    for (const [k, v] of Object.entries(snap)) {
-      if (v !== null && v !== undefined && v !== "" && typeof v !== "object") {
-        set(k, v);
-      }
-    }
-  }
-
-  // ── Contrato vars ──
   const now = new Date();
   const dataBR = now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const dataExtenso = formatDateExtenso(now);
 
+  // Contrato vars
   setDual("contrato_numero", "contrato.numero", contratoNumero);
   setDual("contrato_data", "contrato.data", dataBR);
   setDual("contrato_data_extenso", "contrato.data_extenso", dataExtenso);
 
-  // Validade = hoje + 30 dias
   const validade = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   setDual("contrato_validade", "contrato.validade", validade.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }));
 
-  // ── Assinatura vars ──
+  // Assinatura vars
   setDual("assinatura_local", "assinatura.local", cliente?.cidade || "—");
   setDual("assinatura_data", "assinatura.data", dataBR);
   setDual("assinatura_data_extenso", "assinatura.data_extenso", dataExtenso);
 
-  // ── Date vars (legacy compatibility) ──
-  set("data_atual", dataBR);
-  set("data_extenso", dataExtenso);
+  // Date legacy
+  ctx["data_atual"] = dataBR;
+  ctx["data_extenso"] = dataExtenso;
+
+  // Payment enrichment from cliente.payment_composition
+  if (cliente?.payment_composition) {
+    const payVars = buildPaymentDescription(cliente.payment_composition, null);
+    Object.assign(ctx, payVars);
+  }
 
   return ctx;
 }
@@ -255,31 +175,25 @@ async function processDocx(
   templateBytes: Uint8Array,
   variables: Record<string, string>,
 ): Promise<Uint8Array> {
-  // Use Deno's built-in JSZip-like approach via fflate
   const { unzipSync, zipSync, strFromU8, strToU8 } = await import("npm:fflate@0.8.2");
 
   const unzipped = unzipSync(templateBytes);
   const processed: Record<string, Uint8Array> = {};
 
   for (const [path, data] of Object.entries(unzipped)) {
-    // Only process XML files in word/ directory
     if (path.startsWith("word/") && (path.endsWith(".xml") || path.endsWith(".rels"))) {
       let xmlStr = strFromU8(data);
 
-      // DOCX often splits {{variable}} across multiple XML runs.
-      // First, clean up fragmented tags by removing XML tags between {{ and }}
+      // Clean up fragmented tags by removing XML tags between {{ and }}
       xmlStr = xmlStr.replace(
         /\{\{((?:[^}]|(?:\}[^}]))*?)\}\}/g,
         (fullMatch) => {
-          // Strip XML tags from inside the braces
           const cleaned = fullMatch.replace(/<[^>]+>/g, "");
           return cleaned;
         },
       );
 
-      // Now replace variables
       xmlStr = replaceVars(xmlStr, variables);
-
       processed[path] = strToU8(xmlStr);
     } else {
       processed[path] = data;
@@ -382,6 +296,7 @@ Deno.serve(async (req) => {
     console.log(`[generate-document] Template downloaded: ${templateBytes.length} bytes`);
 
     // 3. Load data for variable resolution (parallel queries)
+    //    SAME pattern as template-preview — fetch all related entities
     const { data: projeto } = await supabase
       .from("projetos")
       .select("*, cliente_id")
@@ -390,7 +305,7 @@ Deno.serve(async (req) => {
 
     const clienteId = projeto?.cliente_id;
 
-    const [clienteRes, tenantRes, propostaRes, brandRes, contratoCountRes] = await Promise.all([
+    const [clienteRes, tenantRes, propostaRes, brandRes, contratoCountRes, consultorRes] = await Promise.all([
       clienteId
         ? supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle()
         : Promise.resolve({ data: null }),
@@ -398,14 +313,13 @@ Deno.serve(async (req) => {
       // Get latest official proposal version for this deal
       supabase
         .from("proposta_versoes")
-        .select("snapshot")
+        .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
         .eq("proposta_id", deal_id)
         .eq("is_official", true)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle()
         .then((r) => {
-          // Fallback: try by projeto relationship
           if (!r.data) {
             return supabase
               .from("propostas_nativas")
@@ -418,7 +332,7 @@ Deno.serve(async (req) => {
                 if (!pRes.data) return { data: null };
                 return supabase
                   .from("proposta_versoes")
-                  .select("snapshot")
+                  .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
                   .eq("proposta_id", pRes.data.id)
                   .eq("is_official", true)
                   .order("created_at", { ascending: false })
@@ -431,7 +345,7 @@ Deno.serve(async (req) => {
       // Brand settings (representante legal)
       supabase
         .from("brand_settings")
-        .select("representante_legal, representante_cpf, representante_cargo")
+        .select("logo_url, representante_legal, representante_cpf, representante_cargo")
         .eq("tenant_id", tenantId)
         .maybeSingle(),
       // Count existing generated documents for contrato.numero
@@ -439,23 +353,78 @@ Deno.serve(async (req) => {
         .from("generated_documents")
         .select("id", { count: "exact", head: true })
         .eq("tenant_id", tenantId),
+      // Consultor (if projeto has consultor reference)
+      projeto?.consultor_id
+        ? supabase.from("consultores").select("nome, telefone, email, codigo").eq("id", projeto.consultor_id).eq("tenant_id", tenantId).maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
+
+    // Also try to get proposta metadata for propostaData context
+    let propostaData: Record<string, any> | null = null;
+    if (propostaRes.data) {
+      // Try to find the proposta_nativa linked to this deal
+      const { data: propNativa } = await supabase
+        .from("propostas_nativas")
+        .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id")
+        .eq("projeto_id", deal_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      propostaData = propNativa;
+    }
+
+    // Also fetch lead if available
+    const leadId = propostaData?.lead_id || projeto?.lead_id;
+    const leadRes = leadId
+      ? await supabase.from("leads").select("*").eq("id", leadId).eq("tenant_id", tenantId).maybeSingle()
+      : { data: null };
 
     // Generate contrato number (zero-padded sequential)
     const contratoCount = (contratoCountRes.count ?? 0) + 1;
     const contratoNumero = String(contratoCount).padStart(4, "0");
 
-    // 4. Build variable context
-    const variables = buildContext(
-      clienteRes.data,
-      projeto,
-      tenantRes.data,
-      propostaRes.data,
-      brandRes.data,
-      contratoNumero,
-    );
+    // ══════════════════════════════════════════════════════════
+    // 4. UNIFIED VARIABLE RESOLUTION — SAME BASE AS template-preview
+    //    Uses flattenSnapshot + domain resolvers as SSOT.
+    //    NO buildContext(). NO local manual mapping.
+    // ══════════════════════════════════════════════════════════
 
-    console.log(`[generate-document] Variables resolved: ${Object.keys(variables).length} keys`);
+    const snapshot = propostaRes.data?.snapshot as Record<string, unknown> | null;
+    const consultor = consultorRes.data;
+
+    const variables = flattenSnapshot(snapshot, {
+      lead: leadRes.data,
+      cliente: clienteRes.data,
+      projeto: projeto,
+      consultor: consultor,
+      tenantNome: tenantRes.data?.nome,
+      versaoData: propostaRes.data as Record<string, unknown>,
+      propostaData: propostaData as Record<string, unknown>,
+      brandSettings: (brandRes.data ?? {}) as Record<string, unknown>,
+      projetoData: (projeto ?? {}) as Record<string, unknown>,
+      clienteData: (clienteRes.data ?? {}) as Record<string, unknown>,
+    });
+
+    console.log(`[generate-document] Variables resolved via flattenSnapshot: ${Object.keys(variables).length} keys`);
+
+    // ── 4b. DOCUMENT-ONLY ENRICHMENT (isolated, does not contaminate flatten) ──
+    const docEnrichment = buildDocumentEnrichment(clienteRes.data, contratoNumero);
+    for (const [k, v] of Object.entries(docEnrichment)) {
+      // Document vars override only if not already set by flatten
+      if (!variables[k]) {
+        variables[k] = v;
+      }
+    }
+
+    // ── 4c. POST-PROCESSING (same fixes as template-preview) ──
+    if (variables["potencia_sistema"]) {
+      variables["potencia_sistema"] = variables["potencia_sistema"]
+        .replace(/\s*kWp\s*$/i, "")
+        .trim();
+    }
+
+    console.log(`[generate-document] Total variables after enrichment: ${Object.keys(variables).length} keys`);
+    console.log("[generate-document] Variable keys sample:", Object.keys(variables).slice(0, 30));
 
     // 5. Process DOCX — replace variables
     const filledDocx = await processDocx(templateBytes, variables);
@@ -483,23 +452,13 @@ Deno.serve(async (req) => {
 
     console.log(`[generate-document] DOCX saved to: ${docxPath}`);
 
-    // 7. Convert DOCX to PDF via Gotenberg (same pattern as docx-to-pdf)
+    // 7. Convert DOCX to PDF via Gotenberg
     let pdfPath: string | null = null;
 
     if (isCircuitOpen(circuitState)) {
       console.warn("[generate-document] Circuit breaker OPEN — skipping PDF conversion");
     } else {
       try {
-        // Encode DOCX to base64 for Gotenberg
-        let docxBase64 = "";
-        const chunkSize = 32768;
-        for (let i = 0; i < filledDocx.length; i += chunkSize) {
-          const chunk = filledDocx.subarray(i, i + chunkSize);
-          docxBase64 += String.fromCharCode(...chunk);
-        }
-        docxBase64 = btoa(docxBase64);
-
-        // Build multipart form for Gotenberg
         const formData = new FormData();
         const blob = new Blob([filledDocx], {
           type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -547,7 +506,6 @@ Deno.serve(async (req) => {
           throw err;
         });
 
-        // Success — reset circuit
         if (circuitState.failures > 0) {
           circuitState = resetCircuit();
           updateHealthCache(supabase, "gotenberg", "up", {});
@@ -557,7 +515,6 @@ Deno.serve(async (req) => {
         const pdfBytes = new Uint8Array(pdfBuffer);
         console.log(`[generate-document] PDF generated: ${pdfBytes.length} bytes`);
 
-        // Upload PDF to same bucket, same path structure
         pdfPath = docxPath.replace(/\.docx$/, ".pdf");
         const { error: pdfUploadErr } = await supabase.storage
           .from("document-files")
@@ -568,13 +525,12 @@ Deno.serve(async (req) => {
 
         if (pdfUploadErr) {
           console.error("[generate-document] PDF upload error:", pdfUploadErr);
-          pdfPath = null; // Don't fail the whole operation
+          pdfPath = null;
         } else {
           console.log(`[generate-document] PDF saved to: ${pdfPath}`);
         }
       } catch (pdfErr: any) {
         console.error("[generate-document] PDF conversion error (non-fatal):", pdfErr?.message);
-        // PDF conversion is non-fatal — DOCX was already saved
       }
     }
 
