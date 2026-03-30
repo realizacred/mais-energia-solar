@@ -77,6 +77,31 @@ export function AuditTabContent({
 
   const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences, categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
+  // Governance lookup map — SSOT for variable classification
+  const govMap = useMemo(() => {
+    const map = new Map<string, GovernanceRecord>();
+    if (govRecords) {
+      for (const r of govRecords) map.set(r.key, r);
+    }
+    return map;
+  }, [govRecords]);
+
+  // Governance-aware resolver coverage — overrides old RESOLVER_MAP-based counts
+  const govResolverCoverage = useMemo(() => {
+    if (!govSummary) return resolverCoverage;
+    const total = govSummary.total;
+    const ghostCount = govSummary.fantasma_real;
+    const pendingCount = govSummary.feature_nao_implementada + govSummary.cdd;
+    const withResolver = total - ghostCount - pendingCount;
+    return {
+      totalCatalog: total,
+      withResolver,
+      ghostCount,
+      pendingCount,
+      coveragePct: total > 0 ? Math.round((withResolver / total) * 100) : 0,
+    };
+  }, [govSummary, resolverCoverage]);
+
   // Real-time audit data from edge function
   const { data: quickAudit, isLoading: quickLoading } = useQuickAudit();
   const fullAuditMutation = useFullAudit();
