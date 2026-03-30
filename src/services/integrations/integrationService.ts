@@ -300,7 +300,7 @@ export async function connectSupplierProvider(
       if (updateError) throw updateError;
       affectedConfigId = config.id;
 
-      await testSupplierConnection(tenantId, config.id, providerKey);
+      await testSupplierConnection(tenantId, config.id, providerKey, fornecedorId);
 
       const testedAt = new Date().toISOString();
       await updateSupplierConfigState(config.id, {
