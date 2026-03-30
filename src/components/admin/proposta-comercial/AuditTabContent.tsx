@@ -414,26 +414,16 @@ export function AuditTabContent({
               </div>
             </div>
 
-            {/* Broken variables table */}
-            {diagnosedQuickAudit.length > 0 && (
+            {/* Critical broken variables table */}
+            {criticalQuickAudit.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Bug className="h-3.5 w-3.5 text-destructive" />
-                  <span className="text-xs font-semibold text-foreground">Diagnóstico DOCX Alinhado com Governança</span>
+                  <span className="text-xs font-semibold text-foreground">Variáveis Críticas (sem resolver)</span>
                   <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
                     {criticalQuickAudit.length} críticas
                   </Badge>
-                  {reclassifiedQuickAudit.length > 0 && (
-                    <Badge variant="outline" className="text-[9px] bg-info/10 text-info border-info/20">
-                      {reclassifiedQuickAudit.length} reclassificadas
-                    </Badge>
-                  )}
                 </div>
-                {reclassifiedQuickAudit.length > 0 && (
-                  <div className="rounded-lg border border-info/20 bg-info/5 px-3 py-2 text-[11px] text-info">
-                    O pipeline legado da edge ainda marcou alguns placeholders como quebrados, mas a governança central confirmou que eles resolvem via backend, snapshot, passthrough ou custom backend.
-                  </div>
-                )}
                 <div className="rounded-lg border border-destructive/20 overflow-hidden">
                   <ShadTable>
                     <ShadTableHeader>
@@ -445,24 +435,16 @@ export function AuditTabContent({
                       </ShadTableRow>
                     </ShadTableHeader>
                     <ShadTableBody>
-                      {diagnosedQuickAudit.map((item) => {
-                        const badgeClass = GOV_BG_COLORS[item.statusColor] || "bg-warning/10 text-warning border-warning/20";
-                        const iconClass = GOV_STATUS_COLORS[item.statusColor] || "text-warning";
-
-                        return (
+                      {criticalQuickAudit.map((item) => (
                         <ShadTableRow key={item.key}>
                           <ShadTableCell className="py-2">
-                            {item.isCritical ? (
-                              <XCircle className="h-3 w-3 text-destructive" />
-                            ) : (
-                              <CheckCircle2 className={cn("h-3 w-3", iconClass)} />
-                            )}
+                            <XCircle className="h-3 w-3 text-destructive" />
                           </ShadTableCell>
                           <ShadTableCell className="py-2">
                             <code className="font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded text-[10px]">[{item.key}]</code>
                           </ShadTableCell>
                           <ShadTableCell className="py-2">
-                            <Badge variant="outline" className={cn("text-[8px]", badgeClass)}>
+                            <Badge variant="outline" className={cn("text-[8px]", GOV_BG_COLORS[item.statusColor] || "bg-destructive/10 text-destructive border-destructive/20")}>
                               {item.statusLabel}
                             </Badge>
                           </ShadTableCell>
@@ -470,9 +452,32 @@ export function AuditTabContent({
                             {item.evidence}
                           </ShadTableCell>
                         </ShadTableRow>
-                      )})}
+                      ))}
                     </ShadTableBody>
                   </ShadTable>
+                </div>
+              </div>
+            )}
+
+            {/* Reclassified — confirmed working by governance */}
+            {reclassifiedQuickAudit.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                  <span className="text-xs font-semibold text-foreground">Confirmadas pela Governança</span>
+                  <Badge variant="outline" className="text-[9px] bg-success/10 text-success border-success/20">
+                    {reclassifiedQuickAudit.length} OK
+                  </Badge>
+                </div>
+                <div className="rounded-lg border border-success/20 bg-success/5 px-3 py-2 text-[11px] text-muted-foreground">
+                  Estas variáveis foram marcadas pelo pipeline legado como quebradas, mas a governança confirmou que resolvem corretamente via backend, snapshot, passthrough ou custom.
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {reclassifiedQuickAudit.map((item) => (
+                    <code key={item.key} className="font-mono text-success bg-success/5 px-1.5 py-0.5 rounded text-[10px] border border-success/20">
+                      [{item.key}]
+                    </code>
+                  ))}
                 </div>
               </div>
             )}
