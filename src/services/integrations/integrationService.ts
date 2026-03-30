@@ -38,7 +38,10 @@ export function resolveSupplierProviderKey(providerId: string, providerLabel?: s
   const normalizedId = (providerId || "").trim().toLowerCase();
   const normalizedLabel = (providerLabel || "").trim().toLowerCase();
 
-  // Check known suppliers first
+  // Check known suppliers — exact match first, then substring
+  if (KNOWN_SUPPLIER_KEYS[normalizedId]) {
+    return KNOWN_SUPPLIER_KEYS[normalizedId];
+  }
   for (const [keyword, key] of Object.entries(KNOWN_SUPPLIER_KEYS)) {
     if (normalizedId.includes(keyword) || normalizedLabel.includes(keyword)) {
       return key;
