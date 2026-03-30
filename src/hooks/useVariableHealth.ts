@@ -19,6 +19,7 @@ import {
   type HealthClassification,
 } from "@/services/variableHealth";
 import type { GenerationAuditReport } from "@/services/generationAudit/types";
+import { useQuickAudit, type QuickAuditResult } from "@/hooks/useRealAudit";
 
 const STALE_TIME = 1000 * 60 * 5; // 5 min
 
