@@ -140,6 +140,7 @@ serve(async (req) => {
       max_pages = 5,
       only_generators = true,
     } = body;
+    const test_only = !!body.test_only;
 
     if (!tenant_id || !api_config_id) {
       return new Response(
@@ -182,6 +183,14 @@ serve(async (req) => {
     console.log("[edeltec-sync] Authenticating...");
     const token = await getEdeltecToken(apiKey, secret);
     console.log("[edeltec-sync] Auth OK");
+
+    // Test-only mode: just validate auth and return
+    if (test_only) {
+      return new Response(
+        JSON.stringify({ success: true, test: true, message: "Autenticação validada com sucesso" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Fetch products paginated
     let allProducts: any[] = [];
