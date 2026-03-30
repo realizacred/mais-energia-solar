@@ -335,7 +335,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
   // Filter & sort catalog kits based on sidebar filters
   const filteredCatalogKits = useMemo(() => {
-    let result = [...catalogKits];
+    // Default: show only generators unless "includeComponents" toggle is on
+    let result = includeComponents
+      ? [...catalogKits]
+      : catalogKits.filter(k => k.is_generator);
 
     // Potência range filter
     if (filters.potenciaMin > 0 || filters.potenciaMax < 1000) {
