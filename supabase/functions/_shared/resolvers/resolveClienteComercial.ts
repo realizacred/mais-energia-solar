@@ -70,6 +70,11 @@ export function resolveClienteComercial(
   set("consultor_nome", consultorNome);
   set("consultor_telefone", consultor.telefone ?? snap.consultor_telefone);
   set("consultor_email", consultor.email ?? snap.consultor_email);
+  set("responsavel_email", consultor.email ?? snap.responsavel_email ?? snap.consultor_email);
+  set("responsavel_celular", consultor.telefone ?? snap.responsavel_celular ?? snap.consultor_telefone);
+  set("representante_nome", brand.representante_legal ?? snap.representante_nome);
+  set("representante_email", snap.representante_email);
+  set("representante_celular", snap.representante_celular);
   set("empresa_nome", ext?.tenantNome);
 
   // ── Proposta (metadados) ──

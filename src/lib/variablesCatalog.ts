@@ -587,9 +587,9 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ── Potência e Geração ──
   v("sistema_solar", "sistema_solar.potencia_ideal_total", "potencia_ideal_total", "Potência Ideal Total UCs", "Potência ideal calculada para atender consumo de todas as UCs", "kWp", "20.45"),
   v("sistema_solar", "sistema_solar.potencia_ideal_uc1", "potencia_ideal_uc1", "Potência Ideal UC #", "Potência ideal por UC específica", "kWp", "20.45"),
-  v("sistema_solar", "sistema_solar.tipo_fornecedor_distribuidor", "tipo_fornecedor_distribuidor", "Tipo Fornecedor", "Fornecedor ou Distribuidor", "-", "Distribuidor"),
-  v("sistema_solar", "sistema_solar.fornecedor", "fornecedor", "Fornecedor", "Nome do fornecedor", "-", "SolarView"),
-  v("sistema_solar", "sistema_solar.tipo_kit", "tipo_kit", "Tipo de Kit", "Aberto ou Fechado", "-", "Aberto"),
+  v("sistema_solar", "sistema_solar.tipo_fornecedor_distribuidor", "tipo_fornecedor_distribuidor", "Tipo Fornecedor", "Tipo de fornecedor: Fornecedor ou Distribuidor — salvo no snapshot do wizard", "-", "Distribuidor"),
+  v("sistema_solar", "sistema_solar.fornecedor", "fornecedor", "Fornecedor", "Nome do fornecedor — salvo no snapshot do wizard", "-", "SolarView"),
+  v("sistema_solar", "sistema_solar.tipo_kit", "tipo_kit", "Tipo de Kit", "Tipo de kit: Aberto ou Fechado — salvo no snapshot do wizard", "-", "Aberto"),
   v("sistema_solar", "sistema_solar.potencia_sistema", "potencia_sistema", "Potência do Sistema", "Potência real do sistema configurado", "kWp", "8,2"),
   v("sistema_solar", "sistema_solar.potencia_sistema_numero", "potencia_sistema_numero", "Potência do Sistema (número)", "Potência sem unidade — para templates com kWp hardcoded", "-", "8,20"),
   v("sistema_solar", "sistema_solar.potencia_kwp", "potencia_kwp", "Potência kWp", "Potência do sistema em kWp (alias snapshot)", "kWp", "8.20"),

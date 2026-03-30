@@ -233,6 +233,9 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "inversor_quantidade_1", "inversor_potencia_1", "inversor_tensao_1",
   "inversor_tipo_1", "inversor_mppts_utilizados_1", "inversor_sistema_1",
   "inversor_corrente_max_entrada_mppt1_1", "inversor_corrente_max_entrada_1",
+  "inversor_corrente_saida_1", "inversor_strings_utilizadas_1",
+  "inversor_corrente_max_carga_cc_1", "inversor_corrente_max_descarga_cc_1",
+  "inversor_tipo_bateria_1", "inversor_tensao_bateria_min_1", "inversor_tensao_bateria_max_1",
   // Otimizador
   "otimizador_fabricante", "otimizador_modelo", "otimizador_potencia", "otimizador_quantidade",
   // Transformador
@@ -254,6 +257,9 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "bateria_corrente_maxima_descarga_1", "bateria_corrente_maxima_carga_1",
   "bateria_corrente_recomendada_1", "bateria_capacidade_1",
   "bateria_comprimento_1", "bateria_largura_1", "bateria_profundidade_1",
+  "bateria_temperatura_descarga_min_1", "bateria_temperatura_descarga_max_1",
+  "bateria_temperatura_carga_min_1", "bateria_temperatura_carga_max_1",
+  "bateria_temperatura_armazenamento_min_1", "bateria_temperatura_armazenamento_max_1",
   // Armazenamento
   "autonomia", "energia_diaria_armazenamento", "armazenamento_necessario",
   "armazenamento_util_adicionado", "p_armazenamento_necessario",
@@ -266,6 +272,12 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "creditos_gerados", "kit_fechado_quantidade", "segmentos_utilizados",
   "area_necessaria", "peso_total", "estrutura_tipo", "kit_codigo",
   "inversor_potencia",
+  // Snapshot-passthrough keys (wizard state)
+  "tipo_fornecedor_distribuidor", "fornecedor", "tipo_kit",
+  "kit_comp_nome_1", "kit_comp_qtd_1",
+  // Annual series base keys for conta_energia
+  "gasto_total_mensal_atual_0", "gasto_total_mensal_novo_0",
+  "tarifa_distribuidora_0",
 
   // ══════════════════════════════════════════
   // resolveFinanceiro.ts
@@ -341,6 +353,8 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "cliente_bairro", "cliente_cidade", "cliente_estado",
   // Comercial
   "consultor_nome", "responsavel_nome", "consultor_telefone", "consultor_email",
+  "responsavel_email", "responsavel_celular",
+  "representante_nome", "representante_email", "representante_celular",
   "empresa_nome", "proposta_data", "proposta_titulo", "proposta_identificador",
   "proposta_validade", "proposta_versao",
   // Proposta metadados (new)
