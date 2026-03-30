@@ -61,7 +61,6 @@ export default function EdeltecIntegrationPage() {
   const { data: apiConfig } = useQuery({
     queryKey: ["edeltec-api-config", tenantId],
     queryFn: async () => {
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data } = await (supabase as any)
         .from("integrations_api_config")
         .select("id")

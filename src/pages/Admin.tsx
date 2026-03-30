@@ -163,6 +163,7 @@ const AsaasIntegrationPage = lazy(() => import("@/pages/admin/AsaasIntegrationPa
 const PlanoServicoManager = lazy(() => import("@/components/admin/PlanoServicoManager"));
 const ClientPlansPage = lazy(() => import("@/pages/admin/ClientPlansPage"));
 const AsaasConversionPage = lazy(() => import("@/pages/admin/AsaasConversionPage"));
+const EdeltecIntegrationPage = lazy(() => import("@/pages/admin/EdeltecIntegrationPage"));
 const PricingDashboardPage = lazy(() => import("@/pages/admin/PricingDashboardPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const PostSaleDashboardPage = lazy(() => import("@/components/admin/post-sale/PostSaleDashboard"));
