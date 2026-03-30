@@ -3,6 +3,7 @@ import { calcFatorGeracao, calcEffectiveIrrad } from "@/services/solar/fatorGera
 import { DEFAULT_SOMBREAMENTO_CONFIG, type SombreamentoConfig } from "@/hooks/useTenantPremises";
 import { formatDate } from "@/lib/dateUtils";
 import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -162,16 +163,15 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     return null;
   }, [manualKits]);
 
-  // Load catalog kits when tab switches to "catalogo"
+  // Load catalog kits when tab switches to "catalogo" — only generators by default
   useEffect(() => {
     if (tab !== "catalogo" || catalogLoaded.current) return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits()
+    fetchActiveKits(true) // only generators
       .then(async (kits) => {
         setCatalogKits(kits);
         catalogLoaded.current = true;
-        // Fetch summaries in parallel
         if (kits.length > 0) {
           const summaries = await fetchKitsSummary(kits.map(k => k.id));
           setCatalogSummaries(summaries);
@@ -423,22 +423,23 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           {/* Tabs: Customizado | Fechado | + Criar manualmente */}
           <div className="flex items-center border-b border-border/50">
             {([
-              { key: "catalogo" as const, label: "📦 Catálogo", icon: true },
+              { key: "catalogo" as const, label: "📦 Catálogo" },
               { key: "customizado" as const, label: "Customizado" },
               { key: "fechado" as const, label: "Fechado" },
             ]).map(t => (
-              <button
+              <Button
                 key={t.key}
+                variant="ghost"
                 onClick={() => setTab(t.key)}
                 className={cn(
-                  "px-5 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                  "px-5 py-2.5 text-sm font-medium border-b-2 rounded-none transition-colors",
                   tab === t.key
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 {t.label}
-              </button>
+              </Button>
             ))}
             <Button
               variant="outline"
@@ -501,8 +502,15 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
             /* ── Catálogo Tab ── */
             <div className="space-y-3">
               {catalogLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="rounded-xl border border-border p-4 space-y-3 animate-pulse">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-8 w-24" />
+                    </div>
+                  ))}
                 </div>
               ) : catalogError ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
