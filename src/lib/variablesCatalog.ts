@@ -227,6 +227,7 @@ const CATEGORY_TO_DOMAIN: Record<VariableCategory, VariableDomain> = {
 /** Supplier/integration related keys */
 const FORNECEDOR_KEYS = new Set([
   "tipo_fornecedor_distribuidor", "fornecedor", "tipo_kit",
+  "fabricante", "sku", "external_data",
 ]);
 
 /**
