@@ -137,10 +137,12 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
     .select("kit_id, item_type, ref_id, description, quantity, unit_price")
     .in("kit_id", kitIds);
 
-  if (error || !items) {
+  if (error) {
     console.error("[fetchKitsSummary] Error fetching items:", error?.message);
-    return new Map();
+    // Don't return empty — integrated kits may not have items, that's OK
   }
+
+  const safeItems = items ?? [];
 
   // Collect ref_ids for lookups
   const moduloRefIds = items.filter(i => i.item_type === "modulo" && i.ref_id).map(i => i.ref_id!);
