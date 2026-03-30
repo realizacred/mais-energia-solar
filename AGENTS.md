@@ -1,6 +1,6 @@
 # AGENTS.md v2.5 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-03-30
+# Última atualização: 2026-03-30,
 
 # =============================================================================
 # ⚠️ INSTRUÇÃO PRIMÁRIA PARA AI — LEIA PRIMEIRO
