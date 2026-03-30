@@ -195,7 +195,7 @@ const SEMANTIC_EXPLANATIONS: Record<string, string> = {
 function getSourceLabel(source: VariableSource): { label: string; color: string } {
   const info = SOURCE_LABELS[source];
   if (info) return { label: info.label, color: info.color };
-  return { label: "Desconhecida", color: "text-muted-foreground" };
+  return { label: "Não mapeada", color: "text-muted-foreground" };
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
