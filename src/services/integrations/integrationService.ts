@@ -14,13 +14,34 @@ function slugifyProviderKey(value: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
+/** Known supplier provider keys — maps provider catalog ID or label to canonical key */
+const KNOWN_SUPPLIER_KEYS: Record<string, string> = {
+  edeltec: "edeltec",
+  jng: "jng",
+};
+
+/** Known supplier fornecedor_id — maps provider key to fornecedores UUID */
+const SUPPLIER_FORNECEDOR_IDS: Record<string, string> = {
+  edeltec: "a1b2c3d4-0001-4000-8000-000000000001",
+  jng: "a1b2c3d4-0002-4000-8000-000000000002",
+};
+
+/** Edge function name per supplier for sync/test */
+const SUPPLIER_SYNC_FUNCTIONS: Record<string, string> = {
+  edeltec: "edeltec-sync",
+  jng: "jng-hub-sync",
+};
+
 /** Resolve canonical key used by integrations_api_configs for supplier providers */
 export function resolveSupplierProviderKey(providerId: string, providerLabel?: string): string {
   const normalizedId = (providerId || "").trim().toLowerCase();
   const normalizedLabel = (providerLabel || "").trim().toLowerCase();
 
-  if (normalizedId.includes("edeltec") || normalizedLabel.includes("edeltec")) {
-    return "edeltec";
+  // Check known suppliers first
+  for (const [keyword, key] of Object.entries(KNOWN_SUPPLIER_KEYS)) {
+    if (normalizedId.includes(keyword) || normalizedLabel.includes(keyword)) {
+      return key;
+    }
   }
 
   if (normalizedId && !UUID_LIKE_REGEX.test(normalizedId)) {
@@ -80,17 +101,22 @@ async function findSupplierConfig(
 async function testSupplierConnection(
   tenantId: string,
   apiConfigId: string,
-  providerKey: string
+  providerKey: string,
+  fornecedorId?: string | null
 ): Promise<void> {
-  if (providerKey !== "edeltec") return;
+  const fnName = SUPPLIER_SYNC_FUNCTIONS[providerKey];
+  if (!fnName) return;
 
-  const { data, error } = await supabase.functions.invoke("edeltec-sync", {
-    body: {
-      tenant_id: tenantId,
-      api_config_id: apiConfigId,
-      test_only: true,
-    },
-  });
+  const body: Record<string, unknown> = {
+    tenant_id: tenantId,
+    api_config_id: apiConfigId,
+    test_only: true,
+  };
+
+  // JNG requires fornecedor_id
+  if (fornecedorId) body.fornecedor_id = fornecedorId;
+
+  const { data, error } = await supabase.functions.invoke(fnName, { body });
 
   if (error) {
     const parsed = await parseInvokeError(error);
@@ -227,13 +253,24 @@ export async function connectSupplierProvider(
     const tenantId = await getCurrentTenantId();
     const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
 
-    // For new connections, both fields are required.
-    // For updates, allow partial — missing fields are merged from existing credentials.
+    // Provider-specific credential validation
     const existingCreds = (config?.credentials as Record<string, string>) || {};
     const mergedForValidation = { ...existingCreds, ...credentials };
-    if (!mergedForValidation.apiKey?.trim() || !mergedForValidation.secret?.trim()) {
-      throw new Error("Informe API Key e Secret para conectar a Edeltec");
+
+    if (providerKey === "edeltec") {
+      if (!mergedForValidation.apiKey?.trim() || !mergedForValidation.secret?.trim()) {
+        throw new Error("Informe API Key e Secret para conectar a Edeltec");
+      }
+    } else if (providerKey === "jng") {
+      if (!mergedForValidation.token?.trim()) {
+        throw new Error("Informe o Token de acesso para conectar a JNG");
+      }
+    } else {
+      // Generic: require at least one non-empty credential
+      const hasAny = Object.values(mergedForValidation).some(v => typeof v === "string" && v.trim());
+      if (!hasAny) throw new Error("Informe as credenciais para conectar o fornecedor");
     }
+    const fornecedorId = SUPPLIER_FORNECEDOR_IDS[providerKey] || config?.fornecedor_id || null;
     const now = new Date().toISOString();
 
     const mergedSettings = {
@@ -263,7 +300,7 @@ export async function connectSupplierProvider(
       if (updateError) throw updateError;
       affectedConfigId = config.id;
 
-      await testSupplierConnection(tenantId, config.id, providerKey);
+      await testSupplierConnection(tenantId, config.id, providerKey, fornecedorId);
 
       const testedAt = new Date().toISOString();
       await updateSupplierConfigState(config.id, {
@@ -284,6 +321,7 @@ export async function connectSupplierProvider(
         provider: providerKey,
         name: providerLabel,
         credentials,
+        fornecedor_id: fornecedorId,
         status: "pending",
         is_active: true,
         settings: mergedSettings,
@@ -294,7 +332,7 @@ export async function connectSupplierProvider(
     if (insertError) throw insertError;
     affectedConfigId = inserted?.id;
 
-    await testSupplierConnection(tenantId, inserted?.id, providerKey);
+    await testSupplierConnection(tenantId, inserted?.id, providerKey, fornecedorId);
 
     const testedAt = new Date().toISOString();
     await updateSupplierConfigState(inserted?.id, {
@@ -335,13 +373,14 @@ export async function syncProvider(
   return { success: true, plants_synced: data?.plants_synced, metrics_synced: data?.metrics_synced };
 }
 
-/** Sync supplier provider (currently Edeltec) */
+/** Sync supplier provider (Edeltec, JNG, etc.) */
 export async function syncSupplierProvider(
   providerId: string,
   providerLabel: string
 ): Promise<{ success: boolean; total_fetched?: number; created?: number; updated?: number; skipped?: number; error?: string }> {
   const providerKey = resolveSupplierProviderKey(providerId, providerLabel);
-  if (providerKey !== "edeltec") {
+  const fnName = SUPPLIER_SYNC_FUNCTIONS[providerKey];
+  if (!fnName) {
     return { success: false, error: `Sincronização automática indisponível para ${providerLabel}` };
   }
 
@@ -357,11 +396,13 @@ export async function syncSupplierProvider(
       return { success: false, error: "Conexão desativada. Ative e tente novamente." };
     }
 
-    const { data, error } = await supabase.functions.invoke("edeltec-sync", {
+    const fornecedorId = config.fornecedor_id || SUPPLIER_FORNECEDOR_IDS[providerKey] || null;
+
+    const { data, error } = await supabase.functions.invoke(fnName, {
       body: {
         tenant_id: tenantId,
         api_config_id: config.id,
-        fornecedor_id: config.fornecedor_id || null,
+        fornecedor_id: fornecedorId,
       },
     });
 
@@ -386,14 +427,14 @@ export async function syncSupplierProvider(
 
     // Auto-continuar batches até completar todas as páginas
     let lastResult = data;
-    let maxRetries = 50; // segurança: máximo ~50 batches (2500 páginas)
+    let maxRetries = 50;
     while (lastResult?.success && !lastResult?.is_complete && maxRetries > 0) {
       maxRetries--;
-      const { data: contData, error: contErr } = await supabase.functions.invoke("edeltec-sync", {
+      const { data: contData, error: contErr } = await supabase.functions.invoke(fnName, {
         body: {
           tenant_id: tenantId,
           api_config_id: config.id,
-          fornecedor_id: config.fornecedor_id || null,
+          fornecedor_id: fornecedorId,
         },
       });
       if (contErr || !contData?.success) break;
