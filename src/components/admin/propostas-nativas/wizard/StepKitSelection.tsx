@@ -503,7 +503,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       <div className="flex gap-5 min-h-[500px]">
         {/* ── Sidebar Filters ── */}
         <aside className="w-[200px] shrink-0 hidden lg:block overflow-y-auto max-h-[calc(100vh-240px)] pr-1">
-          <KitFilters filters={filters} onFiltersChange={setFilters} consumoMensal={consumoTotal} />
+          <KitFilters filters={filters} onFiltersChange={setFilters} consumoMensal={consumoTotal} options={filterOptions} />
         </aside>
 
         {/* ── Main Content Area ── */}
