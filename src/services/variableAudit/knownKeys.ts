@@ -272,6 +272,12 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "creditos_gerados", "kit_fechado_quantidade", "segmentos_utilizados",
   "area_necessaria", "peso_total", "estrutura_tipo", "kit_codigo",
   "inversor_potencia",
+  // Snapshot-passthrough keys (wizard state)
+  "tipo_fornecedor_distribuidor", "fornecedor", "tipo_kit",
+  "kit_comp_nome_1", "kit_comp_qtd_1",
+  // Annual series base keys for conta_energia
+  "gasto_total_mensal_atual_0", "gasto_total_mensal_novo_0",
+  "tarifa_distribuidora_0",
 
   // ══════════════════════════════════════════
   // resolveFinanceiro.ts
