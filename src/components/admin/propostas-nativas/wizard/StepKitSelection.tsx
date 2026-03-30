@@ -1105,10 +1105,17 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
       )}
       {/* Distributor header */}
       <div>
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-            {card.distribuidorNome || "Manual"}
-          </span>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              {card.distribuidorNome || "Manual"}
+            </span>
+            {originSource && (
+              <Badge variant="outline" className="text-[9px] bg-info/10 text-info border-info/30">
+                {originSource.charAt(0).toUpperCase() + originSource.slice(1)}
+              </Badge>
+            )}
+          </div>
           {!isSelected && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">KIT</span>}
         </div>
 
