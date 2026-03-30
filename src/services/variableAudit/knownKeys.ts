@@ -214,7 +214,7 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "modulo_profundidade", "modulo_profundidade_numero",
   "modulo_coef_temp_pmax", "modulo_coef_temp_voc", "modulo_coef_temp_isc",
   "modulo_area", "modulo_area_numero",
-  "modulo_codigo", "modulo_garantia",
+  "modulo_codigo", "modulo_garantia", "modulo_garantia_performance",
   // Inversores — concatenated
   "inversor_fabricante", "inversor_fabricante_1",
   "inversor_modelo", "inversor_potencia_nominal", "inversor_potencia_nominal_numero",
