@@ -225,10 +225,12 @@ serve(async (req) => {
       fornecedor_id = null,
       q,
       max_pages,
-      only_generators = false,
       mode = "incremental", // 'incremental' | 'full_replace'
     } = body;
     const test_only = !!body.test_only;
+
+    // NOTE: only_generators is intentionally NOT used for DB filtering anymore.
+    // ALL products are saved to the catalog. Filtering is done client-side in the UI.
 
     if (!tenant_id || !api_config_id) {
       return new Response(
@@ -292,10 +294,16 @@ serve(async (req) => {
     let syncState = existingState;
     const isNewSync = !syncState || syncState.status === "completed" || syncState.status === "error" || syncState.status === "idle";
 
+    // Cache page 1 data so we don't waste it
+    let page1Items: any[] | null = null;
+
     if (isNewSync) {
-      // First call of first page to discover totalPages
-      const { meta } = await fetchEdeltecProducts(token, 1, ITEMS_PER_PAGE, q);
-      const totalPages = max_pages ? Math.min(meta.totalPages, max_pages) : meta.totalPages;
+      // First call: fetch page 1 to discover totalPages AND keep items
+      const page1Result = await fetchEdeltecProducts(token, 1, ITEMS_PER_PAGE, q);
+      const totalPages = max_pages ? Math.min(page1Result.meta.totalPages, max_pages) : page1Result.meta.totalPages;
+      page1Items = page1Result.items;
+
+      console.log(`[edeltec-sync] API reports totalPages=${page1Result.meta.totalPages}, totalItems=${page1Result.meta.totalItems || "?"}, using=${totalPages}`);
 
       const stateData = {
         tenant_id,
@@ -313,7 +321,7 @@ serve(async (req) => {
         last_run_at: new Date().toISOString(),
         completed_at: null,
         last_error: null,
-        metadata: { q: q || null, only_generators, fornecedor_id },
+        metadata: { q: q || null, fornecedor_id },
       };
 
       if (syncState) {
@@ -351,7 +359,7 @@ serve(async (req) => {
       }
 
       await syncLog(supabase, tenant_id, "info", `Sincronização iniciada (modo: ${mode})`, {
-        totalPages, mode, only_generators,
+        totalPages, mode, totalItems: page1Result.meta.totalItems || null,
       });
     } else if (syncState.status === "running") {
       // Resume from checkpoint
@@ -371,17 +379,45 @@ serve(async (req) => {
 
     for (let page = startPage; page <= endPage; page++) {
       try {
-        const { items } = await fetchEdeltecProducts(token, page, ITEMS_PER_PAGE, batchMeta.q);
-        const filtered = batchMeta.only_generators
-          ? items.filter((p: any) => classifyEdeltecProduct(p).is_generator)
-          : items;
-        batchProducts = [...batchProducts, ...filtered];
+        let items: any[];
+
+        // Use cached page 1 data if available (avoid double-fetch)
+        if (page === 1 && page1Items !== null) {
+          items = page1Items;
+          page1Items = null; // clear after use
+        } else {
+          const result = await fetchEdeltecProducts(token, page, ITEMS_PER_PAGE, batchMeta.q);
+          items = result.items;
+        }
+
+        // IMPORTANT: Save ALL products to the catalog — no filtering by is_generator.
+        // Classification is stored but does NOT exclude products from persistence.
+        batchProducts = [...batchProducts, ...items];
         lastPageProcessed = page;
-        console.log(`[edeltec-sync] Page ${page}/${syncState.total_pages}: ${filtered.length}/${items.length} items`);
+
+        // Detailed per-page logging with manufacturer breakdown
+        const fabricantes = new Map<string, number>();
+        for (const p of items) {
+          const fab = p.fabricante || "(sem fabricante)";
+          fabricantes.set(fab, (fabricantes.get(fab) || 0) + 1);
+        }
+        const fabSummary = Array.from(fabricantes.entries())
+          .map(([f, c]) => `${f}:${c}`)
+          .join(", ");
+        
+        console.log(`[edeltec-sync] Page ${page}/${syncState.total_pages}: ${items.length} items → fabricantes: ${fabSummary}`);
+        
+        await syncLog(supabase, tenant_id, "info", `Página ${page}/${syncState.total_pages}: ${items.length} produtos`, {
+          page,
+          total_pages: syncState.total_pages,
+          items_count: items.length,
+          fabricantes: Object.fromEntries(fabricantes),
+        });
       } catch (e: any) {
         console.error(`[edeltec-sync] Error fetching page ${page}:`, e);
         await syncLog(supabase, tenant_id, "error", `Erro na página ${page}`, { error: e.message });
-        break;
+        // Don't break — try next page to maximize data collection
+        continue;
       }
     }
 
@@ -485,6 +521,31 @@ serve(async (req) => {
     };
     if (isComplete) {
       newState.completed_at = new Date().toISOString();
+
+      // Final validation: log manufacturer summary
+      const { data: fabData } = await supabase
+        .from("solar_kit_catalog")
+        .select("fabricante")
+        .eq("tenant_id", tenant_id)
+        .eq("source", "edeltec");
+      
+      if (fabData) {
+        const fabCount = new Map<string, number>();
+        for (const row of fabData) {
+          const f = row.fabricante || "(sem fabricante)";
+          fabCount.set(f, (fabCount.get(f) || 0) + 1);
+        }
+        const summary = Array.from(fabCount.entries())
+          .sort((a, b) => b[1] - a[1])
+          .map(([f, c]) => `${f}: ${c}`)
+          .join(", ");
+        
+        console.log(`[edeltec-sync] FINAL: ${fabData.length} products, fabricantes: ${summary}`);
+        await syncLog(supabase, tenant_id, "info", `Catálogo final: ${fabData.length} produtos`, {
+          fabricantes: Object.fromEntries(fabCount),
+          total: fabData.length,
+        });
+      }
     }
 
     await supabase
