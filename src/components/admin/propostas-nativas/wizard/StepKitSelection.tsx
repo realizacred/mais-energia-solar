@@ -168,7 +168,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     if (tab !== "catalogo" || catalogLoaded.current) return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits(true) // only generators
+    fetchActiveKits(false) // show all products including components from all brands
       .then(async (kits) => {
         setCatalogKits(kits);
         catalogLoaded.current = true;
