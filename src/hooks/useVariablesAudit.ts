@@ -3,7 +3,8 @@
  * Centralizes all audit logic: schema coverage, custom vars sync, description quality.
  */
 import { useMemo } from "react";
-import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
+import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, isBuiltinVcKey, type VariableCategory } from "@/lib/variablesCatalog";
+import { BACKEND_FLATTEN_KEYS, FRONTEND_RESOLVER_KEYS } from "@/services/variableAudit/knownKeys";
 
 // ── Types ──────────────────────────────────────────────────
 export interface DbCustomVar {
