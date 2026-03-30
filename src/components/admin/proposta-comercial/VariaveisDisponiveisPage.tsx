@@ -970,6 +970,10 @@ export function VariaveisDisponiveisPage() {
               setModalOpen(true);
             }}
           />
+        ) : isCleanupView ? (
+          <div className="p-4">
+            <CleanupPanel records={cleanupRecords} summary={cleanupSummary} />
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
