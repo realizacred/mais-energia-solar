@@ -20,9 +20,9 @@ import {
 import { useEdeltecSyncStatus, useEdeltecSyncLogs } from "@/hooks/integrations/useEdeltecSyncStatus";
 import { useEdeltecCatalogStats } from "@/hooks/integrations/useEdeltecCatalog";
 import { useEdeltecSync } from "@/hooks/useEdeltecSync";
-import { useAuth } from "@/hooks/useAuth";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 function formatDateBrasilia(iso: string | null): string {
   if (!iso) return "—";
@@ -36,9 +36,19 @@ const statusVariantMap: Record<string, "success" | "warning" | "destructive" | "
   idle: "muted",
 };
 
+function useTenantId() {
+  return useQuery({
+    queryKey: ["current-tenant-id"],
+    queryFn: async () => {
+      const { tenantId } = await getCurrentTenantId();
+      return tenantId;
+    },
+    staleTime: 1000 * 60 * 15,
+  });
+}
+
 export default function EdeltecIntegrationPage() {
-  const { profile } = useAuth();
-  const tenantId = profile?.tenant_id ?? null;
+  const { data: tenantId } = useTenantId();
 
   const { data: syncState, isLoading: loadingSync } = useEdeltecSyncStatus(tenantId);
   const { data: stats, isLoading: loadingStats } = useEdeltecCatalogStats();
