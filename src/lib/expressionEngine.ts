@@ -230,11 +230,11 @@ export function evaluateTracked(
   const missingKeys: string[] = [];
   try {
     if (!expression || expression.trim() === "") {
-      return { value: null, missingKeys, error: "Expressão vazia" };
+      return { value: null, missingKeys, degraded: false, error: "Expressão vazia" };
     }
     const tokens = tokenize(expression);
     if (tokens.length === 0) {
-      return { value: null, missingKeys, error: "Nenhum token encontrado" };
+      return { value: null, missingKeys, degraded: false, error: "Nenhum token encontrado" };
     }
     const pos = { i: 0 };
     const result = parseExpressionTracked(tokens, pos, context, missingKeys, mode);
