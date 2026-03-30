@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
       // Get proposal data
       const { data: prop } = await adminClient
         .from("propostas_nativas")
-        .select("id, lead_id, cliente_id, consultor_id, projeto_id")
+        .select("id, codigo, lead_id, cliente_id, consultor_id, projeto_id")
         .eq("id", testPropostaId)
         .single();
 
