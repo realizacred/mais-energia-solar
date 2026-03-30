@@ -399,7 +399,7 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   wpPrice: string | null;
   buildSummaryRows: () => Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }>;
 }) {
-  const geracaoMensal = latestVersao?.geracao_mensal || (snapshot as Record<string, any>)?.geracaoMensalEstimada || 0;
+  const geracaoMensal = (snapshot as Record<string, any>)?.geracaoMensalEstimada || latestVersao?.geracao_mensal || 0;
   const economiaMensal = latestVersao?.economia_mensal || 0;
   return (
     <div className="flex gap-5 mt-3">
@@ -1041,7 +1041,12 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             <div>
               <p className="text-[10px] text-muted-foreground leading-tight">Geração Mensal</p>
               <p className="text-sm font-bold text-foreground">
-                {latestVersao?.geracao_mensal ? `${latestVersao.geracao_mensal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh` : "—"}
+                {(() => {
+                  const snap = (latestVersao as any)?.snapshot;
+                  const geracaoSnap = snap?.geracaoMensalEstimada ?? snap?.geracao_mensal_estimada;
+                  const geracao = geracaoSnap || latestVersao?.geracao_mensal;
+                  return geracao ? `${Number(geracao).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh` : "—";
+                })()}
               </p>
             </div>
           </div>
