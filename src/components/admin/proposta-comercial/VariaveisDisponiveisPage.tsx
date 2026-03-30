@@ -228,7 +228,7 @@ export function VariaveisDisponiveisPage() {
 
   // Governance classification
   const dynamicFieldKeysList = useMemo(() => dealCustomFields.map(d => d.field_key), [dealCustomFields]);
-  const { records: govRecords, summary: govSummary, getRecord: getGovRecord, filterOptions: govFilterOptions } = useVariableGovernance(customVarsRaw, dynamicFieldKeysList);
+  const { records: govRecords, summary: govSummary, getRecord: getGovRecord, filterOptions: govFilterOptions, filterRecords: govFilterRecords } = useVariableGovernance(customVarsRaw, dynamicFieldKeysList);
 
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
@@ -422,35 +422,9 @@ export function VariaveisDisponiveisPage() {
 
     // Governance filter (from centralized engine)
     if (govFilter !== "todas") {
-      const govFiltered = new Set(
-        govRecords.length > 0
-          ? (() => {
-              const { filterRecords } = require("@/hooks/useVariableGovernance") as any;
-              // Use govFilterOptions to get matching keys
-              const classMap: Record<string, string[]> = {
-                implementada: ["IMPLEMENTADA"],
-                be_only: ["PARCIAL_BE_ONLY"],
-                fe_only: ["PARCIAL_FE_ONLY"],
-                custom: ["CUSTOM_BACKEND", "CUSTOM_IMPL"],
-                input_wizard: ["INPUT_WIZARD"],
-                legado: ["ALIAS_LEGADO", "TEMPLATE_LEGADO"],
-                documento: ["DOCUMENTO"],
-                cdd: ["CDD"],
-                futura: ["FEATURE_NAO_IMPLEMENTADA"],
-                mapeavel: ["MAPEAVEL"],
-                passthrough: ["PASSTHROUGH"],
-                fantasma: ["FANTASMA_REAL"],
-              };
-              const classes = classMap[govFilter];
-              if (classes) return govRecords.filter(r => classes.includes(r.classification)).map(r => r.key);
-              if (govFilter === "safe_template") return govRecords.filter(r => r.safeForNewTemplates).map(r => r.key);
-              if (govFilter === "warn_template") return govRecords.filter(r => r.templateWarning === "warn").map(r => r.key);
-              if (govFilter === "block_template") return govRecords.filter(r => r.templateWarning === "block").map(r => r.key);
-              return govRecords.map(r => r.key);
-            })()
-          : []
-      );
-      items = items.filter(v => govFiltered.has(v.key));
+      const matchingRecords = govFilterRecords(govFilter);
+      const govKeys = new Set(matchingRecords.map(r => r.key));
+      items = items.filter(v => govKeys.has(v.key));
     }
 
     // Search
@@ -657,27 +631,16 @@ export function VariaveisDisponiveisPage() {
         }
       />
 
-      {/* §27: KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      {/* §27: Governance KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Card className="border-l-[3px] border-l-primary">
           <CardContent className="flex items-center gap-3 p-4">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Database className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.total}</p>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.total}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Total catálogo</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-info">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-9 h-9 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
-              <FileText className="h-4 w-4 text-info" />
-            </div>
-            <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.inUse}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Em uso (DOCX)</p>
             </div>
           </CardContent>
         </Card>
@@ -687,8 +650,19 @@ export function VariaveisDisponiveisPage() {
               <CheckCircle2 className="h-4 w-4 text-success" />
             </div>
             <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.ok}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">OK</p>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.implementada}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Implementadas</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-info">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
+              <FileText className="h-4 w-4 text-info" />
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.parcial_be_only + govSummary.passthrough}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">BE/Passthrough</p>
             </div>
           </CardContent>
         </Card>
@@ -698,8 +672,8 @@ export function VariaveisDisponiveisPage() {
               <AlertTriangle className="h-4 w-4 text-warning" />
             </div>
             <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.warnings}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Warnings</p>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.mapeavel + govSummary.parcial_fe_only}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Mapeáveis/FE-only</p>
             </div>
           </CardContent>
         </Card>
@@ -709,8 +683,31 @@ export function VariaveisDisponiveisPage() {
               <XCircle className="h-4 w-4 text-destructive" />
             </div>
             <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.errors}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Erros</p>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.fantasma_real}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Fantasmas reais</p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Catalog Health Score */}
+        <Card className={cn("border-l-[3px]",
+          govSummary.catalogHealth.level === "saudavel" ? "border-l-success" :
+          govSummary.catalogHealth.level === "atencao" ? "border-l-warning" : "border-l-destructive"
+        )}>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+              govSummary.catalogHealth.level === "saudavel" ? "bg-success/10" :
+              govSummary.catalogHealth.level === "atencao" ? "bg-warning/10" : "bg-destructive/10"
+            )}>
+              <HeartPulse className={cn("h-4 w-4",
+                govSummary.catalogHealth.level === "saudavel" ? "text-success" :
+                govSummary.catalogHealth.level === "atencao" ? "text-warning" : "text-destructive"
+              )} />
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.catalogHealth.score}%</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Saúde ({govSummary.catalogHealth.level === "saudavel" ? "Saudável" : govSummary.catalogHealth.level === "atencao" ? "Atenção" : "Crítica"})
+              </p>
             </div>
           </CardContent>
         </Card>
