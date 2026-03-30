@@ -153,6 +153,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [snapshotLoading, setSnapshotLoading] = useState<string | null>(null); // kitId being loaded
   const [confirmReplace, setConfirmReplace] = useState<{ kitId: string; kitName: string } | null>(null);
+  const [includeComponents, setIncludeComponents] = useState(false);
   const catalogLoaded = useRef(false);
 
   // Derive selected catalog kit ID from manualKits meta
