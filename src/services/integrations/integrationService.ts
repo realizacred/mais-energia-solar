@@ -35,10 +35,18 @@ export function resolveSupplierProviderKey(providerId: string, providerLabel?: s
 }
 
 async function getCurrentTenantId(): Promise<string> {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const userId = authData?.user?.id;
+
+  if (authError || !userId) {
+    throw new Error("Usuário não autenticado");
+  }
+
   const { data, error } = await supabase
     .from("profiles")
     .select("tenant_id")
-    .single();
+    .eq("user_id", userId)
+    .maybeSingle();
 
   if (error || !data?.tenant_id) {
     throw new Error("Tenant não encontrado para o usuário atual");
