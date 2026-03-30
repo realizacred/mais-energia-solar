@@ -22,6 +22,7 @@ import {
   listProviders,
   listConnections,
   syncProvider,
+  syncSupplierProvider,
   disconnectProvider,
 } from "@/services/integrations/integrationService";
 import {
@@ -207,6 +208,23 @@ export default function IntegrationsCatalogPage() {
       queryClient.invalidateQueries({ queryKey: ["integration-connections"] });
       queryClient.invalidateQueries({ queryKey: ["monitoring-integrations"] });
     },
+  });
+
+  const supplierSyncMut = useMutation({
+    mutationFn: (provider: IntegrationProvider) => syncSupplierProvider(provider.id, provider.label),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success(`Fornecedor sincronizado: ${result.created ?? 0} criados, ${result.updated ?? 0} atualizados`);
+      } else {
+        toast.error(result.error || "Erro na sincronização do fornecedor");
+      }
+      queryClient.invalidateQueries({ queryKey: ["integration-connections"] });
+      queryClient.invalidateQueries({ queryKey: ["integrations_api_configs"] });
+      queryClient.invalidateQueries({ queryKey: ["solar-kit-catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["kits"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setSyncingProviderId(null),
   });
 
   const getConnectionStatus = (providerId: string): ConnectionStatus => {
@@ -479,6 +497,10 @@ export default function IntegrationsCatalogPage() {
                       onConfigure={() => !isStubGroup && handleConfigure(provider)}
                       onSync={() => {
                         setSyncingProviderId(provider.id);
+                        if (provider.category === "suppliers") {
+                          supplierSyncMut.mutate(provider);
+                          return;
+                        }
                         const mapped = CANONICAL_TO_LEGACY[provider.id] || provider.id;
                         syncMut.mutate(mapped);
                       }}
@@ -582,6 +604,10 @@ export default function IntegrationsCatalogPage() {
           }}
           onSync={() => {
             setSyncingProviderId(drawerProvider.id);
+            if (drawerProvider.category === "suppliers") {
+              supplierSyncMut.mutate(drawerProvider);
+              return;
+            }
             const mapped = CANONICAL_TO_LEGACY[drawerProvider.id] || drawerProvider.id;
             syncMut.mutate(mapped);
           }}

@@ -2,6 +2,73 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseInvokeError } from "@/lib/supabaseFunctionError";
 import type { IntegrationProvider, IntegrationConnection } from "./types";
 
+const UUID_LIKE_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function slugifyProviderKey(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+/** Resolve canonical key used by integrations_api_configs for supplier providers */
+export function resolveSupplierProviderKey(providerId: string, providerLabel?: string): string {
+  const normalizedId = (providerId || "").trim().toLowerCase();
+  const normalizedLabel = (providerLabel || "").trim().toLowerCase();
+
+  if (normalizedId.includes("edeltec") || normalizedLabel.includes("edeltec")) {
+    return "edeltec";
+  }
+
+  if (normalizedId && !UUID_LIKE_REGEX.test(normalizedId)) {
+    return slugifyProviderKey(normalizedId);
+  }
+
+  if (normalizedLabel) {
+    return slugifyProviderKey(normalizedLabel);
+  }
+
+  return normalizedId || "supplier";
+}
+
+async function getCurrentTenantId(): Promise<string> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("tenant_id")
+    .single();
+
+  if (error || !data?.tenant_id) {
+    throw new Error("Tenant não encontrado para o usuário atual");
+  }
+
+  return data.tenant_id;
+}
+
+async function findSupplierConfig(
+  tenantId: string,
+  providerId: string,
+  providerLabel?: string
+): Promise<{ config: any | null; providerKey: string }> {
+  const providerKey = resolveSupplierProviderKey(providerId, providerLabel);
+
+  const { data, error } = await (supabase as any)
+    .from("integrations_api_configs")
+    .select("id, provider, name, is_active, status, last_sync_at, last_tested_at, fornecedor_id, settings")
+    .eq("tenant_id", tenantId);
+
+  if (error) throw error;
+
+  const config = ((data as any[]) || []).find((row) => {
+    const settings = (row?.settings || {}) as Record<string, unknown>;
+    return row.provider === providerKey || settings.provider_catalog_id === providerId;
+  }) || null;
+
+  return { config, providerKey };
+}
+
 /** Fetch all providers from catalog */
 export async function listProviders(): Promise<IntegrationProvider[]> {
   const { data, error } = await supabase
@@ -19,7 +86,56 @@ export async function listConnections(): Promise<IntegrationConnection[]> {
     .select("id, tenant_id, provider_id, status, credentials, tokens, config, last_sync_at, sync_error, created_at, updated_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data as unknown as IntegrationConnection[]) || [];
+
+  const canonical = ((data as unknown as IntegrationConnection[]) || []);
+
+  // Merge supplier/API integrations as synthetic connections for unified UI status.
+  const { data: apiConfigs, error: apiError } = await (supabase as any)
+    .from("integrations_api_configs")
+    .select("id, tenant_id, provider, status, is_active, last_sync_at, settings, created_at, updated_at")
+    .order("created_at", { ascending: false });
+
+  if (apiError) throw apiError;
+
+  const supplierConnections: IntegrationConnection[] = ((apiConfigs as any[]) || [])
+    .map((row) => {
+      const settings = (row.settings || {}) as Record<string, unknown>;
+      const providerCatalogId = String(settings.provider_catalog_id || "").trim();
+      const providerId = providerCatalogId || row.provider;
+
+      let status: IntegrationConnection["status"] = "disconnected";
+      if (row.status === "error") status = "error";
+      else if (row.is_active && (row.status === "connected" || row.status === "active")) status = "connected";
+      else if (row.is_active) status = "connected";
+
+      return {
+        id: `api_${row.id}`,
+        tenant_id: row.tenant_id,
+        provider_id: providerId,
+        status,
+        credentials: {},
+        tokens: {},
+        config: {
+          source: "integrations_api_configs",
+          api_config_id: row.id,
+          provider_key: row.provider,
+        },
+        last_sync_at: row.last_sync_at,
+        sync_error: typeof settings.last_error === "string" ? settings.last_error : null,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      } as IntegrationConnection;
+    })
+    .filter((conn) => !!conn.provider_id);
+
+  const mergedByProvider = new Map<string, IntegrationConnection>();
+  for (const conn of [...canonical, ...supplierConnections]) {
+    if (!mergedByProvider.has(conn.provider_id)) {
+      mergedByProvider.set(conn.provider_id, conn);
+    }
+  }
+
+  return Array.from(mergedByProvider.values());
 }
 
 /** Connect a provider via edge function */
@@ -38,6 +154,63 @@ export async function connectProvider(
   return { success: true };
 }
 
+/** Connect a supplier provider (ex.: Edeltec) via integrations_api_configs */
+export async function connectSupplierProvider(
+  providerId: string,
+  providerLabel: string,
+  credentials: Record<string, string>
+): Promise<{ success: boolean; config_id?: string; error?: string }> {
+  try {
+    const tenantId = await getCurrentTenantId();
+    const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
+    const now = new Date().toISOString();
+
+    const mergedSettings = {
+      ...(config?.settings || {}),
+      provider_catalog_id: providerId,
+      provider_label: providerLabel,
+    };
+
+    if (config?.id) {
+      const { error: updateError } = await (supabase as any)
+        .from("integrations_api_configs")
+        .update({
+          provider: providerKey,
+          name: config.name || providerLabel,
+          credentials,
+          status: "connected",
+          is_active: true,
+          settings: mergedSettings,
+          updated_at: now,
+          last_tested_at: now,
+        })
+        .eq("id", config.id);
+
+      if (updateError) throw updateError;
+      return { success: true, config_id: config.id };
+    }
+
+    const { data: inserted, error: insertError } = await (supabase as any)
+      .from("integrations_api_configs")
+      .insert({
+        provider: providerKey,
+        name: providerLabel,
+        credentials,
+        status: "connected",
+        is_active: true,
+        settings: mergedSettings,
+        last_tested_at: now,
+      })
+      .select("id")
+      .single();
+
+    if (insertError) throw insertError;
+    return { success: true, config_id: inserted?.id };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Falha ao conectar fornecedor" };
+  }
+}
+
 /** Sync a provider via edge function */
 export async function syncProvider(
   providerId: string,
@@ -54,8 +227,68 @@ export async function syncProvider(
   return { success: true, plants_synced: data?.plants_synced, metrics_synced: data?.metrics_synced };
 }
 
+/** Sync supplier provider (currently Edeltec) */
+export async function syncSupplierProvider(
+  providerId: string,
+  providerLabel: string
+): Promise<{ success: boolean; total_fetched?: number; created?: number; updated?: number; skipped?: number; error?: string }> {
+  const providerKey = resolveSupplierProviderKey(providerId, providerLabel);
+  if (providerKey !== "edeltec") {
+    return { success: false, error: `Sincronização automática indisponível para ${providerLabel}` };
+  }
+
+  try {
+    const tenantId = await getCurrentTenantId();
+    const { config } = await findSupplierConfig(tenantId, providerId, providerLabel);
+
+    if (!config?.id) {
+      return { success: false, error: "Conexão não encontrada. Conecte o fornecedor primeiro." };
+    }
+
+    if (!config.is_active) {
+      return { success: false, error: "Conexão desativada. Ative e tente novamente." };
+    }
+
+    const { data, error } = await supabase.functions.invoke("edeltec-sync", {
+      body: {
+        tenant_id: tenantId,
+        api_config_id: config.id,
+        fornecedor_id: config.fornecedor_id || null,
+      },
+    });
+
+    if (error) {
+      const parsed = await parseInvokeError(error);
+      return { success: false, error: parsed.message };
+    }
+
+    if (!data?.success) {
+      return { success: false, error: data?.error || "Erro ao sincronizar fornecedor" };
+    }
+
+    await (supabase as any)
+      .from("integrations_api_configs")
+      .update({
+        status: "connected",
+        last_sync_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", config.id);
+
+    return {
+      success: true,
+      total_fetched: data.total_fetched,
+      created: data.created,
+      updated: data.updated,
+      skipped: data.skipped,
+    };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Falha ao sincronizar fornecedor" };
+  }
+}
+
 /** Disconnect a provider */
-export async function disconnectProvider(providerId: string): Promise<{ success: boolean; error?: string }> {
+export async function disconnectProvider(providerId: string, providerLabel?: string): Promise<{ success: boolean; error?: string }> {
   const { data: connRaw } = await (supabase
     .from("integration_connections" as any)
     .select("id")
@@ -74,6 +307,20 @@ export async function disconnectProvider(providerId: string): Promise<{ success:
     .from("monitoring_integrations" as any)
     .update({ status: "disconnected", tokens: {}, credentials: {} } as any)
     .eq("provider", providerId);
+
+  // Supplier integrations (integrations_api_configs)
+  try {
+    const tenantId = await getCurrentTenantId();
+    const { config } = await findSupplierConfig(tenantId, providerId, providerLabel);
+    if (config?.id) {
+      await (supabase as any)
+        .from("integrations_api_configs")
+        .update({ status: "disconnected", is_active: false, updated_at: new Date().toISOString() })
+        .eq("id", config.id);
+    }
+  } catch {
+    // no-op: keep backward compatibility for monitoring-only providers
+  }
 
   return { success: true };
 }
