@@ -405,8 +405,9 @@ serve(async (req) => {
         metadata: {
           fornecedor_id,
           token_partial: token.slice(0, 8) + "...",
-          estoque_count: _estoqueMap.size,
-          valores_count: _valoresMap.size,
+          estoque_count: estoqueMap.size,
+          valores_count: valoresMap.size,
+          dtAlteracao: dtAlteracao || null,
         },
       };
 
