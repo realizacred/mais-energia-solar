@@ -213,17 +213,18 @@ function buildKitItems(produto: JngProduto): KitItem[] {
   });
 }
 
-// ── Provider Adapter ────────────────────────────────────────
-// NOTE: estoqueMap and valoresMap are loaded once and captured via closure in the handler
-let _estoqueMap = new Map<number, any>();
-let _valoresMap = new Map<number, any>();
-
-const jngAdapter: ProviderAdapter = {
-  normalize: (raw, tenantId, fornecedorId) =>
-    mapToKit(raw as JngProduto, _estoqueMap, _valoresMap, tenantId, fornecedorId),
-  classify: (raw) => classifyJngProduct(raw as JngProduto),
-  buildKitItems: (raw) => buildKitItems(raw as JngProduto),
-};
+// ── Provider Adapter Factory (closure local — sem estado global) ──
+function createJngAdapter(
+  estoqueMap: Map<number, any>,
+  valoresMap: Map<number, any>
+): ProviderAdapter {
+  return {
+    normalize: (raw, tenantId, fornecedorId) =>
+      mapToKit(raw as JngProduto, estoqueMap, valoresMap, tenantId, fornecedorId),
+    classify: (raw) => classifyJngProduct(raw as JngProduto),
+    buildKitItems: (raw) => buildKitItems(raw as JngProduto),
+  };
+}
 
 // ── Sync Log helper ─────────────────────────────────────────
 async function syncLog(
