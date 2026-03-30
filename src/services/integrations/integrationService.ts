@@ -101,17 +101,22 @@ async function findSupplierConfig(
 async function testSupplierConnection(
   tenantId: string,
   apiConfigId: string,
-  providerKey: string
+  providerKey: string,
+  fornecedorId?: string | null
 ): Promise<void> {
-  if (providerKey !== "edeltec") return;
+  const fnName = SUPPLIER_SYNC_FUNCTIONS[providerKey];
+  if (!fnName) return;
 
-  const { data, error } = await supabase.functions.invoke("edeltec-sync", {
-    body: {
-      tenant_id: tenantId,
-      api_config_id: apiConfigId,
-      test_only: true,
-    },
-  });
+  const body: Record<string, unknown> = {
+    tenant_id: tenantId,
+    api_config_id: apiConfigId,
+    test_only: true,
+  };
+
+  // JNG requires fornecedor_id
+  if (fornecedorId) body.fornecedor_id = fornecedorId;
+
+  const { data, error } = await supabase.functions.invoke(fnName, { body });
 
   if (error) {
     const parsed = await parseInvokeError(error);
