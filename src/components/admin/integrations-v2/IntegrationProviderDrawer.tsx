@@ -285,20 +285,22 @@ export function IntegrationProviderDrawer({
                         <Input
                           id={`modal-${field.key}`}
                           type={field.type === "password" && showPassword[field.key] ? "text" : field.type}
-                          placeholder={field.placeholder || ""}
+                          placeholder={savedSecrets[field.key] ? "••••••••  (salvo)" : (field.placeholder || "")}
                           value={formValues[field.key] || ""}
                           onChange={handleFieldChange(field.key)}
                           className="h-10"
                         />
                         {field.type === "password" && (
-                          <button
+                          <Button
                             type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
                             onClick={() => setShowPassword((prev) => ({ ...prev, [field.key]: !prev[field.key] }))}
                             tabIndex={-1}
                           >
                             {showPassword[field.key] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     )}
