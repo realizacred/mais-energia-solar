@@ -49,7 +49,7 @@ export interface DescriptionIssue {
   issue: "missing" | "too_short";
 }
 
-export type VariableSource = "snapshot" | "db_lead" | "db_cliente" | "db_consultor" | "db_projeto" | "db_proposta" | "db_versao" | "computed" | "custom_vc" | "futura" | "unknown";
+export type VariableSource = "snapshot" | "db_lead" | "db_cliente" | "db_consultor" | "db_projeto" | "db_proposta" | "db_versao" | "computed" | "custom_vc" | "futura" | "error_unmapped";
 
 export const SOURCE_LABELS: Record<VariableSource, { label: string; icon: string; color: string }> = {
   snapshot: { label: "Snapshot", icon: "📸", color: "text-info" },
@@ -62,7 +62,7 @@ export const SOURCE_LABELS: Record<VariableSource, { label: string; icon: string
   computed: { label: "Calculada", icon: "🧮", color: "text-warning" },
   custom_vc: { label: "Customizada", icon: "🧩", color: "text-success" },
   futura: { label: "Futura", icon: "🔮", color: "text-muted-foreground" },
-  unknown: { label: "Não mapeada", icon: "⚠️", color: "text-destructive" },
+  error_unmapped: { label: "Erro: Não Mapeada", icon: "🚫", color: "text-destructive" },
 };
 
 export interface CategoryAuditEntry {
