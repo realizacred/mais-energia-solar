@@ -341,6 +341,8 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "cliente_bairro", "cliente_cidade", "cliente_estado",
   // Comercial
   "consultor_nome", "responsavel_nome", "consultor_telefone", "consultor_email",
+  "responsavel_email", "responsavel_celular",
+  "representante_nome", "representante_email", "representante_celular",
   "empresa_nome", "proposta_data", "proposta_titulo", "proposta_identificador",
   "proposta_validade", "proposta_versao",
   // Proposta metadados (new)
