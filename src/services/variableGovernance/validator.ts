@@ -1,10 +1,11 @@
 /**
  * Variable Governance Validator
  * Validates domain/nature/source coherence for governance records.
+ * Also detects duplicate keys in the catalog.
  */
 
 import type { GovernanceRecord, GovernanceValidationError } from "./types";
-import type { VariableDomain, VariableNature } from "@/lib/variablesCatalog";
+import type { VariableDomain, VariableNature, CatalogVariable } from "@/lib/variablesCatalog";
 
 /** Valid domains — exhaustive */
 const VALID_DOMAINS: Set<VariableDomain> = new Set([
@@ -69,13 +70,55 @@ export function validateVariableGovernance(record: GovernanceRecord): Governance
     });
   }
 
+  // Rule 5: FANTASMA_REAL without source is a CANONICAL_WITHOUT_SOURCE
+  if (record.classification === "FANTASMA_REAL" && !record.inFE && !record.inBE && !record.isCustom) {
+    errors.push({
+      key: record.key,
+      rule: "CANONICAL_WITHOUT_SOURCE",
+      message: `Variável canônica sem fonte real — não tem resolver FE, BE, nem custom var`,
+    });
+  }
+
+  return errors;
+}
+
+/**
+ * Detect duplicate legacy keys in the catalog.
+ */
+export function detectCatalogDuplicates(catalog: CatalogVariable[]): GovernanceValidationError[] {
+  const errors: GovernanceValidationError[] = [];
+  const seenLegacy = new Map<string, number>();
+  const seenCanonical = new Map<string, number>();
+
+  for (const v of catalog) {
+    const legacyCount = (seenLegacy.get(v.legacyKey) ?? 0) + 1;
+    seenLegacy.set(v.legacyKey, legacyCount);
+    if (legacyCount === 2) {
+      errors.push({
+        key: v.legacyKey.replace(/^\[|\]$/g, ""),
+        rule: "DUPLICATE_LEGACY_KEY",
+        message: `Legacy key "${v.legacyKey}" aparece mais de uma vez no catálogo`,
+      });
+    }
+
+    const canonicalCount = (seenCanonical.get(v.canonicalKey) ?? 0) + 1;
+    seenCanonical.set(v.canonicalKey, canonicalCount);
+    if (canonicalCount === 2) {
+      errors.push({
+        key: v.canonicalKey.replace(/^\{\{|\}\}$/g, ""),
+        rule: "DUPLICATE_CANONICAL_KEY",
+        message: `Canonical key "${v.canonicalKey}" aparece mais de uma vez no catálogo`,
+      });
+    }
+  }
+
   return errors;
 }
 
 /**
  * Validate all governance records and return a summary.
  */
-export function validateAllGovernance(records: GovernanceRecord[]): {
+export function validateAllGovernance(records: GovernanceRecord[], catalog?: CatalogVariable[]): {
   valid: boolean;
   totalErrors: number;
   errors: GovernanceValidationError[];
@@ -84,6 +127,12 @@ export function validateAllGovernance(records: GovernanceRecord[]): {
   for (const r of records) {
     allErrors.push(...validateVariableGovernance(r));
   }
+
+  // Catalog-level duplicate detection
+  if (catalog) {
+    allErrors.push(...detectCatalogDuplicates(catalog));
+  }
+
   return {
     valid: allErrors.length === 0,
     totalErrors: allErrors.length,
