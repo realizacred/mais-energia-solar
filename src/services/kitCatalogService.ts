@@ -24,6 +24,20 @@ export interface CatalogKit {
   fixed_price: number | null;
   source: string | null;
   external_data: Record<string, any> | null;
+  is_generator?: boolean;
+  fabricante?: string | null;
+  fase?: string | null;
+  tensao?: string | null;
+  estrutura?: string | null;
+  disponivel?: boolean;
+  permite_compra_sem_estoque?: boolean;
+  preco_por_kwp?: number | null;
+  is_available_now?: boolean;
+  product_kind?: string | null;
+  thumbnail_url?: string | null;
+  potencia_inversor?: number | null;
+  potencia_modulo?: number | null;
+  previsao?: string | null;
 }
 
 interface CatalogKitItem {
