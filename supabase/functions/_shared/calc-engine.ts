@@ -256,24 +256,11 @@ export async function calcHash(inputs: Record<string, unknown>): Promise<string>
 }
 
 // ─── Safe Expression Evaluator ─────────────────────────────
+// Delegates to the new expression-evaluator module for full function support
+// (IF, SWITCH, AND, OR, NOT, MAX, MIN, ABS, ROUND, CHAR, comparisons, strings)
+
+import { evaluateExpressionCompat } from "./expression-evaluator.ts";
 
 export function evaluateExpression(expr: string, ctx: Record<string, number>): number | null {
-  try {
-    if (!expr || expr.trim() === "") return null;
-    let resolved = expr;
-    const matches = expr.match(/\[([^\]]+)\]/g);
-    if (matches) {
-      for (const m of matches) {
-        const name = m.slice(1, -1).trim();
-        const val = ctx[name] ?? 0;
-        resolved = resolved.replace(m, String(val));
-      }
-    }
-    if (/[^0-9.+\-*/() \t]/.test(resolved)) return null;
-    const fn = new Function(`"use strict"; return (${resolved});`);
-    const result = fn();
-    return typeof result === "number" && isFinite(result) ? Math.round(result * 10000) / 10000 : null;
-  } catch {
-    return null;
-  }
+  return evaluateExpressionCompat(expr, ctx);
 }
