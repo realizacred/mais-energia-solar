@@ -476,9 +476,11 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 <Select value={orderBy} onValueChange={setOrderBy}>
                   <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="melhor_kwp">Melhor R$/kWp</SelectItem>
                     <SelectItem value="menor_preco">Menor Preço</SelectItem>
                     <SelectItem value="maior_preco">Maior Preço</SelectItem>
                     <SelectItem value="potencia">Potência</SelectItem>
+                    <SelectItem value="disponibilidade">Disponibilidade</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
