@@ -358,7 +358,6 @@ export function VariaveisDisponiveisPage() {
           docxBroken: false,
           docxNull: false,
           status: "ok",
-          governance: undefined,
           tipoResultado: dcf.field_type === "number" || dcf.field_type === "currency" ? "number" : "text",
           escopo: undefined,
           _dynamicContext: dcf.field_context,
@@ -369,7 +368,7 @@ export function VariaveisDisponiveisPage() {
     return items;
   }, [customVarsRaw, resolverMap, usageMap, dealCustomFields]);
 
-  // ── Governance-enriched: mark legacy/wizard input vars ──
+  // ── Health-enriched variables ──
   const governanceVariables = useMemo(() => {
     return allVariables.map((v) => {
       const health = healthMap.get(v.key);
@@ -380,12 +379,6 @@ export function VariaveisDisponiveisPage() {
         enriched.healthScore = health.healthScore;
       }
 
-      if (LEGACY_HIDDEN_VARS.has(v.key)) {
-        enriched.governance = "legado";
-        enriched.status = "unused";
-      } else if (WIZARD_INPUT_VARS.has(v.key)) {
-        enriched.governance = "input_wizard";
-      }
       return enriched;
     });
   }, [allVariables, healthMap]);
@@ -417,8 +410,6 @@ export function VariaveisDisponiveisPage() {
         case "pending": items = items.filter((v) => v.status === "pending"); break;
         case "nativa": items = items.filter((v) => !v.isCustom); break;
         case "custom": items = items.filter((v) => v.isCustom); break;
-        case "legado": items = items.filter((v) => v.governance === "legado" || v.governance === "input_wizard"); break;
-        case "texto": items = items.filter((v) => v.governance === "texto" || v.tipoResultado === "text"); break;
         case "documento": items = items.filter((v) => v.escopo === "documento"); break;
         case "aspiracional": items = items.filter((v) => v.escopo === "aspiracional"); break;
         case "campo_dinamico": items = items.filter((v) => !!v._dynamicContext); break;
@@ -427,6 +418,39 @@ export function VariaveisDisponiveisPage() {
         case "health_healthy": items = items.filter((v) => v.healthClassification === "healthy"); break;
         case "health_unused": items = items.filter((v) => !v.healthClassification || v.healthClassification === "unused"); break;
       }
+    }
+
+    // Governance filter (from centralized engine)
+    if (govFilter !== "todas") {
+      const govFiltered = new Set(
+        govRecords.length > 0
+          ? (() => {
+              const { filterRecords } = require("@/hooks/useVariableGovernance") as any;
+              // Use govFilterOptions to get matching keys
+              const classMap: Record<string, string[]> = {
+                implementada: ["IMPLEMENTADA"],
+                be_only: ["PARCIAL_BE_ONLY"],
+                fe_only: ["PARCIAL_FE_ONLY"],
+                custom: ["CUSTOM_BACKEND", "CUSTOM_IMPL"],
+                input_wizard: ["INPUT_WIZARD"],
+                legado: ["ALIAS_LEGADO", "TEMPLATE_LEGADO"],
+                documento: ["DOCUMENTO"],
+                cdd: ["CDD"],
+                futura: ["FEATURE_NAO_IMPLEMENTADA"],
+                mapeavel: ["MAPEAVEL"],
+                passthrough: ["PASSTHROUGH"],
+                fantasma: ["FANTASMA_REAL"],
+              };
+              const classes = classMap[govFilter];
+              if (classes) return govRecords.filter(r => classes.includes(r.classification)).map(r => r.key);
+              if (govFilter === "safe_template") return govRecords.filter(r => r.safeForNewTemplates).map(r => r.key);
+              if (govFilter === "warn_template") return govRecords.filter(r => r.templateWarning === "warn").map(r => r.key);
+              if (govFilter === "block_template") return govRecords.filter(r => r.templateWarning === "block").map(r => r.key);
+              return govRecords.map(r => r.key);
+            })()
+          : []
+      );
+      items = items.filter(v => govFiltered.has(v.key));
     }
 
     // Search
