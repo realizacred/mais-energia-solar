@@ -856,6 +856,7 @@ export function VariaveisDisponiveisPage() {
                 </Button>
               )}
             </div>
+            {/* Status filters */}
             <div className="flex flex-wrap items-center gap-1">
               {([
                 { key: "todas", label: "Todas" },
@@ -866,8 +867,6 @@ export function VariaveisDisponiveisPage() {
                 { key: "pending", label: "Pendente" },
                 { key: "nativa", label: "Nativa" },
                 { key: "custom", label: "Custom" },
-                { key: "legado", label: `Legado (${kpiStats.legado})` },
-                { key: "texto", label: `Texto (${kpiStats.texto})` },
                 { key: "documento", label: `Documento (${kpiStats.documento})` },
                 { key: "aspiracional", label: `Aspiracional (${kpiStats.aspiracional})` },
                 ...(kpiStats.campoDinamico > 0 ? [{ key: "campo_dinamico" as StatusFilter, label: `Campos Dinâmicos (${kpiStats.campoDinamico})` }] : []),
@@ -881,10 +880,10 @@ export function VariaveisDisponiveisPage() {
                   key={f.key}
                   variant="ghost"
                   size="sm"
-                  onClick={() => setStatusFilter(f.key)}
+                  onClick={() => { setStatusFilter(f.key); setGovFilter("todas"); }}
                   className={cn(
                     "h-6 px-2 text-[10px] rounded-md",
-                    statusFilter === f.key
+                    statusFilter === f.key && govFilter === "todas"
                       ? "bg-primary/10 text-primary font-semibold"
                       : "text-muted-foreground hover:text-foreground"
                   )}
@@ -894,6 +893,33 @@ export function VariaveisDisponiveisPage() {
               ))}
               {statusFilter !== "todas" && (
                 <Button variant="ghost" size="sm" onClick={() => setStatusFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
+                  Limpar
+                </Button>
+              )}
+            </div>
+
+            {/* Governance filters (from centralized engine) */}
+            <div className="flex flex-wrap items-center gap-1 border-t border-border/50 pt-1.5 mt-1">
+              <span className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider mr-1">Governança:</span>
+              {govFilterOptions.map((f) => (
+                <Button
+                  key={f.key}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setGovFilter(f.key); if (f.key !== "todas") setStatusFilter("todas"); }}
+                  className={cn(
+                    "h-6 px-2 text-[10px] rounded-md",
+                    govFilter === f.key
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {f.label}
+                  <span className="text-[8px] font-mono ml-0.5 opacity-60">{f.count}</span>
+                </Button>
+              ))}
+              {govFilter !== "todas" && (
+                <Button variant="ghost" size="sm" onClick={() => setGovFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
                   Limpar
                 </Button>
               )}
