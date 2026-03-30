@@ -34,6 +34,12 @@ import {
 } from "@/hooks/useVariablesAudit";
 import type { GovernanceRecord, GovernanceSummary } from "@/services/variableGovernance";
 
+const GOVERNANCE_CRITICAL_CLASSES = new Set<GovernanceRecord["classification"]>([
+  "FANTASMA_REAL",
+  "FEATURE_NAO_IMPLEMENTADA",
+  "CDD",
+]);
+
 // ── Status config ──────────────────────────────────────────
 const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: string; label: string }> = {
   ok: { icon: CheckCircle2, color: "text-success", label: "Sincronizada" },
@@ -75,7 +81,7 @@ export function AuditTabContent({
   const [aiStepIdx, setAiStepIdx] = useState(0);
   const [fullAuditResult, setFullAuditResult] = useState<FullAuditResult | null>(null);
 
-  const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences, categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
+  const { customAudit, schemaAudit, descriptionAudit, ghostVariables: legacyGhostVariables, totalCustomDivergences, categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
 
   // Governance lookup map — SSOT for variable classification
   const govMap = useMemo(() => {
@@ -107,11 +113,79 @@ export function AuditTabContent({
   const fullAuditMutation = useFullAudit();
   const queryClient = useQueryClient();
 
+  const diagnosedQuickAudit = useMemo(() => {
+    if (!quickAudit) return [] as Array<{
+      key: string;
+      gov?: GovernanceRecord;
+      isCritical: boolean;
+      statusLabel: string;
+      statusColor: string;
+      evidence: string;
+    }>;
+
+    return quickAudit.quebradas
+      .map((key) => {
+        const gov = govMap.get(key);
+        if (gov) {
+          return {
+            key,
+            gov,
+            isCritical: GOVERNANCE_CRITICAL_CLASSES.has(gov.classification),
+            statusLabel: gov.statusLabel,
+            statusColor: gov.statusColor,
+            evidence: gov.evidence,
+          };
+        }
+
+        return {
+          key,
+          gov: undefined,
+          isCritical: true,
+          statusLabel: "Diagnóstico pendente",
+          statusColor: "warning",
+          evidence: "Placeholder presente no DOCX, mas ainda sem classificação no motor central.",
+        };
+      })
+      .sort((a, b) => Number(b.isCritical) - Number(a.isCritical) || a.key.localeCompare(b.key, "pt-BR"));
+  }, [govMap, quickAudit]);
+
+  const criticalQuickAudit = useMemo(
+    () => diagnosedQuickAudit.filter((item) => item.isCritical),
+    [diagnosedQuickAudit],
+  );
+
+  const reclassifiedQuickAudit = useMemo(
+    () => diagnosedQuickAudit.filter((item) => !item.isCritical),
+    [diagnosedQuickAudit],
+  );
+
+  const displayedGhostVariables = useMemo(() => {
+    if (govRecords && govRecords.length > 0) {
+      return govRecords
+        .filter((record) => record.classification === "FANTASMA_REAL")
+        .map((record) => ({
+          key: record.key,
+          label: record.label,
+          category: record.category,
+          reason: record.evidence,
+        }));
+    }
+
+    return legacyGhostVariables;
+  }, [govRecords, legacyGhostVariables]);
+
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       await onRefresh();
-      await queryClient.invalidateQueries({ queryKey: ["audit-variables"] });
+      setFullAuditResult(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["audit-variables"] }),
+        queryClient.invalidateQueries({ queryKey: ["generation-audit-reports-latest"] }),
+        queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] }),
+        queryClient.invalidateQueries({ queryKey: ["proposta-variaveis-custom"] }),
+        queryClient.invalidateQueries({ queryKey: ["deal-custom-fields-active"] }),
+      ]);
       toast.success("Análise concluída com sucesso");
     } catch {
       toast.error("Erro ao reanalisar variáveis");
@@ -240,11 +314,35 @@ export function AuditTabContent({
               </div>
               <div className={cn(
                 "rounded-lg border p-2.5 space-y-0.5",
-                quickAudit.quebradas.length > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
+                criticalQuickAudit.length > 0
+                  ? "border-destructive/30 bg-destructive/5"
+                  : reclassifiedQuickAudit.length > 0
+                    ? "border-info/30 bg-info/5"
+                    : "border-border bg-card"
               )}>
-                <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Quebradas</p>
-                <p className="text-lg font-bold text-destructive tabular-nums">{quickAudit.quebradas.length}</p>
-                <p className="text-[10px] text-muted-foreground">Sem resolver</p>
+                <p className={cn(
+                  "text-[9px] uppercase tracking-wider font-medium",
+                  criticalQuickAudit.length > 0
+                    ? "text-destructive"
+                    : reclassifiedQuickAudit.length > 0
+                      ? "text-info"
+                      : "text-muted-foreground"
+                )}>Diagnóstico Real</p>
+                <p className={cn(
+                  "text-lg font-bold tabular-nums",
+                  criticalQuickAudit.length > 0
+                    ? "text-destructive"
+                    : reclassifiedQuickAudit.length > 0
+                      ? "text-info"
+                      : "text-foreground"
+                )}>{criticalQuickAudit.length}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {criticalQuickAudit.length > 0
+                    ? "Fantasma/Pendente real"
+                    : reclassifiedQuickAudit.length > 0
+                      ? `${reclassifiedQuickAudit.length} reclassificadas`
+                      : "Sem críticos reais"}
+                </p>
               </div>
               <div className={cn(
                 "rounded-lg border p-2.5 space-y-0.5",
@@ -266,40 +364,62 @@ export function AuditTabContent({
             </div>
 
             {/* Broken variables table */}
-            {quickAudit.quebradas.length > 0 && (
+            {diagnosedQuickAudit.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Bug className="h-3.5 w-3.5 text-destructive" />
-                  <span className="text-xs font-semibold text-foreground">Variáveis Quebradas</span>
+                  <span className="text-xs font-semibold text-foreground">Diagnóstico DOCX Alinhado com Governança</span>
                   <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
-                    {quickAudit.quebradas.length}
+                    {criticalQuickAudit.length} críticas
                   </Badge>
+                  {reclassifiedQuickAudit.length > 0 && (
+                    <Badge variant="outline" className="text-[9px] bg-info/10 text-info border-info/20">
+                      {reclassifiedQuickAudit.length} reclassificadas
+                    </Badge>
+                  )}
                 </div>
+                {reclassifiedQuickAudit.length > 0 && (
+                  <div className="rounded-lg border border-info/20 bg-info/5 px-3 py-2 text-[11px] text-info">
+                    O pipeline legado da edge ainda marcou alguns placeholders como quebrados, mas a governança central confirmou que eles resolvem via backend, snapshot, passthrough ou custom backend.
+                  </div>
+                )}
                 <div className="rounded-lg border border-destructive/20 overflow-hidden">
                   <ShadTable>
                     <ShadTableHeader>
                       <ShadTableRow className="bg-destructive/5 hover:bg-destructive/5">
                         <ShadTableHead className="text-[10px] w-[30px]">⚠️</ShadTableHead>
                         <ShadTableHead className="text-[10px]">Variável</ShadTableHead>
-                        <ShadTableHead className="text-[10px]">Status</ShadTableHead>
+                        <ShadTableHead className="text-[10px]">Diagnóstico</ShadTableHead>
+                        <ShadTableHead className="text-[10px]">Evidência</ShadTableHead>
                       </ShadTableRow>
                     </ShadTableHeader>
                     <ShadTableBody>
-                      {quickAudit.quebradas.map((v) => (
-                        <ShadTableRow key={v}>
+                      {diagnosedQuickAudit.map((item) => {
+                        const badgeClass = GOV_BG_COLORS[item.statusColor] || "bg-warning/10 text-warning border-warning/20";
+                        const iconClass = GOV_STATUS_COLORS[item.statusColor] || "text-warning";
+
+                        return (
+                        <ShadTableRow key={item.key}>
                           <ShadTableCell className="py-2">
-                            <XCircle className="h-3 w-3 text-destructive" />
+                            {item.isCritical ? (
+                              <XCircle className="h-3 w-3 text-destructive" />
+                            ) : (
+                              <CheckCircle2 className={cn("h-3 w-3", iconClass)} />
+                            )}
                           </ShadTableCell>
                           <ShadTableCell className="py-2">
-                            <code className="font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded text-[10px]">[{v}]</code>
+                            <code className="font-mono text-destructive bg-destructive/5 px-1.5 py-0.5 rounded text-[10px]">[{item.key}]</code>
                           </ShadTableCell>
                           <ShadTableCell className="py-2">
-                            <Badge variant="outline" className="text-[8px] bg-destructive/10 text-destructive border-destructive/20">
-                              Sem resolver
+                            <Badge variant="outline" className={cn("text-[8px]", badgeClass)}>
+                              {item.statusLabel}
                             </Badge>
                           </ShadTableCell>
+                          <ShadTableCell className="py-2 text-[10px] text-muted-foreground">
+                            {item.evidence}
+                          </ShadTableCell>
                         </ShadTableRow>
-                      ))}
+                      )})}
                     </ShadTableBody>
                   </ShadTable>
                 </div>
@@ -440,11 +560,11 @@ export function AuditTabContent({
           </div>
           <div className={cn(
             "rounded-lg border p-2.5 space-y-0.5",
-            ghostVariables.length > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
+             displayedGhostVariables.length > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
           )}>
-            <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Variáveis Fantasma</p>
-            <p className="text-lg font-bold text-destructive tabular-nums">{ghostVariables.length}</p>
-            <p className="text-[10px] text-muted-foreground">Sem coluna no banco</p>
+             <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Fantasma Real</p>
+             <p className="text-lg font-bold text-destructive tabular-nums">{displayedGhostVariables.length}</p>
+             <p className="text-[10px] text-muted-foreground">Sem origem real identificada</p>
           </div>
         </div>
 
@@ -499,15 +619,15 @@ export function AuditTabContent({
       {/* ════════════════════════════════════════════════════════ */}
       {/* GHOST VARIABLES */}
       {/* ════════════════════════════════════════════════════════ */}
-      {ghostVariables.length > 0 && (
+      {displayedGhostVariables.length > 0 && (
         <div className="px-4 py-3 space-y-2">
           <div className="flex items-center gap-2">
             <Ghost className="h-4 w-4 text-destructive" />
-            <span className="text-xs font-semibold text-foreground">Variáveis Fantasma</span>
+            <span className="text-xs font-semibold text-foreground">Variáveis Fantasma Reais</span>
             <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">
-              {ghostVariables.length}
+              {displayedGhostVariables.length}
             </Badge>
-            <span className="text-[10px] text-muted-foreground">— Referenciam colunas que não existem mais no banco</span>
+            <span className="text-[10px] text-muted-foreground">— Classificação confirmada pelo motor central de governança</span>
           </div>
           <div className="rounded-lg border border-destructive/20 overflow-hidden">
             <ShadTable>
@@ -520,7 +640,7 @@ export function AuditTabContent({
                 </ShadTableRow>
               </ShadTableHeader>
               <ShadTableBody>
-                {ghostVariables.map((g) => (
+                {displayedGhostVariables.map((g) => (
                   <ShadTableRow key={g.key}>
                     <ShadTableCell className="py-2"><Ghost className="h-3 w-3 text-destructive" /></ShadTableCell>
                     <ShadTableCell className="py-2"><span className="text-[11px] font-medium text-foreground">{g.label}</span></ShadTableCell>
