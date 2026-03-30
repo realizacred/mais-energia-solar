@@ -54,6 +54,7 @@ import {
   deriveDomain,
   deriveNature,
   getVariableViews,
+  isBuiltinVcKey,
   type VariableCategory,
   type CatalogVariable,
   type VariableEscopo,
@@ -195,7 +196,7 @@ const SEMANTIC_EXPLANATIONS: Record<string, string> = {
 function getSourceLabel(source: VariableSource): { label: string; color: string } {
   const info = SOURCE_LABELS[source];
   if (info) return { label: info.label, color: info.color };
-  return { label: "Desconhecida", color: "text-muted-foreground" };
+  return { label: "Não mapeada", color: "text-muted-foreground" };
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -296,7 +297,7 @@ export function VariaveisDisponiveisPage() {
         example: v.example,
         isSeries: v.isSeries,
         notImplemented: v.notImplemented,
-        isCustom: v.category === "customizada",
+        isCustom: v.category === "customizada" && !isBuiltinVcKey(key),
         source,
         resolver,
         inDocx,
