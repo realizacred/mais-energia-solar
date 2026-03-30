@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getProviderIconUrl } from "@/services/integrations/iconMap";
-import { connectProvider } from "@/services/integrations/integrationService";
+import { connectProvider, connectSupplierProvider, resolveSupplierProviderKey } from "@/services/integrations/integrationService";
 import type { IntegrationProvider, CredentialField, ConnectionStatus } from "@/services/integrations/types";
 import { supabase } from "@/integrations/supabase/client";
 import { LEGACY_ID_MAP } from "@/services/monitoring/providerRegistry";
@@ -57,29 +57,45 @@ export function IntegrationProviderDrawer({
   // Pre-fill credentials
   useEffect(() => {
     if (!open || loaded) return;
-    const legacyId = LEGACY_PROVIDER_MAP[provider.id] || provider.id;
 
     (async () => {
       try {
-        const { data } = await (supabase
-          .from("monitoring_integrations" as any)
-          .select("credentials, tokens")
-          .eq("provider", legacyId)
-          .maybeSingle() as any);
+        let merged: Record<string, any> = {};
 
-        if (data) {
-          const creds = (data.credentials as Record<string, any>) || {};
-          const tokens = (data.tokens as Record<string, any>) || {};
-          const merged = { ...creds, ...tokens };
-          const prefilled: Record<string, string> = {};
-          for (const field of fields) {
-            const val = merged[field.key];
-            if (val && typeof val === "string" && field.type !== "password" && !field.key.toLowerCase().includes("secret")) {
-              prefilled[field.key] = val;
-            }
+        if (provider.category === "suppliers") {
+          const providerKey = resolveSupplierProviderKey(provider.id, provider.label);
+          const { data: rows } = await (supabase as any)
+            .from("integrations_api_configs")
+            .select("credentials")
+            .eq("provider", providerKey)
+            .order("updated_at", { ascending: false })
+            .limit(1);
+
+          const row = ((rows as any[]) || [])[0];
+          merged = (row?.credentials as Record<string, any>) || {};
+        } else {
+          const legacyId = LEGACY_PROVIDER_MAP[provider.id] || provider.id;
+          const { data } = await (supabase
+            .from("monitoring_integrations" as any)
+            .select("credentials, tokens")
+            .eq("provider", legacyId)
+            .maybeSingle() as any);
+
+          if (data) {
+            const creds = (data.credentials as Record<string, any>) || {};
+            const tokens = (data.tokens as Record<string, any>) || {};
+            merged = { ...creds, ...tokens };
           }
-          if (Object.keys(prefilled).length > 0) setFormValues(prefilled);
         }
+
+        const prefilled: Record<string, string> = {};
+        for (const field of fields) {
+          const val = merged[field.key];
+          if (val && typeof val === "string" && field.type !== "password" && !field.key.toLowerCase().includes("secret")) {
+            prefilled[field.key] = val;
+          }
+        }
+        if (Object.keys(prefilled).length > 0) setFormValues(prefilled);
       } catch { /* silent */ }
       setLoaded(true);
     })();
@@ -98,8 +114,10 @@ export function IntegrationProviderDrawer({
       for (const field of fields) {
         if (formValues[field.key]) credentials[field.key] = formValues[field.key];
       }
-      const legacyId = LEGACY_PROVIDER_MAP[provider.id] || provider.id;
-      const result = await connectProvider(legacyId, credentials);
+      const result = provider.category === "suppliers"
+        ? await connectSupplierProvider(provider.id, provider.label, credentials)
+        : await connectProvider(LEGACY_PROVIDER_MAP[provider.id] || provider.id, credentials);
+
       if (result.success) {
         toast.success(`${provider.label} conectado com sucesso!`);
         onSuccess();
