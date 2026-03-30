@@ -32,6 +32,7 @@ import {
   type CategoryAuditEntry,
   type VariableSource,
 } from "@/hooks/useVariablesAudit";
+import type { GovernanceRecord, GovernanceSummary } from "@/services/variableGovernance";
 
 // ── Status config ──────────────────────────────────────────
 const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: string; label: string }> = {
@@ -55,11 +56,15 @@ export function AuditTabContent({
   loadingCustom,
   onRefresh,
   onRequestCreateVariable,
+  govRecords,
+  govSummary,
 }: {
   dbCustomVars: DbCustomVar[];
   loadingCustom: boolean;
   onRefresh: () => void | Promise<any>;
   onRequestCreateVariable?: (suggested: { nome: string; label: string; table: string; column: string; colType?: string }) => void;
+  govRecords?: GovernanceRecord[];
+  govSummary?: GovernanceSummary;
 }) {
   const [showSynced, setShowSynced] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "missing" | "mapped">("all");
@@ -71,6 +76,31 @@ export function AuditTabContent({
   const [fullAuditResult, setFullAuditResult] = useState<FullAuditResult | null>(null);
 
   const { customAudit, schemaAudit, descriptionAudit, ghostVariables, totalCustomDivergences, categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
+
+  // Governance lookup map — SSOT for variable classification
+  const govMap = useMemo(() => {
+    const map = new Map<string, GovernanceRecord>();
+    if (govRecords) {
+      for (const r of govRecords) map.set(r.key, r);
+    }
+    return map;
+  }, [govRecords]);
+
+  // Governance-aware resolver coverage — overrides old RESOLVER_MAP-based counts
+  const govResolverCoverage = useMemo(() => {
+    if (!govSummary) return resolverCoverage;
+    const total = govSummary.total;
+    const ghostCount = govSummary.fantasma_real;
+    const pendingCount = govSummary.feature_nao_implementada + govSummary.cdd;
+    const withResolver = total - ghostCount - pendingCount;
+    return {
+      totalCatalog: total,
+      withResolver,
+      ghostCount,
+      pendingCount,
+      coveragePct: total > 0 ? Math.round((withResolver / total) * 100) : 0,
+    };
+  }, [govSummary, resolverCoverage]);
 
   // Real-time audit data from edge function
   const { data: quickAudit, isLoading: quickLoading } = useQuickAudit();
@@ -418,45 +448,45 @@ export function AuditTabContent({
           </div>
         </div>
 
-        {/* Row 2: Resolver coverage KPIs — honest view */}
+        {/* Row 2: Resolver coverage KPIs — governance-based */}
         <div className="flex items-center gap-2 mt-4 mb-1">
           <Zap className="h-3.5 w-3.5 text-primary" />
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Catálogo Global — Cobertura de Resolver (catálogo × implementação)</span>
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Catálogo Global — Cobertura de Resolver (governança centralizada)</span>
           <Tooltip>
             <TooltipTrigger asChild>
               <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" />
             </TooltipTrigger>
             <TooltipContent side="right" className="max-w-[280px] text-xs">
-              <p>Indica quantas variáveis do catálogo têm resolver mapeado (RESOLVER_MAP). Variáveis com fonte "Desconhecida" não têm resolver identificado e podem sair em branco no PDF.</p>
+              <p>Classificação baseada no motor de governança centralizado. Variáveis "Fantasma Real" não têm resolver identificado em FE, BE ou snapshot.</p>
             </TooltipContent>
           </Tooltip>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           <div className="rounded-lg border border-border bg-card p-2.5 space-y-0.5">
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Total Catálogo</p>
-            <p className="text-lg font-bold text-foreground tabular-nums">{resolverCoverage.totalCatalog}</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{govResolverCoverage.totalCatalog}</p>
           </div>
           <div className="rounded-lg border border-success/30 bg-success/5 p-2.5 space-y-0.5">
-            <p className="text-[9px] text-success uppercase tracking-wider font-medium">Com Resolver</p>
-            <p className="text-lg font-bold text-success tabular-nums">{resolverCoverage.withResolver}</p>
+            <p className="text-[9px] text-success uppercase tracking-wider font-medium">Resolvidas</p>
+            <p className="text-lg font-bold text-success tabular-nums">{govResolverCoverage.withResolver}</p>
           </div>
           <div className={cn(
             "rounded-lg border p-2.5 space-y-0.5",
-            resolverCoverage.ghostCount > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
+            govResolverCoverage.ghostCount > 0 ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
           )}>
-            <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Sem Resolver</p>
-            <p className="text-lg font-bold text-destructive tabular-nums">{resolverCoverage.ghostCount}</p>
+            <p className="text-[9px] text-destructive uppercase tracking-wider font-medium">Fantasma Real</p>
+            <p className="text-lg font-bold text-destructive tabular-nums">{govResolverCoverage.ghostCount}</p>
           </div>
           <div className={cn(
             "rounded-lg border p-2.5 space-y-0.5",
-            resolverCoverage.pendingCount > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"
+            govResolverCoverage.pendingCount > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"
           )}>
             <p className="text-[9px] text-warning uppercase tracking-wider font-medium">Pendentes</p>
-            <p className="text-lg font-bold text-warning tabular-nums">{resolverCoverage.pendingCount}</p>
+            <p className="text-lg font-bold text-warning tabular-nums">{govResolverCoverage.pendingCount}</p>
           </div>
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 space-y-0.5">
             <p className="text-[9px] text-primary uppercase tracking-wider font-medium">Cobertura Real</p>
-            <p className="text-lg font-bold text-primary tabular-nums">{resolverCoverage.coveragePct}%</p>
+            <p className="text-lg font-bold text-primary tabular-nums">{govResolverCoverage.coveragePct}%</p>
           </div>
         </div>
       </div>
@@ -464,7 +494,7 @@ export function AuditTabContent({
       {/* ════════════════════════════════════════════════════════ */}
       {/* SECTION: Category Breakdown (right after KPIs) */}
       {/* ════════════════════════════════════════════════════════ */}
-      <CategoryAuditSection entries={categoryAudit} />
+      <CategoryAuditSection entries={categoryAudit} govMap={govMap} />
 
       {/* ════════════════════════════════════════════════════════ */}
       {/* GHOST VARIABLES */}
@@ -920,11 +950,41 @@ function AuditSection({
   );
 }
 
-// ── Category Audit Section ───────────────────────────────────
-function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
-  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+// ── Governance status color map ──
+const GOV_BG_COLORS: Record<string, string> = {
+  success: "bg-success/10 text-success border-success/20",
+  info: "bg-info/10 text-info border-info/20",
+  warning: "bg-warning/10 text-warning border-warning/20",
+  muted: "bg-muted/20 text-muted-foreground border-border",
+  destructive: "bg-destructive/10 text-destructive border-destructive/20",
+  primary: "bg-primary/10 text-primary border-primary/20",
+  secondary: "bg-muted/10 text-muted-foreground border-border",
+};
 
+const GOV_STATUS_COLORS: Record<string, string> = {
+  success: "text-success", info: "text-info", warning: "text-warning",
+  muted: "text-muted-foreground", destructive: "text-destructive",
+  primary: "text-primary", secondary: "text-muted-foreground",
+};
+
+// ── Category Audit Section ───────────────────────────────────
+function CategoryAuditSection({ entries, govMap }: { entries: CategoryAuditEntry[]; govMap: Map<string, GovernanceRecord> }) {
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const hasGov = govMap.size > 0;
   const totalVars = entries.reduce((sum, e) => sum + e.total, 0);
+
+  const getVarStatus = (v: { key: string; notImplemented?: boolean; source: string }) => {
+    const gov = govMap.get(v.key);
+    if (gov) {
+      const isGhost = gov.classification === "FANTASMA_REAL";
+      const isPending = gov.classification === "FEATURE_NAO_IMPLEMENTADA" || gov.classification === "CDD";
+      return { isOk: !isGhost && !isPending, isGhost, isPending, statusLabel: gov.statusLabel, statusColor: gov.statusColor, evidence: gov.evidence };
+    }
+    const isOk = !v.notImplemented && v.source !== "unknown";
+    const isGhost = v.source === "unknown" && !v.notImplemented;
+    const isPending = !!v.notImplemented;
+    return { isOk, isGhost, isPending, statusLabel: isGhost ? "Fantasma" : isPending ? "Não implementada" : "OK", statusColor: (isGhost ? "destructive" : isPending ? "warning" : "success") as string, evidence: "" };
+  };
 
   return (
     <div className="px-4 py-3 space-y-3">
@@ -932,29 +992,24 @@ function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
         <Layers className="h-4 w-4 text-primary" />
         <span className="text-xs font-semibold text-foreground">Auditoria por Categoria</span>
         <span className="text-[10px] text-muted-foreground">— {totalVars} variáveis em {entries.length} categorias</span>
+        {hasGov && <Badge variant="outline" className="text-[8px] bg-success/10 text-success border-success/20">Governança ativa</Badge>}
       </div>
 
-      {/* Legenda de status */}
       <div className="flex flex-wrap items-center gap-3 text-[10px] bg-muted/20 rounded-lg px-3 py-2 border border-border/40">
         <span className="font-semibold text-foreground">Legenda:</span>
-        <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-success" /> OK — Resolver mapeado</span>
-        <span className="flex items-center gap-1"><XCircle className="h-3 w-3 text-destructive" /> Fantasma — Sem resolver</span>
-        <span className="flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-warning" /> Pendente — Não implementada</span>
-        <span className="text-muted-foreground">|</span>
-        <span className="flex items-center gap-1">📸 Snapshot</span>
-        <span className="flex items-center gap-1">👤 BD: Cliente</span>
-        <span className="flex items-center gap-1">👔 BD: Consultor</span>
-        <span className="flex items-center gap-1">🧮 Calculada</span>
-        <span className="flex items-center gap-1">❓ Desconhecida</span>
+        <span className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-success" /> Implementada</span>
+        <span className="flex items-center gap-1"><Info className="h-3 w-3 text-info" /> Backend/Snapshot</span>
+        <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-primary" /> Passthrough/Custom</span>
+        <span className="flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-warning" /> Pendente/Legado</span>
+        <span className="flex items-center gap-1"><XCircle className="h-3 w-3 text-destructive" /> Fantasma Real</span>
       </div>
 
-      {/* Category grid with summary badges */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         {entries.map((entry) => {
           const isActive = expandedCat === entry.category;
-          const okCount = entry.variables.filter(v => !v.notImplemented && v.source !== "unknown").length;
-          const ghostCount = entry.variables.filter(v => v.source === "unknown").length;
-          const pendingCount = entry.variables.filter(v => v.notImplemented).length;
+          const okCount = entry.variables.filter(v => getVarStatus(v).isOk).length;
+          const ghostCount = entry.variables.filter(v => getVarStatus(v).isGhost).length;
+          const pendingCount = entry.variables.filter(v => getVarStatus(v).isPending).length;
           return (
             <Button
               key={entry.category}
@@ -962,9 +1017,7 @@ function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
               onClick={() => setExpandedCat(isActive ? null : entry.category)}
               className={cn(
                 "rounded-lg border p-2.5 text-left h-auto flex flex-col items-start transition-all gap-1",
-                isActive
-                  ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
-                  : "border-border bg-card hover:bg-muted/20"
+                isActive ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card hover:bg-muted/20"
               )}
             >
               <div className="flex items-center gap-1.5 w-full">
@@ -974,7 +1027,7 @@ function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
               <p className="text-lg font-bold text-foreground tabular-nums">{entry.total}</p>
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="text-[8px] px-1 py-0 rounded bg-success/10 text-success font-semibold">✅ {okCount}</span>
-                {ghostCount > 0 && <span className="text-[8px] px-1 py-0 rounded bg-destructive/10 text-destructive font-semibold">❓ {ghostCount}</span>}
+                {ghostCount > 0 && <span className="text-[8px] px-1 py-0 rounded bg-destructive/10 text-destructive font-semibold">🔴 {ghostCount}</span>}
                 {pendingCount > 0 && <span className="text-[8px] px-1 py-0 rounded bg-warning/10 text-warning font-semibold">⚠️ {pendingCount}</span>}
               </div>
             </Button>
@@ -982,32 +1035,30 @@ function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
         })}
       </div>
 
-      {/* Expanded category detail — card-based layout, no horizontal scroll */}
       {expandedCat && (() => {
         const entry = entries.find((e) => e.category === expandedCat);
         if (!entry) return null;
-        const okCount = entry.variables.filter(v => !v.notImplemented && v.source !== "unknown").length;
-        const ghostCount = entry.variables.filter(v => v.source === "unknown" && !v.notImplemented).length;
-        const pendingCount = entry.variables.filter(v => v.notImplemented).length;
+        const okCount = entry.variables.filter(v => getVarStatus(v).isOk).length;
+        const ghostCount = entry.variables.filter(v => getVarStatus(v).isGhost).length;
+        const pendingCount = entry.variables.filter(v => getVarStatus(v).isPending).length;
         return (
           <div className="rounded-lg border border-border overflow-hidden">
-            {/* Header */}
             <div className="flex items-center gap-2 px-3 py-2.5 bg-muted/20 border-b border-border flex-wrap">
               <span className="text-base">{entry.icon}</span>
               <span className="text-sm font-semibold text-foreground">{entry.label}</span>
               <Badge variant="outline" className="text-[9px] bg-primary/10 text-primary border-primary/20">{entry.total} variáveis</Badge>
               <Badge variant="outline" className="text-[9px] bg-success/10 text-success border-success/20">✅ {okCount} OK</Badge>
-              {ghostCount > 0 && <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">❓ {ghostCount} fantasma</Badge>}
+              {ghostCount > 0 && <Badge variant="outline" className="text-[9px] bg-destructive/10 text-destructive border-destructive/20">🔴 {ghostCount} fantasma</Badge>}
               {pendingCount > 0 && <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/20">⚠️ {pendingCount} pendente</Badge>}
             </div>
 
-            {/* Variable list — stacked cards */}
             <div className="divide-y divide-border/40 max-h-[500px] overflow-y-auto">
               {entry.variables.map((v, idx) => {
                 const srcInfo = SOURCE_LABELS[v.source];
-                const isOk = !v.notImplemented && v.source !== "unknown";
-                const isGhost = v.source === "unknown" && !v.notImplemented;
-                const isPending = !!v.notImplemented;
+                const status = getVarStatus(v);
+                const gov = govMap.get(v.key);
+                const bgColorClass = GOV_BG_COLORS[status.statusColor] || "bg-muted/10 text-muted-foreground border-border";
+                const statusColorClass = GOV_STATUS_COLORS[status.statusColor] || "text-muted-foreground";
 
                 return (
                   <div
@@ -1015,58 +1066,57 @@ function CategoryAuditSection({ entries }: { entries: CategoryAuditEntry[] }) {
                     className={cn(
                       "px-3 py-2 flex flex-col gap-1 transition-colors hover:bg-accent/5",
                       idx % 2 === 0 ? "bg-card" : "bg-muted/10",
-                      isGhost && "bg-destructive/[0.04] border-l-2 border-l-destructive/40",
-                      isPending && "bg-warning/[0.04] border-l-2 border-l-warning/40 opacity-70",
-                      isOk && "border-l-2 border-l-success/40"
+                      status.isGhost && "bg-destructive/[0.04] border-l-2 border-l-destructive/40",
+                      status.isPending && "bg-warning/[0.04] border-l-2 border-l-warning/40 opacity-70",
+                      status.isOk && "border-l-2 border-l-success/40"
                     )}
                   >
-                    {/* Row 1: Status icon + Label + Key */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      {/* Status icon */}
-                      {isPending ? (
+                      {status.isPending ? (
                         <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
-                      ) : isGhost ? (
+                      ) : status.isGhost ? (
                         <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
                       ) : (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                        <CheckCircle2 className={cn("h-3.5 w-3.5 shrink-0", statusColorClass)} />
                       )}
-
-                      {/* Label */}
                       <span className="text-xs font-medium text-foreground">{v.label}</span>
-
-                      {/* Key */}
                       <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px] shrink-0">[{v.key}]</code>
+                      {gov && (
+                        <Badge variant="outline" className={cn("text-[8px] h-4", bgColorClass)}>
+                          {status.statusLabel}
+                        </Badge>
+                      )}
                     </div>
 
-                    {/* Row 2: Origem + Resolver + Status text */}
                     <div className="flex items-center gap-2 ml-5 flex-wrap">
-                      {/* Origem badge */}
-                      <Badge variant="outline" className={cn(
-                        "text-[9px] gap-0.5 h-5",
-                        v.source === "snapshot" && "bg-info/10 text-info border-info/20",
-                        (v.source === "db_cliente" || v.source === "db_lead" || v.source === "db_consultor" || v.source === "db_projeto" || v.source === "db_proposta" || v.source === "db_versao") && "bg-primary/10 text-primary border-primary/20",
-                        v.source === "computed" && "bg-warning/10 text-warning border-warning/20",
-                        v.source === "custom_vc" && "bg-success/10 text-success border-success/20",
-                        v.source === "unknown" && "bg-destructive/10 text-destructive border-destructive/20",
-                      )}>
-                        {srcInfo.icon} {srcInfo.label}
-                      </Badge>
+                      {gov ? (
+                        <Badge variant="outline" className={cn("text-[9px] gap-0.5 h-5", bgColorClass)}>
+                          {gov.classification.replace(/_/g, " ")}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className={cn(
+                          "text-[9px] gap-0.5 h-5",
+                          v.source === "snapshot" && "bg-info/10 text-info border-info/20",
+                          (v.source === "db_cliente" || v.source === "db_lead" || v.source === "db_consultor" || v.source === "db_projeto" || v.source === "db_proposta" || v.source === "db_versao") && "bg-primary/10 text-primary border-primary/20",
+                          v.source === "computed" && "bg-warning/10 text-warning border-warning/20",
+                          v.source === "custom_vc" && "bg-success/10 text-success border-success/20",
+                          v.source === "unknown" && "bg-destructive/10 text-destructive border-destructive/20",
+                        )}>
+                          {srcInfo.icon} {srcInfo.label}
+                        </Badge>
+                      )}
 
-                      {/* Resolver */}
-                      {v.resolver ? (
+                      {gov?.evidence ? (
+                        <span className="text-[10px] text-muted-foreground">— {gov.evidence}</span>
+                      ) : v.resolver ? (
                         <span className="text-[10px] text-muted-foreground">
                           via <code className="font-mono bg-muted/40 px-1 py-0.5 rounded text-[9px]">{v.resolver}</code>
                         </span>
-                      ) : (
+                      ) : !gov ? (
                         <span className="text-[10px] text-destructive font-medium">❌ Sem resolver</span>
-                      )}
+                      ) : null}
 
-                      {/* Status text */}
-                      {isPending && <span className="text-[10px] text-warning font-medium">— ⚠️ Não implementada</span>}
-                      {isGhost && <span className="text-[10px] text-destructive font-medium">— ❌ Variável fantasma (pode sair em branco no PDF!)</span>}
-
-                      {/* Description */}
-                      {v.description && (
+                      {v.description && !gov?.evidence && (
                         <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">— {v.description}</span>
                       )}
                     </div>
