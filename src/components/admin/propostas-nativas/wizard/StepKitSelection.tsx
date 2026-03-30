@@ -24,7 +24,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { fetchActiveKits, snapshotCatalogKitToKitItemRows, fetchKitsSummary, type CatalogKit, type CatalogKitSummary } from "@/services/kitCatalogService";
 import { formatNumberBR } from "@/lib/formatters";
 
-import { KitFilters, DEFAULT_FILTERS, type KitFiltersState } from "./kit/KitFilters";
+import { KitFilters, DEFAULT_FILTERS, type KitFiltersState, type KitFilterOptions } from "./kit/KitFilters";
 import { KitCard, type KitCardData } from "./kit/KitCard";
 import { CriarKitManualModal, type KitMeta } from "./kit/CriarKitManualModal";
 import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
