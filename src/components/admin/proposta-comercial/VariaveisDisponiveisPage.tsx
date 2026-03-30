@@ -5,6 +5,7 @@ import {
   Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
   FlaskConical, Sparkles, Activity, HeartPulse, Shield, Layers,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useVariableHealth, type HealthClassification } from "@/hooks/useVariableHealth";
 import { useVariableGovernance, type GovernanceFilter, type GovernanceRecord } from "@/hooks/useVariableGovernance";
 import { useVariableCleanup } from "@/hooks/useVariableCleanup";
@@ -65,6 +66,7 @@ import {
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, type VariavelCustom } from "@/hooks/useVariaveisCustom";
 import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
 import { useVariableUsage } from "@/hooks/useVariableUsage";
+import { useQuickAudit } from "@/hooks/useRealAudit";
 import { useDealCustomFields, FIELD_CONTEXT_LABELS, FIELD_CONTEXT_ICONS } from "@/hooks/useDealCustomFields";
 import { AuditTabContent } from "./AuditTabContent";
 import { FormulaAISuggest } from "./FormulaAISuggest";
@@ -227,8 +229,10 @@ export function VariaveisDisponiveisPage() {
 
   const { categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
   const { usageMap } = useVariableUsage();
+  const { data: quickAudit } = useQuickAudit();
   const { data: dealCustomFields = [] } = useDealCustomFields();
   const { healthMap, summary: healthSummary, hasData: hasHealthData } = useVariableHealth();
+  const queryClient = useQueryClient();
 
   const dynamicFieldKeysList = useMemo(() => dealCustomFields.map(d => d.field_key), [dealCustomFields]);
   const { records: govRecords, summary: govSummary, getRecord: getGovRecord, filterOptions: govFilterOptions, filterRecords: govFilterRecords } = useVariableGovernance(customVarsRaw, dynamicFieldKeysList);
@@ -243,6 +247,13 @@ export function VariaveisDisponiveisPage() {
     });
     return map;
   }, [categoryAudit]);
+
+  const quickAuditMap = useMemo(() => {
+    const broken = new Set(quickAudit?.quebradas ?? []);
+    const nulls = new Set(quickAudit?.nulas ?? []);
+    const found = new Set(quickAudit?.variaveis_encontradas ?? []);
+    return { broken, nulls, found, hasAudit: !!quickAudit };
+  }, [quickAudit]);
 
   const filteredPickerVars = useMemo(() => {
     const term = normalize(varPickerSearch);
@@ -273,15 +284,18 @@ export function VariaveisDisponiveisPage() {
       const source = rm?.source ?? "unknown";
       const resolver = rm?.resolver ?? "";
       const usageInfo = usageMap.get(key);
-      const inDocx = usageInfo?.inDocx ?? false;
-      const docxBroken = usageInfo?.isBroken ?? false;
-      const docxNull = usageInfo?.isNull ?? false;
+      const auditInDocx = quickAuditMap.found.has(key);
+      const auditBroken = quickAuditMap.broken.has(key);
+      const auditNull = quickAuditMap.nulls.has(key);
+      const inDocx = quickAuditMap.hasAudit ? auditInDocx : (usageInfo?.inDocx ?? false);
+      const docxBroken = quickAuditMap.hasAudit ? auditBroken : (usageInfo?.isBroken ?? false);
+      const docxNull = quickAuditMap.hasAudit ? auditNull : (usageInfo?.isNull ?? false);
 
       let status: EnrichedVariable["status"] = "ok";
       if (v.notImplemented) status = "pending";
       else if (docxBroken) status = "error";
       else if (docxNull) status = "warning";
-      else if (source === "unknown" && !inDocx) status = "unused";
+      else if ((source === "unknown" || source === "futura") && !inDocx) status = "unused";
 
       items.push({
         key,
@@ -974,7 +988,15 @@ export function VariaveisDisponiveisPage() {
             loadingCustom={loadingCustom}
             govRecords={govRecords}
             govSummary={govSummary}
-            onRefresh={() => refetchCustom()}
+            onRefresh={async () => {
+              await Promise.all([
+                refetchCustom(),
+                queryClient.invalidateQueries({ queryKey: ["audit-variables"] }),
+                queryClient.invalidateQueries({ queryKey: ["generation-audit-reports-latest"] }),
+                queryClient.invalidateQueries({ queryKey: ["generation-audit-health"] }),
+                queryClient.invalidateQueries({ queryKey: ["variable-audit-reports-history"] }),
+              ]);
+            }}
             onRequestCreateVariable={(suggested) => {
               setEditingVar(null);
               const tableCategoria: Record<string, string> = {
