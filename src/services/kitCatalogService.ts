@@ -145,8 +145,8 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
   const safeItems = items ?? [];
 
   // Collect ref_ids for lookups
-  const moduloRefIds = items.filter(i => i.item_type === "modulo" && i.ref_id).map(i => i.ref_id!);
-  const inversorRefIds = items.filter(i => i.item_type === "inversor" && i.ref_id).map(i => i.ref_id!);
+  const moduloRefIds = safeItems.filter(i => i.item_type === "modulo" && i.ref_id).map(i => i.ref_id!);
+  const inversorRefIds = safeItems.filter(i => i.item_type === "inversor" && i.ref_id).map(i => i.ref_id!);
 
   const [modulos, inversores] = await Promise.all([
     moduloRefIds.length > 0 ? lookupModulos(moduloRefIds) : Promise.resolve(new Map<string, ModuloRef>()),
@@ -156,7 +156,7 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
   const result = new Map<string, CatalogKitSummary>();
 
   for (const kitId of kitIds) {
-    const kitItems = items.filter(i => i.kit_id === kitId);
+    const kitItems = safeItems.filter(i => i.kit_id === kitId);
     const modItems = kitItems.filter(i => i.item_type === "modulo");
     const invItems = kitItems.filter(i => i.item_type === "inversor");
 
