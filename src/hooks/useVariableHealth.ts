@@ -19,6 +19,7 @@ import {
   type HealthClassification,
 } from "@/services/variableHealth";
 import type { GenerationAuditReport } from "@/services/generationAudit/types";
+import { useQuickAudit, type QuickAuditResult } from "@/hooks/useRealAudit";
 
 const STALE_TIME = 1000 * 60 * 5; // 5 min
 
@@ -87,9 +88,6 @@ function convertGenerationToAuditRows(
 ): AuditReportRow[] {
   return genReports.map((g, idx) => {
     const r = g.report;
-    const ok = r.items
-      .filter((i) => i.severity === "ok")
-      .map((i) => i.variable);
     const broken = r.unresolvedPlaceholders ?? [];
     const nullVars = r.nullValues ?? [];
     const allFound = r.items.map((i) => i.variable);
@@ -104,6 +102,20 @@ function convertGenerationToAuditRows(
   });
 }
 
+/**
+ * Convert quick audit result into a single AuditReportRow
+ * for instant health computation when no historical data exists.
+ */
+function convertQuickAuditToRow(qa: QuickAuditResult): AuditReportRow {
+  return {
+    id: "quick-audit-live",
+    variaveis_encontradas: qa.variaveis_encontradas ?? [],
+    variaveis_quebradas: qa.quebradas ?? [],
+    variaveis_nulas: qa.nulas ?? [],
+    criado_em: qa.gerado_em ?? new Date().toISOString(),
+  };
+}
+
 export interface VariableHealthResult {
   healthMap: Map<string, VariableHealthRecord>;
   summary: VariableHealthSummary;
@@ -114,30 +126,45 @@ export interface VariableHealthResult {
 
 /**
  * Main hook: provides variable health scores.
- * Prioritizes generation_audit_json (real generation results).
- * Falls back to variable_audit_reports when no generation data exists.
+ * Priority:
+ *   1. generation_audit_json (real generation results from DB)
+ *   2. variable_audit_reports (legacy parallel audit from DB)
+ *   3. Quick audit (instant, from edge function) — NEW fallback
  */
 export function useVariableHealth(): VariableHealthResult {
   const { data: legacyReports = [], isLoading: legacyLoading } = useHistoricalAuditReports();
   const { data: genReports = [], isLoading: genLoading } = useGenerationAuditReports();
+  const { data: quickAudit, isLoading: quickLoading } = useQuickAudit();
 
-  const isLoading = legacyLoading || genLoading;
+  const isLoading = legacyLoading || genLoading || quickLoading;
 
   const catalogKeys = useMemo(() => {
     return VARIABLES_CATALOG.map((v) => v.legacyKey.replace(/^\[|\]$/g, ""));
   }, []);
 
   const healthMap = useMemo(() => {
-    // Priority: use generation_audit_json if available
+    // Priority 1: use generation_audit_json if available
     if (genReports.length > 0) {
       const convertedRows = convertGenerationToAuditRows(genReports);
       return buildVariableHealthMap(convertedRows, catalogKeys);
     }
-    // Fallback to legacy parallel audit reports
-    return buildVariableHealthMap(legacyReports, catalogKeys);
-  }, [genReports, legacyReports, catalogKeys]);
+    // Priority 2: legacy parallel audit reports
+    if (legacyReports.length > 0) {
+      return buildVariableHealthMap(legacyReports, catalogKeys);
+    }
+    // Priority 3: Quick audit instant fallback — compute from live data
+    if (quickAudit && quickAudit.variaveis_encontradas?.length > 0) {
+      const row = convertQuickAuditToRow(quickAudit);
+      return buildVariableHealthMap([row], catalogKeys);
+    }
+    return buildVariableHealthMap([], catalogKeys);
+  }, [genReports, legacyReports, quickAudit, catalogKeys]);
 
-  const totalReports = genReports.length > 0 ? genReports.length : legacyReports.length;
+  const totalReports = genReports.length > 0
+    ? genReports.length
+    : legacyReports.length > 0
+      ? legacyReports.length
+      : (quickAudit?.variaveis_encontradas?.length ?? 0) > 0 ? 1 : 0;
 
   const summary = useMemo(() => {
     return buildHealthSummary(healthMap, totalReports);
