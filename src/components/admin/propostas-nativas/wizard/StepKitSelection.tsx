@@ -457,11 +457,11 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
         {/* ── Main Content Area ── */}
         <div className="flex-1 min-w-0 space-y-4">
-          {/* Tabs: Customizado | Fechado | + Criar manualmente */}
+          {/* Tabs: Catálogo | Customizado | Fechado */}
           <div className="flex items-center border-b border-border/50">
             {([
               { key: "catalogo" as const, label: "📦 Catálogo" },
-              { key: "customizado" as const, label: "Customizado" },
+              { key: "customizado" as const, label: `Customizado${manualKits.length > 0 ? ` (${manualKits.length})` : ""}` },
               { key: "fechado" as const, label: "Fechado" },
             ]).map(t => (
               <Button
@@ -478,13 +478,6 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 {t.label}
               </Button>
             ))}
-            <Button
-              variant="outline"
-              onClick={() => { setTab("manual"); setShowChoiceModal(true); }}
-              className="gap-2 border-primary text-primary hover:bg-primary/10"
-            >
-              + Criar manualmente
-            </Button>
           </div>
 
           {/* Toolbar */}
