@@ -75,7 +75,7 @@ interface Props {
   custoKitOverride?: number | null;
 }
 
-type TabType = "customizado" | "fechado" | "manual" | "catalogo";
+type TabType = "customizado" | "fechado" | "catalogo";
 
 function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverride?: number | null): KitCardData | null {
   const modItems = itens.filter(i => i.categoria === "modulo");
