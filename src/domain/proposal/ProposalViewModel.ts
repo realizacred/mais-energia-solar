@@ -121,7 +121,7 @@ export function buildProposalViewModel(input: BuildViewModelInput): ProposalView
   const potenciaKwp = Number(v.potencia_kwp) || snapshot.potenciaKwp;
   const valorTotal = Number(v.valor_total) || 0;
   const economiaMensal = Number(v.economia_mensal) || snapshot.economiaMensal;
-  const geracaoMensal = Number(v.geracao_mensal) || snapshot.geracaoMensalEstimada;
+  const geracaoMensal = snapshot.geracaoMensalEstimada || Number(v.geracao_mensal) || 0;
   const paybackMeses = Number(v.payback_meses) || snapshot.paybackMeses;
 
   // Derivados financeiros
