@@ -384,6 +384,22 @@ export async function syncSupplierProvider(
       return { success: false, error: data?.error || "Erro ao sincronizar fornecedor" };
     }
 
+    // Auto-continuar batches até completar todas as páginas
+    let lastResult = data;
+    let maxRetries = 50; // segurança: máximo ~50 batches (2500 páginas)
+    while (lastResult?.success && !lastResult?.is_complete && maxRetries > 0) {
+      maxRetries--;
+      const { data: contData, error: contErr } = await supabase.functions.invoke("edeltec-sync", {
+        body: {
+          tenant_id: tenantId,
+          api_config_id: config.id,
+          fornecedor_id: config.fornecedor_id || null,
+        },
+      });
+      if (contErr || !contData?.success) break;
+      lastResult = contData;
+    }
+
     await updateSupplierConfigState(config.id, {
         status: "connected",
         last_sync_at: new Date().toISOString(),
@@ -393,10 +409,10 @@ export async function syncSupplierProvider(
 
     return {
       success: true,
-      total_fetched: data.total_fetched,
-      created: data.created,
-      updated: data.updated,
-      skipped: data.skipped,
+      total_fetched: lastResult?.total_fetched ?? data.total_fetched,
+      created: lastResult?.created ?? data.created,
+      updated: lastResult?.updated ?? data.updated,
+      skipped: lastResult?.skipped ?? data.skipped,
     };
   } catch (error: any) {
     return { success: false, error: error?.message || "Falha ao sincronizar fornecedor" };
