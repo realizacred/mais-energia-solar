@@ -264,8 +264,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       }
 
       const itemLabel = rows.length > 0 ? `${rows.length} item(ns).` : "Kit integrado selecionado.";
-      toast({ title: "Kit importado do catálogo", description: `${kitName} — ${itemLabel} Edite na aba "Criar manualmente".` });
-      setTab("manual");
+      toast({ title: "Kit importado do catálogo", description: `${kitName} — ${itemLabel}` });
+      // Stay on catalogo tab — the selected kit banner shows at the top
     } catch (err: any) {
       toast({ title: "Erro ao importar kit", description: err.message, variant: "destructive" });
     } finally {
