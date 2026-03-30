@@ -220,8 +220,8 @@ const CATEGORY_TO_DOMAIN: Record<VariableCategory, VariableDomain> = {
   aneel: "tecnico",
   gd: "tecnico",
   calculo: "tecnico",
-  cdd: "fornecedor",
-  customizada: "custom_calculada", // fallback — overridden by VC_DOMAIN_MAP
+  cdd: "integracao",
+  customizada: "financeiro", // fallback — overridden by VC_DOMAIN_MAP
 };
 
 /** Supplier/integration related keys */
