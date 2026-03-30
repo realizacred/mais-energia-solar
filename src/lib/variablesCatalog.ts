@@ -96,8 +96,8 @@ export const DOMAIN_LABELS: Record<VariableDomain, string> = {
   documento: "Documento / Contrato",
   fornecedor: "Fornecedor / Integração",
   projeto: "Projeto",
-  custom_calculada: "Custom Vars (Calculadas)",
-  campo_entidade: "Campos Custom (Entidade)",
+  uc: "Unidade Consumidora",
+  integracao: "Integrações",
   tecnico: "Técnico / Interno",
   legado: "Legado / Obsoleto",
 };
@@ -111,22 +111,22 @@ export const DOMAIN_ICONS: Record<VariableDomain, string> = {
   documento: "📄",
   fornecedor: "🏭",
   projeto: "🏗️",
-  custom_calculada: "🧩",
-  campo_entidade: "📐",
+  uc: "🔌",
+  integracao: "🔗",
   tecnico: "🔧",
   legado: "🏚️",
 };
 
 export const NATURE_LABELS: Record<VariableNature, string> = {
-  canonica: "Canônica",
-  alias_legado: "Alias Legado",
   calculada: "Calculada",
-  documental: "Documental",
-  importada_integracao: "Importada (Integração)",
-  custom_var_calculada: "Custom Var (Expressão)",
+  snapshot: "Snapshot",
+  input: "Input (Wizard)",
   campo_custom_entidade: "Campo Custom (Entidade)",
-  tecnica_interna: "Técnica / Interna",
-  futura: "Futura / Não Implementada",
+  integracao_externa: "Integração Externa",
+  documental: "Documental",
+  alias_legado: "Alias Legado",
+  tecnica: "Técnica / Interna",
+  canonica: "Canônica",
 };
 
 export const CATEGORY_LABELS: Record<VariableCategory, string> = {
