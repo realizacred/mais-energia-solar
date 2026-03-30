@@ -138,13 +138,30 @@ export function AuditTabContent({
           };
         }
 
+        // Key not in catalog — classify on-the-fly using knownKeys + dynamic patterns
+        const inBE = isKeyInBackendFlattenLocal(key);
+        const isDynamic = isDynamicKeyLocal(key);
+
+        if (inBE || isDynamic) {
+          return {
+            key,
+            gov: undefined,
+            isCritical: false,
+            statusLabel: inBE ? "Backend/Snapshot" : "Passthrough",
+            statusColor: "info",
+            evidence: inBE
+              ? "Resolvido pelo backend (flatten/resolvers) — não catalogado estaticamente"
+              : "Chave dinâmica (série/índice) resolvida via padrão iterativo",
+          };
+        }
+
         return {
           key,
           gov: undefined,
           isCritical: true,
-          statusLabel: "Diagnóstico pendente",
+          statusLabel: "Não catalogada",
           statusColor: "warning",
-          evidence: "Placeholder presente no DOCX, mas ainda sem classificação no motor central.",
+          evidence: "Placeholder no DOCX sem entrada no catálogo nem no backend flatten.",
         };
       })
       .sort((a, b) => Number(b.isCritical) - Number(a.isCritical) || a.key.localeCompare(b.key, "pt-BR"));
