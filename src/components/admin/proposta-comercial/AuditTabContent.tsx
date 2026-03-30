@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers, Zap,
   FileText, Clock, Bug, Sparkles, Copy, Bot
 } from "lucide-react";
+import { BACKEND_FLATTEN_KEYS } from "@/services/variableAudit/knownKeys";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useQuickAudit, useFullAudit, type FullAuditResult } from "@/hooks/useRealAudit";
@@ -39,6 +40,32 @@ const GOVERNANCE_CRITICAL_CLASSES = new Set<GovernanceRecord["classification"]>(
   "FEATURE_NAO_IMPLEMENTADA",
   "CDD",
 ]);
+
+// ── On-the-fly classification for DOCX keys not in catalog ──
+const MONTHLY_SUFFIXES_LOCAL = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+function isDynamicKeyLocal(flatKey: string): boolean {
+  if (MONTHLY_SUFFIXES_LOCAL.some(m => flatKey.endsWith(`_${m}`))) return true;
+  const annualMatch = flatKey.match(/_(\d+)$/);
+  if (annualMatch) {
+    const n = parseInt(annualMatch[1]);
+    if (n >= 0 && n <= 25 && !flatKey.includes("_uc")) return true;
+  }
+  if (/_uc\d+$/.test(flatKey)) return true;
+  if (/_\d+$/.test(flatKey) && (
+    flatKey.includes("inversor_") || flatKey.includes("bateria_") || flatKey.includes("kit_comp_")
+  )) return true;
+  return false;
+}
+
+function isKeyInBackendFlattenLocal(flatKey: string): boolean {
+  if (BACKEND_FLATTEN_KEYS.has(flatKey)) return true;
+  const base = flatKey.replace(/_\d+$/, "_1");
+  if (base !== flatKey && BACKEND_FLATTEN_KEYS.has(base)) return true;
+  const baseZero = flatKey.replace(/_\d+$/, "_0");
+  if (baseZero !== flatKey && BACKEND_FLATTEN_KEYS.has(baseZero)) return true;
+  return false;
+}
 
 // ── Status config ──────────────────────────────────────────
 const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: string; label: string }> = {
@@ -137,13 +164,30 @@ export function AuditTabContent({
           };
         }
 
+        // Key not in catalog — classify on-the-fly using knownKeys + dynamic patterns
+        const inBE = isKeyInBackendFlattenLocal(key);
+        const isDynamic = isDynamicKeyLocal(key);
+
+        if (inBE || isDynamic) {
+          return {
+            key,
+            gov: undefined,
+            isCritical: false,
+            statusLabel: inBE ? "Backend/Snapshot" : "Passthrough",
+            statusColor: "info",
+            evidence: inBE
+              ? "Resolvido pelo backend (flatten/resolvers) — não catalogado estaticamente"
+              : "Chave dinâmica (série/índice) resolvida via padrão iterativo",
+          };
+        }
+
         return {
           key,
           gov: undefined,
           isCritical: true,
-          statusLabel: "Diagnóstico pendente",
+          statusLabel: "Não catalogada",
           statusColor: "warning",
-          evidence: "Placeholder presente no DOCX, mas ainda sem classificação no motor central.",
+          evidence: "Placeholder no DOCX sem entrada no catálogo nem no backend flatten.",
         };
       })
       .sort((a, b) => Number(b.isCritical) - Number(a.isCritical) || a.key.localeCompare(b.key, "pt-BR"));
