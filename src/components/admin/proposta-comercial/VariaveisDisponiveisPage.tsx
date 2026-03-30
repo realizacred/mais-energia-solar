@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { useVariableHealth, type HealthClassification } from "@/hooks/useVariableHealth";
 import { useVariableGovernance, type GovernanceFilter, type GovernanceRecord } from "@/hooks/useVariableGovernance";
+import { useVariableCleanup } from "@/hooks/useVariableCleanup";
+import { CleanupPanel } from "./CleanupPanel";
 import { VariableTester } from "./VariableTester";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -163,7 +165,7 @@ interface EnrichedVariable {
 }
 
 type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "documento" | "aspiracional" | "campo_dinamico" | "health_critical" | "health_unstable" | "health_healthy" | "health_unused";
-type ActiveView = VariableCategory | "todas" | "auditoria" | "campo_pre" | "campo_pos" | "campo_projeto";
+type ActiveView = VariableCategory | "todas" | "auditoria" | "limpeza" | "campo_pre" | "campo_pos" | "campo_projeto";
 
 /* ── Semantic explanations for known variables ── */
 const SEMANTIC_EXPLANATIONS: Record<string, string> = {
