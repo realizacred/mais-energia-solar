@@ -203,26 +203,34 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       // Find catalog kit for full metadata
       const catalogKit = catalogKits.find(k => k.id === kitId);
       const summary = catalogSummaries.get(kitId);
-      // Default catalog kits to "Tradicional" — kit topology is not stored in catalog table
-      const topoLabel = "Tradicional";
+
+      // Determine topology: prefer external_data from Edeltec, else default
+      const extData = catalogKit?.external_data;
+      let topoLabel = "Tradicional";
+      if (extData?.sistema === "hibrido") topoLabel = "Híbrido";
+      else if (extData?.tipoDeProduto?.toLowerCase().includes("micro")) topoLabel = "Microinversor";
+
       const card = kitItemsToCardData(rows, topoLabel);
 
       // Cost: prefer fixed_price from catalog, then calculated from item unit_prices
       const calculatedCost = rows.reduce((s, r) => s + r.quantidade * r.preco_unitario, 0);
       const kitCost = catalogKit?.fixed_price || summary?.custoTotal || calculatedCost;
 
+      // Determine source label for distributor
+      const distribLabel = catalogKit?.source === "edeltec" ? "Edeltec" : kitName;
+
       const meta: KitMeta = {
-        distribuidorNome: kitName,
+        distribuidorNome: distribLabel,
         nomeKit: catalogKit?.name || kitName,
         codigoKit: kitId.slice(0, 8).toUpperCase(),
         catalogKitId: kitId,
         topologia: topoLabel,
         custo: kitCost,
-        sistema: "on_grid",
+        sistema: extData?.sistema || "on_grid",
       };
 
       if (card) {
-        card.distribuidorNome = kitName;
+        card.distribuidorNome = distribLabel;
         if (meta.custo) card.precoTotal = meta.custo;
         setManualKits([{ card, itens: rows, meta }]);
       }
@@ -565,7 +573,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                               <Badge variant="outline" className="text-[10px]">
                                 {kit.pricing_mode === "fixed" ? "Fixo" : "Calculado"}
                               </Badge>
-                              {(kit as any).source === "edeltec" && (
+                              {kit.source === "edeltec" && (
                                 <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
                                   Edeltec
                                 </Badge>
@@ -662,6 +670,11 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                             <Badge variant="outline" className="text-[10px]">
                               {kit.pricing_mode === "fixed" ? "Fixo" : "Calculado"}
                             </Badge>
+                            {kit.source === "edeltec" && (
+                              <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
+                                Edeltec
+                              </Badge>
+                            )}
                             {summary && (
                               <Badge variant="outline" className="text-[10px] text-muted-foreground">
                                 {summary.totalItens} itens

@@ -92,14 +92,20 @@ function mapToKit(produto: any, tenantId: string, fornecedorId: string | null) {
 // ── Map kit items (módulos/inversores) ──────────────────────
 function mapToKitItems(produto: any) {
   const items: any[] = [];
+  const titulo = produto.titulo || "";
 
   if (produto.potenciaModulo && produto.potenciaModulo > 0) {
     const qty = produto.potenciaGerador
       ? Math.round((produto.potenciaGerador * 1000) / produto.potenciaModulo)
       : 0;
+    // Try to extract module model from titulo (e.g. "72 SINE ENERGY SN 640W-132MTBRP + ...")
+    const modMatch = titulo.match(/(\d+)\s+(.+?)\s*\+/);
+    const modDesc = modMatch
+      ? `${modMatch[2].trim()} ${produto.potenciaModulo}W`
+      : `${produto.fabricante || "Módulo"} ${produto.potenciaModulo}W`;
     items.push({
       item_type: "modulo",
-      description: `${produto.fabricante || "Módulo"} ${produto.potenciaModulo}W`,
+      description: modDesc,
       quantity: qty,
       unit_price: 0,
       ref_id: null,
@@ -107,10 +113,30 @@ function mapToKitItems(produto: any) {
   }
 
   if (produto.potenciaInversor && produto.potenciaInversor > 0) {
+    // Try to extract inverter model(s) from titulo
+    const plusParts = titulo.split("+").slice(1); // parts after first "+"
+    const invDescs: string[] = [];
+    for (const part of plusParts) {
+      const invMatch = part.trim().match(/^(\d+)\s+(.+)/);
+      if (invMatch) {
+        invDescs.push(`${invMatch[2].trim()}`);
+      }
+    }
+    const invDesc = invDescs.length > 0
+      ? invDescs.join(" + ")
+      : `${produto.fabricante || "Inversor"} ${produto.potenciaInversor}kW`;
+    
+    // Count inverter quantity from titulo if possible
+    let invQty = 1;
+    const invQtyMatches = plusParts.map(p => p.trim().match(/^(\d+)\s+/));
+    if (invQtyMatches.length > 0) {
+      invQty = invQtyMatches.reduce((s, m) => s + (m ? parseInt(m[1], 10) : 0), 0) || 1;
+    }
+
     items.push({
       item_type: "inversor",
-      description: `${produto.fabricante || "Inversor"} ${produto.potenciaInversor}kW`,
-      quantity: 1,
+      description: invDesc,
+      quantity: invQty,
       unit_price: 0,
       ref_id: null,
     });

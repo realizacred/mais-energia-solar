@@ -22,6 +22,8 @@ export interface CatalogKit {
   estimated_kwp: number | null;
   pricing_mode: string;
   fixed_price: number | null;
+  source: string | null;
+  external_data: Record<string, any> | null;
 }
 
 interface CatalogKitItem {
@@ -97,12 +99,12 @@ export interface CatalogKitSummary {
 export async function fetchActiveKits(): Promise<CatalogKit[]> {
   const { data, error } = await supabase
     .from("solar_kit_catalog")
-    .select("id, name, description, estimated_kwp, pricing_mode, fixed_price")
+    .select("id, name, description, estimated_kwp, pricing_mode, fixed_price, source, external_data")
     .eq("status", "active")
     .order("name");
 
   if (error) throw new Error(`Erro ao buscar kits: ${error.message}`);
-  return data ?? [];
+  return (data ?? []) as unknown as CatalogKit[];
 }
 
 /**
@@ -134,30 +136,49 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
 
   for (const kitId of kitIds) {
     const kitItems = items.filter(i => i.kit_id === kitId);
-    const modItem = kitItems.find(i => i.item_type === "modulo");
-    const invItem = kitItems.find(i => i.item_type === "inversor");
+    const modItems = kitItems.filter(i => i.item_type === "modulo");
+    const invItems = kitItems.filter(i => i.item_type === "inversor");
 
-    let moduloDescricao = modItem?.description || "—";
+    // Module summary: prefer ref lookup, fallback to description
+    let moduloDescricao = "—";
     let moduloPotWp = 0;
-    if (modItem?.ref_id) {
-      const ref = modulos.get(modItem.ref_id);
-      if (ref) {
-        moduloDescricao = `${ref.fabricante} ${ref.modelo} ${ref.potencia_wp}W`;
-        moduloPotWp = ref.potencia_wp;
+    let moduloQtd = 0;
+    for (const modItem of modItems) {
+      moduloQtd += modItem.quantity || 0;
+      if (modItem.ref_id) {
+        const ref = modulos.get(modItem.ref_id);
+        if (ref) {
+          moduloDescricao = `${ref.fabricante} ${ref.modelo} ${ref.potencia_wp}W`;
+          moduloPotWp = ref.potencia_wp;
+        }
+      } else if (modItem.description) {
+        moduloDescricao = modItem.description;
+        // Extract W from description like "Fabricante 640W"
+        const wMatch = modItem.description.match(/(\d+)\s*W/i);
+        if (wMatch) moduloPotWp = parseInt(wMatch[1], 10);
       }
     }
 
-    let inversorDescricao = invItem?.description || "—";
+    // Inverter summary: prefer ref lookup, fallback to description
+    let inversorDescricao = "—";
     let inversorPotKw = 0;
-    if (invItem?.ref_id) {
-      const ref = inversores.get(invItem.ref_id);
-      if (ref) {
-        inversorDescricao = `${ref.fabricante} ${ref.modelo}`;
-        inversorPotKw = ref.potencia_nominal_kw;
+    let inversorQtd = 0;
+    for (const invItem of invItems) {
+      inversorQtd += invItem.quantity || 0;
+      if (invItem.ref_id) {
+        const ref = inversores.get(invItem.ref_id);
+        if (ref) {
+          inversorDescricao = `${ref.fabricante} ${ref.modelo}`;
+          inversorPotKw = ref.potencia_nominal_kw;
+        }
+      } else if (invItem.description) {
+        inversorDescricao = invItem.description;
+        // Extract kW from description like "Inversor 6kW"
+        const kwMatch = invItem.description.match(/(\d+(?:[.,]\d+)?)\s*kW/i);
+        if (kwMatch) inversorPotKw = parseFloat(kwMatch[1].replace(",", "."));
       }
     }
 
-    const moduloQtd = modItem?.quantity || 0;
     const custoTotal = kitItems.reduce((s, i) => s + (i.quantity || 0) * (i.unit_price || 0), 0);
 
     result.set(kitId, {
@@ -165,8 +186,8 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
       moduloQtd,
       moduloPotenciaKwp: (moduloQtd * moduloPotWp) / 1000,
       inversorDescricao,
-      inversorQtd: invItem?.quantity || 0,
-      inversorPotenciaKw: inversorPotKw * (invItem?.quantity || 1),
+      inversorQtd,
+      inversorPotenciaKw: inversorPotKw * (inversorQtd || 1),
       totalItens: kitItems.length,
       custoTotal,
     });
@@ -234,7 +255,23 @@ export async function snapshotCatalogKitToKitItemRows(kitId: string): Promise<Ki
       if (ref) {
         fabricante = ref.fabricante;
         modelo = ref.modelo;
-        // baterias don't have a direct potencia_w equivalent
+      }
+    }
+
+    // Fallback for items without ref_id (e.g. Edeltec synced items)
+    if (!fabricante && !modelo && item.description) {
+      // Try to extract fabricante and modelo from description like "Fabricante Modelo 640W"
+      const wMatch = item.description.match(/(\d+)\s*W/i);
+      if (wMatch) potencia_w = parseInt(wMatch[1], 10);
+      const kwMatch = item.description.match(/(\d+(?:[.,]\d+)?)\s*kW/i);
+      if (kwMatch) potencia_w = Math.round(parseFloat(kwMatch[1].replace(",", ".")) * 1000);
+      // Use full description as modelo, try to split fabricante
+      const parts = item.description.split(" ");
+      if (parts.length >= 2) {
+        fabricante = parts[0];
+        modelo = parts.slice(1).join(" ");
+      } else {
+        modelo = item.description;
       }
     }
 
