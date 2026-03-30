@@ -41,6 +41,94 @@ export type VariableCategory =
   | "cdd"
   | "customizada";
 
+/** Functional domain for UI grouping — presentation layer */
+export type VariableDomain =
+  | "proposta"
+  | "sistema_solar"
+  | "cliente"
+  | "conta_energia"
+  | "financeiro"
+  | "documento"
+  | "fornecedor"
+  | "projeto"
+  | "custom_calculada"
+  | "campo_entidade"
+  | "tecnico"
+  | "legado";
+
+/** Nature/origin of the variable */
+export type VariableNature =
+  | "canonica"
+  | "alias_legado"
+  | "calculada"
+  | "documental"
+  | "importada_integracao"
+  | "custom_var_calculada"
+  | "campo_custom_entidade"
+  | "tecnica_interna"
+  | "futura";
+
+/** UI view presets */
+export type VariableView = "negocio" | "template" | "tecnica" | "integracoes" | "legado";
+
+export const VARIABLE_VIEW_LABELS: Record<VariableView, string> = {
+  negocio: "Negócio",
+  template: "Template",
+  tecnica: "Técnica",
+  integracoes: "Integrações",
+  legado: "Legado",
+};
+
+export const VARIABLE_VIEW_ICONS: Record<VariableView, string> = {
+  negocio: "💼",
+  template: "📄",
+  tecnica: "🔧",
+  integracoes: "🔗",
+  legado: "🏚️",
+};
+
+export const DOMAIN_LABELS: Record<VariableDomain, string> = {
+  proposta: "Proposta",
+  sistema_solar: "Sistema Solar",
+  cliente: "Cliente",
+  conta_energia: "Conta de Energia",
+  financeiro: "Financeiro",
+  documento: "Documento / Contrato",
+  fornecedor: "Fornecedor / Integração",
+  projeto: "Projeto",
+  custom_calculada: "Custom Vars (Calculadas)",
+  campo_entidade: "Campos Custom (Entidade)",
+  tecnico: "Técnico / Interno",
+  legado: "Legado / Obsoleto",
+};
+
+export const DOMAIN_ICONS: Record<VariableDomain, string> = {
+  proposta: "📋",
+  sistema_solar: "☀️",
+  cliente: "👤",
+  conta_energia: "⚡",
+  financeiro: "💰",
+  documento: "📄",
+  fornecedor: "🏭",
+  projeto: "🏗️",
+  custom_calculada: "🧩",
+  campo_entidade: "📐",
+  tecnico: "🔧",
+  legado: "🏚️",
+};
+
+export const NATURE_LABELS: Record<VariableNature, string> = {
+  canonica: "Canônica",
+  alias_legado: "Alias Legado",
+  calculada: "Calculada",
+  documental: "Documental",
+  importada_integracao: "Importada (Integração)",
+  custom_var_calculada: "Custom Var (Expressão)",
+  campo_custom_entidade: "Campo Custom (Entidade)",
+  tecnica_interna: "Técnica / Interna",
+  futura: "Futura / Não Implementada",
+};
+
 export const CATEGORY_LABELS: Record<VariableCategory, string> = {
   entrada: "Entrada de Dados",
   sistema_solar: "Sistema Solar",
@@ -111,6 +199,119 @@ export interface CatalogVariable {
   /** Escopo: proposta (default) ou documento (contratos/termos) */
   escopo?: VariableEscopo;
 }
+
+// ── Domain/Nature derivation (presentation layer) ──────────────
+
+/** Map category → domain for catalog variables */
+const CATEGORY_TO_DOMAIN: Record<VariableCategory, VariableDomain> = {
+  entrada: "proposta",
+  sistema_solar: "sistema_solar",
+  financeiro: "financeiro",
+  conta_energia: "conta_energia",
+  comercial: "proposta",
+  cliente: "cliente",
+  contrato: "documento",
+  assinatura: "documento",
+  pagamento: "documento",
+  tabelas: "tecnico",
+  series: "tecnico",
+  premissas: "tecnico",
+  tarifa: "tecnico",
+  aneel: "tecnico",
+  gd: "tecnico",
+  calculo: "tecnico",
+  cdd: "fornecedor",
+  customizada: "custom_calculada",
+};
+
+/** Supplier/integration related keys */
+const FORNECEDOR_KEYS = new Set([
+  "tipo_fornecedor_distribuidor", "fornecedor", "tipo_kit",
+]);
+
+/** Derive domain for a catalog variable */
+export function deriveDomain(v: CatalogVariable): VariableDomain {
+  const flatKey = v.legacyKey.replace(/^\[|\]$/g, "");
+
+  // Fornecedor keys override
+  if (FORNECEDOR_KEYS.has(flatKey)) return "fornecedor";
+
+  // Projeto-scope keys in comercial
+  if (v.category === "comercial" && flatKey.startsWith("projeto_")) return "projeto";
+
+  // Document scope
+  if (v.escopo === "documento") return "documento";
+
+  return CATEGORY_TO_DOMAIN[v.category] ?? "tecnico";
+}
+
+/** Derive nature for a catalog variable */
+export function deriveNature(v: CatalogVariable): VariableNature {
+  const flatKey = v.legacyKey.replace(/^\[|\]$/g, "");
+  const desc = v.description.toLowerCase();
+  const label = v.label.toLowerCase();
+
+  if (v.notImplemented) return "futura";
+  if (v.escopo === "documento") return "documental";
+  if (v.category === "customizada") return "custom_var_calculada";
+  if (label.includes("legado") || label.includes("(legado)") || desc.includes("legado") || desc.includes("alias")) return "alias_legado";
+  if (v.category === "cdd") return "importada_integracao";
+  if (FORNECEDOR_KEYS.has(flatKey)) return "importada_integracao";
+  if (["tabelas", "series", "premissas"].includes(v.category)) return "tecnica_interna";
+  return "canonica";
+}
+
+/** Determine which views a variable should appear in */
+export function getVariableViews(v: CatalogVariable): VariableView[] {
+  const nature = deriveNature(v);
+  const domain = deriveDomain(v);
+  const views: VariableView[] = [];
+
+  // Template view: all non-blocked, non-future vars
+  if (!v.notImplemented) views.push("template");
+
+  // Negócio: business-relevant vars only
+  if (["proposta", "sistema_solar", "cliente", "conta_energia", "financeiro", "documento", "projeto", "custom_calculada"].includes(domain)
+      && nature !== "alias_legado" && nature !== "tecnica_interna" && nature !== "futura") {
+    views.push("negocio");
+  }
+
+  // Técnica: technical/internal vars
+  if (["tecnico", "campo_entidade"].includes(domain) || nature === "tecnica_interna") {
+    views.push("tecnica");
+  }
+
+  // All vars appear in técnica for completeness
+  views.push("tecnica");
+
+  // Integrações: supplier/CDD vars
+  if (domain === "fornecedor" || nature === "importada_integracao") {
+    views.push("integracoes");
+  }
+
+  // Legado: legacy/alias vars
+  if (nature === "alias_legado" || nature === "futura") {
+    views.push("legado");
+  }
+
+  return [...new Set(views)];
+}
+
+/** Domain order for display */
+export const DOMAIN_ORDER: VariableDomain[] = [
+  "proposta",
+  "sistema_solar",
+  "financeiro",
+  "conta_energia",
+  "cliente",
+  "projeto",
+  "documento",
+  "custom_calculada",
+  "campo_entidade",
+  "fornecedor",
+  "tecnico",
+  "legado",
+];
 
 // ── Helper para criar variáveis rapidamente ──────────────────
 
