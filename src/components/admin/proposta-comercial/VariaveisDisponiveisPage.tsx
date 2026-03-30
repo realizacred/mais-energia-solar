@@ -322,9 +322,8 @@ export function VariaveisDisponiveisPage() {
           inDocx,
           docxBroken: false,
           docxNull,
-          status: docxNull ? "warning" : "ok",
-        governance: isTextVar ? "texto" : undefined,
-        tipoResultado,
+           status: docxNull ? "warning" : "ok",
+           tipoResultado,
         });
       } else {
         // Attach customId to existing catalog entry
