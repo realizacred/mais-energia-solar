@@ -64,7 +64,7 @@ async function findSupplierConfig(
 
   const { data, error } = await (supabase as any)
     .from("integrations_api_configs")
-    .select("id, provider, name, is_active, status, last_sync_at, last_tested_at, fornecedor_id, settings")
+    .select("id, provider, name, is_active, status, last_sync_at, last_tested_at, fornecedor_id, settings, credentials")
     .eq("tenant_id", tenantId);
 
   if (error) throw error;
