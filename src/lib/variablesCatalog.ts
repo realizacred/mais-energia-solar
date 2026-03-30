@@ -661,6 +661,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("sistema_solar", "sistema_solar.inversor_tensao", "inversor_tensao", "Inversor Tensão", "Tensões concatenadas", "V", "127 / 480"),
   v("sistema_solar", "sistema_solar.inversor_tipo", "inversor_tipo", "Inversor Tipo", "Tipos concatenados", "-", "Monofásico / Trifásico"),
   v("sistema_solar", "sistema_solar.inversor_corrente_saida", "inversor_corrente_saida", "Inversor Corrente Saída", "Correntes de saída concatenadas", "A", "10 / 15"),
+  v("sistema_solar", "sistema_solar.inversor_corrente_max_entrada", "inversor_corrente_max_entrada", "Inversor Corrente Máx. Entrada", "Corrente máxima de entrada concatenada", "A", "12"),
+  v("sistema_solar", "sistema_solar.inversor_corrente_max_entrada_mppt1", "inversor_corrente_max_entrada_mppt1", "Inversor Corrente Máx. Entrada MPPT1", "Corrente máxima de entrada do MPPT1 concatenada", "A", "12"),
   v("sistema_solar", "sistema_solar.inversor_mppts_utilizados", "inversor_mppts_utilizados", "Inversor MPPTs Utilizados", "MPPTs utilizados concatenados", "-", "2"),
   v("sistema_solar", "sistema_solar.inversor_strings_utilizadas", "inversor_strings_utilizadas", "Inversor Strings Utilizadas", "Strings utilizadas concatenadas", "-", "2"),
   v("sistema_solar", "sistema_solar.inversor_codigo", "inversor_codigo", "Inversor Código", "Código do inversor no catálogo", "-", "123"),
