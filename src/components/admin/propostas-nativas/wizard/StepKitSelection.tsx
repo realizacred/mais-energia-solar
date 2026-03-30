@@ -418,7 +418,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
 
     return result;
-  }, [catalogKits, catalogSummaries, filters, orderBy]);
+  }, [catalogKits, catalogSummaries, filters, orderBy, includeComponents]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
