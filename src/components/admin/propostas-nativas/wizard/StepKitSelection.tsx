@@ -626,11 +626,22 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                       );
                     }
 
+                    // Availability badge helper
+                    const availBadge = kit.source === "edeltec" ? (
+                      kit.disponivel ? (
+                        <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">Em estoque</Badge>
+                      ) : kit.permite_compra_sem_estoque ? (
+                        <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">Sob encomenda</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">Indisponível</Badge>
+                      )
+                    ) : null;
+
                     return (
                       <div
                         key={kit.id}
                         className={cn(
-                          "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between min-h-[220px] cursor-pointer relative",
+                          "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between min-h-[260px] cursor-pointer relative",
                           isSelected
                             ? "border-primary shadow-md ring-2 ring-primary/20"
                             : "border-border/40 hover:border-primary/30"
@@ -645,57 +656,51 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                           </div>
                         )}
 
-                        <div className="space-y-3">
-                          {/* Name + description */}
+                        <div className="space-y-2.5">
+                          {/* Name + fabricante */}
                           <div>
                             <p className="text-sm font-bold truncate pr-20">{kit.name}</p>
-                            {kit.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{kit.description}</p>
+                            {kit.fabricante && (
+                              <p className="text-[11px] text-muted-foreground font-medium">{kit.fabricante}</p>
                             )}
                           </div>
 
-                          {/* Module info */}
-                          {summary && summary.moduloQtd > 0 && (
-                            <div className="flex items-start gap-2 text-xs">
-                              <Sun className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                              <div>
-                                <p className="font-medium">{summary.moduloQtd}x {summary.moduloDescricao}</p>
-                                {summary.moduloPotenciaKwp > 0 && (
-                                  <p className="text-[10px] text-muted-foreground">Total {summary.moduloPotenciaKwp.toFixed(2)} kWp</p>
-                                )}
-                              </div>
+                          {/* Potência + Inversor */}
+                          <div className="flex items-start gap-2 text-xs">
+                            <Sun className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                            <div>
+                              <p className="font-medium">{kit.estimated_kwp ?? 0} kWp</p>
+                              {kit.potencia_modulo != null && kit.potencia_modulo > 0 && (
+                                <p className="text-[10px] text-muted-foreground">Módulo {kit.potencia_modulo}W</p>
+                              )}
                             </div>
-                          )}
+                          </div>
 
-                          {/* Inverter info */}
-                          {summary && summary.inversorQtd > 0 && (
+                          {kit.potencia_inversor != null && kit.potencia_inversor > 0 && (
                             <div className="flex items-start gap-2 text-xs">
                               <Cpu className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                              <div>
-                                <p className="font-medium">{summary.inversorQtd}x {summary.inversorDescricao}</p>
-                                {summary.inversorPotenciaKw > 0 && (
-                                  <p className="text-[10px] text-muted-foreground">Total {summary.inversorPotenciaKw.toFixed(2)} kW</p>
-                                )}
-                              </div>
+                              <p className="font-medium">Inversor {kit.potencia_inversor}kW</p>
                             </div>
                           )}
 
+                          {/* Technical details */}
+                          <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
+                            {kit.fase && <span>{kit.fase}</span>}
+                            {kit.tensao && <span>• {kit.tensao}</span>}
+                            {kit.estrutura && <span>• {kit.estrutura}</span>}
+                          </div>
+
                           {/* Badges */}
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {kit.estimated_kwp != null && kit.estimated_kwp > 0 && (
-                              <Badge variant="secondary" className="text-[10px]">{kit.estimated_kwp} kWp</Badge>
-                            )}
-                            <Badge variant="outline" className="text-[10px]">
-                              {kit.pricing_mode === "fixed" ? "Fixo" : "Calculado"}
-                            </Badge>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {availBadge}
                             {kit.source === "edeltec" && (
                               <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
                                 Edeltec
                               </Badge>
                             )}
-                            {summary && (
-                              <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                                {summary.totalItens} itens
+                            {kit.preco_por_kwp != null && kit.preco_por_kwp > 0 && (
+                              <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
+                                {formatBRL(kit.preco_por_kwp)} / kWp
                               </Badge>
                             )}
                           </div>
