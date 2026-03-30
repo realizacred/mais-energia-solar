@@ -224,12 +224,16 @@ export async function connectSupplierProvider(
 ): Promise<{ success: boolean; config_id?: string; error?: string }> {
   let affectedConfigId: string | undefined;
   try {
-    if (!credentials.apiKey?.trim() || !credentials.secret?.trim()) {
-      throw new Error("Informe API Key e Secret para conectar a Edeltec");
-    }
-
     const tenantId = await getCurrentTenantId();
     const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
+
+    // For new connections, both fields are required.
+    // For updates, allow partial — missing fields are merged from existing credentials.
+    const existingCreds = (config?.credentials as Record<string, string>) || {};
+    const mergedForValidation = { ...existingCreds, ...credentials };
+    if (!mergedForValidation.apiKey?.trim() || !mergedForValidation.secret?.trim()) {
+      throw new Error("Informe API Key e Secret para conectar a Edeltec");
+    }
     const now = new Date().toISOString();
 
     const mergedSettings = {
