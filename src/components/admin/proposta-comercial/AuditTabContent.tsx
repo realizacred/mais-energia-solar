@@ -32,6 +32,7 @@ import {
   type CategoryAuditEntry,
   type VariableSource,
 } from "@/hooks/useVariablesAudit";
+import type { GovernanceRecord, GovernanceSummary } from "@/services/variableGovernance";
 
 // ── Status config ──────────────────────────────────────────
 const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: string; label: string }> = {
