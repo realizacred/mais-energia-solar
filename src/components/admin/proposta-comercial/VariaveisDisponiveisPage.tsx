@@ -281,7 +281,7 @@ export function VariaveisDisponiveisPage() {
     VARIABLES_CATALOG.forEach((v) => {
       const key = v.legacyKey.replace(/^\[|\]$/g, "");
       const rm = resolverMap[key];
-      const source = rm?.source ?? "unknown";
+      const source = rm?.source ?? "error_unmapped";
       const resolver = rm?.resolver ?? "";
       const usageInfo = usageMap.get(key);
       const auditInDocx = quickAuditMap.found.has(key);
@@ -295,7 +295,7 @@ export function VariaveisDisponiveisPage() {
       if (v.notImplemented) status = "pending";
       else if (docxBroken) status = "error";
       else if (docxNull) status = "warning";
-      else if ((source === "unknown" || source === "futura") && !inDocx) status = "unused";
+      else if ((source === "error_unmapped" || source === "futura") && !inDocx) status = "unused";
 
       items.push({
         key,
