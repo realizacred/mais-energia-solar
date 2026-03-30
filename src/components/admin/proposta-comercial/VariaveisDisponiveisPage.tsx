@@ -150,8 +150,6 @@ interface EnrichedVariable {
   docxBroken: boolean;
   docxNull: boolean;
   status: "ok" | "warning" | "error" | "pending" | "unused";
-  /** Governance classification for audit */
-  governance?: "legado" | "texto" | "input_wizard";
   /** tipo_resultado from DB for custom vars */
   tipoResultado?: string;
   /** Escopo: proposta (default) ou documento */
@@ -164,7 +162,7 @@ interface EnrichedVariable {
   healthScore?: number;
 }
 
-type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional" | "campo_dinamico" | "health_critical" | "health_unstable" | "health_healthy" | "health_unused";
+type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "documento" | "aspiracional" | "campo_dinamico" | "health_critical" | "health_unstable" | "health_healthy" | "health_unused";
 type ActiveView = VariableCategory | "todas" | "auditoria" | "campo_pre" | "campo_pos" | "campo_projeto";
 
 /* ── Semantic explanations for known variables ── */
@@ -182,11 +180,7 @@ const SEMANTIC_EXPLANATIONS: Record<string, string> = {
   economia_mensal: "Economia mensal estimada na conta de energia após instalação do sistema solar.",
 };
 
-/** Variables classified as legacy/hidden — shown with special governance badge */
-const LEGACY_HIDDEN_VARS = new Set(["capo_m"]);
-
-/** Variables that are wizard input fields (not ghosts, but dependencies) */
-const WIZARD_INPUT_VARS = new Set(["capo_seguro", "capo_desconto", "capo_string_box"]);
+/* Legacy/wizard sets removed — now handled by centralized governance engine */
 
 /* ── Source display ── */
 function getSourceLabel(source: VariableSource): { label: string; color: string } {
@@ -234,7 +228,7 @@ export function VariaveisDisponiveisPage() {
 
   // Governance classification
   const dynamicFieldKeysList = useMemo(() => dealCustomFields.map(d => d.field_key), [dealCustomFields]);
-  const { records: govRecords, summary: govSummary, getRecord: getGovRecord, filterOptions: govFilterOptions } = useVariableGovernance(customVarsRaw, dynamicFieldKeysList);
+  const { records: govRecords, summary: govSummary, getRecord: getGovRecord, filterOptions: govFilterOptions, filterRecords: govFilterRecords } = useVariableGovernance(customVarsRaw, dynamicFieldKeysList);
 
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
@@ -328,9 +322,8 @@ export function VariaveisDisponiveisPage() {
           inDocx,
           docxBroken: false,
           docxNull,
-          status: docxNull ? "warning" : "ok",
-        governance: isTextVar ? "texto" : undefined,
-        tipoResultado,
+           status: docxNull ? "warning" : "ok",
+           tipoResultado,
         });
       } else {
         // Attach customId to existing catalog entry
@@ -365,7 +358,6 @@ export function VariaveisDisponiveisPage() {
           docxBroken: false,
           docxNull: false,
           status: "ok",
-          governance: undefined,
           tipoResultado: dcf.field_type === "number" || dcf.field_type === "currency" ? "number" : "text",
           escopo: undefined,
           _dynamicContext: dcf.field_context,
@@ -376,7 +368,7 @@ export function VariaveisDisponiveisPage() {
     return items;
   }, [customVarsRaw, resolverMap, usageMap, dealCustomFields]);
 
-  // ── Governance-enriched: mark legacy/wizard input vars ──
+  // ── Health-enriched variables ──
   const governanceVariables = useMemo(() => {
     return allVariables.map((v) => {
       const health = healthMap.get(v.key);
@@ -387,12 +379,6 @@ export function VariaveisDisponiveisPage() {
         enriched.healthScore = health.healthScore;
       }
 
-      if (LEGACY_HIDDEN_VARS.has(v.key)) {
-        enriched.governance = "legado";
-        enriched.status = "unused";
-      } else if (WIZARD_INPUT_VARS.has(v.key)) {
-        enriched.governance = "input_wizard";
-      }
       return enriched;
     });
   }, [allVariables, healthMap]);
@@ -424,8 +410,6 @@ export function VariaveisDisponiveisPage() {
         case "pending": items = items.filter((v) => v.status === "pending"); break;
         case "nativa": items = items.filter((v) => !v.isCustom); break;
         case "custom": items = items.filter((v) => v.isCustom); break;
-        case "legado": items = items.filter((v) => v.governance === "legado" || v.governance === "input_wizard"); break;
-        case "texto": items = items.filter((v) => v.governance === "texto" || v.tipoResultado === "text"); break;
         case "documento": items = items.filter((v) => v.escopo === "documento"); break;
         case "aspiracional": items = items.filter((v) => v.escopo === "aspiracional"); break;
         case "campo_dinamico": items = items.filter((v) => !!v._dynamicContext); break;
@@ -434,6 +418,13 @@ export function VariaveisDisponiveisPage() {
         case "health_healthy": items = items.filter((v) => v.healthClassification === "healthy"); break;
         case "health_unused": items = items.filter((v) => !v.healthClassification || v.healthClassification === "unused"); break;
       }
+    }
+
+    // Governance filter (from centralized engine)
+    if (govFilter !== "todas") {
+      const matchingRecords = govFilterRecords(govFilter);
+      const govKeys = new Set(matchingRecords.map(r => r.key));
+      items = items.filter(v => govKeys.has(v.key));
     }
 
     // Search
@@ -480,15 +471,13 @@ export function VariaveisDisponiveisPage() {
     const warnings = governanceVariables.filter((v) => v.status === "warning").length;
     const errors = governanceVariables.filter((v) => v.status === "error").length;
     const custom = governanceVariables.filter((v) => v.isCustom).length;
-    const legado = governanceVariables.filter((v) => v.governance === "legado" || v.governance === "input_wizard").length;
-    const texto = governanceVariables.filter((v) => v.governance === "texto" || v.tipoResultado === "text").length;
     const documento = governanceVariables.filter((v) => v.escopo === "documento").length;
     const aspiracional = governanceVariables.filter((v) => v.escopo === "aspiracional").length;
     const campoDinamico = governanceVariables.filter((v) => !!v._dynamicContext).length;
     const healthCritical = governanceVariables.filter((v) => v.healthClassification === "critical").length;
     const healthUnstable = governanceVariables.filter((v) => v.healthClassification === "unstable").length;
     const healthHealthy = governanceVariables.filter((v) => v.healthClassification === "healthy").length;
-    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional, campoDinamico, healthCritical, healthUnstable, healthHealthy };
+    return { total, inUse, ok, warnings, errors, custom, documento, aspiracional, campoDinamico, healthCritical, healthUnstable, healthHealthy };
 
   }, [governanceVariables]);
 
@@ -642,27 +631,16 @@ export function VariaveisDisponiveisPage() {
         }
       />
 
-      {/* §27: KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      {/* §27: Governance KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Card className="border-l-[3px] border-l-primary">
           <CardContent className="flex items-center gap-3 p-4">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Database className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.total}</p>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.total}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Total catálogo</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-info">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-9 h-9 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
-              <FileText className="h-4 w-4 text-info" />
-            </div>
-            <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.inUse}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Em uso (DOCX)</p>
             </div>
           </CardContent>
         </Card>
@@ -672,8 +650,19 @@ export function VariaveisDisponiveisPage() {
               <CheckCircle2 className="h-4 w-4 text-success" />
             </div>
             <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.ok}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">OK</p>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.implementada}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Implementadas</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-l-[3px] border-l-info">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-9 h-9 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
+              <FileText className="h-4 w-4 text-info" />
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.parcial_be_only + govSummary.passthrough}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">BE/Passthrough</p>
             </div>
           </CardContent>
         </Card>
@@ -683,8 +672,8 @@ export function VariaveisDisponiveisPage() {
               <AlertTriangle className="h-4 w-4 text-warning" />
             </div>
             <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.warnings}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Warnings</p>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.mapeavel + govSummary.parcial_fe_only}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Mapeáveis/FE-only</p>
             </div>
           </CardContent>
         </Card>
@@ -694,8 +683,31 @@ export function VariaveisDisponiveisPage() {
               <XCircle className="h-4 w-4 text-destructive" />
             </div>
             <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{kpiStats.errors}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Erros</p>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.fantasma_real}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Fantasmas reais</p>
+            </div>
+          </CardContent>
+        </Card>
+        {/* Catalog Health Score */}
+        <Card className={cn("border-l-[3px]",
+          govSummary.catalogHealth.level === "saudavel" ? "border-l-success" :
+          govSummary.catalogHealth.level === "atencao" ? "border-l-warning" : "border-l-destructive"
+        )}>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+              govSummary.catalogHealth.level === "saudavel" ? "bg-success/10" :
+              govSummary.catalogHealth.level === "atencao" ? "bg-warning/10" : "bg-destructive/10"
+            )}>
+              <HeartPulse className={cn("h-4 w-4",
+                govSummary.catalogHealth.level === "saudavel" ? "text-success" :
+                govSummary.catalogHealth.level === "atencao" ? "text-warning" : "text-destructive"
+              )} />
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.catalogHealth.score}%</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Saúde ({govSummary.catalogHealth.level === "saudavel" ? "Saudável" : govSummary.catalogHealth.level === "atencao" ? "Atenção" : "Crítica"})
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -841,6 +853,7 @@ export function VariaveisDisponiveisPage() {
                 </Button>
               )}
             </div>
+            {/* Status filters */}
             <div className="flex flex-wrap items-center gap-1">
               {([
                 { key: "todas", label: "Todas" },
@@ -851,8 +864,6 @@ export function VariaveisDisponiveisPage() {
                 { key: "pending", label: "Pendente" },
                 { key: "nativa", label: "Nativa" },
                 { key: "custom", label: "Custom" },
-                { key: "legado", label: `Legado (${kpiStats.legado})` },
-                { key: "texto", label: `Texto (${kpiStats.texto})` },
                 { key: "documento", label: `Documento (${kpiStats.documento})` },
                 { key: "aspiracional", label: `Aspiracional (${kpiStats.aspiracional})` },
                 ...(kpiStats.campoDinamico > 0 ? [{ key: "campo_dinamico" as StatusFilter, label: `Campos Dinâmicos (${kpiStats.campoDinamico})` }] : []),
@@ -866,10 +877,10 @@ export function VariaveisDisponiveisPage() {
                   key={f.key}
                   variant="ghost"
                   size="sm"
-                  onClick={() => setStatusFilter(f.key)}
+                  onClick={() => { setStatusFilter(f.key); setGovFilter("todas"); }}
                   className={cn(
                     "h-6 px-2 text-[10px] rounded-md",
-                    statusFilter === f.key
+                    statusFilter === f.key && govFilter === "todas"
                       ? "bg-primary/10 text-primary font-semibold"
                       : "text-muted-foreground hover:text-foreground"
                   )}
@@ -879,6 +890,33 @@ export function VariaveisDisponiveisPage() {
               ))}
               {statusFilter !== "todas" && (
                 <Button variant="ghost" size="sm" onClick={() => setStatusFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
+                  Limpar
+                </Button>
+              )}
+            </div>
+
+            {/* Governance filters (from centralized engine) */}
+            <div className="flex flex-wrap items-center gap-1 border-t border-border/50 pt-1.5 mt-1">
+              <span className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider mr-1">Governança:</span>
+              {govFilterOptions.map((f) => (
+                <Button
+                  key={f.key}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setGovFilter(f.key); if (f.key !== "todas") setStatusFilter("todas"); }}
+                  className={cn(
+                    "h-6 px-2 text-[10px] rounded-md",
+                    govFilter === f.key
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {f.label}
+                  <span className="text-[8px] font-mono ml-0.5 opacity-60">{f.count}</span>
+                </Button>
+              ))}
+              {govFilter !== "todas" && (
+                <Button variant="ghost" size="sm" onClick={() => setGovFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
                   Limpar
                 </Button>
               )}
@@ -967,15 +1005,13 @@ export function VariaveisDisponiveisPage() {
                         {v.isSeries && (
                           <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-secondary/40 text-secondary font-mono">série</Badge>
                         )}
-                        {v.governance === "legado" && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-warning/40 bg-warning/10 text-warning font-mono">legado</Badge>
-                        )}
-                        {v.governance === "input_wizard" && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-info/40 bg-info/10 text-info font-mono">input</Badge>
-                        )}
-                        {v.governance === "texto" && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-muted-foreground/40 text-muted-foreground font-mono">texto</Badge>
-                        )}
+                        {(() => {
+                          const gr = getGovRecord(v.key);
+                          if (gr?.isLegacy) return <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-warning/40 bg-warning/10 text-warning font-mono">legado</Badge>;
+                          if (gr?.classification === "INPUT_WIZARD") return <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-info/40 bg-info/10 text-info font-mono">input</Badge>;
+                          if (v.tipoResultado === "text") return <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-muted-foreground/40 text-muted-foreground font-mono">texto</Badge>;
+                          return null;
+                        })()}
                       </div>
                     </TableCell>
 
@@ -1160,21 +1196,19 @@ export function VariaveisDisponiveisPage() {
                   )}>
                     {detailVar.isCustom ? "🧩 Custom" : "⚙️ Nativa"}
                   </Badge>
-                  {detailVar.governance === "legado" && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-warning/30 bg-warning/10 text-warning">
-                      🏚️ Legado
-                    </Badge>
-                  )}
-                  {detailVar.governance === "input_wizard" && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-info/30 bg-info/10 text-info">
-                      🔗 Input Wizard
-                    </Badge>
-                  )}
-                  {detailVar.governance === "texto" && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-muted-foreground/30 text-muted-foreground">
-                      📝 Texto (não numérica)
-                    </Badge>
-                  )}
+                  {(() => {
+                    const gr = getGovRecord(detailVar.key);
+                    if (gr?.isLegacy) return (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-warning/30 bg-warning/10 text-warning">🏚️ Legado</Badge>
+                    );
+                    if (gr?.classification === "INPUT_WIZARD") return (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-info/30 bg-info/10 text-info">🔗 Input Wizard</Badge>
+                    );
+                    if (detailVar.tipoResultado === "text") return (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-muted-foreground/30 text-muted-foreground">📝 Texto (não numérica)</Badge>
+                    );
+                    return null;
+                  })()}
                   {detailVar.tipoResultado && detailVar.isCustom && (
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-border text-muted-foreground font-mono">
                       tipo: {detailVar.tipoResultado}
@@ -1253,19 +1287,72 @@ export function VariaveisDisponiveisPage() {
                   </div>
                 )}
 
-                {/* Governance warning for legacy vars */}
-                {detailVar.governance === "legado" && (
-                  <div className="rounded-lg border border-warning/20 bg-warning/5 p-3">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Archive className="h-3.5 w-3.5 text-warning" />
-                      <p className="text-[10px] font-semibold text-warning uppercase tracking-wider">Variável Legada</p>
+                {/* Governance details from centralized engine */}
+                {(() => {
+                  const gr = getGovRecord(detailVar.key);
+                  if (!gr) return null;
+                  return (
+                    <div className="space-y-3">
+                      {/* Evidence */}
+                      <div className="rounded-lg border border-border bg-muted/20 p-3">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Evidência da Classificação</p>
+                        <p className="text-xs text-foreground leading-relaxed">{gr.evidence}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {gr.inFE && <Badge variant="outline" className="text-[8px] bg-success/10 text-success border-success/20">FE ✓</Badge>}
+                          {gr.inBE && <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20">BE ✓</Badge>}
+                          {gr.isCustom && <Badge variant="outline" className="text-[8px] bg-primary/10 text-primary border-primary/20">Custom</Badge>}
+                          {gr.isDocument && <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20">Documento</Badge>}
+                          {gr.isPassthrough && <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20">Passthrough</Badge>}
+                        </div>
+                      </div>
+
+                      {/* Template warning */}
+                      {gr.templateWarning !== "none" && (
+                        <div className={cn("rounded-lg border p-3", gr.templateWarning === "block" ? "border-destructive/20 bg-destructive/5" : "border-warning/20 bg-warning/5")}>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Shield className={cn("h-3.5 w-3.5", gr.templateWarning === "block" ? "text-destructive" : "text-warning")} />
+                            <p className={cn("text-[10px] font-semibold uppercase tracking-wider", gr.templateWarning === "block" ? "text-destructive" : "text-warning")}>
+                              {gr.templateWarning === "block" ? "Bloqueada para novos templates" : "Atenção ao usar em templates"}
+                            </p>
+                          </div>
+                          <p className="text-xs text-foreground">
+                            {gr.templateWarning === "block"
+                              ? "Esta variável NÃO deve ser usada em novos templates — não possui dados disponíveis."
+                              : "Esta variável pode não resolver corretamente em todos os cenários. Revise antes de usar."}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Suggestions */}
+                      {gr.suggestions.length > 0 && (
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                          <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-1.5">Sugestões</p>
+                          <ul className="space-y-1">
+                            {gr.suggestions.map((s, i) => (
+                              <li key={i} className="text-xs text-foreground flex items-start gap-1.5">
+                                <span className="text-primary mt-0.5">→</span>
+                                <span>{s.message}{s.replacementKey && <code className="text-primary bg-primary/5 px-1 rounded ml-1">[{s.replacementKey}]</code>}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Cleanup readiness */}
+                      {(gr.cleanup.segura_para_ocultar || gr.cleanup.segura_para_limpeza_futura) && (
+                        <div className="rounded-lg border border-muted-foreground/20 bg-muted/30 p-3">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Prontidão para Limpeza</p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {gr.cleanup.segura_para_ocultar && <Badge variant="outline" className="text-[8px]">Segura para ocultar</Badge>}
+                            {gr.cleanup.segura_para_substituir_em_template && <Badge variant="outline" className="text-[8px]">Segura para substituir</Badge>}
+                            {gr.cleanup.segura_para_alias && <Badge variant="outline" className="text-[8px]">Segura para alias</Badge>}
+                            {gr.cleanup.segura_para_limpeza_futura && <Badge variant="outline" className="text-[8px]">Limpeza futura</Badge>}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-foreground leading-relaxed">
-                      Esta variável é um placeholder legado presente em templates DOCX antigos. Não possui resolver no sistema e aparece como texto cru no PDF.
-                      <strong> Ação recomendada:</strong> Remover do template DOCX. Não criar resolver.
-                    </p>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Not editable warning for native */}
                 {!detailVar.isCustom && !detailVar.customId && (
