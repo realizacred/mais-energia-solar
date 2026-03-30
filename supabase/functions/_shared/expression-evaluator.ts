@@ -13,7 +13,7 @@ export interface ExpressionContext {
 }
 
 export interface EvalError {
-  type: "PARSE_ERROR" | "UNSUPPORTED_FUNCTION" | "EXECUTION_ERROR" | "CTX_KEY_MISSING";
+  type: "PARSE_ERROR" | "UNSUPPORTED_FUNCTION" | "EXECUTION_ERROR" | "CTX_KEY_MISSING" | "DIVISION_BY_ZERO";
   message: string;
   expression: string;
 }
@@ -274,7 +274,10 @@ class Parser {
           left = toNum(left) * toNum(right);
         } else {
           const r = toNum(right);
-          left = r === 0 ? 0 : toNum(left) / r;
+          if (r === 0) {
+            throw new DivisionByZeroError("Divisão por zero");
+          }
+          left = toNum(left) / r;
         }
       } else {
         break;
@@ -424,6 +427,12 @@ class Parser {
   }
 }
 
+// ── Error classes ──
+
+class DivisionByZeroError extends Error {
+  constructor(msg: string) { super(msg); this.name = "DivisionByZeroError"; }
+}
+
 // ── Helpers ──
 
 function toNum(v: ExpressionValue): number {
@@ -489,9 +498,14 @@ export function evaluateExpressionV2(
     };
   } catch (err: any) {
     const message = err?.message || String(err);
-    const errorType: EvalError["type"] = message.includes("Função não suportada")
-      ? "UNSUPPORTED_FUNCTION"
-      : "PARSE_ERROR";
+    let errorType: EvalError["type"] = "PARSE_ERROR";
+    if (err instanceof DivisionByZeroError || message.includes("Divisão por zero")) {
+      errorType = "DIVISION_BY_ZERO";
+    } else if (message.includes("Função não suportada")) {
+      errorType = "UNSUPPORTED_FUNCTION";
+    } else if (message.includes("Variável não encontrada") || message.includes("CTX_KEY_MISSING")) {
+      errorType = "CTX_KEY_MISSING";
+    }
 
     return {
       value: null,
