@@ -566,39 +566,33 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                           onClick={() => handleSelectCatalogKit(kit.id, kit.name)}
                         >
                           <div className="flex-1 min-w-0 space-y-1.5">
-                            <p className="text-sm font-bold truncate">{kit.name}</p>
-                            {kit.description && (
-                              <p className="text-xs text-muted-foreground truncate">{kit.description}</p>
-                            )}
-                            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-                              {summary && summary.moduloQtd > 0 && (
-                                <span className="flex items-center gap-1">
-                                  <Sun className="h-3 w-3" />
-                                  {summary.moduloQtd}x {summary.moduloDescricao}
-                                </span>
-                              )}
-                              {summary && summary.inversorQtd > 0 && (
-                                <span className="flex items-center gap-1">
-                                  <Cpu className="h-3 w-3" />
-                                  {summary.inversorQtd}x {summary.inversorDescricao}
-                                </span>
-                              )}
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold truncate">{kit.name}</p>
+                              {kit.fabricante && <span className="text-[10px] text-muted-foreground">({kit.fabricante})</span>}
                             </div>
-                            <div className="flex items-center gap-3">
-                              {kit.estimated_kwp != null && kit.estimated_kwp > 0 && (
-                                <Badge variant="secondary" className="text-[10px]">{kit.estimated_kwp} kWp</Badge>
-                              )}
-                              <Badge variant="outline" className="text-[10px]">
-                                {kit.pricing_mode === "fixed" ? "Fixo" : "Calculado"}
-                              </Badge>
+                            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                              {kit.estimated_kwp != null && <span><Sun className="h-3 w-3 inline mr-0.5" />{kit.estimated_kwp} kWp</span>}
+                              {kit.potencia_inversor != null && kit.potencia_inversor > 0 && <span><Cpu className="h-3 w-3 inline mr-0.5" />{kit.potencia_inversor}kW</span>}
+                              {kit.fase && <span>{kit.fase}</span>}
+                              {kit.tensao && <span>{kit.tensao}</span>}
+                              {kit.estrutura && <span>{kit.estrutura}</span>}
+                            </div>
+                            <div className="flex items-center gap-2">
                               {kit.source === "edeltec" && (
-                                <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
-                                  Edeltec
-                                </Badge>
+                                kit.disponivel ? (
+                                  <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">Em estoque</Badge>
+                                ) : kit.permite_compra_sem_estoque ? (
+                                  <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">Sob encomenda</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">Indisponível</Badge>
+                                )
                               )}
-                              {summary && (
-                                <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                                  {summary.totalItens} itens
+                              {kit.source === "edeltec" && (
+                                <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">Edeltec</Badge>
+                              )}
+                              {kit.preco_por_kwp != null && kit.preco_por_kwp > 0 && (
+                                <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
+                                  {formatBRL(kit.preco_por_kwp)} / kWp
                                 </Badge>
                               )}
                               {kitPrice > 0 && (
