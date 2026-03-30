@@ -466,6 +466,16 @@ export function VariaveisDisponiveisPage() {
     // View filter (primary)
     if (activeView !== "todas" && activeView !== "auditoria" && activeView !== "limpeza") {
       items = items.filter((v) => v.views.includes(activeView as VariableView));
+      
+      // Negócio view: exclude FE-only, future, ghost, and mappable vars (no real backend lastro)
+      if (activeView === "negocio") {
+        const excludedGovClasses = new Set(["PARCIAL_FE_ONLY", "FEATURE_NAO_IMPLEMENTADA", "FANTASMA_REAL", "MAPEAVEL"]);
+        items = items.filter((v) => {
+          const govRec = getGovRecord(v.key);
+          if (!govRec) return true; // no governance record → keep (custom/dynamic)
+          return !excludedGovClasses.has(govRec.classification);
+        });
+      }
     }
 
     // Domain filter (secondary)

@@ -376,10 +376,10 @@ export function getVariableViews(v: CatalogVariable): VariableView[] {
   // Template view: all non-blocked vars
   if (!v.notImplemented) views.push("template");
 
-  // Negócio: business-relevant vars only — NO integracao, NO tecnico, NO legado
+  // Negócio: business-relevant vars only — NO integracao, NO tecnico, NO legado, NO aspiracional
   const negocioDomains = new Set(["proposta", "sistema_solar", "cliente", "conta_energia", "financeiro", "documento", "projeto", "uc"]);
   const negocioExcludedNatures = new Set(["alias_legado", "tecnica", "integracao_externa"]);
-  if (negocioDomains.has(domain) && !negocioExcludedNatures.has(nature) && !v.notImplemented) {
+  if (negocioDomains.has(domain) && !negocioExcludedNatures.has(nature) && !v.notImplemented && v.escopo !== "aspiracional") {
     views.push("negocio");
   }
 
