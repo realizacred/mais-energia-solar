@@ -226,6 +226,8 @@ export function AuditTabContent({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["audit-variables"] }),
         queryClient.invalidateQueries({ queryKey: ["generation-audit-reports-latest"] }),
+        queryClient.invalidateQueries({ queryKey: ["generation-audit-health"] }),
+        queryClient.invalidateQueries({ queryKey: ["variable-audit-reports-history"] }),
         queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] }),
         queryClient.invalidateQueries({ queryKey: ["proposta-variaveis-custom"] }),
         queryClient.invalidateQueries({ queryKey: ["deal-custom-fields-active"] }),
@@ -251,13 +253,18 @@ export function AuditTabContent({
     try {
       const result = await fullAuditMutation.mutateAsync(undefined);
       setFullAuditResult(result);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["generation-audit-reports-latest"] }),
+        queryClient.invalidateQueries({ queryKey: ["generation-audit-health"] }),
+        queryClient.invalidateQueries({ queryKey: ["variable-audit-reports-history"] }),
+      ]);
       toast.success("Auditoria com IA concluída!");
     } catch (e: any) {
       toast.error(e.message || "Erro na auditoria com IA");
     } finally {
       clearInterval(interval);
     }
-  }, [fullAuditMutation]);
+  }, [fullAuditMutation, queryClient]);
 
   // ── Filtered schema fields ──────────────────────────────────
   const filteredFields = useMemo(() => {

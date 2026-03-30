@@ -59,8 +59,13 @@ export function useFullAudit() {
       if (error) throw new Error(error.message || "Erro na auditoria completa");
       return data as FullAuditResult;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY] }),
+        queryClient.invalidateQueries({ queryKey: ["generation-audit-reports-latest"] }),
+        queryClient.invalidateQueries({ queryKey: ["generation-audit-health"] }),
+        queryClient.invalidateQueries({ queryKey: ["variable-audit-reports-history"] }),
+      ]);
     },
   });
 }
