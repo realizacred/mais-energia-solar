@@ -337,7 +337,7 @@ export function VariaveisDisponiveisPage() {
           label: cv.label,
           description: cv.descricao || cv.expressao,
           category: "customizada",
-          domain: "financeiro" as VariableDomain,
+          domain: "proposta" as VariableDomain,
           nature: "calculada" as VariableNature,
           views: ["negocio", "template", "tecnica"],
           unit: "",
@@ -369,7 +369,7 @@ export function VariaveisDisponiveisPage() {
         const contextLabel = FIELD_CONTEXT_LABELS[dcf.field_context] ?? dcf.field_context;
         const usageInfo = usageMap.get(dcf.field_key);
         const inDocx = usageInfo?.inDocx ?? false;
-        const domain = CONTEXT_TO_DOMAIN[dcf.field_context] ?? "campo_entidade";
+        const domain = CONTEXT_TO_DOMAIN[dcf.field_context] ?? "proposta";
         items.push({
           key: dcf.field_key,
           canonicalKey: `{{campo_custom.${dcf.field_key}}}`,
