@@ -153,7 +153,7 @@ export function classifyGovernance(
     evidence = "BE resolve via flatten/resolvers; FE usa fallback snapshot";
   } else if (inFE && !inBE) {
     classification = "PARCIAL_FE_ONLY";
-    evidence = "FE resolve explicitamente; BE não tem resolver dedicado";
+    evidence = "Só FE resolve — técnica interna, não expor em visão de negócio";
   } else if (v.escopo === "aspiracional") {
     classification = "MAPEAVEL";
     evidence = "Variável aspiracional — dado pode existir mas não está integrado";
