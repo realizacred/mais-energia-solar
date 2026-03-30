@@ -952,6 +952,8 @@ export function VariaveisDisponiveisPage() {
           <AuditTabContent
             dbCustomVars={dbCustomVars}
             loadingCustom={loadingCustom}
+            govRecords={govRecords}
+            govSummary={govSummary}
             onRefresh={() => refetchCustom()}
             onRequestCreateVariable={(suggested) => {
               setEditingVar(null);
