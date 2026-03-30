@@ -589,7 +589,37 @@ function resolveFromContext(
 
   // ── Conta Energia ──
   if (key === "conta_energia.co2_evitado_ano") return ctx.co2Evitado ? fmtNumber(ctx.co2Evitado, 0) : null;
-  // Try to resolve conta_energia fields from gdResult
+
+  // Conta energia fields resolved from gdResult or finalSnapshot
+  const contaEnergiaKeys = [
+    "gasto_com_solar_mensal", "creditos_mensal", "tarifa_atual",
+    "imposto_percentual", "bandeira_tarifaria", "custo_disponibilidade_valor",
+    "gasto_energia_mensal_atual", "gasto_energia_mensal_novo",
+    "gasto_energia_mensal_bt_atual", "gasto_energia_mensal_bt_novo",
+    "gasto_energia_mensal_p_atual", "gasto_energia_mensal_p_novo",
+    "gasto_energia_mensal_fp_atual", "gasto_energia_mensal_fp_novo",
+    "gasto_demanda_mensal_atual", "gasto_demanda_mensal_novo",
+    "economia_energia_mensal", "economia_energia_mensal_p",
+    "economia_demanda_mensal", "economia_demanda_mensal_p",
+    "gasto_total_mensal_atual", "gasto_total_mensal_novo",
+    "economia_mensal_p",
+    "creditos_alocados", "consumo_abatido",
+    "consumo_abatido_p", "consumo_abatido_fp",
+    "valor_imposto_energia",
+    "tarifacao_energia_compensada_bt", "tarifacao_energia_compensada_fp", "tarifacao_energia_compensada_p",
+  ];
+  const contaKey = key.replace("conta_energia.", "");
+  if (key.startsWith("conta_energia.") && contaEnergiaKeys.includes(contaKey)) {
+    // Try finalSnapshot passthrough
+    const fsVal = ctx.finalSnapshot?.[contaKey];
+    if (fsVal != null && fsVal !== "") {
+      if (typeof fsVal === "number") return fmtNumber(fsVal);
+      return String(fsVal);
+    }
+    return null;
+  }
+
+  // Try to resolve gasto_atual_mensal from gdResult
   if (key === "conta_energia.gasto_atual_mensal" && ctx.gdResult) {
     const consumo = ctx.gdResult.consumo_kwh;
     const tarifa = (ctx.gdResult.valor_credito_breakdown as any)?.tarifa_energia ?? ctx.gdResult.valor_credito_breakdown?.te;
