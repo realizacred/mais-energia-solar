@@ -54,6 +54,7 @@ import {
   deriveDomain,
   deriveNature,
   getVariableViews,
+  isBuiltinVcKey,
   type VariableCategory,
   type CatalogVariable,
   type VariableEscopo,
