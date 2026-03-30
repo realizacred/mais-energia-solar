@@ -80,6 +80,29 @@ function useGenerationAuditReports() {
 }
 
 /**
+ * Convert generation_audit_json reports into AuditReportRow format
+ * so they can be fed into the existing health engine.
+ */
+function convertGenerationToAuditRows(
+  genReports: Array<{ report: GenerationAuditReport; created_at: string }>
+): AuditReportRow[] {
+  return genReports.map((g, idx) => {
+    const r = g.report;
+    const broken = r.unresolvedPlaceholders ?? [];
+    const nullVars = r.nullValues ?? [];
+    const allFound = r.items.map((i) => i.variable);
+
+    return {
+      id: `gen-${idx}`,
+      variaveis_encontradas: allFound,
+      variaveis_quebradas: broken,
+      variaveis_nulas: nullVars,
+      criado_em: g.created_at,
+    };
+  });
+}
+
+/**
  * Convert quick audit result into a single AuditReportRow
  * for instant health computation when no historical data exists.
  */
@@ -91,6 +114,14 @@ function convertQuickAuditToRow(qa: QuickAuditResult): AuditReportRow {
     variaveis_nulas: qa.nulas ?? [],
     criado_em: qa.gerado_em ?? new Date().toISOString(),
   };
+}
+
+export interface VariableHealthResult {
+  healthMap: Map<string, VariableHealthRecord>;
+  summary: VariableHealthSummary;
+  getHealth: (key: string) => VariableHealthRecord | undefined;
+  isLoading: boolean;
+  hasData: boolean;
 }
 
 /**
