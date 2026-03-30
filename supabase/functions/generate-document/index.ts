@@ -416,11 +416,39 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 4c. POST-PROCESSING (same fixes as template-preview) ──
+    // ── 4c. POST-PROCESSING (SAME fixes as template-preview — keep in sync!) ──
+
+    // FIX 1: potencia_sistema — strip unit suffix to avoid "6,00 kWp kWp"
     if (variables["potencia_sistema"]) {
       variables["potencia_sistema"] = variables["potencia_sistema"]
         .replace(/\s*kWp\s*$/i, "")
         .trim();
+    }
+
+    // FIX 2: subgrupo / grupo_tarifario — ensure top-level keys exist
+    const ucsArr = Array.isArray((snapshot as any)?.ucs) ? (snapshot as any).ucs : [];
+    const uc1 = ucsArr[0] ?? {};
+    if (!variables["subgrupo"]) {
+      const sg = (snapshot as any)?.subgrupo ?? (snapshot as any)?.grupo_tarifario
+        ?? uc1.subgrupo ?? uc1.grupo_tarifario ?? uc1.grupo
+        ?? (leadRes.data as any)?.subgrupo_tarifario;
+      if (sg) variables["subgrupo"] = String(sg);
+    }
+    if (!variables["grupo_tarifario"]) {
+      variables["grupo_tarifario"] = variables["subgrupo"] ?? "";
+    }
+
+    // FIX 3: estrutura / tipo_telhado — ensure top-level key exists
+    if (!variables["estrutura"]) {
+      const est = uc1.tipo_telhado ?? (snapshot as any)?.tecnico?.tipo_telhado
+        ?? (snapshot as any)?.tipo_telhado ?? variables["tipo_telhado"]
+        ?? variables["estrutura_tipo"];
+      if (est) variables["estrutura"] = String(est);
+    }
+
+    // FIX 4: vc_observacao — never show "N/A" literally
+    if (!variables["vc_observacao"] || variables["vc_observacao"] === "N/A" || variables["vc_observacao"] === "n/a") {
+      variables["vc_observacao"] = "";
     }
 
     console.log(`[generate-document] Total variables after enrichment: ${Object.keys(variables).length} keys`);
