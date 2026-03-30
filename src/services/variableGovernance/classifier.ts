@@ -6,6 +6,7 @@
 
 import { FRONTEND_RESOLVER_KEYS, BACKEND_FLATTEN_KEYS } from "@/services/variableAudit/knownKeys";
 import type { CatalogVariable, VariableCategory } from "@/lib/variablesCatalog";
+import { isBuiltinVcKey } from "@/lib/variablesCatalog";
 import { deriveDomain, deriveNature } from "@/lib/variablesCatalog";
 import type {
   GovernanceClass,
@@ -21,6 +22,12 @@ const LEGACY_VARS = new Set(["capo_m"]);
 
 /** Variables that are wizard input fields */
 const WIZARD_INPUT_VARS = new Set(["capo_seguro", "capo_desconto", "capo_string_box"]);
+
+/** Supplier/kit snapshot vars — resolved via snapshot passthrough when kit is selected */
+const SUPPLIER_SNAPSHOT_VARS = new Set([
+  "tipo_fornecedor_distribuidor", "fornecedor", "tipo_kit",
+  "fabricante", "sku",
+]);
 
 /** Passthrough groups — resolved via snapshot deepGet, no explicit resolver needed */
 const PASSTHROUGH_GROUPS = new Set(["series", "tabelas", "premissas"]);
@@ -91,6 +98,7 @@ export function classifyGovernance(
   const inFE = isInFE(flatKey, dottedKey);
   const inBE = isInBE(flatKey);
   const isCustom = customVarKeys.has(flatKey);
+  const isBuiltinCustom = isBuiltinVcKey(flatKey);
   const isDynamic = isDynamicKey(flatKey);
   const isDocument = DOCUMENT_CATEGORIES.has(group);
   const isPassthrough = PASSTHROUGH_GROUPS.has(group);
@@ -98,6 +106,7 @@ export function classifyGovernance(
   const isWizardInput = WIZARD_INPUT_VARS.has(flatKey);
   const isCdd = (group as string) === CDD_CATEGORY || !!v.notImplemented;
   const isDynamicField = dynamicFieldKeys.has(flatKey);
+  const isSupplier = SUPPLIER_SNAPSHOT_VARS.has(flatKey);
 
   // ── Determine classification ──
   let classification: GovernanceClass;
@@ -121,12 +130,18 @@ export function classifyGovernance(
   } else if (isDynamic) {
     classification = inFE || inBE ? "IMPLEMENTADA" : "PASSTHROUGH";
     evidence = "Chave dinâmica (mensal/anual/UC/equipamento) resolvida via padrão iterativo";
-  } else if (isCustom) {
+  } else if (isCustom || isBuiltinCustom) {
+    // Custom vars: either from DB (isCustom) or built-in catalog defaults (isBuiltinCustom)
     classification = inBE ? "CUSTOM_IMPL" : "CUSTOM_BACKEND";
-    evidence = "Variável customizada avaliada via evaluateExpression";
+    evidence = isBuiltinCustom
+      ? "Variável customizada built-in — avaliada via evaluateExpression (default do catálogo)"
+      : "Variável customizada do banco — avaliada via evaluateExpression";
   } else if (isWizardInput) {
     classification = "INPUT_WIZARD";
     evidence = "Input do wizard — persistido no snapshot";
+  } else if (isSupplier) {
+    classification = "PARCIAL_BE_ONLY";
+    evidence = "Dado de fornecedor/kit — resolvido via snapshot quando kit é selecionado";
   } else if (isDynamicField) {
     classification = "IMPLEMENTADA";
     evidence = "Campo dinâmico (deal_custom_fields) — passthrough via snapshot";
