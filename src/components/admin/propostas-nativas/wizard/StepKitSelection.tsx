@@ -153,6 +153,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [snapshotLoading, setSnapshotLoading] = useState<string | null>(null); // kitId being loaded
   const [confirmReplace, setConfirmReplace] = useState<{ kitId: string; kitName: string } | null>(null);
+  const [includeComponents, setIncludeComponents] = useState(false);
   const catalogLoaded = useRef(false);
 
   // Derive selected catalog kit ID from manualKits meta
@@ -163,12 +164,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     return null;
   }, [manualKits]);
 
-  // Load catalog kits when tab switches to "catalogo" — only generators by default
+  // Load catalog kits when tab switches to "catalogo" — fetch all, filter client-side
   useEffect(() => {
     if (tab !== "catalogo" || catalogLoaded.current) return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits(false) // show all products including components from all brands
+    fetchActiveKits(false) // fetch all products; generator filter applied client-side via includeComponents toggle
       .then(async (kits) => {
         setCatalogKits(kits);
         catalogLoaded.current = true;
@@ -334,7 +335,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
   // Filter & sort catalog kits based on sidebar filters
   const filteredCatalogKits = useMemo(() => {
-    let result = [...catalogKits];
+    // Default: show only generators unless "includeComponents" toggle is on
+    let result = includeComponents
+      ? [...catalogKits]
+      : catalogKits.filter(k => k.is_generator);
 
     // Potência range filter
     if (filters.potenciaMin > 0 || filters.potenciaMax < 1000) {
@@ -414,7 +418,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
 
     return result;
-  }, [catalogKits, catalogSummaries, filters, orderBy]);
+  }, [catalogKits, catalogSummaries, filters, orderBy, includeComponents]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
@@ -661,6 +665,17 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           {tab === "catalogo" ? (
             /* ── Catálogo Tab ── */
             <div className="space-y-3">
+              {/* Toggle para incluir componentes avulsos */}
+              <div className="flex items-center justify-end gap-2">
+                <Label htmlFor="include-components" className="text-xs text-muted-foreground cursor-pointer">
+                  Incluir componentes
+                </Label>
+                <Switch
+                  id="include-components"
+                  checked={includeComponents}
+                  onCheckedChange={setIncludeComponents}
+                />
+              </div>
               {catalogLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {Array.from({ length: 6 }).map((_, i) => (
