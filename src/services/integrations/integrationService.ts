@@ -239,12 +239,16 @@ export async function connectSupplierProvider(
     };
 
     if (config?.id) {
+      // Merge new credentials with existing ones so unchanged secret fields are preserved
+      const existingCreds = (config.credentials as Record<string, string>) || {};
+      const mergedCredentials = { ...existingCreds, ...credentials };
+
       const { error: updateError } = await (supabase as any)
         .from("integrations_api_configs")
         .update({
           provider: providerKey,
           name: config.name || providerLabel,
-          credentials,
+          credentials: mergedCredentials,
           status: "pending",
           is_active: true,
           settings: mergedSettings,
