@@ -665,6 +665,17 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           {tab === "catalogo" ? (
             /* ── Catálogo Tab ── */
             <div className="space-y-3">
+              {/* Toggle para incluir componentes avulsos */}
+              <div className="flex items-center justify-end gap-2">
+                <Label htmlFor="include-components" className="text-xs text-muted-foreground cursor-pointer">
+                  Incluir componentes
+                </Label>
+                <Switch
+                  id="include-components"
+                  checked={includeComponents}
+                  onCheckedChange={setIncludeComponents}
+                />
+              </div>
               {catalogLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {Array.from({ length: 6 }).map((_, i) => (
