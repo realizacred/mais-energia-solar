@@ -257,6 +257,9 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "bateria_corrente_maxima_descarga_1", "bateria_corrente_maxima_carga_1",
   "bateria_corrente_recomendada_1", "bateria_capacidade_1",
   "bateria_comprimento_1", "bateria_largura_1", "bateria_profundidade_1",
+  "bateria_temperatura_descarga_min_1", "bateria_temperatura_descarga_max_1",
+  "bateria_temperatura_carga_min_1", "bateria_temperatura_carga_max_1",
+  "bateria_temperatura_armazenamento_min_1", "bateria_temperatura_armazenamento_max_1",
   // Armazenamento
   "autonomia", "energia_diaria_armazenamento", "armazenamento_necessario",
   "armazenamento_util_adicionado", "p_armazenamento_necessario",
