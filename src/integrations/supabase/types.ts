@@ -982,6 +982,56 @@ export type Database = {
           },
         ]
       }
+      catalog_provider_registry: {
+        Row: {
+          base_url: string | null
+          capabilities: Json
+          config_status: string
+          created_at: string
+          id: string
+          is_active: boolean
+          priority: number
+          provider_key: string
+          provider_name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_url?: string | null
+          capabilities?: Json
+          config_status?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          provider_key: string
+          provider_name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string | null
+          capabilities?: Json
+          config_status?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          provider_key?: string
+          provider_name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_provider_registry_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklist_cliente_arquivos: {
         Row: {
           categoria: string

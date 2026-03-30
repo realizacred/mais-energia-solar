@@ -137,14 +137,16 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
     .select("kit_id, item_type, ref_id, description, quantity, unit_price")
     .in("kit_id", kitIds);
 
-  if (error || !items) {
+  if (error) {
     console.error("[fetchKitsSummary] Error fetching items:", error?.message);
-    return new Map();
+    // Don't return empty — integrated kits may not have items, that's OK
   }
 
+  const safeItems = items ?? [];
+
   // Collect ref_ids for lookups
-  const moduloRefIds = items.filter(i => i.item_type === "modulo" && i.ref_id).map(i => i.ref_id!);
-  const inversorRefIds = items.filter(i => i.item_type === "inversor" && i.ref_id).map(i => i.ref_id!);
+  const moduloRefIds = safeItems.filter(i => i.item_type === "modulo" && i.ref_id).map(i => i.ref_id!);
+  const inversorRefIds = safeItems.filter(i => i.item_type === "inversor" && i.ref_id).map(i => i.ref_id!);
 
   const [modulos, inversores] = await Promise.all([
     moduloRefIds.length > 0 ? lookupModulos(moduloRefIds) : Promise.resolve(new Map<string, ModuloRef>()),
@@ -154,7 +156,7 @@ export async function fetchKitsSummary(kitIds: string[]): Promise<Map<string, Ca
   const result = new Map<string, CatalogKitSummary>();
 
   for (const kitId of kitIds) {
-    const kitItems = items.filter(i => i.kit_id === kitId);
+    const kitItems = safeItems.filter(i => i.kit_id === kitId);
     const modItems = kitItems.filter(i => i.item_type === "modulo");
     const invItems = kitItems.filter(i => i.item_type === "inversor");
 
@@ -236,7 +238,12 @@ export async function fetchKitItems(kitId: string): Promise<CatalogKitItem[]> {
  */
 export async function snapshotCatalogKitToKitItemRows(kitId: string): Promise<KitItemRow[]> {
   const items = await fetchKitItems(kitId);
-  if (items.length === 0) return [];
+
+  // If no legacy items exist, check if this is a valid integrated kit
+  // and generate synthetic rows from canonical catalog data
+  if (items.length === 0) {
+    return buildSyntheticRowsFromCatalog(kitId);
+  }
 
   // Separate ref_ids by type for batch lookups
   const moduloRefIds = items.filter(i => i.item_type === "modulo" && i.ref_id).map(i => i.ref_id!);
@@ -347,4 +354,43 @@ async function lookupBaterias(ids: string[]): Promise<Map<string, BateriaRef>> {
   const map = new Map<string, BateriaRef>();
   data?.forEach(b => map.set(b.id, b));
   return map;
+}
+
+/**
+ * Build synthetic KitItemRow[] from canonical solar_kit_catalog data
+ * for integrated kits (e.g. Edeltec) that don't have solar_kit_catalog_items.
+ * A kit is considered valid if it has source + external_id + name + price/potencia.
+ */
+async function buildSyntheticRowsFromCatalog(kitId: string): Promise<KitItemRow[]> {
+  const { data: kit, error } = await supabase
+    .from("solar_kit_catalog")
+    .select("id, name, source, external_id, external_data, estimated_kwp, fixed_price, fabricante, potencia_inversor, potencia_modulo, estrutura, fase, tensao, product_kind, is_generator, disponivel")
+    .eq("id", kitId)
+    .maybeSingle();
+
+  if (error || !kit) return [];
+
+  // Only generate synthetic rows for integrated kits with valid canonical data
+  const hasSource = !!kit.source && !!kit.external_id;
+  const hasMinimalData = !!kit.name && (kit.fixed_price != null || kit.estimated_kwp != null);
+  if (!hasSource || !hasMinimalData) return [];
+
+  const rows: KitItemRow[] = [];
+  const extData = kit.external_data as Record<string, any> | null;
+
+  // Generate a "kit gerador" row representing the whole integrated kit
+  rows.push({
+    id: crypto.randomUUID(),
+    descricao: kit.name,
+    fabricante: kit.fabricante || extData?.fabricante || "",
+    modelo: kit.name,
+    potencia_w: (kit.estimated_kwp || 0) * 1000,
+    quantidade: 1,
+    preco_unitario: kit.fixed_price || 0,
+    categoria: "outros",
+    avulso: false,
+    produto_ref: kit.id,
+  });
+
+  return rows;
 }
