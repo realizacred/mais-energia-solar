@@ -353,3 +353,42 @@ async function lookupBaterias(ids: string[]): Promise<Map<string, BateriaRef>> {
   data?.forEach(b => map.set(b.id, b));
   return map;
 }
+
+/**
+ * Build synthetic KitItemRow[] from canonical solar_kit_catalog data
+ * for integrated kits (e.g. Edeltec) that don't have solar_kit_catalog_items.
+ * A kit is considered valid if it has source + external_id + name + price/potencia.
+ */
+async function buildSyntheticRowsFromCatalog(kitId: string): Promise<KitItemRow[]> {
+  const { data: kit, error } = await supabase
+    .from("solar_kit_catalog")
+    .select("id, name, source, external_id, external_data, estimated_kwp, fixed_price, fabricante, potencia_inversor, potencia_modulo, estrutura, fase, tensao, product_kind, is_generator, disponivel")
+    .eq("id", kitId)
+    .maybeSingle();
+
+  if (error || !kit) return [];
+
+  // Only generate synthetic rows for integrated kits with valid canonical data
+  const hasSource = !!kit.source && !!kit.external_id;
+  const hasMinimalData = !!kit.name && (kit.fixed_price != null || kit.estimated_kwp != null);
+  if (!hasSource || !hasMinimalData) return [];
+
+  const rows: KitItemRow[] = [];
+  const extData = kit.external_data as Record<string, any> | null;
+
+  // Generate a "kit gerador" row representing the whole integrated kit
+  rows.push({
+    id: crypto.randomUUID(),
+    descricao: kit.name,
+    fabricante: kit.fabricante || extData?.fabricante || "",
+    modelo: kit.name,
+    potencia_w: (kit.estimated_kwp || 0) * 1000,
+    quantidade: 1,
+    preco_unitario: kit.fixed_price || 0,
+    categoria: "outros",
+    avulso: false,
+    produto_ref: kit.id,
+  });
+
+  return rows;
+}
