@@ -108,6 +108,11 @@ export function AuditTabContent({
     };
   }, [govSummary, resolverCoverage]);
 
+  // Real-time audit data from edge function
+  const { data: quickAudit, isLoading: quickLoading } = useQuickAudit();
+  const fullAuditMutation = useFullAudit();
+  const queryClient = useQueryClient();
+
   const diagnosedQuickAudit = useMemo(() => {
     if (!quickAudit) return [] as Array<{
       key: string;
@@ -168,11 +173,6 @@ export function AuditTabContent({
 
     return legacyGhostVariables;
   }, [govRecords, legacyGhostVariables]);
-
-  // Real-time audit data from edge function
-  const { data: quickAudit, isLoading: quickLoading } = useQuickAudit();
-  const fullAuditMutation = useFullAudit();
-  const queryClient = useQueryClient();
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
