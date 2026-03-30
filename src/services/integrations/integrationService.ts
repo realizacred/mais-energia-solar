@@ -332,7 +332,7 @@ export async function connectSupplierProvider(
     if (insertError) throw insertError;
     affectedConfigId = inserted?.id;
 
-    await testSupplierConnection(tenantId, inserted?.id, providerKey);
+    await testSupplierConnection(tenantId, inserted?.id, providerKey, fornecedorId);
 
     const testedAt = new Date().toISOString();
     await updateSupplierConfigState(inserted?.id, {
