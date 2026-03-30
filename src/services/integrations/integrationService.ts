@@ -86,7 +86,56 @@ export async function listConnections(): Promise<IntegrationConnection[]> {
     .select("id, tenant_id, provider_id, status, credentials, tokens, config, last_sync_at, sync_error, created_at, updated_at")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data as unknown as IntegrationConnection[]) || [];
+
+  const canonical = ((data as unknown as IntegrationConnection[]) || []);
+
+  // Merge supplier/API integrations as synthetic connections for unified UI status.
+  const { data: apiConfigs, error: apiError } = await (supabase as any)
+    .from("integrations_api_configs")
+    .select("id, tenant_id, provider, status, is_active, last_sync_at, settings, created_at, updated_at")
+    .order("created_at", { ascending: false });
+
+  if (apiError) throw apiError;
+
+  const supplierConnections: IntegrationConnection[] = ((apiConfigs as any[]) || [])
+    .map((row) => {
+      const settings = (row.settings || {}) as Record<string, unknown>;
+      const providerCatalogId = String(settings.provider_catalog_id || "").trim();
+      const providerId = providerCatalogId || row.provider;
+
+      let status: IntegrationConnection["status"] = "disconnected";
+      if (row.status === "error") status = "error";
+      else if (row.is_active && (row.status === "connected" || row.status === "active")) status = "connected";
+      else if (row.is_active) status = "connected";
+
+      return {
+        id: `api_${row.id}`,
+        tenant_id: row.tenant_id,
+        provider_id: providerId,
+        status,
+        credentials: {},
+        tokens: {},
+        config: {
+          source: "integrations_api_configs",
+          api_config_id: row.id,
+          provider_key: row.provider,
+        },
+        last_sync_at: row.last_sync_at,
+        sync_error: typeof settings.last_error === "string" ? settings.last_error : null,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      } as IntegrationConnection;
+    })
+    .filter((conn) => !!conn.provider_id);
+
+  const mergedByProvider = new Map<string, IntegrationConnection>();
+  for (const conn of [...canonical, ...supplierConnections]) {
+    if (!mergedByProvider.has(conn.provider_id)) {
+      mergedByProvider.set(conn.provider_id, conn);
+    }
+  }
+
+  return Array.from(mergedByProvider.values());
 }
 
 /** Connect a provider via edge function */
