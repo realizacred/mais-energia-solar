@@ -14,13 +14,34 @@ function slugifyProviderKey(value: string): string {
     .replace(/^_+|_+$/g, "");
 }
 
+/** Known supplier provider keys — maps provider catalog ID or label to canonical key */
+const KNOWN_SUPPLIER_KEYS: Record<string, string> = {
+  edeltec: "edeltec",
+  jng: "jng",
+};
+
+/** Known supplier fornecedor_id — maps provider key to fornecedores UUID */
+const SUPPLIER_FORNECEDOR_IDS: Record<string, string> = {
+  edeltec: "a1b2c3d4-0001-4000-8000-000000000001",
+  jng: "a1b2c3d4-0002-4000-8000-000000000002",
+};
+
+/** Edge function name per supplier for sync/test */
+const SUPPLIER_SYNC_FUNCTIONS: Record<string, string> = {
+  edeltec: "edeltec-sync",
+  jng: "jng-hub-sync",
+};
+
 /** Resolve canonical key used by integrations_api_configs for supplier providers */
 export function resolveSupplierProviderKey(providerId: string, providerLabel?: string): string {
   const normalizedId = (providerId || "").trim().toLowerCase();
   const normalizedLabel = (providerLabel || "").trim().toLowerCase();
 
-  if (normalizedId.includes("edeltec") || normalizedLabel.includes("edeltec")) {
-    return "edeltec";
+  // Check known suppliers first
+  for (const [keyword, key] of Object.entries(KNOWN_SUPPLIER_KEYS)) {
+    if (normalizedId.includes(keyword) || normalizedLabel.includes(keyword)) {
+      return key;
+    }
   }
 
   if (normalizedId && !UUID_LIKE_REGEX.test(normalizedId)) {
