@@ -22,6 +22,8 @@ export interface CatalogKit {
   estimated_kwp: number | null;
   pricing_mode: string;
   fixed_price: number | null;
+  source: string | null;
+  external_data: Record<string, any> | null;
 }
 
 interface CatalogKitItem {
