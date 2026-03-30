@@ -274,7 +274,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
   };
 
-  const consumoTotal = filters.buscarValor;
+  const consumoTotal = 0;
 
   // Build KitCardData from current itens for the Edit Kit Fechado modal
   const currentKitCards = useMemo(() => {
