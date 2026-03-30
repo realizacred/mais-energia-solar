@@ -253,13 +253,24 @@ export async function connectSupplierProvider(
     const tenantId = await getCurrentTenantId();
     const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
 
-    // For new connections, both fields are required.
-    // For updates, allow partial — missing fields are merged from existing credentials.
+    // Provider-specific credential validation
     const existingCreds = (config?.credentials as Record<string, string>) || {};
     const mergedForValidation = { ...existingCreds, ...credentials };
-    if (!mergedForValidation.apiKey?.trim() || !mergedForValidation.secret?.trim()) {
-      throw new Error("Informe API Key e Secret para conectar a Edeltec");
+
+    if (providerKey === "edeltec") {
+      if (!mergedForValidation.apiKey?.trim() || !mergedForValidation.secret?.trim()) {
+        throw new Error("Informe API Key e Secret para conectar a Edeltec");
+      }
+    } else if (providerKey === "jng") {
+      if (!mergedForValidation.token?.trim()) {
+        throw new Error("Informe o Token de acesso para conectar a JNG");
+      }
+    } else {
+      // Generic: require at least one non-empty credential
+      const hasAny = Object.values(mergedForValidation).some(v => typeof v === "string" && v.trim());
+      if (!hasAny) throw new Error("Informe as credenciais para conectar o fornecedor");
     }
+    const fornecedorId = SUPPLIER_FORNECEDOR_IDS[providerKey] || config?.fornecedor_id || null;
     const now = new Date().toISOString();
 
     const mergedSettings = {
