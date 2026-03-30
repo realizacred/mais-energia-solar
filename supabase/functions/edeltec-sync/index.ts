@@ -575,18 +575,11 @@ serve(async (req) => {
       newState.completed_at = new Date().toISOString();
 
       // Final validation: log manufacturer summary using fornecedor_id
-      const fabQuery = supabase
+      const { data: fabData } = await supabase
         .from("solar_kit_catalog")
         .select("fabricante")
-        .eq("tenant_id", tenant_id);
-      
-      if (fornecedorId) {
-        fabQuery.eq("fornecedor_id", fornecedorId);
-      } else {
-        fabQuery.eq("source", "edeltec");
-      }
-
-      const { data: fabData } = await fabQuery;
+        .eq("tenant_id", tenant_id)
+        .eq("fornecedor_id", fornecedorId);
       
       if (fabData) {
         const fabCount = new Map<string, number>();
