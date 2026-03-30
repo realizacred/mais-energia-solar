@@ -227,6 +227,23 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         topologia: topoLabel,
         custo: kitCost,
         sistema: extData?.sistema || "on_grid",
+        // Edeltec snapshot enrichment
+        ...(catalogKit?.source === "edeltec" ? {
+          source: "edeltec",
+          external_id: extData?.id || null,
+          fabricante: catalogKit.fabricante || null,
+          potencia_kwp: catalogKit.estimated_kwp || null,
+          potencia_inversor: catalogKit.potencia_inversor || null,
+          fase: catalogKit.fase || null,
+          tensao: catalogKit.tensao || null,
+          estrutura: catalogKit.estrutura || null,
+          preco_integrador: catalogKit.fixed_price || null,
+          disponivel: catalogKit.disponivel ?? null,
+          permite_compra_sem_estoque: catalogKit.permite_compra_sem_estoque ?? null,
+          previsao: catalogKit.previsao || null,
+          external_data: extData || null,
+          selected_at: new Date().toISOString(),
+        } : {}),
       };
 
       if (card) {
