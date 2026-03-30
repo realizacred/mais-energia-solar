@@ -92,6 +92,7 @@ export function classifyGovernance(
   const inFE = isInFE(flatKey, dottedKey);
   const inBE = isInBE(flatKey);
   const isCustom = customVarKeys.has(flatKey);
+  const isBuiltinCustom = isBuiltinVcKey(flatKey);
   const isDynamic = isDynamicKey(flatKey);
   const isDocument = DOCUMENT_CATEGORIES.has(group);
   const isPassthrough = PASSTHROUGH_GROUPS.has(group);
@@ -99,6 +100,7 @@ export function classifyGovernance(
   const isWizardInput = WIZARD_INPUT_VARS.has(flatKey);
   const isCdd = (group as string) === CDD_CATEGORY || !!v.notImplemented;
   const isDynamicField = dynamicFieldKeys.has(flatKey);
+  const isSupplier = SUPPLIER_SNAPSHOT_VARS.has(flatKey);
 
   // ── Determine classification ──
   let classification: GovernanceClass;
