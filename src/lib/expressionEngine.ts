@@ -14,6 +14,8 @@ export type EvaluationMode = "tolerant" | "strict";
 export interface EvaluationResult {
   value: number | null;
   missingKeys: string[];
+  /** True when result used fallback values for missing keys — result is NOT trustworthy */
+  degraded: boolean;
   error?: string;
 }
 
@@ -237,15 +239,19 @@ export function evaluateTracked(
     const pos = { i: 0 };
     const result = parseExpressionTracked(tokens, pos, context, missingKeys, mode);
     const value = isFinite(result) ? Math.round(result * 10000) / 10000 : null;
+    const uniqueMissing = [...new Set(missingKeys)];
+    const degraded = uniqueMissing.length > 0;
     return {
       value,
-      missingKeys: [...new Set(missingKeys)],
+      missingKeys: uniqueMissing,
+      degraded,
       error: value === null ? "Resultado não-finito" : undefined,
     };
   } catch (err: any) {
     return {
       value: null,
       missingKeys: [...new Set(missingKeys)],
+      degraded: true,
       error: err.message,
     };
   }
