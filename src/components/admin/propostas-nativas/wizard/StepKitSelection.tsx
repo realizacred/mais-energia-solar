@@ -422,22 +422,23 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           {/* Tabs: Customizado | Fechado | + Criar manualmente */}
           <div className="flex items-center border-b border-border/50">
             {([
-              { key: "catalogo" as const, label: "📦 Catálogo", icon: true },
+              { key: "catalogo" as const, label: "📦 Catálogo" },
               { key: "customizado" as const, label: "Customizado" },
               { key: "fechado" as const, label: "Fechado" },
             ]).map(t => (
-              <button
+              <Button
                 key={t.key}
+                variant="ghost"
                 onClick={() => setTab(t.key)}
                 className={cn(
-                  "px-5 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                  "px-5 py-2.5 text-sm font-medium border-b-2 rounded-none transition-colors",
                   tab === t.key
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground",
                 )}
               >
                 {t.label}
-              </button>
+              </Button>
             ))}
             <Button
               variant="outline"
