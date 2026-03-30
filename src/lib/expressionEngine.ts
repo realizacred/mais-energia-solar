@@ -217,6 +217,41 @@ export function evaluate(expression: string, context: ExpressionContext): number
 }
 
 /**
+ * Evaluate with full tracking: returns value, missingKeys, and error info.
+ * Supports tolerant (default, continues with 0) and strict (errors on missing/divzero) modes.
+ */
+export function evaluateTracked(
+  expression: string,
+  context: ExpressionContext,
+  mode: EvaluationMode = "tolerant",
+): EvaluationResult {
+  const missingKeys: string[] = [];
+  try {
+    if (!expression || expression.trim() === "") {
+      return { value: null, missingKeys, error: "Expressão vazia" };
+    }
+    const tokens = tokenize(expression);
+    if (tokens.length === 0) {
+      return { value: null, missingKeys, error: "Nenhum token encontrado" };
+    }
+    const pos = { i: 0 };
+    const result = parseExpressionTracked(tokens, pos, context, missingKeys, mode);
+    const value = isFinite(result) ? Math.round(result * 10000) / 10000 : null;
+    return {
+      value,
+      missingKeys: [...new Set(missingKeys)],
+      error: value === null ? "Resultado não-finito" : undefined,
+    };
+  } catch (err: any) {
+    return {
+      value: null,
+      missingKeys: [...new Set(missingKeys)],
+      error: err.message,
+    };
+  }
+}
+
+/**
  * Check if an expression is fixed text (no math operators, no variable refs).
  * Used for custom variables of type "text" that should not be evaluated numerically.
  */
