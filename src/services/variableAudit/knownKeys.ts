@@ -233,6 +233,9 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "inversor_quantidade_1", "inversor_potencia_1", "inversor_tensao_1",
   "inversor_tipo_1", "inversor_mppts_utilizados_1", "inversor_sistema_1",
   "inversor_corrente_max_entrada_mppt1_1", "inversor_corrente_max_entrada_1",
+  "inversor_corrente_saida_1", "inversor_strings_utilizadas_1",
+  "inversor_corrente_max_carga_cc_1", "inversor_corrente_max_descarga_cc_1",
+  "inversor_tipo_bateria_1", "inversor_tensao_bateria_min_1", "inversor_tensao_bateria_max_1",
   // Otimizador
   "otimizador_fabricante", "otimizador_modelo", "otimizador_potencia", "otimizador_quantidade",
   // Transformador
