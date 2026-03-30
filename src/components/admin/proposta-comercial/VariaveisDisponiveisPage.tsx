@@ -337,7 +337,7 @@ export function VariaveisDisponiveisPage() {
           label: cv.label,
           description: cv.descricao || cv.expressao,
           category: "customizada",
-          domain: "financeiro" as VariableDomain,
+          domain: "proposta" as VariableDomain,
           nature: "calculada" as VariableNature,
           views: ["negocio", "template", "tecnica"],
           unit: "",
