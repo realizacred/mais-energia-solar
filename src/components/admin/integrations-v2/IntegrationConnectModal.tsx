@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { connectProvider } from "@/services/integrations/integrationService";
+import { connectProvider, connectSupplierProvider } from "@/services/integrations/integrationService";
 import type { IntegrationProvider, CredentialField } from "@/services/integrations/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, CheckCircle2, AlertTriangle, Eye, EyeOff, Plug } from "lucide-react";
