@@ -7,6 +7,16 @@ export interface ExpressionContext {
   [key: string]: number;
 }
 
+/** Evaluation mode: tolerant continues with 0 for missing keys, strict returns error */
+export type EvaluationMode = "tolerant" | "strict";
+
+/** Structured result from evaluation with tracking */
+export interface EvaluationResult {
+  value: number | null;
+  missingKeys: string[];
+  error?: string;
+}
+
 type Token =
   | { type: "number"; value: number }
   | { type: "variable"; name: string }
@@ -106,7 +116,13 @@ function parseTerm(tokens: Token[], pos: { i: number }, ctx: ExpressionContext):
 }
 
 /** factor → number | variable | (expr) | -factor */
-function parseFactor(tokens: Token[], pos: { i: number }, ctx: ExpressionContext): number {
+function parseFactor(
+  tokens: Token[],
+  pos: { i: number },
+  ctx: ExpressionContext,
+  missingKeys?: string[],
+  mode: EvaluationMode = "tolerant",
+): number {
   if (pos.i >= tokens.length) throw new Error("Expressão incompleta");
 
   const tok = tokens[pos.i];
@@ -114,13 +130,13 @@ function parseFactor(tokens: Token[], pos: { i: number }, ctx: ExpressionContext
   // Unary minus
   if (tok.type === "op" && tok.value === "-") {
     pos.i++;
-    return -parseFactor(tokens, pos, ctx);
+    return -parseFactor(tokens, pos, ctx, missingKeys, mode);
   }
 
   // Parenthesized expression
   if (tok.type === "paren" && tok.value === "(") {
     pos.i++;
-    const val = parseExpression(tokens, pos, ctx);
+    const val = parseExpressionTracked(tokens, pos, ctx, missingKeys, mode);
     if (pos.i >= tokens.length || tokens[pos.i].type !== "paren" || (tokens[pos.i] as any).value !== ")") {
       throw new Error("Parêntese não fechado");
     }
@@ -139,6 +155,10 @@ function parseFactor(tokens: Token[], pos: { i: number }, ctx: ExpressionContext
     pos.i++;
     const val = ctx[tok.name];
     if (val === undefined) {
+      if (missingKeys) missingKeys.push(tok.name);
+      if (mode === "strict") {
+        throw new Error(`Variável não encontrada: ${tok.name}`);
+      }
       console.warn(`[ExpressionEngine] Variável não encontrada: ${tok.name}, usando 0`);
       return 0;
     }
