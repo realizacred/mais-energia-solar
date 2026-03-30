@@ -386,19 +386,18 @@ serve(async (req) => {
 
       // FULL_REPLACE: delete existing records for this tenant+fornecedor at start
       if (mode === "full_replace") {
-        const deleteQuery = supabase
+        if (!fornecedorId) {
+          await syncLog(supabase, tenant_id, "error", "full_replace requer fornecedor_id — operação abortada");
+          return new Response(
+            JSON.stringify({ success: false, error: "full_replace requer fornecedor_id", code: "MISSING_FORNECEDOR_ID" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const { error: delError } = await supabase
           .from("solar_kit_catalog")
           .delete()
-          .eq("tenant_id", tenant_id);
-        
-        // Use fornecedor_id when available, fall back to source for backward compat
-        if (fornecedorId) {
-          deleteQuery.eq("fornecedor_id", fornecedorId);
-        } else {
-          deleteQuery.eq("source", "edeltec");
-        }
-
-        const { error: delError } = await deleteQuery;
+          .eq("tenant_id", tenant_id)
+          .eq("fornecedor_id", fornecedorId);
         if (delError) {
           console.error("[edeltec-sync] Full replace delete error:", delError);
           await syncLog(supabase, tenant_id, "error", "Erro ao limpar catálogo para full replace", { error: delError.message });
@@ -576,18 +575,11 @@ serve(async (req) => {
       newState.completed_at = new Date().toISOString();
 
       // Final validation: log manufacturer summary using fornecedor_id
-      const fabQuery = supabase
+      const { data: fabData } = await supabase
         .from("solar_kit_catalog")
         .select("fabricante")
-        .eq("tenant_id", tenant_id);
-      
-      if (fornecedorId) {
-        fabQuery.eq("fornecedor_id", fornecedorId);
-      } else {
-        fabQuery.eq("source", "edeltec");
-      }
-
-      const { data: fabData } = await fabQuery;
+        .eq("tenant_id", tenant_id)
+        .eq("fornecedor_id", fornecedorId);
       
       if (fabData) {
         const fabCount = new Map<string, number>();
