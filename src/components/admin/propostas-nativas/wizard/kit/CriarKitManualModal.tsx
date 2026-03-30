@@ -100,6 +100,21 @@ export interface KitMeta {
   custo?: number;
   sistema?: "on_grid" | "hibrido" | "off_grid";
   custosEmbutidos?: { estruturas: boolean; transformador: boolean };
+  // Catalog integration fields
+  source?: string;
+  external_id?: string | null;
+  fabricante?: string | null;
+  potencia_kwp?: number | null;
+  potencia_inversor?: number | null;
+  fase?: string | null;
+  tensao?: string | null;
+  estrutura?: string | null;
+  preco_integrador?: number | null;
+  disponivel?: boolean | null;
+  permite_compra_sem_estoque?: boolean | null;
+  previsao?: string | null;
+  external_data?: Record<string, any> | null;
+  selected_at?: string;
 }
 
 const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
