@@ -48,14 +48,31 @@ export function resolveEntrada(
   set("grupo_tarifario", uc1.grupo_tarifario ?? snap.grupo_tarifario ?? uc1.subgrupo ?? snap.subgrupo);
 
   // ── Consumo mensal por mês ──
+  // consumo_meses is an object { jan: 500, fev: 480, ... } saved by the wizard
+  const consumoMeses = safeObj(uc1.consumo_meses);
+  const consumoMesesP = safeObj(uc1.consumo_meses_p);
+  const consumoMesesFP = safeObj(uc1.consumo_meses_fp);
+
+  // Check if consumo_meses has real values
+  const hasConsumoMeses = Object.values(consumoMeses).some(v => num(v) != null && num(v)! > 0);
+
   for (const m of MESES) {
-    set(`consumo_${m}`, snap[`consumo_${m}`] ?? uc1[`consumo_${m}`]);
-    set(`consumo_${m}_uc1`, uc1[`consumo_${m}`]);
-    // MT por mês
-    set(`consumo_mensal_p_${m}`, snap[`consumo_mensal_p_${m}`] ?? uc1[`consumo_mensal_p_${m}`]);
-    set(`consumo_mensal_p_${m}_uc1`, uc1[`consumo_mensal_p_${m}`]);
-    set(`consumo_mensal_fp_${m}`, snap[`consumo_mensal_fp_${m}`] ?? uc1[`consumo_mensal_fp_${m}`]);
-    set(`consumo_mensal_fp_${m}_uc1`, uc1[`consumo_mensal_fp_${m}`]);
+    // BT: snap flat key → uc1 flat key → consumo_meses object → uniform fallback from consumo_mensal
+    const consumoMesVal = snap[`consumo_${m}`] ?? uc1[`consumo_${m}`] ?? consumoMeses[m];
+    if (consumoMesVal != null && consumoMesVal !== "" && consumoMesVal !== 0) {
+      set(`consumo_${m}`, consumoMesVal);
+    } else if (!hasConsumoMeses && consumoMensal != null && consumoMensal > 0) {
+      // Fallback: distribute consumo_mensal uniformly when no monthly data exists
+      out[`consumo_${m}`] = fmtNum(consumoMensal, 0);
+    }
+    set(`consumo_${m}_uc1`, uc1[`consumo_${m}`] ?? consumoMeses[m]);
+
+    // MT Ponta por mês
+    set(`consumo_mensal_p_${m}`, snap[`consumo_mensal_p_${m}`] ?? uc1[`consumo_mensal_p_${m}`] ?? consumoMesesP[m]);
+    set(`consumo_mensal_p_${m}_uc1`, uc1[`consumo_mensal_p_${m}`] ?? consumoMesesP[m]);
+    // MT Fora Ponta por mês
+    set(`consumo_mensal_fp_${m}`, snap[`consumo_mensal_fp_${m}`] ?? uc1[`consumo_mensal_fp_${m}`] ?? consumoMesesFP[m]);
+    set(`consumo_mensal_fp_${m}_uc1`, uc1[`consumo_mensal_fp_${m}`] ?? consumoMesesFP[m]);
   }
 
   // ── Tarifas BT ──
