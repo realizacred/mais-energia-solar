@@ -23,6 +23,12 @@ const LEGACY_VARS = new Set(["capo_m"]);
 /** Variables that are wizard input fields */
 const WIZARD_INPUT_VARS = new Set(["capo_seguro", "capo_desconto", "capo_string_box"]);
 
+/** Supplier/kit snapshot vars — resolved via snapshot passthrough when kit is selected */
+const SUPPLIER_SNAPSHOT_VARS = new Set([
+  "tipo_fornecedor_distribuidor", "fornecedor", "tipo_kit",
+  "fabricante", "sku",
+]);
+
 /** Passthrough groups — resolved via snapshot deepGet, no explicit resolver needed */
 const PASSTHROUGH_GROUPS = new Set(["series", "tabelas", "premissas"]);
 
