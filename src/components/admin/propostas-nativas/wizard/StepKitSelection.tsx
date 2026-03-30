@@ -164,12 +164,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     return null;
   }, [manualKits]);
 
-  // Load catalog kits when tab switches to "catalogo" — only generators by default
+  // Load catalog kits when tab switches to "catalogo" — fetch all, filter client-side
   useEffect(() => {
     if (tab !== "catalogo" || catalogLoaded.current) return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits(false) // show all products including components from all brands
+    fetchActiveKits(false) // fetch all products; generator filter applied client-side via includeComponents toggle
       .then(async (kits) => {
         setCatalogKits(kits);
         catalogLoaded.current = true;
