@@ -41,6 +41,32 @@ const GOVERNANCE_CRITICAL_CLASSES = new Set<GovernanceRecord["classification"]>(
   "CDD",
 ]);
 
+// ── On-the-fly classification for DOCX keys not in catalog ──
+const MONTHLY_SUFFIXES_LOCAL = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+function isDynamicKeyLocal(flatKey: string): boolean {
+  if (MONTHLY_SUFFIXES_LOCAL.some(m => flatKey.endsWith(`_${m}`))) return true;
+  const annualMatch = flatKey.match(/_(\d+)$/);
+  if (annualMatch) {
+    const n = parseInt(annualMatch[1]);
+    if (n >= 0 && n <= 25 && !flatKey.includes("_uc")) return true;
+  }
+  if (/_uc\d+$/.test(flatKey)) return true;
+  if (/_\d+$/.test(flatKey) && (
+    flatKey.includes("inversor_") || flatKey.includes("bateria_") || flatKey.includes("kit_comp_")
+  )) return true;
+  return false;
+}
+
+function isKeyInBackendFlattenLocal(flatKey: string): boolean {
+  if (BACKEND_FLATTEN_KEYS.has(flatKey)) return true;
+  const base = flatKey.replace(/_\d+$/, "_1");
+  if (base !== flatKey && BACKEND_FLATTEN_KEYS.has(base)) return true;
+  const baseZero = flatKey.replace(/_\d+$/, "_0");
+  if (baseZero !== flatKey && BACKEND_FLATTEN_KEYS.has(baseZero)) return true;
+  return false;
+}
+
 // ── Status config ──────────────────────────────────────────
 const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: string; label: string }> = {
   ok: { icon: CheckCircle2, color: "text-success", label: "Sincronizada" },
