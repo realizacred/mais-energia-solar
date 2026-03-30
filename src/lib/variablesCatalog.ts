@@ -524,6 +524,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ── Localização e Parâmetros ──
   v("entrada", "entrada.estado", "estado", "Estado", "UF do cliente", "-", "RJ"),
   v("entrada", "entrada.cidade", "cidade", "Cidade", "Cidade do cliente", "-", "Rio de Janeiro"),
+  v("entrada", "entrada.cidade_estado", "cidade_estado", "Cidade / Estado", "Cidade e estado concatenados", "-", "Rio de Janeiro / RJ"),
   v("entrada", "entrada.distancia", "distancia", "Distância", "Distância para instalação", "KM", "50"),
   v("entrada", "entrada.taxa_desempenho", "taxa_desempenho", "Taxa de Desempenho", "Performance ratio do sistema", "%", "80"),
   v("entrada", "entrada.desvio_azimutal", "desvio_azimutal", "Desvio Azimutal", "Desvio em relação ao norte", "°", "90"),
