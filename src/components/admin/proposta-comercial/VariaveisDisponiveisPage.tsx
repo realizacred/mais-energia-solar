@@ -3,7 +3,7 @@ import {
   Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2,
   ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, List, Info,
   Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
-  FlaskConical, Sparkles, Activity, HeartPulse, Shield,
+  FlaskConical, Sparkles, Activity, HeartPulse, Shield, Layers,
 } from "lucide-react";
 import { useVariableHealth, type HealthClassification } from "@/hooks/useVariableHealth";
 import { useVariableGovernance, type GovernanceFilter, type GovernanceRecord } from "@/hooks/useVariableGovernance";
@@ -45,9 +45,21 @@ import {
   VARIABLES_CATALOG,
   CATEGORY_LABELS,
   CATEGORY_ORDER,
+  DOMAIN_LABELS,
+  DOMAIN_ICONS,
+  DOMAIN_ORDER,
+  NATURE_LABELS,
+  VARIABLE_VIEW_LABELS,
+  VARIABLE_VIEW_ICONS,
+  deriveDomain,
+  deriveNature,
+  getVariableViews,
   type VariableCategory,
   type CatalogVariable,
   type VariableEscopo,
+  type VariableDomain,
+  type VariableNature,
+  type VariableView,
 } from "@/lib/variablesCatalog";
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, type VariavelCustom } from "@/hooks/useVariaveisCustom";
 import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
@@ -118,8 +130,6 @@ function toDbCustomVar(v: VariavelCustom): DbCustomVar {
   return { id: v.id, nome: v.nome, label: v.label, expressao: v.expressao, tipo_resultado: v.tipo_resultado, categoria: v.categoria, precisao: v.ordem, ativo: v.ativo };
 }
 
-/* ── DOCX hardcodes removed — now provided by useVariableUsage hook ── */
-
 const PRECISAO_OPTIONS = [
   { value: 0, label: "Nenhuma casa decimal" },
   { value: 1, label: "1 casa decimal" },
@@ -139,6 +149,9 @@ interface EnrichedVariable {
   label: string;
   description: string;
   category: VariableCategory;
+  domain: VariableDomain;
+  nature: VariableNature;
+  views: VariableView[];
   unit: string;
   example: string;
   isSeries?: boolean;
@@ -152,20 +165,16 @@ interface EnrichedVariable {
   docxBroken: boolean;
   docxNull: boolean;
   status: "ok" | "warning" | "error" | "pending" | "unused";
-  /** tipo_resultado from DB for custom vars */
   tipoResultado?: string;
-  /** Escopo: proposta (default) ou documento */
   escopo?: VariableEscopo;
-  /** Dynamic field context (projeto, pre_dimensionamento, pos_dimensionamento) */
   _dynamicContext?: string;
-  /** Health classification from historical analysis */
   healthClassification?: HealthClassification;
-  /** Health score 0-100 */
   healthScore?: number;
 }
 
 type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "documento" | "aspiracional" | "campo_dinamico" | "health_critical" | "health_unstable" | "health_healthy" | "health_unused";
-type ActiveView = VariableCategory | "todas" | "auditoria" | "limpeza" | "campo_pre" | "campo_pos" | "campo_projeto";
+type ActiveView = VariableView | "todas" | "auditoria" | "limpeza";
+type DomainFilter = VariableDomain | "todas";
 
 /* ── Semantic explanations for known variables ── */
 const SEMANTIC_EXPLANATIONS: Record<string, string> = {
@@ -182,8 +191,6 @@ const SEMANTIC_EXPLANATIONS: Record<string, string> = {
   economia_mensal: "Economia mensal estimada na conta de energia após instalação do sistema solar.",
 };
 
-/* Legacy/wizard sets removed — now handled by centralized governance engine */
-
 /* ── Source display ── */
 function getSourceLabel(source: VariableSource): { label: string; color: string } {
   const info = SOURCE_LABELS[source];
@@ -194,7 +201,8 @@ function getSourceLabel(source: VariableSource): { label: string; color: string 
 /* ═══════════════════════════════════════════════════════════════ */
 export function VariaveisDisponiveisPage() {
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<ActiveView>("todas");
+  const [activeView, setActiveView] = useState<ActiveView>("negocio");
+  const [domainFilter, setDomainFilter] = useState<DomainFilter>("todas");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVar, setEditingVar] = useState<VariavelCustom | null>(null);
   const [form, setForm] = useState({ nome: "vc_", label: "", expressao: "", precisao: 2 });
@@ -216,26 +224,15 @@ export function VariaveisDisponiveisPage() {
   const deletarMutation = useDeletarVariavelCustom();
   const dbCustomVars = useMemo(() => customVarsRaw.map(toDbCustomVar), [customVarsRaw]);
 
-  // Audit data for resolver coverage + source info
   const { categoryAudit, resolverCoverage } = useVariablesAudit(dbCustomVars);
-
-  // Dynamic variable usage data (replaces hardcoded DOCX_REAL_VARS / DOCX_BROKEN / DOCX_NULL_VARS)
   const { usageMap } = useVariableUsage();
-
-  // Dynamic custom fields from deal_custom_fields table
   const { data: dealCustomFields = [] } = useDealCustomFields();
-
-  // Historical health data
   const { healthMap, summary: healthSummary, hasData: hasHealthData } = useVariableHealth();
 
-  // Governance classification
   const dynamicFieldKeysList = useMemo(() => dealCustomFields.map(d => d.field_key), [dealCustomFields]);
   const { records: govRecords, summary: govSummary, getRecord: getGovRecord, filterOptions: govFilterOptions, filterRecords: govFilterRecords } = useVariableGovernance(customVarsRaw, dynamicFieldKeysList);
-
-  // Cleanup engine
   const { records: cleanupRecords, summary: cleanupSummary } = useVariableCleanup(govRecords, usageMap);
 
-  // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
     const map: Record<string, { source: VariableSource; resolver: string }> = {};
     categoryAudit.forEach((cat) => {
@@ -246,7 +243,6 @@ export function VariaveisDisponiveisPage() {
     return map;
   }, [categoryAudit]);
 
-  // ── Filtered variables for expression picker ──
   const filteredPickerVars = useMemo(() => {
     const term = normalize(varPickerSearch);
     return VARIABLES_CATALOG.filter((v) => {
@@ -258,7 +254,14 @@ export function VariaveisDisponiveisPage() {
     });
   }, [varPickerSearch]);
 
-  // ── Enriched variables list (catalog + custom merged) ──
+  // ── Context map for deal custom fields ──
+  const CONTEXT_TO_DOMAIN: Record<string, VariableDomain> = {
+    projeto: "projeto",
+    pre_dimensionamento: "sistema_solar",
+    pos_dimensionamento: "sistema_solar",
+  };
+
+  // ── Enriched variables list (catalog + custom + deal fields merged) ──
   const allVariables = useMemo((): EnrichedVariable[] => {
     const items: EnrichedVariable[] = [];
 
@@ -286,6 +289,9 @@ export function VariaveisDisponiveisPage() {
         label: v.label,
         description: v.description,
         category: v.category,
+        domain: deriveDomain(v),
+        nature: deriveNature(v),
+        views: getVariableViews(v),
         unit: v.unit,
         example: v.example,
         isSeries: v.isSeries,
@@ -308,8 +314,7 @@ export function VariaveisDisponiveisPage() {
         const cvUsage = usageMap.get(cv.nome);
         const inDocx = cvUsage?.inDocx ?? false;
         const docxNull = cvUsage?.isNull ?? false;
-      const tipoResultado = cv.tipo_resultado || "number";
-      const isTextVar = tipoResultado === "text";
+        const tipoResultado = cv.tipo_resultado || "number";
         items.push({
           key: cv.nome,
           canonicalKey: `{{customizada.${cv.nome}}}`,
@@ -317,21 +322,23 @@ export function VariaveisDisponiveisPage() {
           label: cv.label,
           description: cv.descricao || cv.expressao,
           category: "customizada",
+          domain: "custom_calculada",
+          nature: "custom_var_calculada",
+          views: ["negocio", "template", "tecnica"],
           unit: "",
           example: "",
           isCustom: true,
           customId: cv.id,
           expressao: cv.expressao,
-          source: "custom_vc",
+          source: "custom_vc" as VariableSource,
           resolver: "proposal-generate (evaluateExpression)",
           inDocx,
           docxBroken: false,
           docxNull,
-           status: docxNull ? "warning" : "ok",
-           tipoResultado,
+          status: docxNull ? "warning" : "ok",
+          tipoResultado,
         });
       } else {
-        // Attach customId to existing catalog entry
         const existing = items.find((i) => i.key === cv.nome);
         if (existing) {
           existing.customId = cv.id;
@@ -340,20 +347,24 @@ export function VariaveisDisponiveisPage() {
       }
     });
 
-    // Dynamic deal custom fields (pre/pos/projeto)
+    // Dynamic deal custom fields → classified as "campo_entidade", NOT "customizada"
     dealCustomFields.forEach((dcf) => {
       const alreadyExists = items.some((i) => i.key === dcf.field_key);
       if (!alreadyExists) {
         const contextLabel = FIELD_CONTEXT_LABELS[dcf.field_context] ?? dcf.field_context;
         const usageInfo = usageMap.get(dcf.field_key);
         const inDocx = usageInfo?.inDocx ?? false;
+        const domain = CONTEXT_TO_DOMAIN[dcf.field_context] ?? "campo_entidade";
         items.push({
           key: dcf.field_key,
           canonicalKey: `{{campo_custom.${dcf.field_key}}}`,
           legacyKey: `[${dcf.field_key}]`,
           label: dcf.title,
           description: `Campo dinâmico (${contextLabel}) — tipo: ${dcf.field_type}`,
-          category: "customizada" as VariableCategory,
+          category: "customizada" as VariableCategory, // keep for backward compat
+          domain: domain as VariableDomain,
+          nature: "campo_custom_entidade",
+          views: ["negocio", "template", "tecnica"],
           unit: "",
           example: "",
           isCustom: false,
@@ -366,7 +377,7 @@ export function VariaveisDisponiveisPage() {
           tipoResultado: dcf.field_type === "number" || dcf.field_type === "currency" ? "number" : "text",
           escopo: undefined,
           _dynamicContext: dcf.field_context,
-        } as EnrichedVariable & { _dynamicContext?: string });
+        });
       }
     });
 
@@ -378,31 +389,43 @@ export function VariaveisDisponiveisPage() {
     return allVariables.map((v) => {
       const health = healthMap.get(v.key);
       const enriched = { ...v } as EnrichedVariable;
-
       if (health && health.totalExecutions > 0) {
         enriched.healthClassification = health.classification;
         enriched.healthScore = health.healthScore;
       }
-
       return enriched;
     });
   }, [allVariables, healthMap]);
+
+  // ── Domain counts for sidebar ──
+  const domainCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    governanceVariables.forEach((v) => {
+      // Count per view
+      if (activeView === "todas" || activeView === "auditoria" || activeView === "limpeza") {
+        counts[v.domain] = (counts[v.domain] || 0) + 1;
+      } else {
+        // Only count vars that belong to this view
+        if (v.views.includes(activeView as VariableView)) {
+          counts[v.domain] = (counts[v.domain] || 0) + 1;
+        }
+      }
+    });
+    return counts;
+  }, [governanceVariables, activeView]);
 
   // ── Filtered + sorted ──
   const filtered = useMemo(() => {
     let items = [...governanceVariables];
 
-    // Category filter
-    if (activeCategory !== "todas" && activeCategory !== "auditoria" && activeCategory !== "limpeza") {
-      if (activeCategory === "campo_pre") {
-        items = items.filter((v) => v._dynamicContext === "pre_dimensionamento");
-      } else if (activeCategory === "campo_pos") {
-        items = items.filter((v) => v._dynamicContext === "pos_dimensionamento");
-      } else if (activeCategory === "campo_projeto") {
-        items = items.filter((v) => v._dynamicContext === "projeto");
-      } else {
-        items = items.filter((v) => v.category === activeCategory);
-      }
+    // View filter (primary)
+    if (activeView !== "todas" && activeView !== "auditoria" && activeView !== "limpeza") {
+      items = items.filter((v) => v.views.includes(activeView as VariableView));
+    }
+
+    // Domain filter (secondary)
+    if (domainFilter !== "todas") {
+      items = items.filter((v) => v.domain === domainFilter);
     }
 
     // Status filter
@@ -414,10 +437,10 @@ export function VariaveisDisponiveisPage() {
         case "error": items = items.filter((v) => v.status === "error"); break;
         case "pending": items = items.filter((v) => v.status === "pending"); break;
         case "nativa": items = items.filter((v) => !v.isCustom); break;
-        case "custom": items = items.filter((v) => v.isCustom); break;
-        case "documento": items = items.filter((v) => v.escopo === "documento"); break;
+        case "custom": items = items.filter((v) => v.isCustom || v.nature === "custom_var_calculada"); break;
+        case "documento": items = items.filter((v) => v.domain === "documento"); break;
         case "aspiracional": items = items.filter((v) => v.escopo === "aspiracional"); break;
-        case "campo_dinamico": items = items.filter((v) => !!v._dynamicContext); break;
+        case "campo_dinamico": items = items.filter((v) => v.nature === "campo_custom_entidade"); break;
         case "health_critical": items = items.filter((v) => v.healthClassification === "critical"); break;
         case "health_unstable": items = items.filter((v) => v.healthClassification === "unstable"); break;
         case "health_healthy": items = items.filter((v) => v.healthClassification === "healthy"); break;
@@ -425,7 +448,7 @@ export function VariaveisDisponiveisPage() {
       }
     }
 
-    // Governance filter (from centralized engine)
+    // Governance filter
     if (govFilter !== "todas") {
       const matchingRecords = govFilterRecords(govFilter);
       const govKeys = new Set(matchingRecords.map(r => r.key));
@@ -452,7 +475,8 @@ export function VariaveisDisponiveisPage() {
         case "label": return v.label;
         case "legacyKey": return v.legacyKey;
         case "canonicalKey": return v.canonicalKey;
-        case "category": return CATEGORY_LABELS[v.category] ?? v.category;
+        case "domain": return DOMAIN_LABELS[v.domain] ?? v.domain;
+        case "nature": return NATURE_LABELS[v.nature] ?? v.nature;
         case "status": return v.status;
         case "source": return SOURCE_LABELS[v.source]?.label ?? v.source;
         case "health": return String(v.healthScore ?? -1).padStart(4, "0");
@@ -461,7 +485,7 @@ export function VariaveisDisponiveisPage() {
       }
     };
     return items.sort((a, b) => dir * getVal(a).localeCompare(getVal(b), "pt-BR"));
-  }, [governanceVariables, activeCategory, statusFilter, search, sortCol, sortDir]);
+  }, [governanceVariables, activeView, domainFilter, statusFilter, search, sortCol, sortDir, govFilter, govFilterRecords]);
 
   const toggleSort = useCallback((col: string) => {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -475,26 +499,13 @@ export function VariaveisDisponiveisPage() {
     const ok = governanceVariables.filter((v) => v.status === "ok").length;
     const warnings = governanceVariables.filter((v) => v.status === "warning").length;
     const errors = governanceVariables.filter((v) => v.status === "error").length;
-    const custom = governanceVariables.filter((v) => v.isCustom).length;
-    const documento = governanceVariables.filter((v) => v.escopo === "documento").length;
-    const aspiracional = governanceVariables.filter((v) => v.escopo === "aspiracional").length;
-    const campoDinamico = governanceVariables.filter((v) => !!v._dynamicContext).length;
+    const custom = governanceVariables.filter((v) => v.isCustom || v.nature === "custom_var_calculada").length;
+    const campoCustEntidade = governanceVariables.filter((v) => v.nature === "campo_custom_entidade").length;
+    const documento = governanceVariables.filter((v) => v.domain === "documento").length;
     const healthCritical = governanceVariables.filter((v) => v.healthClassification === "critical").length;
     const healthUnstable = governanceVariables.filter((v) => v.healthClassification === "unstable").length;
     const healthHealthy = governanceVariables.filter((v) => v.healthClassification === "healthy").length;
-    return { total, inUse, ok, warnings, errors, custom, documento, aspiracional, campoDinamico, healthCritical, healthUnstable, healthHealthy };
-
-  }, [governanceVariables]);
-
-  // ── Dynamic field context counts ──
-  const dynamicContextCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    governanceVariables.forEach((v) => {
-      if (v._dynamicContext) {
-        counts[v._dynamicContext] = (counts[v._dynamicContext] || 0) + 1;
-      }
-    });
-    return counts;
+    return { total, inUse, ok, warnings, errors, custom, campoCustEntidade, documento, healthCritical, healthUnstable, healthHealthy };
   }, [governanceVariables]);
 
   // ── Custom var handlers ──
@@ -550,7 +561,6 @@ export function VariaveisDisponiveisPage() {
 
   // ── Status badge ──
   const StatusBadgeVar = ({ status, inDocx, govRecord }: { status: EnrichedVariable["status"]; inDocx: boolean; govRecord?: GovernanceRecord }) => {
-    // Use governance classification if available (replaces "sem resolver")
     if (govRecord) {
       const colorMap: Record<string, string> = {
         success: "bg-success/15 text-success border-success/20",
@@ -602,8 +612,9 @@ export function VariaveisDisponiveisPage() {
     );
   };
 
-  const isAuditView = activeCategory === "auditoria";
-  const isCleanupView = activeCategory === "limpeza";
+  const isAuditView = activeView === "auditoria";
+  const isCleanupView = activeView === "limpeza";
+  const isContentView = !isAuditView && !isCleanupView;
 
   if (loadingCustom) {
     return (
@@ -694,7 +705,6 @@ export function VariaveisDisponiveisPage() {
             </div>
           </CardContent>
         </Card>
-        {/* Catalog Health Score */}
         <Card className={cn("border-l-[3px]",
           govSummary.catalogHealth.level === "saudavel" ? "border-l-success" :
           govSummary.catalogHealth.level === "atencao" ? "border-l-warning" : "border-l-destructive"
@@ -731,7 +741,7 @@ export function VariaveisDisponiveisPage() {
                 {kpiStats.healthCritical} variável(is) crítica(s) detectada(s)
               </p>
               <p className="text-[10px] text-muted-foreground">
-                Baseado em {healthSummary.totalReportsAnalyzed} auditorias históricas. Essas variáveis falham em mais de 70% das execuções.
+                Baseado em {healthSummary.totalReportsAnalyzed} auditorias históricas.
               </p>
             </div>
             <Button
@@ -748,37 +758,19 @@ export function VariaveisDisponiveisPage() {
 
       {/* Main card container */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        {/* Category tabs */}
+        {/* VIEW tabs (primary navigation) */}
         <div className="border-b border-border bg-muted/20 px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveCategory("todas")}
-              className={cn(
-                "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
-                activeCategory === "todas"
-                  ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20 hover:bg-primary/90"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-              )}
-            >
-              <List className="h-3.5 w-3.5 mr-1" />
-              <span>Todas</span>
-              <span className={cn("text-[9px] font-mono tabular-nums ml-0.5", activeCategory === "todas" ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
-                {allVariables.length}
-              </span>
-            </Button>
-
-            {CATEGORY_ORDER.map((cat) => {
-              const isActive = activeCategory === cat;
-              const count = allVariables.filter((v) => v.category === cat).length;
-              if (count === 0) return null;
+            {/* View presets */}
+            {(Object.keys(VARIABLE_VIEW_LABELS) as VariableView[]).map((view) => {
+              const isActive = activeView === view;
+              const count = governanceVariables.filter(v => v.views.includes(view)).length;
               return (
                 <Button
-                  key={cat}
+                  key={view}
                   variant="ghost"
                   size="sm"
-                  onClick={() => setActiveCategory(cat)}
+                  onClick={() => { setActiveView(view); setDomainFilter("todas"); }}
                   className={cn(
                     "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
                     isActive
@@ -786,8 +778,8 @@ export function VariaveisDisponiveisPage() {
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
                   )}
                 >
-                  <span className="text-xs">{CATEGORY_ICONS[cat]}</span>
-                  <span>{CATEGORY_LABELS[cat]}</span>
+                  <span className="text-xs mr-0.5">{VARIABLE_VIEW_ICONS[view]}</span>
+                  <span>{VARIABLE_VIEW_LABELS[view]}</span>
                   <span className={cn("text-[9px] font-mono tabular-nums ml-0.5", isActive ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
                     {count}
                   </span>
@@ -795,43 +787,35 @@ export function VariaveisDisponiveisPage() {
               );
             })}
 
-            {/* Dynamic deal custom field category tabs */}
-            {(["pre_dimensionamento", "pos_dimensionamento", "projeto"] as const).map((ctx) => {
-              const count = dynamicContextCounts[ctx] || 0;
-              if (count === 0) return null;
-              const viewKey = ctx === "pre_dimensionamento" ? "campo_pre" : ctx === "pos_dimensionamento" ? "campo_pos" : "campo_projeto";
-              const isActive = activeCategory === viewKey;
-              const icon = FIELD_CONTEXT_ICONS[ctx] ?? "📋";
-              const label = ctx === "pre_dimensionamento" ? "Pré-dim" : ctx === "pos_dimensionamento" ? "Pós-dim" : "Projeto";
-              return (
-                <Button
-                  key={viewKey}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setActiveCategory(viewKey)}
-                  className={cn(
-                    "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
-                    isActive
-                      ? "bg-info text-info-foreground shadow-sm ring-1 ring-info/20 hover:bg-info/90"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-                  )}
-                >
-                  <span className="text-xs">{icon}</span>
-                  <span>{label}</span>
-                  <span className={cn("text-[9px] font-mono tabular-nums ml-0.5", isActive ? "text-info-foreground/70" : "text-muted-foreground/40")}>
-                    {count}
-                  </span>
-                </Button>
-              );
-            })}
-
+            {/* All view */}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setActiveCategory("auditoria")}
+              onClick={() => { setActiveView("todas"); setDomainFilter("todas"); }}
               className={cn(
                 "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
-                activeCategory === "auditoria"
+                activeView === "todas"
+                  ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20 hover:bg-primary/90"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
+              )}
+            >
+              <List className="h-3.5 w-3.5 mr-0.5" />
+              <span>Todas</span>
+              <span className={cn("text-[9px] font-mono tabular-nums ml-0.5", activeView === "todas" ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
+                {allVariables.length}
+              </span>
+            </Button>
+
+            <div className="h-5 w-px bg-border/50 mx-1" />
+
+            {/* Audit + Cleanup */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveView("auditoria")}
+              className={cn(
+                "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
+                activeView === "auditoria"
                   ? "bg-warning text-warning-foreground shadow-sm ring-1 ring-warning/20 hover:bg-warning/90"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
               )}
@@ -842,10 +826,10 @@ export function VariaveisDisponiveisPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setActiveCategory("limpeza")}
+              onClick={() => setActiveView("limpeza")}
               className={cn(
                 "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
-                activeCategory === "limpeza"
+                activeView === "limpeza"
                   ? "bg-destructive text-destructive-foreground shadow-sm ring-1 ring-destructive/20 hover:bg-destructive/90"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
               )}
@@ -856,94 +840,129 @@ export function VariaveisDisponiveisPage() {
           </div>
         </div>
 
-        {/* Search + status filters */}
-        {!isAuditView && !isCleanupView && (
-          <div className="px-3 py-2.5 border-b border-border flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[200px] max-w-sm">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
-              <Input
-                placeholder="Buscar nome, chave, descrição..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 text-xs bg-muted/20 border-border focus:bg-card"
-              />
-              {search && (
-                <Button variant="ghost" size="icon" className="absolute right-0.5 top-1/2 -translate-y-1/2 h-6 w-6" onClick={() => setSearch("")}>
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-            {/* Status filters */}
+        {/* Domain filter + Search + status filters */}
+        {isContentView && (
+          <div className="px-3 py-2.5 border-b border-border space-y-2">
+            {/* Domain chips */}
             <div className="flex flex-wrap items-center gap-1">
-              {([
-                { key: "todas", label: "Todas" },
-                { key: "em_uso", label: "Em uso" },
-                { key: "ok", label: "OK" },
-                { key: "warning", label: "Warning" },
-                { key: "error", label: "Erro" },
-                { key: "pending", label: "Pendente" },
-                { key: "nativa", label: "Nativa" },
-                { key: "custom", label: "Custom" },
-                { key: "documento", label: `Documento (${kpiStats.documento})` },
-                { key: "aspiracional", label: `Aspiracional (${kpiStats.aspiracional})` },
-                ...(kpiStats.campoDinamico > 0 ? [{ key: "campo_dinamico" as StatusFilter, label: `Campos Dinâmicos (${kpiStats.campoDinamico})` }] : []),
-                ...(hasHealthData ? [
-                  { key: "health_critical" as StatusFilter, label: `🔴 Críticas (${kpiStats.healthCritical})` },
-                  { key: "health_unstable" as StatusFilter, label: `🟡 Instáveis (${kpiStats.healthUnstable})` },
-                  { key: "health_healthy" as StatusFilter, label: `🟢 Saudáveis (${kpiStats.healthHealthy})` },
-                ] : []),
-              ] as { key: StatusFilter; label: string }[]).map((f) => (
-                <Button
-                  key={f.key}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { setStatusFilter(f.key); setGovFilter("todas"); }}
-                  className={cn(
-                    "h-6 px-2 text-[10px] rounded-md",
-                    statusFilter === f.key && govFilter === "todas"
-                      ? "bg-primary/10 text-primary font-semibold"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {f.label}
-                </Button>
-              ))}
-              {statusFilter !== "todas" && (
-                <Button variant="ghost" size="sm" onClick={() => setStatusFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
-                  Limpar
-                </Button>
-              )}
+              <span className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider mr-1">Domínio:</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDomainFilter("todas")}
+                className={cn(
+                  "h-6 px-2 text-[10px] rounded-md",
+                  domainFilter === "todas"
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Todos
+              </Button>
+              {DOMAIN_ORDER.map((dom) => {
+                const count = domainCounts[dom] || 0;
+                if (count === 0) return null;
+                return (
+                  <Button
+                    key={dom}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDomainFilter(dom)}
+                    className={cn(
+                      "h-6 px-2 text-[10px] rounded-md",
+                      domainFilter === dom
+                        ? "bg-primary/10 text-primary font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <span className="text-xs mr-0.5">{DOMAIN_ICONS[dom]}</span>
+                    {DOMAIN_LABELS[dom]}
+                    <span className="text-[8px] font-mono ml-0.5 opacity-60">{count}</span>
+                  </Button>
+                );
+              })}
             </div>
 
-            {/* Governance filters (from centralized engine) */}
-            <div className="flex flex-wrap items-center gap-1 border-t border-border/50 pt-1.5 mt-1">
-              <span className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider mr-1">Governança:</span>
-              {govFilterOptions.map((f) => (
-                <Button
-                  key={f.key}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { setGovFilter(f.key); if (f.key !== "todas") setStatusFilter("todas"); }}
-                  className={cn(
-                    "h-6 px-2 text-[10px] rounded-md",
-                    govFilter === f.key
-                      ? "bg-primary/10 text-primary font-semibold"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {f.label}
-                  <span className="text-[8px] font-mono ml-0.5 opacity-60">{f.count}</span>
-                </Button>
-              ))}
-              {govFilter !== "todas" && (
-                <Button variant="ghost" size="sm" onClick={() => setGovFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
-                  Limpar
-                </Button>
-              )}
+            {/* Search + status filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+                <Input
+                  placeholder="Buscar nome, chave, descrição..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8 h-8 text-xs bg-muted/20 border-border focus:bg-card"
+                />
+                {search && (
+                  <Button variant="ghost" size="icon" className="absolute right-0.5 top-1/2 -translate-y-1/2 h-6 w-6" onClick={() => setSearch("")}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                {([
+                  { key: "todas", label: "Todas" },
+                  { key: "em_uso", label: "Em uso" },
+                  { key: "ok", label: "OK" },
+                  { key: "warning", label: "Warning" },
+                  { key: "error", label: "Erro" },
+                  { key: "nativa", label: "Nativa" },
+                  { key: "custom", label: `Custom (${kpiStats.custom})` },
+                  ...(kpiStats.campoCustEntidade > 0 ? [{ key: "campo_dinamico" as StatusFilter, label: `Campos Entidade (${kpiStats.campoCustEntidade})` }] : []),
+                  ...(hasHealthData && kpiStats.healthCritical > 0 ? [{ key: "health_critical" as StatusFilter, label: `🔴 Críticas (${kpiStats.healthCritical})` }] : []),
+                ] as { key: StatusFilter; label: string }[]).map((f) => (
+                  <Button
+                    key={f.key}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setStatusFilter(f.key); setGovFilter("todas"); }}
+                    className={cn(
+                      "h-6 px-2 text-[10px] rounded-md",
+                      statusFilter === f.key && govFilter === "todas"
+                        ? "bg-primary/10 text-primary font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {f.label}
+                  </Button>
+                ))}
+                {statusFilter !== "todas" && (
+                  <Button variant="ghost" size="sm" onClick={() => setStatusFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
+                    Limpar
+                  </Button>
+                )}
+              </div>
+
+              {/* Governance filters */}
+              <div className="flex flex-wrap items-center gap-1 border-t border-border/50 pt-1.5 mt-1 w-full">
+                <span className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider mr-1">Governança:</span>
+                {govFilterOptions.map((f) => (
+                  <Button
+                    key={f.key}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setGovFilter(f.key); if (f.key !== "todas") setStatusFilter("todas"); }}
+                    className={cn(
+                      "h-6 px-2 text-[10px] rounded-md",
+                      govFilter === f.key
+                        ? "bg-primary/10 text-primary font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {f.label}
+                    <span className="text-[8px] font-mono ml-0.5 opacity-60">{f.count}</span>
+                  </Button>
+                ))}
+                {govFilter !== "todas" && (
+                  <Button variant="ghost" size="sm" onClick={() => setGovFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              <Badge variant="outline" className="text-[10px] font-mono border-border text-muted-foreground shrink-0 ml-auto">
+                {filtered.length}/{allVariables.length}
+              </Badge>
             </div>
-            <Badge variant="outline" className="text-[10px] font-mono border-border text-muted-foreground shrink-0 ml-auto">
-              {filtered.length}/{allVariables.length}
-            </Badge>
           </div>
         )}
 
@@ -983,13 +1002,13 @@ export function VariaveisDisponiveisPage() {
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
                   {[
                     { key: "label", label: "Variável", width: "min-w-[180px]" },
-                    { key: "category", label: "Categoria", width: "w-[120px]" },
+                    { key: "domain", label: "Domínio", width: "w-[140px]" },
+                    { key: "nature", label: "Natureza", width: "w-[120px]" },
                     { key: "status", label: "Status", width: "w-[140px]" },
-                    { key: "legacyKey", label: "Chave Legada", width: "w-[140px]" },
-                    { key: "canonicalKey", label: "Chave Canônica", width: "w-[180px]" },
+                    { key: "legacyKey", label: "Chave", width: "w-[130px]" },
                     { key: "source", label: "Origem", width: "w-[100px]" },
-                    { key: "health", label: "Saúde", width: "w-[80px]" },
-                    { key: "unit", label: "Un.", width: "w-[60px]" },
+                    { key: "health", label: "Saúde", width: "w-[70px]" },
+                    { key: "unit", label: "Un.", width: "w-[50px]" },
                   ].map((col) => (
                     <TableHead
                       key={col.key}
@@ -1025,26 +1044,35 @@ export function VariaveisDisponiveisPage() {
                       <div className="flex items-center gap-1.5">
                         <ChevronRight className="h-3 w-3 text-primary/30 shrink-0" />
                         <span className="font-medium text-foreground text-[11px] leading-tight">{v.label}</span>
-                        {v.isCustom && (
+                        {v.nature === "custom_var_calculada" && (
                           <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-primary/30 text-primary font-mono">custom</Badge>
+                        )}
+                        {v.nature === "campo_custom_entidade" && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-info/30 text-info font-mono">campo</Badge>
+                        )}
+                        {v.nature === "alias_legado" && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-warning/40 bg-warning/10 text-warning font-mono">legado</Badge>
+                        )}
+                        {v.nature === "futura" && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-muted-foreground/40 text-muted-foreground font-mono">futura</Badge>
                         )}
                         {v.isSeries && (
                           <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-secondary/40 text-secondary font-mono">série</Badge>
                         )}
-                        {(() => {
-                          const gr = getGovRecord(v.key);
-                          if (gr?.isLegacy) return <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-warning/40 bg-warning/10 text-warning font-mono">legado</Badge>;
-                          if (gr?.classification === "INPUT_WIZARD") return <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-info/40 bg-info/10 text-info font-mono">input</Badge>;
-                          if (v.tipoResultado === "text") return <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-muted-foreground/40 text-muted-foreground font-mono">texto</Badge>;
-                          return null;
-                        })()}
                       </div>
                     </TableCell>
 
-                    {/* Categoria */}
+                    {/* Domínio */}
                     <TableCell className="py-2">
                       <span className="text-[10px] text-muted-foreground">
-                        {CATEGORY_ICONS[v.category]} {CATEGORY_LABELS[v.category]}
+                        {DOMAIN_ICONS[v.domain]} {DOMAIN_LABELS[v.domain]}
+                      </span>
+                    </TableCell>
+
+                    {/* Natureza */}
+                    <TableCell className="py-2">
+                      <span className="text-[10px] text-muted-foreground">
+                        {NATURE_LABELS[v.nature]}
                       </span>
                     </TableCell>
 
@@ -1053,19 +1081,11 @@ export function VariaveisDisponiveisPage() {
                       <StatusBadgeVar status={v.status} inDocx={v.inDocx} govRecord={getGovRecord(v.key)} />
                     </TableCell>
 
-                    {/* Chave Legada */}
+                    {/* Chave */}
                     <TableCell className="py-2">
                       <div className="flex items-center gap-1">
-                        <code className="font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded text-[10px] truncate max-w-[120px]">{v.legacyKey}</code>
+                        <code className="font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded text-[10px] truncate max-w-[110px]">{v.legacyKey}</code>
                         <CopyButton text={v.legacyKey} />
-                      </div>
-                    </TableCell>
-
-                    {/* Chave Canônica */}
-                    <TableCell className="py-2">
-                      <div className="flex items-center gap-1">
-                        <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px] truncate max-w-[160px]">{v.canonicalKey}</code>
-                        <CopyButton text={v.canonicalKey} />
                       </div>
                     </TableCell>
 
@@ -1079,31 +1099,23 @@ export function VariaveisDisponiveisPage() {
                     {/* Saúde */}
                     <TableCell className="py-2 text-center">
                       {v.healthClassification && v.healthClassification !== "unused" ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-[8px] px-1.5 py-0 h-4 font-medium",
-                                v.healthClassification === "healthy" && "bg-success/15 text-success border-success/20",
-                                v.healthClassification === "unstable" && "bg-warning/15 text-warning border-warning/20",
-                                v.healthClassification === "critical" && "bg-destructive/15 text-destructive border-destructive/20",
-                              )}
-                            >
-                              {v.healthClassification === "healthy" ? "🟢" : v.healthClassification === "unstable" ? "🟡" : "🔴"}
-                              {" "}{v.healthScore}%
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-[10px]">
-                            Score de saúde: {v.healthScore}% ({v.healthClassification})
-                          </TooltipContent>
-                        </Tooltip>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[8px] px-1.5 py-0 h-4 font-medium",
+                            v.healthClassification === "healthy" && "bg-success/15 text-success border-success/20",
+                            v.healthClassification === "unstable" && "bg-warning/15 text-warning border-warning/20",
+                            v.healthClassification === "critical" && "bg-destructive/15 text-destructive border-destructive/20",
+                          )}
+                        >
+                          {v.healthClassification === "healthy" ? "🟢" : v.healthClassification === "unstable" ? "🟡" : "🔴"}
+                        </Badge>
                       ) : (
                         <span className="text-[10px] text-muted-foreground/40">—</span>
                       )}
                     </TableCell>
 
-
+                    {/* Un. */}
                     <TableCell className="py-2 text-center">
                       <span className="text-[10px] text-muted-foreground font-mono">{v.unit || "—"}</span>
                     </TableCell>
@@ -1182,8 +1194,8 @@ export function VariaveisDisponiveisPage() {
               <div className="text-center py-12 text-muted-foreground">
                 <Search className="h-8 w-8 mx-auto opacity-15 mb-2" />
                 <p className="text-xs font-medium">Nenhuma variável encontrada</p>
-                {statusFilter !== "todas" && (
-                  <Button variant="link" size="sm" onClick={() => setStatusFilter("todas")} className="text-xs mt-1">
+                {(statusFilter !== "todas" || domainFilter !== "todas") && (
+                  <Button variant="link" size="sm" onClick={() => { setStatusFilter("todas"); setDomainFilter("todas"); }} className="text-xs mt-1">
                     Limpar filtros
                   </Button>
                 )}
@@ -1213,28 +1225,15 @@ export function VariaveisDisponiveisPage() {
           <ScrollArea className="flex-1 min-h-0">
             {detailVar && (
               <div className="p-5 space-y-5">
-                {/* Status + Type */}
+                {/* Status + badges */}
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadgeVar status={detailVar.status} inDocx={detailVar.inDocx} govRecord={getGovRecord(detailVar.key)} />
-                  <Badge variant="outline" className={cn(
-                    "text-[10px] px-1.5 py-0.5",
-                    detailVar.isCustom ? "border-primary/30 text-primary" : "border-border text-muted-foreground"
-                  )}>
-                    {detailVar.isCustom ? "🧩 Custom" : "⚙️ Nativa"}
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-border text-muted-foreground">
+                    {DOMAIN_ICONS[detailVar.domain]} {DOMAIN_LABELS[detailVar.domain]}
                   </Badge>
-                  {(() => {
-                    const gr = getGovRecord(detailVar.key);
-                    if (gr?.isLegacy) return (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-warning/30 bg-warning/10 text-warning">🏚️ Legado</Badge>
-                    );
-                    if (gr?.classification === "INPUT_WIZARD") return (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-info/30 bg-info/10 text-info">🔗 Input Wizard</Badge>
-                    );
-                    if (detailVar.tipoResultado === "text") return (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-muted-foreground/30 text-muted-foreground">📝 Texto (não numérica)</Badge>
-                    );
-                    return null;
-                  })()}
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-border text-muted-foreground">
+                    {NATURE_LABELS[detailVar.nature]}
+                  </Badge>
                   {detailVar.tipoResultado && detailVar.isCustom && (
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-border text-muted-foreground font-mono">
                       tipo: {detailVar.tipoResultado}
@@ -1263,8 +1262,8 @@ export function VariaveisDisponiveisPage() {
                 {/* Info grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Categoria</p>
-                    <p className="text-xs text-foreground mt-0.5">{CATEGORY_ICONS[detailVar.category]} {CATEGORY_LABELS[detailVar.category]}</p>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Domínio</p>
+                    <p className="text-xs text-foreground mt-0.5">{DOMAIN_ICONS[detailVar.domain]} {DOMAIN_LABELS[detailVar.domain]}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Origem</p>
@@ -1313,13 +1312,12 @@ export function VariaveisDisponiveisPage() {
                   </div>
                 )}
 
-                {/* Governance details from centralized engine */}
+                {/* Governance details */}
                 {(() => {
                   const gr = getGovRecord(detailVar.key);
                   if (!gr) return null;
                   return (
                     <div className="space-y-3">
-                      {/* Evidence */}
                       <div className="rounded-lg border border-border bg-muted/20 p-3">
                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Evidência da Classificação</p>
                         <p className="text-xs text-foreground leading-relaxed">{gr.evidence}</p>
@@ -1332,7 +1330,6 @@ export function VariaveisDisponiveisPage() {
                         </div>
                       </div>
 
-                      {/* Template warning */}
                       {gr.templateWarning !== "none" && (
                         <div className={cn("rounded-lg border p-3", gr.templateWarning === "block" ? "border-destructive/20 bg-destructive/5" : "border-warning/20 bg-warning/5")}>
                           <div className="flex items-center gap-1.5 mb-1">
@@ -1349,7 +1346,6 @@ export function VariaveisDisponiveisPage() {
                         </div>
                       )}
 
-                      {/* Suggestions */}
                       {gr.suggestions.length > 0 && (
                         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
                           <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-1.5">Sugestões</p>
@@ -1364,7 +1360,6 @@ export function VariaveisDisponiveisPage() {
                         </div>
                       )}
 
-                      {/* Cleanup readiness */}
                       {(gr.cleanup.segura_para_ocultar || gr.cleanup.segura_para_limpeza_futura) && (
                         <div className="rounded-lg border border-muted-foreground/20 bg-muted/30 p-3">
                           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Prontidão para Limpeza</p>
@@ -1380,11 +1375,10 @@ export function VariaveisDisponiveisPage() {
                   );
                 })()}
 
-                {/* Not editable warning for native */}
                 {!detailVar.isCustom && !detailVar.customId && (
                   <div className="rounded-lg border border-border bg-muted/20 p-3">
                     <p className="text-[10px] text-muted-foreground">
-                      ⚙️ <strong>Variável nativa do sistema</strong> — não pode ser excluída ou editada. Para personalizar o comportamento, crie uma variável custom referenciando esta.
+                      ⚙️ <strong>Variável nativa do sistema</strong> — não pode ser excluída ou editada.
                     </p>
                   </div>
                 )}
@@ -1463,7 +1457,6 @@ export function VariaveisDisponiveisPage() {
                 </div>
                 <Textarea id="expressao-textarea" value={form.expressao} onChange={(e) => setForm((f) => ({ ...f, expressao: e.target.value }))} placeholder="[preco]*(1+0.074)^25" className="min-h-[80px] text-sm font-mono mt-1" />
               </div>
-              {/* ── Variable picker for expression ── */}
               <div className="border border-border rounded-lg overflow-hidden">
                 <button
                   type="button"
@@ -1545,14 +1538,9 @@ export function VariaveisDisponiveisPage() {
               </p>
                {deleteTarget && (usageMap.get(deleteTarget.nome)?.inDocx ?? false) && (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-                   <strong>⚠️ Atenção:</strong> Esta variável está em uso em templates DOCX ativos. Excluí-la pode causar placeholders não resolvidos no PDF gerado.
+                   <strong>⚠️ Atenção:</strong> Esta variável está em uso em templates DOCX ativos.
                  </div>
                )}
-               {deleteTarget && (usageMap.get(deleteTarget.nome)?.isNull ?? false) && (
-                <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-warning">
-                  <strong>⚠️ Aviso:</strong> Esta variável já apresenta valor nulo em algumas gerações.
-                </div>
-              )}
               <p className="text-xs text-muted-foreground">Esta ação não pode ser desfeita.</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
