@@ -232,6 +232,9 @@ export function VariaveisDisponiveisPage() {
   const dynamicFieldKeysList = useMemo(() => dealCustomFields.map(d => d.field_key), [dealCustomFields]);
   const { records: govRecords, summary: govSummary, getRecord: getGovRecord, filterOptions: govFilterOptions, filterRecords: govFilterRecords } = useVariableGovernance(customVarsRaw, dynamicFieldKeysList);
 
+  // Cleanup engine
+  const { records: cleanupRecords, summary: cleanupSummary } = useVariableCleanup(govRecords, usageMap);
+
   // Build resolver map from categoryAudit
   const resolverMap = useMemo(() => {
     const map: Record<string, { source: VariableSource; resolver: string }> = {};
