@@ -497,15 +497,13 @@ export function VariaveisDisponiveisPage() {
     const warnings = governanceVariables.filter((v) => v.status === "warning").length;
     const errors = governanceVariables.filter((v) => v.status === "error").length;
     const custom = governanceVariables.filter((v) => v.isCustom).length;
-    const legado = governanceVariables.filter((v) => v.governance === "legado" || v.governance === "input_wizard").length;
-    const texto = governanceVariables.filter((v) => v.governance === "texto" || v.tipoResultado === "text").length;
     const documento = governanceVariables.filter((v) => v.escopo === "documento").length;
     const aspiracional = governanceVariables.filter((v) => v.escopo === "aspiracional").length;
     const campoDinamico = governanceVariables.filter((v) => !!v._dynamicContext).length;
     const healthCritical = governanceVariables.filter((v) => v.healthClassification === "critical").length;
     const healthUnstable = governanceVariables.filter((v) => v.healthClassification === "unstable").length;
     const healthHealthy = governanceVariables.filter((v) => v.healthClassification === "healthy").length;
-    return { total, inUse, ok, warnings, errors, custom, legado, texto, documento, aspiracional, campoDinamico, healthCritical, healthUnstable, healthHealthy };
+    return { total, inUse, ok, warnings, errors, custom, documento, aspiracional, campoDinamico, healthCritical, healthUnstable, healthHealthy };
 
   }, [governanceVariables]);
 
@@ -984,15 +982,13 @@ export function VariaveisDisponiveisPage() {
                         {v.isSeries && (
                           <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-secondary/40 text-secondary font-mono">série</Badge>
                         )}
-                        {v.governance === "legado" && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-warning/40 bg-warning/10 text-warning font-mono">legado</Badge>
-                        )}
-                        {v.governance === "input_wizard" && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-info/40 bg-info/10 text-info font-mono">input</Badge>
-                        )}
-                        {v.governance === "texto" && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-muted-foreground/40 text-muted-foreground font-mono">texto</Badge>
-                        )}
+                        {(() => {
+                          const gr = getGovRecord(v.key);
+                          if (gr?.isLegacy) return <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-warning/40 bg-warning/10 text-warning font-mono">legado</Badge>;
+                          if (gr?.classification === "INPUT_WIZARD") return <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-info/40 bg-info/10 text-info font-mono">input</Badge>;
+                          if (v.tipoResultado === "text") return <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-muted-foreground/40 text-muted-foreground font-mono">texto</Badge>;
+                          return null;
+                        })()}
                       </div>
                     </TableCell>
 
@@ -1177,21 +1173,19 @@ export function VariaveisDisponiveisPage() {
                   )}>
                     {detailVar.isCustom ? "🧩 Custom" : "⚙️ Nativa"}
                   </Badge>
-                  {detailVar.governance === "legado" && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-warning/30 bg-warning/10 text-warning">
-                      🏚️ Legado
-                    </Badge>
-                  )}
-                  {detailVar.governance === "input_wizard" && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-info/30 bg-info/10 text-info">
-                      🔗 Input Wizard
-                    </Badge>
-                  )}
-                  {detailVar.governance === "texto" && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-muted-foreground/30 text-muted-foreground">
-                      📝 Texto (não numérica)
-                    </Badge>
-                  )}
+                  {(() => {
+                    const gr = getGovRecord(detailVar.key);
+                    if (gr?.isLegacy) return (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-warning/30 bg-warning/10 text-warning">🏚️ Legado</Badge>
+                    );
+                    if (gr?.classification === "INPUT_WIZARD") return (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-info/30 bg-info/10 text-info">🔗 Input Wizard</Badge>
+                    );
+                    if (detailVar.tipoResultado === "text") return (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-muted-foreground/30 text-muted-foreground">📝 Texto (não numérica)</Badge>
+                    );
+                    return null;
+                  })()}
                   {detailVar.tipoResultado && detailVar.isCustom && (
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-border text-muted-foreground font-mono">
                       tipo: {detailVar.tipoResultado}
@@ -1270,19 +1264,72 @@ export function VariaveisDisponiveisPage() {
                   </div>
                 )}
 
-                {/* Governance warning for legacy vars */}
-                {detailVar.governance === "legado" && (
-                  <div className="rounded-lg border border-warning/20 bg-warning/5 p-3">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Archive className="h-3.5 w-3.5 text-warning" />
-                      <p className="text-[10px] font-semibold text-warning uppercase tracking-wider">Variável Legada</p>
+                {/* Governance details from centralized engine */}
+                {(() => {
+                  const gr = getGovRecord(detailVar.key);
+                  if (!gr) return null;
+                  return (
+                    <div className="space-y-3">
+                      {/* Evidence */}
+                      <div className="rounded-lg border border-border bg-muted/20 p-3">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Evidência da Classificação</p>
+                        <p className="text-xs text-foreground leading-relaxed">{gr.evidence}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {gr.inFE && <Badge variant="outline" className="text-[8px] bg-success/10 text-success border-success/20">FE ✓</Badge>}
+                          {gr.inBE && <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20">BE ✓</Badge>}
+                          {gr.isCustom && <Badge variant="outline" className="text-[8px] bg-primary/10 text-primary border-primary/20">Custom</Badge>}
+                          {gr.isDocument && <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20">Documento</Badge>}
+                          {gr.isPassthrough && <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20">Passthrough</Badge>}
+                        </div>
+                      </div>
+
+                      {/* Template warning */}
+                      {gr.templateWarning !== "none" && (
+                        <div className={cn("rounded-lg border p-3", gr.templateWarning === "block" ? "border-destructive/20 bg-destructive/5" : "border-warning/20 bg-warning/5")}>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Shield className={cn("h-3.5 w-3.5", gr.templateWarning === "block" ? "text-destructive" : "text-warning")} />
+                            <p className={cn("text-[10px] font-semibold uppercase tracking-wider", gr.templateWarning === "block" ? "text-destructive" : "text-warning")}>
+                              {gr.templateWarning === "block" ? "Bloqueada para novos templates" : "Atenção ao usar em templates"}
+                            </p>
+                          </div>
+                          <p className="text-xs text-foreground">
+                            {gr.templateWarning === "block"
+                              ? "Esta variável NÃO deve ser usada em novos templates — não possui dados disponíveis."
+                              : "Esta variável pode não resolver corretamente em todos os cenários. Revise antes de usar."}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Suggestions */}
+                      {gr.suggestions.length > 0 && (
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                          <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-1.5">Sugestões</p>
+                          <ul className="space-y-1">
+                            {gr.suggestions.map((s, i) => (
+                              <li key={i} className="text-xs text-foreground flex items-start gap-1.5">
+                                <span className="text-primary mt-0.5">→</span>
+                                <span>{s.message}{s.replacementKey && <code className="text-primary bg-primary/5 px-1 rounded ml-1">[{s.replacementKey}]</code>}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Cleanup readiness */}
+                      {(gr.cleanup.segura_para_ocultar || gr.cleanup.segura_para_limpeza_futura) && (
+                        <div className="rounded-lg border border-muted-foreground/20 bg-muted/30 p-3">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Prontidão para Limpeza</p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {gr.cleanup.segura_para_ocultar && <Badge variant="outline" className="text-[8px]">Segura para ocultar</Badge>}
+                            {gr.cleanup.segura_para_substituir_em_template && <Badge variant="outline" className="text-[8px]">Segura para substituir</Badge>}
+                            {gr.cleanup.segura_para_alias && <Badge variant="outline" className="text-[8px]">Segura para alias</Badge>}
+                            {gr.cleanup.segura_para_limpeza_futura && <Badge variant="outline" className="text-[8px]">Limpeza futura</Badge>}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-foreground leading-relaxed">
-                      Esta variável é um placeholder legado presente em templates DOCX antigos. Não possui resolver no sistema e aparece como texto cru no PDF.
-                      <strong> Ação recomendada:</strong> Remover do template DOCX. Não criar resolver.
-                    </p>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Not editable warning for native */}
                 {!detailVar.isCustom && !detailVar.customId && (
