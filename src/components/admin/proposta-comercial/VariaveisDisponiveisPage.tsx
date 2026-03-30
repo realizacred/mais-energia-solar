@@ -1375,11 +1375,41 @@ export function VariaveisDisponiveisPage() {
                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Evidência da Classificação</p>
                         <p className="text-xs text-foreground leading-relaxed">{gr.evidence}</p>
                         <div className="flex flex-wrap gap-1.5 mt-2">
-                          {gr.inFE && <Badge variant="outline" className="text-[8px] bg-success/10 text-success border-success/20">FE ✓</Badge>}
-                          {gr.inBE && <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20">BE ✓</Badge>}
-                          {gr.isCustom && <Badge variant="outline" className="text-[8px] bg-primary/10 text-primary border-primary/20">Custom</Badge>}
-                          {gr.isDocument && <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20">Documento</Badge>}
-                          {gr.isPassthrough && <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20">Passthrough</Badge>}
+                          {gr.inFE && (
+                            <TooltipProvider><Tooltip><TooltipTrigger asChild>
+                              <Badge variant="outline" className="text-[8px] bg-success/10 text-success border-success/20 cursor-help">FE ✓</Badge>
+                            </TooltipTrigger><TooltipContent side="top" className="max-w-[250px]">
+                              <p className="text-xs">Resolvida pelo Frontend (resolveProposalVariables) — disponível no preview e tester</p>
+                            </TooltipContent></Tooltip></TooltipProvider>
+                          )}
+                          {gr.inBE && (
+                            <TooltipProvider><Tooltip><TooltipTrigger asChild>
+                              <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20 cursor-help">BE ✓</Badge>
+                            </TooltipTrigger><TooltipContent side="top" className="max-w-[250px]">
+                              <p className="text-xs">Resolvida pelo Backend (flattenSnapshot/resolvers) — disponível na geração do PDF/DOCX final</p>
+                            </TooltipContent></Tooltip></TooltipProvider>
+                          )}
+                          {gr.isCustom && (
+                            <TooltipProvider><Tooltip><TooltipTrigger asChild>
+                              <Badge variant="outline" className="text-[8px] bg-primary/10 text-primary border-primary/20 cursor-help">Custom</Badge>
+                            </TooltipTrigger><TooltipContent side="top" className="max-w-[250px]">
+                              <p className="text-xs">Variável customizada — calculada via expressão definida pelo usuário (evaluateExpression)</p>
+                            </TooltipContent></Tooltip></TooltipProvider>
+                          )}
+                          {gr.isDocument && (
+                            <TooltipProvider><Tooltip><TooltipTrigger asChild>
+                              <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20 cursor-help">Documento</Badge>
+                            </TooltipTrigger><TooltipContent side="top" className="max-w-[250px]">
+                              <p className="text-xs">Variável documental — disponível apenas no contexto de contrato, assinatura ou pagamento</p>
+                            </TooltipContent></Tooltip></TooltipProvider>
+                          )}
+                          {gr.isPassthrough && (
+                            <TooltipProvider><Tooltip><TooltipTrigger asChild>
+                              <Badge variant="outline" className="text-[8px] bg-info/10 text-info border-info/20 cursor-help">Passthrough</Badge>
+                            </TooltipTrigger><TooltipContent side="top" className="max-w-[250px]">
+                              <p className="text-xs">Resolvida via deepGet do snapshot — séries, tabelas ou premissas passadas diretamente</p>
+                            </TooltipContent></Tooltip></TooltipProvider>
+                          )}
                         </div>
                       </div>
 
