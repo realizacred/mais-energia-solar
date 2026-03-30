@@ -76,13 +76,24 @@ function tokenize(expr: string): Token[] {
 
 /** Recursive descent parser: expr → term ((+|-) term)* */
 function parseExpression(tokens: Token[], pos: { i: number }, ctx: ExpressionContext): number {
-  let left = parseTerm(tokens, pos, ctx);
+  return parseExpressionTracked(tokens, pos, ctx);
+}
+
+/** Tracked version with missingKeys and mode support */
+function parseExpressionTracked(
+  tokens: Token[],
+  pos: { i: number },
+  ctx: ExpressionContext,
+  missingKeys?: string[],
+  mode: EvaluationMode = "tolerant",
+): number {
+  let left = parseTermTracked(tokens, pos, ctx, missingKeys, mode);
 
   while (pos.i < tokens.length) {
     const tok = tokens[pos.i];
     if (tok.type === "op" && (tok.value === "+" || tok.value === "-")) {
       pos.i++;
-      const right = parseTerm(tokens, pos, ctx);
+      const right = parseTermTracked(tokens, pos, ctx, missingKeys, mode);
       left = tok.value === "+" ? left + right : left - right;
     } else {
       break;
@@ -94,15 +105,30 @@ function parseExpression(tokens: Token[], pos: { i: number }, ctx: ExpressionCon
 
 /** term → factor ((*|/) factor)* */
 function parseTerm(tokens: Token[], pos: { i: number }, ctx: ExpressionContext): number {
-  let left = parseFactor(tokens, pos, ctx);
+  return parseTermTracked(tokens, pos, ctx);
+}
+
+function parseTermTracked(
+  tokens: Token[],
+  pos: { i: number },
+  ctx: ExpressionContext,
+  missingKeys?: string[],
+  mode: EvaluationMode = "tolerant",
+): number {
+  let left = parseFactor(tokens, pos, ctx, missingKeys, mode);
 
   while (pos.i < tokens.length) {
     const tok = tokens[pos.i];
     if (tok.type === "op" && (tok.value === "*" || tok.value === "/")) {
       pos.i++;
-      const right = parseFactor(tokens, pos, ctx);
+      const right = parseFactor(tokens, pos, ctx, missingKeys, mode);
       if (tok.value === "/") {
-        if (right === 0) return 0; // Safe division by zero
+        if (right === 0) {
+          if (mode === "strict") {
+            throw new Error(`Divisão por zero na expressão`);
+          }
+          return 0;
+        }
         left = left / right;
       } else {
         left = left * right;
