@@ -422,7 +422,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     );
   }
 
-  const activeKits = tab === "manual" ? [] : currentKitCards;
+  const activeKits = tab === "customizado" ? [] : currentKitCards;
 
   return (
     <div className="space-y-4">
