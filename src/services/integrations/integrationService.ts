@@ -373,13 +373,14 @@ export async function syncProvider(
   return { success: true, plants_synced: data?.plants_synced, metrics_synced: data?.metrics_synced };
 }
 
-/** Sync supplier provider (currently Edeltec) */
+/** Sync supplier provider (Edeltec, JNG, etc.) */
 export async function syncSupplierProvider(
   providerId: string,
   providerLabel: string
 ): Promise<{ success: boolean; total_fetched?: number; created?: number; updated?: number; skipped?: number; error?: string }> {
   const providerKey = resolveSupplierProviderKey(providerId, providerLabel);
-  if (providerKey !== "edeltec") {
+  const fnName = SUPPLIER_SYNC_FUNCTIONS[providerKey];
+  if (!fnName) {
     return { success: false, error: `Sincronização automática indisponível para ${providerLabel}` };
   }
 
@@ -395,11 +396,13 @@ export async function syncSupplierProvider(
       return { success: false, error: "Conexão desativada. Ative e tente novamente." };
     }
 
-    const { data, error } = await supabase.functions.invoke("edeltec-sync", {
+    const fornecedorId = config.fornecedor_id || SUPPLIER_FORNECEDOR_IDS[providerKey] || null;
+
+    const { data, error } = await supabase.functions.invoke(fnName, {
       body: {
         tenant_id: tenantId,
         api_config_id: config.id,
-        fornecedor_id: config.fornecedor_id || null,
+        fornecedor_id: fornecedorId,
       },
     });
 
@@ -424,14 +427,14 @@ export async function syncSupplierProvider(
 
     // Auto-continuar batches até completar todas as páginas
     let lastResult = data;
-    let maxRetries = 50; // segurança: máximo ~50 batches (2500 páginas)
+    let maxRetries = 50;
     while (lastResult?.success && !lastResult?.is_complete && maxRetries > 0) {
       maxRetries--;
-      const { data: contData, error: contErr } = await supabase.functions.invoke("edeltec-sync", {
+      const { data: contData, error: contErr } = await supabase.functions.invoke(fnName, {
         body: {
           tenant_id: tenantId,
           api_config_id: config.id,
-          fornecedor_id: config.fornecedor_id || null,
+          fornecedor_id: fornecedorId,
         },
       });
       if (contErr || !contData?.success) break;
