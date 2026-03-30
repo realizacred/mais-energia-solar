@@ -1,6 +1,6 @@
-# AGENTS.md v2.4 — Mais Energia Solar CRM
+# AGENTS.md v2.5 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-03-26
+# Última atualização: 2026-03-30
 
 # =============================================================================
 # ⚠️ INSTRUÇÃO PRIMÁRIA PARA AI — LEIA PRIMEIRO
@@ -26,6 +26,9 @@ Estou criando... | Regras principais | Snippet obrigatório | Anti-padrões
 **Novo modal/drawer** | §25 (tamanhos) → §36 (scroll) → §39 (chat) | §25-S1 (modal) | AP-03, AP-04
 **Novo input formulário** | §13 (inputs) → §2 (dark mode) → §33 (proposta) | §13 (lista) | AP-05
 **Nova feature WhatsApp** | §39 (scroll chat) → §41 (avatar) → §43 (cron) | §39-S1 (chat) | AP-04
+**Nova Edge Function**    | §EF → §EF-S1 (handler) → §45 (padrões)         | §EF-S1        | AP-17, AP-18, AP-19, AP-20
+**Novo fornecedor**       | §CATALOG-S1 → §EF → DA-09 → DA-11               | §CATALOG-S1   | AP-17, AP-18, AP-19
+**Correção sync/catálogo**| §CATALOG-S2 → Bloco 10 (regressões)             | —             | AP-17, AP-20
 **Novo hook customizado** | §16 (estrutura) → §23 (staleTime) → §20 (SRP) | §16-S1 (hook) | AP-01
 **Correção de bug visual** | §1 (cores) → Bloco 5 (validação) | — | AP-02, AP-03, AP-04
 **Nova tela admin** | §6 (aproveitamento) → §26 (header) → §29 (abas) | §25-S1 (modal) | AP-06
@@ -128,6 +131,18 @@ RB-13 FUSO HORÁRIO BRASÍLIA OBRIGATÓRIO
     Para date-fns: Usar helpers de src/services/monitoring/plantStatusEngine.ts (getTodayBrasilia, isBrasiliaNight, etc.)
     Para Edge Functions (Deno): Usar new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
     Motivo: Preview do Lovable roda em UTC — horários aparecem +3h adiantados se não forçar o fuso.
+
+RB-14 EDGE FUNCTION SEM CHAMADA DIRETA DE FORNECEDOR NO FRONTEND
+    NUNCA chame: APIs de fornecedor (Edeltec, JNG, etc.) diretamente do frontend
+    SEMPRE use: Edge Function como intermediário
+    Motivo: credenciais expostas, sem controle de rate-limit, sem retry, sem log
+    🔍 Detectar: grep -rn "edeltec\|jng\|hubB2b" src/components/ src/hooks/ --include="*.ts" --include="*.tsx"
+
+RB-15 CATALOG SYNC SEM FORNECEDOR_ID COMO DISCRIMINADOR
+    NUNCA filtre: dados de catálogo usando campo "source" como string livre em queries de negócio
+    SEMPRE use: campo "fornecedor_id" (UUID) como discriminador de fornecedor
+    Motivo: "source" é metadado de auditoria; fornecedor_id é chave relacional
+    🔍 Detectar: grep -rn '\.eq("source"' supabase/functions/ src/hooks/ --include="*.ts"
 
 # =============================================================================
 # BLOCO 2 — BOAS PRÁTICAS (RECOMENDADO, NÃO BLOQUEANTE)
@@ -462,6 +477,169 @@ export function NomeModal({ open, onOpenChange }: NomeModalProps) {
 // VARIAÇÕES:
 // - Mobile: esconder coluna 1 quando coluna 2 ativa (drawer ou slide)
 // - Detalhes: adicionar coluna 3 (300px) com info do lead
+
+# ------------------------------------------------------------------------------
+# §EF-S1 — EDGE FUNCTION HANDLER (Template Obrigatório)
+# ------------------------------------------------------------------------------
+
+# Todo handler de Edge Function deve seguir esta estrutura EXATA.
+# NÃO improvise estrutura de resposta, tratamento de erro ou autenticação.
+
+# Estrutura de resposta JSON padronizada — SEMPRE retornar neste formato:
+# Sucesso:  { success: true,  data: <payload>,      synced_at: <ISO> }
+# Erro:     { success: false, error: <mensagem>,     code: <string>  }
+# Parcial:  { success: true,  is_complete: false,    current_page: N, total_pages: M }
+
+serve(async (req) => {
+  # CORS preflight — SEMPRE primeiro
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    # Autenticação — SEMPRE service_role para operações de sync/admin
+    # NUNCA use anon key em Edge Functions que escrevem no banco
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    # Validação de body — SEMPRE antes de qualquer operação
+    const body = await req.json();
+    const { tenant_id } = body;
+
+    if (!tenant_id) {
+      return new Response(
+        JSON.stringify({ success: false, error: "tenant_id obrigatório", code: "MISSING_TENANT" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    # Isolamento de tenant — SEMPRE filtre por tenant_id mesmo com service_role
+    # service_role bypassa RLS — você é responsável por garantir o isolamento manualmente
+    # NUNCA faça operações sem .eq("tenant_id", tenant_id)
+
+    # ... lógica da função ...
+
+    return new Response(
+      JSON.stringify({ success: true, data: {}, synced_at: new Date().toISOString() }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (e: any) {
+    console.error("[nome-da-function] Error:", e);
+    return new Response(
+      JSON.stringify({ success: false, error: e.message, code: "INTERNAL_ERROR" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+# VARIAÇÕES PERMITIDAS:
+# - Adicionar mode: "incremental" | "full_replace" para funções de sync
+# - Adicionar test_only: boolean para validar credenciais sem persistir
+# - NUNCA remover validação de tenant_id
+# - NUNCA usar anon key — sempre service_role em Edge Functions que escrevem
+
+# ------------------------------------------------------------------------------
+# §CATALOG-S1 — PROVIDER ADAPTER (Contrato Obrigatório para Novos Fornecedores)
+# ------------------------------------------------------------------------------
+
+# Todo novo fornecedor DEVE implementar esta interface antes de qualquer código de sync.
+# NÃO crie handler de sync sem este contrato definido.
+
+interface CanonicalKit {
+  name: string;
+  external_id: string;
+  external_code: string | null;
+  estimated_kwp: number;
+  fixed_price: number;
+  status: "active" | "inactive";
+  tenant_id: string;
+  fornecedor_id: string | null;
+  source: string;              // metadado de auditoria — NÃO usar como filtro de negócio
+  is_generator: boolean;
+  product_kind: string;
+  fabricante: string | null;
+  marca: string | null;
+  is_available_now: boolean;
+  last_synced_at: string;      // ISO UTC — não aplicar fuso aqui
+  external_data: Record<string, unknown>;  // dados brutos — nunca indexar diretamente
+}
+
+interface KitItem {
+  item_type: "modulo" | "inversor" | "estrutura" | "cabo" | "outro";
+  description: string;
+  quantity: number;
+  unit_price: number;
+  ref_id: string | null;
+}
+
+interface ProviderAdapter {
+  // Converte payload bruto da API → modelo canônico
+  normalize(raw: unknown, tenantId: string, fornecedorId: string | null): CanonicalKit;
+  // Classifica o produto (gerador ou componente)
+  classify(raw: unknown): { is_generator: boolean; product_kind: string };
+  // Extrai itens do kit (módulos, inversores, etc.)
+  buildKitItems(raw: unknown): KitItem[];
+}
+
+// Exemplo de instância (padrão — adapte para cada fornecedor):
+const novoFornecedorAdapter: ProviderAdapter = {
+  normalize: (raw, tenantId, fornecedorId) => ({
+    name: (raw as any).titulo || "",
+    external_id: String((raw as any).id),
+    external_code: (raw as any).codigo || null,
+    estimated_kwp: (raw as any).potencia || 0,
+    fixed_price: (raw as any).preco || 0,
+    status: (raw as any).disponivel ? "active" : "inactive",
+    tenant_id: tenantId,
+    fornecedor_id: fornecedorId,
+    source: "nome_do_fornecedor",   // snake_case, minúsculo
+    is_generator: false,            // use classify()
+    product_kind: "component",      // use classify()
+    fabricante: (raw as any).fabricante || null,
+    marca: (raw as any).marca || null,
+    is_available_now: (raw as any).disponivel === true,
+    last_synced_at: new Date().toISOString(),
+    external_data: raw as Record<string, unknown>,
+  }),
+  classify: (raw) => ({
+    is_generator: (raw as any).ehGerador === true,
+    product_kind: (raw as any).ehGerador ? "generator" : "component",
+  }),
+  buildKitItems: (_raw) => [],  // implementar conforme estrutura do fornecedor
+};
+
+# REGRAS DO ADAPTER:
+# - NUNCA colocar lógica de fornecedor fora do adapter
+# - NUNCA acessar raw diretamente no handler — sempre via adapter
+# - SEMPRE testar normalize() com payload real antes de subir para produção
+# - Edeltec = referência de implementação completa (ver edeltec-sync/index.ts)
+
+# ------------------------------------------------------------------------------
+# §CATALOG-S2 — MODELO CANÔNICO (Referência — solar_kit_catalog)
+# ------------------------------------------------------------------------------
+
+# solar_kit_catalog É a fonte de verdade do catálogo.
+# O frontend NUNCA deve depender de API de fornecedor em tempo real.
+# Toda leitura de catálogo = leitura de solar_kit_catalog (dado local, já sincronizado).
+
+# CAMPOS CANÔNICOS (indexáveis, filtráveis, usados pelo frontend):
+#   id, tenant_id, fornecedor_id, name, estimated_kwp, fixed_price,
+#   status, is_generator, product_kind, fabricante, marca,
+#   is_available_now, last_synced_at
+
+# CAMPOS DE METADADO (auditoria — NÃO usar em filtros de negócio):
+#   source, external_id, external_code, external_data
+
+# CAMPOS DE PREÇO (calcular no backend, não no frontend):
+#   fixed_price, preco_por_kwp, preco_consumidor, valor_avulso
+
+# SNAPSHOT DE PROPOSTA:
+#   Ao selecionar kit para proposta, copiar campos canônicos para o snapshot.
+#   NUNCA referenciar fornecedor_id dinamicamente na proposta.
+#   Snapshot = imutável. Mudança de preço no catálogo NÃO afeta propostas existentes.
 
 # ------------------------------------------------------------------------------
 # §4-S1 — TABELA PADRÃO (Template Obrigatório)
@@ -814,6 +992,31 @@ AP-16 CAMPO DE KIT COM NOME ERRADO NO RESOLVER
     🔍 Detectar: grep -rn '\.potencia[^_]' src/lib/resolveProposalVariables.ts
     💥 Consequência: Variáveis de potência de módulo/inversor retornam null → "–" no PDF
 
+AP-17 SOURCE COMO DISCRIMINADOR DE FORNECEDOR
+    ❌ Errado: .eq("source", "edeltec") em queries de negócio
+    ✅ Certo:  .eq("fornecedor_id", fornecedorId) — sempre usar UUID relacional
+    🔍 Detectar: grep -rn '\.eq("source"' supabase/functions/ src/hooks/ --include="*.ts"
+    💥 Consequência: Ao adicionar novo fornecedor, queries de negócio retornam dados misturados ou quebram
+
+AP-18 LÓGICA ESPECÍFICA DE FORNECEDOR FORA DO ADAPTER
+    ❌ Errado: if (source === "edeltec") { ... } espalhado no handler ou no frontend
+    ✅ Certo:  Toda lógica de fornecedor fica encapsulada no ProviderAdapter (§CATALOG-S1)
+    🔍 Detectar: grep -rn '"edeltec"\|"jng"\|"hubB2b"' supabase/functions/ src/ | grep -v "adapter\|source.*audit"
+    💥 Consequência: Adicionar JNG exige duplicar e adaptar lógica da Edeltec em vários lugares
+
+AP-19 SYNC SÍNCRONO EM REQUEST DO USUÁRIO
+    ❌ Errado: Disparar sync completo de catálogo aguardando resposta dentro de mutation do frontend
+    ✅ Certo:  Sync é operação assíncrona e paginada via Edge Function com sync state
+               Frontend apenas dispara e monitora progresso — nunca bloqueia aguardando conclusão
+    🔍 Detectar: grep -rn "edeltec-sync\|catalog-sync" src/hooks/ --include="*.ts" | grep "await.*mutate"
+    💥 Consequência: Timeout de request, UI travada, usuário sem feedback, dados parciais
+
+AP-20 N+1 QUERIES EM BATCH DE EDGE FUNCTION
+    ❌ Errado: Loop com await supabase.from(...).select() ou .update() por item individual
+    ✅ Certo:  1 SELECT com .in("external_id", ids) → mapa em memória → 1 UPSERT total
+    🔍 Detectar: grep -A3 "for.*of.*products\|for.*of.*items" supabase/functions/ | grep "await supabase"
+    💥 Consequência: 500 produtos = 1000+ roundtrips → timeout da Edge Function → sync incompleto
+
 # =============================================================================
 # BLOCO 5 — DECISÕES ARQUITETURAIS (DA-XX)
 # POR QUE fizemos assim? QUANDO quebrar a regra?
@@ -858,6 +1061,26 @@ DA-08 RESPONSIVIDADE MOBILE-FIRST (§32)
     Contexto: 60% dos usuários acessam via mobile, mas devs testam em desktop.
     Decisão: grid-cols-1 sm:grid-cols-2 (mobile primeiro, breakpoint sobe).
     Quando quebrar: Features desktop-only (ex: dashboard analítico complexo).
+
+DA-09 FORNECEDOR_ID COMO DISCRIMINADOR (não source)
+    Contexto: sistema multi-fornecedor com Edeltec implementado, JNG chegando.
+    Problema: campo "source" como string livre espalhado em queries = acoplamento duro.
+    Decisão: fornecedor_id (UUID FK para provider_registry) é o discriminador oficial.
+             "source" permanece como metadado de auditoria (rastreabilidade de origem).
+    Quando quebrar: NUNCA. source = auditoria. fornecedor_id = negócio.
+
+DA-10 CATÁLOGO LOCAL = FONTE DE VERDADE (nunca API em tempo real)
+    Contexto: UI de seleção de kit precisava de dados rápidos, sem latência de API externa.
+    Decisão: solar_kit_catalog é sincronizado via Edge Function (batch paginado).
+             Frontend sempre lê do banco local — nunca chama API do fornecedor diretamente.
+    Quando quebrar: NUNCA. Aceita até 24h de defasagem. Sync diário é suficiente.
+
+DA-11 ADAPTER PATTERN PARA FORNECEDORES
+    Contexto: Edeltec tem estrutura própria (tipoDeProduto, potenciaGerador, etc.).
+              JNG terá estrutura diferente. Sem isolamento, lógica contamina o sistema todo.
+    Decisão: Todo fornecedor implementa ProviderAdapter (§CATALOG-S1).
+             Handler de sync é agnóstico de fornecedor — opera sobre o contrato do adapter.
+    Quando quebrar: NUNCA. Custo de criar adapter é baixo. Custo de não criar = reescrita.
 
 # =============================================================================
 # BLOCO 6 — REFERÊNCIA RÁPIDA DE PADRÕES (§1–§44)
@@ -1157,6 +1380,47 @@ function extractProfilePictureUrl(payload: any): string | null {
 - Hooks/Services = regras de negócio, transformação, integrações
 - Separar para testabilidade e manutenção
 
+## §45. EDGE FUNCTIONS — Padrões obrigatórios
+
+- SEMPRE service_role key (nunca anon em funções que escrevem no banco)
+- SEMPRE validar tenant_id no body antes de qualquer operação
+- SEMPRE filtrar por tenant_id em TODAS as queries (service_role bypassa RLS — isolamento é manual)
+- SEMPRE resposta JSON: { success: boolean, data?, error?, code? }
+- NUNCA loop de await para operações em batch — use .in() + upsert único (AP-20)
+- NUNCA chamar API de fornecedor diretamente do frontend (RB-14)
+- Timeout padrão Supabase Edge: 150s — batch size deve respeitar esse limite
+- Nomenclatura: kebab-case (ex: "edeltec-sync", "catalog-rebuild", "generate-proposal")
+- → Ver §EF-S1 para template completo de handler
+
+## §46. COMPONENTES COMPARTILHADOS — Lista completa atualizada
+
+Endereço completo → AddressFields     (@/components/shared/AddressFields)
+                    Props: value: AddressData, onChange: (a: AddressData) => void, disabled?, compact?
+                    Inclui: CEP auto-preenchimento via useCepLookup, todos os campos, Select de UF
+                    NUNCA recriar busca de CEP — já encapsulado internamente
+
+CPF / CNPJ        → CpfCnpjInput      (@/components/shared/CpfCnpjInput)
+                    Props: value, onChange, label?, required?, showValidation?, disabled?
+                    Inclui: máscara automática CPF/CNPJ, validação, hint de dígitos restantes
+                    NUNCA implementar máscara de CPF/CNPJ manualmente
+
+Telefone          → PhoneInput         (@/components/ui-kit/inputs/PhoneInput)
+Data              → DateInput          (@/components/ui-kit/inputs/DateInput)
+Moeda             → CurrencyInput      (@/components/ui-kit/inputs/CurrencyInput)
+CEP isolado       → useCepLookup       (@/hooks/useCepLookup) — só usar se NÃO for usar AddressFields
+                    Retorna: { fetchCep, loading, error, clearError }
+                    Utilitário: formatCep(value: string): string — "01310100" → "01310-100"
+
+## §47. CATÁLOGO SOLAR — Modelo e regras
+
+Fonte de verdade:  solar_kit_catalog (Postgres local — nunca API de fornecedor em tempo real)
+Discriminador:     fornecedor_id (UUID) — NUNCA usar campo "source" em filtros de negócio
+Snapshot proposta: imutável — copia campos canônicos no momento da seleção do kit
+Sync:              Edge Function paginada com sync state — frontend só dispara e monitora
+Novo fornecedor:   implementar ProviderAdapter (§CATALOG-S1) ANTES do handler de sync
+→ Ver §CATALOG-S1 para contrato do adapter
+→ Ver §CATALOG-S2 para definição dos campos canônicos vs metadado
+
 # =============================================================================
 # BLOCO 7 — VALIDAÇÃO AUTOMÁTICA (SCRIPT PRE-BUILD)
 # =============================================================================
@@ -1237,14 +1501,14 @@ files.forEach(file =&gt; {
 
 // Resultado
 if (violations.length &gt; 0) {
-  console.error('\n❌ VIOLAÇÕES DO AGENTS.md v2.0:');
+  console.error('\n❌ VIOLAÇÕES DO AGENTS.md v2.5:');
   console.error('═══════════════════════════════════════');
   violations.forEach(v =&gt; console.error('  • ' + v));
   console.error(`\nTotal: ${violations.length} violações`);
   console.error('Build cancelado. Corrija antes de continuar.\n');
   process.exit(1);
 } else {
-  console.log('✅ AGENTS.md v2.0 validado com sucesso');
+  console.log('✅ AGENTS.md v2.5 validado com sucesso');
   console.log(`   ${files.length} arquivos verificados`);
   console.log('   Nenhuma violação encontrada\n');
 }
@@ -1279,6 +1543,11 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 [ ] Botões: Todos são &lt;Button&gt; do shadcn
 [ ] Modais: Têm w-[90vw] e min-h-0 no corpo
 [ ] Changelog: Atualizado se mudança funcional (§31)
+[ ] Edge Functions: nenhum loop com await dentro de batch (AP-20)
+[ ] Edge Functions: tenant_id validado e filtrado em TODAS as queries (§EF-S1)
+[ ] Catálogo: queries usam fornecedor_id, não source (AP-17, DA-09)
+[ ] Novo fornecedor: ProviderAdapter implementado antes do handler (§CATALOG-S1)
+[ ] Redeploy: se alterou _shared/*.ts, fez redeploy de template-preview + generate-proposal + docx-to-pdf
 
 # =============================================================================
 # BLOCO 10 — REGRESSÕES CONHECIDAS — NUNCA QUEBRAR
@@ -1339,6 +1608,27 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 - Nunca fechar um bloco de função prematuramente
 - Após correção de bug, rodar `npm run build` e confirmar 0 erros antes de concluir
 
+### Componentes de endereço e documento — usar obrigatoriamente, nunca recriar
+- AddressFields (src/components/shared/AddressFields.tsx):
+  Interface AddressData: { cep, rua, numero, complemento, bairro, cidade, estado }
+  useCepLookup já está encapsulado — NUNCA criar busca de CEP dentro do componente que usa AddressFields
+  Prop compact={true} disponível quando apenas CEP e número são necessários
+
+- CpfCnpjInput (src/components/shared/CpfCnpjInput.tsx):
+  Detecta automaticamente CPF (11 dígitos) ou CNPJ (14 dígitos) e aplica máscara correta
+  Validação e hint visual automáticos — não recriar lógica de formatação/validação de CPF/CNPJ
+
+- useCepLookup (src/hooks/useCepLookup.ts):
+  Substituiu código duplicado em 6+ componentes — não duplicar novamente
+  formatCep() exportado — usar para formatar string de CEP em qualquer lugar
+
+### Catálogo multi-fornecedor — regressões críticas
+- NUNCA usar .eq("source", "edeltec") em queries de negócio — usar .eq("fornecedor_id", id)
+- NUNCA criar lógica de fornecedor fora do ProviderAdapter
+- NUNCA chamar API de fornecedor diretamente do frontend
+- Credenciais de fornecedor lidas de integrations_api_configs — nunca hardcoded no código
+- Constraint de upsert do catálogo: tenant_id,fornecedor_id,external_id (não source)
+
 ### Modais de visualização — layout 2 colunas obrigatório
 - ViewModals de equipamentos DEVEM usar w-[90vw] max-w-4xl
 - Em md+: flex-row com 2 colunas (md:w-1/2 cada)
@@ -1382,5 +1672,5 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 - Nunca "aproveitar" para refatorar código adjacente
 
 # =============================================================================
-# FIM DO AGENTS.md v2.4
+# FIM DO AGENTS.md v2.5
 # =============================================================================
