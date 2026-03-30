@@ -6,6 +6,7 @@
 
 import { FRONTEND_RESOLVER_KEYS, BACKEND_FLATTEN_KEYS } from "@/services/variableAudit/knownKeys";
 import type { CatalogVariable, VariableCategory } from "@/lib/variablesCatalog";
+import { deriveDomain, deriveNature } from "@/lib/variablesCatalog";
 import type {
   GovernanceClass,
   GovernanceRecord,
@@ -220,6 +221,8 @@ export function classifyGovernance(
     key: flatKey,
     label: v.label,
     category: group,
+    domain: deriveDomain(v),
+    nature: deriveNature(v),
     classification,
     statusLabel,
     statusColor,
