@@ -1037,8 +1037,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // Economia Mensal (consolidada)
   v("conta_energia", "conta_energia.economia_mensal", "economia_mensal", "Economia Mensal R$", "Economia mensal total em reais", "R$", "800"),
   v("conta_energia", "conta_energia.economia_mensal_uc1", "economia_mensal_uc1", "Economia Mensal R$ UC #", "Economia mensal por UC", "R$", "800"),
-  v("conta_energia", "conta_energia.economia_mensal_p", "economia_mensal_p", "Economia Mensal %", "Percentual de economia mensal total", "%", "76.5", "BT e MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.economia_mensal_p_uc1", "economia_mensal_p_uc1", "Economia Mensal % UC #", "Percentual economia mensal por UC", "%", "10.5", "BT e MT", { notImplemented: true }),
+  v("conta_energia", "conta_energia.economia_mensal_p", "economia_mensal_p", "Economia Mensal %", "Percentual de economia mensal total", "%", "76.5", "BT e MT"),
+  v("conta_energia", "conta_energia.economia_mensal_p_uc1", "economia_mensal_p_uc1", "Economia Mensal % UC #", "Percentual economia mensal por UC", "%", "10.5", "BT e MT"),
 
   // Créditos Alocados (conta)
   v("conta_energia", "conta_energia.creditos_alocados", "creditos_alocados", "Créditos Alocados UCs", "Créditos alocados total UCs", "kWh", "800"),
@@ -1049,10 +1049,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // Consumo Abatido
   v("conta_energia", "conta_energia.consumo_abatido", "consumo_abatido", "Consumo Abatido BT UCs", "Consumo abatido total BT", "kWh", "800"),
   v("conta_energia", "conta_energia.consumo_abatido_uc1", "consumo_abatido_uc1", "Consumo Abatido BT UC #", "Consumo abatido por UC", "kWh", "800"),
-  v("conta_energia", "conta_energia.consumo_abatido_p", "consumo_abatido_p", "Consumo Abatido P UCs", "Consumo abatido ponta total (MT)", "kWh", "800", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.consumo_abatido_p_uc1", "consumo_abatido_p_uc1", "Consumo Abatido P UC #", "Consumo abatido ponta por UC (MT)", "kWh", "800", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.consumo_abatido_fp", "consumo_abatido_fp", "Consumo Abatido FP UCs", "Consumo abatido fora ponta total (MT)", "kWh", "800", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.consumo_abatido_fp_uc1", "consumo_abatido_fp_uc1", "Consumo Abatido FP UC #", "Consumo abatido fora ponta por UC (MT)", "kWh", "800", "MT", { notImplemented: true }),
+  v("conta_energia", "conta_energia.consumo_abatido_p", "consumo_abatido_p", "Consumo Abatido P UCs", "Consumo abatido ponta total (MT)", "kWh", "800", "MT"),
+  v("conta_energia", "conta_energia.consumo_abatido_p_uc1", "consumo_abatido_p_uc1", "Consumo Abatido P UC #", "Consumo abatido ponta por UC (MT)", "kWh", "800", "MT"),
+  v("conta_energia", "conta_energia.consumo_abatido_fp", "consumo_abatido_fp", "Consumo Abatido FP UCs", "Consumo abatido fora ponta total (MT)", "kWh", "800", "MT"),
+  v("conta_energia", "conta_energia.consumo_abatido_fp_uc1", "consumo_abatido_fp_uc1", "Consumo Abatido FP UC #", "Consumo abatido fora ponta por UC (MT)", "kWh", "800", "MT"),
 
   // Imposto sobre Energia
   v("conta_energia", "conta_energia.valor_imposto_energia", "valor_imposto_energia", "Imposto Sobre Energia UCs", "Valor do imposto sobre energia", "R$", "10,97"),
@@ -1061,10 +1061,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // Tarifação Energia Compensada (Fio B / Lei 14.300)
   v("conta_energia", "conta_energia.tarifacao_energia_compensada_bt", "tarifacao_energia_compensada_bt", "Tarifação Energia Compensada BT", "Valor tarifação Fio B/Energia compensada BT", "R$", "12,34"),
   v("conta_energia", "conta_energia.tarifacao_energia_compensada_bt_uc1", "tarifacao_energia_compensada_bt_uc1", "Tarifação Energia Compensada BT UC #", "Tarifação compensada BT por UC", "R$", "12,34"),
-  v("conta_energia", "conta_energia.tarifacao_energia_compensada_fp", "tarifacao_energia_compensada_fp", "Tarifação Energia Compensada FP", "Tarifação compensada fora ponta (MT)", "R$", "12,34", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.tarifacao_energia_compensada_fp_uc1", "tarifacao_energia_compensada_fp_uc1", "Tarifação Energia Compensada FP UC #", "Tarifação compensada FP por UC", "R$", "12,34", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.tarifacao_energia_compensada_p", "tarifacao_energia_compensada_p", "Tarifação Energia Compensada P", "Tarifação compensada ponta (MT)", "R$", "12,34", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.tarifacao_energia_compensada_p_uc1", "tarifacao_energia_compensada_p_uc1", "Tarifação Energia Compensada P UC #", "Tarifação compensada ponta por UC", "R$", "12,34", "MT", { notImplemented: true }),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_fp", "tarifacao_energia_compensada_fp", "Tarifação Energia Compensada FP", "Tarifação compensada fora ponta (MT)", "R$", "12,34", "MT"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_fp_uc1", "tarifacao_energia_compensada_fp_uc1", "Tarifação Energia Compensada FP UC #", "Tarifação compensada FP por UC", "R$", "12,34", "MT"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_p", "tarifacao_energia_compensada_p", "Tarifação Energia Compensada P", "Tarifação compensada ponta (MT)", "R$", "12,34", "MT"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_p_uc1", "tarifacao_energia_compensada_p_uc1", "Tarifação Energia Compensada P UC #", "Tarifação compensada ponta por UC", "R$", "12,34", "MT"),
 
   // Gasto Total Mensal (série por UC - disponível para 25 anos)
   v("conta_energia", "conta_energia.gasto_total_mensal_atual_0_uc1", "gasto_total_mensal_atual_0_uc1", "Gasto Total Mensal Atual UC # (série)", "Gasto total atual UC série", "R$", "100,00"),

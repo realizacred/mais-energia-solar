@@ -402,8 +402,11 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "economia_energia_mensal", "economia_energia_mensal_p",
   "economia_demanda_mensal", "economia_demanda_mensal_p",
   "gasto_total_mensal_atual", "gasto_total_mensal_novo",
+  "economia_mensal", "economia_mensal_p",
   "creditos_alocados", "consumo_abatido",
-  "valor_imposto_energia", "tarifacao_energia_compensada_bt",
+  "consumo_abatido_p", "consumo_abatido_fp",
+  "valor_imposto_energia",
+  "tarifacao_energia_compensada_bt", "tarifacao_energia_compensada_fp", "tarifacao_energia_compensada_p",
   // Monthly credits
   "creditos_jan", "creditos_fev", "creditos_mar", "creditos_abr",
   "creditos_mai", "creditos_jun", "creditos_jul", "creditos_ago",
