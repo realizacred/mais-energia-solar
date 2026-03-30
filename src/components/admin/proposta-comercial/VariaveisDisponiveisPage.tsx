@@ -540,7 +540,7 @@ export function VariaveisDisponiveisPage() {
       }
     };
     return items.sort((a, b) => dir * getVal(a).localeCompare(getVal(b), "pt-BR"));
-  }, [governanceVariables, activeView, domainFilter, statusFilter, search, sortCol, sortDir, govFilter, govFilterRecords]);
+  }, [governanceVariables, activeView, domainFilter, statusFilter, search, sortCol, sortDir, govFilter, govFilterRecords, getGovRecord]);
 
   const toggleSort = useCallback((col: string) => {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
