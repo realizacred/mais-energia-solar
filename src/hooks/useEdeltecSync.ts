@@ -1,6 +1,7 @@
 /**
  * useEdeltecSync — Mutation para sincronizar kits da Edeltec.
  * §16: Queries só em hooks. RB-04.
+ * Suporta modos: incremental e full_replace.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,14 +14,18 @@ interface SyncParams {
   q?: string;
   max_pages?: number;
   only_generators?: boolean;
+  mode?: "incremental" | "full_replace";
 }
 
 interface SyncResult {
   success: boolean;
+  is_complete: boolean;
   total_fetched: number;
   created: number;
   updated: number;
   skipped: number;
+  current_page: number;
+  total_pages: number;
   synced_at: string;
 }
 
@@ -30,7 +35,7 @@ export function useEdeltecSync() {
   return useMutation({
     mutationFn: async (params: SyncParams): Promise<SyncResult> => {
       const { data, error } = await supabase.functions.invoke("edeltec-sync", {
-        body: params,
+        body: { mode: "incremental", ...params },
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erro na sincronização");
@@ -39,10 +44,21 @@ export function useEdeltecSync() {
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["solar-kit-catalog"] });
       qc.invalidateQueries({ queryKey: ["kits"] });
-      toast({
-        title: "Sincronização concluída!",
-        description: `${result.created} criados · ${result.updated} atualizados · ${result.skipped} ignorados`,
-      });
+      qc.invalidateQueries({ queryKey: ["edeltec-catalog"] });
+      qc.invalidateQueries({ queryKey: ["edeltec-sync-status"] });
+      qc.invalidateQueries({ queryKey: ["edeltec-sync-logs"] });
+
+      if (result.is_complete) {
+        toast({
+          title: "Sincronização concluída!",
+          description: `${result.created} criados · ${result.updated} atualizados · ${result.skipped} ignorados`,
+        });
+      } else {
+        toast({
+          title: "Batch processado",
+          description: `Página ${result.current_page}/${result.total_pages} · ${result.created} criados · ${result.updated} atualizados`,
+        });
+      }
     },
     onError: (err: any) => {
       toast({
