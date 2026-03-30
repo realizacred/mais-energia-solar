@@ -529,6 +529,57 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
             </div>
           </div>
 
+          {/* ── Selected Kit Banner (visible on all tabs when kit is selected) ── */}
+          {manualKits.length > 0 && (
+            <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-bold text-foreground">Kit Selecionado</span>
+                  {manualKits[0]?.meta?.source && (
+                    <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
+                      {(manualKits[0].meta.source as string).charAt(0).toUpperCase() + (manualKits[0].meta.source as string).slice(1)}
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
+                    {manualKits[0]?.meta?.source ? "Fechado" : "Customizado"}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => { setEditingKitIndex(0); setManualMode("zero"); }}>
+                    <Pencil className="h-3 w-3" /> Editar
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteManualKit(0)}>
+                    <Trash2 className="h-3 w-3" /> Remover
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-center gap-6 flex-wrap text-xs text-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Sun className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium">{manualKits[0].card.moduloQtd}x {manualKits[0].card.moduloDescricao}</span>
+                  <span className="text-muted-foreground">({manualKits[0].card.moduloPotenciaKwp.toFixed(2)} kWp)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Cpu className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium">{manualKits[0].card.inversorQtd}x {manualKits[0].card.inversorDescricao}</span>
+                  <span className="text-muted-foreground">({manualKits[0].card.inversorPotenciaKw.toFixed(2)} kW)</span>
+                </div>
+                {manualKits[0].card.precoTotal > 0 && (
+                  <span className="font-bold text-primary">{formatBRL(manualKits[0].card.precoTotal)}</span>
+                )}
+              </div>
+              {manualKits[0]?.meta?.fabricante && (
+                <p className="text-[10px] text-muted-foreground">
+                  Fabricante: {manualKits[0].meta.fabricante as string}
+                  {manualKits[0]?.meta?.fase && <> • {manualKits[0].meta.fase as string}</>}
+                  {manualKits[0]?.meta?.tensao && <> • {manualKits[0].meta.tensao as string}</>}
+                  {manualKits[0]?.meta?.estrutura && <> • {manualKits[0].meta.estrutura as string}</>}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Tab Content */}
           {tab === "catalogo" ? (
             /* ── Catálogo Tab ── */
