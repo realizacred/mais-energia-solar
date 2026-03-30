@@ -227,6 +227,9 @@ export function classifyGovernance(
   } else if (classification === "FEATURE_NAO_IMPLEMENTADA" || classification === "CDD") {
     templateWarning = "warn";
     safeForNewTemplates = false;
+  } else if (classification === "PARCIAL_FE_ONLY" || classification === "MAPEAVEL") {
+    templateWarning = "warn";
+    safeForNewTemplates = false;
   }
 
   // ── UI status label + color ──
