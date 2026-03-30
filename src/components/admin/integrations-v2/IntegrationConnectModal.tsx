@@ -251,7 +251,7 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
                   <Input
                     id={`field-${field.key}`}
                     type={field.type === "password" && showPassword[field.key] ? "text" : field.type}
-                    placeholder={field.placeholder || ""}
+                    placeholder={savedSecrets[field.key] ? "••••••••  (salvo)" : (field.placeholder || "")}
                     value={formValues[field.key] || ""}
                     onChange={handleFieldChange(field.key)}
                   />
