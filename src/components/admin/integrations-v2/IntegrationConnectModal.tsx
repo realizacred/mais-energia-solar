@@ -152,7 +152,7 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
             {Object.entries(provider.capabilities).filter(([, v]) => v).map(([key]) => (
               <Badge key={key} variant="secondary" className="text-2xs">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                {key.replace(/_/g, " ")}
+                {translateCapability(key)}
               </Badge>
             ))}
           </div>
