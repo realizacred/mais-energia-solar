@@ -466,7 +466,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
 
   // ── Distribuidora e Subgrupo ──
   v("entrada", "entrada.dis_energia", "dis_energia", "Distribuidora de Energia", "Nome da concessionária/distribuidora", "-", "Copel-DIS"),
+  v("entrada", "entrada.subgrupo", "subgrupo", "Subgrupo Tarifário", "Subgrupo tarifário da UC principal (A4, B1, etc.)", "-", "B1"),
   v("entrada", "entrada.subgrupo_uc1", "subgrupo_uc1", "Subgrupo UC#", "Subgrupo tarifário por UC", "-", "A4 - Verde"),
+  v("entrada", "entrada.grupo_tarifario", "grupo_tarifario", "Grupo Tarifário", "Grupo tarifário (A ou B)", "-", "B"),
+  v("entrada", "entrada.concessionaria_id", "concessionaria_id", "ID da Concessionária", "UUID da concessionária no banco de dados", "-", "uuid"),
 
   // ── Consumo mensal por mês (BT — Disponível para os 12 meses) ──
   v("entrada", "entrada.consumo_jan", "consumo_jan", "Consumo Janeiro", "Consumo em janeiro (Disponível para os 12 meses)", "kWh", "1.236", "BT"),
@@ -521,6 +524,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ── Localização e Parâmetros ──
   v("entrada", "entrada.estado", "estado", "Estado", "UF do cliente", "-", "RJ"),
   v("entrada", "entrada.cidade", "cidade", "Cidade", "Cidade do cliente", "-", "Rio de Janeiro"),
+  v("entrada", "entrada.cidade_estado", "cidade_estado", "Cidade / Estado", "Cidade e estado concatenados", "-", "Rio de Janeiro / RJ"),
   v("entrada", "entrada.distancia", "distancia", "Distância", "Distância para instalação", "KM", "50"),
   v("entrada", "entrada.taxa_desempenho", "taxa_desempenho", "Taxa de Desempenho", "Performance ratio do sistema", "%", "80"),
   v("entrada", "entrada.desvio_azimutal", "desvio_azimutal", "Desvio Azimutal", "Desvio em relação ao norte", "°", "90"),
@@ -530,15 +534,20 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
 
   // ── Instalação ──
   v("entrada", "entrada.tipo_telhado", "tipo_telhado", "Tipo de Telhado", "Tipo de telhado/cobertura", "-", "Shingle"),
+  v("entrada", "entrada.cape_telhado", "cape_telhado", "Capeamento do Telhado", "Tipo/material de capeamento do telhado", "-", "Fibrocimento"),
+  v("entrada", "entrada.estrutura", "estrutura", "Estrutura de Fixação", "Tipo de estrutura de fixação do sistema solar", "-", "Perfil"),
   v("entrada", "entrada.fase", "fase", "Fase", "Fase elétrica", "-", "Trifásico"),
   v("entrada", "entrada.fase_uc1", "fase_uc1", "Fase UC #", "Fase elétrica por UC", "-", "Trifásico"),
   v("entrada", "entrada.tensao_rede", "tensao_rede", "Tensão da Rede", "Tensão da rede elétrica", "V", "127/220V"),
+  v("entrada", "entrada.tensao", "tensao", "Tensão", "Tensão do sistema (alias simplificado)", "V", "220V"),
 
   // ── Custo de Disponibilidade ──
   v("entrada", "entrada.custo_disponibilidade_kwh", "custo_disponibilidade_kwh", "Custo de Disponibilidade", "Custo de disponibilidade em kWh (BT)", "kWh", "100", "BT"),
   v("entrada", "entrada.custo_disponibilidade_kwh_uc1", "custo_disponibilidade_kwh_uc1", "Custo de Disponibilidade UC #", "Custo de disponibilidade por UC (BT)", "kWh", "100", "BT"),
   v("entrada", "entrada.topologia", "topologia", "Topologia", "Microinversor, String, etc.", "-", "Microinversor"),
   v("entrada", "entrada.fator_simultaneidade", "fator_simultaneidade", "Fator de Simultaneidade", "Fator de simultaneidade para autoconsumo", "%", "10"),
+  v("entrada", "entrada.qtd_ucs", "qtd_ucs", "Qtd. de UCs", "Quantidade total de unidades consumidoras (alias)", "-", "2"),
+  v("entrada", "entrada.num_ucs", "num_ucs", "Número de UCs", "Quantidade total de unidades consumidoras no projeto", "-", "3"),
 
   // ── Rateio de Créditos ──
   v("entrada", "entrada.rateio_sugerido_creditos", "rateio_sugerido_creditos", "Rateio Sugerido dos Créditos Gerados UCs", "Rateio sugerido de créditos de todas as UCs", "%", "100"),
@@ -583,8 +592,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("sistema_solar", "sistema_solar.tipo_kit", "tipo_kit", "Tipo de Kit", "Aberto ou Fechado", "-", "Aberto"),
   v("sistema_solar", "sistema_solar.potencia_sistema", "potencia_sistema", "Potência do Sistema", "Potência real do sistema configurado", "kWp", "8,2"),
   v("sistema_solar", "sistema_solar.potencia_sistema_numero", "potencia_sistema_numero", "Potência do Sistema (número)", "Potência sem unidade — para templates com kWp hardcoded", "-", "8,20"),
+  v("sistema_solar", "sistema_solar.potencia_kwp", "potencia_kwp", "Potência kWp", "Potência do sistema em kWp (alias snapshot)", "kWp", "8.20"),
   v("sistema_solar", "sistema_solar.geracao_mensal", "geracao_mensal", "Geração Mensal", "Geração média mensal estimada", "kWh", "556"),
   v("sistema_solar", "sistema_solar.geracao_mensal_numero", "geracao_mensal_numero", "Geração Mensal (número)", "Geração sem unidade — para templates com kWh hardcoded", "-", "556"),
+  v("sistema_solar", "sistema_solar.geracao_anual_numero", "geracao_anual_numero", "Geração Anual (número)", "Geração anual total sem unidade", "-", "6672"),
   v("sistema_solar", "sistema_solar.geracao_jan", "geracao_jan", "Geração Janeiro", "Geração estimada em janeiro (Disponível para os 12 meses)", "kWh", "12.254"),
   v("sistema_solar", "sistema_solar.geracao_fev", "geracao_fev", "Geração Fevereiro", "Geração estimada em fevereiro", "kWh", "1150"),
   v("sistema_solar", "sistema_solar.geracao_mar", "geracao_mar", "Geração Março", "Geração estimada em março", "kWh", "1100"),
@@ -650,6 +661,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("sistema_solar", "sistema_solar.inversor_tensao", "inversor_tensao", "Inversor Tensão", "Tensões concatenadas", "V", "127 / 480"),
   v("sistema_solar", "sistema_solar.inversor_tipo", "inversor_tipo", "Inversor Tipo", "Tipos concatenados", "-", "Monofásico / Trifásico"),
   v("sistema_solar", "sistema_solar.inversor_corrente_saida", "inversor_corrente_saida", "Inversor Corrente Saída", "Correntes de saída concatenadas", "A", "10 / 15"),
+  v("sistema_solar", "sistema_solar.inversor_corrente_max_entrada", "inversor_corrente_max_entrada", "Inversor Corrente Máx. Entrada", "Corrente máxima de entrada concatenada", "A", "12"),
+  v("sistema_solar", "sistema_solar.inversor_corrente_max_entrada_mppt1", "inversor_corrente_max_entrada_mppt1", "Inversor Corrente Máx. Entrada MPPT1", "Corrente máxima de entrada do MPPT1 concatenada", "A", "12"),
   v("sistema_solar", "sistema_solar.inversor_mppts_utilizados", "inversor_mppts_utilizados", "Inversor MPPTs Utilizados", "MPPTs utilizados concatenados", "-", "2"),
   v("sistema_solar", "sistema_solar.inversor_strings_utilizadas", "inversor_strings_utilizadas", "Inversor Strings Utilizadas", "Strings utilizadas concatenadas", "-", "2"),
   v("sistema_solar", "sistema_solar.inversor_codigo", "inversor_codigo", "Inversor Código", "Código do inversor no catálogo", "-", "123"),
@@ -850,12 +863,20 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.preco_watt_numero", "preco_watt_numero", "Preço por Watt (número)", "Valor sem R$/W — para templates com unidade hardcoded", "-", "5,11"),
   v("financeiro", "financeiro.payback", "payback", "Payback", "Tempo de retorno do investimento formatado", "-", "3 anos e 2 meses"),
   v("financeiro", "financeiro.payback_uc1", "payback_uc1", "Payback UC #", "Payback por UC específica", "-", "3 anos e 2 meses"),
+  v("financeiro", "financeiro.payback_meses_uc1", "payback_meses_uc1", "Payback Meses UC #", "Payback em meses por UC", "meses", "38"),
+  v("financeiro", "financeiro.payback_anos_uc1", "payback_anos_uc1", "Payback Anos UC #", "Payback em anos por UC", "anos", "3.2"),
 
   // ── Indicadores financeiros ──
   v("financeiro", "financeiro.vpl", "vpl", "Valor Presente Líquido", "VPL do investimento", "R$", "50.000"),
   v("financeiro", "financeiro.vpl_uc1", "vpl_uc1", "VPL UC #", "VPL por UC específica", "R$", "50.000"),
   v("financeiro", "financeiro.tir", "tir", "Taxa Interna de Retorno", "TIR do investimento", "%", "13,44"),
   v("financeiro", "financeiro.tir_uc1", "tir_uc1", "TIR UC #", "TIR por UC específica", "%", "13,44"),
+  v("financeiro", "financeiro.roi_anual", "roi_anual", "ROI Anual", "Retorno anual sobre investimento", "%", "18.5"),
+  v("financeiro", "financeiro.economia_uc1", "economia_uc1", "Economia UC #", "Economia formatada por UC", "R$", "R$ 850,00"),
+  v("financeiro", "financeiro.economia_anual_uc1", "economia_anual_uc1", "Economia Anual UC #", "Economia anual por UC", "R$", "R$ 10.200,00"),
+  v("financeiro", "financeiro.economia_mensal_percent", "economia_mensal_percent", "Economia Mensal %", "Percentual de economia mensal (alias snapshot)", "%", "90"),
+  v("financeiro", "financeiro.investimento_uc1", "investimento_uc1", "Investimento UC #", "Investimento total por UC", "R$", "R$ 45.000,00"),
+  v("financeiro", "financeiro.valor_custo_total", "valor_custo_total", "Custo Total", "Soma de todos os custos do projeto", "R$", "32.000,00"),
 
   // ── Séries anuais (Disponível para os 25 anos: _0 a _25) ──
   v("financeiro", "financeiro.investimento_anual_0", "investimento_anual_0", "Investimento Anual", "Investimento anual (Disponível para os 25 anos: _0 a _25)", "R$", "100.000"),
@@ -880,6 +901,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.poupanca_25", "poupanca_25", "Poupança 25 anos", "Se investisse o mesmo valor na poupança", "R$", "R$ 98.000,00"),
 
   // ── Legados (templates DOCX antigos) ──
+  v("financeiro", "financeiro.capo_i", "capo_i", "Garantia do Inversor (anos)", "Tempo de garantia do inversor em anos", "anos", "12"),
   v("financeiro", "financeiro.capo_m", "capo_m", "Garantia dos Módulos (anos) — LEGADO", "⚠️ LEGADO: Substituir por [modulo_garantia]. Tempo de garantia dos módulos fotovoltaicos em anos.", "anos", "25"),
   v("financeiro", "financeiro.capo_seguro", "capo_seguro", "Capital + Seguro (input wizard)", "Input do wizard para cálculo de seguro — persistido no snapshot", "R$", ""),
 
@@ -1056,6 +1078,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.proposta_titulo", "proposta_titulo", "Título da Proposta", "Nome/título da proposta", "-", "Proposta Sistema Fotovoltaico"),
   v("comercial", "comercial.proposta_link", "proposta_link", "Link da Proposta", "URL de visualização pública da proposta", "-", "https://...", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.proposta_validade", "proposta_validade", "Validade", "Data de validade da proposta", "data", "15/03/2025"),
+  v("comercial", "comercial.proposta_versao", "proposta_versao", "Versão da Proposta", "Número da versão da proposta", "-", "v2"),
   v("comercial", "comercial.proposta_data", "proposta_data", "Data da proposta", "Data de criação da proposta", "data", "01/03/2025"),
   v("comercial", "comercial.responsavel_nome", "responsavel_nome", "Responsável", "Nome do responsável técnico", "-", "Ross"),
   v("comercial", "comercial.responsavel_email", "responsavel_email", "Responsável E-mail", "Email do responsável", "-", "ross@mail.com.br"),
