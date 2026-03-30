@@ -1028,14 +1028,15 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 /* ── Manual Kit Card (grid/list matching reference) ── */
 
 function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete }: {
-  entry: { card: KitCardData; itens: KitItemRow[] };
+  entry: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta };
   viewMode: "grid" | "list";
   isSelected?: boolean;
   onSelect: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const { card } = entry;
+  const { card, meta } = entry;
+  const originSource = meta?.source;
 
   if (viewMode === "list") {
     return (
