@@ -803,9 +803,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 </div>
               )}
             </div>
-          ) : tab === "manual" ? (
+          ) : tab === "customizado" ? (
+            /* ── Customizado Tab — manual kits + imported catalog kits ── */
             <div className="space-y-3">
-              {/* Manual Kit Cards in grid like reference */}
               {manualKits.length > 0 && (
                 <div className={viewMode === "grid"
                   ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3"
@@ -828,22 +828,20 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               {manualKits.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Package className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm font-medium text-muted-foreground">Nenhum kit manual criado</p>
-                  <p className="text-xs text-muted-foreground/70 mt-1 mb-4">Crie um kit manualmente para começar</p>
+                  <p className="text-sm font-medium text-muted-foreground">Nenhum kit customizado</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1 mb-4">Crie um kit manualmente ou selecione do catálogo</p>
                   <Button size="sm" className="gap-1.5" onClick={() => setShowChoiceModal(true)}>
                     <Plus className="h-3.5 w-3.5" /> Criar kit manualmente
                   </Button>
                 </div>
               )}
 
-              {manualKits.length > 0 && (
-                <Button variant="default" size="sm" className="gap-1.5 text-xs" onClick={() => setShowChoiceModal(true)}>
-                  <Plus className="h-3 w-3" /> Criar outro kit
-                </Button>
-              )}
+              <Button variant="default" size="sm" className="gap-1.5 text-xs" onClick={() => setShowChoiceModal(true)}>
+                <Plus className="h-3 w-3" /> Criar outro kit
+              </Button>
             </div>
           ) : (
-            /* Customizado / Fechado Tabs */
+            /* ── Fechado Tab ── */
             activeKits.length > 0 ? (
               viewMode === "grid" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
@@ -861,8 +859,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <Package className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">Nenhum kit encontrado</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou crie manualmente</p>
+                <p className="text-sm font-medium text-muted-foreground">Nenhum kit fechado encontrado</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou selecione do catálogo</p>
               </div>
             )
           )}
