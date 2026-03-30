@@ -221,7 +221,7 @@ const CATEGORY_TO_DOMAIN: Record<VariableCategory, VariableDomain> = {
   gd: "tecnico",
   calculo: "tecnico",
   cdd: "fornecedor",
-  customizada: "custom_calculada",
+  customizada: "custom_calculada", // fallback — overridden by VC_DOMAIN_MAP
 };
 
 /** Supplier/integration related keys */
@@ -229,9 +229,97 @@ const FORNECEDOR_KEYS = new Set([
   "tipo_fornecedor_distribuidor", "fornecedor", "tipo_kit",
 ]);
 
+/**
+ * Map built-in vc_* keys to their REAL functional domain.
+ * These are NOT user-created custom vars — they are hardcoded resolvers
+ * that belong to specific business domains.
+ */
+const VC_DOMAIN_MAP: Record<string, VariableDomain> = {
+  // Consumo / Energia
+  vc_consumo: "conta_energia",
+  vc_aumento: "conta_energia",
+  vc_media_sonsumo_mensal: "conta_energia",
+  vc_consumo_anual: "conta_energia",
+  vc_economia_acumulada: "financeiro",
+  // Séries consumo/geração
+  vc_s_consumo_mensal_media: "conta_energia",
+  vc_s_consumo_mt_p: "conta_energia",
+  vc_s_consumo_mt_fp: "conta_energia",
+  vc_s_consumo_mt_p_e_fp: "conta_energia",
+  vc_s_geracao_mensal_media: "sistema_solar",
+  // Financeiro / Pagamento
+  vc_a_vista: "financeiro",
+  vc_valor_entrada: "financeiro",
+  vc_valor_parcelas_4: "financeiro",
+  vc_valor_parcela_troca_medidor: "financeiro",
+  // Indicadores financeiros
+  vc_saldo_solar_25_anos: "financeiro",
+  vc_saldo_renda_fixa_25_anos: "financeiro",
+  vc_saldo_poupanca_25_anos: "financeiro",
+  vc_roi_primeiro_mes: "financeiro",
+  vc_tarifa_solar: "financeiro",
+  vc_preco_watt: "financeiro",
+  vc_investimento_solar_rendimento: "financeiro",
+  vc_economia_conta_total_rs: "conta_energia",
+  vc_economia_conta_total_pc: "conta_energia",
+  // Financiamento / Banco
+  vc_nome: "cliente",
+  vc_financeira_nome: "financeiro",
+  vc_taxa_1: "financeiro",
+  vc_taxa_2: "financeiro",
+  vc_taxa_3: "financeiro",
+  vc_entrada_1: "financeiro",
+  vc_entrada_2: "financeiro",
+  vc_entrada_3: "financeiro",
+  vc_prazo_1: "financeiro",
+  vc_prazo_2: "financeiro",
+  vc_prazo_3: "financeiro",
+  vc_parcela_1: "financeiro",
+  vc_parcela_2: "financeiro",
+  vc_parcela_3: "financeiro",
+  // Equipamentos
+  vc_total_modulo: "sistema_solar",
+  vc_p_total_cc: "sistema_solar",
+  vc_string_box_cc: "sistema_solar",
+  vc_potencia_sistema: "sistema_solar",
+  vc_modulo_potencia: "sistema_solar",
+  vc_inversor_potencia_nominal: "sistema_solar",
+  vc_estrutura: "sistema_solar",
+  // Comercial
+  vc_garantiaservico: "proposta",
+  vc_grafico_de_comparacao: "proposta",
+  vc_valor_gerac_prevista: "sistema_solar",
+  // Cartão crédito
+  vc_cartao_credito_parcela_1: "financeiro",
+  vc_cartao_credito_parcela_2: "financeiro",
+  vc_cartao_credito_parcela_3: "financeiro",
+  vc_cartao_credito_parcela_4: "financeiro",
+  vc_cartao_credito_taxa_1: "financeiro",
+  vc_cartao_credito_taxa_2: "financeiro",
+  vc_cartao_credito_taxa_3: "financeiro",
+  vc_cartao_credito_taxa_4: "financeiro",
+  // ICMS
+  vc_cal_icms_enel: "conta_energia",
+  vc_valor_icms_enel: "conta_energia",
+  vc_valor_icms_enel_fator_simultaneidade: "conta_energia",
+  // Seguro
+  vc_incluir_seguro: "financeiro",
+  vc_calculo_seguro: "financeiro",
+  // Observação
+  vc_observacao: "proposta",
+};
+
+/** Set of all built-in vc_* keys (hardcoded in catalog, NOT user-created) */
+const BUILTIN_VC_KEYS = new Set(Object.keys(VC_DOMAIN_MAP));
+
 /** Derive domain for a catalog variable */
 export function deriveDomain(v: CatalogVariable): VariableDomain {
   const flatKey = v.legacyKey.replace(/^\[|\]$/g, "");
+
+  // Built-in vc_* → real functional domain
+  if (v.category === "customizada" && VC_DOMAIN_MAP[flatKey]) {
+    return VC_DOMAIN_MAP[flatKey];
+  }
 
   // Fornecedor keys override
   if (FORNECEDOR_KEYS.has(flatKey)) return "fornecedor";
@@ -253,12 +341,20 @@ export function deriveNature(v: CatalogVariable): VariableNature {
 
   if (v.notImplemented) return "futura";
   if (v.escopo === "documento") return "documental";
+  // Built-in vc_* are "calculada" (hardcoded resolvers), NOT "custom_var_calculada"
+  if (v.category === "customizada" && BUILTIN_VC_KEYS.has(flatKey)) return "calculada";
+  // Actual user-created custom vars (from DB proposta_variaveis_custom)
   if (v.category === "customizada") return "custom_var_calculada";
   if (label.includes("legado") || label.includes("(legado)") || desc.includes("legado") || desc.includes("alias")) return "alias_legado";
   if (v.category === "cdd") return "importada_integracao";
   if (FORNECEDOR_KEYS.has(flatKey)) return "importada_integracao";
   if (["tabelas", "series", "premissas"].includes(v.category)) return "tecnica_interna";
   return "canonica";
+}
+
+/** Check if a key is a built-in vc_* (not user-created) */
+export function isBuiltinVcKey(key: string): boolean {
+  return BUILTIN_VC_KEYS.has(key);
 }
 
 /** Determine which views a variable should appear in */
@@ -270,9 +366,13 @@ export function getVariableViews(v: CatalogVariable): VariableView[] {
   // Template view: all non-blocked, non-future vars
   if (!v.notImplemented) views.push("template");
 
-  // Negócio: business-relevant vars only
+  // Negócio: business-relevant vars only (includes "calculada" which are built-in vc_*)
   if (["proposta", "sistema_solar", "cliente", "conta_energia", "financeiro", "documento", "projeto", "custom_calculada"].includes(domain)
       && nature !== "alias_legado" && nature !== "tecnica_interna" && nature !== "futura") {
+    views.push("negocio");
+  }
+  // Built-in calculada vars also appear in negócio since they have real functional domains
+  if (nature === "calculada" && !views.includes("negocio")) {
     views.push("negocio");
   }
 
