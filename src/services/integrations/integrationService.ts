@@ -64,7 +64,7 @@ async function findSupplierConfig(
 
   const { data, error } = await (supabase as any)
     .from("integrations_api_configs")
-    .select("id, provider, name, is_active, status, last_sync_at, last_tested_at, fornecedor_id, settings")
+    .select("id, provider, name, is_active, status, last_sync_at, last_tested_at, fornecedor_id, settings, credentials")
     .eq("tenant_id", tenantId);
 
   if (error) throw error;
@@ -224,12 +224,16 @@ export async function connectSupplierProvider(
 ): Promise<{ success: boolean; config_id?: string; error?: string }> {
   let affectedConfigId: string | undefined;
   try {
-    if (!credentials.apiKey?.trim() || !credentials.secret?.trim()) {
-      throw new Error("Informe API Key e Secret para conectar a Edeltec");
-    }
-
     const tenantId = await getCurrentTenantId();
     const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
+
+    // For new connections, both fields are required.
+    // For updates, allow partial — missing fields are merged from existing credentials.
+    const existingCreds = (config?.credentials as Record<string, string>) || {};
+    const mergedForValidation = { ...existingCreds, ...credentials };
+    if (!mergedForValidation.apiKey?.trim() || !mergedForValidation.secret?.trim()) {
+      throw new Error("Informe API Key e Secret para conectar a Edeltec");
+    }
     const now = new Date().toISOString();
 
     const mergedSettings = {
@@ -239,12 +243,16 @@ export async function connectSupplierProvider(
     };
 
     if (config?.id) {
+      // Merge new credentials with existing ones so unchanged secret fields are preserved
+      const existingCreds = (config.credentials as Record<string, string>) || {};
+      const mergedCredentials = { ...existingCreds, ...credentials };
+
       const { error: updateError } = await (supabase as any)
         .from("integrations_api_configs")
         .update({
           provider: providerKey,
           name: config.name || providerLabel,
-          credentials,
+          credentials: mergedCredentials,
           status: "pending",
           is_active: true,
           settings: mergedSettings,
