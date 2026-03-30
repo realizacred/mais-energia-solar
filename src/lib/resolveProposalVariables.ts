@@ -590,6 +590,40 @@ function resolveFromContext(
     if (gastoAtual > 0) return fmtNumber((ctx.economiaMensal / gastoAtual) * 100, 0);
   }
 
+  // ── vc_aumento — percentual de geração que excede o consumo ──
+  if (key === "customizada.vc_aumento" || key === "financeiro.vc_aumento") {
+    // Try finalSnapshot first
+    const fsVcAumento = ctx.finalSnapshot?.vc_aumento;
+    if (fsVcAumento != null && fsVcAumento !== "") return String(fsVcAumento);
+    // Calculate: ((geracao - consumo) / consumo) * 100
+    const ger = ctx.geracaoMensal;
+    const cons = Number(ctx.ucs?.[0]?.consumo_mensal ?? 0);
+    if (ger && cons > 0) {
+      return fmtNumber(((ger - cons) / cons) * 100, 1);
+    }
+    return null;
+  }
+
+  // ── capo_m — tipo de estrutura de fixação (legacy) ──
+  if (key === "financeiro.capo_m" || key === "customizada.capo_m") {
+    return s((ctx.finalSnapshot as any)?.capo_m)
+      ?? s((ctx.finalSnapshot as any)?.modulo_garantia)
+      ?? s(ctx.ucs?.[0]?.tipo_telhado as unknown as string)
+      ?? null;
+  }
+
+  // ── capo_seguro — capital seguro (custom field) ──
+  if (key === "financeiro.capo_seguro" || key === "customizada.capo_seguro") {
+    return s((ctx.finalSnapshot as any)?.capo_seguro)
+      ?? s((ctx.finalSnapshot as any)?.capital_seguro)
+      ?? null;
+  }
+
+  // ── vc_calculo_seguro — cálculo de seguro (custom field) ──
+  if (key === "customizada.vc_calculo_seguro" || key === "financeiro.vc_calculo_seguro") {
+    return s((ctx.finalSnapshot as any)?.vc_calculo_seguro) ?? null;
+  }
+
   // ── Extras override ──
   if (ctx.extras && key in ctx.extras) return String(ctx.extras[key]);
 

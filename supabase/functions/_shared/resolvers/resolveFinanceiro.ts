@@ -303,6 +303,20 @@ export function resolveFinanceiro(
   // capo_m is resolved in resolveSistemaSolar as modulo_garantia; keep passthrough fallback only
   set("capo_m", snap.capo_m ?? snap.modulo_garantia ?? snap.capital_melhoria ?? fin.capo_m ?? "");
   set("capo_seguro", snap.capo_seguro ?? snap.capital_seguro ?? fin.capo_seguro ?? "");
+  set("vc_calculo_seguro", snap.vc_calculo_seguro ?? fin.vc_calculo_seguro ?? "");
+
+  // ── vc_aumento = ((geracao - consumo) / consumo) * 100 ──
+  // Percentual de geração que excede o consumo nominal
+  const geracaoMensal = num(snap.geracao_mensal) ?? num(snap.geracaoMensalEstimada) ?? num(snap.geracao_mensal_kwh);
+  const consumoMensal = num(snap.consumo_mensal) ?? num(snap.consumo_total_kwh);
+  if (geracaoMensal != null && consumoMensal != null && consumoMensal > 0) {
+    const vcAumento = ((geracaoMensal - consumoMensal) / consumoMensal) * 100;
+    setCurIfMissing("vc_aumento", vcAumento);
+    if (!out["vc_aumento"]) out["vc_aumento"] = fmtNum(vcAumento, 1);
+  } else {
+    // Passthrough fallback from snapshot
+    set("vc_aumento", snap.vc_aumento ?? fin.vc_aumento);
+  }
 
   return out;
 }
