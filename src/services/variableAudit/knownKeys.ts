@@ -214,7 +214,7 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   "modulo_profundidade", "modulo_profundidade_numero",
   "modulo_coef_temp_pmax", "modulo_coef_temp_voc", "modulo_coef_temp_isc",
   "modulo_area", "modulo_area_numero",
-  "modulo_codigo", "modulo_garantia",
+  "modulo_codigo", "modulo_garantia", "modulo_garantia_performance",
   // Inversores — concatenated
   "inversor_fabricante", "inversor_fabricante_1",
   "inversor_modelo", "inversor_potencia_nominal", "inversor_potencia_nominal_numero",
@@ -271,7 +271,7 @@ export const BACKEND_FLATTEN_KEYS = new Set<string>([
   // resolveFinanceiro.ts
   // ══════════════════════════════════════════
   "valor_total", "valor_total_numero", "preco_final", "preco_total", "preco", "capo_i",
-  "capo_m", "capo_seguro",
+  "capo_m", "capo_seguro", "vc_calculo_seguro", "vc_aumento",
   "vc_a_vista", "preco_kwp", "preco_watt", "preco_watt_numero",
   "economia_mensal", "economia_mensal_numero", "economia_anual", "economia_anual_numero",
   "roi_25_anos", "economia_25_anos",

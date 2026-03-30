@@ -784,6 +784,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("sistema_solar", "sistema_solar.modulo_area", "modulo_area", "Área do módulo (legado)", "Área de um módulo (legado)", "m²", "2.58"),
   v("sistema_solar", "sistema_solar.modulo_area_numero", "modulo_area_numero", "Área do módulo (número)", "Área sem m² — para templates com unidade hardcoded", "-", "2,58"),
   v("sistema_solar", "sistema_solar.modulo_garantia", "modulo_garantia", "Garantia módulo", "Garantia do fabricante do módulo — vem do cadastro de módulos (garantia_produto_anos)", "anos", "25"),
+  v("sistema_solar", "sistema_solar.modulo_garantia_performance", "modulo_garantia_performance", "Garantia Performance Módulo", "Garantia de performance do módulo — vem do cadastro (garantia_performance_anos)", "anos", "25"),
   v("sistema_solar", "sistema_solar.inversor_garantia", "inversor_garantia", "Garantia inversor", "Garantia do fabricante do inversor — vem do cadastro de inversores (garantia_anos)", "anos", "10"),
 
   // ──────────────────────────────────────────────────────────────
