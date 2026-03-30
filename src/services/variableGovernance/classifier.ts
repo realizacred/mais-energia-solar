@@ -130,12 +130,18 @@ export function classifyGovernance(
   } else if (isDynamic) {
     classification = inFE || inBE ? "IMPLEMENTADA" : "PASSTHROUGH";
     evidence = "Chave dinâmica (mensal/anual/UC/equipamento) resolvida via padrão iterativo";
-  } else if (isCustom) {
+  } else if (isCustom || isBuiltinCustom) {
+    // Custom vars: either from DB (isCustom) or built-in catalog defaults (isBuiltinCustom)
     classification = inBE ? "CUSTOM_IMPL" : "CUSTOM_BACKEND";
-    evidence = "Variável customizada avaliada via evaluateExpression";
+    evidence = isBuiltinCustom
+      ? "Variável customizada built-in — avaliada via evaluateExpression (default do catálogo)"
+      : "Variável customizada do banco — avaliada via evaluateExpression";
   } else if (isWizardInput) {
     classification = "INPUT_WIZARD";
     evidence = "Input do wizard — persistido no snapshot";
+  } else if (isSupplier) {
+    classification = "PARCIAL_BE_ONLY";
+    evidence = "Dado de fornecedor/kit — resolvido via snapshot quando kit é selecionado";
   } else if (isDynamicField) {
     classification = "IMPLEMENTADA";
     evidence = "Campo dinâmico (deal_custom_fields) — passthrough via snapshot";
