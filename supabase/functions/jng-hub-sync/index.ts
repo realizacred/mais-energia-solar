@@ -340,26 +340,29 @@ serve(async (req) => {
 
     // ── Load estoque + valores (ONCE before pagination loop) ──
     console.log("[jng-hub-sync] Loading estoque + valores...");
+    let estoqueMap = new Map<number, any>();
+    let valoresMap = new Map<number, any>();
     try {
       const [estoqueData, valoresData] = await Promise.all([
         fetchJngEstoque(token),
         fetchJngValores(token),
       ]);
-      _estoqueMap = new Map(
+      estoqueMap = new Map(
         (estoqueData || []).map((e: any) => [e.idProduto, e])
       );
-      _valoresMap = new Map(
+      valoresMap = new Map(
         (valoresData || []).map((v: any) => [v.idProduto, v])
       );
-      console.log(`[jng-hub-sync] Estoque: ${_estoqueMap.size} items, Valores: ${_valoresMap.size} items`);
+      console.log(`[jng-hub-sync] Estoque: ${estoqueMap.size} items, Valores: ${valoresMap.size} items`);
     } catch (e: any) {
       console.error("[jng-hub-sync] Failed to load estoque/valores:", e);
       await syncLog(supabase, tenant_id, "warn", "Falha ao carregar estoque/valores — usando dados do produto", {
         error: e.message,
       });
-      _estoqueMap = new Map();
-      _valoresMap = new Map();
     }
+
+    // Criar adapter com closure local — isolamento por request
+    const jngAdapter = createJngAdapter(estoqueMap, valoresMap);
 
     // ── Load or create sync state ──
     const { data: existingState } = await supabase
