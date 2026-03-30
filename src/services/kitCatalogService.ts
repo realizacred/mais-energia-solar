@@ -99,12 +99,12 @@ export interface CatalogKitSummary {
 export async function fetchActiveKits(): Promise<CatalogKit[]> {
   const { data, error } = await supabase
     .from("solar_kit_catalog")
-    .select("id, name, description, estimated_kwp, pricing_mode, fixed_price")
+    .select("id, name, description, estimated_kwp, pricing_mode, fixed_price, source, external_data")
     .eq("status", "active")
     .order("name");
 
   if (error) throw new Error(`Erro ao buscar kits: ${error.message}`);
-  return data ?? [];
+  return (data ?? []) as unknown as CatalogKit[];
 }
 
 /**
