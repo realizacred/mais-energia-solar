@@ -163,6 +163,7 @@ const AsaasIntegrationPage = lazy(() => import("@/pages/admin/AsaasIntegrationPa
 const PlanoServicoManager = lazy(() => import("@/components/admin/PlanoServicoManager"));
 const ClientPlansPage = lazy(() => import("@/pages/admin/ClientPlansPage"));
 const AsaasConversionPage = lazy(() => import("@/pages/admin/AsaasConversionPage"));
+const EdeltecIntegrationPage = lazy(() => import("@/pages/admin/EdeltecIntegrationPage"));
 const PricingDashboardPage = lazy(() => import("@/pages/admin/PricingDashboardPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const PostSaleDashboardPage = lazy(() => import("@/components/admin/post-sale/PostSaleDashboard"));
@@ -714,6 +715,7 @@ export default function Admin() {
                 <Route path="monitoramento-solar" element={<Navigate to="/admin/monitoramento/integracoes" replace />} />
                 <Route path="monitoramento/*" element={<MonitoringModule />} />
                 <Route path="catalogo-integracoes" element={<IntegrationsCatalogPage />} />
+                <Route path="integracoes/edeltec" element={<EdeltecIntegrationPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="integracao-asaas" element={<AsaasIntegrationPage />} />
                 <Route path="asaas-conversao" element={<AsaasConversionPage />} />
