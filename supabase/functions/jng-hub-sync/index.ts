@@ -451,8 +451,8 @@ serve(async (req) => {
       await syncLog(supabase, tenant_id, "info", `Sincronização JNG iniciada (modo: ${mode})`, {
         mode,
         dtAlteracao,
-        estoque_count: _estoqueMap.size,
-        valores_count: _valoresMap.size,
+        estoque_count: estoqueMap.size,
+        valores_count: valoresMap.size,
       });
     } else if (syncState.status === "running") {
       // Resume from checkpoint
