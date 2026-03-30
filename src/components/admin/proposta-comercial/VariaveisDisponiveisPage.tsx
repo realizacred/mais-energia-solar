@@ -297,7 +297,7 @@ export function VariaveisDisponiveisPage() {
         example: v.example,
         isSeries: v.isSeries,
         notImplemented: v.notImplemented,
-        isCustom: v.category === "customizada",
+        isCustom: v.category === "customizada" && !isBuiltinVcKey(key),
         source,
         resolver,
         inDocx,
