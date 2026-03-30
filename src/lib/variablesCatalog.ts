@@ -861,12 +861,20 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.preco_watt_numero", "preco_watt_numero", "Preço por Watt (número)", "Valor sem R$/W — para templates com unidade hardcoded", "-", "5,11"),
   v("financeiro", "financeiro.payback", "payback", "Payback", "Tempo de retorno do investimento formatado", "-", "3 anos e 2 meses"),
   v("financeiro", "financeiro.payback_uc1", "payback_uc1", "Payback UC #", "Payback por UC específica", "-", "3 anos e 2 meses"),
+  v("financeiro", "financeiro.payback_meses_uc1", "payback_meses_uc1", "Payback Meses UC #", "Payback em meses por UC", "meses", "38"),
+  v("financeiro", "financeiro.payback_anos_uc1", "payback_anos_uc1", "Payback Anos UC #", "Payback em anos por UC", "anos", "3.2"),
 
   // ── Indicadores financeiros ──
   v("financeiro", "financeiro.vpl", "vpl", "Valor Presente Líquido", "VPL do investimento", "R$", "50.000"),
   v("financeiro", "financeiro.vpl_uc1", "vpl_uc1", "VPL UC #", "VPL por UC específica", "R$", "50.000"),
   v("financeiro", "financeiro.tir", "tir", "Taxa Interna de Retorno", "TIR do investimento", "%", "13,44"),
   v("financeiro", "financeiro.tir_uc1", "tir_uc1", "TIR UC #", "TIR por UC específica", "%", "13,44"),
+  v("financeiro", "financeiro.roi_anual", "roi_anual", "ROI Anual", "Retorno anual sobre investimento", "%", "18.5"),
+  v("financeiro", "financeiro.economia_uc1", "economia_uc1", "Economia UC #", "Economia formatada por UC", "R$", "R$ 850,00"),
+  v("financeiro", "financeiro.economia_anual_uc1", "economia_anual_uc1", "Economia Anual UC #", "Economia anual por UC", "R$", "R$ 10.200,00"),
+  v("financeiro", "financeiro.economia_mensal_percent", "economia_mensal_percent", "Economia Mensal %", "Percentual de economia mensal (alias snapshot)", "%", "90"),
+  v("financeiro", "financeiro.investimento_uc1", "investimento_uc1", "Investimento UC #", "Investimento total por UC", "R$", "R$ 45.000,00"),
+  v("financeiro", "financeiro.valor_custo_total", "valor_custo_total", "Custo Total", "Soma de todos os custos do projeto", "R$", "32.000,00"),
 
   // ── Séries anuais (Disponível para os 25 anos: _0 a _25) ──
   v("financeiro", "financeiro.investimento_anual_0", "investimento_anual_0", "Investimento Anual", "Investimento anual (Disponível para os 25 anos: _0 a _25)", "R$", "100.000"),
