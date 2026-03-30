@@ -49,7 +49,7 @@ export interface DescriptionIssue {
   issue: "missing" | "too_short";
 }
 
-export type VariableSource = "snapshot" | "db_lead" | "db_cliente" | "db_consultor" | "db_projeto" | "db_proposta" | "db_versao" | "computed" | "custom_vc" | "futura" | "unknown";
+export type VariableSource = "snapshot" | "db_lead" | "db_cliente" | "db_consultor" | "db_projeto" | "db_proposta" | "db_versao" | "computed" | "custom_vc" | "futura" | "error_unmapped";
 
 export const SOURCE_LABELS: Record<VariableSource, { label: string; icon: string; color: string }> = {
   snapshot: { label: "Snapshot", icon: "📸", color: "text-info" },
@@ -62,7 +62,7 @@ export const SOURCE_LABELS: Record<VariableSource, { label: string; icon: string
   computed: { label: "Calculada", icon: "🧮", color: "text-warning" },
   custom_vc: { label: "Customizada", icon: "🧩", color: "text-success" },
   futura: { label: "Futura", icon: "🔮", color: "text-muted-foreground" },
-  unknown: { label: "Não mapeada", icon: "⚠️", color: "text-destructive" },
+  error_unmapped: { label: "Erro: Não Mapeada", icon: "🚫", color: "text-destructive" },
 };
 
 export interface CategoryAuditEntry {
@@ -804,7 +804,7 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
         variables: catVars.map((v) => {
           const key = v.legacyKey.replace(/^\[|\]$/g, "");
           const mapping = RESOLVER_MAP[key];
-          let source: VariableSource = mapping?.source ?? "unknown";
+          let source: VariableSource = mapping?.source ?? "error_unmapped";
           let resolver = mapping?.resolver ?? "";
           // Custom variables
           if (key.startsWith("vc_") && !mapping) { source = "custom_vc"; resolver = "proposal-generate (evaluateExpression)"; }
@@ -833,10 +833,10 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
   const resolverCoverage = useMemo(() => {
     const totalCatalog = VARIABLES_CATALOG.length;
     const withResolver = categoryAudit.reduce((sum, cat) => {
-      return sum + cat.variables.filter(v => !v.notImplemented && v.source !== "unknown").length;
+      return sum + cat.variables.filter(v => !v.notImplemented && v.source !== "error_unmapped").length;
     }, 0);
     const ghostCount = categoryAudit.reduce((sum, cat) => {
-      return sum + cat.variables.filter(v => v.source === "unknown" && !v.notImplemented).length;
+      return sum + cat.variables.filter(v => v.source === "error_unmapped" && !v.notImplemented).length;
     }, 0);
     const pendingCount = categoryAudit.reduce((sum, cat) => {
       return sum + cat.variables.filter(v => v.notImplemented).length;

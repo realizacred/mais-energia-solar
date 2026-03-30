@@ -3,6 +3,8 @@
  * Centralized classification system for all variables.
  */
 
+import type { VariableDomain, VariableNature } from "@/lib/variablesCatalog";
+
 /** Real governance classification for each variable */
 export type GovernanceClass =
   | "IMPLEMENTADA"             // FE + BE both resolve
@@ -41,6 +43,10 @@ export interface GovernanceRecord {
   key: string;
   label: string;
   category: string;
+  /** Functional domain (proposta, cliente, financeiro, etc.) */
+  domain: VariableDomain;
+  /** Nature/origin of the variable */
+  nature: VariableNature;
   classification: GovernanceClass;
   /** Human-readable status label for UI (replaces "sem resolver") */
   statusLabel: string;
@@ -68,6 +74,13 @@ export interface GovernanceRecord {
   isLegacy: boolean;
   /** Is passthrough group (series, tabelas, premissas) */
   isPassthrough: boolean;
+}
+
+/** Governance validation error */
+export interface GovernanceValidationError {
+  key: string;
+  rule: string;
+  message: string;
 }
 
 /** Catalog health score */

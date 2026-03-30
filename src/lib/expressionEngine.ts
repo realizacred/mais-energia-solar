@@ -7,6 +7,16 @@ export interface ExpressionContext {
   [key: string]: number;
 }
 
+/** Evaluation mode: tolerant continues with 0 for missing keys, strict returns error */
+export type EvaluationMode = "tolerant" | "strict";
+
+/** Structured result from evaluation with tracking */
+export interface EvaluationResult {
+  value: number | null;
+  missingKeys: string[];
+  error?: string;
+}
+
 type Token =
   | { type: "number"; value: number }
   | { type: "variable"; name: string }
@@ -66,13 +76,24 @@ function tokenize(expr: string): Token[] {
 
 /** Recursive descent parser: expr → term ((+|-) term)* */
 function parseExpression(tokens: Token[], pos: { i: number }, ctx: ExpressionContext): number {
-  let left = parseTerm(tokens, pos, ctx);
+  return parseExpressionTracked(tokens, pos, ctx);
+}
+
+/** Tracked version with missingKeys and mode support */
+function parseExpressionTracked(
+  tokens: Token[],
+  pos: { i: number },
+  ctx: ExpressionContext,
+  missingKeys?: string[],
+  mode: EvaluationMode = "tolerant",
+): number {
+  let left = parseTermTracked(tokens, pos, ctx, missingKeys, mode);
 
   while (pos.i < tokens.length) {
     const tok = tokens[pos.i];
     if (tok.type === "op" && (tok.value === "+" || tok.value === "-")) {
       pos.i++;
-      const right = parseTerm(tokens, pos, ctx);
+      const right = parseTermTracked(tokens, pos, ctx, missingKeys, mode);
       left = tok.value === "+" ? left + right : left - right;
     } else {
       break;
@@ -84,15 +105,30 @@ function parseExpression(tokens: Token[], pos: { i: number }, ctx: ExpressionCon
 
 /** term → factor ((*|/) factor)* */
 function parseTerm(tokens: Token[], pos: { i: number }, ctx: ExpressionContext): number {
-  let left = parseFactor(tokens, pos, ctx);
+  return parseTermTracked(tokens, pos, ctx);
+}
+
+function parseTermTracked(
+  tokens: Token[],
+  pos: { i: number },
+  ctx: ExpressionContext,
+  missingKeys?: string[],
+  mode: EvaluationMode = "tolerant",
+): number {
+  let left = parseFactor(tokens, pos, ctx, missingKeys, mode);
 
   while (pos.i < tokens.length) {
     const tok = tokens[pos.i];
     if (tok.type === "op" && (tok.value === "*" || tok.value === "/")) {
       pos.i++;
-      const right = parseFactor(tokens, pos, ctx);
+      const right = parseFactor(tokens, pos, ctx, missingKeys, mode);
       if (tok.value === "/") {
-        if (right === 0) return 0; // Safe division by zero
+        if (right === 0) {
+          if (mode === "strict") {
+            throw new Error(`Divisão por zero na expressão`);
+          }
+          return 0;
+        }
         left = left / right;
       } else {
         left = left * right;
@@ -106,7 +142,13 @@ function parseTerm(tokens: Token[], pos: { i: number }, ctx: ExpressionContext):
 }
 
 /** factor → number | variable | (expr) | -factor */
-function parseFactor(tokens: Token[], pos: { i: number }, ctx: ExpressionContext): number {
+function parseFactor(
+  tokens: Token[],
+  pos: { i: number },
+  ctx: ExpressionContext,
+  missingKeys?: string[],
+  mode: EvaluationMode = "tolerant",
+): number {
   if (pos.i >= tokens.length) throw new Error("Expressão incompleta");
 
   const tok = tokens[pos.i];
@@ -114,13 +156,13 @@ function parseFactor(tokens: Token[], pos: { i: number }, ctx: ExpressionContext
   // Unary minus
   if (tok.type === "op" && tok.value === "-") {
     pos.i++;
-    return -parseFactor(tokens, pos, ctx);
+    return -parseFactor(tokens, pos, ctx, missingKeys, mode);
   }
 
   // Parenthesized expression
   if (tok.type === "paren" && tok.value === "(") {
     pos.i++;
-    const val = parseExpression(tokens, pos, ctx);
+    const val = parseExpressionTracked(tokens, pos, ctx, missingKeys, mode);
     if (pos.i >= tokens.length || tokens[pos.i].type !== "paren" || (tokens[pos.i] as any).value !== ")") {
       throw new Error("Parêntese não fechado");
     }
@@ -139,6 +181,10 @@ function parseFactor(tokens: Token[], pos: { i: number }, ctx: ExpressionContext
     pos.i++;
     const val = ctx[tok.name];
     if (val === undefined) {
+      if (missingKeys) missingKeys.push(tok.name);
+      if (mode === "strict") {
+        throw new Error(`Variável não encontrada: ${tok.name}`);
+      }
       console.warn(`[ExpressionEngine] Variável não encontrada: ${tok.name}, usando 0`);
       return 0;
     }
@@ -167,6 +213,41 @@ export function evaluate(expression: string, context: ExpressionContext): number
   } catch (err) {
     console.warn(`[ExpressionEngine] Erro ao avaliar "${expression}":`, err);
     return null;
+  }
+}
+
+/**
+ * Evaluate with full tracking: returns value, missingKeys, and error info.
+ * Supports tolerant (default, continues with 0) and strict (errors on missing/divzero) modes.
+ */
+export function evaluateTracked(
+  expression: string,
+  context: ExpressionContext,
+  mode: EvaluationMode = "tolerant",
+): EvaluationResult {
+  const missingKeys: string[] = [];
+  try {
+    if (!expression || expression.trim() === "") {
+      return { value: null, missingKeys, error: "Expressão vazia" };
+    }
+    const tokens = tokenize(expression);
+    if (tokens.length === 0) {
+      return { value: null, missingKeys, error: "Nenhum token encontrado" };
+    }
+    const pos = { i: 0 };
+    const result = parseExpressionTracked(tokens, pos, context, missingKeys, mode);
+    const value = isFinite(result) ? Math.round(result * 10000) / 10000 : null;
+    return {
+      value,
+      missingKeys: [...new Set(missingKeys)],
+      error: value === null ? "Resultado não-finito" : undefined,
+    };
+  } catch (err: any) {
+    return {
+      value: null,
+      missingKeys: [...new Set(missingKeys)],
+      error: err.message,
+    };
   }
 }
 

@@ -1151,8 +1151,8 @@ function CategoryAuditSection({ entries, govMap }: { entries: CategoryAuditEntry
       const isPending = gov.classification === "FEATURE_NAO_IMPLEMENTADA" || gov.classification === "CDD";
       return { isOk: !isGhost && !isPending, isGhost, isPending, statusLabel: gov.statusLabel, statusColor: gov.statusColor, evidence: gov.evidence };
     }
-    const isOk = !v.notImplemented && v.source !== "unknown";
-    const isGhost = v.source === "unknown" && !v.notImplemented;
+    const isOk = !v.notImplemented && v.source !== "error_unmapped";
+    const isGhost = v.source === "error_unmapped" && !v.notImplemented;
     const isPending = !!v.notImplemented;
     return { isOk, isGhost, isPending, statusLabel: isGhost ? "Fantasma" : isPending ? "Não implementada" : "OK", statusColor: (isGhost ? "destructive" : isPending ? "warning" : "success") as string, evidence: "" };
   };
@@ -1271,7 +1271,7 @@ function CategoryAuditSection({ entries, govMap }: { entries: CategoryAuditEntry
                           (v.source === "db_cliente" || v.source === "db_lead" || v.source === "db_consultor" || v.source === "db_projeto" || v.source === "db_proposta" || v.source === "db_versao") && "bg-primary/10 text-primary border-primary/20",
                           v.source === "computed" && "bg-warning/10 text-warning border-warning/20",
                           v.source === "custom_vc" && "bg-success/10 text-success border-success/20",
-                          v.source === "unknown" && "bg-destructive/10 text-destructive border-destructive/20",
+                          v.source === "error_unmapped" && "bg-destructive/10 text-destructive border-destructive/20",
                         )}>
                           {srcInfo.icon} {srcInfo.label}
                         </Badge>

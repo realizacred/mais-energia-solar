@@ -281,7 +281,7 @@ export function VariaveisDisponiveisPage() {
     VARIABLES_CATALOG.forEach((v) => {
       const key = v.legacyKey.replace(/^\[|\]$/g, "");
       const rm = resolverMap[key];
-      const source = rm?.source ?? "unknown";
+      const source = rm?.source ?? "error_unmapped";
       const resolver = rm?.resolver ?? "";
       const usageInfo = usageMap.get(key);
       const auditInDocx = quickAuditMap.found.has(key);
@@ -295,7 +295,7 @@ export function VariaveisDisponiveisPage() {
       if (v.notImplemented) status = "pending";
       else if (docxBroken) status = "error";
       else if (docxNull) status = "warning";
-      else if ((source === "unknown" || source === "futura") && !inDocx) status = "unused";
+      else if ((source === "error_unmapped" || source === "futura") && !inDocx) status = "unused";
 
       items.push({
         key,
@@ -337,8 +337,8 @@ export function VariaveisDisponiveisPage() {
           label: cv.label,
           description: cv.descricao || cv.expressao,
           category: "customizada",
-          domain: "custom_calculada",
-          nature: "custom_var_calculada",
+          domain: "financeiro" as VariableDomain,
+          nature: "calculada" as VariableNature,
           views: ["negocio", "template", "tecnica"],
           unit: "",
           example: "",
@@ -452,7 +452,7 @@ export function VariaveisDisponiveisPage() {
         case "error": items = items.filter((v) => v.status === "error"); break;
         case "pending": items = items.filter((v) => v.status === "pending"); break;
         case "nativa": items = items.filter((v) => !v.isCustom); break;
-        case "custom": items = items.filter((v) => v.isCustom || v.nature === "custom_var_calculada"); break;
+        case "custom": items = items.filter((v) => v.isCustom || v.nature === "calculada"); break;
         case "documento": items = items.filter((v) => v.domain === "documento"); break;
         case "aspiracional": items = items.filter((v) => v.escopo === "aspiracional"); break;
         case "campo_dinamico": items = items.filter((v) => v.nature === "campo_custom_entidade"); break;
@@ -514,7 +514,7 @@ export function VariaveisDisponiveisPage() {
     const ok = governanceVariables.filter((v) => v.status === "ok").length;
     const warnings = governanceVariables.filter((v) => v.status === "warning").length;
     const errors = governanceVariables.filter((v) => v.status === "error").length;
-    const custom = governanceVariables.filter((v) => v.isCustom || v.nature === "custom_var_calculada").length;
+    const custom = governanceVariables.filter((v) => v.isCustom || v.nature === "calculada").length;
     const campoCustEntidade = governanceVariables.filter((v) => v.nature === "campo_custom_entidade").length;
     const documento = governanceVariables.filter((v) => v.domain === "documento").length;
     const healthCritical = governanceVariables.filter((v) => v.healthClassification === "critical").length;
@@ -1067,7 +1067,7 @@ export function VariaveisDisponiveisPage() {
                       <div className="flex items-center gap-1.5">
                         <ChevronRight className="h-3 w-3 text-primary/30 shrink-0" />
                         <span className="font-medium text-foreground text-[11px] leading-tight">{v.label}</span>
-                        {v.nature === "custom_var_calculada" && (
+                        {v.isCustom && (
                           <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-primary/30 text-primary font-mono">custom</Badge>
                         )}
                         {v.nature === "campo_custom_entidade" && (
@@ -1076,7 +1076,7 @@ export function VariaveisDisponiveisPage() {
                         {v.nature === "alias_legado" && (
                           <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-warning/40 bg-warning/10 text-warning font-mono">legado</Badge>
                         )}
-                        {v.nature === "futura" && (
+                        {v.notImplemented && (
                           <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-muted-foreground/40 text-muted-foreground font-mono">futura</Badge>
                         )}
                         {v.isSeries && (
