@@ -194,21 +194,28 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     setSnapshotLoading(kitId);
     try {
       const rows = await snapshotCatalogKitToKitItemRows(kitId);
-      if (rows.length === 0) {
-        toast({ title: "Kit vazio", description: "Este kit não possui itens cadastrados.", variant: "destructive" });
-        return;
-      }
-      onItensChange(rows);
 
       // Find catalog kit for full metadata
       const catalogKit = catalogKits.find(k => k.id === kitId);
-      const summary = catalogSummaries.get(kitId);
 
-      // Determine topology: prefer external_data from Edeltec, else default
+      // For integrated kits (with source + external_id), allow selection even without
+      // legacy solar_kit_catalog_items — the canonical catalog data IS the kit.
+      const isIntegratedKit = !!catalogKit?.source && !!catalogKit?.external_data;
+
+      if (rows.length === 0 && !isIntegratedKit) {
+        toast({ title: "Kit vazio", description: "Este kit não possui itens cadastrados.", variant: "destructive" });
+        return;
+      }
+
+      onItensChange(rows);
+
+      const summary = catalogSummaries.get(kitId);
       const extData = catalogKit?.external_data;
+
+      // Determine topology: provider-agnostic from external_data
       let topoLabel = "Tradicional";
-      if (extData?.sistema === "hibrido") topoLabel = "Híbrido";
-      else if (extData?.tipoDeProduto?.toLowerCase().includes("micro")) topoLabel = "Microinversor";
+      if (extData?.sistema === "hibrido" || extData?.inversorHibrido === true) topoLabel = "Híbrido";
+      else if (extData?.tipoDeProduto?.toLowerCase?.()?.includes?.("micro")) topoLabel = "Microinversor";
 
       const card = kitItemsToCardData(rows, topoLabel);
 
@@ -216,9 +223,13 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       const calculatedCost = rows.reduce((s, r) => s + r.quantidade * r.preco_unitario, 0);
       const kitCost = catalogKit?.fixed_price || summary?.custoTotal || calculatedCost;
 
-      // Determine source label for distributor
-      const distribLabel = catalogKit?.source === "edeltec" ? "Edeltec" : kitName;
+      // Determine source label — provider-agnostic (capitalize source)
+      const sourceLabel = catalogKit?.source
+        ? catalogKit.source.charAt(0).toUpperCase() + catalogKit.source.slice(1)
+        : "";
+      const distribLabel = sourceLabel || kitName;
 
+      // Build provider-agnostic KitMeta with full snapshot
       const meta: KitMeta = {
         distribuidorNome: distribLabel,
         nomeKit: catalogKit?.name || kitName,
@@ -227,10 +238,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         topologia: topoLabel,
         custo: kitCost,
         sistema: extData?.sistema || "on_grid",
-        // Edeltec snapshot enrichment
-        ...(catalogKit?.source === "edeltec" ? {
-          source: "edeltec",
-          external_id: extData?.id || null,
+        // Provider-agnostic snapshot enrichment for any integrated kit
+        ...(catalogKit?.source ? {
+          source: catalogKit.source,
+          external_id: catalogKit?.external_data?.id ?? extData?.external_id ?? null,
           fabricante: catalogKit.fabricante || null,
           potencia_kwp: catalogKit.estimated_kwp || null,
           potencia_inversor: catalogKit.potencia_inversor || null,
@@ -252,7 +263,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         setManualKits([{ card, itens: rows, meta }]);
       }
 
-      toast({ title: "Kit importado do catálogo", description: `${kitName} — ${rows.length} item(ns). Edite na aba "Criar manualmente".` });
+      const itemLabel = rows.length > 0 ? `${rows.length} item(ns).` : "Kit integrado selecionado.";
+      toast({ title: "Kit importado do catálogo", description: `${kitName} — ${itemLabel} Edite na aba "Criar manualmente".` });
       setTab("manual");
     } catch (err: any) {
       toast({ title: "Erro ao importar kit", description: err.message, variant: "destructive" });
