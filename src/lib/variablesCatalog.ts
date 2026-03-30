@@ -51,22 +51,22 @@ export type VariableDomain =
   | "documento"
   | "fornecedor"
   | "projeto"
-  | "custom_calculada"
-  | "campo_entidade"
+  | "uc"
+  | "integracao"
   | "tecnico"
   | "legado";
 
 /** Nature/origin of the variable */
 export type VariableNature =
-  | "canonica"
-  | "alias_legado"
   | "calculada"
-  | "documental"
-  | "importada_integracao"
-  | "custom_var_calculada"
+  | "snapshot"
+  | "input"
   | "campo_custom_entidade"
-  | "tecnica_interna"
-  | "futura";
+  | "integracao_externa"
+  | "documental"
+  | "alias_legado"
+  | "tecnica"
+  | "canonica";
 
 /** UI view presets */
 export type VariableView = "negocio" | "template" | "tecnica" | "integracoes" | "legado";
