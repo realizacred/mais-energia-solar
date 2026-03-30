@@ -150,8 +150,6 @@ interface EnrichedVariable {
   docxBroken: boolean;
   docxNull: boolean;
   status: "ok" | "warning" | "error" | "pending" | "unused";
-  /** Governance classification for audit */
-  governance?: "legado" | "texto" | "input_wizard";
   /** tipo_resultado from DB for custom vars */
   tipoResultado?: string;
   /** Escopo: proposta (default) ou documento */
@@ -164,7 +162,7 @@ interface EnrichedVariable {
   healthScore?: number;
 }
 
-type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "legado" | "texto" | "documento" | "aspiracional" | "campo_dinamico" | "health_critical" | "health_unstable" | "health_healthy" | "health_unused";
+type StatusFilter = "todas" | "em_uso" | "ok" | "warning" | "error" | "pending" | "nativa" | "custom" | "documento" | "aspiracional" | "campo_dinamico" | "health_critical" | "health_unstable" | "health_healthy" | "health_unused";
 type ActiveView = VariableCategory | "todas" | "auditoria" | "campo_pre" | "campo_pos" | "campo_projeto";
 
 /* ── Semantic explanations for known variables ── */
@@ -182,11 +180,7 @@ const SEMANTIC_EXPLANATIONS: Record<string, string> = {
   economia_mensal: "Economia mensal estimada na conta de energia após instalação do sistema solar.",
 };
 
-/** Variables classified as legacy/hidden — shown with special governance badge */
-const LEGACY_HIDDEN_VARS = new Set(["capo_m"]);
-
-/** Variables that are wizard input fields (not ghosts, but dependencies) */
-const WIZARD_INPUT_VARS = new Set(["capo_seguro", "capo_desconto", "capo_string_box"]);
+/* Legacy/wizard sets removed — now handled by centralized governance engine */
 
 /* ── Source display ── */
 function getSourceLabel(source: VariableSource): { label: string; color: string } {
