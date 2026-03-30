@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { connectProvider } from "@/services/integrations/integrationService";
+import { connectProvider, connectSupplierProvider } from "@/services/integrations/integrationService";
 import type { IntegrationProvider, CredentialField } from "@/services/integrations/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, CheckCircle2, AlertTriangle, Eye, EyeOff, Plug } from "lucide-react";
@@ -97,7 +97,9 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
         if (formValues[field.key]) credentials[field.key] = formValues[field.key];
       }
       const legacyId = LEGACY_MAP[provider.id] || provider.id;
-      const result = await connectProvider(legacyId, credentials);
+      const result = provider.category === "suppliers"
+        ? await connectSupplierProvider(provider.id, provider.label, credentials)
+        : await connectProvider(legacyId, credentials);
       if (result.success) {
         toast.success(`${provider.label} conectado com sucesso!`);
         onOpenChange(false);
