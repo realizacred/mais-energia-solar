@@ -715,6 +715,7 @@ export default function Admin() {
                 <Route path="monitoramento-solar" element={<Navigate to="/admin/monitoramento/integracoes" replace />} />
                 <Route path="monitoramento/*" element={<MonitoringModule />} />
                 <Route path="catalogo-integracoes" element={<IntegrationsCatalogPage />} />
+                <Route path="integracoes/edeltec" element={<EdeltecIntegrationPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="integracao-asaas" element={<AsaasIntegrationPage />} />
                 <Route path="asaas-conversao" element={<AsaasConversionPage />} />
