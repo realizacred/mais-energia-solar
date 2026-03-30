@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle, FileWarning, Ghost, Layers, Zap,
   FileText, Clock, Bug, Sparkles, Copy, Bot
 } from "lucide-react";
+import { BACKEND_FLATTEN_KEYS } from "@/services/variableAudit/knownKeys";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useQuickAudit, useFullAudit, type FullAuditResult } from "@/hooks/useRealAudit";
