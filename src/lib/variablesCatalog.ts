@@ -533,9 +533,12 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
 
   // ── Instalação ──
   v("entrada", "entrada.tipo_telhado", "tipo_telhado", "Tipo de Telhado", "Tipo de telhado/cobertura", "-", "Shingle"),
+  v("entrada", "entrada.cape_telhado", "cape_telhado", "Capeamento do Telhado", "Tipo/material de capeamento do telhado", "-", "Fibrocimento"),
+  v("entrada", "entrada.estrutura", "estrutura", "Estrutura de Fixação", "Tipo de estrutura de fixação do sistema solar", "-", "Perfil"),
   v("entrada", "entrada.fase", "fase", "Fase", "Fase elétrica", "-", "Trifásico"),
   v("entrada", "entrada.fase_uc1", "fase_uc1", "Fase UC #", "Fase elétrica por UC", "-", "Trifásico"),
   v("entrada", "entrada.tensao_rede", "tensao_rede", "Tensão da Rede", "Tensão da rede elétrica", "V", "127/220V"),
+  v("entrada", "entrada.tensao", "tensao", "Tensão", "Tensão do sistema (alias simplificado)", "V", "220V"),
 
   // ── Custo de Disponibilidade ──
   v("entrada", "entrada.custo_disponibilidade_kwh", "custo_disponibilidade_kwh", "Custo de Disponibilidade", "Custo de disponibilidade em kWh (BT)", "kWh", "100", "BT"),
