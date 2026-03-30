@@ -466,7 +466,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
 
   // ── Distribuidora e Subgrupo ──
   v("entrada", "entrada.dis_energia", "dis_energia", "Distribuidora de Energia", "Nome da concessionária/distribuidora", "-", "Copel-DIS"),
+  v("entrada", "entrada.subgrupo", "subgrupo", "Subgrupo Tarifário", "Subgrupo tarifário da UC principal (A4, B1, etc.)", "-", "B1"),
   v("entrada", "entrada.subgrupo_uc1", "subgrupo_uc1", "Subgrupo UC#", "Subgrupo tarifário por UC", "-", "A4 - Verde"),
+  v("entrada", "entrada.grupo_tarifario", "grupo_tarifario", "Grupo Tarifário", "Grupo tarifário (A ou B)", "-", "B"),
+  v("entrada", "entrada.concessionaria_id", "concessionaria_id", "ID da Concessionária", "UUID da concessionária no banco de dados", "-", "uuid"),
 
   // ── Consumo mensal por mês (BT — Disponível para os 12 meses) ──
   v("entrada", "entrada.consumo_jan", "consumo_jan", "Consumo Janeiro", "Consumo em janeiro (Disponível para os 12 meses)", "kWh", "1.236", "BT"),
