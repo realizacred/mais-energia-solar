@@ -11,6 +11,39 @@ const EDELTEC_BASE = "https://api.edeltecsolar.com.br";
 const PAGES_PER_BATCH = 5;
 const ITEMS_PER_PAGE = 50;
 
+// ── Provider Adapter Types ──────────────────────────────────
+interface CanonicalKit {
+  name: string;
+  external_id: string;
+  external_code: string | null;
+  estimated_kwp: number;
+  fixed_price: number;
+  status: "active" | "inactive";
+  tenant_id: string;
+  fornecedor_id: string | null;
+  is_generator: boolean;
+  product_kind: string;
+  fabricante: string | null;
+  marca: string | null;
+  source: string;
+  external_data: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface KitItem {
+  item_type: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  ref_id: string | null;
+}
+
+interface ProviderAdapter {
+  normalize(raw: unknown, tenantId: string, fornecedorId: string | null): CanonicalKit;
+  classify(raw: unknown): { is_generator: boolean; product_kind: string };
+  buildKitItems(raw: unknown): KitItem[];
+}
+
 // ── Auth ────────────────────────────────────────────────────
 async function getEdeltecToken(apiKey: string, secret: string): Promise<string> {
   const res = await fetch(`${EDELTEC_BASE}/api-access/token`, {
@@ -59,7 +92,7 @@ function classifyEdeltecProduct(p: any): { is_generator: boolean; product_kind: 
 }
 
 // ── Map product → solar_kit_catalog row ─────────────────────
-function mapToKit(produto: any, tenantId: string, fornecedorId: string | null) {
+function mapToKit(produto: any, tenantId: string, fornecedorId: string | null): CanonicalKit {
   const disponivel = produto.disponivelEmEstoque === true;
   const permiteCompra = produto.permiteCompraSemEstoque === true;
   const isAvailableNow = disponivel || permiteCompra;
@@ -139,8 +172,8 @@ function mapToKit(produto: any, tenantId: string, fornecedorId: string | null) {
 }
 
 // ── Map kit items (módulos/inversores) ──────────────────────
-function mapToKitItems(produto: any) {
-  const items: any[] = [];
+function mapToKitItems(produto: any): KitItem[] {
+  const items: KitItem[] = [];
   const titulo = produto.titulo || "";
 
   if (produto.potenciaModulo && produto.potenciaModulo > 0) {
@@ -189,6 +222,13 @@ function mapToKitItems(produto: any) {
   return items;
 }
 
+// ── Provider Adapter ────────────────────────────────────────
+const edeltecAdapter: ProviderAdapter = {
+  normalize: (raw, tenantId, fornecedorId) => mapToKit(raw, tenantId, fornecedorId),
+  classify: (raw) => classifyEdeltecProduct(raw),
+  buildKitItems: (raw) => mapToKitItems(raw),
+};
+
 // ── Sync Log helper ─────────────────────────────────────────
 async function syncLog(
   supabase: any, tenantId: string, level: string, message: string, payload?: any
@@ -228,6 +268,7 @@ serve(async (req) => {
       mode = "incremental", // 'incremental' | 'full_replace'
     } = body;
     const test_only = !!body.test_only;
+    const fornecedorId = fornecedor_id;
 
     // NOTE: only_generators is intentionally NOT used for DB filtering anymore.
     // ALL products are saved to the catalog. Filtering is done client-side in the UI.
@@ -321,7 +362,7 @@ serve(async (req) => {
         last_run_at: new Date().toISOString(),
         completed_at: null,
         last_error: null,
-        metadata: { q: q || null, fornecedor_id },
+        metadata: { q: q || null, fornecedor_id: fornecedorId },
       };
 
       if (syncState) {
@@ -343,13 +384,21 @@ serve(async (req) => {
         syncState = data;
       }
 
-      // FULL_REPLACE: delete existing edeltec records for this tenant at start
+      // FULL_REPLACE: delete existing records for this tenant+fornecedor at start
       if (mode === "full_replace") {
-        const { error: delError } = await supabase
+        const deleteQuery = supabase
           .from("solar_kit_catalog")
           .delete()
-          .eq("tenant_id", tenant_id)
-          .eq("source", "edeltec");
+          .eq("tenant_id", tenant_id);
+        
+        // Use fornecedor_id when available, fall back to source for backward compat
+        if (fornecedorId) {
+          deleteQuery.eq("fornecedor_id", fornecedorId);
+        } else {
+          deleteQuery.eq("source", "edeltec");
+        }
+
+        const { error: delError } = await deleteQuery;
         if (delError) {
           console.error("[edeltec-sync] Full replace delete error:", delError);
           await syncLog(supabase, tenant_id, "error", "Erro ao limpar catálogo para full replace", { error: delError.message });
@@ -425,85 +474,89 @@ serve(async (req) => {
     let created = 0, updated = 0, skipped = 0;
 
     if (batchProducts.length > 0) {
-      const mappedProducts = batchProducts.map(p => mapToKit(p, tenant_id, batchMeta.fornecedor_id));
+      const mappedProducts = batchProducts.map(p => edeltecAdapter.normalize(p, tenant_id, batchMeta.fornecedor_id));
 
-      // Fetch existing external_ids for this batch
+      // Fetch existing external_ids for this batch to count created vs updated
       const extIds = mappedProducts.map(p => p.external_id);
       const { data: existingKits } = await supabase
         .from("solar_kit_catalog")
         .select("id, external_id")
         .eq("tenant_id", tenant_id)
-        .eq("source", "edeltec")
+        .eq("fornecedor_id", fornecedorId)
         .in("external_id", extIds);
 
       const existingMap = new Map<string, string>();
       (existingKits || []).forEach((k: any) => existingMap.set(k.external_id, k.id));
 
-      // Separate inserts and updates
-      const toInsert: any[] = [];
-      const toUpdate: { id: string; data: any }[] = [];
-
+      // Count created vs updated BEFORE the upsert
       for (const product of mappedProducts) {
-        const existingId = existingMap.get(product.external_id);
-        if (existingId) {
-          toUpdate.push({ id: existingId, data: product });
+        if (existingMap.has(product.external_id)) {
           updated++;
         } else {
-          toInsert.push(product);
           created++;
         }
       }
 
-      // Batch insert
-      if (toInsert.length > 0) {
-        const { error: insertErr } = await supabase
-          .from("solar_kit_catalog")
-          .upsert(toInsert, { onConflict: "tenant_id,source,external_id", ignoreDuplicates: false });
-        if (insertErr) {
-          console.error("[edeltec-sync] Batch insert error:", insertErr);
-          await syncLog(supabase, tenant_id, "error", "Erro no batch insert", { error: insertErr.message, count: toInsert.length });
-          skipped += toInsert.length;
-          created -= toInsert.length;
-        } else {
-          // Insert kit items for new generators
+      // SINGLE upsert for all products (inserts + updates unified)
+      const { error: upsertErr } = await supabase
+        .from("solar_kit_catalog")
+        .upsert(mappedProducts, {
+          onConflict: "tenant_id,fornecedor_id,external_id",
+          ignoreDuplicates: false,
+        });
+
+      if (upsertErr) {
+        console.error("[edeltec-sync] Batch upsert error:", upsertErr);
+        await syncLog(supabase, tenant_id, "error", "Erro no batch upsert", { error: upsertErr.message, count: mappedProducts.length });
+        skipped += mappedProducts.length;
+        created = 0;
+        updated = 0;
+      } else {
+        // ── Batch kit items (eliminate N+1) ──
+        // Fetch all IDs for generators that were just inserted (new ones only)
+        const newExtIds = mappedProducts
+          .filter(p => !existingMap.has(p.external_id))
+          .map(p => p.external_id);
+
+        if (newExtIds.length > 0) {
+          const { data: insertedKits } = await supabase
+            .from("solar_kit_catalog")
+            .select("id, external_id")
+            .eq("tenant_id", tenant_id)
+            .eq("fornecedor_id", fornecedorId)
+            .in("external_id", newExtIds);
+
+          const insertedMap = new Map<string, string>(
+            (insertedKits || []).map((k: any) => [k.external_id, k.id])
+          );
+
+          // Build ALL kit items at once
+          const allKitItems: any[] = [];
           for (let i = 0; i < batchProducts.length; i++) {
             const prod = batchProducts[i];
             const mapped = mappedProducts[i];
-            if (!existingMap.has(mapped.external_id) && classifyEdeltecProduct(prod).is_generator) {
-              const kitItems = mapToKitItems(prod);
-              if (kitItems.length > 0) {
-                // Find the inserted kit ID
-                const { data: newKit } = await supabase
-                  .from("solar_kit_catalog")
-                  .select("id")
-                  .eq("tenant_id", tenant_id)
-                  .eq("external_id", mapped.external_id)
-                  .eq("source", "edeltec")
-                  .maybeSingle();
-                if (newKit?.id) {
-                  await supabase
-                    .from("solar_kit_catalog_items")
-                    .upsert(
-                      kitItems.map(item => ({ ...item, kit_id: newKit.id, tenant_id })),
-                      { onConflict: "tenant_id,kit_id,item_type,ref_id", ignoreDuplicates: true }
-                    );
-                }
-              }
+            const kitId = insertedMap.get(mapped.external_id);
+            if (!kitId) continue;
+            if (!edeltecAdapter.classify(prod).is_generator) continue;
+            const items = edeltecAdapter.buildKitItems(prod);
+            for (const item of items) {
+              allKitItems.push({ ...item, kit_id: kitId, tenant_id });
             }
           }
-        }
-      }
 
-      // Batch updates (individual due to different WHERE clauses)
-      for (const { id, data } of toUpdate) {
-        const { error: upErr } = await supabase
-          .from("solar_kit_catalog")
-          .update(data)
-          .eq("id", id);
-        if (upErr) {
-          console.error(`[edeltec-sync] Update error for ${id}:`, upErr);
-          skipped++;
-          updated--;
+          // SINGLE upsert for all kit items
+          if (allKitItems.length > 0) {
+            const { error: kitItemsErr } = await supabase
+              .from("solar_kit_catalog_items")
+              .upsert(allKitItems, {
+                onConflict: "tenant_id,kit_id,item_type,ref_id",
+                ignoreDuplicates: true,
+              });
+            if (kitItemsErr) {
+              console.error("[edeltec-sync] Kit items upsert error:", kitItemsErr);
+              await syncLog(supabase, tenant_id, "warn", "Erro ao salvar itens de kit", { error: kitItemsErr.message, count: allKitItems.length });
+            }
+          }
         }
       }
     }
@@ -522,12 +575,19 @@ serve(async (req) => {
     if (isComplete) {
       newState.completed_at = new Date().toISOString();
 
-      // Final validation: log manufacturer summary
-      const { data: fabData } = await supabase
+      // Final validation: log manufacturer summary using fornecedor_id
+      const fabQuery = supabase
         .from("solar_kit_catalog")
         .select("fabricante")
-        .eq("tenant_id", tenant_id)
-        .eq("source", "edeltec");
+        .eq("tenant_id", tenant_id);
+      
+      if (fornecedorId) {
+        fabQuery.eq("fornecedor_id", fornecedorId);
+      } else {
+        fabQuery.eq("source", "edeltec");
+      }
+
+      const { data: fabData } = await fabQuery;
       
       if (fabData) {
         const fabCount = new Map<string, number>();
