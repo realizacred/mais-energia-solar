@@ -236,7 +236,12 @@ export async function fetchKitItems(kitId: string): Promise<CatalogKitItem[]> {
  */
 export async function snapshotCatalogKitToKitItemRows(kitId: string): Promise<KitItemRow[]> {
   const items = await fetchKitItems(kitId);
-  if (items.length === 0) return [];
+
+  // If no legacy items exist, check if this is a valid integrated kit
+  // and generate synthetic rows from canonical catalog data
+  if (items.length === 0) {
+    return buildSyntheticRowsFromCatalog(kitId);
+  }
 
   // Separate ref_ids by type for batch lookups
   const moduloRefIds = items.filter(i => i.item_type === "modulo" && i.ref_id).map(i => i.ref_id!);
