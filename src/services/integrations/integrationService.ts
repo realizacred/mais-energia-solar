@@ -94,6 +94,35 @@ async function testSupplierConnection(
   }
 }
 
+async function updateSupplierConfigState(
+  apiConfigId: string,
+  patch: Record<string, unknown>,
+  settingsPatch?: Record<string, unknown>
+): Promise<void> {
+  const payload: Record<string, unknown> = {
+    ...patch,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (settingsPatch) {
+    const { data: current } = await (supabase as any)
+      .from("integrations_api_configs")
+      .select("settings")
+      .eq("id", apiConfigId)
+      .single();
+
+    payload.settings = {
+      ...((current?.settings || {}) as Record<string, unknown>),
+      ...settingsPatch,
+    };
+  }
+
+  await (supabase as any)
+    .from("integrations_api_configs")
+    .update(payload)
+    .eq("id", apiConfigId);
+}
+
 /** Fetch all providers from catalog */
 export async function listProviders(): Promise<IntegrationProvider[]> {
   const { data, error } = await supabase
@@ -185,7 +214,12 @@ export async function connectSupplierProvider(
   providerLabel: string,
   credentials: Record<string, string>
 ): Promise<{ success: boolean; config_id?: string; error?: string }> {
+  let affectedConfigId: string | undefined;
   try {
+    if (!credentials.apiKey?.trim() || !credentials.secret?.trim()) {
+      throw new Error("Informe API Key e Secret para conectar a Edeltec");
+    }
+
     const tenantId = await getCurrentTenantId();
     const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
     const now = new Date().toISOString();
@@ -211,27 +245,26 @@ export async function connectSupplierProvider(
         .eq("id", config.id);
 
       if (updateError) throw updateError;
+      affectedConfigId = config.id;
 
       await testSupplierConnection(tenantId, config.id, providerKey);
 
       const testedAt = new Date().toISOString();
-      const { error: confirmError } = await (supabase as any)
-        .from("integrations_api_configs")
-        .update({
+      await updateSupplierConfigState(config.id, {
           status: "connected",
           is_active: true,
           last_tested_at: testedAt,
-          updated_at: testedAt,
-        })
-        .eq("id", config.id);
+        }, {
+          last_error: null,
+        });
 
-      if (confirmError) throw confirmError;
       return { success: true, config_id: config.id };
     }
 
     const { data: inserted, error: insertError } = await (supabase as any)
       .from("integrations_api_configs")
       .insert({
+        tenant_id: tenantId,
         provider: providerKey,
         name: providerLabel,
         credentials,
@@ -243,23 +276,29 @@ export async function connectSupplierProvider(
       .single();
 
     if (insertError) throw insertError;
+    affectedConfigId = inserted?.id;
 
     await testSupplierConnection(tenantId, inserted?.id, providerKey);
 
     const testedAt = new Date().toISOString();
-    const { error: confirmError } = await (supabase as any)
-      .from("integrations_api_configs")
-      .update({
+    await updateSupplierConfigState(inserted?.id, {
         status: "connected",
         is_active: true,
         last_tested_at: testedAt,
-        updated_at: testedAt,
-      })
-      .eq("id", inserted?.id);
+      }, {
+        last_error: null,
+      });
 
-    if (confirmError) throw confirmError;
     return { success: true, config_id: inserted?.id };
   } catch (error: any) {
+    if (affectedConfigId) {
+      await updateSupplierConfigState(affectedConfigId, {
+        status: "error",
+        is_active: false,
+      }, {
+        last_error: error?.message || "Falha ao conectar fornecedor",
+      });
+    }
     return { success: false, error: error?.message || "Falha ao conectar fornecedor" };
   }
 }
@@ -311,22 +350,30 @@ export async function syncSupplierProvider(
     });
 
     if (error) {
+      await updateSupplierConfigState(config.id, {
+        status: "error",
+      }, {
+        last_error: (await parseInvokeError(error)).message,
+      });
       const parsed = await parseInvokeError(error);
       return { success: false, error: parsed.message };
     }
 
     if (!data?.success) {
+      await updateSupplierConfigState(config.id, {
+        status: "error",
+      }, {
+        last_error: data?.error || "Erro ao sincronizar fornecedor",
+      });
       return { success: false, error: data?.error || "Erro ao sincronizar fornecedor" };
     }
 
-    await (supabase as any)
-      .from("integrations_api_configs")
-      .update({
+    await updateSupplierConfigState(config.id, {
         status: "connected",
         last_sync_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", config.id);
+      }, {
+        last_error: null,
+      });
 
     return {
       success: true,
