@@ -56,11 +56,15 @@ export function AuditTabContent({
   loadingCustom,
   onRefresh,
   onRequestCreateVariable,
+  govRecords,
+  govSummary,
 }: {
   dbCustomVars: DbCustomVar[];
   loadingCustom: boolean;
   onRefresh: () => void | Promise<any>;
   onRequestCreateVariable?: (suggested: { nome: string; label: string; table: string; column: string; colType?: string }) => void;
+  govRecords?: GovernanceRecord[];
+  govSummary?: GovernanceSummary;
 }) {
   const [showSynced, setShowSynced] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "missing" | "mapped">("all");
