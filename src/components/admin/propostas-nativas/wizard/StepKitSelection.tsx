@@ -75,7 +75,7 @@ interface Props {
   custoKitOverride?: number | null;
 }
 
-type TabType = "customizado" | "fechado" | "manual" | "catalogo";
+type TabType = "customizado" | "fechado" | "catalogo";
 
 function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverride?: number | null): KitCardData | null {
   const modItems = itens.filter(i => i.categoria === "modulo");
@@ -116,9 +116,9 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverri
 // Mock kits removed — manual mode only for now
 
 export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries, somenteGhi, custoKitOverride }: Props) {
-  // If returning to this step with a kit already restored, auto-switch to "manual" tab
+  // If returning to this step with a kit already restored, auto-switch to "customizado" tab
   const [tab, setTab] = useState<TabType>(() => {
-    if (manualKitsProp.length > 0) return "manual";
+    if (manualKitsProp.length > 0) return "customizado";
     return "catalogo";
   });
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -264,8 +264,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       }
 
       const itemLabel = rows.length > 0 ? `${rows.length} item(ns).` : "Kit integrado selecionado.";
-      toast({ title: "Kit importado do catálogo", description: `${kitName} — ${itemLabel} Edite na aba "Criar manualmente".` });
-      setTab("manual");
+      toast({ title: "Kit importado do catálogo", description: `${kitName} — ${itemLabel}` });
+      // Stay on catalogo tab — the selected kit banner shows at the top
     } catch (err: any) {
       toast({ title: "Erro ao importar kit", description: err.message, variant: "destructive" });
     } finally {
@@ -401,7 +401,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       }
     }
     setManualMode(null);
-    setTab("manual");
+    setTab("customizado");
   };
 
   const handleDeleteManualKit = (index: number) => {
@@ -422,7 +422,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     );
   }
 
-  const activeKits = tab === "manual" ? [] : currentKitCards;
+  const activeKits = tab === "customizado" ? [] : currentKitCards;
 
   return (
     <div className="space-y-4">
@@ -457,11 +457,11 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
         {/* ── Main Content Area ── */}
         <div className="flex-1 min-w-0 space-y-4">
-          {/* Tabs: Customizado | Fechado | + Criar manualmente */}
+          {/* Tabs: Catálogo | Customizado | Fechado */}
           <div className="flex items-center border-b border-border/50">
             {([
               { key: "catalogo" as const, label: "📦 Catálogo" },
-              { key: "customizado" as const, label: "Customizado" },
+              { key: "customizado" as const, label: `Customizado${manualKits.length > 0 ? ` (${manualKits.length})` : ""}` },
               { key: "fechado" as const, label: "Fechado" },
             ]).map(t => (
               <Button
@@ -478,13 +478,6 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 {t.label}
               </Button>
             ))}
-            <Button
-              variant="outline"
-              onClick={() => { setTab("manual"); setShowChoiceModal(true); }}
-              className="gap-2 border-primary text-primary hover:bg-primary/10"
-            >
-              + Criar manualmente
-            </Button>
           </div>
 
           {/* Toolbar */}
@@ -535,6 +528,57 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               </Button>
             </div>
           </div>
+
+          {/* ── Selected Kit Banner (visible on all tabs when kit is selected) ── */}
+          {manualKits.length > 0 && (
+            <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-bold text-foreground">Kit Selecionado</span>
+                  {manualKits[0]?.meta?.source && (
+                    <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
+                      {(manualKits[0].meta.source as string).charAt(0).toUpperCase() + (manualKits[0].meta.source as string).slice(1)}
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground">
+                    {manualKits[0]?.meta?.source ? "Fechado" : "Customizado"}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => { setEditingKitIndex(0); setManualMode("zero"); }}>
+                    <Pencil className="h-3 w-3" /> Editar
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteManualKit(0)}>
+                    <Trash2 className="h-3 w-3" /> Remover
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-center gap-6 flex-wrap text-xs text-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Sun className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium">{manualKits[0].card.moduloQtd}x {manualKits[0].card.moduloDescricao}</span>
+                  <span className="text-muted-foreground">({manualKits[0].card.moduloPotenciaKwp.toFixed(2)} kWp)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Cpu className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium">{manualKits[0].card.inversorQtd}x {manualKits[0].card.inversorDescricao}</span>
+                  <span className="text-muted-foreground">({manualKits[0].card.inversorPotenciaKw.toFixed(2)} kW)</span>
+                </div>
+                {manualKits[0].card.precoTotal > 0 && (
+                  <span className="font-bold text-primary">{formatBRL(manualKits[0].card.precoTotal)}</span>
+                )}
+              </div>
+              {manualKits[0]?.meta?.fabricante && (
+                <p className="text-[10px] text-muted-foreground">
+                  Fabricante: {manualKits[0].meta.fabricante as string}
+                  {manualKits[0]?.meta?.fase && <> • {manualKits[0].meta.fase as string}</>}
+                  {manualKits[0]?.meta?.tensao && <> • {manualKits[0].meta.tensao as string}</>}
+                  {manualKits[0]?.meta?.estrutura && <> • {manualKits[0].meta.estrutura as string}</>}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Tab Content */}
           {tab === "catalogo" ? (
@@ -759,9 +803,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 </div>
               )}
             </div>
-          ) : tab === "manual" ? (
+          ) : tab === "customizado" ? (
+            /* ── Customizado Tab — manual kits + imported catalog kits ── */
             <div className="space-y-3">
-              {/* Manual Kit Cards in grid like reference */}
               {manualKits.length > 0 && (
                 <div className={viewMode === "grid"
                   ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3"
@@ -784,22 +828,20 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               {manualKits.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Package className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm font-medium text-muted-foreground">Nenhum kit manual criado</p>
-                  <p className="text-xs text-muted-foreground/70 mt-1 mb-4">Crie um kit manualmente para começar</p>
+                  <p className="text-sm font-medium text-muted-foreground">Nenhum kit customizado</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1 mb-4">Crie um kit manualmente ou selecione do catálogo</p>
                   <Button size="sm" className="gap-1.5" onClick={() => setShowChoiceModal(true)}>
                     <Plus className="h-3.5 w-3.5" /> Criar kit manualmente
                   </Button>
                 </div>
               )}
 
-              {manualKits.length > 0 && (
-                <Button variant="default" size="sm" className="gap-1.5 text-xs" onClick={() => setShowChoiceModal(true)}>
-                  <Plus className="h-3 w-3" /> Criar outro kit
-                </Button>
-              )}
+              <Button variant="default" size="sm" className="gap-1.5 text-xs" onClick={() => setShowChoiceModal(true)}>
+                <Plus className="h-3 w-3" /> Criar outro kit
+              </Button>
             </div>
           ) : (
-            /* Customizado / Fechado Tabs */
+            /* ── Fechado Tab ── */
             activeKits.length > 0 ? (
               viewMode === "grid" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
@@ -817,8 +859,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <Package className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">Nenhum kit encontrado</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou crie manualmente</p>
+                <p className="text-sm font-medium text-muted-foreground">Nenhum kit fechado encontrado</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou selecione do catálogo</p>
               </div>
             )
           )}
@@ -986,14 +1028,15 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 /* ── Manual Kit Card (grid/list matching reference) ── */
 
 function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete }: {
-  entry: { card: KitCardData; itens: KitItemRow[] };
+  entry: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta };
   viewMode: "grid" | "list";
   isSelected?: boolean;
   onSelect: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const { card } = entry;
+  const { card, meta } = entry;
+  const originSource = meta?.source;
 
   if (viewMode === "list") {
     return (
@@ -1062,10 +1105,17 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
       )}
       {/* Distributor header */}
       <div>
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-            {card.distribuidorNome || "Manual"}
-          </span>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              {card.distribuidorNome || "Manual"}
+            </span>
+            {originSource && (
+              <Badge variant="outline" className="text-[9px] bg-info/10 text-info border-info/30">
+                {originSource.charAt(0).toUpperCase() + originSource.slice(1)}
+              </Badge>
+            )}
+          </div>
           {!isSelected && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">KIT</span>}
         </div>
 
