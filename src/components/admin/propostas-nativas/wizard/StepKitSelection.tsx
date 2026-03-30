@@ -162,16 +162,15 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     return null;
   }, [manualKits]);
 
-  // Load catalog kits when tab switches to "catalogo"
+  // Load catalog kits when tab switches to "catalogo" — only generators by default
   useEffect(() => {
     if (tab !== "catalogo" || catalogLoaded.current) return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits()
+    fetchActiveKits(true) // only generators
       .then(async (kits) => {
         setCatalogKits(kits);
         catalogLoaded.current = true;
-        // Fetch summaries in parallel
         if (kits.length > 0) {
           const summaries = await fetchKitsSummary(kits.map(k => k.id));
           setCatalogSummaries(summaries);
