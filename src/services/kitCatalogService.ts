@@ -375,22 +375,131 @@ async function buildSyntheticRowsFromCatalog(kitId: string): Promise<KitItemRow[
   const hasMinimalData = !!kit.name && (kit.fixed_price != null || kit.estimated_kwp != null);
   if (!hasSource || !hasMinimalData) return [];
 
-  const rows: KitItemRow[] = [];
   const extData = kit.external_data as Record<string, any> | null;
 
-  // Generate a "kit gerador" row representing the whole integrated kit
-  rows.push({
-    id: crypto.randomUUID(),
-    descricao: kit.name,
-    fabricante: kit.fabricante || extData?.fabricante || "",
-    modelo: kit.name,
-    potencia_w: (kit.estimated_kwp || 0) * 1000,
-    quantidade: 1,
-    preco_unitario: kit.fixed_price || 0,
-    categoria: "outros",
-    avulso: false,
-    produto_ref: kit.id,
-  });
+  const toNumber = (value: unknown): number | null => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const raw = value.trim();
+      const normalized = /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(raw)
+        ? raw.replace(/\./g, "").replace(",", ".")
+        : /^\d{1,3}(,\d{3})+(\.\d+)?$/.test(raw)
+          ? raw.replace(/,/g, "")
+          : raw.replace(",", ".");
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  };
+
+  const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+  const estimatedKwp = toNumber(kit.estimated_kwp) ?? 0;
+  const moduloPotenciaW =
+    toNumber(kit.potencia_modulo) ??
+    toNumber(extData?.potencia_modulo) ??
+    toNumber(extData?.modulo?.potencia_w) ??
+    toNumber(extData?.modulo?.potencia) ??
+    0;
+
+  const inversorPotenciaKw =
+    toNumber(kit.potencia_inversor) ??
+    toNumber(extData?.potencia_inversor) ??
+    toNumber(extData?.inversor?.potencia_kw) ??
+    toNumber(extData?.inversor?.potencia) ??
+    0;
+
+  const moduloQtdFromPayload =
+    toNumber(extData?.quantidade_modulos) ??
+    toNumber(extData?.qtd_modulos) ??
+    toNumber(extData?.modulo?.quantidade) ??
+    null;
+
+  const inversorQtdFromPayload =
+    toNumber(extData?.quantidade_inversores) ??
+    toNumber(extData?.qtd_inversores) ??
+    toNumber(extData?.inversor?.quantidade) ??
+    null;
+
+  const moduloQtd = Math.max(
+    1,
+    Math.round(
+      moduloQtdFromPayload ??
+      (moduloPotenciaW > 0 && estimatedKwp > 0
+        ? (estimatedKwp * 1000) / moduloPotenciaW
+        : 1),
+    ),
+  );
+
+  const inversorQtd = Math.max(1, Math.round(inversorQtdFromPayload ?? 1));
+  const kitPrice = toNumber(kit.fixed_price) ?? 0;
+
+  const moduloWeight = estimatedKwp > 0 ? estimatedKwp : (moduloPotenciaW * moduloQtd) / 1000;
+  const inversorWeight = inversorPotenciaKw > 0 ? inversorPotenciaKw * inversorQtd : 0;
+  const totalWeight = moduloWeight + inversorWeight;
+
+  const moduloTotal = totalWeight > 0 ? round2(kitPrice * (moduloWeight / totalWeight)) : kitPrice;
+  const inversorTotal = round2(Math.max(0, kitPrice - moduloTotal));
+
+  const fabricantePadrao = kit.fabricante || extData?.fabricante || "";
+  const moduloModelo =
+    extData?.modulo?.modelo ||
+    extData?.modulo_modelo ||
+    extData?.modelo_modulo ||
+    (moduloPotenciaW > 0 ? `Módulo ${moduloPotenciaW}W` : "Módulo");
+
+  const inversorModelo =
+    extData?.inversor?.modelo ||
+    extData?.inversor_modelo ||
+    extData?.modelo_inversor ||
+    (inversorPotenciaKw > 0 ? `Inversor ${inversorPotenciaKw}kW` : "Inversor");
+
+  const rows: KitItemRow[] = [];
+  if (moduloPotenciaW > 0 || estimatedKwp > 0) {
+    rows.push({
+      id: crypto.randomUUID(),
+      descricao: `${moduloQtd}x ${moduloModelo}`,
+      fabricante: fabricantePadrao,
+      modelo: moduloModelo,
+      potencia_w: moduloPotenciaW > 0 ? moduloPotenciaW : estimatedKwp * 1000,
+      quantidade: moduloQtd,
+      preco_unitario: moduloQtd > 0 ? round2(moduloTotal / moduloQtd) : 0,
+      categoria: "modulo",
+      avulso: false,
+      produto_ref: kit.id,
+    });
+  }
+
+  if (inversorPotenciaKw > 0) {
+    rows.push({
+      id: crypto.randomUUID(),
+      descricao: `${inversorQtd}x ${inversorModelo}`,
+      fabricante: fabricantePadrao,
+      modelo: inversorModelo,
+      potencia_w: inversorPotenciaKw * 1000,
+      quantidade: inversorQtd,
+      preco_unitario: inversorQtd > 0 ? round2(inversorTotal / inversorQtd) : 0,
+      categoria: "inversor",
+      avulso: false,
+      produto_ref: kit.id,
+    });
+  }
+
+  // Fallback extremo: mantém compatibilidade caso os campos técnicos não existam
+  if (rows.length === 0) {
+    rows.push({
+      id: crypto.randomUUID(),
+      descricao: kit.name,
+      fabricante: fabricantePadrao,
+      modelo: kit.name,
+      potencia_w: estimatedKwp * 1000,
+      quantidade: 1,
+      preco_unitario: kitPrice,
+      categoria: "outros",
+      avulso: false,
+      produto_ref: kit.id,
+    });
+  }
 
   return rows;
 }
