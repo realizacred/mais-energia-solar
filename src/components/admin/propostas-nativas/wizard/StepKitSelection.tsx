@@ -501,8 +501,15 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
             /* ── Catálogo Tab ── */
             <div className="space-y-3">
               {catalogLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="rounded-xl border border-border p-4 space-y-3 animate-pulse">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-8 w-24" />
+                    </div>
+                  ))}
                 </div>
               ) : catalogError ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
