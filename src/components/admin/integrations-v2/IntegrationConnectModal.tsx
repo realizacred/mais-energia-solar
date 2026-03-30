@@ -112,7 +112,7 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
     setFormValues((prev) => ({ ...prev, [key]: e.target.value }));
   };
 
-  const isValid = fields.every((f) => !f.required || (formValues[f.key] && formValues[f.key].trim() !== ""));
+  const isValid = fields.every((f) => !f.required || (formValues[f.key] && formValues[f.key].trim() !== "") || savedSecrets[f.key]);
 
   // Map new provider IDs to legacy IDs used by edge functions
   const LEGACY_MAP: Record<string, string> = LEGACY_PROVIDER_MAP;
