@@ -466,6 +466,16 @@ export function VariaveisDisponiveisPage() {
     // View filter (primary)
     if (activeView !== "todas" && activeView !== "auditoria" && activeView !== "limpeza") {
       items = items.filter((v) => v.views.includes(activeView as VariableView));
+      
+      // Negócio view: exclude FE-only, future, ghost, and mappable vars (no real backend lastro)
+      if (activeView === "negocio") {
+        const excludedGovClasses = new Set(["PARCIAL_FE_ONLY", "FEATURE_NAO_IMPLEMENTADA", "FANTASMA_REAL", "MAPEAVEL"]);
+        items = items.filter((v) => {
+          const govRec = getGovRecord(v.key);
+          if (!govRec) return true; // no governance record → keep (custom/dynamic)
+          return !excludedGovClasses.has(govRec.classification);
+        });
+      }
     }
 
     // Domain filter (secondary)
@@ -530,7 +540,7 @@ export function VariaveisDisponiveisPage() {
       }
     };
     return items.sort((a, b) => dir * getVal(a).localeCompare(getVal(b), "pt-BR"));
-  }, [governanceVariables, activeView, domainFilter, statusFilter, search, sortCol, sortDir, govFilter, govFilterRecords]);
+  }, [governanceVariables, activeView, domainFilter, statusFilter, search, sortCol, sortDir, govFilter, govFilterRecords, getGovRecord]);
 
   const toggleSort = useCallback((col: string) => {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));

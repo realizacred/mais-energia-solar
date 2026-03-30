@@ -153,7 +153,7 @@ export function classifyGovernance(
     evidence = "BE resolve via flatten/resolvers; FE usa fallback snapshot";
   } else if (inFE && !inBE) {
     classification = "PARCIAL_FE_ONLY";
-    evidence = "FE resolve explicitamente; BE não tem resolver dedicado";
+    evidence = "Só FE resolve — técnica interna, não expor em visão de negócio";
   } else if (v.escopo === "aspiracional") {
     classification = "MAPEAVEL";
     evidence = "Variável aspiracional — dado pode existir mas não está integrado";
@@ -227,6 +227,9 @@ export function classifyGovernance(
   } else if (classification === "FEATURE_NAO_IMPLEMENTADA" || classification === "CDD") {
     templateWarning = "warn";
     safeForNewTemplates = false;
+  } else if (classification === "PARCIAL_FE_ONLY" || classification === "MAPEAVEL") {
+    templateWarning = "warn";
+    safeForNewTemplates = false;
   }
 
   // ── UI status label + color ──
@@ -259,7 +262,7 @@ function getStatusDisplay(cls: GovernanceClass): { statusLabel: string; statusCo
   switch (cls) {
     case "IMPLEMENTADA": return { statusLabel: "Implementada", statusColor: "success" };
     case "PARCIAL_BE_ONLY": return { statusLabel: "Backend/Snapshot", statusColor: "info" };
-    case "PARCIAL_FE_ONLY": return { statusLabel: "Só Frontend", statusColor: "warning" };
+    case "PARCIAL_FE_ONLY": return { statusLabel: "Técnica (só FE)", statusColor: "warning" };
     case "CUSTOM_BACKEND": return { statusLabel: "Custom (backend)", statusColor: "primary" };
     case "CUSTOM_IMPL": return { statusLabel: "Custom", statusColor: "primary" };
     case "INPUT_WIZARD": return { statusLabel: "Input Wizard", statusColor: "info" };
