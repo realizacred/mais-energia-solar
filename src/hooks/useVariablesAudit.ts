@@ -3,7 +3,8 @@
  * Centralizes all audit logic: schema coverage, custom vars sync, description quality.
  */
 import { useMemo } from "react";
-import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
+import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, isBuiltinVcKey, type VariableCategory } from "@/lib/variablesCatalog";
+import { BACKEND_FLATTEN_KEYS, FRONTEND_RESOLVER_KEYS } from "@/services/variableAudit/knownKeys";
 
 // ── Types ──────────────────────────────────────────────────
 export interface DbCustomVar {
@@ -808,6 +809,25 @@ export function useVariablesAudit(dbCustomVars: DbCustomVar[]) {
           let resolver = mapping?.resolver ?? "";
           // Custom variables
           if (key.startsWith("vc_") && !mapping) { source = "custom_vc"; resolver = "proposal-generate (evaluateExpression)"; }
+          // Built-in vc_* from catalog defaults
+          if (isBuiltinVcKey(key) && source === "error_unmapped") { source = "custom_vc"; resolver = "evaluateExpression (built-in)"; }
+          // Fallback: if key is in BACKEND_FLATTEN_KEYS, it IS resolved by BE
+          if (source === "error_unmapped" && BACKEND_FLATTEN_KEYS.has(key)) {
+            source = "snapshot";
+            resolver = "backend resolver (BACKEND_FLATTEN_KEYS)";
+          }
+          // Fallback: check dynamic patterns in BE keys (_1 base, _jan base, _uc1 base)
+          if (source === "error_unmapped") {
+            const base1 = key.replace(/_\d+$/, "_1");
+            const baseJan = key.replace(/_(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)$/, "_jan");
+            const baseUc = key.replace(/_uc\d+$/, "_uc1");
+            if ((base1 !== key && BACKEND_FLATTEN_KEYS.has(base1)) ||
+                (baseJan !== key && BACKEND_FLATTEN_KEYS.has(baseJan)) ||
+                (baseUc !== key && BACKEND_FLATTEN_KEYS.has(baseUc))) {
+              source = "snapshot";
+              resolver = "backend resolver (dynamic pattern)";
+            }
+          }
           // Not implemented → futura (not unknown)
           if (v.notImplemented) { source = "futura"; resolver = "feature não implementada"; }
           return {
