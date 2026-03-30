@@ -330,6 +330,9 @@ export function deriveDomain(v: CatalogVariable): VariableDomain {
   // Fornecedor keys override
   if (FORNECEDOR_KEYS.has(flatKey)) return "fornecedor";
 
+  // Integration/external API keys
+  if (INTEGRACAO_KEYS.has(flatKey)) return "integracao";
+
   // Projeto-scope keys in comercial
   if (v.category === "comercial" && flatKey.startsWith("projeto_")) return "projeto";
 
@@ -351,8 +354,9 @@ export function deriveNature(v: CatalogVariable): VariableNature {
   // Actual user-created custom vars (from DB proposta_variaveis_custom)
   if (v.category === "customizada") return "calculada";
   if (label.includes("legado") || label.includes("(legado)") || desc.includes("legado") || desc.includes("alias")) return "alias_legado";
-  if (v.category === "cdd") return "integracao_externa";
-  if (FORNECEDOR_KEYS.has(flatKey)) return "integracao_externa";
+  if (v.category === "cdd") return "integracao_externa"; // CDD = distributor config fields
+  if (FORNECEDOR_KEYS.has(flatKey)) return "snapshot"; // catalog data from equipment tables
+  if (INTEGRACAO_KEYS.has(flatKey)) return "integracao_externa";
   if (["tabelas", "series", "premissas"].includes(v.category)) return "tecnica";
   if (v.notImplemented) return "canonica"; // notImplemented is a governance concern, not nature
   return "canonica";
