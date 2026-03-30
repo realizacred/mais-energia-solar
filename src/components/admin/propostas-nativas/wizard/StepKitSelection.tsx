@@ -283,7 +283,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
 
     // Sort
-    if (orderBy === "menor_preco") {
+    if (orderBy === "melhor_kwp") {
+      result.sort((a, b) => (a.preco_por_kwp || Infinity) - (b.preco_por_kwp || Infinity));
+    } else if (orderBy === "menor_preco") {
       result.sort((a, b) => {
         const pa = a.fixed_price || catalogSummaries.get(a.id)?.custoTotal || 0;
         const pb = b.fixed_price || catalogSummaries.get(b.id)?.custoTotal || 0;
@@ -297,6 +299,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       });
     } else if (orderBy === "potencia") {
       result.sort((a, b) => (b.estimated_kwp || 0) - (a.estimated_kwp || 0));
+    } else if (orderBy === "disponibilidade") {
+      result.sort((a, b) => {
+        const scoreA = a.disponivel ? 0 : a.permite_compra_sem_estoque ? 1 : 2;
+        const scoreB = b.disponivel ? 0 : b.permite_compra_sem_estoque ? 1 : 2;
+        return scoreA - scoreB;
+      });
     }
 
     return result;
