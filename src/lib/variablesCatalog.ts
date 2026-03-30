@@ -339,16 +339,16 @@ export function deriveNature(v: CatalogVariable): VariableNature {
   const desc = v.description.toLowerCase();
   const label = v.label.toLowerCase();
 
-  if (v.notImplemented) return "futura";
   if (v.escopo === "documento") return "documental";
-  // Built-in vc_* are "calculada" (hardcoded resolvers), NOT "custom_var_calculada"
+  // Built-in vc_* are "calculada" (hardcoded resolvers)
   if (v.category === "customizada" && BUILTIN_VC_KEYS.has(flatKey)) return "calculada";
   // Actual user-created custom vars (from DB proposta_variaveis_custom)
-  if (v.category === "customizada") return "custom_var_calculada";
+  if (v.category === "customizada") return "calculada";
   if (label.includes("legado") || label.includes("(legado)") || desc.includes("legado") || desc.includes("alias")) return "alias_legado";
-  if (v.category === "cdd") return "importada_integracao";
-  if (FORNECEDOR_KEYS.has(flatKey)) return "importada_integracao";
-  if (["tabelas", "series", "premissas"].includes(v.category)) return "tecnica_interna";
+  if (v.category === "cdd") return "integracao_externa";
+  if (FORNECEDOR_KEYS.has(flatKey)) return "integracao_externa";
+  if (["tabelas", "series", "premissas"].includes(v.category)) return "tecnica";
+  if (v.notImplemented) return "canonica"; // notImplemented is a governance concern, not nature
   return "canonica";
 }
 
@@ -363,21 +363,21 @@ export function getVariableViews(v: CatalogVariable): VariableView[] {
   const domain = deriveDomain(v);
   const views: VariableView[] = [];
 
-  // Template view: all non-blocked, non-future vars
+  // Template view: all non-blocked vars
   if (!v.notImplemented) views.push("template");
 
-  // Negócio: business-relevant vars only (includes "calculada" which are built-in vc_*)
-  if (["proposta", "sistema_solar", "cliente", "conta_energia", "financeiro", "documento", "projeto", "custom_calculada"].includes(domain)
-      && nature !== "alias_legado" && nature !== "tecnica_interna" && nature !== "futura") {
+  // Negócio: business-relevant vars only
+  if (["proposta", "sistema_solar", "cliente", "conta_energia", "financeiro", "documento", "projeto", "uc"].includes(domain)
+      && nature !== "alias_legado" && nature !== "tecnica") {
     views.push("negocio");
   }
-  // Built-in calculada vars also appear in negócio since they have real functional domains
+  // Built-in calculada vars also appear in negócio
   if (nature === "calculada" && !views.includes("negocio")) {
     views.push("negocio");
   }
 
   // Técnica: technical/internal vars
-  if (["tecnico", "campo_entidade"].includes(domain) || nature === "tecnica_interna") {
+  if (["tecnico"].includes(domain) || nature === "tecnica") {
     views.push("tecnica");
   }
 
@@ -385,12 +385,12 @@ export function getVariableViews(v: CatalogVariable): VariableView[] {
   views.push("tecnica");
 
   // Integrações: supplier/CDD vars
-  if (domain === "fornecedor" || nature === "importada_integracao") {
+  if (domain === "fornecedor" || domain === "integracao" || nature === "integracao_externa") {
     views.push("integracoes");
   }
 
-  // Legado: legacy/alias vars
-  if (nature === "alias_legado" || nature === "futura") {
+  // Legado: legacy/alias vars and not-implemented
+  if (nature === "alias_legado" || v.notImplemented) {
     views.push("legado");
   }
 
@@ -406,9 +406,9 @@ export const DOMAIN_ORDER: VariableDomain[] = [
   "cliente",
   "projeto",
   "documento",
-  "custom_calculada",
-  "campo_entidade",
+  "uc",
   "fornecedor",
+  "integracao",
   "tecnico",
   "legado",
 ];
