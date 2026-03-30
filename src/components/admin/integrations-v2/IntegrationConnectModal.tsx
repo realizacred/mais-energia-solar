@@ -33,33 +33,61 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
   const [loaded, setLoaded] = useState(false);
 
   // Pre-fill form with saved credentials when opening for an existing connection
+  // Track which secret fields have saved values (show placeholder instead of empty)
+  const [savedSecrets, setSavedSecrets] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     if (!open || loaded) return;
     const legacyId = LEGACY_PROVIDER_MAP[provider.id] || provider.id;
+    const isSupplier = provider.category === "suppliers";
     
     (async () => {
       try {
-        const { data } = await (supabase
-          .from("monitoring_integrations" as any)
-          .select("credentials, tokens")
-          .eq("provider", legacyId)
-          .maybeSingle() as any);
-        
-        if (data) {
-          const creds = (data.credentials as Record<string, any>) || {};
-          const tokens = (data.tokens as Record<string, any>) || {};
-          const merged = { ...creds, ...tokens };
-          const fields = (provider.credential_schema || []) as CredentialField[];
-          const prefilled: Record<string, string> = {};
-          for (const field of fields) {
-            const val = merged[field.key];
-            if (val && typeof val === "string" && !isSecretValue(field, val)) {
+        let merged: Record<string, any> = {};
+
+        if (isSupplier) {
+          // Suppliers store credentials in integrations_api_configs
+          const { data } = await (supabase as any)
+            .from("integrations_api_configs")
+            .select("credentials")
+            .or(`provider.eq.${legacyId},settings->>provider_catalog_id.eq.${provider.id}`)
+            .maybeSingle();
+          if (data) {
+            merged = (data.credentials as Record<string, any>) || {};
+          }
+        } else {
+          // Monitoring providers use monitoring_integrations
+          const { data } = await (supabase
+            .from("monitoring_integrations" as any)
+            .select("credentials, tokens")
+            .eq("provider", legacyId)
+            .maybeSingle() as any);
+          if (data) {
+            const creds = (data.credentials as Record<string, any>) || {};
+            const tokens = (data.tokens as Record<string, any>) || {};
+            merged = { ...creds, ...tokens };
+          }
+        }
+
+        const fields = (provider.credential_schema || []) as CredentialField[];
+        const prefilled: Record<string, string> = {};
+        const secrets: Record<string, boolean> = {};
+        for (const field of fields) {
+          const val = merged[field.key];
+          if (val && typeof val === "string") {
+            if (isSecretValue(field, val)) {
+              // Don't show the value, but mark that it exists
+              secrets[field.key] = true;
+            } else {
               prefilled[field.key] = val;
             }
           }
-          if (Object.keys(prefilled).length > 0) {
-            setFormValues(prefilled);
-          }
+        }
+        if (Object.keys(prefilled).length > 0) {
+          setFormValues(prefilled);
+        }
+        if (Object.keys(secrets).length > 0) {
+          setSavedSecrets(secrets);
         }
       } catch {
         // Silently fail — user can still fill manually
@@ -84,7 +112,7 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
     setFormValues((prev) => ({ ...prev, [key]: e.target.value }));
   };
 
-  const isValid = fields.every((f) => !f.required || (formValues[f.key] && formValues[f.key].trim() !== ""));
+  const isValid = fields.every((f) => !f.required || (formValues[f.key] && formValues[f.key].trim() !== "") || savedSecrets[f.key]);
 
   // Map new provider IDs to legacy IDs used by edge functions
   const LEGACY_MAP: Record<string, string> = LEGACY_PROVIDER_MAP;
@@ -118,6 +146,7 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       setFormValues({});
+      setSavedSecrets({});
       setLoaded(false);
     }
     onOpenChange(isOpen);
@@ -222,7 +251,7 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
                   <Input
                     id={`field-${field.key}`}
                     type={field.type === "password" && showPassword[field.key] ? "text" : field.type}
-                    placeholder={field.placeholder || ""}
+                    placeholder={savedSecrets[field.key] ? "••••••••  (salvo)" : (field.placeholder || "")}
                     value={formValues[field.key] || ""}
                     onChange={handleFieldChange(field.key)}
                   />
