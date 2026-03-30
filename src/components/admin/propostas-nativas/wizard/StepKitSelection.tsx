@@ -283,11 +283,71 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     return card ? [card] : [];
   }, [itens, custoKitOverride]);
 
+  // Extract dynamic filter options from catalog data
+  const filterOptions = useMemo<KitFilterOptions>(() => {
+    const fabricantesSet = new Set<string>();
+    const modelosSet = new Set<string>();
+
+    catalogKits.forEach(kit => {
+      // Fabricante from catalog or summary inversor
+      if (kit.fabricante) fabricantesSet.add(kit.fabricante);
+      const summary = catalogSummaries.get(kit.id);
+      if (summary?.inversorDescricao) {
+        modelosSet.add(summary.inversorDescricao);
+        // Try to extract fabricante from inversor description (first word)
+        const parts = summary.inversorDescricao.split(" ");
+        if (parts.length > 0 && parts[0].length > 2) fabricantesSet.add(parts[0]);
+      }
+    });
+
+    return {
+      fabricantesInversor: Array.from(fabricantesSet).sort(),
+      modelosInversor: Array.from(modelosSet).sort(),
+    };
+  }, [catalogKits, catalogSummaries]);
+
   // Filter & sort catalog kits based on sidebar filters
   const filteredCatalogKits = useMemo(() => {
     let result = [...catalogKits];
 
-    // Text search by distributor name (match against kit name as proxy)
+    // Potência range filter
+    if (filters.potenciaMin > 0 || filters.potenciaMax < 1000) {
+      result = result.filter(k => {
+        const kwp = k.estimated_kwp ?? 0;
+        return kwp >= filters.potenciaMin && kwp <= filters.potenciaMax;
+      });
+    }
+
+    // General text search (name, description, fabricante)
+    if (filters.searchText.trim()) {
+      const q = filters.searchText.toLowerCase();
+      result = result.filter(k =>
+        k.name.toLowerCase().includes(q) ||
+        (k.description || "").toLowerCase().includes(q) ||
+        (k.fabricante || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Fabricante Inversor dropdown
+    if (filters.fabricanteInversor) {
+      const q = filters.fabricanteInversor.toLowerCase();
+      result = result.filter(k => {
+        if (k.fabricante?.toLowerCase() === q) return true;
+        const summary = catalogSummaries.get(k.id);
+        return summary ? summary.inversorDescricao.toLowerCase().includes(q) : false;
+      });
+    }
+
+    // Inversor modelo dropdown
+    if (filters.inversorModelo) {
+      const q = filters.inversorModelo.toLowerCase();
+      result = result.filter(k => {
+        const summary = catalogSummaries.get(k.id);
+        return summary ? summary.inversorDescricao.toLowerCase().includes(q) : false;
+      });
+    }
+
+    // Text search by distributor name
     if (filters.searchDistribuidor.trim()) {
       const q = filters.searchDistribuidor.toLowerCase();
       result = result.filter(k => k.name.toLowerCase().includes(q) || (k.description || "").toLowerCase().includes(q));
@@ -299,15 +359,6 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       result = result.filter(k => {
         const summary = catalogSummaries.get(k.id);
         return summary ? summary.moduloDescricao.toLowerCase().includes(q) : true;
-      });
-    }
-
-    // Text search by inverter description
-    if (filters.searchInversor.trim()) {
-      const q = filters.searchInversor.toLowerCase();
-      result = result.filter(k => {
-        const summary = catalogSummaries.get(k.id);
-        return summary ? summary.inversorDescricao.toLowerCase().includes(q) : true;
       });
     }
 
@@ -337,7 +388,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
 
     return result;
-  }, [catalogKits, catalogSummaries, filters.searchDistribuidor, filters.searchModulo, filters.searchInversor, orderBy]);
+  }, [catalogKits, catalogSummaries, filters, orderBy]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
