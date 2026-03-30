@@ -9,6 +9,7 @@ import { connectProvider } from "@/services/integrations/integrationService";
 import type { IntegrationProvider, CredentialField } from "@/services/integrations/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, CheckCircle2, AlertTriangle, Eye, EyeOff, Plug } from "lucide-react";
+import { translateCapability } from "@/services/integrations/capabilityLabels";
 import { ProviderSetupGuide } from "./ProviderSetupGuide";
 import { supabase } from "@/integrations/supabase/client";
 import { LEGACY_ID_MAP } from "@/services/monitoring/providerRegistry";
@@ -151,7 +152,7 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
             {Object.entries(provider.capabilities).filter(([, v]) => v).map(([key]) => (
               <Badge key={key} variant="secondary" className="text-2xs">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                {key.replace(/_/g, " ")}
+                {translateCapability(key)}
               </Badge>
             ))}
           </div>
