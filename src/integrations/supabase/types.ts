@@ -7199,6 +7199,44 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_sync_logs: {
+        Row: {
+          created_at: string
+          id: string
+          level: string
+          message: string
+          payload: Json | null
+          provider: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: string
+          message: string
+          payload?: Json | null
+          provider?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: string
+          message?: string
+          payload?: Json | null
+          provider?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_sync_runs: {
         Row: {
           error_summary: string | null
@@ -7251,6 +7289,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "integration_sync_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_sync_state: {
+        Row: {
+          batch_size: number
+          completed_at: string | null
+          created_at: string
+          current_page: number
+          id: string
+          ignored_items: number
+          inserted_items: number
+          last_error: string | null
+          last_run_at: string | null
+          metadata: Json | null
+          mode: string
+          processed_items: number
+          provider: string
+          started_at: string | null
+          status: string
+          tenant_id: string
+          total_pages: number | null
+          updated_at: string
+          updated_items: number
+        }
+        Insert: {
+          batch_size?: number
+          completed_at?: string | null
+          created_at?: string
+          current_page?: number
+          id?: string
+          ignored_items?: number
+          inserted_items?: number
+          last_error?: string | null
+          last_run_at?: string | null
+          metadata?: Json | null
+          mode?: string
+          processed_items?: number
+          provider?: string
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          total_pages?: number | null
+          updated_at?: string
+          updated_items?: number
+        }
+        Update: {
+          batch_size?: number
+          completed_at?: string | null
+          created_at?: string
+          current_page?: number
+          id?: string
+          ignored_items?: number
+          inserted_items?: number
+          last_error?: string | null
+          last_run_at?: string | null
+          metadata?: Json | null
+          mode?: string
+          processed_items?: number
+          provider?: string
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          total_pages?: number | null
+          updated_at?: string
+          updated_items?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_state_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -19504,53 +19616,113 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          disponivel: boolean | null
           estimated_kwp: number | null
+          estrutura: string | null
+          external_code: string | null
           external_data: Json | null
           external_id: string | null
+          fabricante: string | null
+          fase: string | null
           fixed_price: number | null
           fornecedor_id: string | null
           id: string
+          imagem_principal_url: string | null
+          is_available_now: boolean | null
+          is_generator: boolean | null
           last_synced_at: string | null
+          marca: string | null
           name: string
+          permite_compra_sem_estoque: boolean | null
+          potencia_inversor: number | null
+          potencia_modulo: number | null
+          preco_consumidor: number | null
+          preco_por_kwp: number | null
+          previsao: string | null
           pricing_mode: string
+          product_kind: string | null
           source: string | null
           status: string
           tenant_id: string
+          tensao: string | null
+          thumbnail_url: string | null
+          tipo: string | null
           updated_at: string
+          valor_avulso: number | null
         }
         Insert: {
           created_at?: string
           description?: string | null
+          disponivel?: boolean | null
           estimated_kwp?: number | null
+          estrutura?: string | null
+          external_code?: string | null
           external_data?: Json | null
           external_id?: string | null
+          fabricante?: string | null
+          fase?: string | null
           fixed_price?: number | null
           fornecedor_id?: string | null
           id?: string
+          imagem_principal_url?: string | null
+          is_available_now?: boolean | null
+          is_generator?: boolean | null
           last_synced_at?: string | null
+          marca?: string | null
           name: string
+          permite_compra_sem_estoque?: boolean | null
+          potencia_inversor?: number | null
+          potencia_modulo?: number | null
+          preco_consumidor?: number | null
+          preco_por_kwp?: number | null
+          previsao?: string | null
           pricing_mode?: string
+          product_kind?: string | null
           source?: string | null
           status?: string
           tenant_id: string
+          tensao?: string | null
+          thumbnail_url?: string | null
+          tipo?: string | null
           updated_at?: string
+          valor_avulso?: number | null
         }
         Update: {
           created_at?: string
           description?: string | null
+          disponivel?: boolean | null
           estimated_kwp?: number | null
+          estrutura?: string | null
+          external_code?: string | null
           external_data?: Json | null
           external_id?: string | null
+          fabricante?: string | null
+          fase?: string | null
           fixed_price?: number | null
           fornecedor_id?: string | null
           id?: string
+          imagem_principal_url?: string | null
+          is_available_now?: boolean | null
+          is_generator?: boolean | null
           last_synced_at?: string | null
+          marca?: string | null
           name?: string
+          permite_compra_sem_estoque?: boolean | null
+          potencia_inversor?: number | null
+          potencia_modulo?: number | null
+          preco_consumidor?: number | null
+          preco_por_kwp?: number | null
+          previsao?: string | null
           pricing_mode?: string
+          product_kind?: string | null
           source?: string | null
           status?: string
           tenant_id?: string
+          tensao?: string | null
+          thumbnail_url?: string | null
+          tipo?: string | null
           updated_at?: string
+          valor_avulso?: number | null
         }
         Relationships: [
           {
