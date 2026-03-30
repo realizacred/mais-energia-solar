@@ -230,7 +230,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       };
 
       if (card) {
-        card.distribuidorNome = kitName;
+        card.distribuidorNome = distribLabel;
         if (meta.custo) card.precoTotal = meta.custo;
         setManualKits([{ card, itens: rows, meta }]);
       }
