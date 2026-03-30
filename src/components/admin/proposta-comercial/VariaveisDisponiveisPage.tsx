@@ -201,6 +201,26 @@ function getSourceLabel(source: VariableSource): { label: string; color: string 
   return { label: "Não mapeada", color: "text-muted-foreground" };
 }
 
+function getGovernanceFallbackSource(record?: GovernanceRecord): VariableSource | null {
+  if (!record) return null;
+
+  switch (record.classification) {
+    case "CUSTOM_BACKEND":
+    case "CUSTOM_IMPL":
+      return "custom_vc";
+    case "FEATURE_NAO_IMPLEMENTADA":
+    case "CDD":
+    case "MAPEAVEL":
+      return "futura";
+    case "FANTASMA_REAL":
+      return "error_unmapped";
+    default:
+      // Implementada / BE-only / passthrough / documento / legado / wizard
+      // devem aparecer como fonte válida, não como erro não mapeado.
+      return "snapshot";
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════ */
 export function VariaveisDisponiveisPage() {
   const [search, setSearch] = useState("");
@@ -281,8 +301,18 @@ export function VariaveisDisponiveisPage() {
     VARIABLES_CATALOG.forEach((v) => {
       const key = v.legacyKey.replace(/^\[|\]$/g, "");
       const rm = resolverMap[key];
-      const source = rm?.source ?? "error_unmapped";
-      const resolver = rm?.resolver ?? "";
+      const govRecord = getGovRecord(key);
+      const govFallbackSource = getGovernanceFallbackSource(govRecord);
+
+      const source = rm?.source && rm.source !== "error_unmapped"
+        ? rm.source
+        : (govFallbackSource ?? rm?.source ?? "error_unmapped");
+
+      const resolver = rm?.resolver && rm.resolver.trim().length > 0
+        ? rm.resolver
+        : govRecord
+          ? `governance (${govRecord.classification})`
+          : "";
       const usageInfo = usageMap.get(key);
       const auditInDocx = quickAuditMap.found.has(key);
       const auditBroken = quickAuditMap.broken.has(key);
@@ -397,7 +427,7 @@ export function VariaveisDisponiveisPage() {
     });
 
     return items;
-  }, [customVarsRaw, resolverMap, usageMap, dealCustomFields]);
+  }, [customVarsRaw, resolverMap, usageMap, dealCustomFields, quickAuditMap, getGovRecord]);
 
   // ── Health-enriched variables ──
   const governanceVariables = useMemo(() => {
