@@ -1037,8 +1037,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // Economia Mensal (consolidada)
   v("conta_energia", "conta_energia.economia_mensal", "economia_mensal", "Economia Mensal R$", "Economia mensal total em reais", "R$", "800"),
   v("conta_energia", "conta_energia.economia_mensal_uc1", "economia_mensal_uc1", "Economia Mensal R$ UC #", "Economia mensal por UC", "R$", "800"),
-  v("conta_energia", "conta_energia.economia_mensal_p", "economia_mensal_p", "Economia Mensal %", "Percentual de economia mensal total", "%", "76.5", "BT e MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.economia_mensal_p_uc1", "economia_mensal_p_uc1", "Economia Mensal % UC #", "Percentual economia mensal por UC", "%", "10.5", "BT e MT", { notImplemented: true }),
+  v("conta_energia", "conta_energia.economia_mensal_p", "economia_mensal_p", "Economia Mensal %", "Percentual de economia mensal total", "%", "76.5", "BT e MT"),
+  v("conta_energia", "conta_energia.economia_mensal_p_uc1", "economia_mensal_p_uc1", "Economia Mensal % UC #", "Percentual economia mensal por UC", "%", "10.5", "BT e MT"),
 
   // Créditos Alocados (conta)
   v("conta_energia", "conta_energia.creditos_alocados", "creditos_alocados", "Créditos Alocados UCs", "Créditos alocados total UCs", "kWh", "800"),
