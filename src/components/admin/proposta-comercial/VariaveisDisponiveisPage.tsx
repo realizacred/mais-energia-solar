@@ -369,7 +369,7 @@ export function VariaveisDisponiveisPage() {
         const contextLabel = FIELD_CONTEXT_LABELS[dcf.field_context] ?? dcf.field_context;
         const usageInfo = usageMap.get(dcf.field_key);
         const inDocx = usageInfo?.inDocx ?? false;
-        const domain = CONTEXT_TO_DOMAIN[dcf.field_context] ?? "campo_entidade";
+        const domain = CONTEXT_TO_DOMAIN[dcf.field_context] ?? "proposta";
         items.push({
           key: dcf.field_key,
           canonicalKey: `{{campo_custom.${dcf.field_key}}}`,
