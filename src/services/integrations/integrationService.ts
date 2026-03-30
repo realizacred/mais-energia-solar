@@ -321,6 +321,7 @@ export async function connectSupplierProvider(
         provider: providerKey,
         name: providerLabel,
         credentials,
+        fornecedor_id: fornecedorId,
         status: "pending",
         is_active: true,
         settings: mergedSettings,
