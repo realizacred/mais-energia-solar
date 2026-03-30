@@ -61,7 +61,7 @@ export function useEdeltecCatalog(filters?: EdeltecCatalogFilters) {
         .eq("source", "edeltec")
         .order("estimated_kwp", { ascending: true });
 
-      if (filters?.onlyGenerators !== false) {
+      if (filters?.onlyGenerators === true) {
         query = query.eq("is_generator", true);
       }
 
