@@ -384,6 +384,17 @@ function resolveFromContext(
     if (key === "sistema_solar.inversor_potencia_nominal") return inversor?.potencia_w ? String(inversor.potencia_w) : null;
     if (key === "sistema_solar.inversor_potencia_nominal_numero") return inversor?.potencia_w ? String(inversor.potencia_w) : null;
     if (key === "sistema_solar.inversor_quantidade") return s(inversor?.quantidade as string | number);
+    // Warranty from catalog enrichment (AP-15: must match BE resolver)
+    if (key === "sistema_solar.modulo_garantia") {
+      return s(modulo?.garantia_produto_anos as string | number)
+        ?? s((ctx.finalSnapshot as any)?.modulo_garantia as string)
+        ?? null;
+    }
+    if (key === "sistema_solar.inversor_garantia") {
+      return s(inversor?.garantia_anos as string | number)
+        ?? s((ctx.finalSnapshot as any)?.inversor_garantia as string)
+        ?? null;
+    }
   }
 
   // ── Financeiro ──
