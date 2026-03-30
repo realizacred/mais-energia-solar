@@ -1061,10 +1061,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // Tarifação Energia Compensada (Fio B / Lei 14.300)
   v("conta_energia", "conta_energia.tarifacao_energia_compensada_bt", "tarifacao_energia_compensada_bt", "Tarifação Energia Compensada BT", "Valor tarifação Fio B/Energia compensada BT", "R$", "12,34"),
   v("conta_energia", "conta_energia.tarifacao_energia_compensada_bt_uc1", "tarifacao_energia_compensada_bt_uc1", "Tarifação Energia Compensada BT UC #", "Tarifação compensada BT por UC", "R$", "12,34"),
-  v("conta_energia", "conta_energia.tarifacao_energia_compensada_fp", "tarifacao_energia_compensada_fp", "Tarifação Energia Compensada FP", "Tarifação compensada fora ponta (MT)", "R$", "12,34", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.tarifacao_energia_compensada_fp_uc1", "tarifacao_energia_compensada_fp_uc1", "Tarifação Energia Compensada FP UC #", "Tarifação compensada FP por UC", "R$", "12,34", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.tarifacao_energia_compensada_p", "tarifacao_energia_compensada_p", "Tarifação Energia Compensada P", "Tarifação compensada ponta (MT)", "R$", "12,34", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.tarifacao_energia_compensada_p_uc1", "tarifacao_energia_compensada_p_uc1", "Tarifação Energia Compensada P UC #", "Tarifação compensada ponta por UC", "R$", "12,34", "MT", { notImplemented: true }),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_fp", "tarifacao_energia_compensada_fp", "Tarifação Energia Compensada FP", "Tarifação compensada fora ponta (MT)", "R$", "12,34", "MT"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_fp_uc1", "tarifacao_energia_compensada_fp_uc1", "Tarifação Energia Compensada FP UC #", "Tarifação compensada FP por UC", "R$", "12,34", "MT"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_p", "tarifacao_energia_compensada_p", "Tarifação Energia Compensada P", "Tarifação compensada ponta (MT)", "R$", "12,34", "MT"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_p_uc1", "tarifacao_energia_compensada_p_uc1", "Tarifação Energia Compensada P UC #", "Tarifação compensada ponta por UC", "R$", "12,34", "MT"),
 
   // Gasto Total Mensal (série por UC - disponível para 25 anos)
   v("conta_energia", "conta_energia.gasto_total_mensal_atual_0_uc1", "gasto_total_mensal_atual_0_uc1", "Gasto Total Mensal Atual UC # (série)", "Gasto total atual UC série", "R$", "100,00"),
