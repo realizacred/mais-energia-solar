@@ -97,7 +97,9 @@ export function IntegrationConnectModal({ open, onOpenChange, provider, onSucces
         if (formValues[field.key]) credentials[field.key] = formValues[field.key];
       }
       const legacyId = LEGACY_MAP[provider.id] || provider.id;
-      const result = await connectProvider(legacyId, credentials);
+      const result = provider.category === "suppliers"
+        ? await connectSupplierProvider(provider.id, provider.label, credentials)
+        : await connectProvider(legacyId, credentials);
       if (result.success) {
         toast.success(`${provider.label} conectado com sucesso!`);
         onOpenChange(false);
