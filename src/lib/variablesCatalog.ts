@@ -220,14 +220,19 @@ const CATEGORY_TO_DOMAIN: Record<VariableCategory, VariableDomain> = {
   aneel: "tecnico",
   gd: "tecnico",
   calculo: "tecnico",
-  cdd: "integracao",
-  customizada: "financeiro", // fallback — overridden by VC_DOMAIN_MAP
+  cdd: "fornecedor",
+  customizada: "proposta", // custom vars belong to proposta domain
 };
 
-/** Supplier/integration related keys */
+/** Supplier/distributor catalog keys → domain: "fornecedor" */
 const FORNECEDOR_KEYS = new Set([
   "tipo_fornecedor_distribuidor", "fornecedor", "tipo_kit",
-  "fabricante", "sku", "external_data",
+  "fabricante", "sku",
+]);
+
+/** External data / API integration keys → domain: "integracao" */
+const INTEGRACAO_KEYS = new Set([
+  "external_data",
 ]);
 
 /**
