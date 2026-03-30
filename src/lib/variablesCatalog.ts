@@ -1049,10 +1049,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // Consumo Abatido
   v("conta_energia", "conta_energia.consumo_abatido", "consumo_abatido", "Consumo Abatido BT UCs", "Consumo abatido total BT", "kWh", "800"),
   v("conta_energia", "conta_energia.consumo_abatido_uc1", "consumo_abatido_uc1", "Consumo Abatido BT UC #", "Consumo abatido por UC", "kWh", "800"),
-  v("conta_energia", "conta_energia.consumo_abatido_p", "consumo_abatido_p", "Consumo Abatido P UCs", "Consumo abatido ponta total (MT)", "kWh", "800", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.consumo_abatido_p_uc1", "consumo_abatido_p_uc1", "Consumo Abatido P UC #", "Consumo abatido ponta por UC (MT)", "kWh", "800", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.consumo_abatido_fp", "consumo_abatido_fp", "Consumo Abatido FP UCs", "Consumo abatido fora ponta total (MT)", "kWh", "800", "MT", { notImplemented: true }),
-  v("conta_energia", "conta_energia.consumo_abatido_fp_uc1", "consumo_abatido_fp_uc1", "Consumo Abatido FP UC #", "Consumo abatido fora ponta por UC (MT)", "kWh", "800", "MT", { notImplemented: true }),
+  v("conta_energia", "conta_energia.consumo_abatido_p", "consumo_abatido_p", "Consumo Abatido P UCs", "Consumo abatido ponta total (MT)", "kWh", "800", "MT"),
+  v("conta_energia", "conta_energia.consumo_abatido_p_uc1", "consumo_abatido_p_uc1", "Consumo Abatido P UC #", "Consumo abatido ponta por UC (MT)", "kWh", "800", "MT"),
+  v("conta_energia", "conta_energia.consumo_abatido_fp", "consumo_abatido_fp", "Consumo Abatido FP UCs", "Consumo abatido fora ponta total (MT)", "kWh", "800", "MT"),
+  v("conta_energia", "conta_energia.consumo_abatido_fp_uc1", "consumo_abatido_fp_uc1", "Consumo Abatido FP UC #", "Consumo abatido fora ponta por UC (MT)", "kWh", "800", "MT"),
 
   // Imposto sobre Energia
   v("conta_energia", "conta_energia.valor_imposto_energia", "valor_imposto_energia", "Imposto Sobre Energia UCs", "Valor do imposto sobre energia", "R$", "10,97"),
