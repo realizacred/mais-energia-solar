@@ -39,7 +39,21 @@ export function useEdeltecSync() {
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Erro na sincronização");
-      return data as SyncResult;
+
+      // Auto-continuar batches até completar
+      let result = data as SyncResult;
+      let maxRetries = 50;
+      while (result.success && !result.is_complete && maxRetries > 0) {
+        maxRetries--;
+        const { data: contData, error: contErr } = await supabase.functions.invoke("edeltec-sync", {
+          body: { mode: "incremental", ...params },
+        });
+        if (contErr) break;
+        if (!contData?.success) break;
+        result = contData as SyncResult;
+      }
+
+      return result;
     },
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["solar-kit-catalog"] });
