@@ -255,7 +255,23 @@ export async function snapshotCatalogKitToKitItemRows(kitId: string): Promise<Ki
       if (ref) {
         fabricante = ref.fabricante;
         modelo = ref.modelo;
-        // baterias don't have a direct potencia_w equivalent
+      }
+    }
+
+    // Fallback for items without ref_id (e.g. Edeltec synced items)
+    if (!fabricante && !modelo && item.description) {
+      // Try to extract fabricante and modelo from description like "Fabricante Modelo 640W"
+      const wMatch = item.description.match(/(\d+)\s*W/i);
+      if (wMatch) potencia_w = parseInt(wMatch[1], 10);
+      const kwMatch = item.description.match(/(\d+(?:[.,]\d+)?)\s*kW/i);
+      if (kwMatch) potencia_w = Math.round(parseFloat(kwMatch[1].replace(",", ".")) * 1000);
+      // Use full description as modelo, try to split fabricante
+      const parts = item.description.split(" ");
+      if (parts.length >= 2) {
+        fabricante = parts[0];
+        modelo = parts.slice(1).join(" ");
+      } else {
+        modelo = item.description;
       }
     }
 
