@@ -376,25 +376,22 @@ export function getVariableViews(v: CatalogVariable): VariableView[] {
   // Template view: all non-blocked vars
   if (!v.notImplemented) views.push("template");
 
-  // Negócio: business-relevant vars only
-  if (["proposta", "sistema_solar", "cliente", "conta_energia", "financeiro", "documento", "projeto", "uc"].includes(domain)
-      && nature !== "alias_legado" && nature !== "tecnica") {
-    views.push("negocio");
-  }
-  // Built-in calculada vars also appear in negócio
-  if (nature === "calculada" && !views.includes("negocio")) {
+  // Negócio: business-relevant vars only — NO integracao, NO tecnico, NO legado
+  const negocioDomains = new Set(["proposta", "sistema_solar", "cliente", "conta_energia", "financeiro", "documento", "projeto", "uc"]);
+  const negocioExcludedNatures = new Set(["alias_legado", "tecnica", "integracao_externa"]);
+  if (negocioDomains.has(domain) && !negocioExcludedNatures.has(nature) && !v.notImplemented) {
     views.push("negocio");
   }
 
   // Técnica: technical/internal vars
-  if (["tecnico"].includes(domain) || nature === "tecnica") {
+  if (domain === "tecnico" || nature === "tecnica") {
     views.push("tecnica");
   }
 
   // All vars appear in técnica for completeness
   views.push("tecnica");
 
-  // Integrações: supplier/CDD vars
+  // Integrações: supplier/CDD/external API vars
   if (domain === "fornecedor" || domain === "integracao" || nature === "integracao_externa") {
     views.push("integracoes");
   }
