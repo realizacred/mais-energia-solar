@@ -530,10 +530,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       </div>
 
       {/* Main Layout: Sidebar + Content */}
-      <div className="flex gap-5 min-h-[500px]">
+      <div className="flex gap-5 min-h-0">
         {/* ── Sidebar Filters ── */}
-        <aside className="w-[200px] shrink-0 hidden lg:block overflow-y-auto max-h-[calc(100vh-240px)] pr-1">
-          <KitFilters filters={filters} onFiltersChange={setFilters} consumoMensal={consumoTotal} options={filterOptions} />
+        <aside className="w-[200px] shrink-0 hidden lg:flex lg:flex-col overflow-hidden pr-1">
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <KitFilters filters={filters} onFiltersChange={setFilters} consumoMensal={consumoTotal} options={filterOptions} />
+          </div>
         </aside>
 
         {/* ── Main Content Area ── */}
@@ -800,7 +802,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                       <div
                         key={kit.id}
                         className={cn(
-                          "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between min-h-[260px] cursor-pointer relative",
+                          "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between h-auto cursor-pointer relative",
                           isSelected
                             ? "border-primary shadow-md ring-2 ring-primary/20"
                             : "border-border/40 hover:border-primary/30"
@@ -1182,7 +1184,7 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
   return (
     <div
       className={cn(
-        "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between min-h-[220px] cursor-pointer relative",
+        "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between h-auto cursor-pointer relative",
         isSelected
           ? "border-primary shadow-md ring-2 ring-primary/20"
           : "border-border/40 hover:border-primary/30"
@@ -1432,13 +1434,13 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="text-base">Premissas</DialogTitle>
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="flex gap-6 border-b border-border">
+        <div className="flex gap-6 border-b border-border shrink-0">
           <button
             onClick={() => onTabChange("fator")}
             className={cn(
@@ -1459,6 +1461,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
           </button>
         </div>
 
+        <div className="flex-1 min-h-0 overflow-y-auto">
         {activeTab === "fator" ? (
           <div className="space-y-4 pt-1">
             {/* Sombreamento */}
@@ -1556,9 +1559,10 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
             </div>
           </div>
         )}
+        </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-border">
+        <div className="flex items-center justify-between pt-3 border-t border-border shrink-0">
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Voltar</Button>
           <Button size="sm" onClick={() => onOpenChange(false)} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
         </div>
