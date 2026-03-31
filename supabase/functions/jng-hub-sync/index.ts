@@ -81,8 +81,12 @@ interface JngProduto {
 }
 
 // ── Fetch helper (Plataforma-V1 — sem paginação) ────────────
-async function fetchJngKits(token: string): Promise<any[]> {
+async function fetchJngKits(token: string, ibge?: string): Promise<any[]> {
   const params = new URLSearchParams({ token });
+  if (ibge) {
+    params.set("ibge", ibge);
+    params.set("cifComDescarga", "false");
+  }
   const url = `${JNG_BASE}/integracaoPlataforma/BuscarKits?${params.toString()}`;
   console.log("[jng] fetchKits URL:", url);
   const res = await fetch(url);
