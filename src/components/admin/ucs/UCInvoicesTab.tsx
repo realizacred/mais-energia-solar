@@ -886,7 +886,7 @@ export function UCInvoicesTab({ unitId }: Props) {
 
           <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
             {/* Referência */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Mês <span className="text-destructive">*</span></Label>
                 <Input type="number" min={1} max={12} value={form.reference_month} onChange={(e) => setForm(f => ({ ...f, reference_month: parseInt(e.target.value) || 1 }))} />
@@ -922,7 +922,7 @@ export function UCInvoicesTab({ unitId }: Props) {
             </div>
 
             {/* Energia */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Consumo (kWh)</Label>
                 <Input type="number" step="0.1" value={form.energy_consumed_kwh} onChange={(e) => setForm(f => ({ ...f, energy_consumed_kwh: e.target.value }))} placeholder="0" />
@@ -934,7 +934,7 @@ export function UCInvoicesTab({ unitId }: Props) {
             </div>
 
             {/* Compensação e Saldo */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Compensado (kWh)</Label>
                 <Input type="number" step="0.1" value={form.compensated_kwh} onChange={(e) => setForm(f => ({ ...f, compensated_kwh: e.target.value }))} placeholder="0" />

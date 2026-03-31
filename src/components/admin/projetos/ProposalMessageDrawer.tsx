@@ -251,7 +251,7 @@ export function ProposalMessageDrawer({
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-5 space-y-4">
             {/* Destinatário + Estilo — layout compacto lado a lado */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Destinatário

@@ -131,7 +131,7 @@ export function EditorToolbar({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-64 p-2">
-              <div className="grid grid-cols-2 gap-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                 {ROOF_TEMPLATES.map((template) => (
                   <Button
                     key={template.id}
@@ -193,7 +193,7 @@ export function EditorToolbar({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-2">
-              <div className="grid grid-cols-5 gap-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1">
                 {DRAWING_COLORS.map((color) => (
                   <button
                     key={color}

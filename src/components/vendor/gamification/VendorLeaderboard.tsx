@@ -67,7 +67,7 @@
          ) : (
            <>
              {/* Top 3 Podium */}
-             <div className="grid grid-cols-3 gap-2 mb-4">
+             <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
                {[1, 0, 2].map((idx) => {
                  const vendor = topThree[idx];
                  if (!vendor) return <div key={idx} />;

@@ -115,7 +115,7 @@ export default function FinancingSimulator({ investimento, economia }: Financing
         {/* Bank Selection */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Banco</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {bancos.map((bank, index) => (
               <button
                 key={`${bank.nome}-${index}`}
@@ -185,7 +185,7 @@ export default function FinancingSimulator({ investimento, economia }: Financing
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div className="p-2 bg-muted/30 rounded">
               <p className="text-muted-foreground text-xs">Total Financiado</p>
               <p className="font-semibold">{formatCurrency(calculations.totalPago)}</p>

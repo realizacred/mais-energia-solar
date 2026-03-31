@@ -317,7 +317,7 @@ export function ExtractionTestTab({ onGenerateConfig }: ExtractionTestTabProps =
       {isProcessing && (
         <div className="space-y-4">
           <Skeleton className="h-32 w-full rounded-lg" />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Skeleton className="h-24 rounded-lg" />
             <Skeleton className="h-24 rounded-lg" />
           </div>

@@ -206,7 +206,7 @@ export default function InverterDetailPage() {
                 <div
                   key={ch.index}
                   className={cn(
-                    "grid grid-cols-4 gap-2 items-center px-3 py-2.5 rounded-lg border transition-colors",
+                    "grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-center px-3 py-2.5 rounded-lg border transition-colors",
                     ch.power_w > 0
                       ? "border-success/30 bg-success/5"
                       : "border-border/50 bg-muted/10"
@@ -232,7 +232,7 @@ export default function InverterDetailPage() {
             })}
 
             {/* Totals */}
-            <div className="grid grid-cols-4 gap-2 items-center px-3 py-2.5 rounded-lg border-2 border-border font-semibold text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-center px-3 py-2.5 rounded-lg border-2 border-border font-semibold text-sm">
               <span>Total DC</span>
               <span className="text-right text-success">{`${data.totalStringPower} W`}</span>
               <span className="text-right text-muted-foreground">

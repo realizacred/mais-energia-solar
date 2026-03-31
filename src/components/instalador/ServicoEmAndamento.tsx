@@ -1036,7 +1036,7 @@ function ChecklistItemWithPhoto({
           
           {/* Photos grid */}
           {item.photos.length > 0 && (
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {item.photos.map((photo, index) => (
                 <div key={index} className="relative group">
                   <img 

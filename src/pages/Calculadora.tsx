@@ -537,7 +537,7 @@ export default function Calculadora() {
                       success={!!s1.cep && /^\d{5}-\d{3}$/.test(s1.cep) && !s1Errors.cep}
                     />
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FloatingSelect
                         label="Estado"
                         value={s1.estado}
@@ -696,7 +696,7 @@ export default function Calculadora() {
                       options={TIPOS_TELHADO.map((t) => ({ value: t, label: t }))}
                     />
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FloatingSelect
                         label="Rede elétrica"
                         value={s2.rede_atendimento}

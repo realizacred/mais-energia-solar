@@ -233,7 +233,7 @@ export function MarginCommissionTab() {
           <div className="space-y-3">
             <div className="space-y-1.5"><Label className="text-xs">Nome</Label><Input value={marginForm.name} onChange={(e) => setMarginForm((f) => ({ ...f, name: e.target.value }))} className="text-sm" /></div>
             <div className="space-y-1.5"><Label className="text-xs">Descrição</Label><Input value={marginForm.description} onChange={(e) => setMarginForm((f) => ({ ...f, description: e.target.value }))} className="text-sm" /></div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="space-y-1.5"><Label className="text-xs">Mín. %</Label><Input type="number" step="0.1" value={marginForm.min_margin_percent} onChange={(e) => setMarginForm((f) => ({ ...f, min_margin_percent: parseFloat(e.target.value) || 0 }))} /></div>
               <div className="space-y-1.5"><Label className="text-xs">Máx. %</Label><Input type="number" step="0.1" value={marginForm.max_margin_percent} onChange={(e) => setMarginForm((f) => ({ ...f, max_margin_percent: parseFloat(e.target.value) || 0 }))} /></div>
               <div className="space-y-1.5"><Label className="text-xs">Padrão %</Label><Input type="number" step="0.1" value={marginForm.default_margin_percent} onChange={(e) => setMarginForm((f) => ({ ...f, default_margin_percent: parseFloat(e.target.value) || 0 }))} /></div>

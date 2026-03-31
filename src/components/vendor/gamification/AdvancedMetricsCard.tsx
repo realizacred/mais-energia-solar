@@ -110,7 +110,7 @@
          </div>
  
          {/* Summary stats */}
-         <div className="mt-4 pt-4 border-t grid grid-cols-4 gap-2 text-center">
+         <div className="mt-4 pt-4 border-t grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-center">
            <div>
              <p className="text-lg font-bold text-foreground">{metrics.total_leads_atendidos}</p>
              <p className="text-xs text-muted-foreground">Leads atendidos</p>

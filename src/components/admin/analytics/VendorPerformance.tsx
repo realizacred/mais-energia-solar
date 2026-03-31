@@ -176,7 +176,7 @@ export default function VendorPerformance({ leads, statuses }: VendorPerformance
         {/* Summary */}
         {vendorStats.length > 0 && (
           <div className="pt-4 border-t">
-            <div className="grid grid-cols-2 gap-4 text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
               <div>
                 <p className="text-lg font-bold text-primary">{vendorStats.length}</p>
                 <p className="text-xs text-muted-foreground">Consultores Ativos</p>

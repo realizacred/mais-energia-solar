@@ -315,7 +315,7 @@ export function FechamentoCaixaPage() {
           <ScrollArea className="flex-1 min-h-0">
             <div className="p-5 space-y-4">
               {/* Tipo de fechamento */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {(["diario", "semanal", "mensal"] as const).map((tipo) => (
                   <Button
                     key={tipo}

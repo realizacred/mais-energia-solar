@@ -960,7 +960,7 @@ export default function UCPublica() {
                             )}
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Consumo</span>
                             <span className="font-mono">{consumed.toLocaleString("pt-BR")} kWh</span>

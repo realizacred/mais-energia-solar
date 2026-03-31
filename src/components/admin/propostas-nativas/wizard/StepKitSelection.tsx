@@ -1477,7 +1477,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
             </div>
 
             {/* Desvio / Inclinação */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-[11px]">Desvio Azimutal <span className="text-destructive">*</span></Label>
                 <Select value={String(pd.desvio_azimutal)} onValueChange={v => pdUpdate("desvio_azimutal", Number(v))}>
@@ -1495,7 +1495,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
             </div>
 
             {/* 3-column topology grid */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {allTopos.map(topo => {
                 const cfg = getTopoConfig(topo);
                 const potIdeal = potenciaIdealByTopo[topo] || 0;
@@ -1536,7 +1536,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
         ) : (
           <div className="space-y-4 pt-1">
             {/* Sistema Solar tab */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-[11px]">Sobredimensionamento</Label>
                 <div className="relative">

@@ -68,7 +68,7 @@ export function ProposalClientSummary({ data }: { data: ProposalClientSummaryDat
       </Card>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center gap-1.5 text-muted-foreground text-xs mb-1">

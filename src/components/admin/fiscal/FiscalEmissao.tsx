@@ -293,7 +293,7 @@ function InvoiceDetailDialog({ invoice, open, onClose, onUpdated }: { invoice: a
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div><span className="text-muted-foreground text-xs">Valor</span><p className="font-semibold">R$ {Number(invoice?.value || 0).toFixed(2)}</p></div>
             <div><span className="text-muted-foreground text-xs">Data Efetiva</span><p className="font-medium">{invoice?.effective_date}</p></div>
           </div>

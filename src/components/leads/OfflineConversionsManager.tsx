@@ -139,7 +139,7 @@ export function OfflineConversionsManager() {
               <CollapsibleContent>
                 <div className="px-4 pb-4 space-y-3 border-t pt-3">
                   {/* Lead Info */}
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <MapPin className="w-3 h-3" />
                       {conversion.formData.cidade}, {conversion.formData.estado}

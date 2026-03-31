@@ -197,7 +197,7 @@ export function ProposalGenerator({ lead, orcamento, vendedorNome }: ProposalGen
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Summary */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div className="p-3 rounded-lg bg-muted/50">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <Calculator className="h-4 w-4" />

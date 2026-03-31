@@ -143,7 +143,7 @@ export function ProposalActionCards({
 
           <Separator />
 
-          <div className="grid grid-cols-2 gap-x-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2">
             <ActionLink icon={Link2} label="Copiar link com rastreio" onClick={() => onCopyLink(true)} />
             <ActionLink icon={Link2} label="Copiar link sem rastreio" onClick={() => onCopyLink(false)} />
             <ActionLink icon={Download} label="Download de PDF" onClick={onDownloadPdf} disabled={downloadingPdf || !html} />

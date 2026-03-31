@@ -370,7 +370,7 @@ export function LoadingConfigAdmin() {
           {/* Animation style — 2-step selector */}
           <div className="space-y-3">
             <Label>Animação</Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <span className="text-xs font-medium text-muted-foreground">① Movimento</span>
                 <Select value={motionStyle} onValueChange={(v) => {

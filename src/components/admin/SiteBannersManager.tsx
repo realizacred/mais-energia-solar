@@ -143,7 +143,7 @@ export function SiteBannersManager() {
                 value={newBanner.imagem_url}
                 onChange={(url) => setNewBanner({ ...newBanner, imagem_url: url })}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Título</Label>
                   <Input value={newBanner.titulo} onChange={(e) => setNewBanner({ ...newBanner, titulo: e.target.value })} />
@@ -153,7 +153,7 @@ export function SiteBannersManager() {
                   <Input value={newBanner.subtitulo} onChange={(e) => setNewBanner({ ...newBanner, subtitulo: e.target.value })} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Texto do Botão</Label>
                   <Input value={newBanner.botao_texto} onChange={(e) => setNewBanner({ ...newBanner, botao_texto: e.target.value })} />

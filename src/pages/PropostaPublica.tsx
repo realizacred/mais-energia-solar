@@ -598,7 +598,7 @@ export default function PropostaPublica() {
                     <p className="text-xs text-muted-foreground">{Number.isFinite(c.taxa_juros_mensal) ? c.taxa_juros_mensal.toFixed(2) : "0.00"}% a.m.</p>
                   )}
 
-                  <div className="grid grid-cols-3 gap-1 mt-3 pt-3 border-t border-border/50">
+                  <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 mt-3 pt-3 border-t border-border/50">
                     <div className="text-center">
                       <Clock className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
                       <p className="text-xs font-bold">{Number.isFinite(c.payback_meses) ? c.payback_meses : "—"}m</p>
@@ -634,7 +634,7 @@ export default function PropostaPublica() {
           <Card className="border-border/60">
             <CardContent className="py-4">
               <h3 className="text-sm font-semibold mb-3">📊 Resumo Financeiro{activeCenario ? ` — ${activeCenario.nome}` : ""}</h3>
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div className="bg-muted/50 rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground uppercase">Investimento</p>
                   <p className="text-sm font-bold">{formatBRL(activeCenario?.preco_final ?? versaoData.valor_total)}</p>
@@ -740,7 +740,7 @@ export default function PropostaPublica() {
                           <div
                             key={op.n}
                             className={cn(
-                              "grid grid-cols-3 px-4 py-3 cursor-pointer border-t border-primary/10 transition-colors",
+                              "grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 py-3 cursor-pointer border-t border-primary/10 transition-colors",
                               parcelaEscolhida === op.n ? "bg-primary/15" : "hover:bg-primary/5"
                             )}
                             onClick={e => { e.stopPropagation(); setParcelaEscolhida(op.n); }}

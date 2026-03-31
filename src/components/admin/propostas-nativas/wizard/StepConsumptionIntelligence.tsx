@@ -656,7 +656,7 @@ function PremissasContent({
   return (
     <div className="space-y-4">
       {/* Sombreamento / Desvio / Inclinação / DoD — shared across topologies */}
-      <div className={`grid gap-3 ${showDoD ? "grid-cols-4" : "grid-cols-3"}`}>
+      <div className={`grid gap-3 ${showDoD ? "grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
         <div className="space-y-1.5">
           <Label className="text-[11px] flex items-center gap-1">
             Sombreamento <span className="text-destructive">*</span>

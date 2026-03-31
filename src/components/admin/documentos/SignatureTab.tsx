@@ -399,7 +399,7 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-semibold">Autenticações opcionais</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="flex items-center gap-2"><Checkbox checked={docOficial} onCheckedChange={(v) => setDocOficial(!!v)} /><Label className="text-xs">Documento oficial</Label></div>
               <div className="flex items-center gap-2"><Checkbox checked={selfie} onCheckedChange={(v) => setSelfie(!!v)} /><Label className="text-xs">Selfie com documento</Label></div>
               <div className="flex items-center gap-2"><Checkbox checked={manuscrita} onCheckedChange={(v) => setManuscrita(!!v)} /><Label className="text-xs">Assinatura manuscrita</Label></div>

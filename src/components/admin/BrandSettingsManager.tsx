@@ -393,7 +393,7 @@ export function BrandSettingsManager() {
                 <Badge variant="secondary">Secondary</Badge>
                 <Badge variant="outline">Outline</Badge>
               </div>
-              <div className="mt-4 grid grid-cols-4 gap-2">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                 {[
                   { label: "Sucesso", color: draft.color_success },
                   { label: "Alerta", color: draft.color_warning },
@@ -700,7 +700,7 @@ export function BrandSettingsManager() {
                 </div>
 
                 {/* Preview of border radius */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div
                     className="h-20 bg-primary/10 border border-primary/20 flex items-center justify-center text-xs text-primary font-medium"
                     style={{ borderRadius: draft.border_radius }}

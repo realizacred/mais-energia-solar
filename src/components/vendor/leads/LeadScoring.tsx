@@ -229,7 +229,7 @@
            ) : (
              <div className="space-y-4">
                {/* Summary Stats */}
-               <div className="grid grid-cols-3 gap-3">
+               <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-center">
                     <Flame className="h-5 w-5 text-primary mx-auto mb-1" />
                     <p className="text-2xl font-bold text-primary">{hotLeads.length}</p>

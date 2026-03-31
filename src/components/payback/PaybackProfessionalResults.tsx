@@ -80,7 +80,7 @@ export function PaybackProfessionalResults({
       )}
 
       {/* Dual Scenarios */}
-      <div className="grid grid-cols-1 min-[500px]:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 min-[500px]:grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Conservador - Padrão para propostas */}
         <motion.div
           initial={{ opacity: 0, x: -10 }}
@@ -157,7 +157,7 @@ export function PaybackProfessionalResults({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="grid grid-cols-1 min-[400px]:grid-cols-3 gap-3"
+        className="grid grid-cols-1 min-[400px]:grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
       >
         <Card className="border-destructive/20 bg-destructive/5">
           <CardContent className="p-4 text-center">
