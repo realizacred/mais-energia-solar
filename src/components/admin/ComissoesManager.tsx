@@ -57,16 +57,16 @@ import {
   ComissoesReports,
   ComissoesExport,
 } from "./comissoes";
-
-interface Consultor {
-  id: string;
-  nome: string;
-}
-
-interface Cliente {
-  id: string;
-  nome: string;
-}
+import {
+  useComissoes,
+  useAllComissoes,
+  useConsultoresAtivos,
+  useClientesAtivos,
+  useSalvarComissao,
+  useDeletarComissao,
+  type ComissaoRow,
+} from "@/hooks/useComissoes";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Comissao {
   id: string;
@@ -104,12 +104,7 @@ const MESES = [
 ];
 
 export function ComissoesManager() {
-  const [comissoes, setComissoes] = useState<Comissao[]>([]);
-  const [allComissoes, setAllComissoes] = useState<Comissao[]>([]); // For reports
-  const [vendedores, setVendedores] = useState<Consultor[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedComissao, setSelectedComissao] = useState<Comissao | null>(null);
   const [pagamentosDialogOpen, setPagamentosDialogOpen] = useState(false);
@@ -139,9 +134,23 @@ export function ComissoesManager() {
     observacoes: "",
   });
 
-  useEffect(() => {
-    fetchData();
-  }, [filterMes, filterAno, filterVendedor, filterStatus, filterCliente]);
+  // --- Hooks (RB-04, §16) ---
+  const { data: comissoes = [], isLoading: loadingComissoes } = useComissoes({
+    mes: filterMes,
+    ano: filterAno,
+    consultor_id: filterVendedor,
+    status: filterStatus,
+    cliente_id: filterCliente,
+  });
+
+  const { data: allComissoes = [] } = useAllComissoes();
+  const { data: vendedores = [] } = useConsultoresAtivos();
+  const { data: clientes = [] } = useClientesAtivos();
+
+  const salvarComissao = useSalvarComissao();
+  const deletarComissao = useDeletarComissao();
+
+  const loading = loadingComissoes;
 
   // ⚠️ HARDENING: Realtime for cross-user sync on comissões (financial data)
   useEffect(() => {
@@ -151,7 +160,9 @@ export function ComissoesManager() {
       .channel('comissoes-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comissoes' }, () => {
         if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => fetchData(), 700);
+        debounceTimer = setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["comissoes"] });
+        }, 700);
       })
       .subscribe();
 
@@ -159,84 +170,13 @@ export function ComissoesManager() {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [filterMes, filterAno, filterVendedor, filterStatus, filterCliente]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      // Fetch consultores
-      const { data: vendedoresData } = await supabase
-        .from("consultores")
-        .select("id, nome")
-        .eq("ativo", true)
-        .order("nome");
-
-      if (vendedoresData) setVendedores(vendedoresData);
-
-      // Fetch clientes
-      const { data: clientesData } = await supabase
-        .from("clientes")
-        .select("id, nome")
-        .eq("ativo", true)
-        .order("nome");
-
-      if (clientesData) setClientes(clientesData);
-
-      // Build query for comissoes (filtered)
-      let query = supabase
-        .from("comissoes")
-        .select(`
-          *,
-          consultores(nome),
-          clientes(nome),
-          projetos(codigo),
-          pagamentos_comissao(valor_pago, data_pagamento)
-        `)
-        .eq("mes_referencia", filterMes)
-        .eq("ano_referencia", filterAno)
-        .order("created_at", { ascending: false });
-
-      if (filterVendedor !== "all") {
-        query = query.eq("consultor_id", filterVendedor);
-      }
-
-      if (filterStatus !== "all") {
-        query = query.eq("status", filterStatus);
-      }
-
-      if (filterCliente !== "all") {
-        query = query.eq("cliente_id", filterCliente);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setComissoes(data || []);
-
-      // Fetch all comissoes for reports (last 12 months)
-      const { data: allData } = await supabase
-        .from("comissoes")
-        .select(`
-          *,
-          consultores(nome),
-          pagamentos_comissao(valor_pago, data_pagamento)
-        `)
-        .order("created_at", { ascending: false });
-
-      setAllComissoes(allData || []);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast({ title: "Erro ao carregar dados", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [queryClient]);
 
   // Filter by search term
   const filteredComissoes = useMemo(() => {
-    if (!searchTerm) return comissoes;
+    if (!searchTerm) return comissoes as Comissao[];
     const term = searchTerm.toLowerCase();
-    return comissoes.filter(
+    return (comissoes as Comissao[]).filter(
       (c) =>
         c.descricao.toLowerCase().includes(term) ||
         c.consultores?.nome.toLowerCase().includes(term) ||
@@ -255,14 +195,13 @@ export function ComissoesManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
 
     try {
       const valorBase = parseFloat(formData.valor_base);
       const percentual = parseFloat(formData.percentual_comissao);
       const valorComissao = (valorBase * percentual) / 100;
 
-      const { error } = await supabase.from("comissoes").insert({
+      await salvarComissao.mutateAsync({
         consultor_id: formData.consultor_id,
         descricao: formData.descricao,
         valor_base: valorBase,
@@ -273,16 +212,11 @@ export function ComissoesManager() {
         observacoes: formData.observacoes || null,
       });
 
-      if (error) throw error;
-
       toast({ title: "Comissão registrada com sucesso!" });
       resetForm();
-      fetchData();
     } catch (error) {
       console.error("Error saving comissao:", error);
       toast({ title: "Erro ao registrar comissão", variant: "destructive" });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -290,15 +224,17 @@ export function ComissoesManager() {
     if (!confirm("Excluir esta comissão?")) return;
 
     try {
-      const { error } = await supabase.from("comissoes").delete().eq("id", id);
-      if (error) throw error;
+      await deletarComissao.mutateAsync(id);
       toast({ title: "Comissão excluída!" });
-      fetchData();
     } catch (error) {
       console.error("Error deleting comissao:", error);
       toast({ title: "Erro ao excluir comissão", variant: "destructive" });
     }
   };
+
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["comissoes"] });
+  }, [queryClient]);
 
   const resetForm = () => {
     setFormData({
@@ -574,8 +510,8 @@ export function ComissoesManager() {
                     <Button type="button" variant="ghost" onClick={resetForm}>
                       Cancelar
                     </Button>
-                  <Button type="submit" disabled={saving}>
-                      {saving && <Spinner size="sm" className="mr-2" />}
+                  <Button type="submit" disabled={salvarComissao.isPending}>
+                      {salvarComissao.isPending && <Spinner size="sm" className="mr-2" />}
                       Registrar
                     </Button>
                   </div>
@@ -721,7 +657,7 @@ export function ComissoesManager() {
         <TabsContent value="relatorios" className="mt-0">
           <ComissoesReports
             comissoes={filteredComissoes}
-            allComissoes={allComissoes}
+            allComissoes={allComissoes as Comissao[]}
             vendedores={vendedores}
             formatCurrency={formatCurrency}
           />
@@ -734,7 +670,7 @@ export function ComissoesManager() {
           open={pagamentosDialogOpen}
           onOpenChange={setPagamentosDialogOpen}
           comissao={selectedComissao}
-          onUpdate={fetchData}
+          onUpdate={handleRefresh}
         />
       )}
 
@@ -747,7 +683,7 @@ export function ComissoesManager() {
         }}
         comissoes={selectedComissoes}
         onUpdate={() => {
-          fetchData();
+          handleRefresh();
           setSelectedIds(new Set());
         }}
       />
@@ -758,7 +694,7 @@ export function ComissoesManager() {
           open={payDirectOpen}
           onOpenChange={setPayDirectOpen}
           comissao={selectedComissao}
-          onUpdate={fetchData}
+          onUpdate={handleRefresh}
           initialShowForm
         />
       )}
