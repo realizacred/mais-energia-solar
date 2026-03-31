@@ -47,14 +47,14 @@ export function usePWAInstall() {
   useEffect(() => {
     // Subscribe to changes from the global singleton
     const unsub = onPromptChange((e) => {
-      console.log("[PWA] onPromptChange →", { hasPrompt: !!e });
+      // console.log("[PWA] onPromptChange →", { hasPrompt: !!e });
       setCanInstall(!!e);
       if (!e) setIsInstalled(true);
     });
 
     // Sync initial state (prompt may have arrived before mount)
     const initial = !!getDeferredPrompt();
-    console.log("[PWA] usePWAInstall mount →", { isInstalled, canInstall: initial, isIOS, isAndroid });
+    // console.log("[PWA] usePWAInstall mount →", { isInstalled, canInstall: initial, isIOS, isAndroid });
     setCanInstall(initial);
 
     return unsub;
@@ -62,7 +62,7 @@ export function usePWAInstall() {
 
   const promptInstall = useCallback(async () => {
     const prompt = getDeferredPrompt();
-    console.log("[PWA] promptInstall called, hasPrompt:", !!prompt);
+    // console.log("[PWA] promptInstall called, hasPrompt:", !!prompt);
     if (!prompt) return false;
 
     savePWAReturnUrl();
@@ -70,7 +70,7 @@ export function usePWAInstall() {
     try {
       prompt.prompt();
       const { outcome } = await prompt.userChoice;
-      console.log("[PWA] userChoice outcome:", outcome);
+      // console.log("[PWA] userChoice outcome:", outcome);
 
       if (outcome === "accepted") {
         setIsInstalled(true);

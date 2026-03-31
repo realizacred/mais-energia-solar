@@ -125,8 +125,8 @@ function extractCurrentValues(rawPayload: any): Record<string, any> {
     }
   }
 
-  console.log("[MeterCommandPanel] extractCurrentValues found", Object.keys(map).length, "DPs, sample:", 
-    Object.fromEntries(Object.entries(map).slice(0, 5)));
+  // console.log("[MeterCommandPanel] extractCurrentValues found", Object.keys(map).length, "DPs, sample:", 
+  //   Object.fromEntries(Object.entries(map).slice(0, 5)));
   return map;
 }
 
@@ -151,17 +151,17 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
   useEffect(() => {
     if (initialized) return;
     if (!statusLatest) {
-      console.log("[MeterCommandPanel] No statusLatest yet for meterId:", meterId);
+      // console.log("[MeterCommandPanel] No statusLatest yet for meterId:", meterId);
       return;
     }
     if (!statusLatest.raw_payload) {
-      console.log("[MeterCommandPanel] statusLatest exists but no raw_payload");
+      // console.log("[MeterCommandPanel] statusLatest exists but no raw_payload");
       return;
     }
 
     const current = extractCurrentValues(statusLatest.raw_payload);
     if (Object.keys(current).length === 0) {
-      console.log("[MeterCommandPanel] extractCurrentValues returned empty map");
+      // console.log("[MeterCommandPanel] extractCurrentValues returned empty map");
       return;
     }
 
@@ -180,7 +180,7 @@ export function MeterCommandPanel({ configId, externalDeviceId, meterId }: Props
       }
     }
 
-    console.log("[MeterCommandPanel] Pre-filling", Object.keys(nums).length, "numeric +", Object.keys(bools).length, "boolean values");
+    // console.log("[MeterCommandPanel] Pre-filling", Object.keys(nums).length, "numeric +", Object.keys(bools).length, "boolean values");
     setValues(prev => ({ ...prev, ...nums }));
     setBoolValues(prev => ({ ...prev, ...bools }));
     setInitialized(true);

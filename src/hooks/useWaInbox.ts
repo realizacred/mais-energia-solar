@@ -863,17 +863,17 @@ export function useWaTags() {
 
   const toggleConversationTag = useMutation({
     mutationFn: async ({ conversationId, tagId, add }: { conversationId: string; tagId: string; add: boolean }) => {
-      console.log("[toggleConversationTag] called:", { conversationId, tagId, add });
+      // console.log("[toggleConversationTag] called:", { conversationId, tagId, add });
       if (add) {
         const { data, error } = await supabase
           .from("wa_conversation_tags")
           .insert({ conversation_id: conversationId, tag_id: tagId })
           .select();
-        console.log("[toggleConversationTag] insert result:", { data, error });
+        // console.log("[toggleConversationTag] insert result:", { data, error });
         if (error) {
           // Ignore duplicate key (tag already applied)
           if (error.code === "23505") {
-            console.log("[toggleConversationTag] tag already exists, ignoring");
+            // console.log("[toggleConversationTag] tag already exists, ignoring");
             return;
           }
           throw error;
@@ -885,7 +885,7 @@ export function useWaTags() {
           .eq("conversation_id", conversationId)
           .eq("tag_id", tagId)
           .select();
-        console.log("[toggleConversationTag] delete result:", { data, error });
+        // console.log("[toggleConversationTag] delete result:", { data, error });
         if (error) throw error;
       }
     },

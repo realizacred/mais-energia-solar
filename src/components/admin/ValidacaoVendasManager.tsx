@@ -361,7 +361,7 @@ export function ValidacaoVendasManager() {
         throw new Error(rpcError.message);
       }
 
-      console.log("[handleApprove] Venda aprovada atomicamente:", vendaId);
+      // console.log("[handleApprove] Venda aprovada atomicamente:", vendaId);
 
       // Create recebimento automatically (non-blocking)
       try {
@@ -385,7 +385,7 @@ export function ValidacaoVendasManager() {
           if (recError) {
             console.warn("[handleApprove] Recebimento auto-creation failed (non-blocking):", recError);
           } else {
-            console.log("[handleApprove] Recebimento criado:", recData);
+            // console.log("[handleApprove] Recebimento criado:", recData);
           }
         }
       } catch (recErr) {

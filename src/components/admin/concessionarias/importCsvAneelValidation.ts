@@ -135,7 +135,7 @@ export function validateRows(
       const matchCount = sampleValues.filter(v => subgrupoPattern.test(v.trim())).length;
       if (matchCount >= 3) {
         colMap.subgrupo = colIdx;
-        console.log("[ANEEL Validate] Content-based fallback: subgrupo at col", colIdx);
+        // console.log("[ANEEL Validate] Content-based fallback: subgrupo at col", colIdx);
         break;
       }
     }
@@ -147,7 +147,7 @@ export function validateRows(
       const sampleValues = rows.slice(0, 10).map(r => r[colIdx] || "").filter(Boolean);
       if (sampleValues.some(v => /^[A-Z]{2,10}$/i.test(v.trim()))) {
         colMap.sigAgente = colIdx;
-        console.log("[ANEEL Validate] Content-based fallback: sigAgente at col", colIdx);
+        // console.log("[ANEEL Validate] Content-based fallback: sigAgente at col", colIdx);
         break;
       }
     }

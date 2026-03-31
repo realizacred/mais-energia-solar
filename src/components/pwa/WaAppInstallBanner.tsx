@@ -18,7 +18,7 @@ export function WaAppInstallBanner() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as any).standalone === true;
 
-    console.log("[PWA Banner WA]", { isInstalled, canInstall, isIOS, isAndroid, isStandalone });
+    // console.log("[PWA Banner WA]", { isInstalled, canInstall, isIOS, isAndroid, isStandalone });
 
     if (isInstalled || isStandalone) {
       setDismissed(true);

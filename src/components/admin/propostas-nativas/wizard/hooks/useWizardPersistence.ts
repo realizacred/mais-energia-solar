@@ -220,11 +220,11 @@ async function persistProposalAtomic(
   try {
     // ══════ CREATE: no existing proposal ══════
     if (!effectivePropostaId) {
-      console.log("[persist] criando nova proposta", {
-        deal_id: params.dealId || null,
-        lead_id: params.leadId || null,
-        titulo: params.titulo,
-      });
+      // console.log("[persist] criando nova proposta", {
+      //   deal_id: params.dealId || null,
+      //   lead_id: params.leadId || null,
+      //   titulo: params.titulo,
+      // });
 
       const cli = params.cliente;
       const rpcPayload: Record<string, any> = {
@@ -268,11 +268,11 @@ async function persistProposalAtomic(
       }
 
       const result = data as any;
-      console.log("[persist] proposta criada", {
-        proposta_id: result.proposta_id,
-        versao_id: result.versao_id,
-        projeto_id: result.projeto_id,
-      });
+      // console.log("[persist] proposta criada", {
+      //   proposta_id: result.proposta_id,
+      //   versao_id: result.versao_id,
+      //   projeto_id: result.projeto_id,
+      // });
 
       // If intent is active, update via RPC to avoid enum type mismatch
       // (proposta_versoes.status is enum proposta_nativa_status, direct text update fails)
@@ -349,11 +349,11 @@ async function persistProposalAtomic(
     }
 
     // ── Backend-driven versioning via RPC ──
-    console.log("[persist] chamando RPC proposal_create_version", {
-      proposta_id: effectivePropostaId,
-      versao_id: effectiveVersaoId,
-      intent,
-    });
+    // console.log("[persist] chamando RPC proposal_create_version", {
+    //   proposta_id: effectivePropostaId,
+    //   versao_id: effectiveVersaoId,
+    //   intent,
+    // });
 
     const { data: rpcResult, error: rpcErr } = await supabase.rpc(
       "proposal_create_version" as any,
@@ -392,11 +392,11 @@ async function persistProposalAtomic(
     const finalVersaoId = result.versao_id;
     const newVersionCreated = result.new_version_created === true;
 
-    console.log("[persist] RPC resultado:", {
-      versao_id: finalVersaoId,
-      new_version_created: newVersionCreated,
-      reason: result.reason,
-    });
+    // console.log("[persist] RPC resultado:", {
+    //   versao_id: finalVersaoId,
+    //   new_version_created: newVersionCreated,
+    //   reason: result.reason,
+    // });
 
     // Sync deal value + kwp so kanban projection reflects proposal data
     const syncDealId = params.dealId;
@@ -447,7 +447,7 @@ export function useWizardPersistence() {
       // Promise reuse: if same intent is already in-flight, return same promise
       const existing = inflightMap.get(intentKey);
       if (existing) {
-        console.log("[persist] reutilizando promise:", intentKey);
+        // console.log("[persist] reutilizando promise:", intentKey);
         const reusedResult = await existing;
         return { ...reusedResult, status: "reused" as AtomicPersistStatus };
       }

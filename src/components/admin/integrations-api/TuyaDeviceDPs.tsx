@@ -38,7 +38,7 @@ export function TuyaDeviceDPs({ configId }: Props) {
     try {
       const resp = await tuyaIntegrationService.getDeviceFunctions(configId, deviceExternalId);
       const fns = resp?.result?.functions || resp?.functions || [];
-      console.log("[TuyaDeviceDPs] response:", JSON.stringify(resp).slice(0, 500), "DPs found:", fns.length);
+      // console.log("[TuyaDeviceDPs] response:", JSON.stringify(resp).slice(0, 500), "DPs found:", fns.length);
       setDps(fns);
     } catch (err) {
       console.error("[TuyaDeviceDPs] error:", err);

@@ -62,7 +62,7 @@ export function useFormAutoSave<T extends FieldValues>(
               form.setValue(fieldKey as Path<T>, value, { shouldValidate: false });
             }
           });
-          console.log("[AutoSave] Draft restored from localStorage");
+          // console.log("[AutoSave] Draft restored from localStorage");
         } else {
           // Clear expired draft
           localStorage.removeItem(storageKey);
@@ -105,7 +105,7 @@ export function useFormAutoSave<T extends FieldValues>(
             _savedAt: Date.now(),
           };
           localStorage.setItem(storageKey, JSON.stringify(toSave));
-          console.log("[AutoSave] Draft saved");
+          // console.log("[AutoSave] Draft saved");
           setHasDraftValue(true);
         } catch (error) {
           console.error("[AutoSave] Error saving draft:", error);
@@ -137,7 +137,7 @@ export function useFormAutoSave<T extends FieldValues>(
     suppressSaveRef.current = true;
     localStorage.removeItem(storageKey);
     setHasDraftValue(false);
-    console.log("[AutoSave] Draft cleared");
+    // console.log("[AutoSave] Draft cleared");
   }, [storageKey]);
 
   return { clearDraft, hasDraft: hasDraftValue };

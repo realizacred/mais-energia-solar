@@ -36,7 +36,7 @@ function extractStoragePath(fileUrl: string): string | null {
 
 async function downloadDocx(fileUrl: string) {
   const extracted = extractStoragePath(fileUrl);
-  console.log("[downloadDocx] fileUrl:", fileUrl, "| extractedPath:", extracted);
+  // console.log("[downloadDocx] fileUrl:", fileUrl, "| extractedPath:", extracted);
   if (!extracted) {
     console.warn("[downloadDocx] Could not extract path, trying fetch-to-blob fallback");
     try {
@@ -59,7 +59,7 @@ async function downloadDocx(fileUrl: string) {
   // Normalize path — decode first to avoid double-encoding,
   // then keep as plain string for SDK (SDK handles encoding internally)
   const normalizedPath = decodeURIComponent(extracted).replace(/\+/g, " ");
-  console.log("[downloadDocx] normalized path:", normalizedPath);
+  // console.log("[downloadDocx] normalized path:", normalizedPath);
 
   // Step 1: create signed URL (avoids SDK .download() encoding issues with special chars)
   const { data: signedData, error: signedError } = await supabase.storage
