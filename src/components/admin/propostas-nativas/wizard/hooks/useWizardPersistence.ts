@@ -221,10 +221,10 @@ async function persistProposalAtomic(
     // ══════ CREATE: no existing proposal ══════
     if (!effectivePropostaId) {
       // console.log("[persist] criando nova proposta", {
-        deal_id: params.dealId || null,
-        lead_id: params.leadId || null,
-        titulo: params.titulo,
-      });
+      //   deal_id: params.dealId || null,
+      //   lead_id: params.leadId || null,
+      //   titulo: params.titulo,
+      // });
 
       const cli = params.cliente;
       const rpcPayload: Record<string, any> = {
