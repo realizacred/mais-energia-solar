@@ -1,7 +1,7 @@
 // §16: Queries só em hooks — NUNCA em componentes
 // §23: staleTime obrigatório
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const STALE_TIME = 1000 * 60 * 5; // 5 min
@@ -83,5 +83,78 @@ export function useAllComissoes() {
       return (data ?? []) as ComissaoRow[];
     },
     staleTime: STALE_TIME,
+  });
+}
+
+/** Consultores ativos (para selects) */
+export function useConsultoresAtivos() {
+  return useQuery({
+    queryKey: ["consultores", "ativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("consultores")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    staleTime: STALE_TIME,
+  });
+}
+
+/** Clientes ativos (para selects) */
+export function useClientesAtivos() {
+  return useQuery({
+    queryKey: ["clientes", "ativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+    staleTime: STALE_TIME,
+  });
+}
+
+/** Mutation para inserir comissão */
+export interface SalvarComissaoPayload {
+  consultor_id: string;
+  descricao: string;
+  valor_base: number;
+  percentual_comissao: number;
+  valor_comissao: number;
+  mes_referencia: number;
+  ano_referencia: number;
+  observacoes: string | null;
+}
+
+export function useSalvarComissao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: SalvarComissaoPayload) => {
+      const { error } = await supabase.from("comissoes").insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comissoes"] });
+    },
+  });
+}
+
+/** Mutation para deletar comissão */
+export function useDeletarComissao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("comissoes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comissoes"] });
+    },
   });
 }
