@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { formatPhone } from "@/lib/validations";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { FornecedorImportDialog } from "@/components/admin/fornecedores/FornecedorImportDialog";
@@ -9,7 +9,14 @@ import {
   FileText, Calendar, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  useFornecedores,
+  useSalvarFornecedor,
+  useDeletarFornecedor,
+  useToggleFornecedorAtivo,
+} from "@/hooks/useFornecedores";
+import type { Fornecedor } from "@/hooks/useFornecedores";
+import { useToast } from "@/hooks/use-toast";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
