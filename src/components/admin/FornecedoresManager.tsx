@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatPhone } from "@/lib/validations";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { FornecedorImportDialog } from "@/components/admin/fornecedores/FornecedorImportDialog";
@@ -9,7 +10,13 @@ import {
   FileText, Calendar, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  useFornecedores,
+  useSalvarFornecedor,
+  useDeletarFornecedor,
+  useToggleFornecedorAtivo,
+} from "@/hooks/useFornecedores";
+import type { Fornecedor } from "@/hooks/useFornecedores";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
@@ -34,26 +41,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface Fornecedor {
-  id: string;
-  nome: string;
-  cnpj: string | null;
-  inscricao_estadual: string | null;
-  email: string | null;
-  telefone: string | null;
-  site: string | null;
-  contato_nome: string | null;
-  contato_telefone: string | null;
-  endereco: string | null;
-  cidade: string | null;
-  estado: string | null;
-  cep: string | null;
-  tipo: string;
-  categorias: string[];
-  observacoes: string | null;
-  ativo: boolean;
-  created_at: string;
-}
+// Fornecedor type imported from hook
 
 const TIPOS = [
   { value: "distribuidor", label: "Distribuidor" },
@@ -89,9 +77,13 @@ function InfoRow({ icon: Icon, label, value }: { icon?: any; label: string; valu
 }
 
 export function FornecedoresManager() {
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: fornecedores = [], isLoading: loading } = useFornecedores();
+  const salvarMutation = useSalvarFornecedor();
+  const deletarMutation = useDeletarFornecedor();
+  const toggleAtivoMutation = useToggleFornecedorAtivo();
+
   const [search, setSearch] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("all");
   const [filterCidade, setFilterCidade] = useState<string>("all");
@@ -100,23 +92,11 @@ export function FornecedoresManager() {
   const [editing, setEditing] = useState<Fornecedor | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [deleting, setDeleting] = useState<Fornecedor | null>(null);
-  const [saving, setSaving] = useState(false);
   const [viewFornecedor, setViewFornecedor] = useState<Fornecedor | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [importOpen, setImportOpen] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("fornecedores")
-      .select("id, nome, tipo, cnpj, inscricao_estadual, telefone, email, contato_nome, contato_telefone, endereco, cidade, estado, cep, site, categorias, observacoes, ativo, created_at, updated_at")
-      .order("nome");
-    setFornecedores((data as any[]) || []);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   /* ─── Derived lists ─── */
   const cidades = useMemo(() => {
@@ -228,7 +208,6 @@ export function FornecedoresManager() {
       toast({ title: "Nome é obrigatório", variant: "destructive" });
       return;
     }
-    setSaving(true);
     const payload = {
       nome: form.nome.trim(),
       cnpj: form.cnpj.trim() || null,
@@ -247,38 +226,28 @@ export function FornecedoresManager() {
       observacoes: form.observacoes.trim() || null,
     };
 
-    let error;
-    if (editing) {
-      ({ error } = await supabase.from("fornecedores").update(payload).eq("id", editing.id));
-    } else {
-      ({ error } = await supabase.from("fornecedores").insert([payload] as any));
-    }
-
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await salvarMutation.mutateAsync({ id: editing?.id, data: payload });
       toast({ title: editing ? "Fornecedor atualizado" : "Fornecedor criado" });
       setDialogOpen(false);
-      fetchData();
+    } catch (error: any) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     }
-    setSaving(false);
   };
 
   const handleDelete = async () => {
     if (!deleting) return;
-    const { error } = await supabase.from("fornecedores").delete().eq("id", deleting.id);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await deletarMutation.mutateAsync(deleting.id);
       toast({ title: "Fornecedor excluído" });
-      fetchData();
+    } catch (error: any) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     }
     setDeleting(null);
   };
 
   const toggleAtivo = async (f: Fornecedor) => {
-    await supabase.from("fornecedores").update({ ativo: !f.ativo }).eq("id", f.id);
-    fetchData();
+    await toggleAtivoMutation.mutateAsync({ id: f.id, ativo: !f.ativo });
   };
 
   const toggleCategoria = (cat: string) => {
@@ -748,8 +717,8 @@ export function FornecedoresManager() {
 
           <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
             <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button variant="default" onClick={handleSave} disabled={saving}>
-              {saving ? "Salvando..." : editing ? "Salvar" : "Criar"}
+            <Button variant="default" onClick={handleSave} disabled={salvarMutation.isPending}>
+              {salvarMutation.isPending ? "Salvando..." : editing ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -777,7 +746,7 @@ export function FornecedoresManager() {
         open={importOpen}
         onOpenChange={setImportOpen}
         existingFornecedores={fornecedores}
-        onImported={fetchData}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ["fornecedores"] })}
       />
     </div>
   );
