@@ -293,7 +293,7 @@ serve(async (req) => {
       );
     }
 
-    const { token } = (config.credentials || {}) as any;
+    const { token, ibge } = (config.credentials || {}) as any;
     if (!token) {
       return new Response(
         JSON.stringify({ success: false, error: "Token não encontrado nas credenciais", code: "MISSING_TOKEN" }),
