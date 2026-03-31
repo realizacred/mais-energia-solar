@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatBRL } from "@/lib/formatters";
 import { CreditCard, Pencil, Plus, Trash2, Banknote, Building2, FileText, Smartphone, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
