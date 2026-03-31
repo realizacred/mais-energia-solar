@@ -232,7 +232,7 @@ export function DialogPosDimensionamento({
                   console.error("[DialogPos] saveDraft error:", err);
                 }
               }}
-              disabled={loading || saving}
+              disabled={loading || hasRequired || saving}
             >
               {saving ? "Salvando..." : "Salvar"}
             </Button>
