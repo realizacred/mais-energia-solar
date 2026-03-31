@@ -3,6 +3,7 @@
  * §26-S1 header, §27-S1 KPI cards, §5-S1 chart, §4-S1 table.
  */
 import { useMemo, useState } from "react";
+import { formatBRLInteger } from "@/lib/formatters";
 import { useNavigate } from "react-router-dom";
 import { Zap, Building2, Wifi, AlertTriangle, Sun, TrendingDown, DollarSign, Battery, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -262,7 +263,7 @@ export function EnergiaDashboard() {
         />
         <KpiCard
           icon={DollarSign}
-          value={`R$ ${economyTotal.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          value={formatBRLInteger(economyTotal)}
           label="Economia Mês"
           borderColor="border-l-success"
           iconBg="bg-success/10 text-success"
