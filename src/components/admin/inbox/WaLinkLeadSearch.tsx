@@ -198,11 +198,11 @@ export function WaLinkLeadSearch({
 
           {/* Tabs */}
           <Tabs value={tab} onValueChange={(v) => setTab(v as "leads" | "clientes")}>
-            <TabsList className="w-full">
-              <TabsTrigger value="leads" className="flex-1">
+            <TabsList className="w-full overflow-x-auto flex-wrap h-auto">
+              <TabsTrigger value="leads" className="flex-1 shrink-0 whitespace-nowrap">
                 Leads {leads.length > 0 && `(${leads.length})`}
               </TabsTrigger>
-              <TabsTrigger value="clientes" className="flex-1">
+              <TabsTrigger value="clientes" className="flex-1 shrink-0 whitespace-nowrap">
                 Clientes {clientes.length > 0 && `(${clientes.length})`}
               </TabsTrigger>
             </TabsList>

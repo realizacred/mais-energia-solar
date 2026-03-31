@@ -15,16 +15,16 @@ export default function AiConfigPage() {
       />
 
       <Tabs defaultValue="provider" className="w-full">
-        <TabsList>
-          <TabsTrigger value="provider" className="gap-1.5">
+        <TabsList className="overflow-x-auto flex-wrap h-auto">
+          <TabsTrigger value="provider" className="gap-1.5 shrink-0 whitespace-nowrap">
             <Bot className="h-4 w-4" />
             Provedor & Consumo
           </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-1.5">
+          <TabsTrigger value="settings" className="gap-1.5 shrink-0 whitespace-nowrap">
             <Settings className="h-4 w-4" />
             Follow-up IA
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="gap-1.5">
+          <TabsTrigger value="analytics" className="gap-1.5 shrink-0 whitespace-nowrap">
             <BarChart3 className="h-4 w-4" />
             Analytics
           </TabsTrigger>
