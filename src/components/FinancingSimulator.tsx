@@ -91,7 +91,7 @@ export default function FinancingSimulator({ investimento, economia }: Financing
 
   if (loading) {
     return (
-      <Card className="shadow-lg border-t-4 border-t-secondary">
+      <Card className="shadow-sm border-t-4 border-t-secondary">
         <CardContent className="flex items-center justify-center py-12">
           <Spinner size="md" />
         </CardContent>
