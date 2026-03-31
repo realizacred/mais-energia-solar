@@ -1764,6 +1764,7 @@ export type Database = {
           lead_id: string | null
           localizacao: string | null
           modelo_inversor: string | null
+          municipio_ibge_codigo: string | null
           nome: string
           numero: string | null
           numero_placas: number | null
@@ -1804,6 +1805,7 @@ export type Database = {
           lead_id?: string | null
           localizacao?: string | null
           modelo_inversor?: string | null
+          municipio_ibge_codigo?: string | null
           nome: string
           numero?: string | null
           numero_placas?: number | null
@@ -1844,6 +1846,7 @@ export type Database = {
           lead_id?: string | null
           localizacao?: string | null
           modelo_inversor?: string | null
+          municipio_ibge_codigo?: string | null
           nome?: string
           numero?: string | null
           numero_placas?: number | null
@@ -1873,6 +1876,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_municipio_ibge_codigo_fkey"
+            columns: ["municipio_ibge_codigo"]
+            isOneToOne: false
+            referencedRelation: "municipios_ibge"
+            referencedColumns: ["codigo_ibge"]
           },
           {
             foreignKeyName: "clientes_simulacao_aceita_id_fkey"
@@ -9958,6 +9968,7 @@ export type Database = {
           media_consumo: number
           motivo_perda_id: string | null
           motivo_perda_obs: string | null
+          municipio_ibge_codigo: string | null
           nome: string
           numero: string | null
           observacoes: string | null
@@ -10012,6 +10023,7 @@ export type Database = {
           media_consumo: number
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
+          municipio_ibge_codigo?: string | null
           nome: string
           numero?: string | null
           observacoes?: string | null
@@ -10066,6 +10078,7 @@ export type Database = {
           media_consumo?: number
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
+          municipio_ibge_codigo?: string | null
           nome?: string
           numero?: string | null
           observacoes?: string | null
@@ -10098,6 +10111,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "motivos_perda"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_municipio_ibge_codigo_fkey"
+            columns: ["municipio_ibge_codigo"]
+            isOneToOne: false
+            referencedRelation: "municipios_ibge"
+            referencedColumns: ["codigo_ibge"]
           },
           {
             foreignKeyName: "leads_status_id_fkey"
@@ -11892,6 +11912,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      municipios_ibge: {
+        Row: {
+          ativo: boolean
+          codigo_ibge: string
+          created_at: string
+          nome: string
+          nome_normalizado: string
+          regiao: string | null
+          uf_codigo: string | null
+          uf_sigla: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_ibge: string
+          created_at?: string
+          nome: string
+          nome_normalizado: string
+          regiao?: string | null
+          uf_codigo?: string | null
+          uf_sigla: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo_ibge?: string
+          created_at?: string
+          nome?: string
+          nome_normalizado?: string
+          regiao?: string | null
+          uf_codigo?: string | null
+          uf_sigla?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       nav_overrides: {
         Row: {
@@ -22260,6 +22316,7 @@ export type Database = {
           is_archived: boolean
           leitura_automatica_email: boolean
           modalidade_tarifaria: string | null
+          municipio_ibge_codigo: string | null
           nome: string
           observacoes: string | null
           papel_gd: string
@@ -22297,6 +22354,7 @@ export type Database = {
           is_archived?: boolean
           leitura_automatica_email?: boolean
           modalidade_tarifaria?: string | null
+          municipio_ibge_codigo?: string | null
           nome: string
           observacoes?: string | null
           papel_gd?: string
@@ -22334,6 +22392,7 @@ export type Database = {
           is_archived?: boolean
           leitura_automatica_email?: boolean
           modalidade_tarifaria?: string | null
+          municipio_ibge_codigo?: string | null
           nome?: string
           observacoes?: string | null
           papel_gd?: string
@@ -22368,6 +22427,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "concessionarias"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "units_consumidoras_municipio_ibge_codigo_fkey"
+            columns: ["municipio_ibge_codigo"]
+            isOneToOne: false
+            referencedRelation: "municipios_ibge"
+            referencedColumns: ["codigo_ibge"]
           },
           {
             foreignKeyName: "units_consumidoras_plano_servico_id_fkey"

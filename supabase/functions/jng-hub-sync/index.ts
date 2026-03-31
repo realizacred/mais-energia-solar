@@ -293,7 +293,9 @@ serve(async (req) => {
       );
     }
 
-    const { token, ibge } = (config.credentials || {}) as any;
+    const { token } = (config.credentials || {}) as any;
+    // IBGE comes from request body context (municipality of delivery), NOT from credentials
+    const ibge = body.ibge || null;
     if (!token) {
       return new Response(
         JSON.stringify({ success: false, error: "Token não encontrado nas credenciais", code: "MISSING_TOKEN" }),
