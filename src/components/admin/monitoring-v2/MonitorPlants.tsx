@@ -373,7 +373,7 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
 
   // DEBUG SSOT — log the specific problem plant
   if (import.meta.env.DEV && plant.id === "af44b227-7f1d-4276-bc81-0860c7425aa9") {
-    console.log("[SSOT PLANT CARD] af44b227:", {
+    // console.log("[SSOT PLANT CARD] af44b227:", {
       healthStatus: plant.health?.status,
       healthLastSeenAt: plant.health?.last_seen_at,
       uiStatus,

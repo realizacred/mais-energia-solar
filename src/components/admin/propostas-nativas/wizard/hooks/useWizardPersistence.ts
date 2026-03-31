@@ -220,7 +220,7 @@ async function persistProposalAtomic(
   try {
     // ══════ CREATE: no existing proposal ══════
     if (!effectivePropostaId) {
-      console.log("[persist] criando nova proposta", {
+      // console.log("[persist] criando nova proposta", {
         deal_id: params.dealId || null,
         lead_id: params.leadId || null,
         titulo: params.titulo,
@@ -268,7 +268,7 @@ async function persistProposalAtomic(
       }
 
       const result = data as any;
-      console.log("[persist] proposta criada", {
+      // console.log("[persist] proposta criada", {
         proposta_id: result.proposta_id,
         versao_id: result.versao_id,
         projeto_id: result.projeto_id,
@@ -349,7 +349,7 @@ async function persistProposalAtomic(
     }
 
     // ── Backend-driven versioning via RPC ──
-    console.log("[persist] chamando RPC proposal_create_version", {
+    // console.log("[persist] chamando RPC proposal_create_version", {
       proposta_id: effectivePropostaId,
       versao_id: effectiveVersaoId,
       intent,
@@ -392,7 +392,7 @@ async function persistProposalAtomic(
     const finalVersaoId = result.versao_id;
     const newVersionCreated = result.new_version_created === true;
 
-    console.log("[persist] RPC resultado:", {
+    // console.log("[persist] RPC resultado:", {
       versao_id: finalVersaoId,
       new_version_created: newVersionCreated,
       reason: result.reason,
@@ -447,7 +447,7 @@ export function useWizardPersistence() {
       // Promise reuse: if same intent is already in-flight, return same promise
       const existing = inflightMap.get(intentKey);
       if (existing) {
-        console.log("[persist] reutilizando promise:", intentKey);
+        // console.log("[persist] reutilizando promise:", intentKey);
         const reusedResult = await existing;
         return { ...reusedResult, status: "reused" as AtomicPersistStatus };
       }

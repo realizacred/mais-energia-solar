@@ -229,7 +229,7 @@ export function useLeadOrcamento() {
         leadId = options.useExistingLeadId;
         isNewLead = false;
       } else {
-        console.log("[submitOrcamento] Creating new lead...");
+        // console.log("[submitOrcamento] Creating new lead...");
         const leadResult = await createLead(leadData);
         if (!leadResult.success || !leadResult.leadId) {
           console.error("[submitOrcamento] Failed to create lead:", leadResult.error);
@@ -237,11 +237,11 @@ export function useLeadOrcamento() {
           return { success: false, isNewLead: true, error: leadResult.error };
         }
         leadId = leadResult.leadId;
-        console.log("[submitOrcamento] Lead created with id:", leadId);
+        // console.log("[submitOrcamento] Lead created with id:", leadId);
       }
 
       // Create the orcamento
-      console.log("[submitOrcamento] Creating orcamento for lead:", leadId);
+      // console.log("[submitOrcamento] Creating orcamento for lead:", leadId);
       const orcamentoResult = await createOrcamento(leadId, orcamentoData);
       if (!orcamentoResult.success) {
         console.error("[submitOrcamento] Failed to create orcamento:", orcamentoResult.error);
@@ -249,7 +249,7 @@ export function useLeadOrcamento() {
         return { success: false, leadId, isNewLead, error: orcamentoResult.error };
       }
 
-      console.log("[submitOrcamento] Success! Lead:", leadId, "Orcamento:", orcamentoResult.orcamentoId);
+      // console.log("[submitOrcamento] Success! Lead:", leadId, "Orcamento:", orcamentoResult.orcamentoId);
       setIsSubmitting(false);
       return {
         success: true,

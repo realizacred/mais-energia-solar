@@ -171,16 +171,16 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
 
   const syncLead = async (lead: LeadData): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log("[syncLead] Attempting to sync lead:", lead.nome);
+      // console.log("[syncLead] Attempting to sync lead:", lead.nome);
       
       // Upload offline files first if they exist
       let fileUrls = lead.arquivos_urls || [];
       if (lead.offlineFiles && lead.offlineFiles.length > 0) {
         try {
-          console.log("[syncLead] Uploading", lead.offlineFiles.length, "offline files...");
+          // console.log("[syncLead] Uploading", lead.offlineFiles.length, "offline files...");
           const uploadedUrls = await uploadOfflineFiles(lead.offlineFiles);
           fileUrls = [...fileUrls, ...uploadedUrls];
-          console.log("[syncLead] Files uploaded successfully:", uploadedUrls.length);
+          // console.log("[syncLead] Files uploaded successfully:", uploadedUrls.length);
         } catch (uploadError) {
           console.warn("[syncLead] File upload failed, continuing without files:", uploadError);
         }
@@ -214,7 +214,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
       const result = response.data as { success?: boolean; error?: string; lead_id?: string; wa_sent?: boolean } | null;
 
       if (result?.success) {
-        console.log("[syncLead] ✅ Synced via public-create-lead, lead_id:", result.lead_id, "wa_sent:", result.wa_sent);
+        // console.log("[syncLead] ✅ Synced via public-create-lead, lead_id:", result.lead_id, "wa_sent:", result.wa_sent);
         return { success: true };
       }
 
@@ -233,13 +233,13 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
     
     // Prevent multiple simultaneous sync operations
     if (syncInProgressRef.current) {
-      console.log("[syncPendingLeads] Sync already in progress, skipping");
+      // console.log("[syncPendingLeads] Sync already in progress, skipping");
       return result;
     }
 
     // Check online status at call time (from ref updated by online/offline events)
     const currentlyOnline = isOnlineRef.current;
-    console.log("[syncPendingLeads] Online status check:", {
+    // console.log("[syncPendingLeads] Online status check:", {
       isOnlineRef: currentlyOnline,
       navigatorOnLine: navigator.onLine,
     });
@@ -303,7 +303,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
         const existingLeads = await checkExistingLeads(lead.telefone);
         
         if (existingLeads && existingLeads.length > 0) {
-          console.log("[syncPendingLeads] Duplicate found for:", lead.nome, "matches:", existingLeads.length);
+          // console.log("[syncPendingLeads] Duplicate found for:", lead.nome, "matches:", existingLeads.length);
           duplicatesFound.push({
             leadId: lead.id!,
             leadData: lead,
@@ -336,7 +336,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
       const pendingOnly = leads.filter((l) => !l.synced);
       if (pendingOnly.length < leads.length) {
         localStorage.setItem(storageKey, JSON.stringify(pendingOnly));
-        console.log(`[syncPendingLeads] Cleaned ${leads.length - pendingOnly.length} synced leads from localStorage`);
+        // console.log(`[syncPendingLeads] Cleaned ${leads.length - pendingOnly.length} synced leads from localStorage`);
       }
       
       // Store duplicates for later resolution
@@ -425,7 +425,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
     // Use fresh navigator.onLine check for most accurate status
     const currentlyOnline = navigator.onLine && isOnlineRef.current;
     
-    console.log("[saveLead] Starting save, online:", {
+    // console.log("[saveLead] Starting save, online:", {
       navigatorOnLine: navigator.onLine,
       isOnlineRef: isOnlineRef.current,
       currentlyOnline,
@@ -443,7 +443,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
         });
         if (probe.ok || probe.status === 304) {
           confirmedOffline = false;
-          console.log("[saveLead] navigator.onLine=false but probe succeeded, trying online sync");
+          // console.log("[saveLead] navigator.onLine=false but probe succeeded, trying online sync");
         }
       } catch {
         // Probe failed — truly offline
@@ -451,7 +451,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
 
       if (confirmedOffline) {
         try {
-          console.log("[saveLead] Device is confirmed offline, saving locally...");
+          // console.log("[saveLead] Device is confirmed offline, saving locally...");
           saveLocally({ ...lead, synced: false });
           return { success: true, offline: true };
         } catch (error) {
@@ -465,7 +465,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
     // Online: try to sync directly
     const syncResult = await syncLead({ ...lead, synced: true });
     if (syncResult.success) {
-      console.log("[saveLead] Online save successful");
+      // console.log("[saveLead] Online save successful");
       return { success: true, offline: false };
     }
     

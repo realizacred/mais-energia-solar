@@ -37,11 +37,11 @@ export function AudioRecorderButton({ onSend, disabled }: AudioRecorderButtonPro
   const handleStart = useCallback(async () => {
     setError(null);
     try {
-      console.log("[AudioRecorder] Starting recording...");
+      // console.log("[AudioRecorder] Starting recording...");
       const { stop } = await startRecording();
       stopRef.current = stop;
       setIsRecording(true);
-      console.log("[AudioRecorder] Recording started OK");
+      // console.log("[AudioRecorder] Recording started OK");
     } catch (err: any) {
       console.error("[AudioRecorder] Failed to start:", err);
       setError(err.message || "Erro ao iniciar gravação");
@@ -63,9 +63,9 @@ export function AudioRecorderButton({ onSend, disabled }: AudioRecorderButtonPro
       return;
     }
     try {
-      console.log("[AudioRecorder] Stopping recording...");
+      // console.log("[AudioRecorder] Stopping recording...");
       const audio = await stopRef.current();
-      console.log("[AudioRecorder] Got audio blob:", audio.blob.size, "bytes, mime:", audio.mimeType, "duration:", audio.durationMs);
+      // console.log("[AudioRecorder] Got audio blob:", audio.blob.size, "bytes, mime:", audio.mimeType, "duration:", audio.durationMs);
       stopRef.current = null;
       setIsRecording(false);
       onSend(audio);

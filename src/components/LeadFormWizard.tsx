@@ -176,7 +176,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             .rpc("validate_consultor_code", { _codigo: codigo });
 
           if (error) {
-            console.log("Erro ao validar vendedor:", error.message);
+            // console.log("Erro ao validar vendedor:", error.message);
             return;
           }
 
@@ -193,9 +193,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             if (consultorRecord) {
               setVendedorId((consultorRecord as any).id);
             }
-            console.log("Consultor validado:", result.nome);
+            // console.log("Consultor validado:", result.nome);
           } else {
-            console.log("Vendedor não encontrado ou inativo:", codigo);
+            // console.log("Vendedor não encontrado ou inativo:", codigo);
           }
         } catch (error) {
           console.error("Erro ao validar vendedor:", error);
@@ -218,7 +218,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             setVendedorId(vendedorRecord.id);
             setVendedorNome(vendedorRecord.nome);
             setVendedorCodigo(vendedorRecord.codigo);
-            console.log("Vendedor auto-atribuído (logado):", vendedorRecord.nome);
+            // console.log("Vendedor auto-atribuído (logado):", vendedorRecord.nome);
           }
         } catch (error) {
           console.error("Erro ao resolver vendedor logado:", error);
@@ -555,7 +555,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           diag.assignResult = "ok";
           diag.assignConvId = convId as string;
           savePipelineDiag(diag);
-          console.log(`[retryAssign] attempt=${attempt + 1} ✅ convId=${convId}`);
+          // console.log(`[retryAssign] attempt=${attempt + 1} ✅ convId=${convId}`);
           return convId as string;
         }
 
@@ -569,9 +569,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             console.error(`[retryAssign] attempt=${attempt + 1} ❌ PERMISSION DENIED: ${msg}`);
             return null; // Don't retry permission errors
           }
-          console.log(`[retryAssign] attempt=${attempt + 1} not found (will retry): ${msg}`);
+          // console.log(`[retryAssign] attempt=${attempt + 1} not found (will retry): ${msg}`);
         } else {
-          console.log(`[retryAssign] attempt=${attempt + 1} returned null (conversation not yet created)`);
+          // console.log(`[retryAssign] attempt=${attempt + 1} returned null (conversation not yet created)`);
         }
 
         diag.assignResult = "not_found";
@@ -605,7 +605,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       // IMPORTANT: this must not depend on vendedorId resolved on the client (RLS can block it).
       if (!user) {
         if (leadId) {
-          console.log("[handlePostLeadWhatsApp] No auth session — calling send-wa-welcome (public form)");
+          // console.log("[handlePostLeadWhatsApp] No auth session — calling send-wa-welcome (public form)");
           try {
             const welcomeRes = await supabase.functions.invoke("send-wa-welcome", {
               body: { lead_id: leadId },
@@ -622,7 +622,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                 diag.assignResult = "ok";
               }
               savePipelineDiag(diag);
-              console.log("[handlePostLeadWhatsApp] send-wa-welcome ✅", welcomeData);
+              // console.log("[handlePostLeadWhatsApp] send-wa-welcome ✅", welcomeData);
             } else {
               console.warn(
                 "[handlePostLeadWhatsApp] send-wa-welcome failed:",
@@ -654,7 +654,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       if (resolvedVendedorId) {
         const settings = await getVendedorWaSettings(resolvedVendedorId);
         if (!settings.wa_auto_message_enabled) {
-          console.log("[handlePostLeadWhatsApp] Auto-message disabled in vendedor settings, skipping");
+          // console.log("[handlePostLeadWhatsApp] Auto-message disabled in vendedor settings, skipping");
           return;
         }
 
@@ -678,7 +678,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         diag.sentAt = new Date().toISOString();
         diag.sentOk = result.sent;
         savePipelineDiag(diag);
-        console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", result, "leadId:", leadId);
+        // console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", result, "leadId:", leadId);
 
         if (result.sent) {
           if (result.conversation_id) {
@@ -696,17 +696,17 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             });
           }
         } else if (result.blocked === "cooldown") {
-          console.log("[handlePostLeadWhatsApp] Bloqueado por cooldown:", result.reason);
+          // console.log("[handlePostLeadWhatsApp] Bloqueado por cooldown:", result.reason);
         }
       } else {
-        console.log("[handlePostLeadWhatsApp] No vendedor resolved — skipping auto-message");
+        // console.log("[handlePostLeadWhatsApp] No vendedor resolved — skipping auto-message");
       }
 
       // Retry assign only if edge function didn't already create conversation
       if (user && !diag.assignConvId) {
         const convId = await retryAssignConversation(phoneDigits, diag);
         if (convId) {
-          console.log("[handlePostLeadWhatsApp] Conversation assigned after retry:", convId);
+          // console.log("[handlePostLeadWhatsApp] Conversation assigned after retry:", convId);
         } else {
           console.warn("[handlePostLeadWhatsApp] Assign failed after all retries — conversation may appear later via webhook");
         }
@@ -803,7 +803,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     setIsSubmitting(true);
     setSavedOffline(false);
     
-    console.log("[LeadFormWizard] Starting form submission...");
+    // console.log("[LeadFormWizard] Starting form submission...");
     
     // Store form data for potential duplicate handling
     pendingFormDataRef.current = data;
@@ -823,7 +823,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         offlineFiles: hasFiles ? uploadedFiles : undefined,
       };
 
-      console.log("[LeadFormWizard] Using saveLead for local storage");
+      // console.log("[LeadFormWizard] Using saveLead for local storage");
       const result = await saveLead(leadData);
 
       if (result.success && result.offline) {
@@ -858,11 +858,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           });
           if (probe.ok || probe.status === 401 || probe.status === 403) {
             confirmedOffline = false; // Network is actually working
-            console.log("[LeadFormWizard] navigator.onLine=false but network probe succeeded, continuing online");
+            // console.log("[LeadFormWizard] navigator.onLine=false but network probe succeeded, continuing online");
           }
         } catch {
           // Probe failed — truly offline
-          console.log("[LeadFormWizard] Network probe failed, confirmed offline");
+          // console.log("[LeadFormWizard] Network probe failed, confirmed offline");
         }
 
         if (confirmedOffline) {
@@ -881,7 +881,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
       // ── PUBLIC FORM (no auth or vendor landing page): use unified server-side Edge Function ──
       if (!user || isPublicVendorForm) {
-        console.log("[LeadFormWizard] Public form — using public-create-lead Edge Function (user:", !!user, "isPublicVendorForm:", isPublicVendorForm, ")");
+        // console.log("[LeadFormWizard] Public form — using public-create-lead Edge Function (user:", !!user, "isPublicVendorForm:", isPublicVendorForm, ")");
 
         // Upload files first if available
         if (hasFiles) {
@@ -942,13 +942,13 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         }
 
         try {
-          console.log("[LeadFormWizard] Calling public-create-lead with payload:", JSON.stringify(payload));
+          // console.log("[LeadFormWizard] Calling public-create-lead with payload:", JSON.stringify(payload));
           const response = await supabase.functions.invoke("public-create-lead", {
             body: payload,
           });
 
-          console.log("[LeadFormWizard] public-create-lead response.data:", JSON.stringify(response.data));
-          console.log("[LeadFormWizard] public-create-lead response.error:", response.error);
+          // console.log("[LeadFormWizard] public-create-lead response.data:", JSON.stringify(response.data));
+          // console.log("[LeadFormWizard] public-create-lead response.error:", response.error);
 
           // supabase.functions.invoke may set response.error even on 200 in some edge cases.
           // Prioritize checking response.data.success over response.error.
@@ -1011,7 +1011,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             errorDetail.includes("ECONNREFUSED");
 
           if (isNetworkError) {
-            console.log("[LeadFormWizard] Network error detected, trying offline fallback");
+            // console.log("[LeadFormWizard] Network error detected, trying offline fallback");
             const offlineSuccess = await saveOfflineFallback();
             if (offlineSuccess) return;
           }
@@ -1112,7 +1112,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         orcamentoData
       );
 
-      console.log("[LeadFormWizard] submitOrcamento result:", result);
+      // console.log("[LeadFormWizard] submitOrcamento result:", result);
 
       if (result.error === "DUPLICATE_DETECTED") {
         // Duplicate detected - dialog will be shown
@@ -1121,7 +1121,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       }
 
       if (result.success) {
-        console.log("[LeadFormWizard] Success! Setting isSuccess to true");
+        // console.log("[LeadFormWizard] Success! Setting isSuccess to true");
         clearDraft();
         resetHoneypot();
         resetRateLimit();
@@ -1159,7 +1159,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       console.error("[LeadFormWizard] Exception during submission:", errorMessage);
       
       // Try offline fallback for any network failure
-      console.log("[LeadFormWizard] Attempting offline fallback after exception");
+      // console.log("[LeadFormWizard] Attempting offline fallback after exception");
       const offlineSuccess = await saveOfflineFallback();
       if (offlineSuccess) return;
       

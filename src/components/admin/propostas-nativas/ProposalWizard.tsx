@@ -440,7 +440,7 @@ export function ProposalWizard() {
   ): Promise<Partial<WizardSnapshot>> => {
     if (raw.source !== "legacy_import") return raw as any;
 
-    console.log("[ProposalWizard] Normalizing legacy snapshot for wizard");
+    // console.log("[ProposalWizard] Normalizing legacy snapshot for wizard");
 
     // Fetch related proposta → cliente data
     const { data: proposta } = await supabase
@@ -707,7 +707,7 @@ export function ProposalWizard() {
             step: 0,
             geracaoMensalEstimada: ws.geracaoMensalEstimada ?? (tecnico.geracao_estimada_kwh || fin.economia_mensal ? Math.round(tecnico.geracao_estimada_kwh || 0) : 0),
           } as any;
-          console.log("[ProposalWizard] Normalized engine snapshot to wizard format", { hasWizardState: !!rawSnapshot._wizard_state });
+          // console.log("[ProposalWizard] Normalized engine snapshot to wizard format", { hasWizardState: !!rawSnapshot._wizard_state });
         } else {
           // Native wizard snapshot — use as-is, with safe defaults for fields added after initial save
           s = rawSnapshot as WizardSnapshot;
@@ -794,7 +794,7 @@ export function ProposalWizard() {
         }
 
         // Diagnostic: log snapshot data for debugging restore issues
-        console.log("[ProposalWizard] Snapshot restore:", {
+        // console.log("[ProposalWizard] Snapshot restore:", {
           ucs: s.ucs?.length ?? 0,
           ucsConsumo: s.ucs?.map((u: any) => ({ nome: u.nome, consumo_mensal: u.consumo_mensal })),
           itens: s.itens?.length ?? 0,
@@ -831,7 +831,7 @@ export function ProposalWizard() {
 
           if (propostaMeta?.deal_id) {
             setProjectContext(prev => prev || { dealId: propostaMeta.deal_id!, customerId: propostaMeta.cliente_id || "" });
-            console.log("[ProposalWizard] dealId enriched from propostas_nativas:", propostaMeta.deal_id);
+            // console.log("[ProposalWizard] dealId enriched from propostas_nativas:", propostaMeta.deal_id);
           }
 
           if (propostaMeta?.projeto_id) {
@@ -851,7 +851,7 @@ export function ProposalWizard() {
                 .single();
               if (lead) {
                 setSelectedLead(lead as any);
-                console.log("[ProposalWizard] Lead enriched from propostas_nativas:", lead.id);
+                // console.log("[ProposalWizard] Lead enriched from propostas_nativas:", lead.id);
               }
             } else if (propostaMeta?.cliente_id) {
               // No lead_id on proposta — try to get lead from cliente, or synthesize from cliente data
@@ -869,7 +869,7 @@ export function ProposalWizard() {
                   .single();
                 if (lead) {
                   setSelectedLead(lead as any);
-                  console.log("[ProposalWizard] Lead enriched from cliente.lead_id:", lead.id);
+                  // console.log("[ProposalWizard] Lead enriched from cliente.lead_id:", lead.id);
                 }
               } else if (cli) {
                 // No lead_id on cliente — try to find a lead by phone number
@@ -884,7 +884,7 @@ export function ProposalWizard() {
 
                 if (leadByPhone) {
                   setSelectedLead(leadByPhone as any);
-                  console.log("[ProposalWizard] Lead found by phone match:", leadByPhone.id);
+                  // console.log("[ProposalWizard] Lead found by phone match:", leadByPhone.id);
                 } else {
                   // Synthesize minimal lead-like object from cliente data so handleGenerate doesn't block
                   // Mark with _synthetic flag so handleGenerate can use cliente_id instead
@@ -901,7 +901,7 @@ export function ProposalWizard() {
                     _clienteId: cli.id,
                   } as any;
                   setSelectedLead(syntheticLead);
-                  console.log("[ProposalWizard] Synthetic lead created from cliente:", cli.id);
+                  // console.log("[ProposalWizard] Synthetic lead created from cliente:", cli.id);
                 }
               }
             }
@@ -930,7 +930,7 @@ export function ProposalWizard() {
                 cidade: prev.cidade || cliEnrich.cidade || "",
                 estado: prev.estado || cliEnrich.estado || "",
               }));
-              console.log("[ProposalWizard] cliente enriched from DB:", propostaMeta.cliente_id);
+              // console.log("[ProposalWizard] cliente enriched from DB:", propostaMeta.cliente_id);
             }
           }
 
@@ -953,7 +953,7 @@ export function ProposalWizard() {
                 lat: null,
                 lon: null,
               });
-              console.log("[ProposalWizard] projectAddress enriched from cliente:", propostaMeta.cliente_id);
+              // console.log("[ProposalWizard] projectAddress enriched from cliente:", propostaMeta.cliente_id);
             }
           }
         } catch (enrichErr) {
@@ -1375,7 +1375,7 @@ export function ProposalWizard() {
                 }));
               }
 
-              console.log("[ProposalWizard] Recovered from snapshot:", { roofType, disNome, disId, consumo, panel: snap.panel_model, inverter: snap.inverter_model });
+              // console.log("[ProposalWizard] Recovered from snapshot:", { roofType, disNome, disId, consumo, panel: snap.panel_model, inverter: snap.inverter_model });
             }
           }
         }
@@ -1663,7 +1663,7 @@ export function ProposalWizard() {
 
         // If blocked by concurrent save, wait and retry once
         if (draftRes.status === "blocked") {
-          console.log("[ProposalWizard] Draft blocked, retrying in 2s...");
+          // console.log("[ProposalWizard] Draft blocked, retrying in 2s...");
           await new Promise(r => setTimeout(r, 2000));
           draftRes = await persistAtomic(params, "draft");
         }
@@ -1849,7 +1849,7 @@ export function ProposalWizard() {
           }
 
           const artifactResult = await rawResp.json();
-          console.log("[ProposalWizard] Artifact result:", artifactResult);
+          // console.log("[ProposalWizard] Artifact result:", artifactResult);
 
           // Handle missing_vars from backend — store for UI display
           const backendMissing: string[] = artifactResult.missing_vars ?? [];
@@ -1860,7 +1860,7 @@ export function ProposalWizard() {
           // Use audit report from backend (already persisted server-side)
           if (artifactResult.audit) {
             setGenerationAuditReport(artifactResult.audit as GenerationAuditReport);
-            console.log("[ProposalWizard] Using backend audit:", {
+            // console.log("[ProposalWizard] Using backend audit:", {
               health: artifactResult.audit.health,
               score: artifactResult.audit.healthScore,
               errors: artifactResult.audit.errorCount,
@@ -2117,7 +2117,7 @@ export function ProposalWizard() {
   const currentStepDef = activeSteps[step];
 
   const renderStepContent = () => {
-    console.log("[ProposalWizard] renderStepContent, currentStepKey:", currentStepKey);
+    // console.log("[ProposalWizard] renderStepContent, currentStepKey:", currentStepKey);
 
     const wrap = (key: string, children: React.ReactNode, headerRight?: React.ReactNode) => (
       <StepContent key={key}>
