@@ -77,8 +77,11 @@ function InfoRow({ icon: Icon, label, value }: { icon?: any; label: string; valu
 
 export function FornecedoresManager() {
   const { toast } = useToast();
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: fornecedores = [], isLoading: loading } = useFornecedores();
+  const salvarMutation = useSalvarFornecedor();
+  const deletarMutation = useDeletarFornecedor();
+  const toggleAtivoMutation = useToggleFornecedorAtivo();
+
   const [search, setSearch] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("all");
   const [filterCidade, setFilterCidade] = useState<string>("all");
@@ -87,23 +90,11 @@ export function FornecedoresManager() {
   const [editing, setEditing] = useState<Fornecedor | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [deleting, setDeleting] = useState<Fornecedor | null>(null);
-  const [saving, setSaving] = useState(false);
   const [viewFornecedor, setViewFornecedor] = useState<Fornecedor | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [importOpen, setImportOpen] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("fornecedores")
-      .select("id, nome, tipo, cnpj, inscricao_estadual, telefone, email, contato_nome, contato_telefone, endereco, cidade, estado, cep, site, categorias, observacoes, ativo, created_at, updated_at")
-      .order("nome");
-    setFornecedores((data as any[]) || []);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   /* ─── Derived lists ─── */
   const cidades = useMemo(() => {
