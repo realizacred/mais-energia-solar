@@ -51,7 +51,7 @@ export default function EdeltecIntegrationPage() {
   const { data: tenantId } = useTenantId();
 
   const { data: syncState, isLoading: loadingSync } = useEdeltecSyncStatus(tenantId);
-  const { data: stats, isLoading: loadingStats } = useEdeltecCatalogStats();
+  const { data: stats, isLoading: loadingStats } = useEdeltecCatalogStats(apiConfig?.fornecedor_id ?? null);
   const { data: logs, isLoading: loadingLogs } = useEdeltecSyncLogs(tenantId, 30);
   const syncMutation = useEdeltecSync();
 
