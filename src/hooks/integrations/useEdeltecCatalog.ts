@@ -101,6 +101,7 @@ export function useEdeltecCatalog(fornecedorId: string | null, filters?: Edeltec
       return result;
     },
     staleTime: STALE_TIME,
+    enabled: !!fornecedorId,
   });
 }
 
