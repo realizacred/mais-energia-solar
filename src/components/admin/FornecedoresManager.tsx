@@ -206,7 +206,6 @@ export function FornecedoresManager() {
       toast({ title: "Nome é obrigatório", variant: "destructive" });
       return;
     }
-    setSaving(true);
     const payload = {
       nome: form.nome.trim(),
       cnpj: form.cnpj.trim() || null,
@@ -225,38 +224,28 @@ export function FornecedoresManager() {
       observacoes: form.observacoes.trim() || null,
     };
 
-    let error;
-    if (editing) {
-      ({ error } = await supabase.from("fornecedores").update(payload).eq("id", editing.id));
-    } else {
-      ({ error } = await supabase.from("fornecedores").insert([payload] as any));
-    }
-
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await salvarMutation.mutateAsync({ id: editing?.id, data: payload });
       toast({ title: editing ? "Fornecedor atualizado" : "Fornecedor criado" });
       setDialogOpen(false);
-      fetchData();
+    } catch (error: any) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     }
-    setSaving(false);
   };
 
   const handleDelete = async () => {
     if (!deleting) return;
-    const { error } = await supabase.from("fornecedores").delete().eq("id", deleting.id);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await deletarMutation.mutateAsync(deleting.id);
       toast({ title: "Fornecedor excluído" });
-      fetchData();
+    } catch (error: any) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     }
     setDeleting(null);
   };
 
   const toggleAtivo = async (f: Fornecedor) => {
-    await supabase.from("fornecedores").update({ ativo: !f.ativo }).eq("id", f.id);
-    fetchData();
+    await toggleAtivoMutation.mutateAsync({ id: f.id, ativo: !f.ativo });
   };
 
   const toggleCategoria = (cat: string) => {
