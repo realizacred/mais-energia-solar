@@ -1559,9 +1559,10 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
             </div>
           </div>
         )}
+        </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-border">
+        <div className="flex items-center justify-between pt-3 border-t border-border shrink-0">
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Voltar</Button>
           <Button size="sm" onClick={() => onOpenChange(false)} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
         </div>
