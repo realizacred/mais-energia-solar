@@ -98,7 +98,17 @@ export function DialogPosDimensionamento({
     onCustomFieldValuesChange({ ...customFieldValues, [key]: value });
   };
 
-  const hasRequired = !nomeProposta.trim();
+  // Check nome + all required custom fields
+  const missingRequiredCustom = fields
+    .filter(f => f.required_on_proposal === true)
+    .some(f => {
+      const val = customFieldValues[f.field_key];
+      if (val === undefined || val === null || val === "") return true;
+      if (Array.isArray(val) && val.length === 0) return true;
+      return false;
+    });
+
+  const hasRequired = !nomeProposta.trim() || missingRequiredCustom;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
