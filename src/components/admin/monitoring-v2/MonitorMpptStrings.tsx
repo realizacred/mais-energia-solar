@@ -271,7 +271,7 @@ function DualPaneHeader({
   const sc = statusConfig[uiStatus] || statusConfig.offline;
 
   return (
-    <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-border/50 bg-card shadow-sm overflow-hidden">
       {/* Plant name row */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-border/30 bg-muted/20">
         <div>
@@ -474,7 +474,7 @@ function StringsTab({ cards, devices, isOffline }: { cards: DeviceStringCard[]; 
 
         return (
           <div key={card.device_id} className={cn(
-            "rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm transition-opacity",
+            "rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm transition-opacity",
             isOffline && "opacity-60"
           )}>
             {/* Device header */}
@@ -572,7 +572,7 @@ function StringsTab({ cards, devices, isOffline }: { cards: DeviceStringCard[]; 
 
 function MonitoringAwaitingState() {
   return (
-    <div className="rounded-2xl border border-border/50 bg-card p-6 shadow-sm">
+    <div className="rounded-xl border border-border/50 bg-card p-6 shadow-sm">
       <div className="text-center max-w-md mx-auto space-y-4">
         <div className="h-14 w-14 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto">
           <Radio className="h-7 w-7 text-primary" />
@@ -679,7 +679,7 @@ function BaselineTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-2xl border border-border/50 bg-card px-5 py-3.5 shadow-sm">
+      <div className="flex items-center justify-between rounded-xl border border-border/50 bg-card px-5 py-3.5 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-primary/8 flex items-center justify-center">
             <BarChart3 className="h-4.5 w-4.5 text-primary" />
@@ -712,7 +712,7 @@ function BaselineTab({
           description="O baseline será calculado automaticamente após acumular dados suficientes de geração."
         />
       ) : (
-        <div className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/30 border-b border-border/30">
@@ -763,7 +763,7 @@ function AlertsTab({ alerts }: { alerts: StringAlert[] }) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm">
+      <div className="rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/30 bg-muted/20">
           <AlertTriangle className={cn("h-4 w-4", open.length > 0 ? "text-destructive" : "text-muted-foreground")} />
           <span className="text-sm font-bold text-foreground">
@@ -787,7 +787,7 @@ function AlertsTab({ alerts }: { alerts: StringAlert[] }) {
       </div>
 
       {resolved.length > 0 && (
-        <div className="rounded-2xl border border-border/50 bg-card overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
           <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/30 bg-muted/20">
             <CheckCircle2 className="h-4 w-4 text-success" />
             <span className="text-sm font-bold text-foreground">
