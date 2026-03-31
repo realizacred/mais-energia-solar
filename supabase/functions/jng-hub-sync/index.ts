@@ -99,9 +99,9 @@ async function fetchJngEstoque(token: string): Promise<any[]> {
 }
 
 async function fetchJngValores(token: string): Promise<any[]> {
-  const res = await fetch(
-    `${JNG_BASE}/integracao/Valores?token=${encodeURIComponent(token)}`
-  );
+  const url = `${JNG_BASE}/integracao/Valores?token=${token}`;
+  console.log("[jng] fetchValores URL:", url);
+  const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`JNG valores failed: ${res.status} ${body}`);
