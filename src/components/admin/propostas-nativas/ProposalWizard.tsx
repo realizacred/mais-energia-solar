@@ -1,5 +1,6 @@
 // @deprecated: Tabela 'premissas_tecnicas' não é mais usada. Fonte atual: 'tenant_premises' via useSolarPremises.
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useDevToolsContext } from "@/contexts/DevToolsContext";
 import { buildGenerationAuditReport, shouldBlockGeneration, type GenerationAuditReport } from "@/services/generationAudit";
 import { formatNumberBR } from "@/lib/formatters";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -1117,6 +1118,14 @@ export function ProposalWizard() {
   }), [cliente, selectedLead, ucs, premissas, potenciaKwp, geracaoMensalEstimada, precoFinal, locCidade, locEstado]);
 
   const enforcement = useProposalEnforcement(resolverContext);
+
+  // Feed resolved proposal variables to DevTools panel
+  const { setActiveProposalVars, enabled: devEnabled } = useDevToolsContext();
+  useEffect(() => {
+    if (devEnabled && enforcement.resolverResult?.variables) {
+      setActiveProposalVars(enforcement.resolverResult.variables);
+    }
+  }, [devEnabled, enforcement.resolverResult?.variables, setActiveProposalVars]);
 
   // (geracaoMensalEstimada moved before save callbacks)
 
