@@ -106,9 +106,15 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const [savedOffline, setSavedOffline] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<OfflineFile[]>([]);
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
-  const [vendedorCodigo, setVendedorCodigo] = useState<string | null>(null);
-  const [vendedorNome, setVendedorNome] = useState<string | null>(null);
-  const [vendedorId, setVendedorId] = useState<string | null>(null);
+  // Vendedor resolution via hooks (replaces direct supabase.from)
+  const { data: vendedorFromCode } = useVendedorFromCode(resolvedVendorCode);
+  const { data: vendedorFromUser } = useVendedorFromUser(user?.id, !!resolvedVendorCode);
+  const resolvedVendedor = vendedorFromCode ?? vendedorFromUser ?? null;
+  const vendedorCodigo = resolvedVendedor?.codigo ?? null;
+  const vendedorNome = resolvedVendedor?.nome ?? null;
+  const vendedorId = resolvedVendedor?.id ?? null;
+  // Pre-resolve vendedor ID for WA flow (avoids supabase.from in event handler)
+  const { data: fallbackVendedorId } = useResolveVendedorId(user?.id, !!vendedorId);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   // Ref to block accidental form submits during step transitions
