@@ -265,9 +265,10 @@ export function WhatsAppAutomationTemplates() {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <RefreshCw className="h-5 w-5 animate-spin mr-2" />
-            Carregando...
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-lg" />
+            ))}
           </div>
         </CardContent>
       </Card>
