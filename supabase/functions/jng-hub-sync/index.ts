@@ -44,26 +44,45 @@ interface ProviderAdapter {
   buildKitItems(raw: unknown): KitItem[];
 }
 
-// ── JNG Types ───────────────────────────────────────────────
-interface JngProduto {
+// ── JNG HubB2B Types ────────────────────────────────────────
+interface ProdutoComposicaoHubB2B {
   idProduto: number;
   descricao: string | null;
-  situacao: string | null;
-  potencia: number;
-  tipo: string | null;
-  marca: { idMarca: number; descricao: string | null } | null;
-  categoria: { id: number; descricao: string | null } | null;
-  agrupamento: { idAgrupamento: number; descricao: string | null } | null;
-  precoVenda: number;
-  precoAvulso: number;
-  precoCusto: number;
-  composicao: any[] | null;
-  dtDisponibilidade: string | null;
-  codErp: string | null;
-  referencia: string | null;
+  qtd: number | null;
+  agrupamento: string | null;
+  marca: string | null;
+  potencia: number | null;
+  fotoUrl: string | null;
+  idCategoria: number;
+  categoria: string | null;
 }
 
-// ── Fetch helpers ───────────────────────────────────────────
+interface JngProduto {
+  idProduto: number;
+  codErp: string | null;
+  descricao: string | null;
+  precoVenda: number;
+  marca: string | null;
+  marcaPainel: string | null;
+  marcaInversor: string | null;
+  modelo: string | null;
+  idAgrupamento: number | null;
+  agrupamento: string | null;
+  idCategoria: number | null;
+  categoria: string | null;
+  potencia: number;
+  estoque: number;
+  dataAlteracao: string | null;
+  estrutura: string | null;
+  dtDisponibilidade: string | null;
+  tensao: number | null;
+  fase: number | null;
+  tipoInv: number | null;
+  fotoUrl: string | null;
+  composicao: ProdutoComposicaoHubB2B[] | null;
+}
+
+// ── Fetch helper (HubB2B endpoint) ──────────────────────────
 async function fetchJngProducts(
   token: string,
   page: number,
@@ -75,9 +94,9 @@ async function fetchJngProducts(
     paginaAtual: String(page),
     qtdPorPagina: String(limit),
   });
-  if (dtAlteracao) params.set("dtAlteracao", dtAlteracao);
+  if (dtAlteracao) params.set("dataAlteracao", dtAlteracao);
 
-  const url = `${JNG_BASE}/integracao/Produtos?${params}`;
+  const url = `${JNG_BASE}/hubB2B/Produtos?${params.toString()}`;
   console.log("[jng] fetchProducts URL:", url);
   const res = await fetch(url);
   if (!res.ok) {
@@ -87,33 +106,13 @@ async function fetchJngProducts(
   return res.json();
 }
 
-async function fetchJngEstoque(token: string): Promise<any[]> {
-  const url = `${JNG_BASE}/integracao/Estoque?token=${token}&situacao=A`;
-  console.log("[jng] fetchEstoque URL:", url);
-  const res = await fetch(url);
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`JNG estoque failed: ${res.status} ${body}`);
-  }
-  return res.json();
-}
-
-async function fetchJngValores(token: string): Promise<any[]> {
-  const url = `${JNG_BASE}/integracao/Valores?token=${token}`;
-  console.log("[jng] fetchValores URL:", url);
-  const res = await fetch(url);
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`JNG valores failed: ${res.status} ${body}`);
-  }
-  return res.json();
-}
-
 // ── Classification ──────────────────────────────────────────
 function classifyJngProduct(p: JngProduto): { is_generator: boolean; product_kind: string } {
   const isKit =
     (Array.isArray(p.composicao) && p.composicao.length > 0) ||
-    (p.tipo || "").toLowerCase().includes("kit");
+    (p.agrupamento || "").toLowerCase().includes("kit") ||
+    (p.categoria || "").toLowerCase().includes("kit") ||
+    (p.categoria || "").toLowerCase().includes("gerador");
   return {
     is_generator: isKit,
     product_kind: isKit ? "generator" : "component",
@@ -123,70 +122,62 @@ function classifyJngProduct(p: JngProduto): { is_generator: boolean; product_kin
 // ── Map product → solar_kit_catalog row ─────────────────────
 function mapToKit(
   produto: JngProduto,
-  estoqueMap: Map<number, any>,
-  valoresMap: Map<number, any>,
   tenantId: string,
   fornecedorId: string | null
 ): CanonicalKit {
-  const estoque = estoqueMap.get(produto.idProduto);
-  const valores = valoresMap.get(produto.idProduto);
   const classification = classifyJngProduct(produto);
-
   const kwp = produto.potencia || 0;
-  const precoVenda = valores?.precoVenda ?? produto.precoVenda ?? 0;
+  const precoVenda = produto.precoVenda || 0;
   const precoPorKwp = kwp > 0 ? Math.round((precoVenda / kwp) * 100) / 100 : null;
-
-  const qtEstoque = estoque?.qtEstoque ?? 0;
-  const situacaoEstoque = estoque?.situacao ?? produto.situacao;
-  const isAvailableNow = qtEstoque > 0 || situacaoEstoque === "A";
+  const isAvailableNow = (produto.estoque || 0) > 0;
 
   return {
     name: produto.descricao || `Produto ${produto.idProduto}`,
-    description: [produto.tipo, produto.categoria?.descricao, produto.marca?.descricao]
+    description: [produto.agrupamento, produto.categoria, produto.marca]
       .filter(Boolean)
       .join(" · "),
     estimated_kwp: kwp,
     pricing_mode: "fixed",
     fixed_price: precoVenda,
-    status: produto.situacao === "A" ? "active" : "inactive",
+    status: isAvailableNow ? "active" : "inactive",
     tenant_id: tenantId,
     fornecedor_id: fornecedorId,
     external_id: String(produto.idProduto),
-    external_code: produto.codErp || produto.referencia || null,
+    external_code: produto.codErp || null,
     source: "jng",
     last_synced_at: new Date().toISOString(),
-    fabricante: produto.marca?.descricao || null,
-    marca: produto.marca?.descricao || null,
-    tipo: produto.tipo || null,
+    fabricante: produto.marcaPainel || produto.marca || null,
+    marca: produto.marca || null,
+    tipo: produto.agrupamento || produto.categoria || null,
     potencia_inversor: null,
     potencia_modulo: null,
-    fase: null,
-    tensao: null,
-    estrutura: null,
-    preco_consumidor: produto.precoAvulso || null,
-    valor_avulso: produto.precoAvulso || null,
-    disponivel: qtEstoque > 0,
+    fase: produto.fase ? String(produto.fase) : null,
+    tensao: produto.tensao ? String(produto.tensao) : null,
+    estrutura: produto.estrutura || null,
+    preco_consumidor: null,
+    valor_avulso: null,
+    disponivel: (produto.estoque || 0) > 0,
     permite_compra_sem_estoque: false,
     previsao: produto.dtDisponibilidade || null,
     product_kind: classification.product_kind,
     is_generator: classification.is_generator,
     is_available_now: isAvailableNow,
     preco_por_kwp: precoPorKwp,
-    imagem_principal_url: null,
-    thumbnail_url: null,
+    imagem_principal_url: produto.fotoUrl || null,
+    thumbnail_url: produto.fotoUrl || null,
     external_data: {
       idProduto: produto.idProduto,
-      tipo: produto.tipo,
-      categoria: produto.categoria,
       agrupamento: produto.agrupamento,
+      categoria: produto.categoria,
       marca: produto.marca,
-      situacao: produto.situacao,
+      marcaPainel: produto.marcaPainel,
+      marcaInversor: produto.marcaInversor,
       potencia: produto.potencia,
-      precoCusto: produto.precoCusto,
+      estoque: produto.estoque,
       precoVenda: precoVenda,
-      precoAvulso: produto.precoAvulso,
-      qtEstoque: qtEstoque,
-      situacaoEstoque: situacaoEstoque,
+      tensao: produto.tensao,
+      fase: produto.fase,
+      estrutura: produto.estrutura,
       composicaoLength: produto.composicao?.length ?? 0,
     },
   };
@@ -196,33 +187,31 @@ function mapToKit(
 function buildKitItems(produto: JngProduto): KitItem[] {
   if (!Array.isArray(produto.composicao) || produto.composicao.length === 0) return [];
 
-  return produto.composicao.map((item: any) => {
-    const tipoItem = (item.produto?.tipo || "").toLowerCase();
+  return produto.composicao.map((item: ProdutoComposicaoHubB2B) => {
+    const agrup = (item.agrupamento || "").toLowerCase();
+    const cat = (item.categoria || "").toLowerCase();
     let itemType = "outro";
-    if (tipoItem.includes("módulo") || tipoItem.includes("modulo") || tipoItem.includes("painel")) {
+    if (agrup.includes("módulo") || agrup.includes("modulo") ||
+        agrup.includes("painel") || cat.includes("módulo") || cat.includes("painel")) {
       itemType = "modulo";
-    } else if (tipoItem.includes("inversor")) {
+    } else if (agrup.includes("inversor") || cat.includes("inversor")) {
       itemType = "inversor";
     }
-
     return {
       item_type: itemType,
-      description: item.produto?.descricao || `Item ${item.idProduto}`,
-      quantity: item.quantidade || 1,
-      unit_price: item.produto?.precoVenda || 0,
+      description: item.descricao || `Item ${item.idProduto}`,
+      quantity: item.qtd || 1,
+      unit_price: 0,
       ref_id: String(item.idProduto),
     };
   });
 }
 
-// ── Provider Adapter Factory (closure local — sem estado global) ──
-function createJngAdapter(
-  estoqueMap: Map<number, any>,
-  valoresMap: Map<number, any>
-): ProviderAdapter {
+// ── Provider Adapter Factory ────────────────────────────────
+function createJngAdapter(): ProviderAdapter {
   return {
     normalize: (raw, tenantId, fornecedorId) =>
-      mapToKit(raw as JngProduto, estoqueMap, valoresMap, tenantId, fornecedorId),
+      mapToKit(raw as JngProduto, tenantId, fornecedorId),
     classify: (raw) => classifyJngProduct(raw as JngProduto),
     buildKitItems: (raw) => buildKitItems(raw as JngProduto),
   };
@@ -326,7 +315,7 @@ serve(async (req) => {
       try {
         const testItems = await fetchJngProducts(token, 1, 1);
         await syncLog(supabase, tenant_id, "info", "Teste de conexão JNG realizado com sucesso", {
-          sample_count: testItems.length,
+          sample_count: Array.isArray(testItems) ? testItems.length : 0,
         });
         return new Response(
           JSON.stringify({ success: true, test: true, message: "Conexão JNG validada com sucesso" }),
@@ -340,31 +329,8 @@ serve(async (req) => {
       }
     }
 
-    // ── Load estoque + valores (ONCE before pagination loop) ──
-    console.log("[jng-hub-sync] Loading estoque + valores...");
-    let estoqueMap = new Map<number, any>();
-    let valoresMap = new Map<number, any>();
-    try {
-      const [estoqueData, valoresData] = await Promise.all([
-        fetchJngEstoque(token),
-        fetchJngValores(token),
-      ]);
-      estoqueMap = new Map(
-        (estoqueData || []).map((e: any) => [e.idProduto, e])
-      );
-      valoresMap = new Map(
-        (valoresData || []).map((v: any) => [v.idProduto, v])
-      );
-      console.log(`[jng-hub-sync] Estoque: ${estoqueMap.size} items, Valores: ${valoresMap.size} items`);
-    } catch (e: any) {
-      console.error("[jng-hub-sync] Failed to load estoque/valores:", e);
-      await syncLog(supabase, tenant_id, "warn", "Falha ao carregar estoque/valores — usando dados do produto", {
-        error: e.message,
-      });
-    }
-
-    // Criar adapter com closure local — isolamento por request
-    const jngAdapter = createJngAdapter(estoqueMap, valoresMap);
+    // HubB2B: estoque e preço já vêm embutidos no produto — sem endpoints separados
+    const jngAdapter = createJngAdapter();
 
     // ── Load or create sync state ──
     const { data: existingState } = await supabase
@@ -393,7 +359,7 @@ serve(async (req) => {
         provider: "jng",
         mode,
         current_page: 0,
-        total_pages: null, // JNG doesn't report totalPages
+        total_pages: null,
         batch_size: PAGES_PER_BATCH,
         processed_items: 0,
         inserted_items: 0,
@@ -407,8 +373,6 @@ serve(async (req) => {
         metadata: {
           fornecedor_id,
           token_partial: token.slice(0, 8) + "...",
-          estoque_count: estoqueMap.size,
-          valores_count: valoresMap.size,
           dtAlteracao: dtAlteracao || null,
         },
       };
@@ -453,8 +417,6 @@ serve(async (req) => {
       await syncLog(supabase, tenant_id, "info", `Sincronização JNG iniciada (modo: ${mode})`, {
         mode,
         dtAlteracao,
-        estoque_count: estoqueMap.size,
-        valores_count: valoresMap.size,
       });
     } else if (syncState.status === "running") {
       // Resume from checkpoint
@@ -484,17 +446,19 @@ serve(async (req) => {
       try {
         const items = await fetchJngProducts(token, page, ITEMS_PER_PAGE, dtAlteracao);
 
-        if (items.length === 0 || items.length < ITEMS_PER_PAGE) {
+        if (!Array.isArray(items) || items.length === 0 || items.length < ITEMS_PER_PAGE) {
           isLastPage = true;
         }
 
-        batchProducts = [...batchProducts, ...items];
+        if (Array.isArray(items)) {
+          batchProducts = [...batchProducts, ...items];
+        }
         lastPageProcessed = page;
 
         // Per-page logging with manufacturer breakdown
         const fabricantes = new Map<string, number>();
-        for (const p of items) {
-          const fab = p.marca?.descricao || "(sem marca)";
+        for (const p of (Array.isArray(items) ? items : [])) {
+          const fab = (p as JngProduto).marcaPainel || (p as JngProduto).marca || "(sem marca)";
           fabricantes.set(fab, (fabricantes.get(fab) || 0) + 1);
         }
         const fabSummary = Array.from(fabricantes.entries())
@@ -502,12 +466,12 @@ serve(async (req) => {
           .join(", ");
 
         console.log(
-          `[jng-hub-sync] Page ${page}: ${items.length} items → marcas: ${fabSummary}`
+          `[jng-hub-sync] Page ${page}: ${Array.isArray(items) ? items.length : 0} items → marcas: ${fabSummary}`
         );
 
-        await syncLog(supabase, tenant_id, "info", `Página ${page}: ${items.length} produtos`, {
+        await syncLog(supabase, tenant_id, "info", `Página ${page}: ${Array.isArray(items) ? items.length : 0} produtos`, {
           page,
-          items_count: items.length,
+          items_count: Array.isArray(items) ? items.length : 0,
           fabricantes: Object.fromEntries(fabricantes),
           is_last_page: isLastPage,
         });
