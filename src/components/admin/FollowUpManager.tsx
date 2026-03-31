@@ -41,52 +41,17 @@ interface FollowUpManagerProps {
 }
 
 export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps) {
-  const [leads, setLeads] = useState<FollowUpItem[]>([]);
-  const [orcamentos, setOrcamentos] = useState<FollowUpItem[]>([]);
-  const [vendedores, setVendedores] = useState<{ nome: string; telefone: string | null }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: leads = [], isLoading: loadingLeads } = useFollowUpLeads();
+  const { data: orcamentos = [], isLoading: loadingOrcamentos } = useFollowUpOrcamentos();
+  const { data: vendedores = [] } = useFollowUpConsultores();
+  const registrarContato = useRegistrarContato();
+
+  const loading = loadingLeads || loadingOrcamentos;
   const [selectedItem, setSelectedItem] = useState<FollowUpItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ proxima_acao: "", data_proxima_acao: "" });
   const [activeTab, setActiveTab] = useState("orcamentos");
   const { toast } = useToast();
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [leadsRes, orcamentosRes, vendedoresRes] = await Promise.all([
-        supabase.from("leads").select("id, lead_code, nome, telefone, cidade, estado, consultor, ultimo_contato, proxima_acao, data_proxima_acao, created_at").is("deleted_at", null),
-        supabase.from("orcamentos").select("id, orc_code, cidade, estado, consultor, ultimo_contato, proxima_acao, data_proxima_acao, created_at, lead:leads!inner(nome, telefone)"),
-        supabase.from("consultores").select("nome, telefone").eq("ativo", true)
-      ]);
-
-      setLeads((leadsRes.data || []).map(l => ({ ...l, code: l.lead_code, type: 'lead' as const })));
-      setOrcamentos((orcamentosRes.data || []).map(o => ({
-        id: o.id,
-        code: o.orc_code,
-        nome: (o.lead as any)?.nome || "Sem nome",
-        telefone: (o.lead as any)?.telefone || "",
-        cidade: o.cidade,
-        estado: o.estado,
-        consultor: o.consultor,
-        ultimo_contato: o.ultimo_contato,
-        proxima_acao: o.proxima_acao,
-        data_proxima_acao: o.data_proxima_acao,
-        created_at: o.created_at,
-        type: 'orcamento' as const
-      })));
-      setVendedores(vendedoresRes.data || []);
-    } catch (error) {
-      console.error("Erro ao buscar dados:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const categorizeItems = useCallback((items: FollowUpItem[]) => {
     const now = new Date();
