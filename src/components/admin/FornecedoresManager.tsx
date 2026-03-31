@@ -745,7 +745,7 @@ export function FornecedoresManager() {
         open={importOpen}
         onOpenChange={setImportOpen}
         existingFornecedores={fornecedores}
-        onImported={() => salvarMutation.reset()}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ["fornecedores"] })}
       />
     </div>
   );
