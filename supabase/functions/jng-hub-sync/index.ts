@@ -81,8 +81,12 @@ interface JngProduto {
 }
 
 // ── Fetch helper (Plataforma-V1 — sem paginação) ────────────
-async function fetchJngKits(token: string): Promise<any[]> {
+async function fetchJngKits(token: string, ibge?: string): Promise<any[]> {
   const params = new URLSearchParams({ token });
+  if (ibge) {
+    params.set("ibge", ibge);
+    params.set("cifComDescarga", "false");
+  }
   const url = `${JNG_BASE}/integracaoPlataforma/BuscarKits?${params.toString()}`;
   console.log("[jng] fetchKits URL:", url);
   const res = await fetch(url);
@@ -289,7 +293,7 @@ serve(async (req) => {
       );
     }
 
-    const { token } = (config.credentials || {}) as any;
+    const { token, ibge } = (config.credentials || {}) as any;
     if (!token) {
       return new Response(
         JSON.stringify({ success: false, error: "Token não encontrado nas credenciais", code: "MISSING_TOKEN" }),
@@ -300,7 +304,7 @@ serve(async (req) => {
     // ── Test-only mode ──
     if (test_only) {
       try {
-        const testItems = await fetchJngKits(token);
+        const testItems = await fetchJngKits(token, ibge);
         await syncLog(supabase, tenant_id, "info",
           "Teste de conexão JNG realizado com sucesso", {
           sample_count: testItems.length,
@@ -411,7 +415,7 @@ serve(async (req) => {
     // ── Fetch único — Plataforma-V1 não tem paginação ──
     let batchProducts: any[] = [];
     try {
-      batchProducts = await fetchJngKits(token);
+      batchProducts = await fetchJngKits(token, ibge);
       console.log(`[jng-hub-sync] Fetched ${batchProducts.length} kits`);
       await syncLog(supabase, tenant_id, "info",
         `${batchProducts.length} kits retornados pela API`, {
