@@ -88,9 +88,9 @@ async function fetchJngProducts(
 }
 
 async function fetchJngEstoque(token: string): Promise<any[]> {
-  const res = await fetch(
-    `${JNG_BASE}/integracao/Estoque?token=${encodeURIComponent(token)}&situacao=A`
-  );
+  const url = `${JNG_BASE}/integracao/Estoque?token=${token}&situacao=A`;
+  console.log("[jng] fetchEstoque URL:", url);
+  const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`JNG estoque failed: ${res.status} ${body}`);
