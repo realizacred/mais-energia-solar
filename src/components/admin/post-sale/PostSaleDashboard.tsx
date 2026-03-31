@@ -41,6 +41,7 @@ export function PostSaleDashboard() {
         {upcomingVisits.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma visita pendente</p>
         ) : (
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -73,6 +74,7 @@ export function PostSaleDashboard() {
               })}
             </TableBody>
           </Table>
+          </div>
         )}
       </SectionCard>
     </div>

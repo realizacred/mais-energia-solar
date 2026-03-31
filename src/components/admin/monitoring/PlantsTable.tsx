@@ -28,6 +28,7 @@ export function PlantsTable({ plants, metrics }: Props) {
   const metricsMap = new Map(metrics.map((m) => [m.plant_id, m]));
 
   return (
+    <div className="overflow-x-auto">
     <Table>
       <TableHeader>
         <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -68,5 +69,6 @@ export function PlantsTable({ plants, metrics }: Props) {
         })}
       </TableBody>
     </Table>
+    </div>
   );
 }

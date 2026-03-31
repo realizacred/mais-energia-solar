@@ -69,6 +69,7 @@ function ClientsTable({ clients, onSelect, onNavigateProjects, pagination }: {
   const displayed = pagination ? paginate(clients, pagination.page, pagination.pageSize) : clients;
   return (
     <SectionCard icon={Users} title="Clientes" variant="neutral" noPadding>
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -114,6 +115,7 @@ function ClientsTable({ clients, onSelect, onNavigateProjects, pagination }: {
           ))}
         </TableBody>
       </Table>
+      </div>
       {pagination && (
         <TablePagination
           totalItems={clients.length}
@@ -137,6 +139,7 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
   const displayed = pagination ? paginate(projects, pagination.page, pagination.pageSize) : projects;
   return (
     <SectionCard icon={FolderKanban} title="Projetos" variant="neutral" noPadding>
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -200,6 +203,7 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
           })}
         </TableBody>
       </Table>
+      </div>
       {pagination && (
         <TablePagination
           totalItems={projects.length}
@@ -238,6 +242,7 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
         </Button>
       ) : undefined}
     >
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -302,6 +307,7 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
           ))}
         </TableBody>
       </Table>
+      </div>
       {pagination && (
         <TablePagination
           totalItems={proposals.length}
@@ -318,6 +324,7 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
 function FunnelsTable({ funnels }: { funnels: SmFunnel[] }) {
   return (
     <SectionCard icon={GitBranch} title="Funis" variant="neutral" noPadding>
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -345,6 +352,7 @@ function FunnelsTable({ funnels }: { funnels: SmFunnel[] }) {
           })}
         </TableBody>
       </Table>
+      </div>
     </SectionCard>
   );
 }
@@ -352,6 +360,7 @@ function FunnelsTable({ funnels }: { funnels: SmFunnel[] }) {
 function CustomFieldsTable({ fields }: { fields: SmCustomField[] }) {
   return (
     <SectionCard icon={Settings2} title="Campos Customizados" variant="neutral" noPadding>
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -382,6 +391,7 @@ function CustomFieldsTable({ fields }: { fields: SmCustomField[] }) {
           ))}
         </TableBody>
       </Table>
+      </div>
     </SectionCard>
   );
 }
@@ -389,6 +399,7 @@ function CustomFieldsTable({ fields }: { fields: SmCustomField[] }) {
 function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; status: string; total_fetched: number; total_upserted: number; total_errors: number; started_at: string }> }) {
   return (
     <SectionCard icon={Clock} title="Histórico de Sincronizações" variant="neutral" noPadding>
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -425,6 +436,7 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
           ))}
         </TableBody>
       </Table>
+      </div>
     </SectionCard>
   );
 }

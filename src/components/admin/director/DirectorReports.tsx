@@ -171,6 +171,7 @@ export function DirectorReports({ insights }: Props) {
                 <CardTitle className="text-sm font-semibold">📈 Métricas</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -195,6 +196,7 @@ export function DirectorReports({ insights }: Props) {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           )}

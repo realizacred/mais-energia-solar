@@ -210,6 +210,7 @@ export function PostSaleVisitsList() {
             <EmptyState icon={Clock} title="Nenhuma visita encontrada" description="Clique em 'Nova Visita' para agendar um serviço." />
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -252,6 +253,7 @@ export function PostSaleVisitsList() {
               })}
             </TableBody>
           </Table>
+          </div>
         )}
       </div>
 

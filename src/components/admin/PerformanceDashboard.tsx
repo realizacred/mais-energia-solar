@@ -437,6 +437,7 @@ export default function PerformanceDashboard() {
             </CardHeader>
             <CardContent>
               <ScrollArea className="w-full">
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -517,6 +518,7 @@ export default function PerformanceDashboard() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
             </CardContent>

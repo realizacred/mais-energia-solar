@@ -116,6 +116,7 @@ export function CleanupPanel({ records, summary }: CleanupPanelProps) {
       {/* Table */}
       <div className="rounded-lg border border-border overflow-hidden">
         <ScrollArea className="max-h-[500px]">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30 hover:bg-muted/30">
@@ -186,6 +187,7 @@ export function CleanupPanel({ records, summary }: CleanupPanelProps) {
               )}
             </TableBody>
           </Table>
+          </div>
         </ScrollArea>
         {filtered.length > 200 && (
           <div className="px-3 py-2 text-[10px] text-muted-foreground border-t border-border bg-muted/20">

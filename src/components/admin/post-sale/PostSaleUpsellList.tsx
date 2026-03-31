@@ -54,6 +54,7 @@ export function PostSaleUpsellList() {
         {upsells.length === 0 ? (
           <EmptyState icon={TrendingUp} title="Nenhuma oportunidade" description="Clique em 'Nova Oportunidade' para cadastrar." />
         ) : (
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -99,6 +100,7 @@ export function PostSaleUpsellList() {
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </SectionCard>
 

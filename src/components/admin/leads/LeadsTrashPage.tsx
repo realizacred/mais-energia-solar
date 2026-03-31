@@ -135,6 +135,7 @@ export default function LeadsTrashPage() {
               <p className="text-sm">Nenhum lead arquivado</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -176,6 +177,7 @@ export default function LeadsTrashPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -617,6 +617,7 @@ export function ComissoesManager() {
                     action={{ label: "Nova Comissão", onClick: () => setDialogOpen(true), icon: Plus }}
                   />
                 ) : (
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -701,6 +702,7 @@ export function ComissoesManager() {
                       })}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
                 {filteredComissoes.length > 0 && (
                   <TablePagination

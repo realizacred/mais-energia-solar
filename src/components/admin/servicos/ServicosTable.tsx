@@ -70,6 +70,7 @@ export function ServicosTable({
   }
 
   return (
+    <div className="overflow-x-auto">
     <Table>
       <TableHeader>
         <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -211,5 +212,6 @@ export function ServicosTable({
         ))}
       </TableBody>
     </Table>
+    </div>
   );
 }

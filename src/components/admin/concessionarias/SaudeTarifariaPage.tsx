@@ -448,6 +448,7 @@ export function SaudeTarifariaPage() {
             <CollapsibleContent>
               <CardContent className="pt-0">
                 <ScrollArea className="max-h-[300px]">
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -468,6 +469,7 @@ export function SaudeTarifariaPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </ScrollArea>
               </CardContent>
             </CollapsibleContent>
@@ -494,6 +496,7 @@ export function SaudeTarifariaPage() {
             <CollapsibleContent>
               <CardContent className="pt-0">
                 <ScrollArea className="max-h-[300px]">
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -514,6 +517,7 @@ export function SaudeTarifariaPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </ScrollArea>
               </CardContent>
             </CollapsibleContent>

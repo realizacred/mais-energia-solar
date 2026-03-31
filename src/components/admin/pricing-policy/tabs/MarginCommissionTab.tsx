@@ -124,6 +124,7 @@ export function MarginCommissionTab() {
           {marginPlans.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">Nenhum plano de margem.</div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -156,6 +157,7 @@ export function MarginCommissionTab() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -180,6 +182,7 @@ export function MarginCommissionTab() {
           {commissionPlans.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">Nenhum plano de comissão.</div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -216,6 +219,7 @@ export function MarginCommissionTab() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
