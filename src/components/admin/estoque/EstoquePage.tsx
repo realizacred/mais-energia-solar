@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { formatBRLInteger } from "@/lib/formatters";
 import { useEstoqueRealtime } from "@/hooks/useEstoqueRealtime";
 import {
   Package, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Plus,
@@ -179,7 +180,7 @@ export function EstoquePage() {
         <StatCard icon={ShieldCheck} label="Reservado" value={totalReservado} color="warning" />
         <StatCard
           icon={Package} label="Valor total"
-          value={`R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          value={formatBRLInteger(totalValue)}
           color="info"
         />
       </div>
