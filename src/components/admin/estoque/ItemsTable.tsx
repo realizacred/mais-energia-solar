@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { QrCode } from "lucide-react";
 import { CATEGORIA_LABELS, type EstoqueSaldo } from "@/hooks/useEstoque";
+import { formatBRL } from "@/lib/formatters";
 
 interface ItemsTableProps {
   items: EstoqueSaldo[];
