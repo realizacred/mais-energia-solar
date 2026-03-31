@@ -40,26 +40,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface Fornecedor {
-  id: string;
-  nome: string;
-  cnpj: string | null;
-  inscricao_estadual: string | null;
-  email: string | null;
-  telefone: string | null;
-  site: string | null;
-  contato_nome: string | null;
-  contato_telefone: string | null;
-  endereco: string | null;
-  cidade: string | null;
-  estado: string | null;
-  cep: string | null;
-  tipo: string;
-  categorias: string[];
-  observacoes: string | null;
-  ativo: boolean;
-  created_at: string;
-}
+// Fornecedor type imported from hook
 
 const TIPOS = [
   { value: "distribuidor", label: "Distribuidor" },
