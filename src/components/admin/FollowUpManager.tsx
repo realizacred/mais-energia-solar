@@ -1,6 +1,12 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
+import {
+  useFollowUpLeads,
+  useFollowUpOrcamentos,
+  useFollowUpConsultores,
+  useRegistrarContato,
+} from "@/hooks/useFollowUp";
+import type { FollowUpItem } from "@/hooks/useFollowUp";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,20 +24,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
 import { PageHeader } from "@/components/ui-kit";
 import { differenceInDays, parseISO } from "date-fns";
 
-interface FollowUpItem {
-  id: string;
-  code: string | null;
-  nome: string;
-  telefone: string;
-  cidade: string;
-  estado: string;
-  consultor: string | null;
-  ultimo_contato: string | null;
-  proxima_acao: string | null;
-  data_proxima_acao: string | null;
-  created_at: string;
-  type: 'lead' | 'orcamento';
-}
+// FollowUpItem imported from hook
 
 interface VendorStats {
   nome: string;
@@ -48,52 +41,17 @@ interface FollowUpManagerProps {
 }
 
 export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps) {
-  const [leads, setLeads] = useState<FollowUpItem[]>([]);
-  const [orcamentos, setOrcamentos] = useState<FollowUpItem[]>([]);
-  const [vendedores, setVendedores] = useState<{ nome: string; telefone: string | null }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: leads = [], isLoading: loadingLeads } = useFollowUpLeads();
+  const { data: orcamentos = [], isLoading: loadingOrcamentos } = useFollowUpOrcamentos();
+  const { data: vendedores = [] } = useFollowUpConsultores();
+  const registrarContato = useRegistrarContato();
+
+  const loading = loadingLeads || loadingOrcamentos;
   const [selectedItem, setSelectedItem] = useState<FollowUpItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ proxima_acao: "", data_proxima_acao: "" });
   const [activeTab, setActiveTab] = useState("orcamentos");
   const { toast } = useToast();
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [leadsRes, orcamentosRes, vendedoresRes] = await Promise.all([
-        supabase.from("leads").select("id, lead_code, nome, telefone, cidade, estado, consultor, ultimo_contato, proxima_acao, data_proxima_acao, created_at").is("deleted_at", null),
-        supabase.from("orcamentos").select("id, orc_code, cidade, estado, consultor, ultimo_contato, proxima_acao, data_proxima_acao, created_at, lead:leads!inner(nome, telefone)"),
-        supabase.from("consultores").select("nome, telefone").eq("ativo", true)
-      ]);
-
-      setLeads((leadsRes.data || []).map(l => ({ ...l, code: l.lead_code, type: 'lead' as const })));
-      setOrcamentos((orcamentosRes.data || []).map(o => ({
-        id: o.id,
-        code: o.orc_code,
-        nome: (o.lead as any)?.nome || "Sem nome",
-        telefone: (o.lead as any)?.telefone || "",
-        cidade: o.cidade,
-        estado: o.estado,
-        consultor: o.consultor,
-        ultimo_contato: o.ultimo_contato,
-        proxima_acao: o.proxima_acao,
-        data_proxima_acao: o.data_proxima_acao,
-        created_at: o.created_at,
-        type: 'orcamento' as const
-      })));
-      setVendedores(vendedoresRes.data || []);
-    } catch (error) {
-      console.error("Erro ao buscar dados:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const categorizeItems = useCallback((items: FollowUpItem[]) => {
     const now = new Date();
@@ -164,22 +122,17 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
 
   const handleSave = async () => {
     if (!selectedItem) return;
-    setSaving(true);
     try {
-      const table = selectedItem.type === 'lead' ? 'leads' : 'orcamentos';
-      const { error } = await supabase.from(table).update({
-        ultimo_contato: new Date().toISOString(),
+      await registrarContato.mutateAsync({
+        id: selectedItem.id,
+        type: selectedItem.type,
         proxima_acao: formData.proxima_acao || null,
         data_proxima_acao: formData.data_proxima_acao || null,
-      }).eq("id", selectedItem.id);
-      if (error) throw error;
+      });
       toast({ title: "Contato registrado!", description: "Registro atualizado." });
       setIsDialogOpen(false);
-      fetchData();
     } catch (error) {
       toast({ title: "Erro", description: "Não foi possível atualizar.", variant: "destructive" });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -474,8 +427,8 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
           </div>
           <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Spinner size="sm" className="mr-2" />}Confirmar
+            <Button onClick={handleSave} disabled={registrarContato.isPending}>
+              {registrarContato.isPending && <Spinner size="sm" className="mr-2" />}Confirmar
             </Button>
           </div>
         </DialogContent>
