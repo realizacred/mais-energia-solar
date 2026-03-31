@@ -581,16 +581,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       }
 
       // Authenticated flow — resolve vendedor settings from DB and send via existing pipeline
-      let resolvedVendedorId = vendedorId;
-      if (!resolvedVendedorId) {
-        const { data: v } = await supabase
-          .from("consultores")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("ativo", true)
-          .maybeSingle();
-        resolvedVendedorId = (v as any)?.id || null;
-      }
+      const resolvedVendedorId = vendedorId || fallbackVendedorId || null;
 
       // Check toggle from DB settings
       if (resolvedVendedorId) {
