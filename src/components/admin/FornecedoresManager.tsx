@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatPhone } from "@/lib/validations";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { FornecedorImportDialog } from "@/components/admin/fornecedores/FornecedorImportDialog";
