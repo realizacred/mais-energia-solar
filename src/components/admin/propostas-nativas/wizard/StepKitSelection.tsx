@@ -534,7 +534,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         {/* ── Sidebar Filters ── */}
         <aside className="w-[200px] shrink-0 hidden lg:flex lg:flex-col overflow-hidden pr-1">
           <div className="flex-1 min-h-0 overflow-y-auto">
-          <KitFilters filters={filters} onFiltersChange={setFilters} consumoMensal={consumoTotal} options={filterOptions} />
+            <KitFilters filters={filters} onFiltersChange={setFilters} consumoMensal={consumoTotal} options={filterOptions} />
+          </div>
         </aside>
 
         {/* ── Main Content Area ── */}
