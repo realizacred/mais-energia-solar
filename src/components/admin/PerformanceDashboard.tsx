@@ -136,39 +136,13 @@ const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set"
 // ── Component ─────────────────────────────────────────────────
 
 export default function PerformanceDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [statuses, setStatuses] = useState<LeadStatus[]>([]);
-  const [motivos, setMotivos] = useState<MotivoPerda[]>([]);
-  const [consultores, setConsultores] = useState<Consultor[]>([]);
-  const [deals, setDeals] = useState<Deal[]>([]);
+  const { data: leads = [], isLoading: loadingLeads } = usePerformanceLeads();
+  const { data: statuses = [], isLoading: loadingStatuses } = usePerformanceStatuses();
+  const { data: motivos = [] } = usePerformanceMotivosPerda();
+  const { data: consultores = [] } = usePerformanceConsultores();
+  const { data: deals = [], isLoading: loadingDeals } = usePerformanceDeals();
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      const [leadsRes, statusRes, motivosRes, consultoresRes, dealsRes] = await Promise.all([
-        supabase.from("leads").select("id, nome, estado, cidade, media_consumo, consultor, consultor_id, created_at, status_id, motivo_perda_id, valor_estimado").is("deleted_at", null).order("created_at", { ascending: false }).limit(2000),
-        supabase.from("lead_status").select("id, nome, cor, ordem").order("ordem"),
-        supabase.from("motivos_perda").select("id, nome").eq("ativo", true),
-        supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome"),
-        supabase.from("deal_kanban_projection").select("deal_id, owner_id, deal_value, deal_status, last_stage_change, deal_kwp").limit(1000),
-      ]);
-
-      if (leadsRes.data) setLeads(leadsRes.data);
-      if (statusRes.data) setStatuses(statusRes.data);
-      if (motivosRes.data) setMotivos(motivosRes.data);
-      if (consultoresRes.data) setConsultores(consultoresRes.data);
-      if (dealsRes.data) setDeals(dealsRes.data.map((d: any) => ({
-        id: d.deal_id,
-        owner_id: d.owner_id,
-        deal_value: d.deal_value || 0,
-        deal_status: d.deal_status,
-        created_at: d.last_stage_change,
-        kwp: d.deal_kwp || 0,
-      })));
-      setLoading(false);
-    };
-    fetchAll();
-  }, []);
+  const loading = loadingLeads || loadingStatuses || loadingDeals;
 
   // ── Derived Data ──────────────────────────────────────────
 
