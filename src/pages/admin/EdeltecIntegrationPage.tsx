@@ -50,14 +50,7 @@ function useTenantId() {
 export default function EdeltecIntegrationPage() {
   const { data: tenantId } = useTenantId();
 
-  const { data: syncState, isLoading: loadingSync } = useEdeltecSyncStatus(tenantId);
-  const { data: stats, isLoading: loadingStats } = useEdeltecCatalogStats(apiConfig?.fornecedor_id ?? null);
-  const { data: logs, isLoading: loadingLogs } = useEdeltecSyncLogs(tenantId, 30);
-  const syncMutation = useEdeltecSync();
-
-  const [showFullReplace, setShowFullReplace] = useState(false);
-
-  // Fetch api_config_id for tenant
+  // Fetch api_config_id + fornecedor_id for tenant
   const { data: apiConfig } = useQuery({
     queryKey: ["edeltec-api-config", tenantId],
     queryFn: async () => {
@@ -73,6 +66,11 @@ export default function EdeltecIntegrationPage() {
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
   });
+
+  const { data: syncState, isLoading: loadingSync } = useEdeltecSyncStatus(tenantId);
+  const { data: stats, isLoading: loadingStats } = useEdeltecCatalogStats(apiConfig?.fornecedor_id ?? null);
+  const { data: logs, isLoading: loadingLogs } = useEdeltecSyncLogs(tenantId, 30);
+  const syncMutation = useEdeltecSync();
 
   const handleSync = (mode: "incremental" | "full_replace") => {
     if (!tenantId || !apiConfig?.id) return;
