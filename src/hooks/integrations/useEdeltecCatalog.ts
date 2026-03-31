@@ -105,14 +105,14 @@ export function useEdeltecCatalog(fornecedorId: string | null, filters?: Edeltec
 }
 
 /** Stats derived from the full catalog */
-export function useEdeltecCatalogStats() {
+export function useEdeltecCatalogStats(fornecedorId: string | null) {
   return useQuery({
-    queryKey: [QUERY_KEY, "stats"],
+    queryKey: [QUERY_KEY, "stats", fornecedorId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("solar_kit_catalog")
         .select("id, is_generator, disponivel, permite_compra_sem_estoque, is_available_now, last_synced_at")
-        .eq("source", "edeltec");
+        .eq("fornecedor_id", fornecedorId);
 
       if (error) throw error;
       const all = (data || []) as any[];
