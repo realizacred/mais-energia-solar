@@ -744,7 +744,7 @@ export function FornecedoresManager() {
         open={importOpen}
         onOpenChange={setImportOpen}
         existingFornecedores={fornecedores}
-        onImported={fetchData}
+        onImported={() => salvarMutation.reset()}
       />
     </div>
   );
