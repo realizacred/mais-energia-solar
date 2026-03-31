@@ -23,6 +23,7 @@ export interface CatalogKit {
   pricing_mode: string;
   fixed_price: number | null;
   source: string | null;
+  fornecedor_id: string | null;
   external_data: Record<string, any> | null;
   is_generator?: boolean;
   fabricante?: string | null;
