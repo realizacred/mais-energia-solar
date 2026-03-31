@@ -269,10 +269,10 @@ async function persistProposalAtomic(
 
       const result = data as any;
       // console.log("[persist] proposta criada", {
-        proposta_id: result.proposta_id,
-        versao_id: result.versao_id,
-        projeto_id: result.projeto_id,
-      });
+      //   proposta_id: result.proposta_id,
+      //   versao_id: result.versao_id,
+      //   projeto_id: result.projeto_id,
+      // });
 
       // If intent is active, update via RPC to avoid enum type mismatch
       // (proposta_versoes.status is enum proposta_nativa_status, direct text update fails)
