@@ -304,7 +304,7 @@ serve(async (req) => {
     // ── Test-only mode ──
     if (test_only) {
       try {
-        const testItems = await fetchJngKits(token);
+        const testItems = await fetchJngKits(token, ibge);
         await syncLog(supabase, tenant_id, "info",
           "Teste de conexão JNG realizado com sucesso", {
           sample_count: testItems.length,
