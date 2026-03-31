@@ -301,19 +301,27 @@ serve(async (req) => {
       );
     }
 
-    // ── Test-only mode ──
+    // ── Test-only mode — usa BuscarFiltros (não precisa de ibge) ──
     if (test_only) {
       try {
-        const testItems = await fetchJngKits(token, ibge);
+        const testUrl = `${JNG_BASE}/integracaoPlataforma/BuscarFiltros?token=${token}`;
+        console.log("[jng] test URL:", testUrl);
+        const testRes = await fetch(testUrl);
+        if (!testRes.ok) {
+          const body = await testRes.text();
+          throw new Error(`${testRes.status} ${body}`);
+        }
+        const testData = await testRes.json();
+        const marcas = testData?.marcasPaineis?.length ?? 0;
         await syncLog(supabase, tenant_id, "info",
           "Teste de conexão JNG realizado com sucesso", {
-          sample_count: testItems.length,
+          marcas_paineis: marcas,
         });
         return new Response(
           JSON.stringify({
             success: true,
             test: true,
-            message: `Conexão JNG validada. ${testItems.length} kits disponíveis.`
+            message: `Conexão JNG validada. ${marcas} marcas de painéis disponíveis.`
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
