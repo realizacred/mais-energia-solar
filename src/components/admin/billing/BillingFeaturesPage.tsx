@@ -32,6 +32,7 @@ import { useTenantSubscriptionsAdmin, useUpdateSubscription } from "@/hooks/useT
 import { useTenantFeatureOverridesAdmin, useUpsertTenantOverride, useDeleteTenantOverride } from "@/hooks/useTenantFeatureOverrides";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/dateUtils";
+import { formatBRL } from "@/lib/formatters";
 
 // ─── EDIT PLAN MODAL ─────────────────────────────────────────
 
