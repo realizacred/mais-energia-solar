@@ -146,7 +146,7 @@ export default function SalesFunnel({ leads, statuses }: SalesFunnelProps) {
         </div>
 
         {/* Additional Stats */}
-        <div className="grid grid-cols-3 gap-2 pt-4 border-t">
+        <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-4 border-t">
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-primary">
               <Users className="w-4 h-4" />

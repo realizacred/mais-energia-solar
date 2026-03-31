@@ -91,7 +91,7 @@ export function VendorTaskAgenda() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         <Card className={stats.overdue > 0 ? "border-destructive/30 bg-destructive/5" : ""}>
           <CardContent className="p-3 text-center">
             <p className={`text-xl font-bold ${stats.overdue > 0 ? "text-destructive" : "text-foreground"}`}>

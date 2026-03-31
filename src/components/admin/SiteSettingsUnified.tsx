@@ -583,7 +583,7 @@ export function SiteSettingsUnified() {
                 <Badge>Badge</Badge>
                 <Badge variant="secondary">Secondary</Badge>
               </div>
-              <div className="mt-4 grid grid-cols-4 gap-2">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                 {[
                   { label: "Sucesso", color: brandDraft.color_success },
                   { label: "Alerta", color: brandDraft.color_warning },
@@ -753,7 +753,7 @@ export function SiteSettingsUnified() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {["Card", "Botão", "Input"].map((label) => (
                     <div key={label} className="h-20 bg-primary/10 border border-primary/20 flex items-center justify-center text-xs text-primary font-medium" style={{ borderRadius: brandDraft.border_radius }}>
                       {label}

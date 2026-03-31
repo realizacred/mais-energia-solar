@@ -234,7 +234,7 @@
            <ScrollArea className="max-h-[70vh] pr-4">
              <div className="space-y-6">
                {/* Info básica */}
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div className="space-y-1">
                    <p className="text-xs text-muted-foreground flex items-center gap-1">
                      <User className="h-3 w-3" /> Cliente
@@ -281,7 +281,7 @@
                {/* Checklist items */}
                <div className="space-y-3">
                  <p className="text-sm font-medium">Itens do Checklist</p>
-                 <div className="grid grid-cols-2 gap-2">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                    {[
                      { label: "Placas local aprovado", value: selectedChecklist.placas_local_aprovado },
                      { label: "Inversor local aprovado", value: selectedChecklist.inversor_local_aprovado },
@@ -321,7 +321,7 @@
                    <p className="text-sm font-medium flex items-center gap-1">
                      <Camera className="h-4 w-4" /> Fotos ({selectedChecklist.fotos_urls.length})
                    </p>
-                   <div className="grid grid-cols-3 gap-2">
+                   <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                      {selectedChecklist.fotos_urls.map((url, i) => (
                        <img
                          key={i}
@@ -335,7 +335,7 @@
                )}
  
                {/* Assinaturas */}
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  {selectedChecklist.assinatura_cliente_url && (
                    <div className="space-y-2">
                      <p className="text-sm font-medium flex items-center gap-1">

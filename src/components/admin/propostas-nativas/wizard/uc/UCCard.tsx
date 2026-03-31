@@ -300,7 +300,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
           {isGrupoA ? (
             <>
               <Label className="text-[11px] text-muted-foreground">Consumo Ponta (HP) e Fora Ponta (HFP)</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-muted-foreground">HP <span className="text-destructive">*</span></span>
@@ -371,7 +371,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
           <>
             {/* Demanda */}
             <Section title="Demanda">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label className="text-[11px]">Consumo <span className="text-destructive">*</span></Label>
                   <div className="relative">
@@ -399,7 +399,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                 onClick={() => setTarifaDialogOpen(true)}
                 className="w-full text-left"
               >
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <p className="text-[11px] font-semibold text-foreground flex items-center gap-1">Tarifa Ponta <Pencil className="h-2.5 w-2.5 text-secondary" /></p>
                     <div className="space-y-0.5 pl-1 border-l-2 border-secondary/30 text-[10px] text-secondary">
@@ -545,7 +545,7 @@ function TarifaEditDialog({ open, onOpenChange, uc, index, isGD3, isGrupoA, onCh
         </DialogHeader>
         <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
           {isGrupoA ? (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <p className="text-xs font-semibold">Ponta</p>
                 <div className="space-y-2">

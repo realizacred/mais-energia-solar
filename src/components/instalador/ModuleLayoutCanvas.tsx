@@ -533,7 +533,7 @@ export function ModuleLayoutCanvas({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-2">
-                <div className="grid grid-cols-5 gap-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1">
                   {DRAWING_COLORS.map((color) => (
                     <button
                       key={color}

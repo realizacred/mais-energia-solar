@@ -231,7 +231,7 @@ export function PropostaCard({ proposta, onOpenDetail, onWhatsApp }: PropostaCar
         </div>
 
         {/* ── Hero: Valor + Economia ── */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div className="bg-muted/50 rounded-lg p-2.5">
             <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
               <DollarSign className="h-3 w-3" />

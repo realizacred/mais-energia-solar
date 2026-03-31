@@ -358,7 +358,7 @@ export function InversoresManager() {
               <div className="space-y-3">
                 <div className="space-y-1"><Label>Fabricante *</Label><Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: Growatt" /></div>
                 <div className="space-y-1"><Label>Modelo *</Label><Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: MOD 10KTL3-XH" /></div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1"><Label>Tipo *</Label><Select value={form.tipo} onValueChange={(v) => set("tipo", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="String">String</SelectItem><SelectItem value="Microinversor">Microinversor</SelectItem><SelectItem value="Híbrido">Híbrido</SelectItem></SelectContent></Select></div>
                   <div className="space-y-1"><Label>Fases *</Label><Select value={form.fases} onValueChange={(v) => set("fases", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Monofásico">Monofásico</SelectItem><SelectItem value="Trifásico">Trifásico</SelectItem></SelectContent></Select></div>
                 </div>
@@ -366,7 +366,7 @@ export function InversoresManager() {
             </FormSection>
 
             <FormSection title="Entrada DC">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>Tensão Entrada Máx (V)</Label><Input type="number" value={form.tensao_entrada_max_v} onChange={(e) => set("tensao_entrada_max_v", e.target.value)} placeholder="1100" /></div>
                 <div className="space-y-1"><Label>Corrente Entrada Máx (A)</Label><Input type="number" step="0.1" value={form.corrente_entrada_max_a} onChange={(e) => set("corrente_entrada_max_a", e.target.value)} /></div>
                 <div className="space-y-1"><Label>Tensão MPPT mín (V)</Label><Input type="number" value={form.tensao_mppt_min_v} onChange={(e) => set("tensao_mppt_min_v", e.target.value)} /></div>
@@ -375,7 +375,7 @@ export function InversoresManager() {
             </FormSection>
 
             <FormSection title="MPPTs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>Nº de MPPTs</Label><Input type="number" value={form.mppt_count} onChange={(e) => set("mppt_count", e.target.value)} placeholder="2" /></div>
                 <div className="space-y-1"><Label>Strings por MPPT</Label><Input type="number" value={form.strings_por_mppt} onChange={(e) => set("strings_por_mppt", e.target.value)} placeholder="1" /></div>
               </div>
@@ -384,7 +384,7 @@ export function InversoresManager() {
 
           <div className="space-y-5">
             <FormSection title="Saída AC">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>Potência Nominal (kW) *</Label><Input type="number" step="0.01" value={form.potencia_nominal_kw} onChange={(e) => set("potencia_nominal_kw", e.target.value)} placeholder="10.00" /></div>
                 <div className="space-y-1"><Label>Potência Máxima (kW)</Label><Input type="number" step="0.01" value={form.potencia_maxima_kw} onChange={(e) => set("potencia_maxima_kw", e.target.value)} /></div>
                 <div className="space-y-1"><Label>Tensão Saída (V)</Label><Input type="number" value={form.tensao_saida_v} onChange={(e) => set("tensao_saida_v", e.target.value)} placeholder="220" /></div>
@@ -395,7 +395,7 @@ export function InversoresManager() {
             </FormSection>
 
             <FormSection title="Físico">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>Dimensões (mm)</Label><Input value={form.dimensoes_mm} onChange={(e) => set("dimensoes_mm", e.target.value)} /></div>
                 <div className="space-y-1"><Label>Peso (kg)</Label><Input type="number" step="0.1" value={form.peso_kg} onChange={(e) => set("peso_kg", e.target.value)} /></div>
                 <div className="space-y-1"><Label>Proteção IP</Label><Input value={form.ip_protection as string} onChange={(e) => set("ip_protection", e.target.value)} placeholder="IP65" /></div>

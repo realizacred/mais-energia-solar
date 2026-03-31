@@ -728,7 +728,7 @@ export function AuthForm() {
                       <RadioGroup
                         onValueChange={field.onChange}
                         defaultValue={field.value}
-                        className="grid grid-cols-2 gap-3"
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-3"
                       >
                         <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer hover:border-primary/50 transition-colors">
                           <RadioGroupItem value="consultor" id="consultor" />

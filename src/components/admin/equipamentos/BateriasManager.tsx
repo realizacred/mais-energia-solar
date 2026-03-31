@@ -408,7 +408,7 @@ export function BateriasManager() {
             </FormSection>
 
             <FormSection title="Energia">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>Energia (kWh)</Label><Input type="number" step="0.1" value={form.energia_kwh} onChange={(e) => set("energia_kwh", e.target.value)} placeholder="5" /></div>
                 <div className="space-y-1"><Label>Tensão Nominal (V)</Label><Input type="number" value={form.tensao_nominal_v} onChange={(e) => set("tensao_nominal_v", e.target.value)} placeholder="48" /></div>
                 <div className="space-y-1"><Label>Tensão Operação (V)</Label><Input value={form.tensao_operacao_v} onChange={(e) => set("tensao_operacao_v", e.target.value)} placeholder="42 ~ 54" /></div>
@@ -419,7 +419,7 @@ export function BateriasManager() {
 
           <div className="space-y-5">
             <FormSection title="Potência & Correntes">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>Potência Máx. Saída (kW)</Label><Input type="number" step="0.1" value={form.potencia_max_saida_kw} onChange={(e) => set("potencia_max_saida_kw", e.target.value)} placeholder="0" /></div>
                 <div className="space-y-1"><Label>Corrente Máx. Descarga (A)</Label><Input type="number" value={form.corrente_max_descarga_a} onChange={(e) => set("corrente_max_descarga_a", e.target.value)} placeholder="100" /></div>
                 <div className="space-y-1"><Label>Corrente Máx. Carga (A)</Label><Input type="number" value={form.corrente_max_carga_a} onChange={(e) => set("corrente_max_carga_a", e.target.value)} placeholder="100" /></div>

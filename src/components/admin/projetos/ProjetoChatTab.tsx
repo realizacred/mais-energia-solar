@@ -542,7 +542,7 @@ function SummaryDisplay({ summary, updatedAt }: { summary: ConversationSummary; 
       </Card>
 
       {/* ── Grid de Insights ── */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {summary.assuntos_principais?.length > 0 && (
           <InsightCard icon="💡" title="Assuntos" items={summary.assuntos_principais} />
         )}

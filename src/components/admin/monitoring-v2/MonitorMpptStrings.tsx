@@ -304,7 +304,7 @@ function DualPaneHeader({
             <span className="text-xs font-bold text-foreground uppercase tracking-wider">Status do Sistema</span>
             <DataOriginBadge type="ssot" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MetricItem
               icon={Activity}
               label="Energia Hoje"
@@ -331,7 +331,7 @@ function DualPaneHeader({
             />
           </div>
           {/* Status checklist */}
-          <div className="grid grid-cols-2 gap-1.5 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
             <StatusCheckItem
               ok={health?.last_seen_at != null}
               label={health?.last_seen_at
@@ -367,7 +367,7 @@ function DualPaneHeader({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MetricItem
               icon={Activity}
               label="Energia Inversor"

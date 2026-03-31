@@ -433,7 +433,7 @@ export function TemplatesManager() {
               <p className="text-sm font-semibold flex items-center gap-2">
                 <FileText className="h-4 w-4 text-secondary" /> Dados do template
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs font-medium">Nome *</Label>
                   <Input value={form.nome || ""} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
@@ -445,7 +445,7 @@ export function TemplatesManager() {
                     placeholder="Template com layout moderno" className="h-9 text-sm bg-background" />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div>
                   <Label className="text-xs font-medium">Grupo</Label>
                   <Select value={form.grupo || "B"} onValueChange={v => setForm(f => ({ ...f, grupo: v }))}>

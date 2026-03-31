@@ -264,7 +264,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
                         </Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {/* TE */}
                       <div className="rounded-md bg-background/60 border border-border/40 p-2.5 space-y-1">
                         <span className={`text-[10px] font-bold uppercase tracking-wider ${colors.accent}`}>TE (R$/kWh)</span>
@@ -321,7 +321,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Subgrupo *</Label>
                 <Select value={form.subgrupo} onValueChange={v => setForm(f => ({ ...f, subgrupo: v }))}>
@@ -347,7 +347,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
 
             {/* BT fields */}
             {!selectedIsGrupoA && form.subgrupo && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Tarifa Energia (R$/kWh)</Label>
                   <Input type="number" step="0.0001" className="h-8 text-xs" value={form.tarifa_energia} onChange={e => setForm(f => ({ ...f, tarifa_energia: e.target.value }))} />
@@ -362,7 +362,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
             {/* MT fields */}
             {selectedIsGrupoA && (
               <>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">TE Ponta (R$/kWh)</Label>
                     <Input type="number" step="0.0001" className="h-8 text-xs" value={form.te_ponta} onChange={e => setForm(f => ({ ...f, te_ponta: e.target.value }))} />
@@ -372,7 +372,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
                     <Input type="number" step="0.0001" className="h-8 text-xs" value={form.te_fora_ponta} onChange={e => setForm(f => ({ ...f, te_fora_ponta: e.target.value }))} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">TUSD Ponta (R$/kWh)</Label>
                     <Input type="number" step="0.0001" className="h-8 text-xs" value={form.tusd_ponta} onChange={e => setForm(f => ({ ...f, tusd_ponta: e.target.value }))} />
@@ -382,7 +382,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
                     <Input type="number" step="0.0001" className="h-8 text-xs" value={form.tusd_fora_ponta} onChange={e => setForm(f => ({ ...f, tusd_fora_ponta: e.target.value }))} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Demanda Consumo (R$/kW)</Label>
                     <Input type="number" step="0.01" className="h-8 text-xs" value={form.demanda_consumo_rs} onChange={e => setForm(f => ({ ...f, demanda_consumo_rs: e.target.value }))} />

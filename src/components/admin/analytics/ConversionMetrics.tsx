@@ -108,7 +108,7 @@ export default function ConversionMetrics({ leads, statuses }: ConversionMetrics
   return (
     <div className="space-y-4">
       {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <Card className="p-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">

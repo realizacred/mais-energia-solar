@@ -41,7 +41,7 @@ export function VendorBalanceCard({ balances }: VendorBalanceCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Summary */}
-        <div className="grid grid-cols-2 gap-4 pb-3 border-b">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-3 border-b">
           <div className="text-center">
             <p className="text-xs text-muted-foreground">Total Créditos</p>
             <p className="text-lg font-bold text-success">{formatCurrency(totalCredits)}</p>

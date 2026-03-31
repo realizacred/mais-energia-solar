@@ -317,7 +317,7 @@ export function WaFollowupWidget({ onOpenConversation, vendorUserId }: WaFollowu
                 <Separator />
 
                 {/* Status & Metadata */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Status</p>
                     <Badge variant="outline" className="text-[10px]">{detailItem.status}</Badge>

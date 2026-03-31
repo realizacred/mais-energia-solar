@@ -39,7 +39,7 @@ export function UCEnergySummary({ ucId }: Props) {
           <Skeleton className="h-5 w-40" />
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-16 w-full rounded-lg" />
             ))}

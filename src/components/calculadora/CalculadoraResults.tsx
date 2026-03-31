@@ -234,7 +234,7 @@ export function CalculadoraResults({
       <BeforeAfterComparison contaAtual={contaAtual} contaComSolar={contaComSolar} economiaMensal={economiaMensal} />
 
       {/* Stats grid */}
-      <div className="grid grid-cols-1 min-[400px]:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {stats.map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.05 }}>
             <Card className="h-full">
@@ -276,7 +276,7 @@ function BeforeAfterComparison({ contaAtual, contaComSolar, economiaMensal }: { 
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
       <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div className="grid grid-cols-2 divide-x divide-border">
+          <div className="grid grid-cols-1 sm:grid-cols-2 divide-x divide-border">
             <div className="p-4 text-center bg-destructive/5">
               <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wider">Sem Solar</p>
               <AnimatedCurrency value={contaAtual} className="text-2xl font-bold text-destructive" />

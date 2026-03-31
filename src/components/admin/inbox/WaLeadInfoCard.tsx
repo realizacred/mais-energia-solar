@@ -91,7 +91,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
             </div>
 
             {/* Contact */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/40">
                 <Phone className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                 <div>
@@ -116,7 +116,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
                 <Zap className="h-3.5 w-3.5 text-primary" />
                 <p className="text-xs font-semibold text-primary">Dados de Consumo</p>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div>
                   <p className="text-[10px] text-muted-foreground">Média</p>
                   <p className="text-sm font-bold">{lead.media_consumo} <span className="text-[10px] font-normal text-muted-foreground">kWh</span></p>

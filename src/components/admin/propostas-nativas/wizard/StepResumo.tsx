@@ -336,7 +336,7 @@ export function StepResumo({
           <Card className="border-border/40 shadow-sm">
             <CardContent className="p-4">
               <SectionHeader icon={DollarSign} label="Financeiro" />
-              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-sm">
                 <span className="text-muted-foreground">Valor do Kit</span>
                 <span className="font-medium text-foreground text-right">{formatBRL(custoKit)}</span>
                 {custoAdicionais > 0 && (

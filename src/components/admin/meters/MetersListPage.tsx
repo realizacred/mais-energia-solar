@@ -157,7 +157,7 @@ export default function MetersListPage() {
                   )}
 
                   {/* Secondary metrics */}
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center">
                     <div>
                       <p className="text-xs font-mono text-foreground">{voltage != null ? `${voltage.toFixed(1)}V` : "—"}</p>
                       <p className="text-[10px] text-muted-foreground">Tensão</p>

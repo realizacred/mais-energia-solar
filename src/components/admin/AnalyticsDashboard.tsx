@@ -258,7 +258,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
                   <p className="text-sm text-muted-foreground mt-1">Taxa de Conversão Geral</p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
                   <div className="text-center">
                     <p className="text-2xl font-bold">{summaryStats.total}</p>
                     <p className="text-xs text-muted-foreground">Leads Totais</p>

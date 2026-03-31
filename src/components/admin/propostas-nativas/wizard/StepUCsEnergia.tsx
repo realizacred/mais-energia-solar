@@ -379,7 +379,7 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
           {isGrupoA ? (
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Consumo Ponta (HP) e Fora Ponta (HFP)</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-muted-foreground">HP *</Label>
@@ -471,7 +471,7 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
             </div>
 
             {/* Tarifa Ponta / Fora Ponta */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Tarifa Ponta</Label>
                 <div className="space-y-0.5 text-xs">
@@ -570,7 +570,7 @@ function UCConfigModal({ uc, onUpdate, onClose }: {
               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">kWh</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Encargos Atual</Label>
               <div className="relative">
@@ -592,7 +592,7 @@ function UCConfigModal({ uc, onUpdate, onClose }: {
             <>
               <Separator />
               <Label className="text-xs font-semibold">Tarifas detalhadas</Label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label className="text-[10px] text-muted-foreground font-semibold">Ponta</Label>
                   <InputField label="TE" value={uc.tarifa_te_p} onChange={v => onUpdate("tarifa_te_p", v)} prefix="R$" />
@@ -614,7 +614,7 @@ function UCConfigModal({ uc, onUpdate, onClose }: {
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <InputField label="Demanda Consumo (R$)" value={uc.demanda_consumo_rs} onChange={v => onUpdate("demanda_consumo_rs", v)} prefix="R$" />
                 <InputField label="Demanda Geração (R$)" value={uc.demanda_geracao_rs} onChange={v => onUpdate("demanda_geracao_rs", v)} prefix="R$" />
               </div>
@@ -625,7 +625,7 @@ function UCConfigModal({ uc, onUpdate, onClose }: {
           {uc.grupo_tarifario === "B" && (
             <>
               <Separator />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <InputField label="Tarifa (R$/kWh)" value={uc.tarifa_distribuidora} onChange={v => onUpdate("tarifa_distribuidora", v)} prefix="R$" step={0.00001} />
                 <InputField label="Fio B (R$/kWh)" value={uc.tarifa_fio_b} onChange={v => onUpdate("tarifa_fio_b", v)} prefix="R$" step={0.00001} />
               </div>

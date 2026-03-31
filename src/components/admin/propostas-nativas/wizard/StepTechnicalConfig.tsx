@@ -102,7 +102,7 @@ export function StepTechnicalConfig({ ucs, onUcsChange, grupo, onGrupoChange, po
 
       {/* Derived Metrics Strip */}
       {potenciaKwp > 0 && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           <div className="p-2.5 rounded-md border border-border/50 bg-card">
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Geração Estimada</p>
             <p className="text-base font-bold font-mono text-primary">{formatKwhValue(estimatedGeneration)} <span className="text-[10px] font-normal">kWh/mês</span></p>
@@ -225,7 +225,7 @@ export function StepTechnicalConfig({ ucs, onUcsChange, grupo, onGrupoChange, po
             <Input type="number" value={uc.taxa_desempenho || ""} onChange={e => updateUC("taxa_desempenho", Number(e.target.value))} className="h-8 text-xs font-mono" />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div className="space-y-1">
             <Label className="text-[10px]">Distância (km)</Label>
             <Input type="number" value={uc.distancia || ""} onChange={e => updateUC("distancia", Number(e.target.value))} className="h-8 text-xs font-mono" />

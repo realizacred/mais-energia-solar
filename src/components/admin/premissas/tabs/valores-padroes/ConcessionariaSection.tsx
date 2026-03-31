@@ -491,7 +491,7 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
                                       <Badge variant="outline" className="text-[9px] border-info/30 text-info">
                                         {mt.subgrupo} {mt.modalidade ? `(${mt.modalidade})` : ''}
                                       </Badge>
-                                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 ml-1">
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 ml-1">
                                         {mt.te_ponta != null && (
                                           <span className="text-[10px] text-muted-foreground font-mono">TE P: {mt.te_ponta.toFixed(5)}</span>
                                         )}

@@ -191,7 +191,7 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
                       </Button>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
                     <Input type="number" min={1} value={item.quantidade || ""} onChange={e => updateItem(item.id, "quantidade", Number(e.target.value))} placeholder="Qtd" className="h-7 text-xs" />
                     <Input type="number" min={0} step={0.01} value={item.preco_unitario || ""} onChange={e => updateItem(item.id, "preco_unitario", Number(e.target.value))} placeholder="R$ unit." className={cn("h-7 text-xs", item.preco_unitario <= 0 && "border-warning text-warning")} />
                     <Select value={item.categoria} onValueChange={v => updateItem(item.id, "categoria", v)}>

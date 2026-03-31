@@ -434,7 +434,7 @@ function PlantOperationalCard({ plant, onClick }: { plant: PlantWithHealth; onCl
         </div>
 
         {/* Stats: clean grid */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           <StatCell label="Potência" value={powerDisplay} subValue={realtimePowerDisplay} />
           <StatCell label={isFallback ? "Ontem" : "Hoje"} value={energyDisplay} />
           <StatCell label="Atualização" value={lastSeen} />

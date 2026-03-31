@@ -735,7 +735,7 @@ export default function PerformanceDashboard() {
                 <CardDescription>Métricas de velocidade e eficiência</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="text-center p-4 rounded-xl bg-muted/30 border border-border/40">
                     <p className="text-3xl font-bold font-mono text-foreground">{kpis.avgCycle}</p>
                     <p className="text-xs text-muted-foreground mt-1">Ciclo médio (dias)</p>

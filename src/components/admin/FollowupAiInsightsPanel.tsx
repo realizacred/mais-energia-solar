@@ -82,7 +82,7 @@ export function FollowupAiInsightsPanel({ conversationId, clienteNome }: Props) 
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <Button
           variant="outline"
           size="sm"

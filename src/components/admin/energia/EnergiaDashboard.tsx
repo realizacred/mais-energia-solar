@@ -421,7 +421,7 @@ export function EnergiaDashboard() {
                     <p className="font-semibold text-foreground">{g.nome}</p>
                     <Badge variant="outline" className="text-xs">{g.status || "ativo"}</Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <div>
                       <p className="text-muted-foreground">Beneficiárias</p>
                       <p className="font-semibold text-foreground">{g.beneficiaryCount}</p>

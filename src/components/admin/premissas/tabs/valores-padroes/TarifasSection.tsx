@@ -357,7 +357,7 @@ function SombreamentoSection({ premises, onChange }: { premises: TenantPremises;
             <span className="text-xs font-bold">{level.label}</span>
             <span className="text-[10px] text-muted-foreground">— {level.desc}</span>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <NumField label="Tradicional (String)" suffix="%" value={sombConfig[level.key].tradicional} tooltip="Perda no desempenho para inversor string" onChange={(v) => setSombra(level.key, "tradicional", v)} />
             <NumField label="Microinversor" suffix="%" value={sombConfig[level.key].microinversor} tooltip="Perda no desempenho para microinversor" onChange={(v) => setSombra(level.key, "microinversor", v)} />
             <NumField label="Otimizador" suffix="%" value={sombConfig[level.key].otimizador} tooltip="Perda no desempenho para otimizador" onChange={(v) => setSombra(level.key, "otimizador", v)} />
