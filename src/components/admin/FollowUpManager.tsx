@@ -427,8 +427,8 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
           </div>
           <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Spinner size="sm" className="mr-2" />}Confirmar
+            <Button onClick={handleSave} disabled={registrarContato.isPending}>
+              {registrarContato.isPending && <Spinner size="sm" className="mr-2" />}Confirmar
             </Button>
           </div>
         </DialogContent>
