@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatBRL } from "@/lib/formatters";
 import { CreditCard, Pencil, Plus, Trash2, Banknote, Building2, FileText, Smartphone, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +44,7 @@ const FORMA_ICONS: Record<FormaPagamento, React.ReactNode> = {
 function getJurosLabel(tipo: JurosTipo, valor: number): string {
   if (tipo === "sem_juros") return "Sem juros";
   if (tipo === "percentual") return `${valor}% a.m.`;
-  if (tipo === "valor_fixo") return `R$ ${valor.toFixed(2)} fixo`;
+  if (tipo === "valor_fixo") return `${formatBRL(valor)} fixo`;
   return "—";
 }
 
