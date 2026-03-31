@@ -485,6 +485,23 @@ async function buildSyntheticRowsFromCatalog(kitId: string): Promise<KitItemRow[
     });
   }
 
+  // Add estrutura row if kit has estrutura info
+  const estruturaDesc = kit.estrutura || extData?.estrutura || null;
+  if (estruturaDesc) {
+    rows.push({
+      id: crypto.randomUUID(),
+      descricao: String(estruturaDesc),
+      fabricante: "",
+      modelo: String(estruturaDesc),
+      potencia_w: 0,
+      quantidade: 1,
+      preco_unitario: 0,
+      categoria: "estrutura",
+      avulso: false,
+      produto_ref: kit.id,
+    });
+  }
+
   // Fallback extremo: mantém compatibilidade caso os campos técnicos não existam
   if (rows.length === 0) {
     rows.push({
