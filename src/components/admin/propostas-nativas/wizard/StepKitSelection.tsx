@@ -1435,12 +1435,12 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-3xl max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden">
-        <DialogHeader>
+        <DialogHeader className="shrink-0">
           <DialogTitle className="text-base">Premissas</DialogTitle>
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="flex gap-6 border-b border-border">
+        <div className="flex gap-6 border-b border-border shrink-0">
           <button
             onClick={() => onTabChange("fator")}
             className={cn(
