@@ -15,6 +15,7 @@ export function resolveEntrada(
   const ucs = safeArr(snap.ucs);
   const uc1 = ucs[0] ? safeObj(ucs[0]) : {};
   const tecnico = safeObj(snap.tecnico);
+  const pd = safeObj(snap.preDimensionamento);
   const lead = ext?.lead ?? {};
   const cliente = ext?.cliente ?? {};
 
