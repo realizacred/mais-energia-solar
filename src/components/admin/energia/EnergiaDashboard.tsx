@@ -3,6 +3,7 @@
  * §26-S1 header, §27-S1 KPI cards, §5-S1 chart, §4-S1 table.
  */
 import { useMemo, useState } from "react";
+import { formatBRLInteger } from "@/lib/formatters";
 import { useNavigate } from "react-router-dom";
 import { Zap, Building2, Wifi, AlertTriangle, Sun, TrendingDown, DollarSign, Battery, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
