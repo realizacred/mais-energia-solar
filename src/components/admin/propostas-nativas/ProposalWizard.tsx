@@ -1119,6 +1119,14 @@ export function ProposalWizard() {
 
   const enforcement = useProposalEnforcement(resolverContext);
 
+  // Feed resolved proposal variables to DevTools panel
+  const { setActiveProposalVars, enabled: devEnabled } = useDevToolsContext();
+  useEffect(() => {
+    if (devEnabled && enforcement.resolverResult?.variables) {
+      setActiveProposalVars(enforcement.resolverResult.variables);
+    }
+  }, [devEnabled, enforcement.resolverResult?.variables, setActiveProposalVars]);
+
   // (geracaoMensalEstimada moved before save callbacks)
 
   // Estimated area (m²) from module items — ~2m² per module panel
