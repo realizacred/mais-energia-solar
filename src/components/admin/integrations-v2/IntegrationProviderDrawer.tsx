@@ -187,7 +187,7 @@ export function IntegrationProviderDrawer({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-base font-bold text-foreground">
+              <DialogTitle className="text-base font-semibold text-foreground">
                 {provider.label}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5 line-clamp-2">

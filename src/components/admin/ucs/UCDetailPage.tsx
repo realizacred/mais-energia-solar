@@ -328,7 +328,7 @@ export default function UCDetailPage() {
               {/* Title row */}
               <div className="flex items-start gap-3 flex-wrap mb-3">
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-lg font-bold text-foreground truncate">{uc.nome}</h1>
+                  <h1 className="text-xl font-bold text-foreground truncate">{uc.nome}</h1>
                     <p className="text-sm text-muted-foreground font-mono mt-0.5">{uc.codigo_uc}</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       Acompanhe energia, faturas e relações de GD desta unidade consumidora.

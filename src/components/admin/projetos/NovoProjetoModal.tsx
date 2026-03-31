@@ -296,7 +296,7 @@ export function NovoProjetoModal({
             <FolderPlus className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1">
-            <DialogTitle className="text-base font-bold text-foreground">Novo Projeto</DialogTitle>
+            <DialogTitle className="text-base font-semibold text-foreground">Novo Projeto</DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5">Preencha os dados do projeto e do cliente</p>
           </div>
         </DialogHeader>

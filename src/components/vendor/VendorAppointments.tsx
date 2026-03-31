@@ -93,7 +93,7 @@ export function VendorAppointments() {
             <CalendarCheck className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-foreground">Meus Compromissos</h3>
+            <h3 className="text-base font-semibold text-foreground">Meus Compromissos</h3>
             <p className="text-xs text-muted-foreground">
               {todayAppts.length} hoje · {tomorrowAppts.length} amanhã
             </p>

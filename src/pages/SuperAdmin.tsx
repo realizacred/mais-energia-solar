@@ -48,7 +48,7 @@ export default function SuperAdmin() {
         <Card className="w-full max-w-md border-destructive/20">
           <CardContent className="flex flex-col items-center gap-4 py-8">
             <ShieldAlert className="w-10 h-10 text-destructive" />
-            <h2 className="text-xl font-semibold">Acesso Restrito</h2>
+            <h2 className="text-xl font-bold">Acesso Restrito</h2>
             <p className="text-sm text-muted-foreground text-center">
               Apenas Super Admins podem acessar esta área.
             </p>
@@ -64,7 +64,7 @@ export default function SuperAdmin() {
       <header className="sticky top-0 z-50 bg-background border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Building2 className="w-6 h-6 text-primary" />
-          <h1 className="text-lg font-bold font-display">Super Admin</h1>
+          <h1 className="text-xl font-bold font-display">Super Admin</h1>
           <Badge variant="outline" className="text-xs">Platform Governance</Badge>
         </div>
         <div className="flex items-center gap-2">

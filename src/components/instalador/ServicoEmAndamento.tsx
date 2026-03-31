@@ -475,7 +475,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
                   <div className="mx-auto w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mb-4">
                     <Wrench className="h-8 w-8 text-secondary" />
                   </div>
-                  <CardTitle className="text-xl font-semibold">{tipoLabels[servico.tipo]}</CardTitle>
+                  <CardTitle className="text-xl font-bold">{tipoLabels[servico.tipo]}</CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">Pronto para iniciar o atendimento</p>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-6">

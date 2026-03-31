@@ -64,7 +64,7 @@ export default function VendorOrcamentosView({ portal }: Props) {
             <FileText className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Orçamentos</h1>
+            <h1 className="text-xl font-bold text-foreground">Orçamentos</h1>
             <p className="text-sm text-muted-foreground">Propostas e simulações enviadas</p>
           </div>
         </div>

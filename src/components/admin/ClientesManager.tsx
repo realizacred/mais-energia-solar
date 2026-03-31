@@ -511,7 +511,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               <Users className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
-              <DialogTitle className="text-base font-bold text-foreground">
+              <DialogTitle className="text-base font-semibold text-foreground">
                 {editingCliente ? "Editar Cliente" : "Novo Cliente"}
               </DialogTitle>
               <p className="text-xs text-muted-foreground mt-0.5">Cadastre ou edite um cliente</p>
