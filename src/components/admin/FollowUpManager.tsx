@@ -24,20 +24,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
 import { PageHeader } from "@/components/ui-kit";
 import { differenceInDays, parseISO } from "date-fns";
 
-interface FollowUpItem {
-  id: string;
-  code: string | null;
-  nome: string;
-  telefone: string;
-  cidade: string;
-  estado: string;
-  consultor: string | null;
-  ultimo_contato: string | null;
-  proxima_acao: string | null;
-  data_proxima_acao: string | null;
-  created_at: string;
-  type: 'lead' | 'orcamento';
-}
+// FollowUpItem imported from hook
 
 interface VendorStats {
   nome: string;
