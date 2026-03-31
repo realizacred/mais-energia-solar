@@ -852,9 +852,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                           {/* Badges */}
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {availBadge}
-                            {kit.source === "edeltec" && (
+                            {!!kit.fornecedor_id && kit.source && (
                               <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
-                                Edeltec
+                                {kit.source.charAt(0).toUpperCase() + kit.source.slice(1)}
                               </Badge>
                             )}
                             {kit.preco_por_kwp != null && kit.preco_por_kwp > 0 && (
