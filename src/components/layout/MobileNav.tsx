@@ -79,7 +79,7 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
+          <nav className="flex-1 min-h-0 px-3 py-5 space-y-0.5 overflow-y-auto">
             {isHomePage && navLinks.map((link) => (
               <button
                 key={link.label}
