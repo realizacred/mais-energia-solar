@@ -393,10 +393,10 @@ async function persistProposalAtomic(
     const newVersionCreated = result.new_version_created === true;
 
     // console.log("[persist] RPC resultado:", {
-      versao_id: finalVersaoId,
-      new_version_created: newVersionCreated,
-      reason: result.reason,
-    });
+    //   versao_id: finalVersaoId,
+    //   new_version_created: newVersionCreated,
+    //   reason: result.reason,
+    // });
 
     // Sync deal value + kwp so kanban projection reflects proposal data
     const syncDealId = params.dealId;

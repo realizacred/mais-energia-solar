@@ -126,7 +126,7 @@ function extractCurrentValues(rawPayload: any): Record<string, any> {
   }
 
   // console.log("[MeterCommandPanel] extractCurrentValues found", Object.keys(map).length, "DPs, sample:", 
-    Object.fromEntries(Object.entries(map).slice(0, 5)));
+  //   Object.fromEntries(Object.entries(map).slice(0, 5)));
   return map;
 }
 

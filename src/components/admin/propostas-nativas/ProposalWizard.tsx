@@ -1861,11 +1861,11 @@ export function ProposalWizard() {
           if (artifactResult.audit) {
             setGenerationAuditReport(artifactResult.audit as GenerationAuditReport);
             // console.log("[ProposalWizard] Using backend audit:", {
-              health: artifactResult.audit.health,
-              score: artifactResult.audit.healthScore,
-              errors: artifactResult.audit.errorCount,
-              warnings: artifactResult.audit.warningCount,
-            });
+            //   health: artifactResult.audit.health,
+            //   score: artifactResult.audit.healthScore,
+            //   errors: artifactResult.audit.errorCount,
+            //   warnings: artifactResult.audit.warningCount,
+            // });
           } else {
             // Fallback: build audit locally if backend didn't provide it
             const customVarResults = artifactResult.custom_var_results ?? artifactResult.variaveis_custom ?? [];

@@ -426,10 +426,10 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
     const currentlyOnline = navigator.onLine && isOnlineRef.current;
     
     // console.log("[saveLead] Starting save, online:", {
-      navigatorOnLine: navigator.onLine,
-      isOnlineRef: isOnlineRef.current,
-      currentlyOnline,
-    });
+    //   navigatorOnLine: navigator.onLine,
+    //   isOnlineRef: isOnlineRef.current,
+    //   currentlyOnline,
+    // });
     
     // If truly offline, save locally
     if (!currentlyOnline) {
