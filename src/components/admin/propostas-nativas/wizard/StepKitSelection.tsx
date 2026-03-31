@@ -743,7 +743,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                               {kit.estrutura && <span>{kit.estrutura}</span>}
                             </div>
                             <div className="flex items-center gap-2">
-                              {kit.source === "edeltec" && (
+                              {!!kit.fornecedor_id && (
                                 kit.disponivel ? (
                                   <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">Em estoque</Badge>
                                 ) : kit.permite_compra_sem_estoque ? (
