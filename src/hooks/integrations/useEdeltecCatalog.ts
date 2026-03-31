@@ -51,14 +51,14 @@ export interface EdeltecCatalogFilters {
 const STALE_TIME = 1000 * 60 * 5; // 5 min
 const QUERY_KEY = "edeltec-catalog" as const;
 
-export function useEdeltecCatalog(filters?: EdeltecCatalogFilters) {
+export function useEdeltecCatalog(fornecedorId: string | null, filters?: EdeltecCatalogFilters) {
   return useQuery({
-    queryKey: [QUERY_KEY, filters],
+    queryKey: [QUERY_KEY, fornecedorId, filters],
     queryFn: async () => {
       let query = (supabase as any)
         .from("solar_kit_catalog")
-        .select("id, name, description, estimated_kwp, fixed_price, source, external_id, external_code, fabricante, marca, tipo, potencia_inversor, potencia_modulo, fase, tensao, estrutura, preco_consumidor, valor_avulso, disponivel, permite_compra_sem_estoque, previsao, product_kind, is_generator, is_available_now, preco_por_kwp, imagem_principal_url, thumbnail_url, external_data, last_synced_at, status")
-        .eq("source", "edeltec")
+        .select("id, name, description, estimated_kwp, fixed_price, source, external_id, external_code, fabricante, marca, tipo, potencia_inversor, potencia_modulo, fase, tensao, estrutura, preco_consumidor, valor_avulso, disponivel, permite_compra_sem_estoque, previsao, product_kind, is_generator, is_available_now, preco_por_kwp, imagem_principal_url, thumbnail_url, external_data, last_synced_at, status, fornecedor_id")
+        .eq("fornecedor_id", fornecedorId)
         .order("estimated_kwp", { ascending: true });
 
       if (filters?.onlyGenerators === true) {
