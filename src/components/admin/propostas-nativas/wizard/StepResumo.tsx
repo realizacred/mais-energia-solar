@@ -160,49 +160,79 @@ export function StepResumo({
         </Card>
       </div>
 
-      {/* Client + Location side by side */}
+      {/* Client + Location side by side — collapsible, closed by default */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Client — FIRST */}
-        <Card className="border-border/40 shadow-sm">
-          <CardContent className="p-4">
-            <SectionHeader icon={User} label="Cliente" />
-            <div className="grid grid-cols-[auto_1fr] gap-y-2.5 gap-x-6 text-sm">
-              <span className="text-muted-foreground">Nome</span>
-              <span className="font-medium text-foreground">{clienteNome || leadNome || "—"}</span>
-              <span className="text-muted-foreground">Empresa</span>
-              <span className="font-medium text-foreground">{clienteEmpresa || "—"}</span>
-              <span className="text-muted-foreground">Telefone</span>
-              <span className="font-medium text-foreground">{clienteCelular ? formatPhoneBR(clienteCelular) : "—"}</span>
-              <span className="text-muted-foreground">E-mail</span>
-              <span className="font-medium text-foreground">{clienteEmail || "—"}</span>
-              <span className="text-muted-foreground">Grupo</span>
-              <span className="font-medium text-foreground">{grupo || "—"}</span>
-              <span className="text-muted-foreground">UCs</span>
-              <span className="font-medium text-foreground">{numUcs}</span>
-              <span className="text-muted-foreground">Consumo</span>
-              <span className="font-medium text-foreground">{consumoTotal > 0 ? `${consumoTotal.toLocaleString("pt-BR")} kWh` : "—"}</span>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Client */}
+        <Collapsible defaultOpen={false} className="group">
+          <Card className="border-border/40 shadow-sm">
+            <CardContent className="p-4">
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                      <User className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <h3 className="text-sm font-bold text-foreground">Cliente</h3>
+                    <span className="text-xs text-muted-foreground ml-1 truncate">{clienteNome || leadNome || "—"}</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="grid grid-cols-[auto_1fr] gap-y-2.5 gap-x-6 text-sm mt-3">
+                  <span className="text-muted-foreground">Nome</span>
+                  <span className="font-medium text-foreground">{clienteNome || leadNome || "—"}</span>
+                  <span className="text-muted-foreground">Empresa</span>
+                  <span className="font-medium text-foreground">{clienteEmpresa || "—"}</span>
+                  <span className="text-muted-foreground">Telefone</span>
+                  <span className="font-medium text-foreground">{clienteCelular ? formatPhoneBR(clienteCelular) : "—"}</span>
+                  <span className="text-muted-foreground">E-mail</span>
+                  <span className="font-medium text-foreground">{clienteEmail || "—"}</span>
+                  <span className="text-muted-foreground">Grupo</span>
+                  <span className="font-medium text-foreground">{grupo || "—"}</span>
+                  <span className="text-muted-foreground">UCs</span>
+                  <span className="font-medium text-foreground">{numUcs}</span>
+                  <span className="text-muted-foreground">Consumo</span>
+                  <span className="font-medium text-foreground">{consumoTotal > 0 ? `${consumoTotal.toLocaleString("pt-BR")} kWh` : "—"}</span>
+                </div>
+              </CollapsibleContent>
+            </CardContent>
+          </Card>
+        </Collapsible>
 
-        {/* Location — SECOND */}
-        <Card className="border-border/40 shadow-sm">
-          <CardContent className="p-4">
-            <SectionHeader icon={MapPin} label="Localização" />
-            <div className="grid grid-cols-[auto_1fr] gap-y-2.5 gap-x-6 text-sm">
-              <span className="text-muted-foreground">Estado</span>
-              <span className="font-medium text-foreground">{estado || "—"}</span>
-              <span className="text-muted-foreground">Cidade</span>
-              <span className="font-medium text-foreground">{cidade || "—"}</span>
-              <span className="text-muted-foreground">Telhado</span>
-              <span className="font-medium text-foreground">{tipoTelhado || "—"}</span>
-              <span className="text-muted-foreground">Distribuidora</span>
-              <span className="font-medium text-foreground">{distribuidoraNome || "—"}</span>
-              <span className="text-muted-foreground">Irradiação</span>
-              <span className="font-medium text-foreground">{(Number(irradiacao) || 0) > 0 ? `${(Number(irradiacao) || 0).toFixed(2)} kWh/m²/dia` : "—"}</span>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Location */}
+        <Collapsible defaultOpen={false} className="group">
+          <Card className="border-border/40 shadow-sm">
+            <CardContent className="p-4">
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                      <MapPin className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <h3 className="text-sm font-bold text-foreground">Localização</h3>
+                    <span className="text-xs text-muted-foreground ml-1 truncate">{cidade && estado ? `${cidade} - ${estado}` : "—"}</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="grid grid-cols-[auto_1fr] gap-y-2.5 gap-x-6 text-sm mt-3">
+                  <span className="text-muted-foreground">Estado</span>
+                  <span className="font-medium text-foreground">{estado || "—"}</span>
+                  <span className="text-muted-foreground">Cidade</span>
+                  <span className="font-medium text-foreground">{cidade || "—"}</span>
+                  <span className="text-muted-foreground">Telhado</span>
+                  <span className="font-medium text-foreground">{tipoTelhado || "—"}</span>
+                  <span className="text-muted-foreground">Distribuidora</span>
+                  <span className="font-medium text-foreground">{distribuidoraNome || "—"}</span>
+                  <span className="text-muted-foreground">Irradiação</span>
+                  <span className="font-medium text-foreground">{(Number(irradiacao) || 0) > 0 ? `${(Number(irradiacao) || 0).toFixed(2)} kWh/m²/dia` : "—"}</span>
+                </div>
+              </CollapsibleContent>
+            </CardContent>
+          </Card>
+        </Collapsible>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
