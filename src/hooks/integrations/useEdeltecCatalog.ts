@@ -135,5 +135,6 @@ export function useEdeltecCatalogStats(fornecedorId: string | null) {
       };
     },
     staleTime: STALE_TIME,
+    enabled: !!fornecedorId,
   });
 }
