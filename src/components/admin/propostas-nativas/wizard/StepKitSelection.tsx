@@ -1184,7 +1184,7 @@ function ManualKitCard({ entry, viewMode, isSelected, onSelect, onEdit, onDelete
   return (
     <div
       className={cn(
-        "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between min-h-[220px] cursor-pointer relative",
+        "rounded-xl border-2 bg-card p-4 hover:shadow-md transition-all flex flex-col justify-between h-auto cursor-pointer relative",
         isSelected
           ? "border-primary shadow-md ring-2 ring-primary/20"
           : "border-border/40 hover:border-primary/30"
