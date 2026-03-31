@@ -63,12 +63,12 @@ export default function EdeltecIntegrationPage() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("integrations_api_config")
-        .select("id")
+        .select("id, fornecedor_id")
         .eq("tenant_id", tenantId)
         .eq("provider", "edeltec")
         .eq("ativo", true)
         .maybeSingle();
-      return data as { id: string } | null;
+      return data as { id: string; fornecedor_id: string | null } | null;
     },
     staleTime: 1000 * 60 * 5,
     enabled: !!tenantId,
