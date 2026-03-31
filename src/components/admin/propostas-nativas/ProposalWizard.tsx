@@ -795,14 +795,14 @@ export function ProposalWizard() {
 
         // Diagnostic: log snapshot data for debugging restore issues
         // console.log("[ProposalWizard] Snapshot restore:", {
-          ucs: s.ucs?.length ?? 0,
-          ucsConsumo: s.ucs?.map((u: any) => ({ nome: u.nome, consumo_mensal: u.consumo_mensal })),
-          itens: s.itens?.length ?? 0,
-          itensDetail: s.itens?.map((i: any) => ({ descricao: i.descricao, qty: i.quantidade, preco: i.preco_unitario })),
-          manualKits: s.manualKits?.length ?? 0,
-          hasSelectedLead: !!s.selectedLead,
-          potenciaKwp: s.potenciaKwp,
-        });
+        //   ucs: s.ucs?.length ?? 0,
+        //   ucsConsumo: s.ucs?.map((u: any) => ({ nome: u.nome, consumo_mensal: u.consumo_mensal })),
+        //   itens: s.itens?.length ?? 0,
+        //   itensDetail: s.itens?.map((i: any) => ({ descricao: i.descricao, qty: i.quantidade, preco: i.preco_unitario })),
+        //   manualKits: s.manualKits?.length ?? 0,
+        //   hasSelectedLead: !!s.selectedLead,
+        //   potenciaKwp: s.potenciaKwp,
+        // });
         restoreFromSnapshot(s);
 
         // CRITICAL: Set IDs BEFORE releasing isRestoring
