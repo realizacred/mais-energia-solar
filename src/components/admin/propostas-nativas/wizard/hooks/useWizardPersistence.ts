@@ -350,10 +350,10 @@ async function persistProposalAtomic(
 
     // ── Backend-driven versioning via RPC ──
     // console.log("[persist] chamando RPC proposal_create_version", {
-      proposta_id: effectivePropostaId,
-      versao_id: effectiveVersaoId,
-      intent,
-    });
+    //   proposta_id: effectivePropostaId,
+    //   versao_id: effectiveVersaoId,
+    //   intent,
+    // });
 
     const { data: rpcResult, error: rpcErr } = await supabase.rpc(
       "proposal_create_version" as any,
