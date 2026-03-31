@@ -343,7 +343,7 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
           <div className="space-y-4">
             {!parsed ? (
               <div className="space-y-4">
