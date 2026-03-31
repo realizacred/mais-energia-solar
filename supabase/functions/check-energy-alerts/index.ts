@@ -7,6 +7,7 @@
  * 4. GD allocation mismatch (≠100%)
  *
  * Deduplication: only creates alert if no unresolved alert of same type+entity exists.
+ * AP-20: All queries use batch patterns — no N+1 loops.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -33,6 +34,11 @@ interface AlertPayload {
   context_json?: Record<string, unknown>;
 }
 
+/** Build a dedup key for an alert to match against existing unresolved alerts */
+function alertDedupKey(alertType: string, entityId: string | null | undefined, entityField: string): string {
+  return `${alertType}::${entityField}::${entityId || ""}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -45,49 +51,45 @@ Deno.serve(async (req) => {
 
     const stats = { meters_offline: 0, missing_invoices: 0, no_generation: 0, allocation_mismatch: 0, skipped_dedup: 0, errors: 0 };
 
-    // ─── Helper: deduplicated alert insert ───
-    async function createAlertIfNew(payload: AlertPayload): Promise<boolean> {
-      let q = supabase
-        .from("energy_alerts")
-        .select("id")
-        .eq("alert_type", payload.alert_type)
-        .is("resolved_at", null);
+    // ─── Pre-fetch ALL unresolved alerts for deduplication (1 query total) ───
+    const { data: unresolvedAlerts } = await supabase
+      .from("energy_alerts")
+      .select("id, alert_type, unit_id, plant_id, gd_group_id, tenant_id")
+      .is("resolved_at", null);
 
-      if (payload.unit_id) q = q.eq("unit_id", payload.unit_id);
-      if (payload.plant_id) q = q.eq("plant_id", payload.plant_id);
-      if (payload.gd_group_id) q = q.eq("gd_group_id", payload.gd_group_id);
-      if (!payload.unit_id && !payload.plant_id && !payload.gd_group_id) {
-        q = q.eq("tenant_id", payload.tenant_id);
+    const existingAlertKeys = new Set<string>();
+    for (const a of unresolvedAlerts || []) {
+      // Index by all entity fields so we can match any combination
+      if (a.unit_id) existingAlertKeys.add(alertDedupKey(a.alert_type, a.unit_id, "unit_id"));
+      if (a.plant_id) existingAlertKeys.add(alertDedupKey(a.alert_type, a.plant_id, "plant_id"));
+      if (a.gd_group_id) existingAlertKeys.add(alertDedupKey(a.alert_type, a.gd_group_id, "gd_group_id"));
+      if (!a.unit_id && !a.plant_id && !a.gd_group_id) {
+        existingAlertKeys.add(alertDedupKey(a.alert_type, a.tenant_id, "tenant_id"));
       }
+    }
 
-      const { data: existing } = await q.limit(1);
-      if (existing && existing.length > 0) {
+    /** Check dedup in memory, return true if alert already exists */
+    function alertExists(payload: AlertPayload): boolean {
+      if (payload.unit_id) return existingAlertKeys.has(alertDedupKey(payload.alert_type, payload.unit_id, "unit_id"));
+      if (payload.plant_id) return existingAlertKeys.has(alertDedupKey(payload.alert_type, payload.plant_id, "plant_id"));
+      if (payload.gd_group_id) return existingAlertKeys.has(alertDedupKey(payload.alert_type, payload.gd_group_id, "gd_group_id"));
+      return existingAlertKeys.has(alertDedupKey(payload.alert_type, payload.tenant_id, "tenant_id"));
+    }
+
+    // Collect all new alerts, then batch insert at the end
+    const newAlerts: AlertPayload[] = [];
+
+    function enqueueAlert(payload: AlertPayload): boolean {
+      if (alertExists(payload)) {
         stats.skipped_dedup++;
         return false;
       }
-
-      const { error } = await supabase.from("energy_alerts").insert({
-        tenant_id: payload.tenant_id,
-        gd_group_id: payload.gd_group_id || null,
-        unit_id: payload.unit_id || null,
-        plant_id: payload.plant_id || null,
-        alert_type: payload.alert_type,
-        severity: payload.severity,
-        title: payload.title,
-        description: payload.description || null,
-        context_json: payload.context_json || {},
-      });
-
-      if (error) {
-        console.error(`[check-energy-alerts] Insert error for ${payload.alert_type}:`, error.message);
-        stats.errors++;
-        return false;
-      }
+      newAlerts.push(payload);
       return true;
     }
 
     // ═══════════════════════════════════════════
-    // 1. METERS OFFLINE
+    // 1. METERS OFFLINE (single query already — just remove per-item createAlertIfNew)
     // ═══════════════════════════════════════════
     console.log("[check-energy-alerts] Scanning meters offline...");
     const { data: meters } = await supabase
@@ -104,30 +106,28 @@ Deno.serve(async (req) => {
       const elapsed = now - new Date(meter.last_seen_at).getTime();
 
       if (elapsed > SIX_HOURS) {
-        const created = await createAlertIfNew({
+        if (enqueueAlert({
           tenant_id: meter.tenant_id,
           alert_type: "meter_offline",
           severity: "critical",
           title: `Medidor "${meter.name}" offline há mais de 6 horas`,
           description: `Último sinal recebido em ${new Date(meter.last_seen_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
           context_json: { meter_device_id: meter.id, hours_offline: Math.round(elapsed / 3600000) },
-        });
-        if (created) stats.meters_offline++;
+        })) stats.meters_offline++;
       } else if (elapsed > TWO_HOURS) {
-        const created = await createAlertIfNew({
+        if (enqueueAlert({
           tenant_id: meter.tenant_id,
           alert_type: "meter_offline",
           severity: "warning",
           title: `Medidor "${meter.name}" offline há mais de 2 horas`,
           description: `Último sinal recebido em ${new Date(meter.last_seen_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
           context_json: { meter_device_id: meter.id, hours_offline: Math.round(elapsed / 3600000) },
-        });
-        if (created) stats.meters_offline++;
+        })) stats.meters_offline++;
       }
     }
 
     // ═══════════════════════════════════════════
-    // 2. MISSING INVOICES
+    // 2. MISSING INVOICES — batch fetch invoices for all UCs at once
     // ═══════════════════════════════════════════
     console.log("[check-energy-alerts] Scanning missing invoices...");
     const brasiliaDate = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
@@ -142,43 +142,47 @@ Deno.serve(async (req) => {
         .eq("leitura_automatica_email", true)
         .eq("is_archived", false);
 
-      for (const uc of ucs || []) {
-        // Check current month invoice in unit_invoices
-        const { data: currentInvoice } = await supabase
+      if (ucs && ucs.length > 0) {
+        const ucIds = ucs.map((uc: any) => uc.id);
+        const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+        const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+        // BATCH: fetch all invoices for current AND previous month in one query
+        const { data: allInvoices } = await supabase
           .from("unit_invoices")
-          .select("id")
-          .eq("unit_id", uc.id)
-          .eq("reference_month", currentMonth)
-          .eq("reference_year", currentYear)
-          .limit(1);
+          .select("id, unit_id, reference_month, reference_year")
+          .in("unit_id", ucIds)
+          .in("reference_month", [currentMonth, prevMonth])
+          .in("reference_year", [currentYear, prevYear]);
 
-        if (!currentInvoice || currentInvoice.length === 0) {
-          // Check previous month for critical severity
-          const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-          const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+        // Build lookup: unit_id → Set of "month-year"
+        const invoiceMap = new Map<string, Set<string>>();
+        for (const inv of allInvoices || []) {
+          const key = inv.unit_id;
+          if (!invoiceMap.has(key)) invoiceMap.set(key, new Set());
+          invoiceMap.get(key)!.add(`${inv.reference_month}-${inv.reference_year}`);
+        }
 
-          const { data: prevInvoice } = await supabase
-            .from("unit_invoices")
-            .select("id")
-            .eq("unit_id", uc.id)
-            .eq("reference_month", prevMonth)
-            .eq("reference_year", prevYear)
-            .limit(1);
+        for (const uc of ucs) {
+          const ucInvoices = invoiceMap.get(uc.id);
+          const hasCurrentMonth = ucInvoices?.has(`${currentMonth}-${currentYear}`) ?? false;
 
-          const severity = (!prevInvoice || prevInvoice.length === 0) ? "critical" as const : "warning" as const;
+          if (!hasCurrentMonth) {
+            const hasPrevMonth = ucInvoices?.has(`${prevMonth}-${prevYear}`) ?? false;
+            const severity = !hasPrevMonth ? "critical" as const : "warning" as const;
 
-          const created = await createAlertIfNew({
-            tenant_id: uc.tenant_id,
-            unit_id: uc.id,
-            alert_type: "missing_invoice",
-            severity,
-            title: severity === "critical"
-              ? `UC "${uc.codigo_uc}" sem fatura há 2 meses`
-              : `UC "${uc.codigo_uc}" sem fatura no mês atual`,
-            description: `Verifique o email de recebimento ou faça upload manual da fatura.`,
-            context_json: { month: currentMonth, year: currentYear },
-          });
-          if (created) stats.missing_invoices++;
+            if (enqueueAlert({
+              tenant_id: uc.tenant_id,
+              unit_id: uc.id,
+              alert_type: "missing_invoice",
+              severity,
+              title: severity === "critical"
+                ? `UC "${uc.codigo_uc}" sem fatura há 2 meses`
+                : `UC "${uc.codigo_uc}" sem fatura no mês atual`,
+              description: `Verifique o email de recebimento ou faça upload manual da fatura.`,
+              context_json: { month: currentMonth, year: currentYear },
+            })) stats.missing_invoices++;
+          }
         }
       }
     }
@@ -198,7 +202,7 @@ Deno.serve(async (req) => {
         const todayKwh = plant.today_energy_kwh ?? 0;
 
         if (todayKwh === 0) {
-          const created = await createAlertIfNew({
+          if (enqueueAlert({
             tenant_id: plant.tenant_id,
             plant_id: plant.id,
             alert_type: "no_generation",
@@ -206,8 +210,7 @@ Deno.serve(async (req) => {
             title: `Usina "${plant.name}" sem geração hoje`,
             description: `Nenhuma energia gerada durante horário solar. Verifique o status do inversor e conexão.`,
             context_json: { today_energy_kwh: todayKwh, checked_at_hour_brt: brasiliaHour },
-          });
-          if (created) stats.no_generation++;
+          })) stats.no_generation++;
         }
       }
     } else {
@@ -215,7 +218,7 @@ Deno.serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════
-    // 4. GD ALLOCATION MISMATCH
+    // 4. GD ALLOCATION MISMATCH — batch fetch all beneficiaries
     // ═══════════════════════════════════════════
     console.log("[check-energy-alerts] Scanning GD allocation mismatches...");
     const { data: gdGroups } = await supabase
@@ -223,37 +226,67 @@ Deno.serve(async (req) => {
       .select("id, tenant_id, nome")
       .eq("status", "active");
 
-    for (const group of gdGroups || []) {
-      const { data: allocations } = await supabase
+    if (gdGroups && gdGroups.length > 0) {
+      const groupIds = gdGroups.map((g: any) => g.id);
+
+      // BATCH: fetch all active beneficiaries for all groups in one query
+      const { data: allBeneficiaries } = await supabase
         .from("gd_group_beneficiaries")
-        .select("allocation_percent")
-        .eq("gd_group_id", group.id)
+        .select("gd_group_id, allocation_percent")
+        .in("gd_group_id", groupIds)
         .eq("is_active", true);
 
-      if (!allocations || allocations.length === 0) continue;
+      // Build lookup: gd_group_id → total percent
+      const allocationTotals = new Map<string, number>();
+      for (const b of allBeneficiaries || []) {
+        const current = allocationTotals.get(b.gd_group_id) || 0;
+        allocationTotals.set(b.gd_group_id, current + (b.allocation_percent || 0));
+      }
 
-      const totalPercent = allocations.reduce(
-        (sum: number, a: { allocation_percent: number | null }) => sum + (a.allocation_percent || 0),
-        0
-      );
+      for (const group of gdGroups) {
+        const totalPercent = allocationTotals.get(group.id);
+        if (totalPercent === undefined) continue; // no beneficiaries
 
-      if (Math.abs(totalPercent - 100) >= 0.01) {
-        const created = await createAlertIfNew({
-          tenant_id: group.tenant_id,
-          gd_group_id: group.id,
-          alert_type: "allocation_mismatch",
-          severity: "warning",
-          title: `Rateio do grupo "${group.nome}" não soma 100%`,
-          description: `O rateio atual soma ${totalPercent.toFixed(1)}%. Ajuste as alocações das beneficiárias.`,
-          context_json: { total_percent: totalPercent },
-        });
-        if (created) stats.allocation_mismatch++;
+        if (Math.abs(totalPercent - 100) >= 0.01) {
+          if (enqueueAlert({
+            tenant_id: group.tenant_id,
+            gd_group_id: group.id,
+            alert_type: "allocation_mismatch",
+            severity: "warning",
+            title: `Rateio do grupo "${group.nome}" não soma 100%`,
+            description: `O rateio atual soma ${totalPercent.toFixed(1)}%. Ajuste as alocações das beneficiárias.`,
+            context_json: { total_percent: totalPercent },
+          })) stats.allocation_mismatch++;
+        }
       }
     }
 
-    console.log("[check-energy-alerts] Scan complete:", stats);
+    // ═══════════════════════════════════════════
+    // BATCH INSERT all new alerts in one operation
+    // ═══════════════════════════════════════════
+    if (newAlerts.length > 0) {
+      const rows = newAlerts.map(p => ({
+        tenant_id: p.tenant_id,
+        gd_group_id: p.gd_group_id || null,
+        unit_id: p.unit_id || null,
+        plant_id: p.plant_id || null,
+        alert_type: p.alert_type,
+        severity: p.severity,
+        title: p.title,
+        description: p.description || null,
+        context_json: p.context_json || {},
+      }));
 
-    return new Response(JSON.stringify({ ok: true, stats }), {
+      const { error: insertError } = await supabase.from("energy_alerts").insert(rows);
+      if (insertError) {
+        console.error("[check-energy-alerts] Batch insert error:", insertError.message);
+        stats.errors += rows.length;
+      }
+    }
+
+    console.log("[check-energy-alerts] Scan complete:", stats, `(${newAlerts.length} alerts inserted in batch)`);
+
+    return new Response(JSON.stringify({ ok: true, stats, alerts_created: newAlerts.length }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
