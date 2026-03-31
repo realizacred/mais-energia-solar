@@ -263,7 +263,7 @@ export function EnergiaDashboard() {
         />
         <KpiCard
           icon={DollarSign}
-          value={`R$ ${economyTotal.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          value={formatBRLInteger(economyTotal)}
           label="Economia Mês"
           borderColor="border-l-success"
           iconBg="bg-success/10 text-success"
