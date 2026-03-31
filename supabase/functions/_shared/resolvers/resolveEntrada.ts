@@ -107,12 +107,13 @@ export function resolveEntrada(
   set("estado", snap.locEstado ?? cliente.estado ?? lead.estado ?? uc1.estado ?? snap.estado);
   set("cidade", snap.locCidade ?? cliente.cidade ?? lead.cidade ?? uc1.cidade ?? snap.cidade);
   set("distancia", snap.distancia ?? snap.distanciaKm);
-  set("taxa_desempenho", snap.taxa_desempenho);
-  set("desvio_azimutal", snap.desvio_azimutal);
-  set("inclinacao", snap.inclinacao);
-  set("fator_geracao", snap.fator_geracao ?? snap.locIrradiacao);
+  set("taxa_desempenho", snap.taxa_desempenho ?? pd.desempenho);
+  set("desvio_azimutal", snap.desvio_azimutal ?? pd.desvio_azimutal);
+  set("inclinacao", snap.inclinacao ?? pd.inclinacao);
+  set("fator_geracao", snap.fator_geracao ?? pd.fator_geracao ?? snap.locIrradiacao);
   for (const m of MESES) {
-    set(`fator_geracao_${m}`, snap[`fator_geracao_${m}`]);
+    const pdMeses = safeObj(pd.fator_geracao_meses);
+    set(`fator_geracao_${m}`, snap[`fator_geracao_${m}`] ?? pdMeses[m]);
   }
 
   // ── Instalação ──
