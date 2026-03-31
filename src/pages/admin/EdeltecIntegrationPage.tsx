@@ -72,6 +72,8 @@ export default function EdeltecIntegrationPage() {
   const { data: logs, isLoading: loadingLogs } = useEdeltecSyncLogs(tenantId, 30);
   const syncMutation = useEdeltecSync();
 
+  const [showFullReplace, setShowFullReplace] = useState(false);
+
   const handleSync = (mode: "incremental" | "full_replace") => {
     if (!tenantId || !apiConfig?.id) return;
     syncMutation.mutate({
