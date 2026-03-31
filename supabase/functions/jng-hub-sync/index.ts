@@ -182,12 +182,16 @@ function buildKitItems(produto: JngProduto): KitItem[] {
   return produto.composicao.map((item: ProdutoComposicaoHubB2B) => {
     const agrup = (item.agrupamento || "").toLowerCase();
     const cat = (item.categoria || "").toLowerCase();
+    const desc = (item.descricao || "").toLowerCase();
     let itemType = "outro";
     if (agrup.includes("módulo") || agrup.includes("modulo") ||
         agrup.includes("painel") || cat.includes("módulo") || cat.includes("painel")) {
       itemType = "modulo";
     } else if (agrup.includes("inversor") || cat.includes("inversor")) {
       itemType = "inversor";
+    } else if (agrup.includes("estrutura") || cat.includes("estrutura") ||
+               desc.includes("estrutura") || desc.includes("fixação") || desc.includes("fixacao")) {
+      itemType = "estrutura";
     }
     return {
       item_type: itemType,
