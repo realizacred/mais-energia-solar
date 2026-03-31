@@ -130,8 +130,8 @@ export function IntegrationProviderCard({
     <div
       onClick={isDisabled ? undefined : onConfigure}
       className={cn(
-        "group relative flex flex-col rounded-2xl border bg-card p-5 transition-all duration-300 cursor-pointer select-none",
-        "hover:shadow-lg hover:-translate-y-0.5",
+        "group relative flex flex-col rounded-xl border bg-card p-5 transition-all duration-300 cursor-pointer select-none",
+        "hover:shadow-md hover:-translate-y-0.5",
         isConnected
           ? "border-success/30 ring-1 ring-success/10"
           : isError
