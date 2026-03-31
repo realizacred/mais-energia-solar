@@ -49,7 +49,7 @@ export function MovementsTable({ movements }: { movements: EstoqueMovimento[] })
                   {sign}{m.quantidade}
                 </td>
                 <td className="p-3 text-right text-muted-foreground hidden sm:table-cell">
-                  {m.custo_unitario ? `R$ ${Number(m.custo_unitario).toFixed(2)}` : "—"}
+                  {m.custo_unitario ? formatBRL(Number(m.custo_unitario)) : "—"}
                 </td>
                 <td className="p-3 text-xs text-muted-foreground hidden lg:table-cell">{m.origem}</td>
                 <td className="p-3 text-xs text-muted-foreground hidden md:table-cell max-w-[200px] truncate">

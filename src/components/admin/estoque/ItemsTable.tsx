@@ -51,7 +51,7 @@ export function ItemsTable({ items, onQrCode }: ItemsTableProps) {
                   {item.estoque_minimo} {item.unidade}
                 </td>
                 <td className="p-3 text-right text-muted-foreground hidden lg:table-cell">
-                  R$ {Number(item.custo_medio).toFixed(2)}
+                  {formatBRL(Number(item.custo_medio))}
                 </td>
                 <td className="p-3 text-center">
                   {isLow ? (
