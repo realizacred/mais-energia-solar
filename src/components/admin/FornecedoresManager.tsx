@@ -715,8 +715,8 @@ export function FornecedoresManager() {
 
           <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
             <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button variant="default" onClick={handleSave} disabled={saving}>
-              {saving ? "Salvando..." : editing ? "Salvar" : "Criar"}
+            <Button variant="default" onClick={handleSave} disabled={salvarMutation.isPending}>
+              {salvarMutation.isPending ? "Salvando..." : editing ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
