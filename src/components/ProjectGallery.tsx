@@ -88,7 +88,7 @@ export default function ProjectGallery() {
           {projects.map((project, index) => (
             <Card
               key={project.id}
-              className="overflow-hidden cursor-pointer group hover:shadow-lg transition-all"
+              className="overflow-hidden cursor-pointer group hover:shadow-md transition-all"
               onClick={() => openProject(project, index)}
             >
               <div className="relative aspect-square overflow-hidden">

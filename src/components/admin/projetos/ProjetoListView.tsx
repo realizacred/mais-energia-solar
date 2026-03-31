@@ -23,7 +23,7 @@ export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
 
   if (projetos.length === 0) {
     return (
-      <div className="rounded-2xl border border-border/60 bg-card p-16 flex flex-col items-center justify-center text-muted-foreground" style={{ boxShadow: "var(--shadow-sm)" }}>
+      <div className="rounded-xl border border-border/60 bg-card p-16 flex flex-col items-center justify-center text-muted-foreground" style={{ boxShadow: "var(--shadow-sm)" }}>
         <p className="font-medium">Nenhum projeto encontrado</p>
         <p className="text-sm mt-1">Crie um novo projeto ou ajuste os filtros.</p>
       </div>
@@ -48,7 +48,7 @@ export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
         const totalValue = items.reduce((s, p) => s + (p.valor_total || 0), 0);
 
         return (
-          <div key={etapa.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+          <div key={etapa.id} className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
             {/* Group header */}
             <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -74,7 +74,7 @@ export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
       })}
 
       {ungrouped.length > 0 && (
-        <div className="rounded-2xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+        <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
           <div className="px-4 py-3 border-b border-border/40 flex items-center gap-3">
             <div className="w-1.5 h-6 rounded-full bg-muted-foreground/30" />
             <h3 className="text-sm font-bold text-muted-foreground">Sem etapa</h3>

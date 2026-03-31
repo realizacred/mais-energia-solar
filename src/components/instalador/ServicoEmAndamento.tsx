@@ -470,7 +470,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="border border-border/50 shadow-lg">
+              <Card className="border border-border/50 shadow-sm">
                 <CardHeader className="text-center pb-4 border-b">
                   <div className="mx-auto w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mb-4">
                     <Wrench className="h-8 w-8 text-secondary" />

@@ -66,7 +66,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
             <div
               key={col.id}
               className={cn(
-                "rounded-2xl border border-border/60 transition-all flex flex-col",
+                "rounded-xl border border-border/60 transition-all flex flex-col",
                 "bg-card",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
