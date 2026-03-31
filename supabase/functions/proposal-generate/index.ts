@@ -610,7 +610,13 @@ Deno.serve(async (req) => {
       return s + (uc.tipo_dimensionamento === "MT" ? uc.consumo_mensal_p + uc.consumo_mensal_fp : uc.consumo_mensal);
     }, 0);
 
-    const geracaoEstimada = potenciaKwp * geracaoMediaKwpMes;
+    // Prefer wizard's pre-calculated generation (includes topology performance)
+    // Fallback: apply UC performance factor to raw potencia * irradiacao
+    const wizardGeracao = Number(body._wizard_state?.geracaoMensalEstimada) || 0;
+    const ucPerformance = (uc1.taxa_desempenho ?? 80) / 100;
+    const geracaoEstimada = wizardGeracao > 0
+      ? wizardGeracao
+      : round2(potenciaKwp * geracaoMediaKwpMes * ucPerformance);
     const tarifaMedia = uc1.tarifa_distribuidora || 0.85;
     const energiaCompensavel = Math.min(geracaoEstimada, consumoTotal);
     const fioBAplicavel = backendGrupo === "B" ? percentualFioB / 100 : 0;
