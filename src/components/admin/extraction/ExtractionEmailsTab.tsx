@@ -116,8 +116,7 @@ export function ExtractionEmailsTab() {
           description="Os e-mails recebidos com faturas aparecerão aqui após a sincronização da conta de e-mail."
         />
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <Table>
+        <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">          <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold text-foreground">Data</TableHead>

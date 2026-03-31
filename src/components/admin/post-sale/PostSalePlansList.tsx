@@ -46,6 +46,7 @@ export function PostSalePlansList() {
         {plans.length === 0 ? (
           <EmptyState icon={FileText} title="Nenhum plano" description="Clique em 'Novo Plano' para criar um plano de manutenção." />
         ) : (
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -78,6 +79,7 @@ export function PostSalePlansList() {
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </SectionCard>
 

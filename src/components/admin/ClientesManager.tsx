@@ -677,6 +677,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         />
       ) : (
         <SectionCard icon={Users} title={`Clientes (${filteredClientes.length})`} variant="neutral" noPadding>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -816,6 +817,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               ))}
             </TableBody>
           </Table>
+          </div>
           <TablePagination
             totalItems={filteredClientes.length}
             page={page}

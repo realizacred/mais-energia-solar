@@ -179,8 +179,7 @@ export function EnergyAlertsPage() {
           <p className="text-sm text-muted-foreground mt-1">O sistema está operando normalmente 🎉</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <Table>
+        <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">          <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold text-foreground w-[100px]">Severidade</TableHead>

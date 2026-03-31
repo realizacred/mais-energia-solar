@@ -52,8 +52,7 @@ export function OtimizadorCompareModal({ otimizadores, open, onOpenChange }: Pro
             <p className="text-xs text-muted-foreground mt-0.5">Comparação lado a lado</p>
           </div>
         </DialogHeader>
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <Table>
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto">          <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="font-semibold w-[160px]">Spec</TableHead>

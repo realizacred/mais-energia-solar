@@ -578,8 +578,7 @@ export function AneelIntegrationPage() {
             <CardTitle className="text-base">Status das Distribuidoras</CardTitle>
             <CardDescription>Cobertura do sync ANEEL por distribuidora cadastrada.</CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            <Table>
+          <CardContent className="p-0 overflow-x-auto">            <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Nome</TableHead>

@@ -191,6 +191,7 @@ export default function SmCustomFieldsManager() {
             </div>
           ) : (
             <div className="border rounded-lg overflow-auto max-h-[500px]">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -228,6 +229,7 @@ export default function SmCustomFieldsManager() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
         </TabsContent>
@@ -276,6 +278,7 @@ function MappingsEditor({
       {/* Existing mappings */}
       {mappings.length > 0 && (
         <div className="border rounded-lg overflow-auto">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -302,6 +305,7 @@ function MappingsEditor({
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
       )}
 

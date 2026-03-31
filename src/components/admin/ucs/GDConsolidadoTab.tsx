@@ -450,8 +450,7 @@ export function GDConsolidadoTab() {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden"
                         >
-                          <div className="rounded-lg border border-border overflow-hidden mt-2">
-                            <Table>
+                          <div className="rounded-lg border border-border overflow-hidden mt-2 overflow-x-auto">                            <Table>
                               <TableHeader>
                                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                                   <TableHead className="font-semibold text-foreground text-xs">UC Beneficiária</TableHead>

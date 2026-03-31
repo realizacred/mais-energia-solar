@@ -101,6 +101,7 @@ export function ImportJobsPanel() {
               {detailItems.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">Nenhum item encontrado</p>
               ) : (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -136,6 +137,7 @@ export function ImportJobsPanel() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </div>
           </ScrollArea>

@@ -149,8 +149,7 @@ export default function CommercialDashboardPage() {
               <p className="text-xs text-muted-foreground mt-1">O uso será exibido conforme os tenants utilizarem o sistema</p>
             </div>
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
+            <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">              <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="font-semibold text-foreground">Tenant</TableHead>

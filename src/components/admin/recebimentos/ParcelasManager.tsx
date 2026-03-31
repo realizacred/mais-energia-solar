@@ -303,6 +303,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
             </div>
           ) : (
             <TooltipProvider>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -481,6 +482,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
                   })}
                 </TableBody>
               </Table>
+              </div>
             </TooltipProvider>
           )}
         </div>

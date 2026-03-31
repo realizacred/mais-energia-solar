@@ -216,6 +216,7 @@ export default function EdeltecIntegrationPage() {
               <p className="text-sm text-muted-foreground">Nenhum log registrado</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -242,6 +243,7 @@ export default function EdeltecIntegrationPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

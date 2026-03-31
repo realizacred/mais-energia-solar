@@ -150,6 +150,7 @@ export function SlaDashboard() {
             <CardTitle className="text-sm font-semibold">📊 Ranking por Cumprimento de SLA</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -178,6 +179,7 @@ export function SlaDashboard() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -203,6 +203,7 @@ export function ComissoesReports({
               {/* Table */}
               <div>
                 <h4 className="font-medium mb-4">Resumo por Consultor</h4>
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -235,6 +236,7 @@ export function ComissoesReports({
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </div>
 
               {/* Chart */}
@@ -284,6 +286,7 @@ export function ComissoesReports({
               <History className="h-5 w-5 text-muted-foreground" />
               <h4 className="font-medium">Histórico de Pagamentos</h4>
             </div>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -318,6 +321,7 @@ export function ComissoesReports({
                 )}
               </TableBody>
             </Table>
+            </div>
           </TabsContent>
 
           {/* Projeção */}

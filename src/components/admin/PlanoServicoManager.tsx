@@ -165,8 +165,7 @@ export default function PlanoServicoManager() {
           <Button size="sm" onClick={handleNew}><Plus className="w-4 h-4 mr-1" /> Criar Plano</Button>
         </div>
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <Table>
+        <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">          <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold text-foreground">Nome</TableHead>

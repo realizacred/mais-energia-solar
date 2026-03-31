@@ -354,6 +354,7 @@ export function InstaladorManager() {
                   </div>
 
                   {/* Full Table */}
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -401,6 +402,7 @@ export function InstaladorManager() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </>
               )}
           </SectionCard>

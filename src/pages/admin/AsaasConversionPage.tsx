@@ -232,8 +232,7 @@ export default function AsaasConversionPage() {
       </Card>
 
       {/* §4: Table */}
-      <div className="rounded-lg border border-border overflow-hidden">
-        <Table>
+      <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">        <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="font-semibold text-foreground">Tenant</TableHead>

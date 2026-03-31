@@ -299,6 +299,7 @@ ${errorDetails.body ?? "—"}`}
 
       {details.length > 0 && (
         <SectionCard title={`Detalhes (${details.length} itens)`} variant="blue" noPadding>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -335,6 +336,7 @@ ${errorDetails.body ?? "—"}`}
               ))}
             </TableBody>
           </Table>
+          </div>
           <TablePagination
             totalItems={details.length}
             page={page}

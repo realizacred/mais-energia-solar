@@ -276,8 +276,7 @@ export function PlantGenerationReport({ plantId, showExport = true }: Props) {
             )}
           </div>
 
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
+          <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">            <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead className="font-semibold text-foreground">Mês/Ano</TableHead>
@@ -333,8 +332,7 @@ export function PlantGenerationReport({ plantId, showExport = true }: Props) {
               </Badge>
             </div>
 
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
+            <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">              <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="font-semibold text-foreground">Período</TableHead>

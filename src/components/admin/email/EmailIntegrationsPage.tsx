@@ -342,8 +342,7 @@ function AccountsTable() {
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border overflow-hidden">
-        <Table>
+      <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">        <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="font-semibold text-foreground">E-mail</TableHead>
@@ -466,8 +465,7 @@ function RunsHistory() {
           <p className="text-xs text-muted-foreground mt-1">Sincronize uma conta para ver o histórico</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <Table>
+        <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">          <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold text-foreground">Data</TableHead>

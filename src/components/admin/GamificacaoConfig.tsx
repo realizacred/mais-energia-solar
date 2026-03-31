@@ -266,6 +266,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
                    </div>
  
                    {/* Full Ranking Table */}
+                   <div className="overflow-x-auto">
                    <Table>
                      <TableHeader>
                        <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -301,6 +302,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
                        ))}
                      </TableBody>
                    </Table>
+                   </div>
                  </>
                )}
           </SectionCard>

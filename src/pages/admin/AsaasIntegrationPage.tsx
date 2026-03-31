@@ -333,6 +333,7 @@ export default function AsaasIntegrationPage() {
             <p className="text-xs text-muted-foreground/70 mt-1">Configure o webhook no painel do Asaas</p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -364,6 +365,7 @@ export default function AsaasIntegrationPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </SectionCard>
     </div>

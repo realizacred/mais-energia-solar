@@ -208,6 +208,7 @@ export function AprovacaoUsuarios() {
 
         {pendingUsers.length > 0 && (
           <CardContent>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -277,6 +278,7 @@ export function AprovacaoUsuarios() {
                 })}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         )}
       </Card>
