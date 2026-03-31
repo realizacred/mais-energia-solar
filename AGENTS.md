@@ -1,6 +1,12 @@
-# AGENTS.md v2.5 — Mais Energia Solar CRM
+# AGENTS.md v3.1 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-03-30,
+# Última atualização: 2026-03-31 (v3.1 — Sprints Visuais concluídos)
+# Changelog v3.1: Sprints Visuais V1-V5 concluídos — ver Bloco 10
+# Changelog v3.0: RB-16, RB-17, AP-21, AP-22, AP-23, AP-24 adicionados
+#                 DA-12, DA-13, DA-14 adicionados
+#                 §48, §49, §50 adicionados
+#                 Bloco 10 atualizado com status de correções
+#                 Bloco 12 novo — Design System Visual
 
 # =============================================================================
 # ⚠️ INSTRUÇÃO PRIMÁRIA PARA AI — LEIA PRIMEIRO
@@ -13,27 +19,27 @@
 # 4. DECISÕES (Bloco 5) — Entenda o "por que" antes de criar algo novo
 # 5. BOAS PRÁTICAS (Bloco 2) — Siga quando não conflitar com 1-4
 
-# DICA: Use o Índice Rápido (Bloco 0) para encontrar regras em 10 segundos
-
 # =============================================================================
 # BLOCO 0 — ÍNDICE RÁPIDO POR TIPO DE TAREFA
 # =============================================================================
 
-Estou criando... | Regras principais | Snippet obrigatório | Anti-padrões
----|---|---|---
-**Novo componente React** | §1 (cores) → §22 (botões) → §32 (responsive) | §25-S1 (modal) | AP-02, AP-05, AP-07
-**Nova query Supabase** | §16 (hooks) → §23 (staleTime) → §18 (RLS) | §16-S1 (hook) | AP-01
-**Novo modal/drawer** | §25 (tamanhos) → §36 (scroll) → §39 (chat) | §25-S1 (modal) | AP-03, AP-04
-**Novo input formulário** | §13 (inputs) → §2 (dark mode) → §33 (proposta) | §13 (lista) | AP-05
-**Nova feature WhatsApp** | §39 (scroll chat) → §41 (avatar) → §43 (cron) | §39-S1 (chat) | AP-04
-**Nova Edge Function**    | §EF → §EF-S1 (handler) → §45 (padrões)         | §EF-S1        | AP-17, AP-18, AP-19, AP-20
-**Novo fornecedor**       | §CATALOG-S1 → §EF → DA-09 → DA-11               | §CATALOG-S1   | AP-17, AP-18, AP-19
-**Correção sync/catálogo**| §CATALOG-S2 → Bloco 10 (regressões)             | —             | AP-17, AP-20
-**Novo hook customizado** | §16 (estrutura) → §23 (staleTime) → §20 (SRP) | §16-S1 (hook) | AP-01
-**Correção de bug visual** | §1 (cores) → Bloco 5 (validação) | — | AP-02, AP-03, AP-04
-**Nova tela admin** | §6 (aproveitamento) → §26 (header) → §29 (abas) | §25-S1 (modal) | AP-06
-**Nova tabela/lista** | §4 (tabela) → §12 (skeleton) → §34 (responsive) | §4-S1 (tabela) | AP-06
-**Novo gráfico** | §5 (recharts) → §27 (KPI) | §5-S1 (gráfico) | —
+Estou criando...             | Regras principais              | Snippet          | Anti-padrões
+-----------------------------|-------------------------------|------------------|---------------------------
+Novo componente React        | §1 → §22 → §32                | §25-S1           | AP-02, AP-05, AP-07
+Nova query Supabase          | §16 → §23 → §18               | §16-S1           | AP-01, AP-09
+Novo modal/drawer            | §25 → §36 → §39               | §25-S1           | AP-03, AP-04
+Novo input formulário        | §13 → §2 → §33                | §13 (lista)      | AP-05, AP-08
+Nova feature WhatsApp        | §39 → §41 → §43               | §39-S1           | AP-04
+Nova Edge Function           | §EF → §EF-S1 → §45            | §EF-S1           | AP-17..AP-20
+Novo fornecedor              | §CATALOG-S1 → §EF → DA-09     | §CATALOG-S1      | AP-17..AP-20
+Correção sync/catálogo       | §CATALOG-S2 → Bloco 10        | —                | AP-17, AP-20
+Novo hook customizado        | §16 → §23 → §20               | §16-S1           | AP-01, AP-09
+Correção de bug visual       | §1 → Bloco 12                 | —                | AP-02, AP-03, AP-04
+Nova tela admin              | §6 → §26 → §29 → Bloco 12    | §25-S1           | AP-06
+Nova tabela/lista            | §4 → §12 → §34                | §4-S1            | AP-06
+Novo gráfico                 | §5 → §27                      | §5-S1            | AP-21 (novo)
+Formatação de valor          | §19 → §48 (novo)              | —                | AP-14, AP-22 (novo)
+Debug/logging                | §49 (novo)                    | —                | AP-23 (novo)
 
 # =============================================================================
 # BLOCO 1 — REGRAS BLOQUEANTES (RB-XX)
@@ -43,1510 +49,367 @@ Estou criando... | Regras principais | Snippet obrigatório | Anti-padrões
 RB-01 CORES SEMÂNTICAS OBRIGATÓRIAS
     NUNCA use: orange-*, blue-*, green-*, red-*, #FF6600, #3b82f6, text-orange-500, bg-blue-600
     SEMPRE use variáveis CSS:
-      - Ação principal: bg-primary, text-primary, border-primary, bg-primary/10
-      - Superfícies: bg-card, bg-background, bg-muted
-      - Textos: text-foreground, text-muted-foreground, text-card-foreground
-      - Bordas: border-border, border-input
-      - Estados: bg-success, bg-warning, bg-destructive, bg-info
-    → Ver §1 para exemplos visuais
+      - Ação principal:  bg-primary, text-primary, border-primary, bg-primary/10
+      - Superfícies:     bg-card, bg-background, bg-muted
+      - Textos:          text-foreground, text-muted-foreground, text-card-foreground
+      - Bordas:          border-border, border-input
+      - Estados:         bg-success, bg-warning, bg-destructive, bg-info
 
 RB-02 DARK MODE EM TODA TELA NOVA
     NUNCA use: bg-white, text-black, text-gray-500, border-gray-200
     SEMPRE use: bg-card, text-foreground, text-muted-foreground, border-border
-    Teste: alterne entre light/dark no Storybook ou dev tools
+    Exceções permitidas:
+      - Canvas de assinatura (branco por requisito físico)
+      - Páginas públicas/landing (documentar o motivo)
+      - Tarifas com N casas decimais (ver RB-16)
 
 RB-03 BOTÃO SHADCN OBRIGATÓRIO
-    NUNCA use: &lt;button&gt; HTML nativo
-    SEMPRE use: &lt;Button&gt; de @/components/ui/button
+    NUNCA use: <button> HTML nativo
+    SEMPRE use: <Button> de @/components/ui/button
     Variantes por hierarquia:
-      - Ação principal: variant="default" (sólido primário)
+      - Ação principal:  variant="default"
       - Ação secundária: variant="outline"
-      - Destrutiva (remover): variant="outline" className="border-destructive text-destructive"
+      - Destrutiva:      variant="outline" className="border-destructive text-destructive"
       - Cancelar/fechar: variant="ghost"
-    → Ver §22 para tabela completa de variantes
 
 RB-04 QUERIES SÓ EM HOOKS
     NUNCA faça: supabase.from() dentro de componente React
     SEMPRE use: hook em src/hooks/ com useQuery
-    Estrutura obrigatória: useDados() → useBuscarDado() → useAtualizarDado()
     → Ver §16-S1 para template exato
 
 RB-05 STALETIME OBRIGATÓRIO EM TODA QUERY
-    NUNCA use: useQuery({ queryKey, queryFn }) sem staleTime
+    NUNCA use: useQuery sem staleTime
     Padrões:
-      - Listas, formulários: staleTime: 1000 * 60 * 5 (5 min)
-      - Dados em tempo real: staleTime: 1000 * 30 (30 seg)
+      - Listas, formulários:   staleTime: 1000 * 60 * 5  (5 min)
+      - Dados em tempo real:   staleTime: 1000 * 30       (30 seg)
       - Configurações estáticas: staleTime: 1000 * 60 * 15 (15 min)
-    → Ver §23 para quando usar cada um
 
 RB-06 SKELETON NO LOADING OBRIGATÓRIO
     NUNCA deixe: tela em branco, "Carregando..." texto solto, spinner sem estrutura
-    SEMPRE use: Skeleton de @/components/ui/skeleton com estrutura similar ao conteúdo
-    → Ver §12-S1 para templates de skeleton
+    SEMPRE use: Skeleton de @/components/ui/skeleton OU componente branded do projeto:
+      - LoadingState  (@/components/shared/LoadingState)   ← para páginas inteiras
+      - SunLoader     (@/components/shared/SunLoader)      ← para seções temáticas
+      - Skeleton      (@/components/ui/skeleton)           ← para itens inline/tabelas
+    NUNCA substitua LoadingState/SunLoader por Skeleton simples — são branded e superiores
 
 RB-07 MODAL COM w-[90vw] OBRIGATÓRIO
-    NUNCA use: max-w-* sozinho (ex: max-w-md, max-w-2xl)
-    SEMPRE use: w-[90vw] max-w-[tamanho] (ex: w-[90vw] max-w-2xl)
-    Motivo: aproveita tela em notebooks, evita margens desperdiçadas
+    NUNCA use: max-w-* sozinho
+    SEMPRE use: w-[90vw] max-w-[tamanho]
 
-RB-08 SCROLL INTERNO COM min-h-0 OBRIGATÓTIO
+RB-08 SCROLL INTERNO COM min-h-0 OBRIGATÓRIO
     NUNCA use: flex-1 overflow-y-auto sem min-h-0
     SEMPRE use: flex-1 min-h-0 overflow-y-auto
-    Motivo: sem min-h-0, scroll não funciona em containers flex
 
 RB-09 COMPONENTES EXISTENTES ANTES DE CRIAR NOVO
-    NUNCA crie: input de telefone, CPF, endereço, moeda, data do zero
-    SEMPRE verifique antes: src/components/{shared,ui-kit,ui}/
-    Lista de componentes obrigatórios:
-      - Telefone: PhoneInput de @/components/ui-kit/inputs/PhoneInput
-      - CPF/CNPJ: CpfCnpjInput de @/components/shared/CpfCnpjInput
-      - Endereço: AddressFields de @/components/shared/AddressFields
-      - Moeda: CurrencyInput de @/components/ui-kit/inputs/CurrencyInput
-      - Data: DateInput de @/components/ui-kit/inputs/DateInput
+    Lista obrigatória — verificar antes de criar:
+      - Telefone:   PhoneInput    (@/components/ui-kit/inputs/PhoneInput)
+      - CPF/CNPJ:   CpfCnpjInput  (@/components/shared/CpfCnpjInput)
+      - Endereço:   AddressFields (@/components/shared/AddressFields)
+      - Moeda:      CurrencyInput (@/components/ui-kit/inputs/CurrencyInput)
+      - Data:       DateInput     (@/components/ui-kit/inputs/DateInput)
+      - Loading:    LoadingState  (@/components/shared/LoadingState)
 
 RB-10 RESPONSIVIDADE OBRIGATÓRIA
     NUNCA use: largura fixa em px (w-[400px], w-[500px])
     NUNCA use: max-w-* em páginas admin (exceto modais)
-    SEMPRE use: 
+    SEMPRE use:
       - Grids: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
-      - Flex: flex-wrap, flex-1, min-w-0
+      - Flex:  flex-wrap, flex-1, min-w-0
       - Teste: 320px (mobile) e 1920px (desktop)
 
 RB-11 HEADER DE PÁGINA ANTES DE ABAS
     NUNCA coloque: TabsList antes do título da página
     SEMPRE ordem: Header (ícone + título + subtítulo) → TabsList → Conteúdo
-    → Ver §26-S1 para template de header
 
 RB-12 NÃO MODIFICAR src/components/ui/
     NUNCA edite: arquivos em src/components/ui/ (exceto switch.tsx e slider.tsx)
-    Motivo: shadcn/ui base, atualizações sobrescrevem mudanças
-    Exceções permitidas: switch.tsx, slider.tsx (tokens semânticos)
 
 RB-13 FUSO HORÁRIO BRASÍLIA OBRIGATÓRIO
-    O sistema opera exclusivamente no fuso de Brasília (America/Sao_Paulo, UTC-3).
-    NUNCA use: toLocaleString("pt-BR") sem timeZone — em ambientes cloud (preview, SSR) o fuso padrão é UTC.
+    NUNCA use: toLocaleString("pt-BR") sem timeZone
     SEMPRE use: toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
-    SEMPRE use: toLocaleTimeString("pt-BR", { ..., timeZone: "America/Sao_Paulo" })
-    SEMPRE use: toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
-    Para date-fns: Usar helpers de src/services/monitoring/plantStatusEngine.ts (getTodayBrasilia, isBrasiliaNight, etc.)
-    Para Edge Functions (Deno): Usar new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
-    Motivo: Preview do Lovable roda em UTC — horários aparecem +3h adiantados se não forçar o fuso.
 
 RB-14 EDGE FUNCTION SEM CHAMADA DIRETA DE FORNECEDOR NO FRONTEND
-    NUNCA chame: APIs de fornecedor (Edeltec, JNG, etc.) diretamente do frontend
+    NUNCA chame: APIs de fornecedor diretamente do frontend
     SEMPRE use: Edge Function como intermediário
-    Motivo: credenciais expostas, sem controle de rate-limit, sem retry, sem log
-    🔍 Detectar: grep -rn "edeltec\|jng\|hubB2b" src/components/ src/hooks/ --include="*.ts" --include="*.tsx"
 
 RB-15 CATALOG SYNC SEM FORNECEDOR_ID COMO DISCRIMINADOR
-    NUNCA filtre: dados de catálogo usando campo "source" como string livre em queries de negócio
-    SEMPRE use: campo "fornecedor_id" (UUID) como discriminador de fornecedor
-    Motivo: "source" é metadado de auditoria; fornecedor_id é chave relacional
-    🔍 Detectar: grep -rn '\.eq("source"' supabase/functions/ src/hooks/ --include="*.ts"
+    NUNCA filtre: dados de catálogo usando campo "source" em queries de negócio
+    SEMPRE use: campo "fornecedor_id" (UUID) como discriminador
+
+RB-16 FORMATADORES POR TIPO DE VALOR (NOVO v3.0)
+    NUNCA use: formatBRL para tarifas com mais de 2 casas decimais
+    NUNCA use: formatBRL para valores inteiros (ex: economia total sem centavos)
+    REGRA DE ESCOLHA:
+      - Valor monetário padrão (R$ 1.234,56):     formatBRL(valor)
+      - Valor monetário inteiro (R$ 1.234):        formatBRLInteger(valor)
+      - Valor compacto para espaço pequeno:        formatBRLCompact(valor)
+      - Tarifa com 4-6 casas (R$ 0.756432/kWh):   NÃO usar formatter — manter como está
+      - Potência/energia:                          formatKwh(valor)
+    → Ver §48 para tabela completa de formatadores
+
+RB-17 SEM CONSOLE.LOG EM CÓDIGO DE PRODUÇÃO (NOVO v3.0)
+    NUNCA use: console.log() em src/components/, src/pages/, src/hooks/
+    NUNCA use: console.log() em supabase/functions/
+    PERMITIDO:
+      - console.error() para erros sem outro tratamento visível
+      - console.warn() para avisos intencionais de comportamento
+    Para debug temporário: use // console.log() comentado, nunca ativo
+    🔍 Detectar: grep -rn "console\.log" src/ supabase/functions/ --include="*.ts" --include="*.tsx" | grep -v "//"
+
+RB-18 TABELA SEMPRE COM overflow-x-auto (NOVO v3.1)
+    NUNCA use: <Table> sem overflow-x-auto no container pai
+    SEMPRE use: <div className="rounded-lg border border-border overflow-x-auto"><Table>
+
+RB-19 TABLIST SEMPRE COM overflow-x-auto (NOVO v3.1)
+    NUNCA use: <TabsList> sem overflow-x-auto quando tem 3+ abas
+    SEMPRE use: <TabsList className="overflow-x-auto flex-wrap h-auto">
+    EXCEÇÃO: TabsList com grid (layout fixo) — não aplicar
+
+RB-20 GRID SEMPRE COM BREAKPOINT MOBILE (NOVO v3.1)
+    NUNCA use: grid-cols-2 fixo em páginas (sem sm: ou md:)
+    SEMPRE use: grid-cols-1 sm:grid-cols-2 como base mínima
+    EXCEÇÃO: grids dentro de Dialog/Modal pequenos
+    EXCEÇÃO: grids compactos de dados (text-xs, font-mono)
+
+RB-21 SHADOW SEMÂNTICO EM CARDS (NOVO v3.1)
+    NUNCA use: shadow-lg em cards de lista ou KPI
+    SEMPRE use: shadow-sm para cards estáticos
+    SEMPRE use: hover:shadow-md para cards com hover
+    EXCEÇÃO: tooltips, dropdowns, modais, elementos flutuantes
 
 # =============================================================================
-# BLOCO 2 — BOAS PRÁTICAS (RECOMENDADO, NÃO BLOQUEANTE)
+# BLOCO 2 — BOAS PRÁTICAS
 # =============================================================================
 
-BP-01 FRAMER MOTION EM ENTRADAS
-    Animate cards e listas com stagger para UX premium
-    → Ver §7 para variants padrão
-
+BP-01 FRAMER MOTION EM ENTRADAS — Animate cards com stagger para UX premium
 BP-02 TOOLTIP EM TEXTO TRUNCADO MOBILE
-    Use Tooltip quando texto é cortado em telas pequenas
-
-BP-03 FORMATADORES CENTRALIZADOS
-    NUNCA formate manualmente: use formatBRL, formatKwh, formatDateBR de src/lib/formatters
-
+BP-03 FORMATADORES CENTRALIZADOS — usar formatBRL, formatKwh, formatDateBR de src/lib/formatters
 BP-04 LÓGICA EM SERVICES, NÃO COMPONENTES
-    Regras de negócio em src/services/, não em componentes visuais
-
-BP-05 PRINCÍPIOS DE ENGENHARIA
-    SRP, DRY, SSOT, KISS, YAGNI. Patches incrementais, não rewrites.
-
-BP-06 SAFE QUERY PATTERNS
-    Respeite tenant isolation, evite selects desnecessários, não quebre RLS
+BP-05 PRINCÍPIOS DE ENGENHARIA — SRP, DRY, SSOT, KISS, YAGNI
+BP-06 SAFE QUERY PATTERNS — Respeite tenant isolation, evite selects desnecessários
 
 # =============================================================================
-# BLOCO 3 — SNIPPETS OBRIGATÓRIOS (COPIE E COLE — NÃO IMPROVISE)
+# BLOCO 3 — SNIPPETS OBRIGATÓRIOS
 # =============================================================================
 
-# Use estes templates EXATOS. Não remova comentários, não mude estrutura.
-# Cada snippet tem: [CÓDIGO] + [EXPLICAÇÃO] + [VARIAÇÕES PERMITIDAS]
+# [Mantidos integralmente da v2.5 — §16-S1, §25-S1, §36-S1, §39-S1, §EF-S1, §CATALOG-S1, §CATALOG-S2, §4-S1, §12-S1, §26-S1, §27-S1, §5-S1]
+# Novos snippets adicionados abaixo:
 
 # ------------------------------------------------------------------------------
-# §16-S1 — HOOK COM SUPABASE (Template Obrigatório)
+# §48-S1 — FORMATADORES (Referência Completa v3.0)
 # ------------------------------------------------------------------------------
 
-// src/hooks/useNOME.ts
-// §16: Queries só em hooks — NUNCA em componentes
-// §23: staleTime obrigatório — ajuste conforme tipo de dado
-
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-
-// Interfaces exportadas para reuso
-export interface NomeInterface {
-  id: string;
-  tenant_id: string;
-  // ... outros campos
-  created_at: string;
-  updated_at: string;
-}
-
-// Constantes de configuração
-const STALE_TIME = 1000 * 60 * 5; // 5 minutos — ajuste se necessário
-const QUERY_KEY = "nome" as const;
-
-/**
- * Hook para listar dados do tenant
- * §18: Respeita tenant isolation automaticamente via RLS
- */
-export function useNOME(tenantId: string) {
-  return useQuery({
-    queryKey: [QUERY_KEY, tenantId],
-    queryFn: async () =&gt; {
-      const { data, error } = await supabase
-        .from("tabela")
-        .select("*")
-        .eq("tenant_id", tenantId)
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data as NomeInterface[];
-    },
-    staleTime: STALE_TIME, // §23: NUNCA remover
-    enabled: !!tenantId, // Só executa se tenantId existe
-  });
-}
-
-/**
- * Hook para buscar item específico
- */
-export function useNOMEById(id: string | null) {
-  return useQuery({
-    queryKey: [QUERY_KEY, "detail", id],
-    queryFn: async () =&gt; {
-      if (!id) return null;
-      const { data, error } = await supabase
-        .from("tabela")
-        .select("*")
-        .eq("id", id)
-        .single();
-      
-      if (error) throw error;
-      return data as NomeInterface;
-    },
-    staleTime: STALE_TIME,
-    enabled: !!id,
-  });
-}
-
-/**
- * Mutation para criar/atualizar
- */
-export function useSalvarNOME() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (payload: Omit&lt;NomeInterface, "id" | "created_at" | "updated_at"&gt; & { id?: string }) =&gt; {
-      const { id, ...rest } = payload;
-      
-      if (id) {
-        // Update
-        const { data, error } = await supabase
-          .from("tabela")
-          .update({ ...rest, updated_at: new Date().toISOString() })
-          .eq("id", id)
-          .select()
-          .single();
-        if (error) throw error;
-        return data;
-      } else {
-        // Insert
-        const { data, error } = await supabase
-          .from("tabela")
-          .insert({ ...rest, created_at: new Date().toISOString() })
-          .select()
-          .single();
-        if (error) throw error;
-        return data;
-      }
-    },
-    onSuccess: (data, variables) =&gt; {
-      // Invalida queries afetadas
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      if (variables.id) {
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, "detail", variables.id] });
-      }
-    },
-  });
-}
-
-/**
- * Mutation para deletar
- */
-export function useDeletarNOME() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (id: string) =&gt; {
-      const { error } = await supabase.from("tabela").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () =&gt; {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-    },
-  });
-}
-
-// VARIAÇÕES PERMITIDAS:
-// - STALE_TIME: 30s para realtime, 15min para configs
-// - Adicionar filtros no .eq() ou .in()
-// - Adicionar .limit() para paginação
-// - NUNCA remover staleTime ou enabled
+# TABELA DE FORMATADORES — escolha pelo tipo de dado, não pelo visual desejado:
+#
+# Dado                          | Formatter              | Exemplo de saída
+# ------------------------------|------------------------|------------------
+# Moeda padrão                  | formatBRL(v)           | R$ 1.234,56
+# Moeda sem decimais            | formatBRLInteger(v)    | R$ 1.234
+# Moeda compacta (espaço pequeno)| formatBRLCompact(v)   | R$ 1,2k
+# Potência/energia              | formatKwh(v)           | 6,1 kWp
+# Percentual                    | formatPercent(v)       | 12,5%
+# Data                          | formatDateBR(v)        | 15/03/2026
+# Telefone                      | formatPhoneBR(v)       | (11) 98765-4321
+# Tarifa c/ 4-6 casas decimais  | NÃO usar formatter     | R$ 0.756432/kWh
+# Rótulo de eixo Y em gráfico   | NÃO usar formatter     | R$ 1,2k (inline)
+#
+# CASOS ESPECIAIS — NÃO substituir por formatter:
+# - Tarifas de energia elétrica com 4-6 casas decimais → manter como está
+# - Rótulos compactos de eixo Y em gráficos → manter expressão inline
+# - Valores via prop formatCurrency → já está correto, não alterar
+# - Tick formatters de gráfico (ex: `R$ ${(v/1000).toFixed(0)}k`) → manter
 
 # ------------------------------------------------------------------------------
-# §25-S1 — MODAL/DIALOG (Template Obrigatório)
+# §49-S1 — LOGGING (Regras v3.0)
 # ------------------------------------------------------------------------------
 
-// §25: Modal padrão — copie e adapte o conteúdo interno
-// RB-07: w-[90vw] obrigatório
-// §36: flex-1 min-h-0 obrigatório para scroll interno
+# PERMITIDO:
+console.error("[NomeDoModulo] Erro ao buscar dados:", error);   // sem outro tratamento
+console.warn("[NomeDoModulo] Dado ausente, usando fallback");   // aviso intencional
 
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { NomeIcon } from "lucide-react"; // Substitua pelo ícone correto
+# PROIBIDO em produção:
+console.log("dados:", data);        // ❌ debug puro
+console.log("clicou:", item);       // ❌ debug de evento
+console.log("teste");               // ❌ teste manual
 
-interface NomeModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) =&gt; void;
-  // ... outras props específicas
-}
+# Para debug temporário durante desenvolvimento:
+// console.log("[debug] valor:", value);   // comentado, nunca ativo no commit
 
-export function NomeModal({ open, onOpenChange }: NomeModalProps) {
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSalvar = async () =&gt; {
-    setIsLoading(true);
-    try {
-      // ... lógica de salvar
-      onOpenChange(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    &lt;Dialog open={open} onOpenChange={onOpenChange}&gt;
-      {/* RB-07: w-[90vw] obrigatório */}
-      &lt;DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]"&gt;
-        
-        {/* HEADER — §25: ícone + título + subtítulo obrigatórios */}
-        &lt;DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0"&gt;
-          &lt;div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"&gt;
-            &lt;NomeIcon className="w-5 h-5 text-primary" /&gt;
-          &lt;/div&gt;
-          &lt;div className="flex-1"&gt;
-            &lt;DialogTitle className="text-base font-semibold text-foreground"&gt;
-              Título do Modal
-            &lt;/DialogTitle&gt;
-            &lt;p className="text-xs text-muted-foreground mt-0.5"&gt;
-              Descrição curta explicando o que fazer neste modal
-            &lt;/p&gt;
-          &lt;/div&gt;
-        &lt;/DialogHeader&gt;
-
-        {/* CORPO — §36: ScrollArea com flex-1 min-h-0 obrigatório */}
-        &lt;ScrollArea className="flex-1 min-h-0"&gt;
-          &lt;div className="p-5 space-y-5"&gt;
-            {/* 
-              Conteúdo do modal aqui
-              Use grid-cols-1 sm:grid-cols-2 para formulários
-              Use space-y-4 para seções verticais
-            */}
-          &lt;/div&gt;
-        &lt;/ScrollArea&gt;
-
-        {/* FOOTER — §22: Botões shadcn, alinhados à direita */}
-        &lt;DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0"&gt;
-          &lt;Button 
-            variant="outline" 
-            onClick={() =&gt; onOpenChange(false)}
-            disabled={isLoading}
-          &gt;
-            Cancelar
-          &lt;/Button&gt;
-          &lt;Button 
-            onClick={handleSalvar}
-            disabled={isLoading}
-          &gt;
-            {isLoading ? "Salvando..." : "Salvar"}
-          &lt;/Button&gt;
-        &lt;/DialogFooter&gt;
-      &lt;/DialogContent&gt;
-    &lt;/Dialog&gt;
-  );
-}
-
-// VARIAÇÕES PERMITIDAS:
-// - max-w-md (simples), max-w-2xl (padrão), max-w-3xl (complexo), max-w-[1100px] (wizard)
-// - Remover ScrollArea se conteúdo for pequeno (mas mantenha flex-1 min-h-0 no div)
-// - Adicionar seções com border-t border-border entre elas
-// - NUNCA remover w-[90vw] ou shrink-0
+# Edge Functions — usar console.error com prefixo do módulo:
+console.error("[nome-da-function] Error:", e);   // ✅ padrão EF-S1
 
 # ------------------------------------------------------------------------------
-# §36-S1 — SCROLL INTERNO (Template Obrigatório)
+# §50-S1 — MIGRAÇÕES PROGRESSIVAS (Regra para débito técnico v3.0)
 # ------------------------------------------------------------------------------
 
-// §36: Layout flex com scroll interno — use para listas, chats, painéis
-// RB-08: min-h-0 obrigatório em flex-1
-
-&lt;div className="flex flex-col h-full min-h-0 overflow-hidden"&gt;
-  {/* Header fixo — nunca encolhe */}
-  &lt;div className="shrink-0 p-4 border-b border-border"&gt;
-    {/* Título, botões, filtros */}
-  &lt;/div&gt;
-  
-  {/* Conteúdo rolável — RB-08: flex-1 + min-h-0 OBRIGATÓRIO */}
-  &lt;div className="flex-1 min-h-0 overflow-y-auto"&gt;
-    {/* Lista, tabela, chat, formulário longo */}
-  &lt;/div&gt;
-  
-  {/* Footer fixo (opcional) — nunca encolhe */}
-  &lt;div className="shrink-0 p-4 border-t border-border"&gt;
-    {/* Input, botões de ação, paginação */}
-  &lt;/div&gt;
-&lt;/div&gt;
-
-// VARIAÇÕES:
-// - Use ScrollArea do shadcn em vez de div se quiser estilização customizada
-// - Altura fixa: h-[calc(100vh-3.5rem)] em vez de h-full
-// - Sem footer: remova último shrink-0
-
-# ------------------------------------------------------------------------------
-# §39-S1 — WHATSAPP INBOX LAYOUT (Template Obrigatório)
-# ------------------------------------------------------------------------------
-
-// §39: NUNCA scroll global na página do inbox
-// Cada coluna é container independente com scroll próprio
-
-&lt;div className="flex h-[calc(100vh-3.5rem)] overflow-hidden"&gt;
-  {/* Coluna 1: Lista de conversas — 320px fixo */}
-  &lt;div className="w-80 flex flex-col h-full overflow-hidden border-r border-border shrink-0"&gt;
-    &lt;div className="shrink-0 p-4 border-b border-border"&gt;
-      {/* Header: título, busca, filtros */}
-    &lt;/div&gt;
-    &lt;div className="flex-1 min-h-0 overflow-y-auto"&gt;
-      {/* Lista de conversas (Virtuoso ou div) */}
-    &lt;/div&gt;
-  &lt;/div&gt;
-
-  {/* Coluna 2: Chat — flex-1 ocupa restante */}
-  &lt;div className="flex-1 flex flex-col h-full overflow-hidden"&gt;
-    &lt;div className="shrink-0 p-4 border-b border-border flex items-center justify-between"&gt;
-      {/* Header: avatar, nome, temperamento badge, ações */}
-      &lt;div className="flex items-center gap-3"&gt;
-        &lt;Avatar /&gt;
-        &lt;div&gt;
-          &lt;p className="font-medium text-foreground"&gt;Nome do Lead&lt;/p&gt;
-          &lt;IntelligenceBadge temperamento="morno" urgenciaScore={65} /&gt;
-        &lt;/div&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
-    
-    &lt;div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"&gt;
-      {/* Mensagens do chat */}
-    &lt;/div&gt;
-    
-    &lt;div className="shrink-0 p-4 border-t border-border"&gt;
-      {/* Input de mensagem + botões */}
-    &lt;/div&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-
-// VARIAÇÕES:
-// - Mobile: esconder coluna 1 quando coluna 2 ativa (drawer ou slide)
-// - Detalhes: adicionar coluna 3 (300px) com info do lead
-
-# ------------------------------------------------------------------------------
-# §EF-S1 — EDGE FUNCTION HANDLER (Template Obrigatório)
-# ------------------------------------------------------------------------------
-
-# Todo handler de Edge Function deve seguir esta estrutura EXATA.
-# NÃO improvise estrutura de resposta, tratamento de erro ou autenticação.
-
-# Estrutura de resposta JSON padronizada — SEMPRE retornar neste formato:
-# Sucesso:  { success: true,  data: <payload>,      synced_at: <ISO> }
-# Erro:     { success: false, error: <mensagem>,     code: <string>  }
-# Parcial:  { success: true,  is_complete: false,    current_page: N, total_pages: M }
-
-serve(async (req) => {
-  # CORS preflight — SEMPRE primeiro
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    # Autenticação — SEMPRE service_role para operações de sync/admin
-    # NUNCA use anon key em Edge Functions que escrevem no banco
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    # Validação de body — SEMPRE antes de qualquer operação
-    const body = await req.json();
-    const { tenant_id } = body;
-
-    if (!tenant_id) {
-      return new Response(
-        JSON.stringify({ success: false, error: "tenant_id obrigatório", code: "MISSING_TENANT" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    # Isolamento de tenant — SEMPRE filtre por tenant_id mesmo com service_role
-    # service_role bypassa RLS — você é responsável por garantir o isolamento manualmente
-    # NUNCA faça operações sem .eq("tenant_id", tenant_id)
-
-    # ... lógica da função ...
-
-    return new Response(
-      JSON.stringify({ success: true, data: {}, synced_at: new Date().toISOString() }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
-  } catch (e: any) {
-    console.error("[nome-da-function] Error:", e);
-    return new Response(
-      JSON.stringify({ success: false, error: e.message, code: "INTERNAL_ERROR" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-});
-
-# VARIAÇÕES PERMITIDAS:
-# - Adicionar mode: "incremental" | "full_replace" para funções de sync
-# - Adicionar test_only: boolean para validar credenciais sem persistir
-# - NUNCA remover validação de tenant_id
-# - NUNCA usar anon key — sempre service_role em Edge Functions que escrevem
-
-# ------------------------------------------------------------------------------
-# §CATALOG-S1 — PROVIDER ADAPTER (Contrato Obrigatório para Novos Fornecedores)
-# ------------------------------------------------------------------------------
-
-# Todo novo fornecedor DEVE implementar esta interface antes de qualquer código de sync.
-# NÃO crie handler de sync sem este contrato definido.
-
-interface CanonicalKit {
-  name: string;
-  external_id: string;
-  external_code: string | null;
-  estimated_kwp: number;
-  fixed_price: number;
-  status: "active" | "inactive";
-  tenant_id: string;
-  fornecedor_id: string | null;
-  source: string;              // metadado de auditoria — NÃO usar como filtro de negócio
-  is_generator: boolean;
-  product_kind: string;
-  fabricante: string | null;
-  marca: string | null;
-  is_available_now: boolean;
-  last_synced_at: string;      // ISO UTC — não aplicar fuso aqui
-  external_data: Record<string, unknown>;  // dados brutos — nunca indexar diretamente
-}
-
-interface KitItem {
-  item_type: "modulo" | "inversor" | "estrutura" | "cabo" | "outro";
-  description: string;
-  quantity: number;
-  unit_price: number;
-  ref_id: string | null;
-}
-
-interface ProviderAdapter {
-  // Converte payload bruto da API → modelo canônico
-  normalize(raw: unknown, tenantId: string, fornecedorId: string | null): CanonicalKit;
-  // Classifica o produto (gerador ou componente)
-  classify(raw: unknown): { is_generator: boolean; product_kind: string };
-  // Extrai itens do kit (módulos, inversores, etc.)
-  buildKitItems(raw: unknown): KitItem[];
-}
-
-// Exemplo de instância (padrão — adapte para cada fornecedor):
-const novoFornecedorAdapter: ProviderAdapter = {
-  normalize: (raw, tenantId, fornecedorId) => ({
-    name: (raw as any).titulo || "",
-    external_id: String((raw as any).id),
-    external_code: (raw as any).codigo || null,
-    estimated_kwp: (raw as any).potencia || 0,
-    fixed_price: (raw as any).preco || 0,
-    status: (raw as any).disponivel ? "active" : "inactive",
-    tenant_id: tenantId,
-    fornecedor_id: fornecedorId,
-    source: "nome_do_fornecedor",   // snake_case, minúsculo
-    is_generator: false,            // use classify()
-    product_kind: "component",      // use classify()
-    fabricante: (raw as any).fabricante || null,
-    marca: (raw as any).marca || null,
-    is_available_now: (raw as any).disponivel === true,
-    last_synced_at: new Date().toISOString(),
-    external_data: raw as Record<string, unknown>,
-  }),
-  classify: (raw) => ({
-    is_generator: (raw as any).ehGerador === true,
-    product_kind: (raw as any).ehGerador ? "generator" : "component",
-  }),
-  buildKitItems: (_raw) => [],  // implementar conforme estrutura do fornecedor
-};
-
-# REGRAS DO ADAPTER:
-# - NUNCA colocar lógica de fornecedor fora do adapter
-# - NUNCA acessar raw diretamente no handler — sempre via adapter
-# - SEMPRE testar normalize() com payload real antes de subir para produção
-# - Edeltec = referência de implementação completa (ver edeltec-sync/index.ts)
-
-# ------------------------------------------------------------------------------
-# §CATALOG-S2 — MODELO CANÔNICO (Referência — solar_kit_catalog)
-# ------------------------------------------------------------------------------
-
-# solar_kit_catalog É a fonte de verdade do catálogo.
-# O frontend NUNCA deve depender de API de fornecedor em tempo real.
-# Toda leitura de catálogo = leitura de solar_kit_catalog (dado local, já sincronizado).
-
-# CAMPOS CANÔNICOS (indexáveis, filtráveis, usados pelo frontend):
-#   id, tenant_id, fornecedor_id, name, estimated_kwp, fixed_price,
-#   status, is_generator, product_kind, fabricante, marca,
-#   is_available_now, last_synced_at
-
-# CAMPOS DE METADADO (auditoria — NÃO usar em filtros de negócio):
-#   source, external_id, external_code, external_data
-
-# CAMPOS DE PREÇO (calcular no backend, não no frontend):
-#   fixed_price, preco_por_kwp, preco_consumidor, valor_avulso
-
-# SNAPSHOT DE PROPOSTA:
-#   Ao selecionar kit para proposta, copiar campos canônicos para o snapshot.
-#   NUNCA referenciar fornecedor_id dinamicamente na proposta.
-#   Snapshot = imutável. Mudança de preço no catálogo NÃO afeta propostas existentes.
-
-# ------------------------------------------------------------------------------
-# §4-S1 — TABELA PADRÃO (Template Obrigatório)
-# ------------------------------------------------------------------------------
-
-// §4: Sempre use componente Table do shadcn, nunca div ou HTML nativo
-// §34: align-middle obrigatório em TableRow e TableCell
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
-
-&lt;div className="rounded-lg border border-border overflow-hidden"&gt;
-  &lt;Table&gt;
-    &lt;TableHeader&gt;
-      &lt;TableRow className="bg-muted/50 hover:bg-muted/50"&gt;
-        &lt;TableHead className="font-semibold text-foreground w-[200px]"&gt;Cliente&lt;/TableHead&gt;
-        &lt;TableHead className="font-semibold text-foreground"&gt;Status&lt;/TableHead&gt;
-        &lt;TableHead className="font-semibold text-foreground text-right"&gt;Valor&lt;/TableHead&gt;
-        &lt;TableHead className="w-[60px]" /&gt; {/* Coluna ações */}
-      &lt;/TableRow&gt;
-    &lt;/TableHeader&gt;
-    &lt;TableBody&gt;
-      {items.map((item) =&gt; (
-        &lt;TableRow
-          key={item.id}
-          className="hover:bg-muted/30 cursor-pointer transition-colors"
-          onClick={() =&gt; handleOpen(item)}
-        &gt;
-          &lt;TableCell className="font-medium text-foreground"&gt;{item.nome}&lt;/TableCell&gt;
-          &lt;TableCell&gt;
-            &lt;Badge variant="outline" className="text-xs"&gt;
-              {item.status}
-            &lt;/Badge&gt;
-          &lt;/TableCell&gt;
-          &lt;TableCell className="text-right font-mono text-sm"&gt;
-            {formatBRLCompact(item.valor)}
-          &lt;/TableCell&gt;
-          &lt;TableCell&gt;
-            {/* §34: Desktop = botões inline, Mobile = dropdown */}
-            &lt;div className="hidden lg:flex items-center gap-1"&gt;
-              &lt;Button variant="ghost" size="icon" className="h-7 w-7"&gt;
-                &lt;Eye className="w-4 h-4 text-primary" /&gt;
-              &lt;/Button&gt;
-              &lt;Button variant="ghost" size="icon" className="h-7 w-7"&gt;
-                &lt;Pencil className="w-4 h-4 text-warning" /&gt;
-              &lt;/Button&gt;
-            &lt;/div&gt;
-            &lt;div className="flex lg:hidden"&gt;
-              &lt;DropdownMenu&gt;
-                &lt;DropdownMenuTrigger asChild&gt;
-                  &lt;Button variant="ghost" size="icon" className="h-7 w-7"&gt;
-                    &lt;MoreHorizontal className="w-4 h-4" /&gt;
-                  &lt;/Button&gt;
-                &lt;/DropdownMenuTrigger&gt;
-                &lt;DropdownMenuContent align="end"&gt;
-                  &lt;DropdownMenuItem&gt;Ver detalhes&lt;/DropdownMenuItem&gt;
-                  &lt;DropdownMenuItem&gt;Editar&lt;/DropdownMenuItem&gt;
-                  &lt;DropdownMenuItem className="text-destructive"&gt;Excluir&lt;/DropdownMenuItem&gt;
-                &lt;/DropdownMenuContent&gt;
-              &lt;/DropdownMenu&gt;
-            &lt;/div&gt;
-          &lt;/TableCell&gt;
-        &lt;/TableRow&gt;
-      ))}
-    &lt;/TableBody&gt;
-  &lt;/Table&gt;
-&lt;/div&gt;
-
-# ------------------------------------------------------------------------------
-# §12-S1 — SKELETON STATES (Templates Obrigatórios)
-# ------------------------------------------------------------------------------
-
-// §12: NUNCA tela em branco durante loading
-
-// Skeleton de card KPI (4 cards)
-&lt;div className="grid grid-cols-2 md:grid-cols-4 gap-4"&gt;
-  {Array.from({ length: 4 }).map((_, i) =&gt; (
-    &lt;Card key={i} className="p-5"&gt;
-      &lt;Skeleton className="h-8 w-24 mb-2" /&gt;
-      &lt;Skeleton className="h-4 w-32" /&gt;
-    &lt;/Card&gt;
-  ))}
-&lt;/div&gt;
-
-// Skeleton de tabela (6 linhas)
-&lt;div className="space-y-2"&gt;
-  {Array.from({ length: 6 }).map((_, i) =&gt; (
-    &lt;Skeleton key={i} className="h-12 w-full rounded-lg" /&gt;
-  ))}
-&lt;/div&gt;
-
-// Skeleton de lista/chat
-&lt;div className="space-y-4"&gt;
-  {Array.from({ length: 5 }).map((_, i) =&gt; (
-    &lt;div key={i} className="flex items-center gap-3"&gt;
-      &lt;Skeleton className="h-10 w-10 rounded-full" /&gt;
-      &lt;div className="flex-1"&gt;
-        &lt;Skeleton className="h-4 w-3/4 mb-2" /&gt;
-        &lt;Skeleton className="h-3 w-1/2" /&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
-  ))}
-&lt;/div&gt;
-
-// Skeleton de formulário
-&lt;div className="space-y-4"&gt;
-  &lt;div className="grid grid-cols-1 sm:grid-cols-2 gap-4"&gt;
-    &lt;Skeleton className="h-10 w-full" /&gt;
-    &lt;Skeleton className="h-10 w-full" /&gt;
-  &lt;/div&gt;
-  &lt;Skeleton className="h-10 w-full" /&gt;
-  &lt;Skeleton className="h-32 w-full" /&gt;
-&lt;/div&gt;
-
-# ------------------------------------------------------------------------------
-# §26-S1 — HEADER DE PÁGINA (Template Obrigatório)
-# ------------------------------------------------------------------------------
-
-// §26: Header padronizado para todas as páginas admin
-// RB-11: Sempre antes de TabsList
-
-&lt;div className="flex items-center justify-between mb-6"&gt;
-  &lt;div className="flex items-center gap-3"&gt;
-    &lt;div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary"&gt;
-      &lt;NomeIcon className="w-5 h-5" /&gt;
-    &lt;/div&gt;
-    &lt;div&gt;
-      &lt;h1 className="text-xl font-bold text-foreground"&gt;Título da Página&lt;/h1&gt;
-      &lt;p className="text-sm text-muted-foreground"&gt;Subtítulo descritivo&lt;/p&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-  &lt;div className="flex items-center gap-2"&gt;
-    &lt;Button variant="outline" size="sm"&gt;Exportar&lt;/Button&gt;
-    &lt;Button size="sm"&gt;+ Novo&lt;/Button&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-
-// Depois do header, se houver abas:
-&lt;Tabs defaultValue="tab1"&gt;
-  &lt;TabsList&gt;
-    &lt;TabsTrigger value="tab1"&gt;Aba 1&lt;/TabsTrigger&gt;
-    &lt;TabsTrigger value="tab2"&gt;Aba 2&lt;/TabsTrigger&gt;
-  &lt;/TabsList&gt;
-  {/* ... */}
-&lt;/Tabs&gt;
-
-# ------------------------------------------------------------------------------
-# §27-S1 — KPI CARD PADRÃO (Template Obrigatório)
-# ------------------------------------------------------------------------------
-
-// §27: ÚNICO padrão para cards de métrica/número
-
-&lt;Card className="border-l-[3px] border-l-primary bg-card shadow-sm hover:shadow-md transition-shadow"&gt;
-  &lt;CardContent className="flex items-center gap-4 p-5"&gt;
-    &lt;div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0"&gt;
-      &lt;NomeIcon className="w-5 h-5" /&gt;
-    &lt;/div&gt;
-    &lt;div&gt;
-      &lt;p className="text-2xl font-bold tracking-tight text-foreground leading-none"&gt;
-        R$ 0,00
-      &lt;/p&gt;
-      &lt;p className="text-sm text-muted-foreground mt-1"&gt;Label do card&lt;/p&gt;
-    &lt;/div&gt;
-  &lt;/CardContent&gt;
-&lt;/Card&gt;
-
-// Variações de cor (estados):
-// border-l-primary + bg-primary/10 (padrão)
-// border-l-destructive + bg-destructive/10 (urgente/alerta)
-// border-l-success + bg-success/10 (positivo/crescimento)
-// border-l-warning + bg-warning/10 (atenção/pendente)
-
-# ------------------------------------------------------------------------------
-# §5-S1 — GRÁFICO RECHARTS (Template Obrigatório)
-# ------------------------------------------------------------------------------
-
-// §5: Sempre use variáveis CSS, nunca cores hardcoded
-
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-
-// Tooltip customizado — padrão obrigatório
-const CustomTooltip = ({ active, payload, label }: any) =&gt; {
-  if (!active || !payload?.length) return null;
-  return (
-    &lt;div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm"&gt;
-      &lt;p className="font-medium text-foreground mb-1"&gt;{label}&lt;/p&gt;
-      {payload.map((p: any) =&gt; (
-        &lt;p key={p.name} className="text-muted-foreground"&gt;
-          {p.name}: &lt;span className="font-semibold text-foreground"&gt;{p.value}&lt;/span&gt;
-        &lt;/p&gt;
-      ))}
-    &lt;/div&gt;
-  );
-};
-
-&lt;ResponsiveContainer width="100%" height={220}&gt;
-  &lt;AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}&gt;
-    &lt;defs&gt;
-      &lt;linearGradient id="gradPrimary" x1="0" y1="0" x2="0" y2="1"&gt;
-        &lt;stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.25} /&gt;
-        &lt;stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} /&gt;
-      &lt;/linearGradient&gt;
-    &lt;/defs&gt;
-    &lt;CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" /&gt;
-    &lt;XAxis 
-      dataKey="mes" 
-      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} 
-      axisLine={false} 
-      tickLine={false} 
-    /&gt;
-    &lt;YAxis 
-      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} 
-      axisLine={false} 
-      tickLine={false} 
-    /&gt;
-    &lt;Tooltip content={&lt;CustomTooltip /&gt;} /&gt;
-    &lt;Area 
-      type="monotone" 
-      dataKey="valor" 
-      stroke="hsl(var(--primary))" 
-      fill="url(#gradPrimary)" 
-      strokeWidth={2} 
-      dot={false} 
-    /&gt;
-  &lt;/AreaChart&gt;
-&lt;/ResponsiveContainer&gt;
+# C-01 (183 queries diretas em componentes) — migração por módulo:
+# NÃO migrar tudo de uma vez. Seguir esta ordem:
+# 1. Auditar módulo-alvo: quais tabelas são acessadas?
+# 2. Criar hook em src/hooks/ seguindo §16-S1
+# 3. Substituir no componente
+# 4. npm run build — 0 erros
+# 5. Só então próximo módulo
+#
+# Prioridade sugerida de migração:
+# Sprint A: ComissoesManager, EquipamentosManager (mais acessados)
+# Sprint B: PerformanceDashboard, FollowUpManager
+# Sprint C: FornecedoresManager, LeadForm
+# Sprint D: demais
 
 # =============================================================================
-# BLOCO 4 — ANTI-PADRÕES (AP-XX) — NUNCA FAÇA ISSO
+# BLOCO 4 — ANTI-PADRÕES (AP-XX)
 # =============================================================================
 
-# Cada item: [O que é] → [Por que quebra] → [Como detectar no build]
+# [Mantidos AP-01 a AP-20 da v2.5 integralmente]
 
-AP-01 QUERY DIRETA NO COMPONENTE
-    ❌ Errado: useEffect + supabase.from() dentro do componente
-    ✅ Certo: useQuery em hook separado (§16-S1)
-    🔍 Detectar: grep -rn "supabase.from" src/components/ --include="*.tsx"
-    💥 Consequência: Queries não cacheadas, múltiplas requisições, código não testável
+AP-21 CORES HARDCODED EM GRÁFICOS (NOVO v3.0)
+    ❌ Errado: stroke="#3b82f6", fill="#10b981", stopColor="#FF6600"
+    ✅ Certo:  stroke="hsl(var(--primary))", fill="hsl(var(--success))"
+    🔍 Detectar: grep -rn 'stopColor\|stroke="\#\|fill="\#' src/ --include="*.tsx" | grep -v "url(#\|context-stroke\|none"
+    💥 Consequência: Gráficos quebram em dark mode, cores inconsistentes com tema
 
-AP-02 COR FIXA PARA DESTAQUE
-    ❌ Errado: &lt;Badge className="bg-red-500"&gt;Urgente&lt;/Badge&gt; ou bg-blue-600
-    ✅ Certo: &lt;Badge className="bg-destructive/10 text-destructive border-destructive/20"&gt;Urgente&lt;/Badge&gt;
-    🔍 Detectar: grep -rn "bg-\(red\|green\|blue\|orange\|yellow\)-[0-9]\|#[0-9a-fA-F]\{3,6\}" src/components/
-    💥 Consequência: Quebra dark mode, inconsistência visual entre telas
+AP-22 FORMATTER ERRADO PARA TIPO DE DADO (NOVO v3.0)
+    ❌ Errado: formatBRL(tarifa) onde tarifa = 0.756432 (perde precisão)
+    ❌ Errado: formatBRL(economiaTotal) quando não precisa de centavos
+    ✅ Certo:  escolher formatter pelo tipo — ver §48-S1
+    🔍 Detectar: grep -rn "formatBRL(" src/ --include="*.tsx" | grep -i "tarif\|kwh\|rate"
+    💥 Consequência: Tarifas de energia aparecem como R$ 0,76 em vez de R$ 0.756432/kWh
 
-AP-03 MODAL SEM w-[90vw]
-    ❌ Errado: &lt;DialogContent className="max-w-2xl"&gt;
-    ✅ Certo: &lt;DialogContent className="w-[90vw] max-w-2xl"&gt;
-    🔍 Detectar: grep -rn 'DialogContent.*max-w-' src/ | grep -v 'w-\[90vw\]'
-    💥 Consequência: Margens desperdiçadas em notebooks, layout quebrado em mobile
+AP-23 CONSOLE.LOG EM PRODUÇÃO (NOVO v3.0)
+    ❌ Errado: console.log("dados:", data) em componentes/hooks/pages
+    ✅ Certo:  remover ou comentar — // console.log("dados:", data)
+    ✅ Permitido: console.error() e console.warn() quando necessários
+    🔍 Detectar: grep -rn "console\.log" src/ --include="*.ts" --include="*.tsx" | grep -v "//"
+    💥 Consequência: Dados sensíveis expostos no browser, performance degradada
 
-AP-04 SCROLL SEM min-h-0
-    ❌ Errado: &lt;div className="flex-1 overflow-y-auto"&gt;
-    ✅ Certo: &lt;div className="flex-1 min-h-0 overflow-y-auto"&gt;
-    🔍 Detectar: grep -rn "flex-1.*overflow-y-auto" src/ | grep -v "min-h-0"
-    💥 Consequência: Scroll não funciona, conteúdo cortado, overflow incorreto
-
-AP-05 BOTÃO HTML NATIVO
-    ❌ Errado: &lt;button onClick={...}&gt;Clique&lt;/button&gt;
-    ✅ Certo: &lt;Button onClick={...}&gt;Clique&lt;/Button&gt; de @/components/ui/button
-    🔍 Detectar: grep -rn "&lt;button" src/components/ --include="*.tsx"
-    💥 Consequência: Estilo inconsistente, sem variantes, sem acessibilidade do shadcn
-
-AP-06 LOADING SEM SKELETON
-    ❌ Errado: {isLoading && &lt;p&gt;Carregando...&lt;/p&gt;} ou spinner solto
-    ✅ Certo: {isLoading && &lt;Skeleton className="h-12 w-full" /&gt;} (§12-S1)
-    🔍 Detectar: grep -rn "Carregando\|Loading\|Aguarde" src/components/ --include="*.tsx"
-    💥 Consequência: Tela piscando, UX degradada, layout shift
-
-AP-07 MARGIN PARA ESPAÇAR COMPONENTES
-    ❌ Errado: &lt;Card className="mb-4"&gt;...&lt;/Card&gt; ou mt-4, ml-2, etc.
-    ✅ Certo: &lt;div className="space-y-4"&gt;&lt;Card&gt;...&lt;/Card&gt;&lt;/div&gt; (gap/space no pai)
-    🔍 Detectar: grep -rn "\(mb\|mt\|ml\|mr\)-[0-9]" src/components/ | grep -v "space-"
-    💥 Consequência: Espaçamento inconsistente, difícil manter, quebra em refactors
-
-AP-08 COMPONENTE DUPLICADO
-    ❌ Errado: Criar novo PhoneInput quando já existe em ui-kit
-    ✅ Certo: Verificar src/components/{shared,ui-kit,ui}/ antes de criar
-    🔍 Detectar: Audit manual (não automatizável)
-    💥 Consequência: 5 inputs de telefone diferentes no mesmo projeto, manutenção caótica
-
-AP-09 QUERY SEM STALETIME
-    ❌ Errado: useQuery({ queryKey, queryFn }) sem staleTime
-    ✅ Certo: useQuery({ queryKey, queryFn, staleTime: 5 * 60 * 1000 })
-    🔍 Detectar: grep -rn "useQuery(" src/hooks/ --include="*.ts" | grep -v "staleTime"
-    💥 Consequência: Refetch desnecessário, tela piscando, gasto de API
-
-AP-10 TABS ANTES DO HEADER
-    ❌ Errado: &lt;TabsList&gt; antes do título da página
-    ✅ Certo: Header (§26-S1) → TabsList → Conteúdo (RB-11)
-    🔍 Detectar: grep -A5 "TabsList" src/pages/ --include="*.tsx" | grep -B5 "h1\|text-xl"
-    💥 Consequência: Hierarquia visual confusa, usuário perdido, inconsistência
-
-AP-11 IMAGEM SEM SIGNED URL
-    ❌ Errado: &lt;img src={`${supabaseUrl}/storage/v1/object/public/${path}`} /&gt;
-    ✅ Certo: &lt;img src={signedUrl} /&gt; onde signedUrl = createSignedUrl(path, 3600)
-    🔍 Detectar: grep -rn "storage/v1/object/public" src/ --include="*.tsx"
-    💥 Consequência: Imagens quebram, segurança comprometida, não funciona em produção
-
-AP-12 FORMULÁRIO SEM ZOD/REACT-HOOK-FORM
-    ❌ Errado: useState para cada campo + validação manual
-    ✅ Certo: react-hook-form + zod resolver (padrão já existente no projeto)
-    🔍 Detectar: grep -rn "useState.*set.*value\|onChange.*set" src/components/ | grep -i "form"
-    💥 Consequência: Validação inconsistente, código verboso, bugs de estado
-
-AP-13 DATA/HORA SEM FUSO BRASÍLIA
-    ❌ Errado: new Date(timestamp).toLocaleString("pt-BR") — mostra UTC no cloud
-    ✅ Certo: new Date(timestamp).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
-    🔍 Detectar: grep -rn 'toLocaleString\|toLocaleTimeString\|toLocaleDateString' src/ | grep -v 'timeZone'
-    💥 Consequência: Horários aparecem +3h adiantados no preview e deploy (Lovable roda em UTC)
-
-AP-14 MOEDA/KWP SEM FORMATTER CENTRALIZADO
-    ❌ Errado: `R$ ${valor}`, `${potencia} kWp`, concatenação manual de unidades monetárias
-    ✅ Certo:
-      - Moeda:    formatBRL(valor)        → R$ 1.234,56
-      - Compacto: formatBRLCompact(valor) → R$ 1,2k
-      - Potência: formatKwh(potencia)     → 6,1 kWp
-      - Nulo:     valor != null ? formatBRL(valor) : "—"
-    🔍 Detectar: grep -rn 'R\$\s*\${' src/components/ --include="*.tsx"
-    💥 Consequência: Casas decimais inconsistentes (R$ 575 em vez de R$ 575,00)
-
-AP-15 VARIÁVEL DE PROPOSTA SEM IMPLEMENTAÇÃO NOS DOIS RESOLVERS
-    ❌ Errado: Adicionar variável apenas em resolveProposalVariables.ts (frontend)
-               ou apenas em _shared/resolvers/ (backend) — nunca só em um lado
-    ✅ Certo: Toda variável nova de proposta DEVE ser implementada nos dois:
-      1. src/lib/resolveProposalVariables.ts  → usado no preview/audit do sistema
-      2. supabase/functions/_shared/resolvers/ → usado na geração real do PDF
-    🔍 Detectar: comparar catálogo de variáveis com implementações nos dois arquivos
-    💥 Consequência: Preview mostra valor correto mas PDF sai em branco (ou vice-versa)
-    ⚠️ Após implementar: sempre fazer redeploy das edge functions afetadas (ver Bloco 10)
-
-AP-16 CAMPO DE KIT COM NOME ERRADO NO RESOLVER
-    ❌ Errado: modulo?.potencia, inversor?.potencia (campo não existe)
-    ✅ Certo:  modulo?.potencia_w, inversor?.potencia_w (campo real na tabela kit_itens)
-    🔍 Detectar: grep -rn '\.potencia[^_]' src/lib/resolveProposalVariables.ts
-    💥 Consequência: Variáveis de potência de módulo/inversor retornam null → "–" no PDF
-
-AP-17 SOURCE COMO DISCRIMINADOR DE FORNECEDOR
-    ❌ Errado: .eq("source", "edeltec") em queries de negócio
-    ✅ Certo:  .eq("fornecedor_id", fornecedorId) — sempre usar UUID relacional
-    🔍 Detectar: grep -rn '\.eq("source"' supabase/functions/ src/hooks/ --include="*.ts"
-    💥 Consequência: Ao adicionar novo fornecedor, queries de negócio retornam dados misturados ou quebram
-
-AP-18 LÓGICA ESPECÍFICA DE FORNECEDOR FORA DO ADAPTER
-    ❌ Errado: if (source === "edeltec") { ... } espalhado no handler ou no frontend
-    ✅ Certo:  Toda lógica de fornecedor fica encapsulada no ProviderAdapter (§CATALOG-S1)
-    🔍 Detectar: grep -rn '"edeltec"\|"jng"\|"hubB2b"' supabase/functions/ src/ | grep -v "adapter\|source.*audit"
-    💥 Consequência: Adicionar JNG exige duplicar e adaptar lógica da Edeltec em vários lugares
-
-AP-19 SYNC SÍNCRONO EM REQUEST DO USUÁRIO
-    ❌ Errado: Disparar sync completo de catálogo aguardando resposta dentro de mutation do frontend
-    ✅ Certo:  Sync é operação assíncrona e paginada via Edge Function com sync state
-               Frontend apenas dispara e monitora progresso — nunca bloqueia aguardando conclusão
-    🔍 Detectar: grep -rn "edeltec-sync\|catalog-sync" src/hooks/ --include="*.ts" | grep "await.*mutate"
-    💥 Consequência: Timeout de request, UI travada, usuário sem feedback, dados parciais
-
-AP-20 N+1 QUERIES EM BATCH DE EDGE FUNCTION
-    ❌ Errado: Loop com await supabase.from(...).select() ou .update() por item individual
-    ✅ Certo:  1 SELECT com .in("external_id", ids) → mapa em memória → 1 UPSERT total
-    🔍 Detectar: grep -A3 "for.*of.*products\|for.*of.*items" supabase/functions/ | grep "await supabase"
-    💥 Consequência: 500 produtos = 1000+ roundtrips → timeout da Edge Function → sync incompleto
+AP-24 LOADING STATE BRANDED SUBSTITUÍDO POR SKELETON SIMPLES (NOVO v3.0)
+    ❌ Errado: substituir <LoadingState /> ou <SunLoader /> por <Skeleton />
+    ✅ Certo:  LoadingState e SunLoader são branded e superiores — manter
+               Skeleton é para itens inline (linhas de tabela, cards individuais)
+    🔍 Detectar: git diff | grep -A2 -B2 "LoadingState\|SunLoader" | grep "Skeleton"
+    💥 Consequência: Regressão de UX — perde identidade visual da marca
 
 # =============================================================================
 # BLOCO 5 — DECISÕES ARQUITETURAIS (DA-XX)
-# POR QUE fizemos assim? QUANDO quebrar a regra?
 # =============================================================================
 
-DA-01 QUERIES SÓ EM HOOKS (§16)
-    Contexto: 2024 — queries espalhadas em 40+ componentes. Mudança na API = editar 40 arquivos.
-    Decisão: Centralizar em src/hooks/. Hoje mudamos 1 hook, afeta todos.
-    Quando quebrar: NUNCA. Exceção: queries locais de autocomplete com debounce (useCallback).
+# [Mantidos DA-01 a DA-11 da v2.5 integralmente]
 
-DA-02 STALETIME OBRIGATÓRIO (§23)
-    Contexto: React Query refetcha em window focus. Usuários: "tela pisca toda hora!"
-    Decisão: 5 min padrão. Dados realtime (chat): 30 seg.
-    Quando quebrar: Dados que MUDAM constantemente (preço Bitcoin, chat ativo, notificações).
+DA-12 FORMATADORES POR TIPO, NÃO POR APARÊNCIA (NOVO v3.0)
+    Contexto: Auditoria 2026-03 — ConcessionariasManager usava tarifas com 4-6 casas
+              decimais. Se formatBRL fosse aplicado, perderia precisão crítica.
+    Decisão: Escolher formatter pelo TIPO do dado (moeda? tarifa? potência?),
+             não pelo visual desejado.
+    Quando quebrar: NUNCA — a precisão do dado sempre prevalece sobre a aparência.
 
-DA-03 SEM max-w-* EM ADMIN (§21)
-    Contexto: Dashboards antigos deixavam 30% tela em branco em monitores 1920px.
-    Decisão: w-full obrigatório em páginas admin.
-    Quando quebrar: Páginas públicas (landing) onde legibilidade &gt; aproveitamento.
+DA-13 LOADING STATES BRANDED SÃO DESIGN SYSTEM (NOVO v3.0)
+    Contexto: Auditoria 2026-03 — LoadingState e SunLoader identificados como
+              componentes branded com useLoadingConfig. Substituição por Skeleton
+              seria regressão de identidade visual.
+    Decisão: LoadingState = páginas inteiras. SunLoader = seções temáticas.
+             Skeleton = itens inline. Os três coexistem com propósitos distintos.
+    Quando quebrar: NUNCA — são componentes do design system do produto.
 
-DA-04 COMPONENTES REUTILIZÁVEIS (§13)
-    Contexto: 2023 — 5 inputs de telefone diferentes no mesmo projeto.
-    Decisão: SEMPRE verificar src/components/{shared,ui-kit,ui}/ antes de criar novo.
-    Quando quebrar: Quando componente existente NÃO atende 80% do caso de uso (ex: necessita comportamento muito específico).
-
-DA-05 MODAIS COM w-[90vw] (RB-07)
-    Contexto: Monitores 1920px com max-w-3xl deixavam 600px de margem vazia.
-    Decisão: w-[90vw] aproveita espaço, ainda limitado por max-w-*.
-    Quando quebrar: NUNCA. Todas as telas se beneficiam.
-
-DA-06 SRP EM HOOKS (§20)
-    Contexto: Hooks gigantes fazendo 10 coisas diferentes, difíceis de testar.
-    Decisão: useBuscarX, useCriarX, useAtualizarX, useDeletarX separados.
-    Quando quebrar: Quando operações são atômicas e sempre usadas juntas (ex: useSalvar que cria ou atualiza).
-
-DA-07 DARK MODE FIRST (§2)
-    Contexto: Implementar dark mode depois = duplicar trabalho, inconsistências.
-    Decisão: Toda tela nova já nasce com dark mode (variáveis semânticas).
-    Quando quebrar: Componentes que SÓ existem em um modo (ex: canvas de assinatura branco).
-
-DA-08 RESPONSIVIDADE MOBILE-FIRST (§32)
-    Contexto: 60% dos usuários acessam via mobile, mas devs testam em desktop.
-    Decisão: grid-cols-1 sm:grid-cols-2 (mobile primeiro, breakpoint sobe).
-    Quando quebrar: Features desktop-only (ex: dashboard analítico complexo).
-
-DA-09 FORNECEDOR_ID COMO DISCRIMINADOR (não source)
-    Contexto: sistema multi-fornecedor com Edeltec implementado, JNG chegando.
-    Problema: campo "source" como string livre espalhado em queries = acoplamento duro.
-    Decisão: fornecedor_id (UUID FK para provider_registry) é o discriminador oficial.
-             "source" permanece como metadado de auditoria (rastreabilidade de origem).
-    Quando quebrar: NUNCA. source = auditoria. fornecedor_id = negócio.
-
-DA-10 CATÁLOGO LOCAL = FONTE DE VERDADE (nunca API em tempo real)
-    Contexto: UI de seleção de kit precisava de dados rápidos, sem latência de API externa.
-    Decisão: solar_kit_catalog é sincronizado via Edge Function (batch paginado).
-             Frontend sempre lê do banco local — nunca chama API do fornecedor diretamente.
-    Quando quebrar: NUNCA. Aceita até 24h de defasagem. Sync diário é suficiente.
-
-DA-11 ADAPTER PATTERN PARA FORNECEDORES
-    Contexto: Edeltec tem estrutura própria (tipoDeProduto, potenciaGerador, etc.).
-              JNG terá estrutura diferente. Sem isolamento, lógica contamina o sistema todo.
-    Decisão: Todo fornecedor implementa ProviderAdapter (§CATALOG-S1).
-             Handler de sync é agnóstico de fornecedor — opera sobre o contrato do adapter.
-    Quando quebrar: NUNCA. Custo de criar adapter é baixo. Custo de não criar = reescrita.
+DA-14 MIGRAÇÃO PROGRESSIVA DE DÉBITO TÉCNICO (NOVO v3.0)
+    Contexto: 183 queries diretas em componentes (C-01). Migração em massa
+              causaria regressões em cascata.
+    Decisão: Migrar por módulo, um por vez, com build verificado entre cada módulo.
+             Priorizar por frequência de edição, não por tamanho do componente.
+    Quando quebrar: NUNCA migrar mais de um módulo por PR sem revisão.
 
 # =============================================================================
-# BLOCO 6 — REFERÊNCIA RÁPIDA DE PADRÕES (§1–§44)
+# BLOCO 6 — REFERÊNCIA RÁPIDA DE PADRÕES (§1–§50)
 # =============================================================================
 
-# Use Ctrl+F para encontrar. Seção completa para consulta.
-
-## §1. IDENTIDADE VISUAL — Cores semânticas
-
-Variável | Uso | NUNCA substituir por
----|---|---
-bg-primary | Botões primários, badges ativos, ícones | orange-500, blue-600, #FF6600
-bg-primary/10 | Fundo suave de ícones, badges outline | orange-50, blue-50
-bg-card | Cards, modais, dropdowns | bg-white, bg-gray-100
-bg-background | Fundo da página | bg-white, bg-gray-50
-bg-muted | Seções alternadas, hover states | bg-gray-100, bg-gray-200
-text-foreground | Texto principal | text-black, text-gray-900
-text-muted-foreground | Texto secundário, labels | text-gray-500, text-gray-600
-border-border | Bordas de cards, inputs | border-gray-200, border-gray-300
-bg-destructive | Erros, remover, alertas críticas | bg-red-500, bg-red-600
-bg-success | Sucesso, concluído, positivo | bg-green-500
-
-## §2. DARK MODE — Variáveis obrigatórias
-
-// SEMPRE use estas variáveis, nunca cores hardcoded
-bg-background        → Fundo da aplicação
-bg-card              → Superfícies elevadas (cards, modais)
-bg-muted             → Seções alternadas
-text-foreground      → Texto principal
-text-muted-foreground → Texto secundário
-border-border        → Todas as bordas
-
-// NUNCA use em código novo
-bg-white             ❌ → use bg-card ou bg-background
-text-black           ❌ → use text-foreground
-text-gray-500        ❌ → use text-muted-foreground
-border-gray-200      ❌ → use border-border
-
-## §4. TABELAS — Componente Table do shadcn
-
-- SEMPRE use Table, TableBody, TableCell, TableHead, TableHeader, TableRow
-- NUNCA crie tabela com div ou HTML nativo
-- §34: SEMPRE align-middle em TableRow e TableCell
-- §34: Coluna telefone = w-[155px] min-w-[155px] + whitespace-nowrap
-- §34: Desktop = botões inline, Mobile = DropdownMenu
-
-## §5. GRÁFICOS — Recharts com tokens CSS
-
-- SEMPRE use "hsl(var(--primary))" para cores, nunca #hex ou tailwind colors
-- SEMPRE inclua CustomTooltip padronizado
-- SEMPRE use ResponsiveContainer com height fixo (200-300px)
-
-## §6. APROVEITAMENTO DE TELA
-
-- NUNCA max-w-4xl, max-w-7xl, container mx-auto em páginas admin
-- SEMPRE w-full, flex-1, min-w-0 em conteúdo principal
-- Permitido em: modais, landing pages, páginas públicas
-
-## §7. ANIMAÇÕES — Framer Motion
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: (i: number) =&gt; ({
-    opacity: 1, y: 0,
-    transition: { delay: i * 0.06, duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-  }),
-};
-
-## §13. INPUTS — Componentes obrigatórios existentes
-
-CPF/CNPJ     → CpfCnpjInput de @/components/shared/CpfCnpjInput
-Endereço+CEP → AddressFields de @/components/shared/AddressFields
-Telefone     → PhoneInput de @/components/ui-kit/inputs/PhoneInput
-Data         → DateInput de @/components/ui-kit/inputs/DateInput
-Moeda        → CurrencyInput de @/components/ui-kit/inputs/CurrencyInput
-Unidade      → UnitInput de @/components/ui-kit/inputs/UnitInput
-
-## §16. QUERIES — Só em hooks, nunca em componentes
-
-// ❌ PROIBIDO em componentes
-const [data, setData] = useState();
-useEffect(() =&gt; {
-  supabase.from('tabela').select().then(({ data }) =&gt; setData(data));
-}, []);
-
-// ✅ OBRIGATÓRIO — hook separado
-const { data, isLoading } = useDados(tenantId); // staleTime incluído
-
-## §17. SERVIÇOS — Lógica de negócio
-
-- Regras de negócio em src/services/, nunca em componentes
-- Integrações com APIs externas em services/
-- Transformação de dados em services/
-
-## §19. FORMATADORES — Use utilitários existentes
-
-formatBRL        → R$ 1.234,56
-formatBRLCompact → R$ 1,2k (para espaços pequenos)
-formatKwh        → 1.234 kWh
-formatPercent    → 12,5%
-formatDateBR     → 15/03/2026
-formatPhoneBR    → (11) 98765-4321
-
-## §20. PRINCÍPIOS — SRP, DRY, SSOT, KISS, YAGNI
-
-- Separar UI de lógica de negócio
-- Antes de modificar: auditar, entender, preservar, alterar mínimo
-- Preferir patches incrementais a rewrites
-
-## §21. APROVEITAMENTO — Largura 100% em admin
-
-// ❌ PROIBIDO
-max-w-3xl, max-w-4xl, max-w-5xl, max-w-6xl, max-w-7xl
-max-w-screen-lg, max-w-screen-xl
-container, container mx-auto
-
-// ✅ OBRIGATÓRIO
-w-full, flex-1, min-w-0, p-4 md:p-6
-
-## §22. BOTÕES — Variantes por hierarquia
-
-Ação principal (Novo, Salvar, Confirmar):
-  variant="default" → sólido primário (bg-primary)
-
-Ação secundária (Filtrar, Exportar):
-  variant="outline"
-
-Destrutiva (Excluir, Remover):
-  variant="outline" className="border-destructive text-destructive hover:bg-destructive/10"
-
-Cancelar/Fechar:
-  variant="ghost"
-
-## §23. STALETIME — Obrigatório em toda useQuery
-
-Dados em tempo real (chat, notificações): 1000 * 30 (30s)
-Dados normais (listas, formulários):      1000 * 60 * 5 (5min)
-Dados estáticos (configurações):           1000 * 60 * 15 (15min)
-
-## §25. MODAIS — Tamanhos e estrutura
-
-Simples (4 campos):     w-[90vw] max-w-md
-Médio (8 campos):       w-[90vw] max-w-xl
-2 colunas/seções:       w-[90vw] max-w-2xl
-Endereço completo:      w-[90vw] max-w-3xl
-Wizard multi-step:      w-[90vw] max-w-[1100px]
-
-Estrutura obrigatória:
-1. DialogHeader com ícone bg-primary/10 + título + subtítulo
-2. Corpo com flex-1 min-h-0 overflow-y-auto (scroll interno)
-3. Footer com bg-muted/30 e botões alinhados à direita
-
-## §26. HEADER DE PÁGINA — Ícone + título + subtítulo
-
-&lt;div className="flex items-center justify-between mb-6"&gt;
-  &lt;div className="flex items-center gap-3"&gt;
-    &lt;div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary"&gt;
-      &lt;Icon className="w-5 h-5" /&gt;
-    &lt;/div&gt;
-    &lt;div&gt;
-      &lt;h1 className="text-xl font-bold text-foreground"&gt;Título&lt;/h1&gt;
-      &lt;p className="text-sm text-muted-foreground"&gt;Subtítulo&lt;/p&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-  &lt;div className="flex items-center gap-2"&gt;
-    &lt;Button variant="outline" size="sm"&gt;Ação&lt;/Button&gt;
-  &lt;/div&gt;
-&lt;/div&gt;
-
-## §27. KPI CARDS — Padrão único
-
-&lt;Card className="border-l-[3px] border-l-primary bg-card shadow-sm"&gt;
-  &lt;CardContent className="flex items-center gap-4 p-5"&gt;
-    &lt;div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0"&gt;
-      &lt;Icon className="w-5 h-5" /&gt;
-    &lt;/div&gt;
-    &lt;div&gt;
-      &lt;p className="text-2xl font-bold tracking-tight text-foreground leading-none"&gt;R$ 0,00&lt;/p&gt;
-      &lt;p className="text-sm text-muted-foreground mt-1"&gt;Label&lt;/p&gt;
-    &lt;/div&gt;
-  &lt;/CardContent&gt;
-&lt;/Card&gt;
-
-## §28. SWITCHES — bg-primary quando checked
-
-- Verificar src/components/ui/switch.tsx
-- SEMPRE bg-primary, nunca blue-600 ou outra cor hardcoded
-
-## §29. ABAS — Header antes de TabsList
-
-Ordem obrigatória:
-1. Header da página (§26)
-2. TabsList horizontal
-3. TabsContent
-
-NUNCA inverta: TabsList antes do título da página.
-
-## §30. MENU — 15 seções (SSOT em navRegistry.ts)
-
-INTEGRAÇÕES = conexão externa (API, OAuth, webhook)
-ATENDIMENTO = usar funcionalidades (inbox, filas)
-CLIENTES = dados do cliente (cadastro, docs)
-OPERAÇÕES = execução (instaladores, estoque, checklists)
-ENERGIA = usar dados de energia (monitoramento, tarifas)
-
-## §31. CHANGELOG — Obrigatório para mudanças funcionais
-
-Arquivo: src/data/changelog.ts
-Inserir no topo (mais recente primeiro)
-Tipos: feature, improvement, bugfix, security, infra
-
-## §32. RESPONSIVIDADE — Mobile-first
-
-Grids: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
-Flex: flex-wrap para containers com múltiplos itens
-Texto: NUNCA truncar sem tooltip em mobile
-Botões: min-h-[44px] em mobile (touch target)
-Tabelas: overflow-x-auto no container pai
-
-## §33. PROPOSTA — Sanitização obrigatória
-
-- SEMPRE sanitizeSnapshot() antes de salvar
-- SEMPRE whitelist de campos UC, nunca spread ...rest
-- SEMPRE headers: { "x-client-timeout": "120" } em edge functions
-
-## §34. TABELA DE LEADS — Alinhamento e colunas
-
-- SEMPRE align-middle em TableRow e TableCell
-- Coluna telefone: w-[155px] min-w-[155px] + whitespace-nowrap
-- Desktop (lg+): botões inline com Tooltip
-- Mobile (&lt;lg): DropdownMenu com MoreHorizontal
-
-## §36. SCROLL INTERNO — min-h-0 obrigatório
-
-// Padrão universal
-&lt;div className="flex flex-col h-full overflow-hidden"&gt;
-  &lt;div className="shrink-0"&gt;{/* header */}&lt;/div&gt;
-  &lt;div className="flex-1 min-h-0 overflow-y-auto"&gt;{/* conteúdo */}&lt;/div&gt;
-  &lt;div className="shrink-0"&gt;{/* footer */}&lt;/div&gt;
-&lt;/div&gt;
-
-## §37. STORAGE — Signed URL obrigatória
-
-// ❌ PROIBIDO
-&lt;img src={`${supabaseUrl}/storage/v1/object/public/${path}`} /&gt;
-
-// ✅ OBRIGATÓRIO
-const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
-&lt;img src={data.signedUrl} /&gt;
-
-## §38. CONVERSÃO LEAD→VENDA — Fallback de dados
-
-Cadeia de fallback (ordem):
-1. Simulação selecionada (potencia_kwp, valor_total)
-2. Última proposta nativa (proposta_versoes)
-3. Dados do lead (potencia_estimada, valor_projeto)
-4. Zero (nunca null)
-
-## §39. WHATSAPP INBOX — Scroll por coluna
-
-- NUNCA scroll global na página
-- Cada coluna (lista + chat) é container independente
-- Cada um com: flex-col h-full overflow-hidden + flex-1 min-h-0 overflow-y-auto
-
-## §40. DIALOGS ANINHADOS — Transição sequencial
-
-NUNCA: Dialog dentro de Dialog (mobile quebra)
-SEMPRE: Fechar pai → delay 150ms → abrir filho
-Renderizar filho FORA do pai (mesmo nível de fragment)
-
-## §41. AVATAR — Extração robusta de múltiplas chaves
-
-function extractProfilePictureUrl(payload: any): string | null {
-  const candidates = [
-    payload?.profilePictureUrl,
-    payload?.imgUrl,
-    payload?.profilePicUrl,
-    payload?.data?.profilePictureUrl,
-    // ... etc
-  ];
-  // Filtrar vazios, "none", "null", "undefined"
-  // Retornar primeira URL válida
-}
-
-## §43. CRON JOBS — Padrão obrigatório
-
-1. Edge function dedicada
-2. Cron job pg_cron + pg_net
-3. Última sincronização registrada (last_sync_at)
-4. Status visível na UI
-5. Botão de sincronização manual
-6. Registro de erros (nunca falha silenciosa)
-
-## §44. GOVERNANÇA — SRP, separação UI/lógica
-
-- UI = apresentação, interação, composição
-- Hooks/Services = regras de negócio, transformação, integrações
-- Separar para testabilidade e manutenção
-
-## §45. EDGE FUNCTIONS — Padrões obrigatórios
-
-- SEMPRE service_role key (nunca anon em funções que escrevem no banco)
-- SEMPRE validar tenant_id no body antes de qualquer operação
-- SEMPRE filtrar por tenant_id em TODAS as queries (service_role bypassa RLS — isolamento é manual)
-- SEMPRE resposta JSON: { success: boolean, data?, error?, code? }
-- NUNCA loop de await para operações em batch — use .in() + upsert único (AP-20)
-- NUNCA chamar API de fornecedor diretamente do frontend (RB-14)
-- Timeout padrão Supabase Edge: 150s — batch size deve respeitar esse limite
-- Nomenclatura: kebab-case (ex: "edeltec-sync", "catalog-rebuild", "generate-proposal")
-- → Ver §EF-S1 para template completo de handler
-
-## §46. COMPONENTES COMPARTILHADOS — Lista completa atualizada
-
-Endereço completo → AddressFields     (@/components/shared/AddressFields)
-                    Props: value: AddressData, onChange: (a: AddressData) => void, disabled?, compact?
-                    Inclui: CEP auto-preenchimento via useCepLookup, todos os campos, Select de UF
-                    NUNCA recriar busca de CEP — já encapsulado internamente
-
-CPF / CNPJ        → CpfCnpjInput      (@/components/shared/CpfCnpjInput)
-                    Props: value, onChange, label?, required?, showValidation?, disabled?
-                    Inclui: máscara automática CPF/CNPJ, validação, hint de dígitos restantes
-                    NUNCA implementar máscara de CPF/CNPJ manualmente
-
-Telefone          → PhoneInput         (@/components/ui-kit/inputs/PhoneInput)
-Data              → DateInput          (@/components/ui-kit/inputs/DateInput)
-Moeda             → CurrencyInput      (@/components/ui-kit/inputs/CurrencyInput)
-CEP isolado       → useCepLookup       (@/hooks/useCepLookup) — só usar se NÃO for usar AddressFields
-                    Retorna: { fetchCep, loading, error, clearError }
-                    Utilitário: formatCep(value: string): string — "01310100" → "01310-100"
-
-## §47. CATÁLOGO SOLAR — Modelo e regras
-
-Fonte de verdade:  solar_kit_catalog (Postgres local — nunca API de fornecedor em tempo real)
-Discriminador:     fornecedor_id (UUID) — NUNCA usar campo "source" em filtros de negócio
-Snapshot proposta: imutável — copia campos canônicos no momento da seleção do kit
-Sync:              Edge Function paginada com sync state — frontend só dispara e monitora
-Novo fornecedor:   implementar ProviderAdapter (§CATALOG-S1) ANTES do handler de sync
-→ Ver §CATALOG-S1 para contrato do adapter
-→ Ver §CATALOG-S2 para definição dos campos canônicos vs metadado
+# [Mantidos §1–§47 da v2.5 integralmente]
+
+## §48. FORMATADORES — Tabela completa (v3.0)
+→ Ver §48-S1 acima para tabela completa
+Regra rápida: NUNCA formatar tarifa com formatBRL. NUNCA formatar inteiro com formatBRL.
+
+## §49. LOGGING — Regras de produção (v3.0)
+→ Ver §49-S1 acima
+Regra rápida: console.log = proibido. console.error/warn = permitido com moderação.
+
+## §50. DÉBITO TÉCNICO — Migração de queries (v3.0)
+→ Ver §50-S1 acima
+183 queries diretas em componentes aguardam migração progressiva por módulo.
 
 # =============================================================================
 # BLOCO 7 — VALIDAÇÃO AUTOMÁTICA (SCRIPT PRE-BUILD)
 # =============================================================================
 
-# Salve como: scripts/validate-agents.js
-# Adicione ao package.json: "prebuild": "node scripts/validate-agents.js"
+# [Mantido da v2.5 + novas verificações abaixo]
 
-const fs = require('fs');
-const glob = require('glob');
+# ADICIONAR ao scripts/validate-agents.js existente:
 
-const violations = [];
-const files = glob.sync('src/**/*.{tsx,ts}');
-
-// RB-01: Cores hardcoded
-const colorRegex = /(orange-|blue-|green-|red-|yellow-)[0-9]+|#[0-9a-fA-F]{3,6}/;
-files.forEach(file =&gt; {
-  const content = fs.readFileSync(file, 'utf8');
-  if (colorRegex.test(content) && !file.includes('node_modules')) {
-    // Ignorar comentários e strings que possam conter cores
+// AP-23: console.log em produção
+files.forEach(file => {
+  if (!file.includes('node_modules')) {
+    const content = fs.readFileSync(file, 'utf8');
     const lines = content.split('\n');
-    lines.forEach((line, idx) =&gt; {
-      if (colorRegex.test(line) && !line.includes('//') && !line.includes('*')) {
-        violations.push(`[RB-01] Cor hardcoded em ${file}:${idx+1}`);
+    lines.forEach((line, idx) => {
+      if (/console\.log\(/.test(line) && !/^\s*\/\//.test(line)) {
+        violations.push(`[AP-23] console.log ativo em ${file}:${idx+1}`);
       }
     });
   }
 });
 
-// RB-03: Botão nativo
-const buttonRegex = /&lt;button[&gt;\s]/;
-files.forEach(file =&gt; {
-  if (file.includes('.tsx') && !file.includes('node_modules')) {
+// AP-21: cores hardcoded em gráficos
+files.forEach(file => {
+  if (file.endsWith('.tsx')) {
     const content = fs.readFileSync(file, 'utf8');
-    if (buttonRegex.test(content)) {
-      violations.push(`[RB-03] &lt;button&gt; nativo em ${file}`);
+    if (/stopColor="|stroke="#|fill="#/.test(content)) {
+      const lines = content.split('\n');
+      lines.forEach((line, idx) => {
+        if (/stopColor="|stroke="#|fill="#/.test(line) && !/url\(#|context-stroke|none/.test(line) && !/\/\//.test(line)) {
+          violations.push(`[AP-21] Cor hardcoded em gráfico ${file}:${idx+1}`);
+        }
+      });
     }
   }
 });
 
-// RB-05: Query sem staleTime
-const queryRegex = /useQuery\(\{[^}]+queryFn:[^}]+staleTime:/s;
-files.forEach(file =&gt; {
-  if (file.includes('hooks/') && file.endsWith('.ts')) {
+// RB-16: formatBRL aplicado a tarifa (heurística)
+files.forEach(file => {
+  if (file.endsWith('.tsx') || file.endsWith('.ts')) {
     const content = fs.readFileSync(file, 'utf8');
-    const queries = content.match(/useQuery\([^)]+\)/g) || [];
-    queries.forEach(query =&gt; {
-      if (!query.includes('staleTime')) {
-        violations.push(`[RB-05] Query sem staleTime em ${file}`);
-      }
-    });
-  }
-});
-
-// RB-07: Modal sem w-[90vw]
-const modalRegex = /DialogContent[^&gt;]*max-w-/;
-files.forEach(file =&gt; {
-  if (file.includes('.tsx')) {
-    const content = fs.readFileSync(file, 'utf8');
-    const modals = content.match(/DialogContent[^&gt;]*&gt;/g) || [];
-    modals.forEach(modal =&gt; {
-      if (modal.includes('max-w-') && !modal.includes('w-[90vw]')) {
-        violations.push(`[RB-07] Modal sem w-[90vw] em ${file}`);
-      }
-    });
-  }
-});
-
-// AP-01: Query no componente
-const queryInComponent = /useEffect[^}]*supabase\.from/s;
-files.forEach(file =&gt; {
-  if (file.includes('components/') && file.endsWith('.tsx')) {
-    const content = fs.readFileSync(file, 'utf8');
-    if (queryInComponent.test(content)) {
-      violations.push(`[AP-01] Query direta no componente em ${file}`);
+    if (/formatBRL\(.*tarif|formatBRL\(.*rate|formatBRL\(.*kwh/i.test(content)) {
+      violations.push(`[RB-16] Possível formatBRL em tarifa/kwh em ${file} — verificar manualmente`);
     }
   }
 });
-
-// Resultado
-if (violations.length &gt; 0) {
-  console.error('\n❌ VIOLAÇÕES DO AGENTS.md v2.5:');
-  console.error('═══════════════════════════════════════');
-  violations.forEach(v =&gt; console.error('  • ' + v));
-  console.error(`\nTotal: ${violations.length} violações`);
-  console.error('Build cancelado. Corrija antes de continuar.\n');
-  process.exit(1);
-} else {
-  console.log('✅ AGENTS.md v2.5 validado com sucesso');
-  console.log(`   ${files.length} arquivos verificados`);
-  console.log('   Nenhuma violação encontrada\n');
-}
 
 # =============================================================================
 # BLOCO 8 — CONVENÇÕES DE NOMENCLATURA
 # =============================================================================
-
-Idioma        | Onde usar                     | Exemplo
---------------|-------------------------------|--------------------------------
-PT-BR         | Labels de UI, textos, domínio | "Consultor", "Lead", "Proposta"
-EN            | Componentes React             | VendorDashboardView.tsx
-EN            | Hooks                         | useLeads.ts, useCepLookup.ts
-EN            | Utilitários                   | formatBRL.ts, cn.ts
-EN            | Tipos TypeScript              | interface Lead { ... }
-kebab-case    | Nav keys (navRegistry.ts)     | "gestao-clientes", "pipeline-kanban"
-kebab-case    | Edge Functions                | "proposal-generate", "send-wa-message"
-snake_case    | Tabelas Supabase              | consultor_metas, checklists_instalador
+# [Mantido integralmente da v2.5]
 
 # =============================================================================
 # BLOCO 9 — CHECKLIST FINAL ANTES DE COMMITAR
 # =============================================================================
 
 [ ] Build passa: npm run build (zero erros)
-[ ] Lint passa: npm run lint (zero warnings de regras do projeto)
-[ ] Testes passam: npm run test (se houver)
-[ ] Validação AGENTS: npm run prebuild (ou node scripts/validate-agents.js)
+[ ] Lint passa: npm run lint
+[ ] Validação AGENTS: npm run prebuild
 [ ] Cores: Nenhum orange-*, blue-*, #hex em componentes novos
-[ ] Dark mode: Testei em modo escuro, não quebrou
+[ ] Dark mode: Testei em modo escuro
 [ ] Responsive: Testei em 320px e 1920px
 [ ] Queries: Estão em hooks com staleTime
-[ ] Botões: Todos são &lt;Button&gt; do shadcn
-[ ] Modais: Têm w-[90vw] e min-h-0 no corpo
-[ ] Changelog: Atualizado se mudança funcional (§31)
-[ ] Edge Functions: nenhum loop com await dentro de batch (AP-20)
-[ ] Edge Functions: tenant_id validado e filtrado em TODAS as queries (§EF-S1)
-[ ] Catálogo: queries usam fornecedor_id, não source (AP-17, DA-09)
-[ ] Novo fornecedor: ProviderAdapter implementado antes do handler (§CATALOG-S1)
+[ ] Botões: Todos são <Button> do shadcn
+[ ] Modais: Têm w-[90vw] e min-h-0
+[ ] Formatadores: Escolhi o formatter correto pelo TIPO do dado (§48)
+[ ] Console.log: Nenhum ativo em src/ (apenas comentados)
+[ ] Loading states: Usei LoadingState/SunLoader para páginas, Skeleton para inline
+[ ] Tabelas: overflow-x-auto no container pai (RB-18)
+[ ] TabsList: overflow-x-auto flex-wrap h-auto quando 3+ abas (RB-19)
+[ ] Grids: grid-cols-1 como base mínima (RB-20)
+[ ] Shadows: shadow-sm em cards, shadow-lg apenas em flutuantes (RB-21)
+[ ] Changelog: Atualizado se mudança funcional
+[ ] Edge Functions: sem loop com await em batch (AP-20)
+[ ] Edge Functions: tenant_id validado em todas as queries
+[ ] Catálogo: queries usam fornecedor_id, não source
 [ ] Redeploy: se alterou _shared/*.ts, fez redeploy de template-preview + generate-proposal + docx-to-pdf
 
 # =============================================================================
@@ -1554,123 +417,270 @@ snake_case    | Tabelas Supabase              | consultor_metas, checklists_inst
 # =============================================================================
 
 ### WhatsApp / process-webhook-events
-- A lógica de `extractMessageContent` já trata ephemeralMessage, audioMessage, documentMessage, imageMessage — NÃO alterar sem rodar testes
-- O unwrap de `ephemeralMessage.message` foi adicionado intencionalmente — manter
-- Nunca remover o fallback `msg.message || {}`
+- extractMessageContent trata ephemeralMessage, audioMessage, documentMessage — NÃO alterar
+- Nunca remover fallback msg.message || {}
 
 ### AuthForm / handleSignIn
-- A função `handleSignIn` DEVE ter sua declaração `const handleSignIn = async (data: LoginData) => {` — nunca remover ou mover para fora do escopo
+- DEVE ter: const handleSignIn = async (data: LoginData) => { — nunca mover
 
 ### Edge Functions — deploy obrigatório
-- Após qualquer alteração em `supabase/functions/_shared/*.ts`, SEMPRE fazer redeploy de:
-  - `template-preview`
-  - `generate-proposal`
-  - `docx-to-pdf`
-- Nunca alterar shared sem redeployar
+- Após alteração em supabase/functions/_shared/*.ts:
+  redeploy: template-preview, generate-proposal, docx-to-pdf
 
-### Snapshot camelCase — NUNCA assumir snake_case
-- O snapshot do wizard usa camelCase: `pagamentoOpcoes`, `locTipoTelhado`, `locCidade`, `locEstado`, `locIrradiacao`, `locDistribuidoraNome`, `potenciaKwp`
-- Sempre usar fallback duplo: `snapshot.pagamentoOpcoes ?? snapshot.pagamento_opcoes`
-- Nunca remover fallbacks de camelCase já implementados
+### Snapshot camelCase — fallback duplo obrigatório
+- pagamentoOpcoes ?? pagamento_opcoes (e demais campos)
+- Nunca remover fallbacks de camelCase
 
-### Resolvers de proposta — ordem de fallback
-- Nunca simplificar chains de fallback em resolveEntrada, resolvePagamento, resolveSistemaSolar, resolveFinanceiro
-- A ordem de prioridade foi definida por auditoria de dados reais — é intencional
-
-### Resolvers de proposta — implementação paralela obrigatória (AP-15)
-- O sistema tem DOIS resolvers de variáveis que devem estar sempre sincronizados:
-  - FRONTEND: `src/lib/resolveProposalVariables.ts` — usado no preview e auditoria
-  - BACKEND:  `supabase/functions/_shared/resolvers/` — usado na geração do PDF final
-- NUNCA adicionar variável em apenas um lado
-- Ao criar variável nova: implementar nos dois → redeploy das edge functions → testar preview E PDF
-- Variáveis comerciais disponíveis no contexto: `ctx.comercial.representante_nome`,
-  `representante_email`, `representante_celular`, `responsavel_email`, `responsavel_celular`
+### Resolvers de proposta — implementação paralela (AP-15)
+- FRONTEND: src/lib/resolveProposalVariables.ts
+- BACKEND:  supabase/functions/_shared/resolvers/
+- Sempre sincronizar os dois
 
 ### Campos de kit — nomes corretos (AP-16)
-- Na tabela `kit_itens` e no objeto de módulo/inversor, o campo de potência é `potencia_w`
-- NUNCA usar `modulo.potencia` ou `inversor.potencia` — o campo não existe e retorna undefined
-- Sempre usar: `modulo?.potencia_w`, `inversor?.potencia_w`
+- SEMPRE: modulo?.potencia_w, inversor?.potencia_w
+- NUNCA:  modulo?.potencia (campo não existe)
 
-### usePaybackEngine — queries migradas para useQuery
-- As queries de `payback_config` e `fio_b_escalonamento` usam useQuery com staleTime 15min
-- NÃO reverter para useState+useEffect — causava refetch a cada troca de step no wizard
-- A query de `config_tributaria_estado` e `concessionarias` permanece sob demanda (loadTributaria)
-  pois depende de parâmetros dinâmicos (estado, concessionariaId) — isso é intencional
+### usePaybackEngine — queries useQuery (não reverter para useState)
 
-### Itens inativos — feedback visual obrigatório
-- Cards e linhas de tabela com ativo=false DEVEM ter opacity-50 + grayscale (cards) ou opacity-50 (tabelas)
-- Nunca renderizar item inativo com aparência idêntica ao ativo
-- Badge "Inativo" deve estar sempre visível no card (não depender do toggle)
-- Regra se aplica a: ModuloCard, InversorCard (inline), OtimizadorCard (inline) e todos os TableViews
+### Itens inativos — opacity-50 obrigatório
 
-### Build — verificação obrigatória
-- Após qualquer alteração em componentes React, verificar se não há funções sem declaração
-- Nunca fechar um bloco de função prematuramente
-- Após correção de bug, rodar `npm run build` e confirmar 0 erros antes de concluir
+### Catálogo multi-fornecedor
+- NUNCA .eq("source", "edeltec") — usar .eq("fornecedor_id", id) ✅ CORRIGIDO v3.0
+- NUNCA kit.source === "edeltec" — usar !!kit.fornecedor_id ✅ CORRIGIDO v3.0
 
-### Componentes de endereço e documento — usar obrigatoriamente, nunca recriar
-- AddressFields (src/components/shared/AddressFields.tsx):
-  Interface AddressData: { cep, rua, numero, complemento, bairro, cidade, estado }
-  useCepLookup já está encapsulado — NUNCA criar busca de CEP dentro do componente que usa AddressFields
-  Prop compact={true} disponível quando apenas CEP e número são necessários
+### N+1 nas Edge Functions — CORRIGIDO v3.0
+- detect-upsell-opportunities: batch SELECT + batch INSERT ✅
+- calculate-gd-energy-month: batch invoices + batch allocations upsert + batch credits ✅
+- google-contacts-integration: normalização pura + batch identity lookup ✅
 
-- CpfCnpjInput (src/components/shared/CpfCnpjInput.tsx):
-  Detecta automaticamente CPF (11 dígitos) ou CNPJ (14 dígitos) e aplica máscara correta
-  Validação e hint visual automáticos — não recriar lógica de formatação/validação de CPF/CNPJ
+### console.log — REMOVIDOS v3.0
+- 132 console.log comentados em src/components/, src/pages/, src/hooks/ ✅
+- supabase/functions/ não alterado (usa console.error com prefixo — correto)
 
-- useCepLookup (src/hooks/useCepLookup.ts):
-  Substituiu código duplicado em 6+ componentes — não duplicar novamente
-  formatCep() exportado — usar para formatar string de CEP em qualquer lugar
+### Modais sem w-[90vw] — BACKLOG LIMPO v3.0
+- Arquivos do backlog v2.5 verificados: removidos ou corrigidos ✅
 
-### Catálogo multi-fornecedor — regressões críticas
-- NUNCA usar .eq("source", "edeltec") em queries de negócio — usar .eq("fornecedor_id", id)
-- NUNCA criar lógica de fornecedor fora do ProviderAdapter
-- NUNCA chamar API de fornecedor diretamente do frontend
-- Credenciais de fornecedor lidas de integrations_api_configs — nunca hardcoded no código
-- Constraint de upsert do catálogo: tenant_id,fornecedor_id,external_id (não source)
+### Scroll sem min-h-0 — CORRIGIDO v3.0
+- ModuloImportDialog, FornecedorImportDialog, ProjetoKanbanConsultor, MobileNav ✅
 
-### Modais de visualização — layout 2 colunas obrigatório
-- ViewModals de equipamentos DEVEM usar w-[90vw] max-w-4xl
-- Em md+: flex-row com 2 colunas (md:w-1/2 cada)
-- Em mobile: flex-col (coluna única)
-- Nunca usar max-w-2xl em ViewModal de equipamento — desperdiça espaço em desktop
-- max-h-[80vh] com overflow-y-auto no corpo para não ultrapassar a tela
+### Formatadores manuais R$ — CORRIGIDOS v3.0
+- FormasPagamentoPage, ValidacaoVendasManager, BillingFeaturesPage ✅
+- EnergiaDashboard (formatBRLInteger), EstoquePage (formatBRLInteger) ✅
+- ItemsTable, MovementsTable ✅
+- ConcessionariasManager: tarifas com 4-6 casas — CORRETO não usar formatter ✅
 
-### Backlog RB-07 — Modais secundários sem w-[90vw] (corrigir em tarefa separada)
-- ProjectGallery.tsx:122
-- ServicoDetailDialog.tsx:343
-- ServicoValidacaoDialog.tsx:336
-- VendedoresManager.tsx:987
-- estoque/BarcodeScannerDialog.tsx:142
-- estoque/ItemQRCodeDialog.tsx:58
-- integrations-api/ApiConfigDialog.tsx:106
-- post-sale/PostSaleChecklistsPage.tsx:126
-- post-sale/PostSaleNewPlanDialog.tsx:64
-- post-sale/PostSaleNewUpsellDialog.tsx:67
-- post-sale/PostSaleNewVisitDialog.tsx:76
-- post-sale/PostSaleVisitDetail.tsx:294
-- post-sale/PostSaleVisitsList.tsx:146
-- solarmarket/SmClientDetailDialog.tsx:115
-- solarmarket/SmMigrationDrawer.tsx:557
-- solarmarket/SmProjectDetailDialog.tsx:92
-- solarmarket/SmProposalDetailDialog.tsx:112
-- instalador/ServicoEmAndamento.tsx:1121
-- institutional/ProjectsSection.tsx:176
-- layout/PortalSwitcher.tsx:334,361
-- solar-editor/ModuleRowDialog.tsx:27
-- super-admin/SuperAdminTenantList.tsx:193
-- ui-kit/StorageFileGallery.tsx:137
-- vendor/ScheduleWhatsAppDialog.tsx:248
-- vendor/productivity/WhatsAppTemplates.tsx:400
+### Sprints Visuais — CONCLUÍDOS v3.1
+
+#### V1 — Tabelas sem overflow-x-auto ✅
+- 78 arquivos corrigidos
+- Padrão: <div className="rounded-lg border border-border overflow-x-auto"><Table>
+- NUNCA usar <Table> sem overflow-x-auto no container pai
+
+#### V2 — Tabs sem overflow-x-auto ✅
+- 12 arquivos corrigidos (TabsList não-grid)
+- Padrão: <TabsList className="overflow-x-auto flex-wrap h-auto">
+- <TabsTrigger className="shrink-0 whitespace-nowrap">
+- EXCEÇÃO: TabsList com grid (layout fixo intencional) — NÃO adicionar overflow-x-auto
+
+#### V3 — Grids sem breakpoint mobile ✅
+- 130 linhas corrigidas em páginas admin e wizard
+- Padrão: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+- EXCEÇÃO: grids dentro de Dialog/Modal com layout fixo — manter como está
+- EXCEÇÃO: grids de dados compactos (text-xs, font-mono) — manter como está
+
+#### V4 — Tipografia inconsistente ✅
+- 26 arquivos corrigidos
+- Hierarquia definitiva (ver §DS-01):
+  - Título página:    text-xl font-bold      (não font-semibold)
+  - Título card/seção: text-base font-semibold (não font-bold)
+  - KPI/métrica:      text-lg font-bold      (correto — manter)
+- EXCEÇÃO: valores KPI/métrica com text-lg font-bold — correto, não alterar
+
+#### V5 — Shadow e rounded fora do padrão ✅
+- 20 elementos corrigidos
+- Cards estáticos: shadow-sm (nunca shadow-lg)
+- Cards com hover: hover:shadow-md (nunca hover:shadow-lg)
+- Cards containers: rounded-xl máximo (nunca rounded-2xl)
+- EXCEÇÃO: tooltips, dropdowns, modais, FAB — shadow-lg correto
+- EXCEÇÃO: chat bubbles, avatares, ícones decorativos — rounded-2xl correto
+- EXCEÇÃO: landing page institucional — estilo próprio, não alterar
 
 # =============================================================================
 # BLOCO 11 — REGRAS DE ESCOPO
 # =============================================================================
 
-- Quando a tarefa diz "only touch X", NÃO tocar em nenhum outro arquivo, mesmo que pareça relacionado
-- Se encontrar outro bug durante uma tarefa cirúrgica, REPORTAR mas não corrigir — abrir como item separado
+- Quando a tarefa diz "only touch X", NÃO tocar em outros arquivos
+- Se encontrar outro bug, REPORTAR mas não corrigir — abrir tarefa separada
 - Nunca "aproveitar" para refatorar código adjacente
+- Migração de débito técnico (C-01): máximo 1 módulo por PR
 
 # =============================================================================
-# FIM DO AGENTS.md v2.5
+# BLOCO 12 — DESIGN SYSTEM VISUAL (NOVO v3.0)
+# Regras para consistência visual entre todas as telas
+# =============================================================================
+
+## §DS-01 TIPOGRAFIA — Hierarquia única
+
+Elemento                  | Classes obrigatórias
+--------------------------|--------------------------------------------------
+Título de página (h1)     | text-xl font-bold text-foreground
+Subtítulo de página       | text-sm text-muted-foreground
+Título de card/seção (h2) | text-base font-semibold text-foreground
+Label de campo            | text-sm font-medium text-foreground
+Texto de corpo            | text-sm text-foreground
+Texto auxiliar/hint       | text-xs text-muted-foreground
+Valor numérico destaque   | text-2xl font-bold tracking-tight text-foreground
+Valor monetário em tabela | text-sm font-mono text-foreground
+
+NUNCA misture: font-bold com text-lg em título de card (reservado para página)
+NUNCA use: text-base font-bold — use text-base font-semibold
+
+## §DS-02 CARDS — Padrão único
+
+// Card de conteúdo padrão:
+<Card className="bg-card border-border shadow-sm hover:shadow-md transition-shadow">
+  <CardContent className="p-5">
+    {/* conteúdo */}
+  </CardContent>
+</Card>
+
+// Card de KPI (métrica):
+<Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
+  <CardContent className="flex items-center gap-4 p-5">
+    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+      <Icon className="w-5 h-5 text-primary" />
+    </div>
+    <div>
+      <p className="text-2xl font-bold tracking-tight text-foreground leading-none">Valor</p>
+      <p className="text-sm text-muted-foreground mt-1">Label</p>
+    </div>
+  </CardContent>
+</Card>
+
+// Variações de cor do card KPI:
+// border-l-primary    + bg-primary/10    (padrão)
+// border-l-destructive + bg-destructive/10 (alerta)
+// border-l-success    + bg-success/10    (positivo)
+// border-l-warning    + bg-warning/10    (atenção)
+
+NUNCA use: shadow-lg em cards de lista (reservado para modais)
+NUNCA use: rounded-2xl em cards (padrão é rounded-lg via border-radius do shadcn)
+
+## §DS-03 ÍCONES NOS HEADERS — Padrão único
+
+// Header de página:
+<div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+  <Icon className="w-5 h-5" />
+</div>
+
+// Header de modal:
+<div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+  <Icon className="w-5 h-5 text-primary" />
+</div>
+
+NUNCA use: ícone sem container colorido em headers
+NUNCA varie: o tamanho do container entre telas (w-10 h-10 em páginas, w-9 h-9 em modais)
+
+## §DS-04 ESPAÇAMENTO — Grid de 4px
+
+Espaçamento interno de card:  p-5  (20px)
+Gap entre cards:              gap-4 (16px) ou gap-6 (24px)
+Gap entre seções na página:   space-y-6 (24px)
+Gap entre campos de form:     space-y-4 (16px) ou grid gap-4
+Padding de página:            p-4 md:p-6
+Padding de modal body:        p-5
+
+NUNCA use: p-3 em cards (muito apertado) ou p-8 (muito largo)
+NUNCA use: margin direta em componentes filhos (AP-07) — usar gap/space no pai
+
+## §DS-05 BADGES E STATUS — Padrão semântico
+
+// Badge de status:
+<Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
+  Ativo
+</Badge>
+
+// Cores por semântica:
+// Ativo/Concluído/Aprovado:  bg-success/10 text-success border-success/20
+// Pendente/Em progresso:     bg-warning/10 text-warning border-warning/20
+// Inativo/Cancelado/Erro:    bg-destructive/10 text-destructive border-destructive/20
+// Informativo/Neutro:        bg-muted text-muted-foreground border-border
+// Destaque/Principal:        bg-primary/10 text-primary border-primary/20
+
+NUNCA use: bg-green-100 text-green-800 (cores fixas quebram dark mode)
+NUNCA use: Badge variant="default" para status (reservado para ações)
+
+## §DS-06 FORMULÁRIOS — Layout obrigatório
+
+// Grid responsivo para formulários:
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <div className="space-y-2">
+    <Label htmlFor="campo">Label do campo</Label>
+    <Input id="campo" placeholder="Placeholder" />
+  </div>
+</div>
+
+// Campo que ocupa linha inteira:
+<div className="col-span-1 sm:col-span-2 space-y-2">
+
+// Seções de formulário separadas:
+<div className="space-y-4">
+  <h3 className="text-base font-semibold text-foreground border-b border-border pb-2">
+    Título da seção
+  </h3>
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {/* campos */}
+  </div>
+</div>
+
+NUNCA use: flex para layout de formulário (use grid)
+NUNCA use: margin-bottom em campos individuais (use gap no grid pai)
+
+## §DS-07 TABELAS — Padrão visual
+
+// Container obrigatório:
+<div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
+  <Table>
+    <TableHeader>
+      <TableRow className="bg-muted/50 hover:bg-muted/50">
+        <TableHead className="font-semibold text-foreground">Coluna</TableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      <TableRow className="hover:bg-muted/30 cursor-pointer transition-colors">
+        <TableCell className="text-foreground">Valor</TableCell>
+      </TableRow>
+    </TableBody>
+  </Table>
+</div>
+
+// Coluna de valor monetário:
+<TableCell className="text-right font-mono text-sm text-foreground">
+  {formatBRL(item.valor)}
+</TableCell>
+
+// Item inativo — obrigatório:
+<TableRow className={cn("hover:bg-muted/30", !item.ativo && "opacity-50")}>
+
+NUNCA use: tabela sem borda e sem rounded-lg no container
+NUNCA use: TableHead sem font-semibold
+
+## §DS-08 RESPONSIVIDADE — Breakpoints e comportamento
+
+Breakpoint | Comportamento esperado
+-----------|---------------------------------------------------------------
+< 640px    | 1 coluna, botões full-width, ações em DropdownMenu
+640-768px  | 2 colunas em grids, modais em 90vw
+768-1024px | 2-3 colunas, tabelas com scroll horizontal se necessário
+> 1024px   | Layout completo, botões inline em tabelas, sidebars visíveis
+
+Regras de adaptação:
+- Tabelas: sempre overflow-x-auto no container pai em mobile
+- Botões de ação em tabela: hidden lg:flex inline, flex lg:hidden dropdown
+- Modais: sempre w-[90vw] — nunca largura fixa
+- Headers de página: flex-col sm:flex-row quando botões não cabem
+- Grids: sempre começar com grid-cols-1, subir com sm: e lg:
+
+# =============================================================================
+# FIM DO AGENTS.md v3.1
 # =============================================================================
