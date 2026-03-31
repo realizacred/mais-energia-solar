@@ -928,9 +928,11 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 </div>
               )}
 
-              <Button variant="default" size="sm" className="gap-1.5 text-xs" onClick={() => setShowChoiceModal(true)}>
-                <Plus className="h-3 w-3" /> Criar outro kit
-              </Button>
+              {manualKits.length > 0 && (
+                <Button variant="default" size="sm" className="gap-1.5 text-xs" onClick={() => setShowChoiceModal(true)}>
+                  <Plus className="h-3 w-3" /> Criar outro kit
+                </Button>
+              )}
             </div>
           ) : (
             /* ── Fechado Tab ── */
