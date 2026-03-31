@@ -240,9 +240,9 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
     // Check online status at call time (from ref updated by online/offline events)
     const currentlyOnline = isOnlineRef.current;
     // console.log("[syncPendingLeads] Online status check:", {
-      isOnlineRef: currentlyOnline,
-      navigatorOnLine: navigator.onLine,
-    });
+    //   isOnlineRef: currentlyOnline,
+    //   navigatorOnLine: navigator.onLine,
+    // });
     
     if (!currentlyOnline) {
       if (showToast) {
