@@ -1434,7 +1434,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-base">Premissas</DialogTitle>
         </DialogHeader>
