@@ -354,6 +354,54 @@ async function handleDisconnect(req: Request) {
   return json({ success: true });
 }
 
+// ── Normalize Google Person (pure, no DB calls) ────────────
+
+interface NormalizedPerson {
+  resourceName: string;
+  etag: string | null;
+  displayName: string;
+  firstName: string | null;
+  lastName: string | null;
+  avatarUrl: string | null;
+  phonesJsonb: { value: string; e164: string; label: string; is_primary: boolean }[];
+  emailsJsonb: { value: string; label: string; is_primary: boolean }[];
+  allIdentityValues: { type: string; value: string }[];
+}
+
+function normalizeGooglePerson(person: any): NormalizedPerson {
+  const resourceName = person.resourceName;
+  const etag = person.etag || null;
+  const names = person.names || [];
+  const phones = person.phoneNumbers || [];
+  const emails = person.emailAddresses || [];
+  const photos = person.photos || [];
+
+  const displayName = names[0]?.displayName || phones[0]?.value || emails[0]?.value || "Sem nome";
+  const firstName = names[0]?.givenName || null;
+  const lastName = names[0]?.familyName || null;
+  const avatarUrl = photos[0]?.url || null;
+
+  const phonesJsonb = phones.map((p: any, i: number) => ({
+    value: p.value, e164: normalizePhoneE164(p.value || ""), label: p.type || "other", is_primary: i === 0,
+  }));
+  const emailsJsonb = emails.map((e: any, i: number) => ({
+    value: e.value, label: e.type || "other", is_primary: i === 0,
+  }));
+
+  // Collect all identity values for batch lookup
+  const allIdentityValues: { type: string; value: string }[] = [
+    { type: "google_resource", value: resourceName },
+  ];
+  for (const ph of phonesJsonb) {
+    if (ph.e164) allIdentityValues.push({ type: "phone_e164", value: ph.e164 });
+  }
+  for (const em of emailsJsonb) {
+    if (em.value) allIdentityValues.push({ type: "email", value: em.value.toLowerCase() });
+  }
+
+  return { resourceName, etag, displayName, firstName, lastName, avatarUrl, phonesJsonb, emailsJsonb, allIdentityValues };
+}
+
 // ── PULL SYNC: Import contacts from Google ──────────────────
 
 async function handlePullSync(req: Request) {
@@ -372,6 +420,8 @@ async function handlePullSync(req: Request) {
   const PAGE_SIZE = 200;
 
   try {
+    // Collect all persons from all pages first
+    const allPersons: any[] = [];
     do {
       const url = new URL("https://people.googleapis.com/v1/people/me/connections");
       url.searchParams.set("personFields", "names,phoneNumbers,emailAddresses,photos");
@@ -386,21 +436,181 @@ async function handlePullSync(req: Request) {
 
       const data = await res.json();
       const connections = data.connections || [];
+      allPersons.push(...connections);
       nextPageToken = data.nextPageToken || "";
+    } while (nextPageToken);
 
-      for (const person of connections) {
-        stats.processed++;
-        try {
-          const result = await upsertFromGoogle(adminClient, tenantId, person);
-          if (result.action === "created") stats.created++;
-          else if (result.action === "updated") stats.updated++;
-          else stats.skipped++;
-        } catch (err: any) {
-          console.error(`[pull-sync] Error processing ${person.resourceName}:`, err.message);
-          stats.skipped++;
+    // Normalize all persons (pure, no DB calls)
+    const normalized = allPersons.map(p => normalizeGooglePerson(p));
+    stats.processed = normalized.length;
+
+    if (normalized.length === 0) {
+      const metadata = { ...((integration.metadata as Record<string, unknown>) || {}), last_sync_at: new Date().toISOString() };
+      await adminClient.from("integrations").update({ metadata }).eq("id", integration.id);
+      await logEvent(adminClient, { tenantId, userId, action: "pull_sync", status: "success", itemsProcessed: 0, itemsCreated: 0, itemsUpdated: 0, itemsSkipped: 0 });
+      return json({ success: true, stats });
+    }
+
+    // AP-20 fix B: Batch-fetch ALL existing identities for this tenant in one query
+    const allValues = [...new Set(normalized.flatMap(p => p.allIdentityValues.map(iv => iv.value)))];
+
+    // Fetch in chunks of 500 to avoid query size limits
+    const CHUNK = 500;
+    const allExistingIdentities: any[] = [];
+    for (let i = 0; i < allValues.length; i += CHUNK) {
+      const chunk = allValues.slice(i, i + CHUNK);
+      const { data: identities } = await adminClient.from("contact_identities")
+        .select("contact_id, identity_type, identity_value")
+        .eq("tenant_id", tenantId)
+        .in("identity_value", chunk);
+      if (identities) allExistingIdentities.push(...identities);
+    }
+
+    // Build lookup map: "type::value" → contact_id
+    const identityMap = new Map<string, string>();
+    for (const id of allExistingIdentities) {
+      identityMap.set(`${id.identity_type}::${id.identity_value}`, id.contact_id);
+    }
+
+    // Classify each person: update existing or create new
+    const contactsToUpdate: { contactId: string; person: NormalizedPerson }[] = [];
+    const contactsToCreate: NormalizedPerson[] = [];
+
+    for (const person of normalized) {
+      // Match priority: google_resource → phone → email (same as original)
+      let contactId = identityMap.get(`google_resource::${person.resourceName}`) || null;
+
+      if (!contactId) {
+        for (const ph of person.phonesJsonb) {
+          if (!ph.e164) continue;
+          contactId = identityMap.get(`phone_e164::${ph.e164}`) || null;
+          if (contactId) break;
         }
       }
-    } while (nextPageToken);
+
+      if (!contactId) {
+        for (const em of person.emailsJsonb) {
+          if (!em.value) continue;
+          contactId = identityMap.get(`email::${em.value.toLowerCase()}`) || null;
+          if (contactId) break;
+        }
+      }
+
+      if (contactId) {
+        contactsToUpdate.push({ contactId, person });
+      } else {
+        contactsToCreate.push(person);
+      }
+    }
+
+    // Batch UPDATE existing contacts
+    // Each has different field values, so we update individually but without N+1 SELECTs
+    for (const { contactId, person } of contactsToUpdate) {
+      await adminClient.from("contacts").update({
+        display_name: person.displayName,
+        first_name: person.firstName,
+        last_name: person.lastName,
+        phones: person.phonesJsonb,
+        emails: person.emailsJsonb,
+        external_refs: { google: { resourceName: person.resourceName, etag: person.etag } },
+        avatar_url: person.avatarUrl,
+        source: "google",
+      }).eq("id", contactId).eq("tenant_id", tenantId);
+    }
+    stats.updated = contactsToUpdate.length;
+
+    // AP-20 fix C: Batch upsert identities for updated contacts
+    const updateIdentities: any[] = [];
+    for (const { contactId, person } of contactsToUpdate) {
+      updateIdentities.push({
+        tenant_id: tenantId, contact_id: contactId, identity_type: "google_resource",
+        identity_value: person.resourceName, is_primary: true,
+      });
+      for (const ph of person.phonesJsonb) {
+        if (!ph.e164) continue;
+        updateIdentities.push({
+          tenant_id: tenantId, contact_id: contactId, identity_type: "phone_e164",
+          identity_value: ph.e164, is_primary: ph.is_primary,
+        });
+      }
+      for (const em of person.emailsJsonb) {
+        if (!em.value) continue;
+        updateIdentities.push({
+          tenant_id: tenantId, contact_id: contactId, identity_type: "email",
+          identity_value: em.value.toLowerCase(), is_primary: em.is_primary,
+        });
+      }
+    }
+    if (updateIdentities.length > 0) {
+      // Upsert in chunks to avoid payload limits
+      for (let i = 0; i < updateIdentities.length; i += CHUNK) {
+        const chunk = updateIdentities.slice(i, i + CHUNK);
+        await adminClient.from("contact_identities")
+          .upsert(chunk, { onConflict: "tenant_id,identity_type,identity_value" })
+          .catch(() => {}); // Silently handle constraint conflicts (same as original)
+      }
+    }
+
+    // Batch INSERT new contacts (one by one for insert to get IDs back, but no N+1 SELECT)
+    // We insert individually because we need each contact's ID for identity rows
+    const createIdentities: any[] = [];
+    for (const person of contactsToCreate) {
+      const primaryPhone = person.phonesJsonb[0]?.e164 || null;
+      const { data: newContact, error } = await adminClient.from("contacts").insert({
+        tenant_id: tenantId,
+        display_name: person.displayName,
+        name: person.displayName,
+        first_name: person.firstName,
+        last_name: person.lastName,
+        phone_e164: primaryPhone || "unknown",
+        phones: person.phonesJsonb,
+        emails: person.emailsJsonb,
+        roles: ["cliente"],
+        source: "google",
+        external_refs: { google: { resourceName: person.resourceName, etag: person.etag } },
+        avatar_url: person.avatarUrl,
+      }).select("id").single();
+
+      if (error || !newContact) {
+        stats.skipped++;
+        continue;
+      }
+      stats.created++;
+
+      // Collect identities for batch insert
+      createIdentities.push({
+        tenant_id: tenantId, contact_id: newContact.id, identity_type: "google_resource",
+        identity_value: person.resourceName, is_primary: true,
+      });
+      for (const ph of person.phonesJsonb) {
+        if (!ph.e164) continue;
+        createIdentities.push({
+          tenant_id: tenantId, contact_id: newContact.id, identity_type: "phone_e164",
+          identity_value: ph.e164, is_primary: ph.is_primary,
+        });
+      }
+      for (const em of person.emailsJsonb) {
+        if (!em.value) continue;
+        createIdentities.push({
+          tenant_id: tenantId, contact_id: newContact.id, identity_type: "email",
+          identity_value: em.value.toLowerCase(), is_primary: em.is_primary,
+        });
+      }
+    }
+
+    // AP-20 fix D: Batch insert identities for new contacts
+    if (createIdentities.length > 0) {
+      for (let i = 0; i < createIdentities.length; i += CHUNK) {
+        const chunk = createIdentities.slice(i, i + CHUNK);
+        await adminClient.from("contact_identities")
+          .upsert(chunk, { onConflict: "tenant_id,identity_type,identity_value" })
+          .catch(() => {}); // Silently handle constraint conflicts (same as original)
+      }
+    }
+
+    // Remaining are skipped (already counted in create errors above)
+    stats.skipped += (normalized.length - stats.updated - stats.created - stats.skipped);
+    if (stats.skipped < 0) stats.skipped = 0;
 
     const metadata = { ...((integration.metadata as Record<string, unknown>) || {}), last_sync_at: new Date().toISOString() };
     await adminClient.from("integrations").update({ metadata }).eq("id", integration.id);
@@ -415,124 +625,6 @@ async function handlePullSync(req: Request) {
     await logEvent(adminClient, { tenantId, userId, action: "pull_sync", status: "fail", errorMessage: err.message });
     return json({ error: err.message }, 500);
   }
-}
-
-// ── Upsert single contact from Google Person ────────────────
-
-async function upsertFromGoogle(adminClient: ReturnType<typeof createClient>, tenantId: string, person: any): Promise<{ action: "created" | "updated" | "skipped"; contactId: string | null }> {
-  const resourceName = person.resourceName;
-  const etag = person.etag || null;
-  const names = person.names || [];
-  const phones = person.phoneNumbers || [];
-  const emails = person.emailAddresses || [];
-  const photos = person.photos || [];
-
-  const displayName = names[0]?.displayName || phones[0]?.value || emails[0]?.value || "Sem nome";
-  const firstName = names[0]?.givenName || null;
-  const lastName = names[0]?.familyName || null;
-  const avatarUrl = photos[0]?.url || null;
-
-  // Try to find existing by google_resource identity
-  const { data: existingByGoogle } = await adminClient.from("contact_identities")
-    .select("contact_id").eq("tenant_id", tenantId).eq("identity_type", "google_resource").eq("identity_value", resourceName).single();
-
-  // Try by phone
-  let existingByPhone: string | null = null;
-  for (const ph of phones) {
-    if (!ph.value) continue;
-    const e164 = normalizePhoneE164(ph.value);
-    const { data } = await adminClient.from("contact_identities")
-      .select("contact_id").eq("tenant_id", tenantId).eq("identity_type", "phone_e164").eq("identity_value", e164).single();
-    if (data) { existingByPhone = data.contact_id; break; }
-  }
-
-  // Try by email
-  let existingByEmail: string | null = null;
-  for (const em of emails) {
-    if (!em.value) continue;
-    const { data } = await adminClient.from("contact_identities")
-      .select("contact_id").eq("tenant_id", tenantId).eq("identity_type", "email").eq("identity_value", em.value.toLowerCase()).single();
-    if (data) { existingByEmail = data.contact_id; break; }
-  }
-
-  const contactId = existingByGoogle?.contact_id || existingByPhone || existingByEmail;
-
-  const phonesJsonb = phones.map((p: any, i: number) => ({
-    value: p.value, e164: normalizePhoneE164(p.value || ""), label: p.type || "other", is_primary: i === 0,
-  }));
-  const emailsJsonb = emails.map((e: any, i: number) => ({
-    value: e.value, label: e.type || "other", is_primary: i === 0,
-  }));
-
-  if (contactId) {
-    await adminClient.from("contacts").update({
-      display_name: displayName,
-      first_name: firstName,
-      last_name: lastName,
-      phones: phonesJsonb,
-      emails: emailsJsonb,
-      external_refs: { google: { resourceName, etag } },
-      avatar_url: avatarUrl,
-      source: "google",
-    }).eq("id", contactId).eq("tenant_id", tenantId);
-
-    await adminClient.from("contact_identities").upsert({
-      tenant_id: tenantId, contact_id: contactId, identity_type: "google_resource", identity_value: resourceName, is_primary: true,
-    }, { onConflict: "tenant_id,identity_type,identity_value" });
-
-    for (const ph of phonesJsonb) {
-      if (!ph.e164) continue;
-      await adminClient.from("contact_identities").upsert({
-        tenant_id: tenantId, contact_id: contactId, identity_type: "phone_e164", identity_value: ph.e164, is_primary: ph.is_primary,
-      }, { onConflict: "tenant_id,identity_type,identity_value" }).catch(() => {});
-    }
-    for (const em of emailsJsonb) {
-      if (!em.value) continue;
-      await adminClient.from("contact_identities").upsert({
-        tenant_id: tenantId, contact_id: contactId, identity_type: "email", identity_value: em.value.toLowerCase(), is_primary: em.is_primary,
-      }, { onConflict: "tenant_id,identity_type,identity_value" }).catch(() => {});
-    }
-
-    return { action: "updated", contactId };
-  }
-
-  // Create new contact
-  const primaryPhone = phonesJsonb[0]?.e164 || null;
-  const { data: newContact, error } = await adminClient.from("contacts").insert({
-    tenant_id: tenantId,
-    display_name: displayName,
-    name: displayName,
-    first_name: firstName,
-    last_name: lastName,
-    phone_e164: primaryPhone || "unknown",
-    phones: phonesJsonb,
-    emails: emailsJsonb,
-    roles: ["cliente"],
-    source: "google",
-    external_refs: { google: { resourceName, etag } },
-    avatar_url: avatarUrl,
-  }).select("id").single();
-
-  if (error || !newContact) throw new Error(`Insert failed: ${error?.message}`);
-
-  await adminClient.from("contact_identities").insert({
-    tenant_id: tenantId, contact_id: newContact.id, identity_type: "google_resource", identity_value: resourceName, is_primary: true,
-  }).catch(() => {});
-
-  for (const ph of phonesJsonb) {
-    if (!ph.e164) continue;
-    await adminClient.from("contact_identities").insert({
-      tenant_id: tenantId, contact_id: newContact.id, identity_type: "phone_e164", identity_value: ph.e164, is_primary: ph.is_primary,
-    }).catch(() => {});
-  }
-  for (const em of emailsJsonb) {
-    if (!em.value) continue;
-    await adminClient.from("contact_identities").insert({
-      tenant_id: tenantId, contact_id: newContact.id, identity_type: "email", identity_value: em.value.toLowerCase(), is_primary: em.is_primary,
-    }).catch(() => {});
-  }
-
-  return { action: "created", contactId: newContact.id };
 }
 
 // ── PUSH UPSERT: Send contact to Google ─────────────────────
