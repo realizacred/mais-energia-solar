@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { formatBRLInteger } from "@/lib/formatters";
 import { useEstoqueRealtime } from "@/hooks/useEstoqueRealtime";
 import {
   Package, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Plus,
