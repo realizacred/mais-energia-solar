@@ -124,85 +124,122 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Dedup — only create events for new/changed statuses
+    // 5. Dedup — batch-fetch existing unresolved events (AP-20 fix)
     let created = 0;
     let notified = 0;
 
+    // Batch SELECT: fetch all unresolved events for the relevant tenant+metric pairs
+    const oppTenantIds = [...new Set(opportunities.map(o => o.tenant_id))];
+    const oppMetricKeys = [...new Set(opportunities.map(o => o.metric_key))];
+
+    const { data: allExisting } = await supabase
+      .from("upsell_events")
+      .select("id, tenant_id, metric_key, status, notified_at")
+      .in("tenant_id", oppTenantIds.length > 0 ? oppTenantIds : ["__none__"])
+      .in("metric_key", oppMetricKeys.length > 0 ? oppMetricKeys : ["__none__"])
+      .is("resolved_at", null)
+      .order("created_at", { ascending: false });
+
+    // Build map: "tenant_id::metric_key" → most recent existing event
+    const existingMap = new Map<string, any>();
+    for (const ev of allExisting || []) {
+      const key = `${ev.tenant_id}::${ev.metric_key}`;
+      if (!existingMap.has(key)) existingMap.set(key, ev); // keep most recent (ordered desc)
+    }
+
+    // Classify opportunities: status-change updates, new inserts, notifications
+    const statusUpdates: { id: string; opp: TenantUsage; oldStatus: string }[] = [];
+    const newInserts: TenantUsage[] = [];
+
     for (const opp of opportunities) {
-      // Check existing unresolved event for same tenant+metric
-      const { data: existing } = await supabase
-        .from("upsell_events")
-        .select("id, status, notified_at")
-        .eq("tenant_id", opp.tenant_id)
-        .eq("metric_key", opp.metric_key)
-        .is("resolved_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const key = `${opp.tenant_id}::${opp.metric_key}`;
+      const existing = existingMap.get(key);
 
       if (existing) {
-        // Status changed (e.g. warning -> blocked) → update
         if (existing.status !== opp.status) {
-          await supabase
-            .from("upsell_events")
-            .update({
-              status: opp.status,
-              percentage: opp.percentage,
-              current_value: opp.current_value,
-              limit_value: opp.limit_value,
-            })
-            .eq("id", existing.id);
-          
-          // Re-notify on status escalation (warning → blocked)
-          if (opp.status === "blocked" && existing.status === "warning") {
-            const sent = await sendUpsellWhatsApp(supabase, opp);
-            if (sent) {
-              await supabase
-                .from("upsell_events")
-                .update({ notified_at: new Date().toISOString(), notification_channel: "whatsapp" })
-                .eq("id", existing.id);
-              notified++;
-            }
-          }
+          statusUpdates.push({ id: existing.id, opp, oldStatus: existing.status });
         }
-        // Same status and already notified → skip
-        continue;
-      }
-
-      // New event
-      const { data: newEvent } = await supabase
-        .from("upsell_events")
-        .insert({
-          tenant_id: opp.tenant_id,
-          metric_key: opp.metric_key,
-          percentage: opp.percentage,
-          status: opp.status,
-          current_value: opp.current_value,
-          limit_value: opp.limit_value,
-        })
-        .select("id")
-        .single();
-
-      created++;
-
-      // Send WhatsApp notification
-      const sent = await sendUpsellWhatsApp(supabase, opp);
-      if (sent && newEvent) {
-        await supabase
-          .from("upsell_events")
-          .update({ notified_at: new Date().toISOString(), notification_channel: "whatsapp" })
-          .eq("id", newEvent.id);
-        notified++;
+        // Same status → skip
+      } else {
+        newInserts.push(opp);
       }
     }
 
-    // 6. Auto-resolve events where usage dropped below 80%
+    // Batch UPDATE for status changes
+    if (statusUpdates.length > 0) {
+      // Group by new status for batch update (most common: warning→blocked or blocked→warning)
+      // Since each row may have different values, we do per-status-group updates
+      const updateIds = statusUpdates.map(u => u.id);
+      // Update all changed events with their individual values
+      // Unfortunately each has different percentage/current_value, so we update individually
+      // but we already eliminated the N+1 SELECT — the updates are unavoidable per-row
+      for (const upd of statusUpdates) {
+        await supabase
+          .from("upsell_events")
+          .update({
+            status: upd.opp.status,
+            percentage: upd.opp.percentage,
+            current_value: upd.opp.current_value,
+            limit_value: upd.opp.limit_value,
+          })
+          .eq("id", upd.id);
+
+        // Re-notify on status escalation (warning → blocked)
+        if (upd.opp.status === "blocked" && upd.oldStatus === "warning") {
+          const sent = await sendUpsellWhatsApp(supabase, upd.opp);
+          if (sent) {
+            await supabase
+              .from("upsell_events")
+              .update({ notified_at: new Date().toISOString(), notification_channel: "whatsapp" })
+              .eq("id", upd.id);
+            notified++;
+          }
+        }
+      }
+    }
+
+    // Batch INSERT for new events
+    if (newInserts.length > 0) {
+      const rows = newInserts.map(opp => ({
+        tenant_id: opp.tenant_id,
+        metric_key: opp.metric_key,
+        percentage: opp.percentage,
+        status: opp.status,
+        current_value: opp.current_value,
+        limit_value: opp.limit_value,
+      }));
+
+      const { data: insertedEvents } = await supabase
+        .from("upsell_events")
+        .insert(rows)
+        .select("id, tenant_id, metric_key");
+
+      created = newInserts.length;
+
+      // Send WhatsApp notifications for new events
+      if (insertedEvents) {
+        for (let i = 0; i < insertedEvents.length; i++) {
+          const ev = insertedEvents[i];
+          const opp = newInserts[i];
+          const sent = await sendUpsellWhatsApp(supabase, opp);
+          if (sent) {
+            await supabase
+              .from("upsell_events")
+              .update({ notified_at: new Date().toISOString(), notification_channel: "whatsapp" })
+              .eq("id", ev.id);
+            notified++;
+          }
+        }
+      }
+    }
+
+    // 6. Auto-resolve events where usage dropped below 80% (AP-20 fix: batch update)
     const { data: activeEvents } = await supabase
       .from("upsell_events")
       .select("id, tenant_id, metric_key")
       .is("resolved_at", null);
 
-    let resolved = 0;
+    const resolveIds: string[] = [];
     for (const ev of activeEvents || []) {
       const planCode = subMap.get(ev.tenant_id);
       if (!planCode) continue;
@@ -212,12 +249,17 @@ Deno.serve(async (req) => {
       const currentVal = usageMap.get(`${ev.tenant_id}::${usageKey}`) ?? 0;
       const pct = Math.round((currentVal / limitVal) * 100);
       if (pct < 80) {
-        await supabase
-          .from("upsell_events")
-          .update({ resolved_at: new Date().toISOString() })
-          .eq("id", ev.id);
-        resolved++;
+        resolveIds.push(ev.id);
       }
+    }
+
+    let resolved = 0;
+    if (resolveIds.length > 0) {
+      await supabase
+        .from("upsell_events")
+        .update({ resolved_at: new Date().toISOString() })
+        .in("id", resolveIds);
+      resolved = resolveIds.length;
     }
 
     const summary = {
