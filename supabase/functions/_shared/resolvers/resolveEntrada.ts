@@ -115,7 +115,6 @@ export function resolveEntrada(
     ?? pd.fator_geracao
     ?? snap.locIrradiacao
     ?? snap.loc_irradiacao
-    ?? tecnico.irradiacao_media_kwp_mes
   );
   for (const m of MESES) {
     const pdMeses = safeObj(pd.fator_geracao_meses);
