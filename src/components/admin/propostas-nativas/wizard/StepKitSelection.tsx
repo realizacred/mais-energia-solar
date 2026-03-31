@@ -786,7 +786,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                     }
 
                     // Availability badge helper
-                    const availBadge = kit.source === "edeltec" ? (
+                    const availBadge = !!kit.fornecedor_id ? (
                       kit.disponivel ? (
                         <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">Em estoque</Badge>
                       ) : kit.permite_compra_sem_estoque ? (
