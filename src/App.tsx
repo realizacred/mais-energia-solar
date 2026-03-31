@@ -13,6 +13,8 @@ import { PushActivationBanner } from "@/components/notifications/PushActivationB
 import { consumePWAReturnUrl } from "@/hooks/usePWAInstall";
 import { PWAAutoInstallPrompt } from "@/components/pwa/PWAAutoInstallPrompt";
 import { TenantGuardGate } from "@/components/guards/TenantGuardGate";
+import { DevToolsProvider } from "@/contexts/DevToolsContext";
+import { DevToolsOverlay } from "@/components/dev/DevToolsOverlay";
 
 // Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
