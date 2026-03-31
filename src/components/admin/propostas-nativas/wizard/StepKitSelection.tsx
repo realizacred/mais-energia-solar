@@ -743,7 +743,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                               {kit.estrutura && <span>{kit.estrutura}</span>}
                             </div>
                             <div className="flex items-center gap-2">
-                              {kit.source === "edeltec" && (
+                              {!!kit.fornecedor_id && (
                                 kit.disponivel ? (
                                   <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">Em estoque</Badge>
                                 ) : kit.permite_compra_sem_estoque ? (
@@ -752,8 +752,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                                   <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">Indisponível</Badge>
                                 )
                               )}
-                              {kit.source === "edeltec" && (
-                                <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">Edeltec</Badge>
+                              {!!kit.fornecedor_id && kit.source && (
+                                <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">{kit.source.charAt(0).toUpperCase() + kit.source.slice(1)}</Badge>
                               )}
                               {kit.preco_por_kwp != null && kit.preco_por_kwp > 0 && (
                                 <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
@@ -786,7 +786,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                     }
 
                     // Availability badge helper
-                    const availBadge = kit.source === "edeltec" ? (
+                    const availBadge = !!kit.fornecedor_id ? (
                       kit.disponivel ? (
                         <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">Em estoque</Badge>
                       ) : kit.permite_compra_sem_estoque ? (
@@ -852,9 +852,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                           {/* Badges */}
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {availBadge}
-                            {kit.source === "edeltec" && (
+                            {!!kit.fornecedor_id && kit.source && (
                               <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/30">
-                                Edeltec
+                                {kit.source.charAt(0).toUpperCase() + kit.source.slice(1)}
                               </Badge>
                             )}
                             {kit.preco_por_kwp != null && kit.preco_por_kwp > 0 && (

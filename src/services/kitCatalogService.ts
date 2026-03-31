@@ -23,6 +23,7 @@ export interface CatalogKit {
   pricing_mode: string;
   fixed_price: number | null;
   source: string | null;
+  fornecedor_id: string | null;
   external_data: Record<string, any> | null;
   is_generator?: boolean;
   fabricante?: string | null;
@@ -113,7 +114,7 @@ export interface CatalogKitSummary {
 export async function fetchActiveKits(onlyGenerators = false): Promise<CatalogKit[]> {
   let query = supabase
     .from("solar_kit_catalog")
-    .select("id, name, description, estimated_kwp, pricing_mode, fixed_price, source, external_data, is_generator, fabricante, fase, tensao, estrutura, disponivel, permite_compra_sem_estoque, preco_por_kwp, is_available_now, product_kind, thumbnail_url, potencia_inversor, potencia_modulo, previsao")
+    .select("id, name, description, estimated_kwp, pricing_mode, fixed_price, source, fornecedor_id, external_data, is_generator, fabricante, fase, tensao, estrutura, disponivel, permite_compra_sem_estoque, preco_por_kwp, is_available_now, product_kind, thumbnail_url, potencia_inversor, potencia_modulo, previsao")
     .eq("status", "active")
     .order("name");
 
