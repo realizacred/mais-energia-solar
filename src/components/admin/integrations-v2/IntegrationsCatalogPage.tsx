@@ -369,13 +369,13 @@ export default function IntegrationsCatalogPage() {
 
       {/* ─── Main Tabs §29 ─── */}
       <Tabs value={urlTab} onValueChange={handleTabChange}>
-        <TabsList className="bg-muted">
-          <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
-          <TabsTrigger value="saude">Saúde</TabsTrigger>
-          <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
-          <TabsTrigger value="instancias">Instâncias WA</TabsTrigger>
-          <TabsTrigger value="automacao">Automação</TabsTrigger>
-          <TabsTrigger value="tutoriais">Tutoriais</TabsTrigger>
+        <TabsList className="bg-muted overflow-x-auto flex-wrap h-auto">
+          <TabsTrigger className="shrink-0 whitespace-nowrap" value="catalogo">Catálogo</TabsTrigger>
+          <TabsTrigger className="shrink-0 whitespace-nowrap" value="saude">Saúde</TabsTrigger>
+          <TabsTrigger className="shrink-0 whitespace-nowrap" value="webhooks">Webhooks</TabsTrigger>
+          <TabsTrigger className="shrink-0 whitespace-nowrap" value="instancias">Instâncias WA</TabsTrigger>
+          <TabsTrigger className="shrink-0 whitespace-nowrap" value="automacao">Automação</TabsTrigger>
+          <TabsTrigger className="shrink-0 whitespace-nowrap" value="tutoriais">Tutoriais</TabsTrigger>
         </TabsList>
 
         <TabsContent value="catalogo" className="mt-6 space-y-6">

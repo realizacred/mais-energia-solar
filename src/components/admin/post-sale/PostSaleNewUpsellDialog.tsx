@@ -72,9 +72,9 @@ export function PostSaleNewUpsellDialog({ open, onOpenChange }: Props) {
 
         <div className="space-y-4">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-            <TabsList className="w-full">
-              <TabsTrigger value="existing" className="flex-1">Cliente cadastrado</TabsTrigger>
-              <TabsTrigger value="avulso" className="flex-1">Cliente avulso</TabsTrigger>
+            <TabsList className="w-full overflow-x-auto flex-wrap h-auto">
+              <TabsTrigger value="existing" className="flex-1 shrink-0 whitespace-nowrap">Cliente cadastrado</TabsTrigger>
+              <TabsTrigger value="avulso" className="flex-1 shrink-0 whitespace-nowrap">Cliente avulso</TabsTrigger>
             </TabsList>
 
             <TabsContent value="existing" className="space-y-3 mt-3">

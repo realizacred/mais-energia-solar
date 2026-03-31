@@ -246,9 +246,9 @@ export function GenerateFileDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full">
-            <TabsTrigger value="template" className="flex-1 text-xs">Escolher um template</TabsTrigger>
-            <TabsTrigger value="upload" className="flex-1 text-xs">Fazer upload de um arquivo doc</TabsTrigger>
+          <TabsList className="w-full overflow-x-auto flex-wrap h-auto">
+            <TabsTrigger value="template" className="flex-1 text-xs shrink-0 whitespace-nowrap">Escolher um template</TabsTrigger>
+            <TabsTrigger value="upload" className="flex-1 text-xs shrink-0 whitespace-nowrap">Fazer upload de um arquivo doc</TabsTrigger>
           </TabsList>
 
           <TabsContent value="template" className="space-y-4 pt-4">

@@ -22,12 +22,12 @@ export default function DevToolsPage() {
       </div>
 
       <Tabs defaultValue="seed" className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="seed" className="flex-1 gap-2">
+        <TabsList className="w-full overflow-x-auto flex-wrap h-auto">
+          <TabsTrigger value="seed" className="flex-1 gap-2 shrink-0 whitespace-nowrap">
             <FlaskConical className="h-4 w-4" />
             Seed
           </TabsTrigger>
-          <TabsTrigger value="reset" className="flex-1 gap-2">
+          <TabsTrigger value="reset" className="flex-1 gap-2 shrink-0 whitespace-nowrap">
             <Trash2 className="h-4 w-4" />
             Limpar Seed
           </TabsTrigger>

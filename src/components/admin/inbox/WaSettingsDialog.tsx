@@ -346,20 +346,20 @@ export function WaSettingsDialog({ open, onOpenChange }: WaSettingsDialogProps) 
         </DialogHeader>
 
         <Tabs defaultValue="connection" className="mt-2">
-          <TabsList className="w-full">
-            <TabsTrigger value="connection" className="flex-1 gap-1.5">
+          <TabsList className="w-full overflow-x-auto flex-wrap h-auto">
+            <TabsTrigger value="connection" className="flex-1 gap-1.5 shrink-0 whitespace-nowrap">
               <Wifi className="h-3.5 w-3.5" />
               Conexão
             </TabsTrigger>
-            <TabsTrigger value="operators" className="flex-1 gap-1.5">
+            <TabsTrigger value="operators" className="flex-1 gap-1.5 shrink-0 whitespace-nowrap">
               <Users className="h-3.5 w-3.5" />
               Operadores
             </TabsTrigger>
-            <TabsTrigger value="automation" className="flex-1 gap-1.5">
+            <TabsTrigger value="automation" className="flex-1 gap-1.5 shrink-0 whitespace-nowrap">
               <Bot className="h-3.5 w-3.5" />
               Automação
             </TabsTrigger>
-            <TabsTrigger value="push" className="flex-1 gap-1.5">
+            <TabsTrigger value="push" className="flex-1 gap-1.5 shrink-0 whitespace-nowrap">
               <Bell className="h-3.5 w-3.5" />
               Push
             </TabsTrigger>

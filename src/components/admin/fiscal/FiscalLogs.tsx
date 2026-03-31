@@ -39,9 +39,9 @@ export function FiscalLogs() {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "requests" | "webhooks")}>
-        <TabsList>
-          <TabsTrigger value="requests">Requests ({requests.length})</TabsTrigger>
-          <TabsTrigger value="webhooks">Webhooks ({webhooks.length})</TabsTrigger>
+        <TabsList className="overflow-x-auto flex-wrap h-auto">
+          <TabsTrigger className="shrink-0 whitespace-nowrap" value="requests">Requests ({requests.length})</TabsTrigger>
+          <TabsTrigger className="shrink-0 whitespace-nowrap" value="webhooks">Webhooks ({webhooks.length})</TabsTrigger>
         </TabsList>
       </Tabs>
 

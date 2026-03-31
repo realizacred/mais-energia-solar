@@ -55,12 +55,12 @@ export function VariaveisSystemPage() {
       />
 
       <Tabs defaultValue="catalogo">
-        <TabsList>
-          <TabsTrigger value="catalogo" className="gap-1.5">
+        <TabsList className="overflow-x-auto flex-wrap h-auto">
+          <TabsTrigger value="catalogo" className="gap-1.5 shrink-0 whitespace-nowrap">
             <Variable className="w-3.5 h-3.5" />
             Catálogo
           </TabsTrigger>
-          <TabsTrigger value="auditoria" className="gap-1.5">
+          <TabsTrigger value="auditoria" className="gap-1.5 shrink-0 whitespace-nowrap">
             <ShieldCheck className="w-3.5 h-3.5" />
             Auditoria
           </TabsTrigger>
