@@ -122,22 +122,17 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
 
   const handleSave = async () => {
     if (!selectedItem) return;
-    setSaving(true);
     try {
-      const table = selectedItem.type === 'lead' ? 'leads' : 'orcamentos';
-      const { error } = await supabase.from(table).update({
-        ultimo_contato: new Date().toISOString(),
+      await registrarContato.mutateAsync({
+        id: selectedItem.id,
+        type: selectedItem.type,
         proxima_acao: formData.proxima_acao || null,
         data_proxima_acao: formData.data_proxima_acao || null,
-      }).eq("id", selectedItem.id);
-      if (error) throw error;
+      });
       toast({ title: "Contato registrado!", description: "Registro atualizado." });
       setIsDialogOpen(false);
-      fetchData();
     } catch (error) {
       toast({ title: "Erro", description: "Não foi possível atualizar.", variant: "destructive" });
-    } finally {
-      setSaving(false);
     }
   };
 
