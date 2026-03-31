@@ -299,6 +299,22 @@ async function calculateGroupMonth(
     .eq("gd_group_id", gdGroupId)
     .eq("is_active", true);
 
+  // AP-20 fix A: Batch-fetch all beneficiary invoices in one query
+  const benUcIds = bens.map((b: any) => b.uc_beneficiaria_id);
+  const { data: benInvoices = [] } = benUcIds.length > 0
+    ? await supabase
+        .from("unit_invoices")
+        .select("id, unit_id, energy_consumed_kwh, total_amount")
+        .in("unit_id", benUcIds)
+        .eq("reference_year", year)
+        .eq("reference_month", month)
+    : { data: [] };
+
+  const invoiceMap = new Map<string, any>();
+  for (const inv of benInvoices) {
+    invoiceMap.set(inv.unit_id, inv);
+  }
+
   let totalAllocated = 0, totalCompensated = 0, totalSurplus = 0, totalDeficit = 0;
   let hasMissing = false;
   const allocations: any[] = [];
@@ -306,13 +322,7 @@ async function calculateGroupMonth(
   for (const ben of bens) {
     const allocated_kwh = Math.round(genSource.generation_kwh * (ben.allocation_percent / 100) * 100) / 100;
 
-    const { data: benInvoice } = await supabase
-      .from("unit_invoices")
-      .select("id, energy_consumed_kwh, total_amount")
-      .eq("unit_id", ben.uc_beneficiaria_id)
-      .eq("reference_year", year)
-      .eq("reference_month", month)
-      .maybeSingle();
+    const benInvoice = invoiceMap.get(ben.uc_beneficiaria_id) || null;
 
     if (!benInvoice) hasMissing = true;
     const consumed_kwh = Number(benInvoice?.energy_consumed_kwh ?? 0);
@@ -368,49 +378,73 @@ async function calculateGroupMonth(
 
   if (snapErr) throw new Error(`Snapshot error: ${snapErr.message}`);
 
-  for (const alloc of allocations) {
+  // AP-20 fix B: Batch upsert all allocations in one call
+  if (allocations.length > 0) {
+    const allocationRows = allocations.map(alloc => ({
+      snapshot_id: snapshot.id,
+      gd_group_id: gdGroupId,
+      tenant_id: group.tenant_id,
+      ...alloc,
+      updated_at: new Date().toISOString(),
+    }));
     await supabase
       .from("gd_monthly_allocations")
-      .upsert({
-        snapshot_id: snapshot.id,
-        gd_group_id: gdGroupId,
-        tenant_id: group.tenant_id,
-        ...alloc,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "snapshot_id,uc_beneficiaria_id" });
+      .upsert(allocationRows, { onConflict: "snapshot_id,uc_beneficiaria_id" });
   }
 
-  for (const alloc of allocations) {
-    if (alloc.surplus_kwh > 0) {
-      const { data: existing } = await supabase
-        .from("gd_credit_balances")
-        .select("id, balance_kwh")
-        .eq("gd_group_id", gdGroupId)
-        .eq("uc_id", alloc.uc_beneficiaria_id)
-        .maybeSingle();
+  // AP-20 fix C: Batch-fetch existing credit balances, then batch insert/update
+  const surplusAllocs = allocations.filter(a => a.surplus_kwh > 0);
+  if (surplusAllocs.length > 0) {
+    const surplusUcIds = surplusAllocs.map(a => a.uc_beneficiaria_id);
 
+    const { data: existingCredits = [] } = await supabase
+      .from("gd_credit_balances")
+      .select("id, uc_id, balance_kwh")
+      .eq("gd_group_id", gdGroupId)
+      .in("uc_id", surplusUcIds);
+
+    const creditMap = new Map<string, any>();
+    for (const c of existingCredits) {
+      creditMap.set(c.uc_id, c);
+    }
+
+    const creditsToInsert: any[] = [];
+    const creditsToUpdate: { id: string; balance_kwh: number }[] = [];
+
+    for (const alloc of surplusAllocs) {
+      const existing = creditMap.get(alloc.uc_beneficiaria_id);
       if (existing) {
-        await supabase
-          .from("gd_credit_balances")
-          .update({
-            balance_kwh: Number(existing.balance_kwh) + alloc.surplus_kwh,
-            last_reference_year: year,
-            last_reference_month: month,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existing.id);
+        creditsToUpdate.push({
+          id: existing.id,
+          balance_kwh: Number(existing.balance_kwh) + alloc.surplus_kwh,
+        });
       } else {
-        await supabase
-          .from("gd_credit_balances")
-          .insert({
-            gd_group_id: gdGroupId,
-            uc_id: alloc.uc_beneficiaria_id,
-            tenant_id: group.tenant_id,
-            balance_kwh: alloc.surplus_kwh,
-            last_reference_year: year,
-            last_reference_month: month,
-          });
+        creditsToInsert.push({
+          gd_group_id: gdGroupId,
+          uc_id: alloc.uc_beneficiaria_id,
+          tenant_id: group.tenant_id,
+          balance_kwh: alloc.surplus_kwh,
+          last_reference_year: year,
+          last_reference_month: month,
+        });
       }
+    }
+
+    if (creditsToInsert.length > 0) {
+      await supabase.from("gd_credit_balances").insert(creditsToInsert);
+    }
+
+    // Updates have individual balance values, but we eliminated the N+1 SELECT
+    for (const upd of creditsToUpdate) {
+      await supabase
+        .from("gd_credit_balances")
+        .update({
+          balance_kwh: upd.balance_kwh,
+          last_reference_year: year,
+          last_reference_month: month,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", upd.id);
     }
   }
 
