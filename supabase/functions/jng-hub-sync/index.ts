@@ -415,7 +415,7 @@ serve(async (req) => {
     // ── Fetch único — Plataforma-V1 não tem paginação ──
     let batchProducts: any[] = [];
     try {
-      batchProducts = await fetchJngKits(token);
+      batchProducts = await fetchJngKits(token, ibge);
       console.log(`[jng-hub-sync] Fetched ${batchProducts.length} kits`);
       await syncLog(supabase, tenant_id, "info",
         `${batchProducts.length} kits retornados pela API`, {
