@@ -1,6 +1,12 @@
 import { formatBRLInteger as formatBRL, formatBRLCompact as formatCompact } from "@/lib/formatters";
-import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
+import {
+  usePerformanceLeads,
+  usePerformanceStatuses,
+  usePerformanceMotivosPerda,
+  usePerformanceConsultores,
+  usePerformanceDeals,
+} from "@/hooks/usePerformanceDashboard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
