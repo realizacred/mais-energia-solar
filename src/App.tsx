@@ -80,6 +80,7 @@ function PWAReturnRedirect() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <DevToolsProvider>
       <BrandSettingsProvider>
       <SiteSettingsProvider>
       <TooltipProvider>
@@ -132,9 +133,11 @@ const App = () => (
             </Routes>
           </Suspense>
         </BrowserRouter>
+        <DevToolsOverlay />
       </TooltipProvider>
       </SiteSettingsProvider>
       </BrandSettingsProvider>
+      </DevToolsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
