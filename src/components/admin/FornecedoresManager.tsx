@@ -77,6 +77,7 @@ function InfoRow({ icon: Icon, label, value }: { icon?: any; label: string; valu
 }
 
 export function FornecedoresManager() {
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: fornecedores = [], isLoading: loading } = useFornecedores();
   const salvarMutation = useSalvarFornecedor();
