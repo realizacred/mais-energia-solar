@@ -92,7 +92,7 @@ export default function MetaFacebookConfigPage() {
             <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
               <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
-            <h2 className="text-lg font-bold text-foreground">Tudo pronto!</h2>
+            <h2 className="text-xl font-bold text-foreground">Tudo pronto!</h2>
             <p className="text-sm text-muted-foreground">
               Facebook Ads configurado com sucesso. Os leads aparecerão automaticamente no CRM.
             </p>

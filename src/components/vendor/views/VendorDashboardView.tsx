@@ -40,7 +40,7 @@ export default function VendorDashboardView({ portal }: Props) {
             <LayoutDashboard className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Painel</h1>
+            <h1 className="text-xl font-bold text-foreground">Painel</h1>
             <p className="text-sm text-muted-foreground">Resumo das suas métricas e atividades</p>
           </div>
         </div>

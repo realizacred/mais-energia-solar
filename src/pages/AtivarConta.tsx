@@ -174,7 +174,7 @@ export default function AtivarConta() {
             <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
               <AlertTriangle className="w-7 h-7 text-destructive" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground">Convite Inválido</h2>
+            <h2 className="text-xl font-bold text-foreground">Convite Inválido</h2>
             <p className="text-sm text-muted-foreground">{errorMessage}</p>
             <Button variant="outline" onClick={() => navigate("/auth", { replace: true })}>
               Ir para Login
@@ -203,7 +203,7 @@ export default function AtivarConta() {
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto animate-scale-in">
               <CheckCircle className="w-8 h-8 text-primary" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground">Conta Ativada!</h2>
+            <h2 className="text-xl font-bold text-foreground">Conta Ativada!</h2>
             <p className="text-sm text-muted-foreground">
               Redirecionando para o sistema...
             </p>

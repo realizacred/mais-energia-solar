@@ -578,7 +578,7 @@ function MonitoringAwaitingState() {
           <Radio className="h-7 w-7 text-primary" />
         </div>
         <div>
-          <h3 className="text-base font-bold text-foreground">Monitoramento MPPT aguardando dados</h3>
+          <h3 className="text-base font-semibold text-foreground">Monitoramento MPPT aguardando dados</h3>
           <p className="text-sm text-muted-foreground mt-1">
             O sistema registrará automaticamente MPPTs e Strings após a próxima sincronização.
           </p>

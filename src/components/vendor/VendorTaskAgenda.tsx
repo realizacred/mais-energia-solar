@@ -83,7 +83,7 @@ export function VendorTaskAgenda() {
           <ClipboardCheck className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h3 className="text-base font-bold text-foreground">Minha Agenda</h3>
+          <h3 className="text-base font-semibold text-foreground">Minha Agenda</h3>
           <p className="text-xs text-muted-foreground">
             {stats.active} tarefas ativas · {stats.overdue} vencidas
           </p>

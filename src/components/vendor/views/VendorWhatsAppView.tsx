@@ -14,7 +14,7 @@ export default function VendorWhatsAppView({ portal }: Props) {
             <MessageCircle className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Atendimento</h1>
+            <h1 className="text-xl font-bold text-foreground">Atendimento</h1>
             <p className="text-sm text-muted-foreground">Conversas e mensagens dos seus clientes</p>
           </div>
         </div>

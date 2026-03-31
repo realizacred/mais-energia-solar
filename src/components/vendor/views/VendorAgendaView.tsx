@@ -12,7 +12,7 @@ export default function VendorAgendaView() {
             <Calendar className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Agenda</h1>
+            <h1 className="text-xl font-bold text-foreground">Agenda</h1>
             <p className="text-sm text-muted-foreground">Compromissos e tarefas do dia</p>
           </div>
         </div>

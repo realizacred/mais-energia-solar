@@ -40,7 +40,7 @@ export default function VendorLinksView({ portal }: Props) {
             <Link className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Captação & App</h1>
+            <h1 className="text-xl font-bold text-foreground">Captação & App</h1>
             <p className="text-sm text-muted-foreground">Seus links e ferramentas de captação</p>
           </div>
         </div>

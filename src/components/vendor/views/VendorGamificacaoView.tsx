@@ -25,7 +25,7 @@ export default function VendorGamificacaoView({ portal }: Props) {
             <Trophy className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Metas & Ranking</h1>
+            <h1 className="text-xl font-bold text-foreground">Metas & Ranking</h1>
             <p className="text-sm text-muted-foreground">Seu desempenho e posição na equipe</p>
           </div>
         </div>

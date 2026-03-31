@@ -420,7 +420,7 @@ export function AuthForm() {
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <Mail className="w-7 h-7 text-primary" />
           </div>
-          <h3 className="text-xl font-semibold text-foreground">
+          <h3 className="text-xl font-bold text-foreground">
             Verifique seu Email
           </h3>
           <p className="text-sm text-muted-foreground mt-2">
@@ -474,7 +474,7 @@ export function AuthForm() {
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <KeyRound className="w-7 h-7 text-primary" />
           </div>
-          <h3 className="text-xl font-semibold text-foreground">
+          <h3 className="text-xl font-bold text-foreground">
             Definir Nova Senha
           </h3>
           <p className="text-sm text-muted-foreground mt-2">

@@ -105,7 +105,7 @@ export function EtiquetasManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
             <Tag className="h-5 w-5 text-primary" />
             Gerenciar etiquetas
           </h2>

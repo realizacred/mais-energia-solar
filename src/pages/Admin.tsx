@@ -507,7 +507,7 @@ export default function Admin() {
             <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center">
               <ShieldAlert className="w-7 h-7 text-destructive" />
             </div>
-            <h2 className="text-xl font-semibold">Acesso Negado</h2>
+            <h2 className="text-xl font-bold">Acesso Negado</h2>
             <p className="text-sm text-muted-foreground text-center max-w-xs">
               Sua conta não possui permissão para acessar o painel administrativo. Contate o administrador.
             </p>
