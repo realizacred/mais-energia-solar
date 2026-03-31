@@ -6,6 +6,7 @@ import {
   useRegistrarContato,
 } from "@/hooks/useFollowUp";
 import type { FollowUpItem } from "@/hooks/useFollowUp";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
