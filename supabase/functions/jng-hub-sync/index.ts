@@ -77,7 +77,9 @@ async function fetchJngProducts(
   });
   if (dtAlteracao) params.set("dtAlteracao", dtAlteracao);
 
-  const res = await fetch(`${JNG_BASE}/integracao/Produtos?${params}`);
+  const url = `${JNG_BASE}/integracao/Produtos?${params}`;
+  console.log("[jng] fetchProducts URL:", url);
+  const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`JNG products failed: ${res.status} ${body}`);
@@ -86,9 +88,9 @@ async function fetchJngProducts(
 }
 
 async function fetchJngEstoque(token: string): Promise<any[]> {
-  const res = await fetch(
-    `${JNG_BASE}/integracao/Estoque?token=${encodeURIComponent(token)}&situacao=A`
-  );
+  const url = `${JNG_BASE}/integracao/Estoque?token=${token}&situacao=A`;
+  console.log("[jng] fetchEstoque URL:", url);
+  const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`JNG estoque failed: ${res.status} ${body}`);
@@ -97,9 +99,9 @@ async function fetchJngEstoque(token: string): Promise<any[]> {
 }
 
 async function fetchJngValores(token: string): Promise<any[]> {
-  const res = await fetch(
-    `${JNG_BASE}/integracao/Valores?token=${encodeURIComponent(token)}`
-  );
+  const url = `${JNG_BASE}/integracao/Valores?token=${token}`;
+  console.log("[jng] fetchValores URL:", url);
+  const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`JNG valores failed: ${res.status} ${body}`);
