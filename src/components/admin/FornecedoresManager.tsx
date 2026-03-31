@@ -17,7 +17,6 @@ import {
 } from "@/hooks/useFornecedores";
 import type { Fornecedor } from "@/hooks/useFornecedores";
 import { useToast } from "@/hooks/use-toast";
-import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
