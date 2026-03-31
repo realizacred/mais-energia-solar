@@ -308,7 +308,7 @@ export function ValidacaoVendasManager() {
       if (!summary.is_valid) {
         toast({
           title: "Composição divergente",
-          description: `A soma dos pagamentos não bate com o valor da venda. Diferença: R$ ${Math.abs(summary.valor_restante).toFixed(2)}`,
+          description: `A soma dos pagamentos não bate com o valor da venda. Diferença: ${formatBRL(Math.abs(summary.valor_restante))}`,
           variant: "destructive",
         });
         return;
