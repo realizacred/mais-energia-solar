@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { TIPO_MOVIMENTO_LABELS, type EstoqueMovimento } from "@/hooks/useEstoque";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatBRL } from "@/lib/formatters";
 
 const tipoStyles: Record<string, string> = {
   entrada: "bg-success/10 text-success",
