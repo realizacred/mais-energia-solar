@@ -1461,6 +1461,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
           </button>
         </div>
 
+        <div className="flex-1 min-h-0 overflow-y-auto">
         {activeTab === "fator" ? (
           <div className="space-y-4 pt-1">
             {/* Sombreamento */}
