@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Plus, Trash2, Pencil, Zap, CircuitBoard } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
@@ -21,71 +20,48 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-
-interface Disjuntor {
-  id: string;
-  amperagem: number;
-  descricao: string | null;
-  ativo: boolean;
-  created_at: string;
-}
-
-interface Transformador {
-  id: string;
-  potencia_kva: number;
-  descricao: string | null;
-  ativo: boolean;
-  created_at: string;
-}
+import {
+  useDisjuntores,
+  useTransformadores,
+  useSalvarDisjuntor,
+  useSalvarTransformador,
+  useToggleDisjuntorAtivo,
+  useToggleTransformadorAtivo,
+  useDeletarDisjuntor,
+  useDeletarTransformador,
+  type DisjuntorRow,
+  type TransformadorRow,
+} from "@/hooks/useEquipamentos";
 
 export function EquipamentosManager() {
   const { toast } = useToast();
-  const [disjuntores, setDisjuntores] = useState<Disjuntor[]>([]);
-  const [transformadores, setTransformadores] = useState<Transformador[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // --- Hooks (RB-04, §16) ---
+  const { data: disjuntores = [], isLoading: loadingDisjuntores } = useDisjuntores();
+  const { data: transformadores = [], isLoading: loadingTransformadores } = useTransformadores();
+  const salvarDisjuntor = useSalvarDisjuntor();
+  const salvarTransformador = useSalvarTransformador();
+  const toggleDisjuntorAtivo = useToggleDisjuntorAtivo();
+  const toggleTransformadorAtivo = useToggleTransformadorAtivo();
+  const deletarDisjuntor = useDeletarDisjuntor();
+  const deletarTransformador = useDeletarTransformador();
+
+  const loading = loadingDisjuntores || loadingTransformadores;
 
   // Disjuntor state
   const [disjuntorDialogOpen, setDisjuntorDialogOpen] = useState(false);
-  const [editingDisjuntor, setEditingDisjuntor] = useState<Disjuntor | null>(null);
+  const [editingDisjuntor, setEditingDisjuntor] = useState<DisjuntorRow | null>(null);
   const [disjuntorForm, setDisjuntorForm] = useState({ amperagem: "", descricao: "" });
-  const [deletingDisjuntor, setDeletingDisjuntor] = useState<Disjuntor | null>(null);
+  const [deletingDisjuntor, setDeletingDisjuntor] = useState<DisjuntorRow | null>(null);
 
   // Transformador state
   const [transformadorDialogOpen, setTransformadorDialogOpen] = useState(false);
-  const [editingTransformador, setEditingTransformador] = useState<Transformador | null>(null);
+  const [editingTransformador, setEditingTransformador] = useState<TransformadorRow | null>(null);
   const [transformadorForm, setTransformadorForm] = useState({ potencia_kva: "", descricao: "" });
-  const [deletingTransformador, setDeletingTransformador] = useState<Transformador | null>(null);
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [disjuntoresRes, transformadoresRes] = await Promise.all([
-        supabase.from("disjuntores").select("id, amperagem, descricao, ativo, created_at, updated_at").order("amperagem", { ascending: true }),
-        supabase.from("transformadores").select("id, potencia_kva, descricao, ativo, created_at, updated_at").order("potencia_kva", { ascending: true }),
-      ]);
-
-      if (disjuntoresRes.error) throw disjuntoresRes.error;
-      if (transformadoresRes.error) throw transformadoresRes.error;
-
-      setDisjuntores(disjuntoresRes.data || []);
-      setTransformadores(transformadoresRes.data || []);
-    } catch (error: any) {
-      toast({
-        title: "Erro ao carregar equipamentos",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const [deletingTransformador, setDeletingTransformador] = useState<TransformadorRow | null>(null);
 
   // Disjuntor handlers
-  const openDisjuntorDialog = (disjuntor?: Disjuntor) => {
+  const openDisjuntorDialog = (disjuntor?: DisjuntorRow) => {
     if (disjuntor) {
       setEditingDisjuntor(disjuntor);
       setDisjuntorForm({
@@ -107,35 +83,21 @@ export function EquipamentosManager() {
     }
 
     try {
-      if (editingDisjuntor) {
-        const { error } = await supabase
-          .from("disjuntores")
-          .update({ amperagem, descricao: disjuntorForm.descricao || null })
-          .eq("id", editingDisjuntor.id);
-        if (error) throw error;
-        toast({ title: "Disjuntor atualizado com sucesso" });
-      } else {
-        const { error } = await supabase
-          .from("disjuntores")
-          .insert({ amperagem, descricao: disjuntorForm.descricao || null });
-        if (error) throw error;
-        toast({ title: "Disjuntor cadastrado com sucesso" });
-      }
+      await salvarDisjuntor.mutateAsync({
+        id: editingDisjuntor?.id,
+        amperagem,
+        descricao: disjuntorForm.descricao || null,
+      });
+      toast({ title: editingDisjuntor ? "Disjuntor atualizado com sucesso" : "Disjuntor cadastrado com sucesso" });
       setDisjuntorDialogOpen(false);
-      fetchData();
     } catch (error: any) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     }
   };
 
-  const handleToggleDisjuntorAtivo = async (disjuntor: Disjuntor) => {
+  const handleToggleDisjuntorAtivo = async (disjuntor: DisjuntorRow) => {
     try {
-      const { error } = await supabase
-        .from("disjuntores")
-        .update({ ativo: !disjuntor.ativo })
-        .eq("id", disjuntor.id);
-      if (error) throw error;
-      fetchData();
+      await toggleDisjuntorAtivo.mutateAsync({ id: disjuntor.id, ativo: !disjuntor.ativo });
     } catch (error: any) {
       toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
     }
@@ -144,21 +106,16 @@ export function EquipamentosManager() {
   const handleDeleteDisjuntor = async () => {
     if (!deletingDisjuntor) return;
     try {
-      const { error } = await supabase
-        .from("disjuntores")
-        .delete()
-        .eq("id", deletingDisjuntor.id);
-      if (error) throw error;
+      await deletarDisjuntor.mutateAsync(deletingDisjuntor.id);
       toast({ title: "Disjuntor excluído" });
       setDeletingDisjuntor(null);
-      fetchData();
     } catch (error: any) {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     }
   };
 
   // Transformador handlers
-  const openTransformadorDialog = (transformador?: Transformador) => {
+  const openTransformadorDialog = (transformador?: TransformadorRow) => {
     if (transformador) {
       setEditingTransformador(transformador);
       setTransformadorForm({
@@ -180,35 +137,21 @@ export function EquipamentosManager() {
     }
 
     try {
-      if (editingTransformador) {
-        const { error } = await supabase
-          .from("transformadores")
-          .update({ potencia_kva, descricao: transformadorForm.descricao || null })
-          .eq("id", editingTransformador.id);
-        if (error) throw error;
-        toast({ title: "Transformador atualizado com sucesso" });
-      } else {
-        const { error } = await supabase
-          .from("transformadores")
-          .insert({ potencia_kva, descricao: transformadorForm.descricao || null });
-        if (error) throw error;
-        toast({ title: "Transformador cadastrado com sucesso" });
-      }
+      await salvarTransformador.mutateAsync({
+        id: editingTransformador?.id,
+        potencia_kva,
+        descricao: transformadorForm.descricao || null,
+      });
+      toast({ title: editingTransformador ? "Transformador atualizado com sucesso" : "Transformador cadastrado com sucesso" });
       setTransformadorDialogOpen(false);
-      fetchData();
     } catch (error: any) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     }
   };
 
-  const handleToggleTransformadorAtivo = async (transformador: Transformador) => {
+  const handleToggleTransformadorAtivo = async (transformador: TransformadorRow) => {
     try {
-      const { error } = await supabase
-        .from("transformadores")
-        .update({ ativo: !transformador.ativo })
-        .eq("id", transformador.id);
-      if (error) throw error;
-      fetchData();
+      await toggleTransformadorAtivo.mutateAsync({ id: transformador.id, ativo: !transformador.ativo });
     } catch (error: any) {
       toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
     }
@@ -217,14 +160,9 @@ export function EquipamentosManager() {
   const handleDeleteTransformador = async () => {
     if (!deletingTransformador) return;
     try {
-      const { error } = await supabase
-        .from("transformadores")
-        .delete()
-        .eq("id", deletingTransformador.id);
-      if (error) throw error;
+      await deletarTransformador.mutateAsync(deletingTransformador.id);
       toast({ title: "Transformador excluído" });
       setDeletingTransformador(null);
-      fetchData();
     } catch (error: any) {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     }
