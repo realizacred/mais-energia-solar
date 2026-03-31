@@ -8,8 +8,6 @@ const corsHeaders = {
 };
 
 const JNG_BASE = "https://api-d1542.cloud.solaryum.com.br";
-const PAGES_PER_BATCH = 5;
-const ITEMS_PER_PAGE = 100;
 
 // ── Provider Adapter Types ──────────────────────────────────
 interface CanonicalKit {
@@ -82,28 +80,18 @@ interface JngProduto {
   composicao: ProdutoComposicaoHubB2B[] | null;
 }
 
-// ── Fetch helper (HubB2B endpoint) ──────────────────────────
-async function fetchJngProducts(
-  token: string,
-  page: number,
-  limit: number,
-  dtAlteracao?: string | null
-): Promise<any[]> {
-  const params = new URLSearchParams({
-    token,
-    paginaAtual: String(page),
-    qtdPorPagina: String(limit),
-  });
-  if (dtAlteracao) params.set("dataAlteracao", dtAlteracao);
-
-  const url = `${JNG_BASE}/hubB2B/Produtos?${params.toString()}`;
-  console.log("[jng] fetchProducts URL:", url);
+// ── Fetch helper (Plataforma-V1 — sem paginação) ────────────
+async function fetchJngKits(token: string): Promise<any[]> {
+  const params = new URLSearchParams({ token });
+  const url = `${JNG_BASE}/integracaoPlataforma/BuscarKits?${params.toString()}`;
+  console.log("[jng] fetchKits URL:", url);
   const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`JNG products failed: ${res.status} ${body}`);
+    throw new Error(`JNG kits failed: ${res.status} ${body}`);
   }
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
 // ── Classification ──────────────────────────────────────────
@@ -255,8 +243,7 @@ serve(async (req) => {
       tenant_id,
       api_config_id,
       fornecedor_id,
-      mode = "incremental",
-      max_pages,
+      mode = "full_replace",
     } = body;
     const test_only = !!body.test_only;
 
@@ -313,23 +300,32 @@ serve(async (req) => {
     // ── Test-only mode ──
     if (test_only) {
       try {
-        const testItems = await fetchJngProducts(token, 1, 1);
-        await syncLog(supabase, tenant_id, "info", "Teste de conexão JNG realizado com sucesso", {
-          sample_count: Array.isArray(testItems) ? testItems.length : 0,
+        const testItems = await fetchJngKits(token);
+        await syncLog(supabase, tenant_id, "info",
+          "Teste de conexão JNG realizado com sucesso", {
+          sample_count: testItems.length,
         });
         return new Response(
-          JSON.stringify({ success: true, test: true, message: "Conexão JNG validada com sucesso" }),
+          JSON.stringify({
+            success: true,
+            test: true,
+            message: `Conexão JNG validada. ${testItems.length} kits disponíveis.`
+          }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (e: any) {
         return new Response(
-          JSON.stringify({ success: false, error: `Falha na conexão JNG: ${e.message}`, code: "AUTH_FAILED" }),
+          JSON.stringify({
+            success: false,
+            error: `Falha na conexão JNG: ${e.message}`,
+            code: "AUTH_FAILED"
+          }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
-    // HubB2B: estoque e preço já vêm embutidos no produto — sem endpoints separados
+    // Adapter
     const jngAdapter = createJngAdapter();
 
     // ── Load or create sync state ──
@@ -347,20 +343,11 @@ serve(async (req) => {
       syncState.status === "error" ||
       syncState.status === "idle";
 
-    // For incremental, use last_completed_at as dtAlteracao
-    let dtAlteracao: string | null = null;
-    if (mode === "incremental" && syncState?.completed_at) {
-      dtAlteracao = syncState.completed_at;
-    }
-
     if (isNewSync) {
       const stateData = {
         tenant_id,
         provider: "jng",
         mode,
-        current_page: 0,
-        total_pages: null,
-        batch_size: PAGES_PER_BATCH,
         processed_items: 0,
         inserted_items: 0,
         updated_items: 0,
@@ -373,7 +360,6 @@ serve(async (req) => {
         metadata: {
           fornecedor_id,
           token_partial: token.slice(0, 8) + "...",
-          dtAlteracao: dtAlteracao || null,
         },
       };
 
@@ -414,75 +400,35 @@ serve(async (req) => {
         }
       }
 
-      await syncLog(supabase, tenant_id, "info", `Sincronização JNG iniciada (modo: ${mode})`, {
-        mode,
-        dtAlteracao,
-      });
+      await syncLog(supabase, tenant_id, "info", `Sincronização JNG iniciada (modo: ${mode})`, { mode });
     } else if (syncState.status === "running") {
-      // Resume from checkpoint
       await supabase
         .from("integration_sync_state")
         .update({ last_run_at: new Date().toISOString() })
         .eq("id", syncState.id);
-
-      // Restore dtAlteracao from metadata if resuming
-      if (mode === "incremental" && syncState.metadata?.dtAlteracao) {
-        dtAlteracao = syncState.metadata.dtAlteracao;
-      }
     }
 
-    // ── Process batch of pages ──
-    const startPage = (syncState.current_page || 0) + 1;
-    const maxPage = max_pages ? startPage + max_pages - 1 : startPage + PAGES_PER_BATCH - 1;
-    const endPage = maxPage;
-
+    // ── Fetch único — Plataforma-V1 não tem paginação ──
     let batchProducts: any[] = [];
-    let lastPageProcessed = startPage - 1;
-    let isLastPage = false;
-
-    for (let page = startPage; page <= endPage; page++) {
-      if (isLastPage) break;
-
-      try {
-        const items = await fetchJngProducts(token, page, ITEMS_PER_PAGE, dtAlteracao);
-
-        if (!Array.isArray(items) || items.length === 0 || items.length < ITEMS_PER_PAGE) {
-          isLastPage = true;
-        }
-
-        if (Array.isArray(items)) {
-          batchProducts = [...batchProducts, ...items];
-        }
-        lastPageProcessed = page;
-
-        // Per-page logging with manufacturer breakdown
-        const fabricantes = new Map<string, number>();
-        for (const p of (Array.isArray(items) ? items : [])) {
-          const fab = (p as JngProduto).marcaPainel || (p as JngProduto).marca || "(sem marca)";
-          fabricantes.set(fab, (fabricantes.get(fab) || 0) + 1);
-        }
-        const fabSummary = Array.from(fabricantes.entries())
-          .map(([f, c]) => `${f}:${c}`)
-          .join(", ");
-
-        console.log(
-          `[jng-hub-sync] Page ${page}: ${Array.isArray(items) ? items.length : 0} items → marcas: ${fabSummary}`
-        );
-
-        await syncLog(supabase, tenant_id, "info", `Página ${page}: ${Array.isArray(items) ? items.length : 0} produtos`, {
-          page,
-          items_count: Array.isArray(items) ? items.length : 0,
-          fabricantes: Object.fromEntries(fabricantes),
-          is_last_page: isLastPage,
-        });
-      } catch (e: any) {
-        console.error(`[jng-hub-sync] Error fetching page ${page}:`, e);
-        await syncLog(supabase, tenant_id, "error", `Erro na página ${page}`, {
-          error: e.message,
-        });
-        // Don't break — try next page
-        continue;
-      }
+    try {
+      batchProducts = await fetchJngKits(token);
+      console.log(`[jng-hub-sync] Fetched ${batchProducts.length} kits`);
+      await syncLog(supabase, tenant_id, "info",
+        `${batchProducts.length} kits retornados pela API`, {
+        count: batchProducts.length,
+      });
+    } catch (e: any) {
+      console.error("[jng-hub-sync] Error fetching kits:", e);
+      await syncLog(supabase, tenant_id, "error", "Erro ao buscar kits JNG", {
+        error: e.message,
+      });
+      await supabase.from("integration_sync_state")
+        .update({ status: "error", last_error: e.message, last_run_at: new Date().toISOString() })
+        .eq("id", syncState.id);
+      return new Response(
+        JSON.stringify({ success: false, error: e.message, code: "FETCH_ERROR" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // ── Batch upsert ──
@@ -565,7 +511,6 @@ serve(async (req) => {
             }
           }
 
-          // SINGLE upsert for all kit items
           if (allKitItems.length > 0) {
             const { error: kitItemsErr } = await supabase
               .from("solar_kit_catalog_items")
@@ -586,44 +531,39 @@ serve(async (req) => {
     }
 
     // ── Update sync state ──
-    const isComplete = isLastPage || batchProducts.length === 0;
     const newState: any = {
-      current_page: lastPageProcessed,
       processed_items: (syncState.processed_items || 0) + batchProducts.length,
       inserted_items: (syncState.inserted_items || 0) + created,
       updated_items: (syncState.updated_items || 0) + updated,
       ignored_items: (syncState.ignored_items || 0) + skipped,
       last_run_at: new Date().toISOString(),
-      status: isComplete ? "completed" : "running",
+      status: "completed",
+      completed_at: new Date().toISOString(),
     };
 
-    if (isComplete) {
-      newState.completed_at = new Date().toISOString();
+    // Final validation: log manufacturer summary
+    const { data: fabData } = await supabase
+      .from("solar_kit_catalog")
+      .select("fabricante")
+      .eq("tenant_id", tenant_id)
+      .eq("fornecedor_id", fornecedor_id);
 
-      // Final validation: log manufacturer summary
-      const { data: fabData } = await supabase
-        .from("solar_kit_catalog")
-        .select("fabricante")
-        .eq("tenant_id", tenant_id)
-        .eq("fornecedor_id", fornecedor_id);
-
-      if (fabData) {
-        const fabCount = new Map<string, number>();
-        for (const row of fabData) {
-          const f = row.fabricante || "(sem fabricante)";
-          fabCount.set(f, (fabCount.get(f) || 0) + 1);
-        }
-        const summary = Array.from(fabCount.entries())
-          .sort((a, b) => b[1] - a[1])
-          .map(([f, c]) => `${f}: ${c}`)
-          .join(", ");
-
-        console.log(`[jng-hub-sync] FINAL: ${fabData.length} products, marcas: ${summary}`);
-        await syncLog(supabase, tenant_id, "info", `Catálogo JNG final: ${fabData.length} produtos`, {
-          fabricantes: Object.fromEntries(fabCount),
-          total: fabData.length,
-        });
+    if (fabData) {
+      const fabCount = new Map<string, number>();
+      for (const row of fabData) {
+        const f = row.fabricante || "(sem fabricante)";
+        fabCount.set(f, (fabCount.get(f) || 0) + 1);
       }
+      const summary = Array.from(fabCount.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([f, c]) => `${f}: ${c}`)
+        .join(", ");
+
+      console.log(`[jng-hub-sync] FINAL: ${fabData.length} products, marcas: ${summary}`);
+      await syncLog(supabase, tenant_id, "info", `Catálogo JNG final: ${fabData.length} produtos`, {
+        fabricantes: Object.fromEntries(fabCount),
+        total: fabData.length,
+      });
     }
 
     await supabase
@@ -631,16 +571,12 @@ serve(async (req) => {
       .update(newState)
       .eq("id", syncState.id);
 
-    const msg = isComplete
-      ? `Sincronização JNG concluída: ${newState.inserted_items} criados, ${newState.updated_items} atualizados, ${newState.ignored_items} ignorados`
-      : `Batch JNG processado: páginas ${startPage}-${lastPageProcessed}, ${created} criados, ${updated} atualizados`;
+    const msg = `Sincronização JNG concluída: ${newState.inserted_items} criados, ${newState.updated_items} atualizados, ${newState.ignored_items} ignorados`;
 
     await syncLog(supabase, tenant_id, "info", msg, {
-      pages: `${startPage}-${lastPageProcessed}`,
       created,
       updated,
       skipped,
-      isComplete,
     });
 
     console.log(`[jng-hub-sync] ${msg}`);
@@ -648,12 +584,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        is_complete: isComplete,
+        is_complete: true,
         total_fetched: batchProducts.length,
         created,
         updated,
         skipped,
-        current_page: lastPageProcessed,
         synced_at: new Date().toISOString(),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
