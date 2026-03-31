@@ -1044,7 +1044,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 {(() => {
                   const geracaoSnap = (snapshot as any)?.geracaoMensalEstimada ?? (snapshot as any)?.geracao_mensal_estimada;
                   const geracao = geracaoSnap || latestVersao?.geracao_mensal;
-                  return geracao ? `${Number(geracao).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh` : "—";
+                  return geracao ? `${Math.round(Number(geracao)).toLocaleString("pt-BR")} kWh` : "—";
                 })()}
               </p>
             </div>
