@@ -169,72 +169,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     reset: resetRateLimit 
   } = useFormRateLimit({ maxAttempts: 5, windowMs: 60000, cooldownMs: 300000 });
 
-  // Captura e valida o vendedor da URL usando RPC segura
-  // OU resolve automaticamente pelo usuário logado (auto-atribuição)
-  useEffect(() => {
-    const validateVendedor = async () => {
-      // Prioriza prop vendorCode, depois searchParams
-      const codigo = vendorCode || searchParams.get("v") || searchParams.get("vendedor");
-      
-      if (codigo) {
-        try {
-          // Use secure RPC function that exposes only code and name
-          const { data, error } = await supabase
-            .rpc("validate_consultor_code", { _codigo: codigo });
-
-          if (error) {
-            // console.log("Erro ao validar vendedor:", error.message);
-            return;
-          }
-
-          // RPC returns array of {valid, nome} — uniform for anti-enumeration
-          const results = Array.isArray(data) ? data : data ? [data] : [];
-          const result = results[0];
-          if (result && result.valid && result.nome) {
-            setVendedorCodigo(codigo);
-            setVendedorNome(result.nome);
-            // Resolve consultor_id via secure RPC (no direct table access for anon)
-            const { data: consultorRecord } = await supabase
-              .rpc("resolve_consultor_public", { _codigo: codigo })
-              .maybeSingle();
-            if (consultorRecord) {
-              setVendedorId((consultorRecord as any).id);
-            }
-            // console.log("Consultor validado:", result.nome);
-          } else {
-            // console.log("Vendedor não encontrado ou inativo:", codigo);
-          }
-        } catch (error) {
-          console.error("Erro ao validar vendedor:", error);
-        }
-        return;
-      }
-
-      // Se não tem código na URL mas o usuário está logado,
-      // resolve o vendedor_id automaticamente (auto-atribuição)
-      if (user) {
-        try {
-          const { data: vendedorRecord } = await supabase
-            .from("consultores")
-            .select("id, nome, codigo")
-            .eq("user_id", user.id)
-            .eq("ativo", true)
-            .maybeSingle();
-
-          if (vendedorRecord) {
-            setVendedorId(vendedorRecord.id);
-            setVendedorNome(vendedorRecord.nome);
-            setVendedorCodigo(vendedorRecord.codigo);
-            // console.log("Vendedor auto-atribuído (logado):", vendedorRecord.nome);
-          }
-        } catch (error) {
-          console.error("Erro ao resolver vendedor logado:", error);
-        }
-      }
-    };
-
-    validateVendedor();
-  }, [searchParams, vendorCode, user]);
+  // Vendedor validation now handled by useVendedorFromCode + useVendedorFromUser hooks
 
   // Dynamic resolver: validates ONLY the current step's schema.
   // On step 3 (final submit), RHF's handleSubmit uses the full leadFormSchema.
