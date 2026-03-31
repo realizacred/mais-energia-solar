@@ -72,8 +72,7 @@ export function PlantDataSourcesSection({ plantId, tenantId }: Props) {
               Nenhum portal de coleta vinculado. Clique em "Adicionar Portal" para começar.
             </p>
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
+            <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">              <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="font-semibold text-foreground">Provedor</TableHead>

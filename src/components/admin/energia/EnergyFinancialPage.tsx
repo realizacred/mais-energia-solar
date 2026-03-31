@@ -145,8 +145,7 @@ export function EnergyFinancialPage() {
             {loadingRanking ? (
               <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}</div>
             ) : ranking && ranking.topGroups.length > 0 ? (
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
+              <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">                <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead className="font-semibold text-foreground">Grupo</TableHead>
@@ -182,8 +181,7 @@ export function EnergyFinancialPage() {
             {loadingRanking ? (
               <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}</div>
             ) : ranking && ranking.topClients.length > 0 ? (
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
+              <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">                <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead className="font-semibold text-foreground">Cliente</TableHead>

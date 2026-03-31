@@ -93,8 +93,7 @@ export default function IntegrationGuidesManager() {
           description="Crie um guia para ajudar na configuração de integrações"
         />
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <Table>
+        <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">          <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold text-foreground">Provider</TableHead>

@@ -225,8 +225,7 @@ export function UCComparativoTab({ unitId, simulacaoId }: Props) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Detalhamento por Mês</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">          <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold text-foreground text-xs">Mês</TableHead>

@@ -272,8 +272,7 @@ export function EquipamentosManager() {
             </Button>
           </div>
 
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
+          <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">            <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Amperagem</TableHead>
@@ -351,8 +350,7 @@ export function EquipamentosManager() {
             </Button>
           </div>
 
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
+          <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">            <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Potência</TableHead>

@@ -302,8 +302,7 @@ export default function ExtractionCenterPage() {
               action={{ label: "Nova Configuração", onClick: handleCreate, icon: Plus }}
             />
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
+            <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">              <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="font-semibold text-foreground">Concessionária</TableHead>
@@ -447,8 +446,7 @@ export default function ExtractionCenterPage() {
               description="As extrações serão exibidas aqui após o processamento de faturas."
             />
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
+            <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">              <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="font-semibold text-foreground">Data</TableHead>

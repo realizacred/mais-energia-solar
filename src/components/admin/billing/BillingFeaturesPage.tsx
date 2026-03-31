@@ -183,8 +183,7 @@ function PlansTab() {
   if (!plans.length) return <EmptyState icon={CreditCard} title="Nenhum plano cadastrado" description="Planos serão criados automaticamente pelo sistema." />;
 
   return (
-    <div className="space-y-4">
-      <Table>
+    <div className="space-y-4 overflow-x-auto">      <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead className="font-semibold text-foreground">Nome</TableHead>

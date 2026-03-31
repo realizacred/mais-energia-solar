@@ -80,8 +80,7 @@ export function ProposalAnalysis({
       {/* Items table */}
       {(kitItems.length > 0 || custoInstalacao > 0 || custoComissao > 0) && (
         <Card className="border-border/50 mb-6">
-          <CardContent className="py-0 px-0">
-            <Table>
+          <CardContent className="py-0 px-0 overflow-x-auto">            <Table>
               <TableHeader>
                 <TableRow className="text-[10px] uppercase tracking-wider">
                   <TableHead>Categoria</TableHead>

@@ -291,8 +291,7 @@ export function AuditLogsViewer() {
           </span>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="rounded-b-lg overflow-hidden">
-            <Table>
+          <div className="rounded-b-lg overflow-hidden overflow-x-auto">            <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead className="font-semibold text-foreground w-[160px]">

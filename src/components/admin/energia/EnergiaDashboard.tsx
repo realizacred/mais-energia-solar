@@ -350,8 +350,7 @@ export function EnergiaDashboard() {
           <CardTitle className="text-base font-semibold text-foreground">Unidades Consumidoras</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
+          <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">            <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead className="font-semibold text-foreground">Nome</TableHead>
