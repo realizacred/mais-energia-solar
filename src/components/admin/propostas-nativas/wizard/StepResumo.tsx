@@ -129,7 +129,7 @@ export function StepResumo({
               <SunMedium className="h-4 w-4 text-success" />
             </div>
             <div>
-              <p className="text-lg font-bold text-foreground leading-none">{geracaoMensalKwh.toLocaleString("pt-BR")} kWh</p>
+              <p className="text-lg font-bold text-foreground leading-none">{Math.round(geracaoMensalKwh).toLocaleString("pt-BR")} kWh</p>
               <p className="text-[10px] text-muted-foreground">Geração/mês</p>
             </div>
           </CardContent>

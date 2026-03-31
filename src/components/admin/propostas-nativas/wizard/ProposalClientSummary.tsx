@@ -91,7 +91,7 @@ export function ProposalClientSummary({ data }: { data: ProposalClientSummaryDat
               Geração/mês
             </div>
             <p className="text-xl font-bold text-foreground">
-              {data.geracaoMensalKwh.toLocaleString("pt-BR")} kWh
+              {Math.round(data.geracaoMensalKwh).toLocaleString("pt-BR")} kWh
             </p>
           </CardContent>
         </Card>
