@@ -14,6 +14,7 @@ import {
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { WizardSuccessScreen, StepPersonalData, StepAddress, StepConsumption } from "@/components/wizard";
 import { supabase } from "@/integrations/supabase/client";
+import { useVendedorFromCode, useVendedorFromUser, useResolveVendedorId } from "@/hooks/useLeadFormVendedor";
 import { getVendedorWaSettings, buildAutoMessage, sendAutoWelcomeMessage, normalizePhoneDigits, savePipelineDiag, type WaPipelineDiag } from "@/lib/waAutoMessage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
