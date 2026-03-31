@@ -32,6 +32,7 @@ import { useTenantSubscriptionsAdmin, useUpdateSubscription } from "@/hooks/useT
 import { useTenantFeatureOverridesAdmin, useUpsertTenantOverride, useDeleteTenantOverride } from "@/hooks/useTenantFeatureOverrides";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/dateUtils";
+import { formatBRL } from "@/lib/formatters";
 
 // ─── EDIT PLAN MODAL ─────────────────────────────────────────
 
@@ -208,8 +209,8 @@ function PlansTab() {
                 </div>
               </TableCell>
               <TableCell><Badge variant="outline" className="text-xs font-mono">{p.code}</Badge></TableCell>
-              <TableCell className="text-right font-mono">R$ {Number(p.price_monthly).toFixed(2)}</TableCell>
-              <TableCell className="text-right font-mono">{p.price_yearly ? `R$ ${Number(p.price_yearly).toFixed(2)}` : "—"}</TableCell>
+              <TableCell className="text-right font-mono">{formatBRL(Number(p.price_monthly))}</TableCell>
+              <TableCell className="text-right font-mono">{p.price_yearly ? formatBRL(Number(p.price_yearly)) : "—"}</TableCell>
               <TableCell>
                 <Switch checked={p.is_active} onCheckedChange={(v) => toggleMut.mutate({ id: p.id, is_active: v })} />
               </TableCell>
