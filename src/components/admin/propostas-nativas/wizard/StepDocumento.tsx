@@ -1033,9 +1033,38 @@ export function StepDocumento({
                 Gerar Proposta
               </Button>
             </div>
+          ) : outputPdfPath ? (
+            <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-3">
+              <Info className="h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Não foi possível carregar o preview</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={async () => {
+                  const { data } = await supabase.storage
+                    .from("proposta-documentos")
+                    .createSignedUrl(outputPdfPath, 3600);
+                  if (data?.signedUrl) {
+                    // Force re-render by opening in iframe via parent state
+                    window.open(data.signedUrl, "_blank");
+                  } else {
+                    toast({ title: "Erro ao carregar preview", variant: "destructive" });
+                  }
+                }}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Abrir PDF em nova aba
+              </Button>
+            </div>
           ) : (
-            <div className="border border-border/50 rounded-xl flex items-center justify-center h-[400px] bg-muted/20">
-              <p className="text-sm text-muted-foreground">Preview indisponível</p>
+            <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-3">
+              <Zap className="h-8 w-8 text-primary" />
+              <p className="text-sm text-muted-foreground">Nenhuma proposta gerada ainda</p>
+              <Button variant="default" size="sm" className="gap-2" onClick={onGenerate}>
+                <Zap className="h-3.5 w-3.5" />
+                Gerar Proposta
+              </Button>
             </div>
           )}
         </div>
