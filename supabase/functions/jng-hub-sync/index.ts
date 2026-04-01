@@ -80,15 +80,14 @@ interface JngProduto {
   composicao: ProdutoComposicaoHubB2B[] | null;
 }
 
-// ── Fetch helper (Plataforma-V1 — sem paginação) ────────────
+// ── Fetch helper (HubB2B — /hubB2B/Produtos) ───────────────
 async function fetchJngKits(token: string, ibge?: string): Promise<any[]> {
   const params = new URLSearchParams({ token });
   if (ibge) {
     params.set("ibge", ibge);
-    params.set("cifComDescarga", "false");
   }
-  const url = `${JNG_BASE}/integracaoPlataforma/BuscarKits?${params.toString()}`;
-  console.log("[jng] fetchKits URL:", url);
+  const url = `${JNG_BASE}/hubB2B/Produtos?${params.toString()}`;
+  // console.log("[jng] fetchKits URL:", url);
   const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
