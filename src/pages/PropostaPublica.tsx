@@ -586,72 +586,11 @@ export default function PropostaPublica() {
 
       {/* ── CENÁRIOS INTERATIVOS — only on simulacao view ── */}
       {hasCenarios && isSimulacaoView && (
-        <div className="max-w-3xl mx-auto px-4 pb-4">
-          <h3 className="text-base font-semibold mb-3 text-center">
-            Escolha a melhor opção para você
-          </h3>
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {cenarios.map(c => {
-              const isSelected = c.id === selectedCenario;
-              const tipoLabel = c.tipo === "a_vista" ? "À Vista" : c.tipo === "financiamento" ? "Financiamento" : "Parcelado";
-              return (
-                <Button
-                  key={c.id}
-                  variant="ghost"
-                  onClick={() => setSelectedCenario(c.id)}
-                  className={`relative rounded-xl border-2 p-4 text-left transition-all h-auto block w-full ${
-                    isSelected
-                      ? "border-primary bg-primary/5 shadow-md ring-2 ring-primary/20"
-                      : "border-border hover:border-primary/40 bg-card"
-                  }`}
-                >
-                  {c.is_default && (
-                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      ★ RECOMENDADO
-                    </span>
-                  )}
-                  <p className="text-xs text-muted-foreground uppercase font-medium">{tipoLabel}</p>
-                  <p className="font-bold text-sm mt-1">{c.nome}</p>
-                  <p className="text-xl font-extrabold text-primary mt-2">
-                    {c.tipo === "a_vista"
-                      ? formatBRL(c.preco_final)
-                      : `${c.num_parcelas}x ${formatBRL(c.valor_parcela)}`}
-                  </p>
-                  {c.entrada_valor > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">+ Entrada: {formatBRL(c.entrada_valor)}</p>
-                  )}
-                  {c.taxa_juros_mensal > 0 && (
-                    <p className="text-xs text-muted-foreground">{Number.isFinite(c.taxa_juros_mensal) ? c.taxa_juros_mensal.toFixed(2) : "0.00"}% a.m.</p>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 mt-3 pt-3 border-t border-border/50">
-                    <div className="text-center">
-                      <Clock className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
-                      <p className="text-xs font-bold">{Number.isFinite(c.payback_meses) ? c.payback_meses : "—"}m</p>
-                      <p className="text-[9px] text-muted-foreground">Payback</p>
-                    </div>
-                    <div className="text-center">
-                      <TrendingUp className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
-                      <p className="text-xs font-bold">{Number.isFinite(c.tir_anual) ? c.tir_anual.toFixed(1) : "—"}%</p>
-                      <p className="text-[9px] text-muted-foreground">TIR</p>
-                    </div>
-                    <div className="text-center">
-                      <Zap className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
-                      <p className="text-xs font-bold">{Number.isFinite(c.roi_25_anos) ? formatBRL(c.roi_25_anos) : "—"}</p>
-                      <p className="text-[9px] text-muted-foreground">ROI 25a</p>
-                    </div>
-                  </div>
-
-                  {isSelected && (
-                    <div className="absolute top-2 right-2">
-                      <CheckCircle2 className="h-5 w-5 text-primary" />
-                    </div>
-                  )}
-                </Button>
-              );
-            })}
-          </div>
-        </div>
+        <PublicPaymentSection
+          cenarios={cenarios}
+          selectedCenario={selectedCenario}
+          onSelectCenario={setSelectedCenario}
+        />
       )}
 
       {/* Financial Summary — only on simulacao view */}
