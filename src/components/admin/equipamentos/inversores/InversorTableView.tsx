@@ -267,27 +267,14 @@ export function InversorTableView({ inversores, onView, onEdit, onDelete, onTogg
         </Table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between pt-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Por página:</span>
-          <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1); }}>
-            <SelectTrigger className="w-[70px] h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10</SelectItem><SelectItem value="25">25</SelectItem>
-              <SelectItem value="50">50</SelectItem><SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground">{sorted.length} resultado{sorted.length !== 1 ? "s" : ""}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={safeCurrentPage <= 1} onClick={() => setCurrentPage(1)}>«</Button>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={safeCurrentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>‹</Button>
-          <span className="text-xs text-muted-foreground px-2">Página {safeCurrentPage} de {totalPages}</span>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={safeCurrentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>›</Button>
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={safeCurrentPage >= totalPages} onClick={() => setCurrentPage(totalPages)}>»</Button>
-        </div>
-      </div>
+      <TablePagination
+        totalItems={sorted.length}
+        page={safeCurrentPage}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
+        pageSizeOptions={[10, 25, 50, 100]}
+      />
     </div>
   );
 }
