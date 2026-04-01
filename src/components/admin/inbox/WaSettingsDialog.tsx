@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
+  Settings,
   Wifi,
   WifiOff,
   Users,
@@ -114,10 +115,10 @@ function ConnectionTab() {
               <History className={`h-3.5 w-3.5 ${syncingId === inst.id ? "animate-spin" : ""}`} />
             </Button>
             <Button
-              variant="destructive"
+              variant="outline"
               size="icon-sm"
               title="Remover instância"
-              className="text-destructive hover:text-destructive"
+              className="border-destructive text-destructive hover:bg-destructive/10"
               onClick={() => {
                 if (confirm(`Remover instância "${inst.nome}"?`)) {
                   deleteInstance(inst.id);
@@ -341,8 +342,18 @@ export function WaSettingsDialog({ open, onOpenChange }: WaSettingsDialogProps) 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[90vw] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Configurações do WhatsApp</DialogTitle>
+        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Settings className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <DialogTitle className="text-base font-semibold text-foreground">
+              Configurações do WhatsApp
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Gerencie instâncias e configurações
+            </p>
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="connection" className="mt-2">
