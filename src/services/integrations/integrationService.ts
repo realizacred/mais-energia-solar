@@ -271,11 +271,13 @@ export async function connectSupplierProvider(
   credentials: Record<string, string>
 ): Promise<{ success: boolean; config_id?: string; error?: string }> {
   let affectedConfigId: string | undefined;
+  let resolvedProviderKey: string | undefined;
   try {
     const tenantId = await getCurrentTenantId();
     const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
+    resolvedProviderKey = providerKey;
 
-    console.log("[connectSupplierProvider] providerId:", providerId, "providerLabel:", providerLabel, "resolved key:", providerKey, "config found:", !!config, "config.provider:", config?.provider);
+    // console.log("[connectSupplierProvider] providerId:", providerId, "providerLabel:", providerLabel, "resolved key:", providerKey, "config found:", !!config, "config.provider:", config?.provider);
 
     // Provider-specific credential validation
     const existingCreds = (config?.credentials as Record<string, string>) || {};
@@ -294,7 +296,8 @@ export async function connectSupplierProvider(
       const hasAny = Object.values(mergedForValidation).some(v => typeof v === "string" && v.trim());
       if (!hasAny) throw new Error("Informe as credenciais para conectar o fornecedor");
     }
-    const fornecedorId = SUPPLIER_FORNECEDOR_IDS[providerKey] || config?.fornecedor_id || null;
+    const isProxyProvider = providerKey === "jng" || providerKey === "vertys";
+    const fornecedorId = isProxyProvider ? null : (SUPPLIER_FORNECEDOR_IDS[providerKey] || config?.fornecedor_id || null);
     const now = new Date().toISOString();
 
     const mergedSettings = {
@@ -308,9 +311,7 @@ export async function connectSupplierProvider(
       const existingCreds = (config.credentials as Record<string, string>) || {};
       const mergedCredentials = { ...existingCreds, ...credentials };
 
-      const { error: updateError } = await (supabase as any)
-        .from("integrations_api_configs")
-        .update({
+      const updatePayload: Record<string, unknown> = {
           provider: providerKey,
           name: config.name || providerLabel,
           credentials: mergedCredentials,
@@ -318,7 +319,13 @@ export async function connectSupplierProvider(
           is_active: true,
           settings: mergedSettings,
           updated_at: now,
-        })
+        };
+      // Clear fake fornecedor_id for proxy-based providers
+      if (isProxyProvider) updatePayload.fornecedor_id = null;
+
+      const { error: updateError } = await (supabase as any)
+        .from("integrations_api_configs")
+        .update(updatePayload)
         .eq("id", config.id);
 
       if (updateError) throw updateError;
@@ -370,9 +377,13 @@ export async function connectSupplierProvider(
     return { success: true, config_id: inserted?.id };
   } catch (error: any) {
     if (affectedConfigId) {
+      // Proxy-based providers (JNG/Vertys) stay is_active=true even on test failure
+      // because they don't need sync — the proxy reads credentials on demand
+      const provKey = resolvedProviderKey ?? "";
+      const keepActive = provKey === "jng" || provKey === "vertys";
       await updateSupplierConfigState(affectedConfigId, {
         status: "error",
-        is_active: false,
+        is_active: keepActive,
       }, {
         last_error: error?.message || "Falha ao conectar fornecedor",
       });
