@@ -75,6 +75,37 @@ export default function VendorPage() {
     return <LoadingSpinner />;
   }
 
+  // Network error - show retry
+  if (validationState === "network_error") {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center py-12">
+          <div className="container mx-auto px-4 text-center max-w-md">
+            <div className="bg-card border rounded-lg p-8 shadow-sm">
+              <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <WifiOff className="w-8 h-8 text-warning" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Erro de Conexão
+              </h1>
+              <p className="text-muted-foreground mb-6">
+                Não foi possível verificar o link. Verifique sua conexão e tente novamente.
+              </p>
+              <Button
+                onClick={() => setRetryCount((c) => c + 1)}
+                className="w-full gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Tentar Novamente
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   // Invalid vendor code - show error page
   if (validationState === "invalid") {
     return (
