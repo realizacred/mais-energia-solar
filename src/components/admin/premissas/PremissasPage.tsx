@@ -11,6 +11,7 @@ import { TabAreaTelhado } from "./tabs/TabAreaTelhado";
 import { TabValoresPadroes } from "./tabs/TabValoresPadroes";
 import { TabTributacao } from "./tabs/TabTributacao";
 import { PremissasFooter } from "./PremissasFooter";
+import { TabIntegracoes } from "./tabs/TabIntegracoes";
 import { motion } from "framer-motion";
 
 const TABS = [
