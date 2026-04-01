@@ -49,7 +49,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useWaInstances, type WaInstance } from "@/hooks/useWaInstances";
 import { useQueryClient } from "@tanstack/react-query";
-import { WaSetupGuide } from "@/components/admin/wa/WaSetupGuide";
+import { supabase } from "@/integrations/supabase/client";
 import { WaSetupGuide } from "@/components/admin/wa/WaSetupGuide";
 import { WaQRCodeDialog } from "@/components/admin/wa/WaQRCodeDialog";
 
