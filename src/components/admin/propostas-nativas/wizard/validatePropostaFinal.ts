@@ -141,6 +141,11 @@ export function validatePropostaFinal(
     warnings.push("Geração mensal estimada é zero. Verifique irradiação e premissas.");
   }
 
+  // W6b. Economia mensal = 0 com consumo > 0
+  if (consumoTotal > 0 && (economiaMensal == null || economiaMensal <= 0)) {
+    warnings.push("Economia mensal não calculada. Verifique tarifa e consumo.");
+  }
+
   // W7. Nome do cliente vazio
   if (!cliente.nome && selectedLead?.nome) {
     warnings.push("Dados do cliente não preenchidos — usando nome do lead. Revise se necessário.");
