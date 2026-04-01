@@ -191,10 +191,10 @@ export function useDeleteLancamento() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("lancamentos_financeiros" as "leads")
+      const { error } = await (supabase as any)
+        .from("lancamentos_financeiros")
         .delete()
-        .eq("id" as "id", id);
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
