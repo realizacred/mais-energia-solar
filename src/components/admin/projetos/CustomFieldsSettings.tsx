@@ -469,8 +469,8 @@ export function CustomFieldsSettings() {
                           </td>
                           {contextFilter === "projeto" && (
                             <>
-                              <td className="text-center px-2"><SwitchCell value={f.show_on_create} fieldId={f.id} column="show_on_create" onUpdate={loadAll} /></td>
-                              <td className="text-center px-2"><SwitchCell value={f.required_on_create} fieldId={f.id} column="required_on_create" onUpdate={loadAll} /></td>
+                              <td className="text-center px-2"><SwitchCell value={f.show_on_create} fieldId={f.id} column="show_on_create" onUpdate={() => {}} /></td>
+                              <td className="text-center px-2"><SwitchCell value={f.required_on_create} fieldId={f.id} column="required_on_create" onUpdate={() => {}} /></td>
                               <td className="text-center px-2 text-xs text-muted-foreground">
                                 {(f.visible_pipeline_ids?.length > 0)
                                   ? f.visible_pipeline_ids.map(pid => pipelines.find(p => p.id === pid)?.name || "?").join(", ")
