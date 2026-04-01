@@ -299,6 +299,58 @@ export function TabCobrancas({ premises, onChange }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Notificações WA de pagamento */}
+      <Card className="border-border/60">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+              <MessageSquare className="w-5 h-5 text-primary" />
+            </div>
+            Notificações de Pagamento (WhatsApp)
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Receba notificações automáticas via WhatsApp quando pagamentos forem registrados.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border border-border p-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Notificar ao receber pagamento</p>
+              <p className="text-xs text-muted-foreground">
+                Envia mensagem quando um pagamento é registrado.
+              </p>
+            </div>
+            <Switch
+              checked={premises.wa_notif_pagamento ?? true}
+              onCheckedChange={(v) => set("wa_notif_pagamento", v)}
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border p-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Notificar ao quitar recebimento</p>
+              <p className="text-xs text-muted-foreground">
+                Envia mensagem quando um recebimento é totalmente quitado.
+              </p>
+            </div>
+            <Switch
+              checked={premises.wa_notif_quitado ?? true}
+              onCheckedChange={(v) => set("wa_notif_quitado", v)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Número para notificações</Label>
+            <Input
+              value={premises.wa_notif_numero || ""}
+              onChange={(e) => set("wa_notif_numero", e.target.value)}
+              placeholder="Ex: 5531999998888 (com DDI)"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Deixe vazio para usar o número principal do WhatsApp conectado.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
