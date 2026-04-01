@@ -2308,7 +2308,7 @@ export function ProposalWizard() {
         const kitVal = validateKit(itens, potenciaKwp, venda.custo_kit_override);
         return wrap("kit", (
           <div className="space-y-4">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} />
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} ibgeCodigo={clienteMunicipioIbgeCodigo ?? solarPremises?.solaryum_ibge_fallback ?? null} />
             {(kitVal?.warnings ?? []).length > 0 && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
                 {(kitVal?.warnings ?? []).map((w, i) => (
