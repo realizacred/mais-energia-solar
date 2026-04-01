@@ -49,7 +49,7 @@ export function validatePropostaFinal(
   const {
     cliente, selectedLead, ucs, itens, servicos, venda,
     pagamentoOpcoes, potenciaKwp, precoFinal, geracaoMensalKwh,
-    consumoTotal, locEstado, locCidade, locDistribuidoraNome,
+    consumoTotal, economiaMensal, locEstado, locCidade, locDistribuidoraNome,
     templateSelecionado,
   } = input;
 
