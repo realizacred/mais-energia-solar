@@ -219,7 +219,7 @@ export function RecebimentosManager() {
       const { error } = await supabase.from("recebimentos").delete().eq("id", id);
       if (error) throw error;
       toast({ title: "Recebimento excluído!" });
-      fetchRecebimentos();
+      refreshRecebimentos();
     } catch (error) {
       console.error("Error deleting recebimento:", error);
       toast({
