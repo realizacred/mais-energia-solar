@@ -33,55 +33,11 @@ const CARGO_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export function AprovacaoUsuarios() {
-  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: pendingUsers = [], isLoading: loading } = usePendingUsers();
+  const refreshPending = useRefreshPendingUsers();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectUserId, setRejectUserId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    fetchPendingUsers();
-  }, []);
-
-  const fetchPendingUsers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, user_id, nome, ativo, status, cargo_solicitado, telefone, avatar_url, created_at")
-        .eq("status", "pendente")
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-
-      // Fetch emails for pending users
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        const { data: emailsData } = await supabase.functions.invoke("list-users-emails", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-
-        const emailMap = new Map<string, string>();
-        if (emailsData?.users && Array.isArray(emailsData.users)) {
-          emailsData.users.forEach((u: { id: string; email: string }) => {
-            emailMap.set(u.id, u.email);
-          });
-        }
-
-        setPendingUsers(
-          (data || []).map((p) => ({
-            ...p,
-            email: emailMap.get(p.user_id) || "—",
-          }))
-        );
-      } else {
-        setPendingUsers(data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching pending users:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleApprove = async (user: PendingUser) => {
     if (!user.cargo_solicitado) {
