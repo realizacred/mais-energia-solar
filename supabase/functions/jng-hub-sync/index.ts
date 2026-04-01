@@ -301,18 +301,18 @@ serve(async (req) => {
       );
     }
 
-    // ── Test-only mode — usa BuscarFiltros (não precisa de ibge) ──
+    // ── Test-only mode — usa /hubB2B/Categoria (não precisa de ibge) ──
     if (test_only) {
       try {
-        const testUrl = `${JNG_BASE}/integracaoPlataforma/BuscarFiltros?token=${token}`;
-        console.log("[jng] test URL:", testUrl);
+        const testUrl = `${JNG_BASE}/hubB2B/Categoria?token=${encodeURIComponent(token)}`;
+        // console.log("[jng] test URL:", testUrl);
         const testRes = await fetch(testUrl);
         if (!testRes.ok) {
           const body = await testRes.text();
           throw new Error(`${testRes.status} ${body}`);
         }
         const testData = await testRes.json();
-        const marcas = testData?.marcasPaineis?.length ?? 0;
+        const categorias = Array.isArray(testData) ? testData.length : 0;
         await syncLog(supabase, tenant_id, "info",
           "Teste de conexão JNG realizado com sucesso", {
           marcas_paineis: marcas,
