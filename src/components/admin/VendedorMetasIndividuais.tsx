@@ -1,5 +1,6 @@
- import { useState, useEffect } from "react";
+ import { useState } from "react";
  import { supabase } from "@/integrations/supabase/client";
+ import { useVendedorMetasData, useRefreshVendedorMetas } from "@/hooks/useVendedorMetas";
  import { useToast } from "@/hooks/use-toast";
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
  import { Input } from "@/components/ui/input";
