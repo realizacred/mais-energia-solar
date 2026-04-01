@@ -90,6 +90,10 @@ export interface TenantPremises {
   cobranca_multa_percentual: number;
   cobranca_juros_percentual: number;
   cobranca_dias_vencimento: number;
+  // Notificações WA de pagamento
+  wa_notif_pagamento: boolean;
+  wa_notif_quitado: boolean;
+  wa_notif_numero: string;
 }
 
 export interface SombreamentoLevel {
