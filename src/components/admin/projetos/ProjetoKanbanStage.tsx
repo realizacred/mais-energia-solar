@@ -166,7 +166,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
   };
 
   const sortedStages = [...stages].sort((a, b) => a.position - b.position);
-  const currentPipelineId = pipelineId;
+  // pipelineId already defined above for hook usage
 
   if (sortedStages.length === 0) {
     return (
