@@ -181,6 +181,20 @@ RB-21 SHADOW SEMÂNTICO EM CARDS (NOVO v3.1)
     SEMPRE use: hover:shadow-md para cards com hover
     EXCEÇÃO: tooltips, dropdowns, modais, elementos flutuantes
 
+RB-22 GATE DE INSTALAÇÃO OBRIGATÓRIO (NOVO v3.2)
+    Todo projeto deve bloquear "Iniciar checklist de instalação" enquanto
+    não houver proposta com status IN ('aceita','accepted','aprovada','ganha')
+    OU is_principal = true.
+    SEMPRE use: useQuery + disabled no botão + banner de aviso bg-warning/10
+    Implementado em: ProjetoInstalacaoTab.tsx
+
+RB-23 CONSOLE.LOG PROIBIDO EM EDGE FUNCTIONS (NOVO v3.2)
+    Edge Functions em produção não podem ter console.log ativo.
+    SEMPRE use: console.error apenas para erros reais com prefixo do módulo
+    Para debug: comentar // console.log() — nunca ativo no deploy
+    ATENÇÃO: ao comentar console.log multi-linha, comentar TODAS as linhas
+    (incluindo o corpo do objeto), não apenas a primeira linha
+
 # =============================================================================
 # BLOCO 2 — BOAS PRÁTICAS
 # =============================================================================
