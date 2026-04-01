@@ -60,6 +60,9 @@ export interface SolarPremises {
   shading_loss_percent: number;
   soiling_loss_percent: number;
   other_losses_percent: number;
+
+  // Integração Solaryum — IBGE fallback
+  solaryum_ibge_fallback: string;
 }
 
 // ─── Safe Defaults ──────────────────────────────────
