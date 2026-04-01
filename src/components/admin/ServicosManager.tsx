@@ -457,7 +457,7 @@ export function ServicosManager() {
           servicoId={selectedServiceForLayout.id}
           clienteId={selectedServiceForLayout.cliente?.id}
           layoutName={`Layout - ${selectedServiceForLayout.cliente?.nome || 'Serviço'}`}
-          onSave={() => fetchData()}
+          onSave={() => refreshServicos()}
         />
       )}
 
