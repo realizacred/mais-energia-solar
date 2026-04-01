@@ -19732,6 +19732,7 @@ export type Database = {
           fase: string | null
           fixed_price: number | null
           fornecedor_id: string | null
+          fornecedor_nome: string | null
           id: string
           imagem_principal_url: string | null
           is_available_now: boolean | null
@@ -19769,6 +19770,7 @@ export type Database = {
           fase?: string | null
           fixed_price?: number | null
           fornecedor_id?: string | null
+          fornecedor_nome?: string | null
           id?: string
           imagem_principal_url?: string | null
           is_available_now?: boolean | null
@@ -19806,6 +19808,7 @@ export type Database = {
           fase?: string | null
           fixed_price?: number | null
           fornecedor_id?: string | null
+          fornecedor_nome?: string | null
           id?: string
           imagem_principal_url?: string | null
           is_available_now?: boolean | null

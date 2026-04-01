@@ -133,6 +133,7 @@ function mapToKit(
     status: isAvailableNow ? "active" : "inactive",
     tenant_id: tenantId,
     fornecedor_id: fornecedorId,
+    fornecedor_nome: "JNG Solar",
     external_id: String(produto.idProduto),
     external_code: produto.codErp || null,
     source: "jng",
@@ -396,12 +397,11 @@ serve(async (req) => {
 
       // FULL_REPLACE: delete existing records
       if (mode === "full_replace") {
-        let delQuery = supabase
+        const { error: delError } = await supabase
           .from("solar_kit_catalog")
           .delete()
-          .eq("tenant_id", tenant_id);
-        delQuery = fornecedor_id ? delQuery.eq("fornecedor_id", fornecedor_id) : delQuery.eq("source", "jng");
-        const { error: delError } = await delQuery;
+          .eq("tenant_id", tenant_id)
+          .eq("source", "jng");
 
         if (delError) {
           console.error("[jng-hub-sync] Full replace delete error:", delError);
@@ -460,7 +460,7 @@ serve(async (req) => {
         .from("solar_kit_catalog")
         .select("id, external_id")
         .eq("tenant_id", tenant_id)
-        .eq("fornecedor_id", fornecedor_id)
+        .eq("source", "jng")
         .in("external_id", extIds);
 
       const existingMap = new Map<string, string>();
@@ -480,7 +480,7 @@ serve(async (req) => {
       const { error: upsertErr } = await supabase
         .from("solar_kit_catalog")
         .upsert(mappedProducts, {
-          onConflict: "tenant_id,fornecedor_id,external_id",
+          onConflict: "tenant_id,source,external_id",
           ignoreDuplicates: false,
         });
 
@@ -504,7 +504,7 @@ serve(async (req) => {
             .from("solar_kit_catalog")
             .select("id, external_id")
             .eq("tenant_id", tenant_id)
-            .eq("fornecedor_id", fornecedor_id)
+            .eq("source", "jng")
             .in("external_id", newExtIds);
 
           const insertedMap = new Map<string, string>(
@@ -559,7 +559,7 @@ serve(async (req) => {
       .from("solar_kit_catalog")
       .select("fabricante")
       .eq("tenant_id", tenant_id)
-      .eq("fornecedor_id", fornecedor_id);
+      .eq("source", "jng");
 
     if (fabData) {
       const fabCount = new Map<string, number>();
