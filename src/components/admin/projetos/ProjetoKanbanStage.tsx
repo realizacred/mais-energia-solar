@@ -108,41 +108,18 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
-  const [automations, setAutomations] = useState<AutomationRule[]>([]);
   const [automationDialogStageId, setAutomationDialogStageId] = useState<string | null>(null);
-  const [stagePermissions, setStagePermissions] = useState<Map<string, string>>(new Map());
   // Mobile filters
   const [mobileSearch, setMobileSearch] = useState("");
   const [mobileFilterStatus, setMobileFilterStatus] = useState<string>("all");
 
-  // Fetch automations
-  useEffect(() => {
-    const pipelineId = stages[0]?.pipeline_id;
-    if (!pipelineId) return;
-    supabase
-      .from("pipeline_automations")
-      .select("id, nome, ativo, stage_id, tipo_gatilho, tempo_horas, tipo_acao, destino_stage_id")
-      .eq("pipeline_id", pipelineId)
-      .eq("ativo", true)
-      .then(({ data }) => {
-        if (data) setAutomations(data as AutomationRule[]);
-      });
-  }, [stages]);
+  // Fetch automations via hook
+  const pipelineId = stages[0]?.pipeline_id;
+  const { data: automations = [] } = useKanbanAutomations(pipelineId);
 
-  // Fetch stage permissions
-  useEffect(() => {
-    const stageIds = stages.map(s => s.id);
-    if (stageIds.length === 0) return;
-    supabase
-      .from("pipeline_stage_permissions")
-      .select("stage_id, restricao_tipo")
-      .in("stage_id", stageIds)
-      .then(({ data }) => {
-        const map = new Map<string, string>();
-        (data || []).forEach((p: any) => map.set(p.stage_id, p.restricao_tipo));
-        setStagePermissions(map);
-      });
-  }, [stages]);
+  // Fetch stage permissions via hook
+  const stageIds = useMemo(() => stages.map(s => s.id), [stages]);
+  const { data: stagePermissions = new Map<string, string>() } = useKanbanStagePermissions(stageIds);
 
   const automationsByStage = useMemo(() => {
     const map = new Map<string, AutomationRule[]>();

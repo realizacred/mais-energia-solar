@@ -91,21 +91,13 @@ export function EmailTemplatesPage() {
       };
 
       if (editingId === "new") {
-        const { error } = await supabase
-          .from("proposta_email_templates" as any)
-          .insert(payload);
-        if (error) throw error;
+        await saveMutation.mutateAsync({ data: payload });
         toast({ title: "Template criado!" });
       } else {
-        const { error } = await supabase
-          .from("proposta_email_templates" as any)
-          .update(payload)
-          .eq("id", editingId!);
-        if (error) throw error;
+        await saveMutation.mutateAsync({ id: editingId!, data: payload });
         toast({ title: "Template atualizado!" });
       }
       cancelEdit();
-      loadTemplates();
     } catch (e: any) {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     }
@@ -113,14 +105,17 @@ export function EmailTemplatesPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este template?")) return;
-    await supabase.from("proposta_email_templates" as any).delete().eq("id", id);
-    toast({ title: "Template excluído" });
-    loadTemplates();
+    try {
+      await deleteMutation.mutateAsync(id);
+      toast({ title: "Template excluído" });
+    } catch {
+      toast({ title: "Erro ao excluir", variant: "destructive" });
+    }
   };
 
   const handleDuplicate = async (t: EmailTemplate) => {
     try {
-      const { error } = await supabase.from("proposta_email_templates" as any).insert({
+      await duplicateMutation.mutateAsync({
         nome: `${t.nome} (cópia)`,
         assunto: t.assunto,
         corpo_html: t.corpo_html,
@@ -130,9 +125,7 @@ export function EmailTemplatesPage() {
         ativo: false,
         ordem: templates.length,
       });
-      if (error) throw error;
       toast({ title: "Template duplicado!" });
-      loadTemplates();
     } catch (e: any) {
       toast({ title: "Erro ao duplicar", description: e.message, variant: "destructive" });
     }
