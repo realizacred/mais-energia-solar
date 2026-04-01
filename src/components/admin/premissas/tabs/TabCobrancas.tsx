@@ -79,6 +79,34 @@ function SandboxToggle({
   );
 }
 
+function WebhookUrlField({ gateway }: { gateway: string }) {
+  const url = useWebhookUrl(gateway);
+  if (!url) return null;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(url);
+    toast.success("URL do webhook copiada!");
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+        <Link className="h-3.5 w-3.5" />
+        URL do Webhook
+      </Label>
+      <div className="flex gap-2">
+        <Input readOnly value={url} className="text-xs font-mono bg-muted/30" />
+        <Button type="button" variant="outline" size="icon" onClick={handleCopy} className="shrink-0">
+          <Copy className="h-4 w-4" />
+        </Button>
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        Configure esta URL no painel do gateway para receber notificações de pagamento.
+      </p>
+    </div>
+  );
+}
+
 export function TabCobrancas({ premises, onChange }: Props) {
   const set = <K extends keyof TenantPremises>(key: K, value: TenantPremises[K]) => {
     onChange((prev) => ({ ...prev, [key]: value }));
