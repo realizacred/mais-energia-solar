@@ -82,6 +82,10 @@ export function ValidacaoVendasManager() {
   // Fetch vendedores via hook
   const { data: vendedores = [] } = useVendedoresAtivos();
 
+  // Mutations
+  const approveVendaMutation = useApproveVenda();
+  const rejectVendaMutation = useRejectVenda();
+
   // Derived: unique vendors from pending items
   const vendedorNames = useMemo(() => {
     const map = new Map<string, string>();
