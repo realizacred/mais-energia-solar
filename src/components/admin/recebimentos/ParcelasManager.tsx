@@ -125,7 +125,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
       if (error) throw error;
 
       toast({ title: `${recebimento.numero_parcelas} parcelas geradas!` });
-      fetchParcelas();
+      refreshParcelas();
       onUpdate();
     } catch (error) {
       console.error("Error generating parcelas:", error);
@@ -160,7 +160,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
 
       toast({ title: `Parcela ${parcela.numero_parcela} paga!` });
       setPayingId(null);
-      fetchParcelas();
+      refreshParcelas();
       onUpdate();
     } catch (error) {
       console.error("Error updating parcela:", error);
@@ -184,7 +184,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
       }
 
       toast({ title: data.already_exists ? "Cobrança já existente recuperada ✅" : "Cobrança gerada com sucesso! ✅" });
-      fetchParcelas(); // Refresh charges
+      refreshParcelas(); // Refresh charges
     } catch (err: any) {
       console.error("Error creating charge:", err);
       toast({ title: "Erro ao gerar cobrança", description: err.message, variant: "destructive" });
