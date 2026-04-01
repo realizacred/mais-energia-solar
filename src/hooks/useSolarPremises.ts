@@ -60,6 +60,9 @@ export interface SolarPremises {
   shading_loss_percent: number;
   soiling_loss_percent: number;
   other_losses_percent: number;
+
+  // Integração Solaryum — IBGE fallback
+  solaryum_ibge_fallback: string;
 }
 
 // ─── Safe Defaults ──────────────────────────────────
@@ -90,6 +93,7 @@ export const SOLAR_DEFAULTS: SolarPremises = {
   shading_loss_percent: 8,
   soiling_loss_percent: 5,
   other_losses_percent: 12,
+  solaryum_ibge_fallback: "",
 };
 
 // ─── Query Key ──────────────────────────────────────
@@ -125,6 +129,7 @@ function mapRowToSolarPremises(row: Record<string, unknown>): SolarPremises {
     shading_loss_percent: (row.shading_loss_percent as number) ?? SOLAR_DEFAULTS.shading_loss_percent,
     soiling_loss_percent: (row.soiling_loss_percent as number) ?? SOLAR_DEFAULTS.soiling_loss_percent,
     other_losses_percent: (row.other_losses_percent as number) ?? SOLAR_DEFAULTS.other_losses_percent,
+    solaryum_ibge_fallback: (row.solaryum_ibge_fallback as string) ?? SOLAR_DEFAULTS.solaryum_ibge_fallback,
   };
 }
 
@@ -143,7 +148,8 @@ export function useSolarPremises() {
           "base_irradiancia, grupo_tarifario, fase_tensao_rede, tipo_telhado_padrao, " +
           "taxa_desempenho_tradicional, taxa_desempenho_microinversor, taxa_desempenho_otimizador, " +
           "topologias, tipo_kits, considerar_kits_transformador, margem_potencia_ideal, " +
-          "sombreamento_config, shading_loss_percent, soiling_loss_percent, other_losses_percent"
+          "sombreamento_config, shading_loss_percent, soiling_loss_percent, other_losses_percent, " +
+          "solaryum_ibge_fallback"
         )
         .limit(1)
         .maybeSingle();

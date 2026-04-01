@@ -151,6 +151,7 @@ export function ProposalWizard() {
   // ─── Custom fields availability (extracted hook)
   const { hasCustomFieldsPre } = useCustomFieldsAvailability();
   const { data: proposalTemplates = [] } = useProposalTemplates();
+  const { data: solarPremises } = useSolarPremises();
   const { data: paymentInterestConfigs } = usePaymentInterestConfigs();
   const formasPagamentoProprias = useMemo(
     () => (paymentInterestConfigs ?? []).filter(c => c.ativo),
@@ -187,6 +188,7 @@ export function ProposalWizard() {
   // Cliente (embedded in Localização flow)
   const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
   const [cliente, setCliente] = useState<ClienteData>(EMPTY_CLIENTE);
+  const [clienteMunicipioIbgeCodigo, setClienteMunicipioIbgeCodigo] = useState<string | null>(null);
 
   // UCs
   const [ucs, setUcs] = useState<UCData[]>([createEmptyUC(1)]);
@@ -331,7 +333,7 @@ export function ProposalWizard() {
   const collectSnapshot = useCallback((): WizardSnapshot => ({
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
     locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
-    selectedLead, cliente, ucs, grupo, potenciaKwp,
+    selectedLead, cliente, clienteMunicipioIbgeCodigo, ucs, grupo, potenciaKwp,
     customFieldValues, premissas, preDimensionamento,
     itens, layouts, manualKits, adicionais, servicos, venda,
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
@@ -350,7 +352,7 @@ export function ProposalWizard() {
   }), [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
     locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
-    selectedLead, cliente, ucs, grupo, potenciaKwp,
+    selectedLead, cliente, clienteMunicipioIbgeCodigo, ucs, grupo, potenciaKwp,
     customFieldValues, premissas, preDimensionamento,
     itens, layouts, manualKits, adicionais, servicos, venda,
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
@@ -385,6 +387,11 @@ export function ProposalWizard() {
     if (s.mapSnapshots != null) setMapSnapshots(s.mapSnapshots);
     if (s.selectedLead != null) setSelectedLead(s.selectedLead);
     if (s.cliente != null) setCliente(s.cliente);
+    if ((s as any).clienteMunicipioIbgeCodigo !== undefined) setClienteMunicipioIbgeCodigo((s as any).clienteMunicipioIbgeCodigo ?? null);
+    // Also extract IBGE from selectedLead if available
+    if (!((s as any).clienteMunicipioIbgeCodigo) && s.selectedLead?.municipio_ibge_codigo) {
+      setClienteMunicipioIbgeCodigo(s.selectedLead.municipio_ibge_codigo);
+    }
     // Fallback: snapshots antigos podem usar "unidades_consumidoras" em vez de "ucs"
     const ucsData = s.ucs ?? (s as any).unidades_consumidoras ?? null;
     if (Array.isArray(ucsData) && ucsData.length > 0) {
@@ -866,13 +873,14 @@ export function ProposalWizard() {
                 .single();
               if (lead) {
                 setSelectedLead(lead as any);
+                if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
                 // console.log("[ProposalWizard] Lead enriched from propostas_nativas:", lead.id);
               }
             } else if (propostaMeta?.cliente_id) {
               // No lead_id on proposta — try to get lead from cliente, or synthesize from cliente data
               const { data: cli } = await supabase
                 .from("clientes")
-                .select("id, nome, telefone, email, lead_id, estado, cidade")
+                .select("id, nome, telefone, email, lead_id, estado, cidade, municipio_ibge_codigo")
                 .eq("id", propostaMeta.cliente_id)
                 .maybeSingle();
 
@@ -884,6 +892,7 @@ export function ProposalWizard() {
                   .single();
                 if (lead) {
                   setSelectedLead(lead as any);
+                  if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
                   // console.log("[ProposalWizard] Lead enriched from cliente.lead_id:", lead.id);
                 }
               } else if (cli) {
@@ -899,6 +908,7 @@ export function ProposalWizard() {
 
                 if (leadByPhone) {
                   setSelectedLead(leadByPhone as any);
+                  if (leadByPhone.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(leadByPhone.municipio_ibge_codigo);
                   // console.log("[ProposalWizard] Lead found by phone match:", leadByPhone.id);
                 } else {
                   // Synthesize minimal lead-like object from cliente data so handleGenerate doesn't block
@@ -916,6 +926,7 @@ export function ProposalWizard() {
                     _clienteId: cli.id,
                   } as any;
                   setSelectedLead(syntheticLead);
+                  if (cli.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(cli.municipio_ibge_codigo);
                   // console.log("[ProposalWizard] Synthetic lead created from cliente:", cli.id);
                 }
               }
@@ -1204,7 +1215,7 @@ export function ProposalWizard() {
       try {
         const { data: cli } = await supabase
           .from("clientes")
-          .select("id, nome, telefone, email, cpf_cnpj, empresa, cep, rua, numero, complemento, bairro, cidade, estado, lead_id")
+          .select("id, nome, telefone, email, cpf_cnpj, empresa, cep, rua, numero, complemento, bairro, cidade, estado, lead_id, municipio_ibge_codigo")
           .eq("id", customerIdFromUrl)
           .single();
         if (cancelled || !cli) return;
@@ -1231,11 +1242,12 @@ export function ProposalWizard() {
 
         if (cli.estado) setLocEstado(cli.estado);
         if (cli.cidade) setLocCidade(cli.cidade);
+        if (cli.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(cli.municipio_ibge_codigo);
 
         if (cli.lead_id) {
           const { data: lead } = await supabase
             .from("leads")
-            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado")
+            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, municipio_ibge_codigo")
             .eq("id", cli.lead_id)
             .single();
           if (!cancelled && lead) {
@@ -1245,7 +1257,9 @@ export function ProposalWizard() {
               lead_code: lead.lead_code || "", estado: lead.estado,
               cidade: lead.cidade, media_consumo: lead.media_consumo,
               tipo_telhado: lead.tipo_telhado,
+              municipio_ibge_codigo: lead.municipio_ibge_codigo || undefined,
             });
+            if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
             if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
             if (lead.estado || lead.media_consumo) {
               setUcs(prev => {
@@ -1424,7 +1438,7 @@ export function ProposalWizard() {
       try {
         const { data: lead } = await supabase
           .from("leads")
-          .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, bairro, cep, rua, numero, complemento, valor_estimado, observacoes, area")
+          .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, bairro, cep, rua, numero, complemento, valor_estimado, observacoes, area, municipio_ibge_codigo")
           .eq("id", leadIdFromUrl)
           .single();
         if (cancelled || !lead) return;
@@ -1439,7 +1453,9 @@ export function ProposalWizard() {
           bairro: lead.bairro || undefined,
           cep: lead.cep || undefined,
           endereco: lead.rua || undefined,
+          municipio_ibge_codigo: lead.municipio_ibge_codigo || undefined,
         });
+        if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
 
         // When ORC is present, skip location pre-fill — ORC data has priority
         if (!orcTakesPriority) {
@@ -1524,7 +1540,7 @@ export function ProposalWizard() {
         if (orc.lead_id) {
           const { data: lead } = await supabase
             .from("leads")
-            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado")
+            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, municipio_ibge_codigo")
             .eq("id", orc.lead_id)
             .single();
           if (!cancelled && lead) {
@@ -1533,7 +1549,9 @@ export function ProposalWizard() {
               lead_code: lead.lead_code || "", estado: lead.estado,
               cidade: lead.cidade, media_consumo: lead.media_consumo,
               tipo_telhado: lead.tipo_telhado,
+              municipio_ibge_codigo: lead.municipio_ibge_codigo || undefined,
             });
+            if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
           }
         }
 
@@ -1550,6 +1568,7 @@ export function ProposalWizard() {
 
   const handleSelectLead = (lead: LeadSelection) => {
     setSelectedLead(lead);
+    if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
     if (lead.estado) setLocEstado(lead.estado);
     if (lead.cidade) setLocCidade(lead.cidade);
     const mappedTelhado = mapLeadTipoTelhadoToProposal(lead.tipo_telhado);
@@ -2289,7 +2308,7 @@ export function ProposalWizard() {
         const kitVal = validateKit(itens, potenciaKwp, venda.custo_kit_override);
         return wrap("kit", (
           <div className="space-y-4">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} />
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} ibgeCodigo={clienteMunicipioIbgeCodigo ?? solarPremises?.solaryum_ibge_fallback ?? null} />
             {(kitVal?.warnings ?? []).length > 0 && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
                 {(kitVal?.warnings ?? []).map((w, i) => (
