@@ -1535,7 +1535,7 @@ export function ProposalWizard() {
         if (orc.lead_id) {
           const { data: lead } = await supabase
             .from("leads")
-            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado")
+            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, municipio_ibge_codigo")
             .eq("id", orc.lead_id)
             .single();
           if (!cancelled && lead) {
