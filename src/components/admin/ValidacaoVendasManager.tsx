@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ApproveVendaDialog } from "./ApproveVendaDialog";
-import { supabase } from "@/integrations/supabase/client";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -38,10 +37,10 @@ import { useReopenLead } from "@/hooks/useReopenLead";
 import { useLeadStatusMap } from "@/hooks/useLeadStatusMap";
 import {
   useVendedoresAtivos,
-  useLeadSimulacoes,
   useApproveVenda,
   useRejectVenda,
-  useConvertidoStatus,
+  fetchLeadSimulacoes,
+  fetchClientePaymentComposition,
   type LeadSimulacao,
 } from "@/hooks/useValidacaoVendas";
 
