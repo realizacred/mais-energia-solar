@@ -723,7 +723,7 @@ export function ProposalWizard() {
             if (!Array.isArray(s.pagamentoOpcoes)) (s as any).pagamentoOpcoes = [];
             if (!Array.isArray(s.itens)) (s as any).itens = [];
             if (!Array.isArray(s.adicionais)) (s as any).adicionais = [];
-            if (!Array.isArray(s.ucs)) (s as any).ucs = [];
+            if (!Array.isArray(s.ucs)) (s as any).ucs = (s as any).unidades_consumidoras || [];
             if (!Array.isArray(s.layouts)) (s as any).layouts = [];
             if (!Array.isArray(s.manualKits)) (s as any).manualKits = [];
             if (!Array.isArray((s as any).formas_pagamento_proprias)) (s as any).formas_pagamento_proprias = [];
