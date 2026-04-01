@@ -193,6 +193,10 @@ export const PREMISES_DEFAULTS: TenantPremises = {
   cobranca_multa_percentual: 2.00,
   cobranca_juros_percentual: 1.00,
   cobranca_dias_vencimento: 30,
+  // Notificações WA de pagamento
+  wa_notif_pagamento: true,
+  wa_notif_quitado: true,
+  wa_notif_numero: "",
 };
 
 export interface RoofAreaFactor {
