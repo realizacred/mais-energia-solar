@@ -996,6 +996,28 @@ export function ProposalWizard() {
           console.warn("[ProposalWizard] Failed to enrich lead/deal from propostas_nativas:", enrichErr);
         }
 
+        // Restaurar preview do PDF se a versão já foi gerada
+        const restoredPdfPath = (versao as any)?.output_pdf_path ?? null;
+        const restoredDocxPath = (versao as any)?.output_docx_path ?? null;
+
+        if (restoredPdfPath) {
+          setOutputPdfPath(restoredPdfPath);
+          setOutputDocxPath(restoredDocxPath);
+          setGenerationStatus("ready");
+
+          const { data: signedData } = await supabase.storage
+            .from("proposta-documentos")
+            .createSignedUrl(restoredPdfPath, 3600);
+
+          if (signedData?.signedUrl) {
+            setPdfBlobUrl(signedData.signedUrl);
+          }
+        } else if (restoredDocxPath) {
+          setOutputPdfPath(null);
+          setOutputDocxPath(restoredDocxPath);
+          setGenerationStatus("ready");
+        }
+
         const isLegacy = rawSnapshot.source === "legacy_import";
         toast({
           title: isLegacy ? "📋 Proposta importada carregada" : "📋 Proposta carregada",
