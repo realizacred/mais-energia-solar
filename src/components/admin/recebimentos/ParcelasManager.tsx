@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   Calendar, CheckCircle, AlertTriangle, Clock, Zap, CreditCard,
-  Loader2, ExternalLink, Copy, Barcode, QrCode, Receipt,
+  Barcode, Receipt,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { format, addMonths } from "date-fns";
