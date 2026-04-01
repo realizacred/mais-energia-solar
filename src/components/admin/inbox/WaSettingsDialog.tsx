@@ -115,10 +115,10 @@ function ConnectionTab() {
               <History className={`h-3.5 w-3.5 ${syncingId === inst.id ? "animate-spin" : ""}`} />
             </Button>
             <Button
-              variant="destructive"
+              variant="outline"
               size="icon-sm"
               title="Remover instância"
-              className="text-destructive hover:text-destructive"
+              className="border-destructive text-destructive hover:bg-destructive/10"
               onClick={() => {
                 if (confirm(`Remover instância "${inst.nome}"?`)) {
                   deleteInstance(inst.id);
