@@ -120,7 +120,7 @@ export function ConvertLeadToClientDialog({
   const { data: equipmentData } = useConversionEquipment();
   const [disjuntores, setDisjuntores] = useState<Disjuntor[]>([]);
   const [transformadores, setTransformadores] = useState<Transformador[]>([]);
-  const [transformadores, setTransformadores] = useState<Transformador[]>([]);
+  const [simulacoes, setSimulacoes] = useState<Simulacao[]>([]);
   const [simulacoes, setSimulacoes] = useState<Simulacao[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
 
