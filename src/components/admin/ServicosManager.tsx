@@ -483,7 +483,7 @@ export function ServicosManager() {
         } : null}
         isOpen={!!validacaoServico}
         onClose={() => setValidacaoServico(null)}
-        onValidated={() => fetchData()}
+        onValidated={() => refreshServicos()}
       />
 
       <ReagendarDialog
