@@ -516,7 +516,6 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
 
 // ─── Internal: propostas count query (kept from original) ──
 function usePropostasCount(dealId: string) {
-  const { useQuery } = require("@tanstack/react-query");
   return useQuery({
     queryKey: projetoDetalheKeys.propostasCount(dealId),
     queryFn: async () => {
