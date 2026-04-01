@@ -30,6 +30,8 @@ import { CriarKitManualModal, type KitMeta } from "./kit/CriarKitManualModal";
 import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
 import { EditarLayoutModal } from "./kit/EditarLayoutModal";
 import { MesAMesDialog } from "./uc/UCModals";
+import { SolaryumTab } from "./SolaryumTab";
+import type { ProdutoSolaryum } from "@/hooks/useSolaryumKits";
 
 interface CatalogoModuloUnificado {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
