@@ -625,14 +625,24 @@ export function ProposalWizard() {
           }));
 
           // Map engine venda to wizard VendaData
+          const ve = vendaEngine as Record<string, any>;
           const vendaMapped = {
-            custo_kit: Number(vendaEngine.custo_kit) || 0,
-            custo_instalacao: Number(vendaEngine.custo_instalacao) || 0,
-            custo_comissao: Number(vendaEngine.custo_comissao) || 0,
-            custo_outros: Number(vendaEngine.custo_outros) || 0,
-            margem_percentual: Number(vendaEngine.margem_percentual) || 0,
-            desconto_percentual: Number(vendaEngine.desconto_percentual) || 0,
-            observacoes: vendaEngine.observacoes || "",
+            custo_kit: Number(ve.custo_kit) || 0,
+            custo_instalacao: Number(ve.custo_instalacao) || 0,
+            custo_comissao: Number(ve.custo_comissao) || 0,
+            custo_outros: Number(ve.custo_outros) || 0,
+            margem_percentual: Number(ve.margem_percentual) || 0,
+            desconto_percentual: Number(ve.desconto_percentual) || 0,
+            observacoes: ve.observacoes || "",
+            // Campos adicionados após engine snapshot — preservar se existirem
+            custo_kit_override: ve.custo_kit_override ?? null,
+            comissao_manual_override: ve.comissao_manual_override ?? false,
+            instalacao_enabled: ve.instalacao_enabled ?? true,
+            comissao_enabled: ve.comissao_enabled ?? true,
+            custos_extras: Array.isArray(ve.custos_extras) ? ve.custos_extras : [],
+            servicos_enabled_map: ve.servicos_enabled_map ?? {},
+            percentual_comissao_consultor: Number(ve.percentual_comissao_consultor) || 0,
+            consultor_nome_comissao: ve.consultor_nome_comissao || "",
           };
 
           // Map engine premissas to PremissasData
