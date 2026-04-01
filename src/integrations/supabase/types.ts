@@ -21537,6 +21537,9 @@ export type Database = {
           updated_by: string | null
           vida_util_sistema: number
           vpl_taxa_desconto: number
+          wa_notif_numero: string | null
+          wa_notif_pagamento: boolean | null
+          wa_notif_quitado: boolean | null
         }
         Insert: {
           asaas_sandbox?: boolean | null
@@ -21620,6 +21623,9 @@ export type Database = {
           updated_by?: string | null
           vida_util_sistema?: number
           vpl_taxa_desconto?: number
+          wa_notif_numero?: string | null
+          wa_notif_pagamento?: boolean | null
+          wa_notif_quitado?: boolean | null
         }
         Update: {
           asaas_sandbox?: boolean | null
@@ -21703,6 +21709,9 @@ export type Database = {
           updated_by?: string | null
           vida_util_sistema?: number
           vpl_taxa_desconto?: number
+          wa_notif_numero?: string | null
+          wa_notif_pagamento?: boolean | null
+          wa_notif_quitado?: boolean | null
         }
         Relationships: [
           {
