@@ -89,12 +89,16 @@ interface Recebimento {
 }
 
 const FORMAS_PAGAMENTO = [
+  { value: "a_definir", label: "A definir" },
   { value: "pix", label: "PIX" },
+  { value: "pix_chave", label: "PIX" },
   { value: "boleto", label: "Boleto" },
+  { value: "boleto_manual", label: "Boleto" },
   { value: "cartao_credito", label: "Cartão de Crédito" },
   { value: "cartao_debito", label: "Cartão de Débito" },
   { value: "dinheiro", label: "Dinheiro" },
   { value: "cheque", label: "Cheque" },
+  { value: "transferencia", label: "Transferência" },
   { value: "financiamento", label: "Financiamento" },
 ];
 
