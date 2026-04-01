@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, Trash2, Edit2, Save, X, Mail, Copy, MessageCircle, Eye, Variable } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,21 +10,14 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { renderTemplate, SAMPLE_TEMPLATE_VARS, TEMPLATE_VARIABLES_CATALOG } from "@/utils/templateRenderer";
-
-interface EmailTemplate {
-  id: string;
-  nome: string;
-  assunto: string;
-  corpo_html: string;
-  corpo_texto: string | null;
-  canal: string;
-  is_default: boolean;
-  ativo: boolean;
-  ordem: number;
-  variaveis: any[] | null;
-}
+import {
+  useEmailTemplatesList,
+  useSaveEmailTemplate,
+  useDeleteEmailTemplate,
+  useDuplicateEmailTemplate,
+  type EmailTemplate,
+} from "@/hooks/useEmailTemplates";
 
 const CANAL_OPTIONS = [
   { value: "email", label: "Email" },
