@@ -907,6 +907,7 @@ export function ProposalWizard() {
 
                 if (leadByPhone) {
                   setSelectedLead(leadByPhone as any);
+                  if (leadByPhone.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(leadByPhone.municipio_ibge_codigo);
                   // console.log("[ProposalWizard] Lead found by phone match:", leadByPhone.id);
                 } else {
                   // Synthesize minimal lead-like object from cliente data so handleGenerate doesn't block
