@@ -105,7 +105,7 @@ export function useCreateLancamento() {
 
       const { data, error } = await supabase
         .from("lancamentos_financeiros" as "leads")
-        .insert({
+        .insert([{
           tenant_id: tenantId,
           tipo: input.tipo,
           categoria: input.categoria,
@@ -119,7 +119,7 @@ export function useCreateLancamento() {
           observacoes: input.observacoes || null,
           comprovante_url,
           created_by: userId,
-        } as Record<string, unknown>)
+        } as Record<string, unknown>])
         .select()
         .single();
 
