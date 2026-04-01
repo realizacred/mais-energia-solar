@@ -199,6 +199,7 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
     try {
       const { tenantId } = await getCurrentTenantId();
       let inserted = 0, updated = 0, errors = 0;
+      const errorItems: { nome: string; motivo: string }[] = [];
       const totalOps = newItems.length + toUpdate.length;
 
       // Insert new
@@ -213,8 +214,20 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
         for (let i = 0; i < payloads.length; i += BATCH) {
           const chunk = payloads.slice(i, i + BATCH);
           const { error } = await supabase.from("fornecedores").insert(chunk as any);
-          if (error) { console.error("Erro inserindo fornecedores:", error.message); errors += chunk.length; }
-          else inserted += chunk.length;
+          if (error) {
+            // Fallback: try one by one
+            for (const item of chunk) {
+              const { error: se } = await supabase.from("fornecedores").insert(item as any);
+              if (se) {
+                errors++;
+                errorItems.push({ nome: item.nome, motivo: se.message });
+              } else {
+                inserted++;
+              }
+            }
+          } else {
+            inserted += chunk.length;
+          }
           setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
         }
       }
@@ -230,7 +243,8 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
         if (dup.item.tipo) updatePayload.tipo = dup.item.tipo;
         if (Object.keys(updatePayload).length > 0) {
           const { error } = await supabase.from("fornecedores").update(updatePayload).eq("id", dup.existingId);
-          if (error) errors++; else updated++;
+          if (error) { errors++; errorItems.push({ nome: dup.item.nome, motivo: error.message }); }
+          else updated++;
         } else {
           updated++;
         }
@@ -238,7 +252,7 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
       }
 
       const skipped = duplicateItems.length - toUpdate.length;
-      setImportResult({ inserted, updated, skipped, errors });
+      setImportResult({ inserted, updated, skipped, errors, errorItems });
       toast({
         title: "Importação concluída",
         description: `${inserted} criados · ${updated} atualizados · ${skipped} ignorados${errors > 0 ? ` · ${errors} erros` : ""}`,
