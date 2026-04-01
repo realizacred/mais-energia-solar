@@ -220,7 +220,7 @@ export function ServicosManager() {
           <div className="flex flex-wrap gap-2">
             <ExportActions servicos={filteredServicos} instaladores={instaladores} />
             
-            <Button variant="outline" size="icon" onClick={fetchData}>
+            <Button variant="outline" size="icon" onClick={refreshServicos}>
               <RefreshCw className="h-4 w-4" />
             </Button>
 
