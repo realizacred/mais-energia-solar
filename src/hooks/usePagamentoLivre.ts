@@ -99,11 +99,21 @@ export function usePagamentoLivre() {
       if (error) throw error;
       return pagamento;
     },
-    onSuccess: (_data, params) => {
-      // Check if recebimento is now fully paid
+    onSuccess: (data, params) => {
+      // Invalidate queries
       qc.invalidateQueries({ queryKey: ["pagamentos-recebimento", params.recebimentoId] });
       qc.invalidateQueries({ queryKey: ["recebimentos"] });
       qc.invalidateQueries({ queryKey: ["financeiro-dashboard"] });
+
+      // Fire-and-forget WA notification
+      if (data?.id) {
+        supabase.functions.invoke("notificar-pagamento-wa", {
+          body: {
+            pagamento_id: data.id,
+            tipo: "pagamento_recebido",
+          },
+        }).catch(() => { /* never block */ });
+      }
     },
     onError: (error: Error) => {
       toast({

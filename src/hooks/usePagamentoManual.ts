@@ -126,11 +126,21 @@ export function usePagamentoManual() {
 
       return pagamento;
     },
-    onSuccess: () => {
+    onSuccess: (_data, _params) => {
       toast({ title: "Pagamento registrado com sucesso!" });
       qc.invalidateQueries({ queryKey: ["parcelas-manager"] });
       qc.invalidateQueries({ queryKey: ["recebimentos"] });
       qc.invalidateQueries({ queryKey: ["financeiro-dashboard"] });
+
+      // Fire-and-forget WA notification
+      if (_data?.id) {
+        supabase.functions.invoke("notificar-pagamento-wa", {
+          body: {
+            pagamento_id: _data.id,
+            tipo: "pagamento_recebido",
+          },
+        }).catch(() => { /* never block */ });
+      }
     },
     onError: (error: Error) => {
       toast({
