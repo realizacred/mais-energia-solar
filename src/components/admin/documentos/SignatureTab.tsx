@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
-import { formatPhone } from "@/lib/validations";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import type React from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useSignatureSettings, useSigners } from "@/hooks/useSignatureData";
+import {
+  useSignatureSettings,
+  useSigners,
+  useSaveSignatureSettings,
+  useDeleteSigner,
+  useSaveSigner,
+} from "@/hooks/useSignatureData";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Mail, Phone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,17 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Signer, AuthMethod, SignatureSettings } from "./types";
-
-// ── Shared helper ────────────────────────────────────────────
-async function getTenantIdOrThrow(): Promise<{ tenantId: string; userId: string }> {
-  const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
-  const tenantId = profile?.tenant_id;
-  if (!tenantId) throw new Error("Tenant não encontrado");
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.id) throw new Error("Usuário não autenticado");
-  return { tenantId, userId: user.id };
-}
+import type { Signer, AuthMethod } from "./types";
 
 const PROVIDERS = [
   { value: "docusign", label: "DocuSign" },
@@ -55,7 +48,6 @@ export function SignatureTab() {
 }
 
 function SignatureConfig() {
-  const qc = useQueryClient();
   const [enabled, setEnabled] = useState(false);
   const [provider, setProvider] = useState("zapsign");
   const [apiToken, setApiToken] = useState("");
@@ -65,6 +57,7 @@ function SignatureConfig() {
   const [hasExistingWebhook, setHasExistingWebhook] = useState(false);
 
   const { data: settings, isLoading } = useSignatureSettings();
+  const save = useSaveSignatureSettings();
 
   useEffect(() => {
     if (settings) {
@@ -79,45 +72,15 @@ function SignatureConfig() {
     }
   }, [settings]);
 
-  const save = useMutation({
-    mutationFn: async () => {
-      const { tenantId, userId } = await getTenantIdOrThrow();
-
-      const payload: Record<string, unknown> = {
-        tenant_id: tenantId,
-        enabled,
-        provider,
-        sandbox_mode: sandbox,
-        updated_by: userId,
-      };
-
-      // Only update secrets if user typed a new value
-      if (apiToken.trim()) {
-        payload.api_token_encrypted = apiToken.trim();
+  const handleSave = () => {
+    save.mutate(
+      { settings: settings ?? null, enabled, provider, sandbox, apiToken, webhookSecret },
+      {
+        onSuccess: () => toast.success("Configuração salva"),
+        onError: (e: Error) => toast.error(e.message),
       }
-      if (webhookSecret.trim()) {
-        payload.webhook_secret_encrypted = webhookSecret.trim();
-      }
-
-      if (settings) {
-        const { error } = await supabase.from("signature_settings").update(payload).eq("tenant_id", tenantId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("signature_settings").insert({
-          ...payload,
-          api_token_encrypted: apiToken.trim() || null,
-          webhook_secret_encrypted: webhookSecret.trim() || null,
-          created_by: userId,
-        } as any);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["signature_settings"] });
-      toast.success("Configuração salva");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    );
+  };
 
   if (isLoading) return (
     <Card className="p-6 space-y-4">
@@ -174,7 +137,7 @@ function SignatureConfig() {
             </div>
           </div>
           <div className="flex justify-end">
-            <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
+            <Button size="sm" onClick={handleSave} disabled={save.isPending}>
               {save.isPending ? "Salvando…" : "Salvar configuração"}
             </Button>
           </div>
@@ -185,22 +148,11 @@ function SignatureConfig() {
 }
 
 function SignersList() {
-  const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Signer | null>(null);
 
   const { data: signers, isLoading } = useSigners();
-
-  const deleteSigner = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("signers").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["signers"] });
-      toast.success("Signatário removido");
-    },
-  });
+  const deleteSigner = useDeleteSigner();
 
   return (
     <Card>
@@ -247,7 +199,14 @@ function SignersList() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing(s); setModalOpen(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteSigner.mutate(s.id)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => deleteSigner.mutate(s.id, {
+                            onSuccess: () => toast.success("Signatário removido"),
+                          })}
+                        >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -264,10 +223,7 @@ function SignersList() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         signer={editing}
-        onSaved={() => {
-          setModalOpen(false);
-          qc.invalidateQueries({ queryKey: ["signers"] });
-        }}
+        onSaved={() => setModalOpen(false)}
       />
     </Card>
   );
@@ -293,7 +249,8 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
   const [selfie, setSelfie] = useState(false);
   const [manuscrita, setManuscrita] = useState(false);
   const [facial, setFacial] = useState(false);
-  const [saving, setSaving] = useState(false);
+
+  const saveSigner = useSaveSigner();
 
   useEffect(() => {
     if (signer) {
@@ -316,39 +273,29 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
     }
   }, [signer, open]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!fullName.trim() || !email.trim()) { toast.error("Nome e e-mail obrigatórios"); return; }
-    setSaving(true);
-    try {
-      const { tenantId, userId } = await getTenantIdOrThrow();
 
-      const payload = {
-        tenant_id: tenantId,
-        auth_method: authMethod,
-        email: email.trim(),
-        full_name: fullName.trim(),
-        cpf: hasCpf ? cpf.trim() || null : null,
-        birth_date: birthDate || null,
-        phone: phone.trim() || null,
-        options: { doc_oficial: docOficial, selfie, manuscrita, facial },
-        updated_by: userId,
-      };
+    const payload = {
+      auth_method: authMethod,
+      email: email.trim(),
+      full_name: fullName.trim(),
+      cpf: hasCpf ? cpf.trim() || null : null,
+      birth_date: birthDate || null,
+      phone: phone.trim() || null,
+      options: { doc_oficial: docOficial, selfie, manuscrita, facial },
+    };
 
-      if (signer?.id) {
-        const { error } = await supabase.from("signers").update(payload).eq("id", signer.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("signers").insert({ ...payload, created_by: userId } as any);
-        if (error) throw error;
+    saveSigner.mutate(
+      { signerId: signer?.id, payload },
+      {
+        onSuccess: () => {
+          toast.success(signer ? "Signatário atualizado" : "Signatário cadastrado");
+          onSaved();
+        },
+        onError: (e: Error) => toast.error(e.message),
       }
-
-      toast.success(signer ? "Signatário atualizado" : "Signatário cadastrado");
-      onSaved();
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setSaving(false);
-    }
+    );
   };
 
   return (
@@ -408,8 +355,8 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Fechar</Button>
-          <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando…" : signer ? "Salvar" : "Cadastrar"}</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saveSigner.isPending}>Fechar</Button>
+          <Button onClick={handleSave} disabled={saveSigner.isPending}>{saveSigner.isPending ? "Salvando…" : signer ? "Salvar" : "Cadastrar"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
