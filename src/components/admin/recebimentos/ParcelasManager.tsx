@@ -6,8 +6,6 @@ import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { DateInput } from "@/components/ui-kit/inputs/DateInput";
-import { Label } from "@/components/ui/label";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -15,20 +13,18 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
   Calendar, CheckCircle, AlertTriangle, Clock, Zap, CreditCard,
-  Barcode, Receipt,
+  Barcode, Receipt, ExternalLink,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatBRL } from "@/lib/formatters";
 import { CobrancaDialog, type CobrancaParcela } from "./CobrancaDialog";
+import { PagamentoParcelaDialog } from "./PagamentoParcelaDialog";
 
 interface Parcela {
   id: string;
@@ -37,6 +33,7 @@ interface Parcela {
   data_vencimento: string;
   status: string;
   pagamento_id: string | null;
+  recebimento_id: string;
   cobranca_status: string | null;
   cobranca_id: string | null;
   cobranca_gateway: string | null;
@@ -75,26 +72,37 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   aguardando_pagamento: { label: "Aguardando", color: "bg-info/15 text-info border-info/20", icon: <Barcode className="h-3 w-3" /> },
 };
 
-const FORMAS_PAGAMENTO = [
-  { value: "pix", label: "PIX" },
-  { value: "boleto", label: "Boleto" },
-  { value: "dinheiro", label: "Dinheiro" },
-  { value: "cartao_credito", label: "Cartão Crédito" },
-  { value: "cartao_debito", label: "Cartão Débito" },
-  { value: "cheque", label: "Cheque" },
-  { value: "financiamento", label: "Financiamento" },
-];
-
 export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: ParcelasManagerProps) {
   const queryClient = useQueryClient();
   const { data: parcelasData, isLoading: loading } = useParcelasData(recebimento.id, open);
-  const parcelas = parcelasData?.parcelas ?? [];
+  const parcelas = (parcelasData?.parcelas ?? []) as Parcela[];
   const [generating, setGenerating] = useState(false);
-  const [payingId, setPayingId] = useState<string | null>(null);
   const [cobrancaParcela, setCobrancaParcela] = useState<Parcela | null>(null);
-  const [payForm, setPayForm] = useState({
-    forma_pagamento: "pix",
-    data_pagamento: new Date().toISOString().split("T")[0],
+  const [pagamentoParcela, setPagamentoParcela] = useState<Parcela | null>(null);
+
+  // Fetch comprovante_url for paid parcelas
+  const [comprovantes, setComprovantes] = useState<Record<string, string>>({});
+
+  // Load comprovantes on open
+  useState(() => {
+    if (!open || parcelas.length === 0) return;
+    const paidIds = parcelas.filter(p => p.pagamento_id).map(p => p.pagamento_id!);
+    if (paidIds.length === 0) return;
+
+    supabase
+      .from("pagamentos")
+      .select("parcela_id, comprovante_url")
+      .in("id", paidIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, string> = {};
+        data.forEach((p: any) => {
+          if (p.parcela_id && p.comprovante_url) {
+            map[p.parcela_id] = p.comprovante_url;
+          }
+        });
+        setComprovantes(map);
+      });
   });
 
   const refreshParcelas = () => {
@@ -127,44 +135,10 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
       toast({ title: `${recebimento.numero_parcelas} parcelas geradas!` });
       refreshParcelas();
       onUpdate();
-    } catch (error) {
-      console.error("Error generating parcelas:", error);
+    } catch {
       toast({ title: "Erro ao gerar parcelas", variant: "destructive" });
     } finally {
       setGenerating(false);
-    }
-  };
-
-  const marcarComoPaga = async (parcela: Parcela) => {
-    try {
-      const { data: pagamento, error: pagErr } = await supabase
-        .from("pagamentos")
-        .insert({
-          recebimento_id: recebimento.id,
-          valor_pago: parcela.valor,
-          forma_pagamento: payForm.forma_pagamento,
-          data_pagamento: payForm.data_pagamento,
-          observacoes: `Parcela ${parcela.numero_parcela}/${recebimento.numero_parcelas}`,
-        })
-        .select("id")
-        .single();
-
-      if (pagErr) throw pagErr;
-
-      const { error: parcErr } = await supabase
-        .from("parcelas")
-        .update({ status: "paga", pagamento_id: pagamento.id })
-        .eq("id", parcela.id);
-
-      if (parcErr) throw parcErr;
-
-      toast({ title: `Parcela ${parcela.numero_parcela} paga!` });
-      setPayingId(null);
-      refreshParcelas();
-      onUpdate();
-    } catch (error) {
-      console.error("Error updating parcela:", error);
-      toast({ title: "Erro ao registrar pagamento", variant: "destructive" });
     }
   };
 
@@ -213,8 +187,8 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
             <div className="flex items-start gap-2 p-3 rounded-lg bg-info/10 border border-info/20">
               <Zap className="h-4 w-4 text-info mt-0.5 shrink-0" />
               <p className="text-xs text-info">
-                <strong>Pagar parcela individual:</strong> clique no ícone de pagamento para registrar.
-                Use <strong>"Gerar"</strong> na coluna Cobrança para emitir boleto/PIX.
+                <strong>Pagar parcela:</strong> clique no ícone de pagamento para registrar com detalhes completos.
+                Use <strong>"Gerar"</strong> na coluna Cobrança para emitir boleto/PIX via gateway.
               </p>
             </div>
           )}
@@ -249,120 +223,79 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
                     const config = vencida
                       ? STATUS_CONFIG.atrasada
                       : STATUS_CONFIG[parcela.status] || STATUS_CONFIG.pendente;
-                    const isPaying = payingId === parcela.id;
                     const cob = getCobrancaBadge(parcela);
+                    const comprovanteUrl = comprovantes[parcela.id];
 
                     return (
-                      <>
-                        <TableRow key={parcela.id} className={vencida ? "bg-destructive/5" : ""}>
-                          <TableCell className="font-medium">
-                            {parcela.numero_parcela}/{recebimento.numero_parcelas}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">{formatBRL(parcela.valor)}</TableCell>
-                          <TableCell>
-                            {format(new Date(parcela.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
-                          </TableCell>
-                          <TableCell>
+                      <TableRow key={parcela.id} className={vencida ? "bg-destructive/5" : ""}>
+                        <TableCell className="font-medium">
+                          {parcela.numero_parcela}/{recebimento.numero_parcelas}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{formatBRL(parcela.valor)}</TableCell>
+                        <TableCell>
+                          {format(new Date(parcela.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
                             <Badge variant="outline" className={`${config.color} gap-1`}>
                               {config.icon}
                               {config.label}
                             </Badge>
-                            {parcela.pagamento_id && parcela.status === "paga" && (
-                              <Badge variant="outline" className="ml-1 text-[10px]">Vinculado</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5">
-                              <Badge variant="outline" className={`${cob.variant} gap-1 text-[10px]`}>
-                                {cob.icon}
-                                {cob.label}
-                              </Badge>
-                              {parcela.status !== "paga" && parcela.status !== "cancelada" && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-6 px-2 text-[10px]"
-                                  onClick={() => setCobrancaParcela(parcela)}
-                                >
-                                  {parcela.cobranca_status === "gerada" ? "Ver QR/Boleto" : "Gerar"}
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-end gap-1">
-                              {/* Manual payment */}
-                              {parcela.status !== "paga" && parcela.status !== "cancelada" && (
-                                isPaying ? (
+                            {parcela.status === "paga" && comprovanteUrl && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
                                   <Button
-                                    size="sm"
+                                    size="icon"
                                     variant="ghost"
-                                    className="h-7 text-muted-foreground text-xs"
-                                    onClick={() => setPayingId(null)}
+                                    className="h-6 w-6"
+                                    onClick={() => window.open(comprovanteUrl, "_blank")}
                                   >
-                                    Cancelar
+                                    <ExternalLink className="h-3 w-3 text-muted-foreground" />
                                   </Button>
-                                ) : (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-7 w-7"
-                                        onClick={() => setPayingId(parcela.id)}
-                                      >
-                                        <CreditCard className="h-3.5 w-3.5 text-success" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Registrar pagamento manual</TooltipContent>
-                                  </Tooltip>
-                                )
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        {/* Inline payment form */}
-                        {isPaying && (
-                          <TableRow key={`${parcela.id}-pay`}>
-                            <TableCell colSpan={6}>
-                              <div className="flex items-end gap-3 p-2 bg-muted/50 rounded-lg">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Forma</Label>
-                                  <Select
-                                    value={payForm.forma_pagamento}
-                                    onValueChange={(v) => setPayForm((prev) => ({ ...prev, forma_pagamento: v }))}
+                                </TooltipTrigger>
+                                <TooltipContent>Ver comprovante</TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className={`${cob.variant} gap-1 text-[10px]`}>
+                              {cob.icon}
+                              {cob.label}
+                            </Badge>
+                            {parcela.status !== "paga" && parcela.status !== "cancelada" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-[10px]"
+                                onClick={() => setCobrancaParcela(parcela)}
+                              >
+                                {parcela.cobranca_status === "gerada" ? "Ver QR/Boleto" : "Gerar"}
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            {parcela.status !== "paga" && parcela.status !== "cancelada" && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7"
+                                    onClick={() => setPagamentoParcela(parcela)}
                                   >
-                                    <SelectTrigger className="h-8 w-36 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {FORMAS_PAGAMENTO.map((f) => (
-                                        <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Data</Label>
-                                  <DateInput
-                                    className="h-8 w-36 text-xs"
-                                    value={payForm.data_pagamento}
-                                    onChange={(v) => setPayForm((prev) => ({ ...prev, data_pagamento: v }))}
-                                  />
-                                </div>
-                                <Button
-                                  size="sm"
-                                  className="h-8 gap-1"
-                                  onClick={() => marcarComoPaga(parcela)}
-                                >
-                                  <CheckCircle className="h-3.5 w-3.5" />
-                                  Confirmar {formatBRL(parcela.valor)}
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </>
+                                    <CreditCard className="h-3.5 w-3.5 text-success" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Registrar pagamento manual</TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
                 </TableBody>
@@ -380,6 +313,31 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
             onClose={() => {
               setCobrancaParcela(null);
               refreshParcelas();
+            }}
+          />
+        )}
+
+        {/* PagamentoParcelaDialog */}
+        {pagamentoParcela && (
+          <PagamentoParcelaDialog
+            open={!!pagamentoParcela}
+            onClose={() => {
+              setPagamentoParcela(null);
+              refreshParcelas();
+              onUpdate();
+            }}
+            parcela={{
+              id: pagamentoParcela.id,
+              recebimento_id: pagamentoParcela.recebimento_id,
+              numero_parcela: pagamentoParcela.numero_parcela,
+              valor: pagamentoParcela.valor,
+              data_vencimento: pagamentoParcela.data_vencimento,
+              status: pagamentoParcela.status,
+              cobranca_status: pagamentoParcela.cobranca_status,
+            }}
+            onSuccess={() => {
+              refreshParcelas();
+              onUpdate();
             }}
           />
         )}
