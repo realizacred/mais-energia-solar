@@ -243,6 +243,13 @@ export function useTenantPremises() {
   const isDirty = JSON.stringify(premises) !== savedRef.current;
 
   const save = useCallback(async () => {
+    // Validate critical tariff field
+    if (!premises.tusd_fio_b_bt || premises.tusd_fio_b_bt <= 0) {
+      toast.error("Tarifa Fio B obrigatória", {
+        description: "Informe o valor do TUSD Fio B (BT) da sua concessionária na aba Valores Padrões → Tarifas.",
+      });
+      return;
+    }
     setSaving(true);
     try {
       const { id, tenant_id, ...payload } = premises as any;
