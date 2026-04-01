@@ -1,10 +1,10 @@
-import { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { TrendingUp, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { LoadingState } from "@/components/shared/LoadingState";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { formatBRL } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { useDRE, DREMes } from "@/hooks/useDRE";
