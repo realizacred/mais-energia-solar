@@ -490,7 +490,7 @@ export function ServicosManager() {
         servico={reagendarServico}
         isOpen={!!reagendarServico}
         onClose={() => setReagendarServico(null)}
-        onSuccess={() => fetchData()}
+        onSuccess={() => refreshServicos()}
       />
     </div>
   );
