@@ -16,6 +16,7 @@ export interface PropostaFinalValidationInput {
   precoFinal: number;
   geracaoMensalKwh: number;
   consumoTotal: number;
+  economiaMensal?: number;
   locEstado: string;
   locCidade: string;
   locDistribuidoraNome: string;
@@ -48,7 +49,7 @@ export function validatePropostaFinal(
   const {
     cliente, selectedLead, ucs, itens, servicos, venda,
     pagamentoOpcoes, potenciaKwp, precoFinal, geracaoMensalKwh,
-    consumoTotal, locEstado, locCidade, locDistribuidoraNome,
+    consumoTotal, economiaMensal, locEstado, locCidade, locDistribuidoraNome,
     templateSelecionado,
   } = input;
 
@@ -138,6 +139,11 @@ export function validatePropostaFinal(
   // W6. Geração mensal = 0 com potência > 0
   if (potenciaKwp > 0 && geracaoMensalKwh <= 0) {
     warnings.push("Geração mensal estimada é zero. Verifique irradiação e premissas.");
+  }
+
+  // W6b. Economia mensal = 0 com consumo > 0
+  if (consumoTotal > 0 && (economiaMensal == null || economiaMensal <= 0)) {
+    warnings.push("Economia mensal não calculada. Verifique tarifa e consumo.");
   }
 
   // W7. Nome do cliente vazio
