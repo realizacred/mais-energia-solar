@@ -25,41 +25,27 @@ export interface ParsedDistributorOtimizador {
  *  - Número seguido de W → valor direto
  */
 export function extractPotenciaWpOtimizador(modelo: string): number | null {
-  const upper = modelo.toUpperCase();
+  if (!modelo) return null;
+  const m = modelo.toUpperCase().trim();
 
   // Filtrar inversores SolarEdge: SE8250H, SE10000H, etc.
-  if (/^SE\d{4,}/i.test(modelo.trim())) return null;
+  if (/^SE\d{4,}/.test(m)) return null;
 
-  // Filtrar inversores com padrão S+número grande: S1200, S1400, etc.
-  if (/^S\d{4,}/i.test(modelo.trim())) return null;
+  // Padrão 1: número + W explícito (ex: 450W, 500W-P, SUN2000-450W-P)
+  const p1 = m.match(/(\d+(?:[.,]\d+)?)\s*W\b/);
+  if (p1) return parseFloat(p1[1].replace(',', '.'));
 
-  // Padrão P(\d{2,3}) — ex: P370, P505, P850, P950
-  const pMatch = upper.match(/\bP(\d{2,3})\b/);
-  if (pMatch) {
-    const val = parseInt(pMatch[1]);
-    if (val >= 50 && val <= 1000) return val;
-  }
+  // Padrão 2: número + kW explícito (ex: 1.6kW → 1600W)
+  const p2 = m.match(/(\d+(?:[.,]\d+)?)\s*KW\b/);
+  if (p2) return parseFloat(p2[1].replace(',', '.')) * 1000;
 
-  // Padrão (\d{2,3})W — ex: 400W, 450W
-  const wMatch = upper.match(/(\d{2,3})\s*W\b/);
-  if (wMatch) {
-    const val = parseInt(wMatch[1]);
-    if (val >= 50 && val <= 1000) return val;
-  }
+  // Padrão 3: letra(s) + número 3-4 dígitos no final (ex: M1600, P1100, P370, S1200)
+  const p3 = m.match(/^[A-Z]{1,2}(\d{3,4})$/);
+  if (p3) return parseInt(p3[1], 10);
 
-  // Padrão SUN2000-(\d{2,3})W — ex: SUN2000-450W-P
-  const sunMatch = upper.match(/SUN2000-(\d{2,3})W/);
-  if (sunMatch) {
-    const val = parseInt(sunMatch[1]);
-    if (val >= 50 && val <= 1000) return val;
-  }
-
-  // Fallback restrito: só se modelo curto e número é único token relevante
-  const nums = modelo.match(/(\d{2,3})/g);
-  if (nums && modelo.replace(/\D/g, "").length <= 4) {
-    const candidates = nums.map(Number).filter(n => n >= 50 && n <= 1000);
-    if (candidates.length > 0) return Math.max(...candidates);
-  }
+  // Padrão 4: letra(s) + número 3-4 dígitos antes de hífen (ex: P370-EV, S1400-X)
+  const p4 = m.match(/^[A-Z]{1,2}(\d{3,4})(?=-)/);
+  if (p4) return parseInt(p4[1], 10);
 
   return 0;
 }
@@ -78,9 +64,13 @@ export function parseDistributorOtimizadorCSV(csvText: string): OtimizadorParseR
   const base = parseDistributorCSV(csvText, "Otimizador");
 
   const otimizadores: ParsedDistributorOtimizador[] = [];
+  const warnings = [...base.warnings];
   for (const m of base.modules) {
     const potencia = extractPotenciaWpOtimizador(m.modelo);
     if (potencia === null) continue; // é inversor, não otimizador
+    if (potencia <= 0) {
+      warnings.push({ line: 0, raw: "", issue: `Potência (W) não detectada no modelo "${m.fabricante} ${m.modelo}" — preencha manualmente` });
+    }
     otimizadores.push({
       fabricante: m.fabricante,
       modelo: m.modelo,
@@ -92,7 +82,7 @@ export function parseDistributorOtimizadorCSV(csvText: string): OtimizadorParseR
 
   return {
     otimizadores,
-    warnings: base.warnings,
+    warnings,
     totalLines: base.totalLines,
     filteredLines: base.filteredLines,
   };
