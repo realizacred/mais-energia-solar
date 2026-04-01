@@ -187,7 +187,7 @@ export function RecebimentosManager() {
 
       setDialogOpen(false);
       resetForm();
-      fetchRecebimentos();
+      refreshRecebimentos();
     } catch (error) {
       console.error("Error saving recebimento:", error);
       toast({
