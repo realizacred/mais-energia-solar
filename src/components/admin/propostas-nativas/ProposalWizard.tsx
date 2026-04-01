@@ -2086,6 +2086,9 @@ export function ProposalWizard() {
         precoFinal,
         geracaoMensalKwh: geracaoMensalEstimada,
         consumoTotal,
+        economiaMensal: geracaoMensalEstimada > 0
+          ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80))
+          : 0,
         locEstado,
         locCidade,
         locDistribuidoraNome: locDistribuidoraNome,
