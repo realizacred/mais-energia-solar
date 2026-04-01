@@ -74,7 +74,8 @@ export function TemplatesTab() {
         }
       }
       toast({ title: "Templates salvos com sucesso" });
-      await loadData();
+      setInitialized(false);
+      refreshTemplates();
     } catch (e: any) {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     }
