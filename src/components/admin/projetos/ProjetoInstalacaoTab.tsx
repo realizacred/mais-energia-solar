@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Zap, ClipboardList, CheckCircle, CheckCircle2,
-  AlertCircle, ChevronDown, ChevronUp, Camera, X,
+  AlertCircle, AlertTriangle, ChevronDown, ChevronUp, Camera, X,
   MessageSquare, FileDown, Loader2, Check,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,6 +79,30 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
   const { data: checklists = [], isLoading: loadingChecklists } = useChecklistsByProjeto(dealId);
   const criarChecklist = useCriarChecklist();
 
+  // Gate: verificar se existe proposta aceita/principal
+  const { data: temPropostaAceita = false } = useQuery({
+    queryKey: ["proposta-aceita-gate", dealId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("propostas_nativas")
+        .select("id, is_principal, status")
+        .eq("deal_id", dealId)
+        .in("status", ["aceita", "accepted", "aprovada", "ganha"])
+        .limit(1);
+      if (data && data.length > 0) return true;
+      // Fallback: check is_principal
+      const { data: principal } = await supabase
+        .from("propostas_nativas")
+        .select("id")
+        .eq("deal_id", dealId)
+        .eq("is_principal", true)
+        .limit(1);
+      return (principal && principal.length > 0) || false;
+    },
+    enabled: !!dealId,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [finalizarOpen, setFinalizarOpen] = useState<string | null>(null);
 
@@ -123,6 +148,16 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
         </div>
       </div>
 
+      {/* ALERTA — sem proposta aceita */}
+      {!temPropostaAceita && availableTemplates.length > 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm text-warning">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>
+            Nenhuma proposta aceita encontrada. Aceite uma proposta na aba <strong>Propostas</strong> antes de iniciar a instalação.
+          </span>
+        </div>
+      )}
+
       {/* CARDS DE INICIAR — templates disponíveis */}
       {availableTemplates.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -133,7 +168,8 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
               <button
                 key={t.id}
                 onClick={() => handleIniciar(t.id)}
-                disabled={criarChecklist.isPending}
+                disabled={criarChecklist.isPending || !temPropostaAceita}
+                title={!temPropostaAceita ? "É necessário ter uma proposta aceita para iniciar a instalação" : undefined}
                 className="flex flex-col items-start gap-3 p-5 rounded-lg border border-border bg-card hover:border-primary/30 hover:bg-primary/5 transition-all text-left group disabled:opacity-50"
               >
                 <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center transition-colors", cfg.iconBg)}>
