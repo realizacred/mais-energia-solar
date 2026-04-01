@@ -205,7 +205,7 @@ export function FollowUpNotifications({
       </CardHeader>
       <CardContent className="flex-1 min-h-0 flex flex-col px-4 pt-0 pb-3">
         <ScrollArea className="flex-1 min-h-0 max-h-[200px]">
-          <div className="space-y-2">
+          <div className="divide-y divide-border">
             {leads.map((lead) => (
               <div
                 key={lead.id}
