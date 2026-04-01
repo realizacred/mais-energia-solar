@@ -253,13 +253,20 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
 
         {/* Selected lead badge */}
         {selectedLead && (
-          <div className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/15">
-            <div>
-              <p className="text-xs text-muted-foreground">Lead vinculado</p>
-              <p className="font-semibold text-sm">{selectedLead.nome}</p>
-              <p className="text-xs text-muted-foreground">{formatPhoneBR(selectedLead.telefone)} • {selectedLead.lead_code}</p>
+          <div className="bg-card border border-border rounded-lg p-3 border-l-[3px] border-l-primary rounded-tl-none rounded-bl-none">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <User className="w-3.5 h-3.5 text-primary" />
+                </div>
+                <span className="text-[11px] font-medium text-primary uppercase tracking-wide">
+                  Lead vinculado
+                </span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={onClearLead}>Desvincular</Button>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClearLead}>Desvincular</Button>
+            <p className="text-sm font-semibold text-foreground mb-1">{selectedLead.nome}</p>
+            <p className="text-xs text-muted-foreground">{formatPhoneBR(selectedLead.telefone)} • {selectedLead.lead_code}</p>
           </div>
         )}
 
