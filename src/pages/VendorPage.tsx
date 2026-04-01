@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/layout/Header";
 import LeadFormWizard from "@/components/LeadFormWizard";
@@ -7,7 +7,7 @@ import { OfflineStatusBar } from "@/components/vendor/OfflineStatusBar";
 import { OfflineDuplicateResolver } from "@/components/vendor/OfflineDuplicateResolver";
 import { InstallAppBanner } from "@/components/vendor/InstallAppBanner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { AlertCircle, Phone } from "lucide-react";
+import { AlertCircle, Phone, WifiOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type ValidationState = "loading" | "valid" | "invalid" | "network_error";
