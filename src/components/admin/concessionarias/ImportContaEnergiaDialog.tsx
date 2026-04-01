@@ -112,9 +112,15 @@ export function ImportContaEnergiaDialog({ open, onOpenChange, onDataExtracted }
   const [manualText, setManualText] = useState("");
 
   // Match step
+  const { data: concessionariasData = [] } = useConcessionariasAtivas(open);
   const [concessionarias, setConcessionarias] = useState<ConcMatch[]>([]);
   const [selectedConcId, setSelectedConcId] = useState<string>("");
   const [autoMatched, setAutoMatched] = useState(false);
+
+  // Sync hook data into local state (needed for mutations in diff step)
+  if (open && concessionariasData.length > 0 && concessionarias.length === 0) {
+    setConcessionarias(concessionariasData as ConcMatch[]);
+  }
 
   // Diff step
   const [diffFields, setDiffFields] = useState<DiffField[]>([]);
@@ -131,19 +137,6 @@ export function ImportContaEnergiaDialog({ open, onOpenChange, onDataExtracted }
     setDiffFields([]);
     setUpdating(false);
   }, []);
-
-  // Fetch concessionárias when dialog opens
-  useEffect(() => {
-    if (!open) return;
-    (async () => {
-      const { data } = await supabase
-        .from("concessionarias")
-        .select("id, nome, sigla, estado, tarifa_energia, tarifa_fio_b, aliquota_icms, pis_percentual, cofins_percentual")
-        .eq("ativo", true)
-        .order("nome");
-      if (data) setConcessionarias(data);
-    })();
-  }, [open]);
 
   // ── Upload / Parse ──────────────────────────────────────────────
 
