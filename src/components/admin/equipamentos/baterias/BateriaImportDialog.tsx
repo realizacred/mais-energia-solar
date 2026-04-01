@@ -218,7 +218,7 @@ function parseBateriaCSV(text: string): { baterias: ParsedBateria[]; warnings: {
     }
 
     if (energia_kwh <= 0) {
-      warnings.push({ line: i + 1, issue: `Energia não detectada: "${fabricante} ${modelo}"` });
+      warnings.push({ line: i + 1, issue: `Capacidade (kWh) não detectada no modelo "${fabricante} ${modelo}" — preencha manualmente` });
     }
 
     baterias.push({ fabricante, modelo, energia_kwh, tipo_bateria, tensao_nominal_v });
