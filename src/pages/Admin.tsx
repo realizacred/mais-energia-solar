@@ -667,6 +667,7 @@ export default function Admin() {
                 <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
                 <Route path="comissoes" element={<ComissoesManager />} />
                 <Route path="fechamento-caixa" element={<FechamentoCaixaPage />} />
+                <Route path="dre" element={<DREPage />} />
                 <Route path="engenharia" element={<Navigate to="/admin/premissas" replace />} />
                 <Route path="financiamento" element={<FinanciamentoConfig />} />
                 <Route path="formas-pagamento" element={<FormasPagamentoPage />} />
