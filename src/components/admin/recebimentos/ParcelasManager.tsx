@@ -195,11 +195,11 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              {recebimento.numero_parcelas}x de {formatCurrency(recebimento.valor_total / recebimento.numero_parcelas)}
+              {recebimento.numero_parcelas}x de {formatBRL(recebimento.valor_total / recebimento.numero_parcelas)}
               {parcelas.length > 0 && (
                 <span className="ml-2">
-                  · Pago: <strong className="text-success">{formatCurrency(totalPago)}</strong>
-                  · Pendente: <strong className="text-warning">{formatCurrency(totalPendente)}</strong>
+                  · Pago: <strong className="text-success">{formatBRL(totalPago)}</strong>
+                  · Pendente: <strong className="text-warning">{formatBRL(totalPendente)}</strong>
                 </span>
               )}
             </div>
@@ -214,9 +214,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
               <Zap className="h-4 w-4 text-info mt-0.5 shrink-0" />
               <p className="text-xs text-info">
                 <strong>Pagar parcela individual:</strong> clique no ícone de pagamento para registrar.
-                {gatewayActive && (
-                  <> Use <strong>Gerar Boleto/Pix</strong> para emitir cobrança automática via Asaas.</>
-                )}
+                Use <strong>"Gerar"</strong> na coluna Cobrança para emitir boleto/PIX.
               </p>
             </div>
           )}
@@ -233,7 +231,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
             </div>
           ) : (
             <TooltipProvider>
-              <div className="overflow-x-auto">
+              <div className="rounded-lg border border-border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -241,7 +239,8 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
                     <TableHead>Valor</TableHead>
                     <TableHead>Vencimento</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-40 text-right">Ações</TableHead>
+                    <TableHead>Cobrança</TableHead>
+                    <TableHead className="w-28 text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -251,8 +250,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
                       ? STATUS_CONFIG.atrasada
                       : STATUS_CONFIG[parcela.status] || STATUS_CONFIG.pendente;
                     const isPaying = payingId === parcela.id;
-                    const isCharging = chargingId === parcela.id;
-                    const charge = charges.get(parcela.id);
+                    const cob = getCobrancaBadge(parcela);
 
                     return (
                       <>
@@ -260,7 +258,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
                           <TableCell className="font-medium">
                             {parcela.numero_parcela}/{recebimento.numero_parcelas}
                           </TableCell>
-                          <TableCell>{formatCurrency(parcela.valor)}</TableCell>
+                          <TableCell className="font-mono text-sm">{formatBRL(parcela.valor)}</TableCell>
                           <TableCell>
                             {format(new Date(parcela.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
                           </TableCell>
@@ -274,68 +272,25 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
                             )}
                           </TableCell>
                           <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant="outline" className={`${cob.variant} gap-1 text-[10px]`}>
+                                {cob.icon}
+                                {cob.label}
+                              </Badge>
+                              {parcela.status !== "paga" && parcela.status !== "cancelada" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-[10px]"
+                                  onClick={() => setCobrancaParcela(parcela)}
+                                >
+                                  {parcela.cobranca_status === "gerada" ? "Ver QR/Boleto" : "Gerar"}
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
                             <div className="flex items-center justify-end gap-1">
-                              {/* Quick actions for existing charges */}
-                              {hasCharge(parcela) && charge && (
-                                <>
-                                  {charge.boleto_pdf_url && (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-7 w-7"
-                                          asChild
-                                        >
-                                          <a href={charge.boleto_pdf_url} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="h-3.5 w-3.5 text-primary" />
-                                          </a>
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Ver Boleto PDF</TooltipContent>
-                                    </Tooltip>
-                                  )}
-                                  {charge.pix_payload && (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-7 w-7"
-                                          onClick={() => copyPix(charge.pix_payload!)}
-                                        >
-                                          <QrCode className="h-3.5 w-3.5 text-primary" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Copiar Pix</TooltipContent>
-                                    </Tooltip>
-                                  )}
-                                </>
-                              )}
-
-                              {/* Generate charge button */}
-                              {canCharge(parcela) && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 gap-1 text-xs"
-                                      disabled={isCharging}
-                                      onClick={() => gerarCobranca(parcela)}
-                                    >
-                                      {isCharging ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                      ) : (
-                                        <Barcode className="h-3 w-3" />
-                                      )}
-                                      Cobrar
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Gerar Boleto/Pix via Asaas</TooltipContent>
-                                </Tooltip>
-                              )}
-
                               {/* Manual payment */}
                               {parcela.status !== "paga" && parcela.status !== "cancelada" && (
                                 isPaying ? (
@@ -369,7 +324,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
                         {/* Inline payment form */}
                         {isPaying && (
                           <TableRow key={`${parcela.id}-pay`}>
-                            <TableCell colSpan={5}>
+                            <TableCell colSpan={6}>
                               <div className="flex items-end gap-3 p-2 bg-muted/50 rounded-lg">
                                 <div className="space-y-1">
                                   <Label className="text-xs">Forma</Label>
@@ -401,7 +356,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
                                   onClick={() => marcarComoPaga(parcela)}
                                 >
                                   <CheckCircle className="h-3.5 w-3.5" />
-                                  Confirmar {formatCurrency(parcela.valor)}
+                                  Confirmar {formatBRL(parcela.valor)}
                                 </Button>
                               </div>
                             </TableCell>
@@ -416,6 +371,18 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
             </TooltipProvider>
           )}
         </div>
+
+        {/* CobrancaDialog */}
+        {cobrancaParcela && (
+          <CobrancaDialog
+            parcela={cobrancaParcela as CobrancaParcela}
+            open={!!cobrancaParcela}
+            onClose={() => {
+              setCobrancaParcela(null);
+              refreshParcelas();
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
