@@ -445,7 +445,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
       if (error) throw error;
       
-      setVendedores(prev => prev.filter(v => v.id !== vendedorToDelete.id));
+      refreshVendedores();
       toast({ title: "Consultor excluído!" });
     } catch (error) {
       console.error("Erro ao excluir vendedor:", error);
