@@ -47,7 +47,7 @@ export function applyTenantTarifasToUC(
     // Aplicar fase_tensao_rede do tenant se UC ainda está no default
     fase_tensao: (uc.fase_tensao && uc.fase_tensao !== "bifasico_127_220")
       ? uc.fase_tensao
-      : (t.fase_tensao_rede || uc.fase_tensao),
+      : ((t.fase_tensao_rede as UCData["fase_tensao"]) || uc.fase_tensao),
     // Aplicar grupo_tarifario do tenant se UC ainda está no default
     grupo_tarifario: (uc.grupo_tarifario && uc.grupo_tarifario !== "B")
       ? uc.grupo_tarifario
