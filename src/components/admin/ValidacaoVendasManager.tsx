@@ -128,18 +128,9 @@ export function ValidacaoVendasManager() {
     const leadId = cliente.lead_id;
     let prefilledItems: PaymentItemInput[] = [];
     // 1) Try DB (source of truth)
-    try {
-      const { data: clienteData } = await supabase
-        .from("clientes")
-        .select("payment_composition")
-        .eq("id", cliente.id)
-        .maybeSingle() as any;
-      if (clienteData?.payment_composition && Array.isArray(clienteData.payment_composition)) {
-        prefilledItems = clienteData.payment_composition;
-        console.debug("[ValidacaoVendas] Loaded payment items from DB:", prefilledItems.length);
-      }
-    } catch (e) {
-      console.warn("[ValidacaoVendas] Could not load payment composition from DB:", e);
+    const dbItems = await fetchClientePaymentComposition(cliente.id);
+    if (dbItems.length > 0) {
+      prefilledItems = dbItems;
     }
     // 2) Fallback to localStorage
     if (prefilledItems.length === 0 && leadId) {
@@ -147,7 +138,6 @@ export function ValidacaoVendasManager() {
         const stored = localStorage.getItem(`lead_payment_composition_${leadId}`);
         if (stored) {
           prefilledItems = JSON.parse(stored);
-          console.debug("[ValidacaoVendas] Loaded payment items from localStorage fallback:", prefilledItems.length);
         }
       } catch (e) {
         console.warn("[ValidacaoVendas] Could not parse stored payment composition:", e);
@@ -161,8 +151,6 @@ export function ValidacaoVendasManager() {
     setLoadingVendedor(true);
 
     try {
-      const promises: Promise<void>[] = [];
-
       const vendedorId = cliente.leads?.consultor_id;
       if (vendedorId) {
         const matchedVendedor = vendedores.find((v) => v.id === vendedorId);
@@ -191,60 +179,18 @@ export function ValidacaoVendasManager() {
       }
 
       if (cliente.lead_id) {
-        const simsPromise = async () => {
-          const [{ data: legacySims }, { data: propostasNativas }] = await Promise.all([
-            supabase
-              .from("simulacoes")
-              .select("id, investimento_estimado, potencia_recomendada_kwp, economia_mensal, consumo_kwh, geracao_mensal_estimada, payback_meses, created_at")
-              .eq("lead_id", cliente.lead_id!)
-              .order("created_at", { ascending: false }),
-            supabase
-              .from("propostas_nativas")
-              .select("id")
-              .eq("lead_id", cliente.lead_id!)
-              .order("created_at", { ascending: false })
-              .limit(10),
-          ]);
+        const sims = await fetchLeadSimulacoes(cliente.lead_id);
+        setLeadSimulacoes(sims);
 
-          const simsLegacy = (legacySims as LeadSimulacao[]) || [];
-          let simsFromVersoes: LeadSimulacao[] = [];
-
-          const propostaIds = (propostasNativas || []).map((p) => p.id);
-          if (propostaIds.length > 0) {
-            const { data: versoes } = await supabase
-              .from("proposta_versoes")
-              .select("id, valor_total, potencia_kwp, economia_mensal, consumo_mensal, geracao_mensal, payback_meses, created_at")
-              .in("proposta_id", propostaIds)
-              .order("created_at", { ascending: false });
-
-            simsFromVersoes = (versoes || []).map((v) => ({
-              id: v.id,
-              investimento_estimado: v.valor_total,
-              potencia_recomendada_kwp: v.potencia_kwp,
-              economia_mensal: v.economia_mensal,
-              consumo_kwh: v.consumo_mensal,
-              geracao_mensal_estimada: v.geracao_mensal,
-              payback_meses: v.payback_meses,
-              created_at: v.created_at,
-            }));
+        if (cliente.simulacao_aceita_id && sims.some((s) => s.id === cliente.simulacao_aceita_id)) {
+          setSelectedSimulacaoId(cliente.simulacao_aceita_id);
+        } else if (sims.length > 0) {
+          setSelectedSimulacaoId(sims[0].id);
+          if (sims[0].investimento_estimado && sims[0].investimento_estimado > 0) {
+            setValorVenda(sims[0].investimento_estimado);
           }
-
-          const sims = [...simsLegacy, ...simsFromVersoes.filter((s) => !simsLegacy.some((l) => l.id === s.id))];
-          setLeadSimulacoes(sims);
-
-          if (cliente.simulacao_aceita_id && sims.some((s) => s.id === cliente.simulacao_aceita_id)) {
-            setSelectedSimulacaoId(cliente.simulacao_aceita_id);
-          } else if (sims.length > 0) {
-            setSelectedSimulacaoId(sims[0].id);
-            if (sims[0].investimento_estimado && sims[0].investimento_estimado > 0) {
-              setValorVenda(sims[0].investimento_estimado);
-            }
-          }
-        };
-        promises.push(simsPromise());
+        }
       }
-
-      await Promise.all(promises);
     } catch {
       setPercentualComissao("2.0");
     } finally {
