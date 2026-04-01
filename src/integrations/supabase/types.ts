@@ -4668,6 +4668,8 @@ export type Database = {
       }
       fechamentos_caixa: {
         Row: {
+          breakdown_categorias: Json | null
+          breakdown_despesas: Json | null
           breakdown_formas: Json | null
           created_at: string | null
           data_fim: string
@@ -4676,15 +4678,21 @@ export type Database = {
           fechado_por: string | null
           id: string
           observacoes: string | null
+          saldo_periodo: number | null
           status: string | null
           tenant_id: string
           tipo: string
+          total_despesas: number | null
           total_parcelas_pagas: number | null
           total_recebido: number | null
           total_recebimentos_quitados: number | null
+          total_receitas: number | null
+          total_receitas_avulsas: number | null
           updated_at: string | null
         }
         Insert: {
+          breakdown_categorias?: Json | null
+          breakdown_despesas?: Json | null
           breakdown_formas?: Json | null
           created_at?: string | null
           data_fim: string
@@ -4693,15 +4701,21 @@ export type Database = {
           fechado_por?: string | null
           id?: string
           observacoes?: string | null
+          saldo_periodo?: number | null
           status?: string | null
           tenant_id?: string
           tipo: string
+          total_despesas?: number | null
           total_parcelas_pagas?: number | null
           total_recebido?: number | null
           total_recebimentos_quitados?: number | null
+          total_receitas?: number | null
+          total_receitas_avulsas?: number | null
           updated_at?: string | null
         }
         Update: {
+          breakdown_categorias?: Json | null
+          breakdown_despesas?: Json | null
           breakdown_formas?: Json | null
           created_at?: string | null
           data_fim?: string
@@ -4710,12 +4724,16 @@ export type Database = {
           fechado_por?: string | null
           id?: string
           observacoes?: string | null
+          saldo_periodo?: number | null
           status?: string | null
           tenant_id?: string
           tipo?: string
+          total_despesas?: number | null
           total_parcelas_pagas?: number | null
           total_recebido?: number | null
           total_recebimentos_quitados?: number | null
+          total_receitas?: number | null
+          total_receitas_avulsas?: number | null
           updated_at?: string | null
         }
         Relationships: [
