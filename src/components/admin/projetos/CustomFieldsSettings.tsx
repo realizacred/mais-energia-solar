@@ -135,41 +135,16 @@ const CONTEXT_LABELS: Record<string, string> = {
 
 export function CustomFieldsSettings() {
   const [activeTab, setActiveTab] = useState("campos");
-  const [fields, setFields] = useState<CustomField[]>([]);
-  const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
-  const [editingField, setEditingField] = useState<CustomField | null>(null);
-  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
-  const [editingActivity, setEditingActivity] = useState<ActivityType | null>(null);
-  const [motivoDialogOpen, setMotivoDialogOpen] = useState(false);
-  const [editingMotivo, setEditingMotivo] = useState<MotivoPerda | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [contextFilter, setContextFilter] = useState("projeto");
-
-  // ─── Use canonical hook for motivos_perda (SSOT) ───
-  const { motivos, loading: motivosLoading, upsert: upsertMotivo, remove: removeMotivo } = useMotivosPerda();
-
-  // ─── Premissas (SSOT via useTenantPremises) ───
-  const premissasCtx = useTenantPremises();
-
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      const FIELD_COLS = "id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active, visible_pipeline_ids, important_stage_ids, required_stage_ids, icon" as const;
-      const ACTIVITY_COLS = "id, title, ordem, visible_on_funnel, is_active, icon, pipeline_ids" as const;
-      const [fieldsRes, actTypesRes] = await Promise.all([
-        supabase.from("deal_custom_fields").select(FIELD_COLS).order("ordem"),
-        supabase.from("deal_activity_types").select(ACTIVITY_COLS).order("ordem"),
-      ]);
-      if (fieldsRes.data) setFields(fieldsRes.data as any);
-      if (actTypesRes.data) setActivityTypes(actTypesRes.data as any);
-    } catch (err: any) {
-      toast({ title: "Erro ao carregar", description: err.message, variant: "destructive" });
-    } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { loadAll(); }, [loadAll]);
+  const { data: fields = [], isLoading: fieldsLoading } = useCustomFieldsList();
+  const { data: activityTypes = [], isLoading: actLoading } = useActivityTypesList();
+  const { data: stages = [] } = usePipelineStages();
+  const { data: pipelines = [] } = usePipelinesList();
+  const loading = fieldsLoading || actLoading;
+  const saveFieldMutation = useSaveCustomField();
+  const deleteFieldMutation = useDeleteCustomField();
+  const toggleFieldMutation = useToggleCustomField();
+  const saveActivityMutation = useSaveActivityType();
+  const deleteActivityMutation = useDeleteActivityType();
 
   // ─── Custom Field CRUD ───
   const [fieldForm, setFieldForm] = useState({
