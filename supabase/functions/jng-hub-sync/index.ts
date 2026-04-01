@@ -294,7 +294,7 @@ serve(async (req) => {
 
     const { token } = (config.credentials || {}) as any;
     // IBGE comes from request body context (municipality of delivery), NOT from credentials
-    const ibge = body.ibge || null;
+    const rawIbge = body.ibge || null;
     if (!token) {
       return new Response(
         JSON.stringify({ success: false, error: "Token não encontrado nas credenciais", code: "MISSING_TOKEN" }),
@@ -338,6 +338,35 @@ serve(async (req) => {
       }
     }
 
+    const normalizeIbge = (value: unknown): string | null => {
+      if (value == null) return null;
+      const digits = String(value).replace(/\D/g, "");
+      return digits.length === 7 ? digits : null;
+    };
+
+    let effectiveIbge = normalizeIbge(rawIbge);
+
+    if (!effectiveIbge) {
+      const { data: premises } = await supabase
+        .from("tenant_premises")
+        .select("solaryum_ibge_fallback")
+        .eq("tenant_id", tenant_id)
+        .maybeSingle();
+
+      effectiveIbge = normalizeIbge(premises?.solaryum_ibge_fallback);
+    }
+
+    if (!effectiveIbge) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Código IBGE obrigatório para sincronizar kits JNG. Envie o IBGE ou configure tenant_premises.solaryum_ibge_fallback.",
+          code: "MISSING_IBGE",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Adapter
     const jngAdapter = createJngAdapter();
 
@@ -372,6 +401,7 @@ serve(async (req) => {
         last_error: null,
         metadata: {
           fornecedor_id,
+          ibge: effectiveIbge,
           token_partial: token.slice(0, 8) + "...",
         },
       };
@@ -413,7 +443,7 @@ serve(async (req) => {
         }
       }
 
-      await syncLog(supabase, tenant_id, "info", `Sincronização JNG iniciada (modo: ${mode})`, { mode });
+      await syncLog(supabase, tenant_id, "info", `Sincronização JNG iniciada (modo: ${mode})`, { mode, ibge: effectiveIbge });
     } else if (syncState.status === "running") {
       await supabase
         .from("integration_sync_state")
@@ -424,16 +454,18 @@ serve(async (req) => {
     // ── Fetch único — Plataforma-V1 não tem paginação ──
     let batchProducts: any[] = [];
     try {
-      batchProducts = await fetchJngKits(token, ibge);
+      batchProducts = await fetchJngKits(token, effectiveIbge);
       // console.log(`[jng-hub-sync] Fetched ${batchProducts.length} kits`);
       await syncLog(supabase, tenant_id, "info",
         `${batchProducts.length} kits retornados pela API`, {
         count: batchProducts.length,
+        ibge: effectiveIbge,
       });
     } catch (e: any) {
       console.error("[jng-hub-sync] Error fetching kits:", e);
       await syncLog(supabase, tenant_id, "error", "Erro ao buscar kits JNG", {
         error: e.message,
+        ibge: effectiveIbge,
       });
       await supabase.from("integration_sync_state")
         .update({ status: "error", last_error: e.message, last_run_at: new Date().toISOString() })
