@@ -55,6 +55,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
   const [aiProgress, setAiProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{
     inserted: number; updated: number; skipped: number; errors: number; fornecedores: number;
+    errorItems?: { fabricante: string; modelo: string; motivo: string }[];
   } | null>(null);
 
   const existingMap = useMemo(() => {
@@ -176,6 +177,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
       }
 
       let inserted = 0, updated = 0, errors = 0;
+      const errorItems: { fabricante: string; modelo: string; motivo: string }[] = [];
       const insertPayloads = toInsert.map(inv => ({
         fabricante: inv.fabricante, modelo: inv.modelo,
         potencia_nominal_kw: inv.potencia_nominal_kw, tipo: inv.tipo,
@@ -185,12 +187,43 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
 
       for (let i = 0; i < insertPayloads.length; i += BATCH_SIZE) {
         const chunk = insertPayloads.slice(i, i + BATCH_SIZE);
-        const { error } = await supabase.from("inversores_catalogo").insert(chunk as any);
+        const { data, error, count } = await supabase
+          .from("inversores_catalogo")
+          .insert(chunk as any, { defaultToNull: false })
+          .select("id");
         if (error) {
-          console.error("[inversor-import] Erro no batch", i, "-", i + chunk.length, ":", error.message, error.details, error.code);
-          errors += chunk.length;
+          // If batch fails due to unique constraint, try individual inserts
+          if (error.code === "23505") {
+            for (const item of chunk) {
+              const { error: singleError } = await supabase
+                .from("inversores_catalogo")
+                .insert(item as any);
+              if (singleError) {
+                if (singleError.code === "23505") {
+                  // Already exists — count as skipped, not error
+                } else {
+                  errors++;
+                  errorItems.push({
+                    fabricante: item.fabricante,
+                    modelo: item.modelo,
+                    motivo: singleError.message,
+                  });
+                }
+              } else {
+                inserted++;
+              }
+            }
+          } else {
+            console.error("[inversor-import] Erro no batch:", error.message);
+            errors += chunk.length;
+            errorItems.push(...chunk.map(item => ({
+              fabricante: item.fabricante,
+              modelo: item.modelo,
+              motivo: error.message,
+            })));
+          }
         } else {
-          inserted += chunk.length;
+          inserted += data?.length ?? chunk.length;
         }
         setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
       }
@@ -206,7 +239,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
       qc.invalidateQueries({ queryKey: ["inversores-catalogo"] });
       qc.invalidateQueries({ queryKey: ["fornecedores"] });
       const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
-      setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados });
+      setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados, errorItems });
       toast({
         title: errors > 0 ? "Importação com erros" : "Importação concluída",
         description: [
@@ -381,12 +414,27 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
 
             {importResult && (
               <div className="text-center space-y-3 py-4">
-                <CheckCircle2 className="w-12 h-12 text-success mx-auto" />
+                <CheckCircle2 className={`w-12 h-12 mx-auto ${importResult.errors > 0 ? 'text-warning' : 'text-success'}`} />
                 <p className="text-lg font-semibold text-foreground">Importação concluída</p>
                 <p className="text-sm text-muted-foreground">
                   {importResult.inserted} inseridos · {importResult.updated} atualizados · {importResult.skipped} já existiam no catálogo
                   {importResult.errors > 0 && ` · ${importResult.errors} erros`}
                 </p>
+                {importResult.errorItems && importResult.errorItems.length > 0 && (
+                  <details className="mt-3 text-left">
+                    <summary className="text-sm text-destructive cursor-pointer font-medium">
+                      {importResult.errorItems.length} erro(s) — ver detalhes
+                    </summary>
+                    <ul className="mt-2 text-xs text-muted-foreground space-y-1 max-h-40 overflow-y-auto border border-border rounded-lg p-2">
+                      {importResult.errorItems.map((item, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="font-medium text-foreground">{item.fabricante} {item.modelo}</span>
+                          <span className="text-destructive">{item.motivo}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </div>
             )}
           </div>
