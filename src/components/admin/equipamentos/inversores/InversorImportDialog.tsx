@@ -55,6 +55,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
   const [aiProgress, setAiProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{
     inserted: number; updated: number; skipped: number; errors: number; fornecedores: number;
+    errorItems?: { fabricante: string; modelo: string; motivo: string }[];
   } | null>(null);
 
   const existingMap = useMemo(() => {
