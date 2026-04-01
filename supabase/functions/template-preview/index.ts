@@ -1608,15 +1608,15 @@ Deno.serve(async (req) => {
       };
 
       // console.log("[template-preview] 🔬 FORENSIC DEBUG REPORT:", JSON.stringify({
-        totalMerges: forensicReport.totalMerges,
-        structurePreserved: forensicReport.structurePreserved,
-        fontsInTemplate: forensicReport.fontsInTemplate,
-        fontsInAffectedBlocks: forensicReport.fontsInAffectedBlocks,
-        placeholdersMissing: forensicReport.placeholdersMissing.length,
-        placeholdersFragmented: forensicReport.placeholdersFragmentedBeforeNorm.length,
-        gotenbergResponseTime: forensicReport.gotenbergResponseTime,
-        pdfSize: forensicReport.pdfSize,
-      }, null, 2));
+      //   totalMerges: forensicReport.totalMerges,
+      //   structurePreserved: forensicReport.structurePreserved,
+      //   fontsInTemplate: forensicReport.fontsInTemplate,
+      //   fontsInAffectedBlocks: forensicReport.fontsInAffectedBlocks,
+      //   placeholdersMissing: forensicReport.placeholdersMissing.length,
+      //   placeholdersFragmented: forensicReport.placeholdersFragmentedBeforeNorm.length,
+      //   gotenbergResponseTime: forensicReport.gotenbergResponseTime,
+      //   pdfSize: forensicReport.pdfSize,
+      // }, null, 2));
 
       // Upload debug report to storage
       const debugBlob = new TextEncoder().encode(JSON.stringify(forensicReport, null, 2));
@@ -1681,15 +1681,15 @@ Deno.serve(async (req) => {
     const resolvedVarsCount = Object.keys(vars).length - processedMissingVars.length - processedEmptyVars.length;
 
     // console.log("[template-preview] proposal_generation_completed", JSON.stringify({
-      proposalId: proposta_id,
-      proposalNumber,
-      templateName: template.nome,
-      outputFileName,
-      missingVars: processedMissingVars,
-      emptyVars: processedEmptyVars,
-      resolvedVarsCount,
-      gotenbergElapsedMs: gotenbergResponseTime,
-    }));
+    //   proposalId: proposta_id,
+    //   proposalNumber,
+    //   templateName: template.nome,
+    //   outputFileName,
+    //   missingVars: processedMissingVars,
+    //   emptyVars: processedEmptyVars,
+    //   resolvedVarsCount,
+    //   gotenbergElapsedMs: gotenbergResponseTime,
+    // }));
 
     const responsePayload: Record<string, unknown> = {
       success: true,
