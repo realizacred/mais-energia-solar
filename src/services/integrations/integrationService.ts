@@ -285,9 +285,9 @@ export async function connectSupplierProvider(
       if (!mergedForValidation.apiKey?.trim() || !mergedForValidation.secret?.trim()) {
         throw new Error("Informe API Key e Secret para conectar a Edeltec");
       }
-    } else if (providerKey === "jng") {
+    } else if (providerKey === "jng" || providerKey === "vertys") {
       if (!mergedForValidation.token?.trim()) {
-        throw new Error("Informe o Token de acesso para conectar a JNG");
+        throw new Error(`Informe o Token de acesso para conectar a ${providerKey === "jng" ? "JNG" : "Vertys"}`);
       }
     } else {
       // Generic: require at least one non-empty credential
