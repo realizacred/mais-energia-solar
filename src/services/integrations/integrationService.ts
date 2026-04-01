@@ -375,9 +375,13 @@ export async function connectSupplierProvider(
     return { success: true, config_id: inserted?.id };
   } catch (error: any) {
     if (affectedConfigId) {
+      // Proxy-based providers (JNG/Vertys) stay is_active=true even on test failure
+      // because they don't need sync — the proxy reads credentials on demand
+      const provKey = providerKey ?? "";
+      const keepActive = provKey === "jng" || provKey === "vertys";
       await updateSupplierConfigState(affectedConfigId, {
         status: "error",
-        is_active: false,
+        is_active: keepActive,
       }, {
         last_error: error?.message || "Falha ao conectar fornecedor",
       });
