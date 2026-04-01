@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServicosData, useRefreshServicos } from "@/hooks/useServicos";
 import { handleSupabaseError } from "@/lib/errorHandler";
@@ -57,11 +57,12 @@ import {
 type ViewMode = "table" | "calendar";
 
 export function ServicosManager() {
-  const [servicos, setServicos] = useState<Servico[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [instaladores, setInstaladores] = useState<Instalador[]>([]);
-  const [loading, setLoading] = useState(true);
-  
+  const { data: servicosData, isLoading: loading } = useServicosData();
+  const refreshServicos = useRefreshServicos();
+  const servicos = servicosData?.servicos ?? [];
+  const clientes = servicosData?.clientes ?? [];
+  const instaladores = servicosData?.instaladores ?? [];
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedServicoId, setSelectedServicoId] = useState<string | null>(null);
@@ -86,100 +87,12 @@ export function ServicosManager() {
     observacoes: "",
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // ⚠️ HARDENING: Realtime for cross-user sync on serviços
-  useEffect(() => {
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const channel = supabase
-      .channel('servicos-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'servicos' }, () => {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => fetchData(), 600);
-      })
-      .subscribe();
-
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [servicosRes, clientesRes, instaladoresRes] = await Promise.all([
-        supabase
-          .from("servicos_agendados")
-          .select(`
-            id,
-            tipo,
-            status,
-            data_agendada,
-            hora_inicio,
-            endereco,
-            bairro,
-            cidade,
-            descricao,
-            instalador_id,
-            cliente:clientes(id, nome, telefone, bairro, cidade),
-            fotos_urls,
-            audio_url,
-            video_url,
-            layout_modulos,
-            validado
-          `)
-          .order("data_agendada", { ascending: false }),
-        supabase
-          .from("clientes")
-          .select("id, nome, telefone, bairro, cidade")
-          .eq("ativo", true)
-          .order("nome"),
-        supabase
-          .from("profiles")
-          .select("user_id, nome")
-          .eq("ativo", true),
-      ]);
-
-      if (servicosRes.error) throw servicosRes.error;
-      if (clientesRes.error) throw clientesRes.error;
-      if (instaladoresRes.error) throw instaladoresRes.error;
-
-      // Filter instaladores - only those with instalador role
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "instalador");
-
-      const instaladorIds = roleData?.map(r => r.user_id) || [];
-      const filteredInstaladores = instaladoresRes.data
-        ?.filter(p => instaladorIds.includes(p.user_id))
-        .map(p => ({ id: p.user_id, nome: p.nome })) || [];
-
-      setServicos(servicosRes.data || []);
-      setClientes(clientesRes.data || []);
-      setInstaladores(filteredInstaladores);
-    } catch (error) {
-      const appError = handleSupabaseError(error, "fetch_servicos");
-      toast({
-        title: "Erro ao carregar dados",
-        description: appError.userMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleClienteChange = (clienteId: string) => {
     const cliente = clientes.find(c => c.id === clienteId);
     setFormData(prev => ({
       ...prev,
       cliente_id: clienteId,
-      endereco: cliente?.endereco || prev.endereco,
+      endereco: (cliente as any)?.endereco || prev.endereco,
       bairro: cliente?.bairro || prev.bairro,
       cidade: cliente?.cidade || prev.cidade,
     }));
@@ -197,7 +110,7 @@ export function ServicosManager() {
 
     setSaving(true);
     try {
-      const { data: inserted, error } = await supabase.from("servicos_agendados").insert([{
+      const { error } = await supabase.from("servicos_agendados").insert([{
         instalador_id: formData.instalador_id,
         tipo: formData.tipo as "instalacao" | "manutencao" | "visita_tecnica" | "suporte",
         data_agendada: formData.data_agendada,
@@ -211,7 +124,6 @@ export function ServicosManager() {
       }]).select("id").single();
 
       if (error) throw error;
-
 
       toast({ title: "Serviço agendado com sucesso!" });
       setDialogOpen(false);
@@ -227,7 +139,7 @@ export function ServicosManager() {
         descricao: "",
         observacoes: "",
       });
-      fetchData();
+      refreshServicos();
     } catch (error) {
       const appError = handleSupabaseError(error, "create_servico");
       toast({
@@ -308,7 +220,7 @@ export function ServicosManager() {
           <div className="flex flex-wrap gap-2">
             <ExportActions servicos={filteredServicos} instaladores={instaladores} />
             
-            <Button variant="outline" size="icon" onClick={fetchData}>
+            <Button variant="outline" size="icon" onClick={refreshServicos}>
               <RefreshCw className="h-4 w-4" />
             </Button>
 
@@ -545,7 +457,7 @@ export function ServicosManager() {
           servicoId={selectedServiceForLayout.id}
           clienteId={selectedServiceForLayout.cliente?.id}
           layoutName={`Layout - ${selectedServiceForLayout.cliente?.nome || 'Serviço'}`}
-          onSave={() => fetchData()}
+          onSave={() => refreshServicos()}
         />
       )}
 
@@ -571,14 +483,14 @@ export function ServicosManager() {
         } : null}
         isOpen={!!validacaoServico}
         onClose={() => setValidacaoServico(null)}
-        onValidated={() => fetchData()}
+        onValidated={() => refreshServicos()}
       />
 
       <ReagendarDialog
         servico={reagendarServico}
         isOpen={!!reagendarServico}
         onClose={() => setReagendarServico(null)}
-        onSuccess={() => fetchData()}
+        onSuccess={() => refreshServicos()}
       />
     </div>
   );

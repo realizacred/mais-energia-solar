@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useVendedoresList, useUserProfiles, useRefreshVendedores } from "@/hooks/useVendedores";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -53,9 +53,12 @@ interface VendedoresManagerProps {
 }
 
 export default function VendedoresManager({ leads: propLeads }: VendedoresManagerProps = {}) {
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: vendedoresData = [], isLoading: loadingVendedores, refetch: refetchVendedores } = useVendedoresList();
+  const { data: userProfilesData = [] } = useUserProfiles();
+  const refreshVendedores = useRefreshVendedores();
+  const vendedores = vendedoresData as Vendedor[];
+  const users = userProfilesData as UserProfile[];
+  const loading = loadingVendedores;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingVendedor, setEditingVendedor] = useState<Vendedor | null>(null);
@@ -190,27 +193,6 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
     return counts;
   }, [leads]);
 
-  useEffect(() => {
-    fetchVendedores();
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      // Fetch profiles with user_id to link to vendedores
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, nome")
-        .eq("ativo", true)
-        .order("nome");
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error) {
-      console.error("Erro ao buscar usuários:", error);
-    }
-  };
-
   // Get list of user_ids already linked to vendedores
   const linkedUserIds = useMemo(() => {
     return vendedores
@@ -223,26 +205,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
     return users.filter(u => !linkedUserIds.includes(u.user_id));
   }, [users, linkedUserIds]);
 
-  const fetchVendedores = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("consultores")
-        .select("id, nome, telefone, email, codigo, slug, ativo, user_id, created_at, percentual_comissao")
-        .order("nome");
-
-      if (error) throw error;
-      setVendedores(data as any || []);
-    } catch (error) {
-      console.error("Erro ao buscar vendedores:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os consultores.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchUsers = () => refreshVendedores();
+  const fetchVendedores = () => refreshVendedores();
 
   const handleSave = async () => {
     if (!formData.nome.trim() || !formData.telefone.trim()) {
@@ -464,9 +428,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
       if (error) throw error;
       
-      setVendedores(prev => 
-        prev.map(v => v.id === vendedor.id ? { ...v, ativo: !v.ativo } : v)
-      );
+      refreshVendedores();
       
       toast({
         title: vendedor.ativo ? "Consultor desativado" : "Consultor ativado",
@@ -495,7 +457,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
       if (error) throw error;
       
-      setVendedores(prev => prev.filter(v => v.id !== vendedorToDelete.id));
+      refreshVendedores();
       toast({ title: "Consultor excluído!" });
     } catch (error) {
       console.error("Erro ao excluir vendedor:", error);
