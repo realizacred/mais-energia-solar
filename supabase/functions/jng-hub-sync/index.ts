@@ -424,7 +424,7 @@ serve(async (req) => {
     let batchProducts: any[] = [];
     try {
       batchProducts = await fetchJngKits(token, ibge);
-      console.log(`[jng-hub-sync] Fetched ${batchProducts.length} kits`);
+      // console.log(`[jng-hub-sync] Fetched ${batchProducts.length} kits`);
       await syncLog(supabase, tenant_id, "info",
         `${batchProducts.length} kits retornados pela API`, {
         count: batchProducts.length,
