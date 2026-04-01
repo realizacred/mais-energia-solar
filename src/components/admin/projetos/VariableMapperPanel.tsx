@@ -155,7 +155,7 @@ export function VariableMapperPanel({ dealId, customerId, projetoId, onGenerateC
         <div
           className={cn(
             "h-full rounded-full transition-all duration-500",
-            readyPercent === 100 ? "bg-success" : readyPercent > 60 ? "bg-warning" : "bg-destructive"
+            readyPercent >= 80 ? "bg-success" : readyPercent >= 50 ? "bg-warning" : "bg-destructive"
           )}
           style={{ width: `${readyPercent}%` }}
         />
