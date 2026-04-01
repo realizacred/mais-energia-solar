@@ -74,18 +74,14 @@ export default function MeterDetailPage() {
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const deleteMeterMutation = useDeleteMeter();
+
   async function handleDeleteMeter() {
     if (!id) return;
     setDeleting(true);
     try {
-      await supabase.from("meter_status_latest").delete().eq("meter_device_id", id);
-      await supabase.from("meter_readings").delete().eq("meter_device_id", id);
-      await supabase.from("meter_alerts").delete().eq("meter_device_id", id);
-      await supabase.from("unit_meter_links").delete().eq("meter_device_id", id);
-      const { error: delErr } = await supabase.from("meter_devices").delete().eq("id", id);
-      if (delErr) throw delErr;
+      await deleteMeterMutation.mutateAsync(id);
       toast({ title: "Medidor excluído com sucesso" });
-      qc.invalidateQueries({ queryKey: ["meter_devices"] });
       navigate("/admin/medidores");
     } catch (err: any) {
       toast({ title: "Erro ao excluir", description: err?.message, variant: "destructive" });
