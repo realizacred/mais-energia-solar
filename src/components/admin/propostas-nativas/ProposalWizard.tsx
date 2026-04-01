@@ -1252,7 +1252,9 @@ export function ProposalWizard() {
               lead_code: lead.lead_code || "", estado: lead.estado,
               cidade: lead.cidade, media_consumo: lead.media_consumo,
               tipo_telhado: lead.tipo_telhado,
+              municipio_ibge_codigo: lead.municipio_ibge_codigo || undefined,
             });
+            if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
             if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
             if (lead.estado || lead.media_consumo) {
               setUcs(prev => {
