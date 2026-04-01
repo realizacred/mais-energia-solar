@@ -549,6 +549,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           <div className="flex items-center border-b border-border/50">
             {([
               { key: "catalogo" as const, label: "📦 Catálogo" },
+              { key: "solaryum" as const, label: "🔌 Solaryum" },
               { key: "customizado" as const, label: `Customizado${manualKits.length > 0 ? ` (${manualKits.length})` : ""}` },
               { key: "fechado" as const, label: "Fechado" },
             ]).map(t => (
