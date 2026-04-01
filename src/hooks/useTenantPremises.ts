@@ -76,6 +76,20 @@ export interface TenantPremises {
   solaryum_token_jng: string;
   solaryum_cif_descarga: boolean;
   solaryum_ibge_fallback: string;
+  // Gateway de cobrança
+  gateway_preferido: string;
+  pagseguro_token: string;
+  pagseguro_sandbox: boolean;
+  asaas_token: string;
+  asaas_sandbox: boolean;
+  inter_client_id: string;
+  inter_client_secret: string;
+  inter_sandbox: boolean;
+  sicoob_client_id: string;
+  sicoob_sandbox: boolean;
+  cobranca_multa_percentual: number;
+  cobranca_juros_percentual: number;
+  cobranca_dias_vencimento: number;
 }
 
 export interface SombreamentoLevel {
