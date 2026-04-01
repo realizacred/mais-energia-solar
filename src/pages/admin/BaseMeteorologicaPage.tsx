@@ -32,6 +32,7 @@ import type { DatasetConfig, DatasetRow, VersionRow } from "./base-meteorologica
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useIrradianceDatasets, getExpectedPoints, isVersionStalled } from "@/hooks/useIrradianceDatasets";
+import { useAdminGuard as useAdminGuardQuery, useIrradianceDatasetsAndVersions as useIrradianceDatasetsAndVersionsQuery } from "@/hooks/useBaseMeteorologica";
 import { getMonthlyIrradiance, type IrradianceLookupResult } from "@/services/irradiance-provider";
 import { CsvImportPanel } from "./base-meteorologica/CsvImportPanel";
 import { VersionHistory } from "./base-meteorologica/VersionHistory";
