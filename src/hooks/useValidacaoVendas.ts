@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const STALE_TIME = 1000 * 60 * 5;
+const STALE_TIME_CONFIG = 1000 * 60 * 15;
 
 export interface Vendedor {
   id: string;
@@ -44,49 +45,75 @@ export function useLeadSimulacoes(leadId: string | null) {
     queryKey: ["lead-simulacoes-validacao", leadId],
     queryFn: async () => {
       if (!leadId) return [];
-
-      const [{ data: legacySims }, { data: propostasNativas }] = await Promise.all([
-        supabase
-          .from("simulacoes")
-          .select("id, investimento_estimado, potencia_recomendada_kwp, economia_mensal, consumo_kwh, geracao_mensal_estimada, payback_meses, created_at")
-          .eq("lead_id", leadId)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("propostas_nativas")
-          .select("id")
-          .eq("lead_id", leadId)
-          .order("created_at", { ascending: false })
-          .limit(10),
-      ]);
-
-      const simsLegacy = (legacySims as LeadSimulacao[]) || [];
-      let simsFromVersoes: LeadSimulacao[] = [];
-
-      const propostaIds = (propostasNativas || []).map((p) => p.id);
-      if (propostaIds.length > 0) {
-        const { data: versoes } = await supabase
-          .from("proposta_versoes")
-          .select("id, valor_total, potencia_kwp, economia_mensal, consumo_mensal, geracao_mensal, payback_meses, created_at")
-          .in("proposta_id", propostaIds)
-          .order("created_at", { ascending: false });
-
-        simsFromVersoes = (versoes || []).map((v) => ({
-          id: v.id,
-          investimento_estimado: v.valor_total,
-          potencia_recomendada_kwp: v.potencia_kwp,
-          economia_mensal: v.economia_mensal,
-          consumo_kwh: v.consumo_mensal,
-          geracao_mensal_estimada: v.geracao_mensal,
-          payback_meses: v.payback_meses,
-          created_at: v.created_at,
-        }));
-      }
-
-      return [...simsLegacy, ...simsFromVersoes.filter((s) => !simsLegacy.some((l) => l.id === s.id))];
+      return fetchSimulacoes(leadId);
     },
     staleTime: STALE_TIME,
     enabled: !!leadId,
   });
+}
+
+/** Shared simulacoes fetch logic — used by useLeadSimulacoes and fetchLeadSimulacoes */
+async function fetchSimulacoes(leadId: string): Promise<LeadSimulacao[]> {
+  const [{ data: legacySims }, { data: propostasNativas }] = await Promise.all([
+    supabase
+      .from("simulacoes")
+      .select("id, investimento_estimado, potencia_recomendada_kwp, economia_mensal, consumo_kwh, geracao_mensal_estimada, payback_meses, created_at")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("propostas_nativas")
+      .select("id")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
+
+  const simsLegacy = (legacySims as LeadSimulacao[]) || [];
+  let simsFromVersoes: LeadSimulacao[] = [];
+
+  const propostaIds = (propostasNativas || []).map((p) => p.id);
+  if (propostaIds.length > 0) {
+    const { data: versoes } = await supabase
+      .from("proposta_versoes")
+      .select("id, valor_total, potencia_kwp, economia_mensal, consumo_mensal, geracao_mensal, payback_meses, created_at")
+      .in("proposta_id", propostaIds)
+      .order("created_at", { ascending: false });
+
+    simsFromVersoes = (versoes || []).map((v) => ({
+      id: v.id,
+      investimento_estimado: v.valor_total,
+      potencia_recomendada_kwp: v.potencia_kwp,
+      economia_mensal: v.economia_mensal,
+      consumo_kwh: v.consumo_mensal,
+      geracao_mensal_estimada: v.geracao_mensal,
+      payback_meses: v.payback_meses,
+      created_at: v.created_at,
+    }));
+  }
+
+  return [...simsLegacy, ...simsFromVersoes.filter((s) => !simsLegacy.some((l) => l.id === s.id))];
+}
+
+/** Imperative fetch for simulacoes — used in openApprovalDialog */
+export async function fetchLeadSimulacoes(leadId: string): Promise<LeadSimulacao[]> {
+  return fetchSimulacoes(leadId);
+}
+
+/** Fetch payment composition from clientes table */
+export async function fetchClientePaymentComposition(clienteId: string): Promise<any[]> {
+  try {
+    const { data: clienteData } = await supabase
+      .from("clientes")
+      .select("payment_composition")
+      .eq("id", clienteId)
+      .maybeSingle() as any;
+    if (clienteData?.payment_composition && Array.isArray(clienteData.payment_composition)) {
+      return clienteData.payment_composition;
+    }
+  } catch (e) {
+    console.warn("[ValidacaoVendas] Could not load payment composition from DB:", e);
+  }
+  return [];
 }
 
 export function useApproveVenda() {
@@ -96,19 +123,62 @@ export function useApproveVenda() {
       clienteId: string;
       leadId: string | null;
       valorTotal: number;
-      statusConvertidoId: string;
       observacoes: string | null;
       itens: any[];
     }) => {
-      const { data: vendaId, error } = await (supabase as any).rpc("approve_venda_with_composition", {
+      // Get "Convertido" status
+      const { data: convertidoStatus } = await supabase
+        .from("lead_status").select("id").eq("nome", "Convertido").single();
+      if (!convertidoStatus) throw new Error("Status 'Convertido' não encontrado");
+
+      // Call atomic RPC
+      const { data: vendaId, error: rpcError } = await (supabase as any).rpc("approve_venda_with_composition", {
         p_cliente_id: params.clienteId,
         p_lead_id: params.leadId,
         p_valor_total: params.valorTotal,
-        p_status_convertido_id: params.statusConvertidoId,
+        p_status_convertido_id: convertidoStatus.id,
         p_observacoes: params.observacoes,
         p_itens: params.itens,
       });
-      if (error) throw new Error(error.message);
+
+      if (rpcError) {
+        console.error("[handleApprove] RPC error:", rpcError);
+        throw new Error(rpcError.message);
+      }
+
+      // Create recebimento automatically (non-blocking)
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("tenant_id")
+          .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
+          .maybeSingle();
+
+        if (profile?.tenant_id && vendaId) {
+          const { error: recError } = await supabase.functions.invoke(
+            "create-recebimento-from-venda",
+            {
+              body: {
+                venda_id: vendaId,
+                cliente_id: params.clienteId,
+                tenant_id: profile.tenant_id,
+              },
+            }
+          );
+          if (recError) {
+            console.warn("[handleApprove] Recebimento auto-creation failed (non-blocking):", recError);
+          }
+        }
+      } catch (recErr) {
+        console.warn("[handleApprove] Recebimento auto-creation error (non-blocking):", recErr);
+      }
+
+      // Clean up payment composition from DB
+      await supabase
+        .from("clientes")
+        .update({ payment_composition: null } as any)
+        .eq("id", params.clienteId);
+
       return vendaId;
     },
     onSuccess: () => {
@@ -176,6 +246,6 @@ export function useConvertidoStatus() {
       if (error) throw error;
       return data;
     },
-    staleTime: 1000 * 60 * 15, // config estática
+    staleTime: STALE_TIME_CONFIG,
   });
 }
