@@ -387,7 +387,19 @@ export function ProposalWizard() {
     if (s.cliente != null) setCliente(s.cliente);
     // Fallback: snapshots antigos podem usar "unidades_consumidoras" em vez de "ucs"
     const ucsData = s.ucs ?? (s as any).unidades_consumidoras ?? null;
-    if (Array.isArray(ucsData) && ucsData.length > 0) setUcs(ucsData);
+    if (Array.isArray(ucsData) && ucsData.length > 0) {
+      // Merge defensivo: garante que campos novos tenham defaults em snapshots antigos
+      setUcs(ucsData.map((u: UCData, i: number) => {
+        const defaults = createEmptyUC(i);
+        return {
+          ...defaults,
+          ...u,
+          // Preservar tarifas do snapshot se > 0, senão manter default
+          tarifa_distribuidora: u.tarifa_distribuidora || defaults.tarifa_distribuidora,
+          tarifa_fio_b: u.tarifa_fio_b || defaults.tarifa_fio_b,
+        };
+      }));
+    }
     if (s.grupo != null) setGrupo(s.grupo);
     if (s.potenciaKwp != null) setPotenciaKwp(s.potenciaKwp);
     if (s.customFieldValues != null) setCustomFieldValues(s.customFieldValues);
