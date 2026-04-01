@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Zap, ClipboardList, CheckCircle, CheckCircle2,
-  AlertCircle, ChevronDown, ChevronUp, Camera, X,
+  AlertCircle, AlertTriangle, ChevronDown, ChevronUp, Camera, X,
   MessageSquare, FileDown, Loader2, Check,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
