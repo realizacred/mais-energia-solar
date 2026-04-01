@@ -19,6 +19,7 @@ const KNOWN_SUPPLIER_KEYS: Record<string, string> = {
   edeltec: "edeltec",
   "c43e8a33-0c83-414e-8391-9c9dd648d731": "edeltec",
   jng: "jng",
+  vertys: "vertys",
 };
 
 /** Known supplier fornecedor_id — maps provider key to fornecedores UUID */
