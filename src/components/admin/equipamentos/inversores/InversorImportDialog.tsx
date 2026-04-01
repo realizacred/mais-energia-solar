@@ -177,6 +177,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
       }
 
       let inserted = 0, updated = 0, errors = 0;
+      const errorItems: { fabricante: string; modelo: string; motivo: string }[] = [];
       const insertPayloads = toInsert.map(inv => ({
         fabricante: inv.fabricante, modelo: inv.modelo,
         potencia_nominal_kw: inv.potencia_nominal_kw, tipo: inv.tipo,
@@ -186,12 +187,43 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
 
       for (let i = 0; i < insertPayloads.length; i += BATCH_SIZE) {
         const chunk = insertPayloads.slice(i, i + BATCH_SIZE);
-        const { error } = await supabase.from("inversores_catalogo").insert(chunk as any);
+        const { data, error, count } = await supabase
+          .from("inversores_catalogo")
+          .insert(chunk as any, { defaultToNull: false })
+          .select("id");
         if (error) {
-          console.error("[inversor-import] Erro no batch", i, "-", i + chunk.length, ":", error.message, error.details, error.code);
-          errors += chunk.length;
+          // If batch fails due to unique constraint, try individual inserts
+          if (error.code === "23505") {
+            for (const item of chunk) {
+              const { error: singleError } = await supabase
+                .from("inversores_catalogo")
+                .insert(item as any);
+              if (singleError) {
+                if (singleError.code === "23505") {
+                  // Already exists — count as skipped, not error
+                } else {
+                  errors++;
+                  errorItems.push({
+                    fabricante: item.fabricante,
+                    modelo: item.modelo,
+                    motivo: singleError.message,
+                  });
+                }
+              } else {
+                inserted++;
+              }
+            }
+          } else {
+            console.error("[inversor-import] Erro no batch:", error.message);
+            errors += chunk.length;
+            errorItems.push(...chunk.map(item => ({
+              fabricante: item.fabricante,
+              modelo: item.modelo,
+              motivo: error.message,
+            })));
+          }
         } else {
-          inserted += chunk.length;
+          inserted += data?.length ?? chunk.length;
         }
         setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
       }
