@@ -133,6 +133,7 @@ function mapToKit(
     status: isAvailableNow ? "active" : "inactive",
     tenant_id: tenantId,
     fornecedor_id: fornecedorId,
+    fornecedor_nome: "JNG Solar",
     external_id: String(produto.idProduto),
     external_code: produto.codErp || null,
     source: "jng",
