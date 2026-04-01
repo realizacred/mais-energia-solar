@@ -63,3 +63,17 @@ export function useDeleteWebhook() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: [QUERY_KEY] }); },
   });
 }
+
+/**
+ * Returns the full webhook URL for a given payment gateway.
+ * Used in TabCobrancas to display the URL the user must configure
+ * in their gateway dashboard.
+ */
+export function useWebhookUrl(gateway: string): string {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  if (!supabaseUrl) return "";
+  const projectRef = supabaseUrl
+    .replace("https://", "")
+    .replace(".supabase.co", "");
+  return `https://${projectRef}.supabase.co/functions/v1/webhook-cobranca?gateway=${gateway}`;
+}
