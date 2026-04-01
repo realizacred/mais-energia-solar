@@ -1,9 +1,19 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2/cors";
 
-const VERTYS_BASE = "https://app.vertys.com.br/api";
-const JNG_BASE = Deno.env.get("SOLARYUM_JNG_BASE_URL") || "https://api-d1542.cloud.solaryum.com.br";
-const ALLOWED_ENDPOINTS = ["BuscarFiltros", "BuscarKits", "MontarKits"] as const;
+const BASE_URL = "https://api-d1542.cloud.solaryum.com.br";
+
+const ENDPOINT_MAP: Record<string, string> = {
+  "BuscarFiltros": "/hubB2B/Categoria",
+  "BuscarKits": "/hubB2B/Produtos",
+  "MontarKits": "/hubB2B/Produtos",
+  "Produtos": "/hubB2B/Produtos",
+  "Categoria": "/hubB2B/Categoria",
+  "FormasDePagamento": "/hubB2B/FormasDePagamento",
+  "BuscarFretes": "/hubB2B/BuscarFretes",
+};
+
+const ALLOWED_ENDPOINTS = Object.keys(ENDPOINT_MAP);
 
 function jsonResponse(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
@@ -64,13 +74,13 @@ Deno.serve(async (req: Request) => {
 
     const distribuidor = body.distribuidor;
     const endpoint = body.endpoint;
-    const params = body.params ?? {};
+    const params = { ...(body.params ?? {}) } as Record<string, unknown>;
 
     if (!distribuidor || !["vertys", "jng"].includes(distribuidor)) {
       return jsonResponse({ error: "Distribuidor inválido" }, 400);
     }
 
-    if (!endpoint || !ALLOWED_ENDPOINTS.includes(endpoint as (typeof ALLOWED_ENDPOINTS)[number])) {
+    if (!endpoint || !ALLOWED_ENDPOINTS.includes(endpoint)) {
       return jsonResponse({ error: `Endpoint não permitido: ${endpoint}` }, 400);
     }
 
@@ -104,10 +114,28 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "Token Solaryum não configurado para este distribuidor" }, 400);
     }
 
-    const baseUrl = distribuidor === "vertys" ? VERTYS_BASE : JNG_BASE;
-    const url = new URL(`${baseUrl.replace(/\/$/, "")}/integracaoPlataforma/${endpoint}`);
+    // Build HubB2B URL
+    const path = ENDPOINT_MAP[endpoint] ?? `/${endpoint}`;
+    const url = new URL(`${BASE_URL}${path}`);
     url.searchParams.set("token", token);
 
+    // Convert potenciaDoKit (kWp) to Watts with ±20% range
+    if (params.potenciaDoKit != null) {
+      const potW = Number(params.potenciaDoKit) * 1000;
+      url.searchParams.set("potenciaMinima", String(potW * 0.8));
+      url.searchParams.set("potenciaMaxima", String(potW * 1.2));
+      delete params.potenciaDoKit;
+    }
+
+    // Remove params not supported by HubB2B
+    delete params.fase;
+    delete params.tensao;
+    delete params.tipoInv;
+    delete params.marcaPainel;
+    delete params.marcaInversor;
+    delete params.cifComDescarga;
+
+    // Pass remaining params (ibge, paginaAtual, etc.)
     for (const [key, value] of Object.entries(params)) {
       if (value != null) {
         url.searchParams.set(key, String(value));
