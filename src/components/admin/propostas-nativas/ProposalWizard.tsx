@@ -187,6 +187,7 @@ export function ProposalWizard() {
   // Cliente (embedded in Localização flow)
   const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
   const [cliente, setCliente] = useState<ClienteData>(EMPTY_CLIENTE);
+  const [clienteMunicipioIbgeCodigo, setClienteMunicipioIbgeCodigo] = useState<string | null>(null);
 
   // UCs
   const [ucs, setUcs] = useState<UCData[]>([createEmptyUC(1)]);
