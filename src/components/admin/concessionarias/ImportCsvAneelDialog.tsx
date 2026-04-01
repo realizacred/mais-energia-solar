@@ -572,7 +572,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
       // Audit log
       try {
-        await supabase.from("aneel_sync_runs").insert({
+        await insertSyncRun.mutateAsync({
           trigger_type: "manual_csv",
           status: errors.length > 0 ? "partial" : "completed",
           started_at: new Date().toISOString(),
@@ -594,7 +594,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
             importedAt: new Date().toISOString(),
             versaoId,
           },
-        } as any);
+        });
       } catch (auditErr) {
         console.warn("[ANEEL Import] Failed to write audit log:", auditErr);
       }
