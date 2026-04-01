@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ReactSignatureCanvas from "react-signature-canvas";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { cn } from "@/lib/utils";
-import PublicPaymentSection from "@/components/public/PublicPaymentSection";
+
 
 type TokenData = {
   id: string;
