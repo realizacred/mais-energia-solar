@@ -284,53 +284,23 @@ export function StepDocumento({
   };
 
   const handleCopyLink = async (withTracker: boolean) => {
-    const propostaId = result?.proposta_id;
-    const versaoId = result?.versao_id;
-    if (!propostaId || !versaoId) {
-      toast({ title: "Gere a proposta primeiro", variant: "destructive" });
+    // BUG-1 fix: Copy PDF signed URL instead of web page URL
+    if (!outputPdfPath) {
+      toast({ title: "Gere a proposta primeiro para copiar o link do PDF", variant: "destructive" });
       return;
     }
 
-    const tipo = withTracker ? "tracked" : "public";
-
     try {
-      // 1. Buscar token existente do tipo correspondente
-      const { data: existing } = await supabase
-        .from("proposta_aceite_tokens" as any)
-        .select("token")
-        .eq("proposta_id", propostaId)
-        .eq("versao_id", versaoId)
-        .eq("tipo", tipo)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: signedData, error: signErr } = await supabase.storage
+        .from("proposta-documentos")
+        .createSignedUrl(outputPdfPath, 604800); // 7 days
 
-      let token = (existing as any)?.token as string | undefined;
-
-      // 2. Se não existe, criar novo
-      if (!token) {
-        const { tenantId } = await getCurrentTenantId();
-        const { data: created, error: createErr } = await supabase
-          .from("proposta_aceite_tokens" as any)
-          .insert({
-            proposta_id: propostaId,
-            versao_id: versaoId,
-            tenant_id: tenantId,
-            tipo,
-          } as any)
-          .select("token")
-          .single();
-
-        if (createErr || !created) {
-          console.error("[handleCopyLink] Erro ao criar token:", createErr?.message);
-          toast({ title: `Erro ao criar link: ${createErr?.message || "desconhecido"}`, variant: "destructive" });
-          return;
-        }
-        token = (created as any).token;
+      if (signErr || !signedData?.signedUrl) {
+        toast({ title: "Erro ao gerar link do PDF", description: signErr?.message, variant: "destructive" });
+        return;
       }
 
-      // 3. Montar URL e copiar
-      const url = `${window.location.origin}/proposta/${token}`;
+      const url = signedData.signedUrl;
 
       try {
         await navigator.clipboard.writeText(url);
@@ -348,8 +318,8 @@ export function StepDocumento({
 
       toast({
         title: withTracker
-          ? "Link rastreável copiado! 🔗"
-          : "Link sem rastreio copiado! 🔗",
+          ? "Link do PDF copiado (com rastreio)! 🔗"
+          : "Link do PDF copiado! 🔗",
       });
     } catch (err: any) {
       console.error("[handleCopyLink] Erro:", err);
@@ -971,24 +941,36 @@ export function StepDocumento({
               <FileDown className="h-3.5 w-3.5" />
               Download de Doc
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={() => handleCopyLink(true)}
-            >
-              {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
-              Copiar link com rastreio
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={() => handleCopyLink(false)}
-            >
-              {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-              Copiar link sem rastreio
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                  onClick={() => handleCopyLink(true)}
+                  disabled={!outputPdfPath}
+                >
+                  {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
+                  Copiar link com rastreio
+                </Button>
+              </TooltipTrigger>
+              {!outputPdfPath && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                  onClick={() => handleCopyLink(false)}
+                  disabled={!outputPdfPath}
+                >
+                  {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                  Copiar link sem rastreio
+                </Button>
+              </TooltipTrigger>
+              {!outputPdfPath && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+            </Tooltip>
             <Button
               variant="ghost"
               size="sm"
@@ -1063,9 +1045,38 @@ export function StepDocumento({
                 Gerar Proposta
               </Button>
             </div>
+          ) : outputPdfPath ? (
+            <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-3">
+              <Info className="h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Não foi possível carregar o preview</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={async () => {
+                  const { data } = await supabase.storage
+                    .from("proposta-documentos")
+                    .createSignedUrl(outputPdfPath, 3600);
+                  if (data?.signedUrl) {
+                    // Force re-render by opening in iframe via parent state
+                    window.open(data.signedUrl, "_blank");
+                  } else {
+                    toast({ title: "Erro ao carregar preview", variant: "destructive" });
+                  }
+                }}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Abrir PDF em nova aba
+              </Button>
+            </div>
           ) : (
-            <div className="border border-border/50 rounded-xl flex items-center justify-center h-[400px] bg-muted/20">
-              <p className="text-sm text-muted-foreground">Preview indisponível</p>
+            <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-3">
+              <Zap className="h-8 w-8 text-primary" />
+              <p className="text-sm text-muted-foreground">Nenhuma proposta gerada ainda</p>
+              <Button variant="default" size="sm" className="gap-2" onClick={onGenerate}>
+                <Zap className="h-3.5 w-3.5" />
+                Gerar Proposta
+              </Button>
             </div>
           )}
         </div>
