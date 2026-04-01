@@ -148,7 +148,8 @@ export function useSolarPremises() {
           "base_irradiancia, grupo_tarifario, fase_tensao_rede, tipo_telhado_padrao, " +
           "taxa_desempenho_tradicional, taxa_desempenho_microinversor, taxa_desempenho_otimizador, " +
           "topologias, tipo_kits, considerar_kits_transformador, margem_potencia_ideal, " +
-          "sombreamento_config, shading_loss_percent, soiling_loss_percent, other_losses_percent"
+          "sombreamento_config, shading_loss_percent, soiling_loss_percent, other_losses_percent, " +
+          "solaryum_ibge_fallback"
         )
         .limit(1)
         .maybeSingle();
