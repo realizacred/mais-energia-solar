@@ -872,6 +872,7 @@ export function ProposalWizard() {
                 .single();
               if (lead) {
                 setSelectedLead(lead as any);
+                if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
                 // console.log("[ProposalWizard] Lead enriched from propostas_nativas:", lead.id);
               }
             } else if (propostaMeta?.cliente_id) {
