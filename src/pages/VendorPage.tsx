@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/layout/Header";
 import LeadFormWizard from "@/components/LeadFormWizard";
@@ -7,16 +7,18 @@ import { OfflineStatusBar } from "@/components/vendor/OfflineStatusBar";
 import { OfflineDuplicateResolver } from "@/components/vendor/OfflineDuplicateResolver";
 import { InstallAppBanner } from "@/components/vendor/InstallAppBanner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { AlertCircle, Phone } from "lucide-react";
+import { AlertCircle, Phone, WifiOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type ValidationState = "loading" | "valid" | "invalid";
+type ValidationState = "loading" | "valid" | "invalid" | "network_error";
 
 export default function VendorPage() {
   const { codigo } = useParams<{ codigo: string }>();
   const navigate = useNavigate();
   const [vendedorNome, setVendedorNome] = useState<string | null>(null);
   const [validationState, setValidationState] = useState<ValidationState>("loading");
+
+  const [retryCount, setRetryCount] = useState(0);
 
   // Validate vendor code and load name
   useEffect(() => {
@@ -26,14 +28,26 @@ export default function VendorPage() {
         return;
       }
 
+      setValidationState("loading");
+
       try {
         // Use secure RPC that allows public access (no auth required)
         const { data, error } = await supabase
           .rpc("validate_consultor_code", { _codigo: codigo });
 
         if (error) {
-          console.error("Error validating vendor:", error);
-          setValidationState("invalid");
+          // Distinguish network/server errors from actual invalid codes
+          const isNetworkError = !navigator.onLine || 
+            error.message?.includes("Failed to fetch") ||
+            error.message?.includes("NetworkError") ||
+            error.code === "PGRST301";
+          
+          if (isNetworkError) {
+            console.error("[VendorPage] Network error validating vendor:", error.message);
+            setValidationState("network_error");
+          } else {
+            setValidationState("invalid");
+          }
           return;
         }
 
@@ -48,17 +62,48 @@ export default function VendorPage() {
           setValidationState("invalid");
         }
       } catch (err) {
-        console.error("Error validating vendor:", err);
-        setValidationState("invalid");
+        console.error("[VendorPage] Error validating vendor:", err);
+        setValidationState("network_error");
       }
     };
 
     validateAndLoadVendedor();
-  }, [codigo]);
+  }, [codigo, retryCount]);
 
   // Loading state
   if (validationState === "loading") {
     return <LoadingSpinner />;
+  }
+
+  // Network error - show retry
+  if (validationState === "network_error") {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center py-12">
+          <div className="container mx-auto px-4 text-center max-w-md">
+            <div className="bg-card border rounded-lg p-8 shadow-sm">
+              <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <WifiOff className="w-8 h-8 text-warning" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Erro de Conexão
+              </h1>
+              <p className="text-muted-foreground mb-6">
+                Não foi possível verificar o link. Verifique sua conexão e tente novamente.
+              </p>
+              <Button
+                onClick={() => setRetryCount((c) => c + 1)}
+                className="w-full gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Tentar Novamente
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   // Invalid vendor code - show error page
