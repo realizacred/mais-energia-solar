@@ -2,6 +2,27 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2/cors";
 
 const VERTYS_BASE = "https://app.vertys.com.br/api";
+const JNG_BASE = Deno.env.get("SOLARYUM_JNG_BASE_URL") || "https://api-d1542.cloud.solaryum.com.br";
+const ALLOWED_ENDPOINTS = ["BuscarFiltros", "BuscarKits", "MontarKits"] as const;
+
+function jsonResponse(body: unknown, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function parseUpstreamBody(response: Response): Promise<unknown> {
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.toLowerCase().includes("application/json")) {
+    try {
+      return await response.json();
+    } catch {
+      return { raw: await response.text() };
+    }
+  }
+  return { raw: await response.text() };
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -15,75 +36,76 @@ Deno.serve(async (req: Request) => {
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
-    // Resolve tenant_id from profiles
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("tenant_id")
       .eq("user_id", user.id)
       .single();
 
-    if (!profile?.tenant_id) {
-      return new Response(
-        JSON.stringify({ error: "Tenant não encontrado" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (profileError || !profile?.tenant_id) {
+      return jsonResponse({ error: "Tenant não encontrado" }, 400);
     }
 
-    const body = await req.json();
-    const { distribuidor, endpoint, params = {} } = body as {
-      distribuidor: "vertys" | "jng";
-      endpoint: string;
-      params: Record<string, unknown>;
-    };
-
-    // Validate endpoint whitelist
-    const ALLOWED_ENDPOINTS = ["BuscarFiltros", "BuscarKits", "MontarKits"];
-    if (!ALLOWED_ENDPOINTS.includes(endpoint)) {
-      return new Response(
-        JSON.stringify({ error: `Endpoint não permitido: ${endpoint}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let body: { distribuidor?: "vertys" | "jng"; endpoint?: string; params?: Record<string, unknown> };
+    try {
+      body = await req.json();
+    } catch {
+      return jsonResponse({ error: "Body JSON inválido" }, 400);
     }
 
-    // Fetch token from integrations_api_configs (where the UI saves it)
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const distribuidor = body.distribuidor;
+    const endpoint = body.endpoint;
+    const params = body.params ?? {};
 
-    // integration_providers.id is the provider slug ('jng' or 'vertys')
-    const { data: apiConfig } = await serviceClient
+    if (!distribuidor || !["vertys", "jng"].includes(distribuidor)) {
+      return jsonResponse({ error: "Distribuidor inválido" }, 400);
+    }
+
+    if (!endpoint || !ALLOWED_ENDPOINTS.includes(endpoint as (typeof ALLOWED_ENDPOINTS)[number])) {
+      return jsonResponse({ error: `Endpoint não permitido: ${endpoint}` }, 400);
+    }
+
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!serviceRoleKey) {
+      return jsonResponse({ error: "SUPABASE_SERVICE_ROLE_KEY não configurada" }, 500);
+    }
+
+    const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, serviceRoleKey);
+
+    const { data: configs, error: configError } = await serviceClient
       .from("integrations_api_configs")
-      .select("credentials")
+      .select("id, credentials, is_active, status, updated_at")
       .eq("tenant_id", profile.tenant_id)
       .eq("provider", distribuidor)
-      .eq("is_active", true)
       .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(5);
 
-    const creds = apiConfig?.credentials as Record<string, string> | null;
-    const token = creds?.token ?? creds?.api_key ?? null;
-
-    if (!token) {
-      return new Response(
-        JSON.stringify({ error: "Token Solaryum não configurado para este distribuidor" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    if (configError) {
+      return jsonResponse(
+        { error: `Falha ao carregar configuração ${distribuidor}: ${configError.message}` },
+        500
       );
     }
 
-    // Build URL
-    const jngBase = Deno.env.get("SOLARYUM_JNG_BASE_URL") || "https://api.jngsolar.com.br/api";
-    const baseUrl = distribuidor === "vertys" ? VERTYS_BASE : jngBase;
-    const url = new URL(`${baseUrl}/integracaoPlataforma/${endpoint}`);
+    const apiConfig = (configs || []).find((cfg: any) => cfg?.is_active) ?? (configs || [])[0] ?? null;
+    const creds = (apiConfig?.credentials || {}) as Record<string, string>;
+    const token = creds.token || creds.api_key || creds.access_token || null;
+
+    if (!token) {
+      return jsonResponse({ error: "Token Solaryum não configurado para este distribuidor" }, 400);
+    }
+
+    const baseUrl = distribuidor === "vertys" ? VERTYS_BASE : JNG_BASE;
+    const url = new URL(`${baseUrl.replace(/\/$/, "")}/integracaoPlataforma/${endpoint}`);
     url.searchParams.set("token", token);
 
     for (const [key, value] of Object.entries(params)) {
@@ -92,32 +114,37 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const apiResponse = await fetch(url.toString(), {
-      method: "GET",
-      headers: { "Accept": "application/json" },
-    });
-
-    if (!apiResponse.ok) {
-      const errorText = await apiResponse.text();
-      return new Response(
-        JSON.stringify({
-          error: `Solaryum API error: ${apiResponse.status}`,
-          details: errorText,
-        }),
-        { status: apiResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    let apiResponse: Response;
+    try {
+      apiResponse = await fetch(url.toString(), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+    } catch (fetchError: any) {
+      return jsonResponse(
+        {
+          error: "Falha de rede ao acessar Solaryum",
+          details: fetchError?.message || "Erro desconhecido",
+        },
+        502
       );
     }
 
-    const data = await apiResponse.json();
-    return new Response(
-      JSON.stringify(data),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const parsedBody = await parseUpstreamBody(apiResponse);
+
+    if (!apiResponse.ok) {
+      return jsonResponse(
+        {
+          error: `Solaryum API error: ${apiResponse.status}`,
+          details: parsedBody,
+        },
+        apiResponse.status
+      );
+    }
+
+    return jsonResponse(parsedBody, 200);
   } catch (e) {
     console.error("[solaryum-proxy] Error:", e);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ error: "Internal server error" }, 500);
   }
 });
