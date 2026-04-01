@@ -65,29 +65,16 @@ const STATUS_COLORS: Record<string, string> = {
   failed: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
-// ── Auth Guard ───────────────────────────────────────────
-function useAdminGuard() {
-  const [state, setState] = useState<"loading" | "authorized" | "denied">("loading");
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setState("denied"); return; }
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-      const isAdmin = roles?.some((r: any) => ["admin", "super_admin", "gerente"].includes(r.role));
-      setState(isAdmin ? "authorized" : "denied");
-    })();
-  }, []);
-  return state;
-}
-
 // ── Main Page ────────────────────────────────────────────
 export function BaseMeteorologicaPage() {
-  const auth = useAdminGuard();
-  const [datasets, setDatasets] = useState<DatasetRow[]>([]);
-  const [versions, setVersions] = useState<VersionRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: auth = "loading" } = useAdminGuardQuery();
   const [cleanedUp, setCleanedUp] = useState(false);
   const [tab, setTab] = useState("overview");
+
+  const { data: dsData, refetch: reloadDsData } = useIrradianceDatasetsAndVersionsQuery(auth === "authorized");
+  const datasets = dsData?.datasets || [];
+  const versions = dsData?.versions || [];
+  const loading = auth === "loading" || !dsData;
 
   // Audit hook
   const {
