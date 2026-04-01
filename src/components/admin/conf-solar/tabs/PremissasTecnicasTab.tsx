@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Save, Loader2, Settings2 } from "lucide-react";
+import { usePremissasTecnicas, useRefreshPremissasTecnicas } from "@/hooks/useConfSolar";
 
 interface PremissasRow {
   id: string;
@@ -40,26 +41,15 @@ const FIELDS: { key: keyof Omit<PremissasRow, "id">; label: string; suffix: stri
   { key: "taxas_fixas_mensais", label: "Taxas fixas mensais", suffix: "R$", step: "0.01" },
 ];
 
-const SELECT_COLS = "id, irradiacao_media_kwh_m2, performance_ratio, degradacao_anual_percent, vida_util_anos, fator_perdas_percent, horas_sol_pico, reajuste_tarifa_anual_percent, taxa_selic_anual, ipca_anual, custo_disponibilidade_mono, custo_disponibilidade_bi, custo_disponibilidade_tri, taxas_fixas_mensais";
-
 export function PremissasTecnicasTab() {
+  const { data: serverData, isLoading: loading } = usePremissasTecnicas();
+  const refreshPremissas = useRefreshPremissasTecnicas();
   const [data, setData] = useState<PremissasRow | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
-
-  async function loadData() {
-    setLoading(true);
-    const { data: row, error } = await supabase
-      .from("premissas_tecnicas")
-      .select(SELECT_COLS)
-      .limit(1)
-      .maybeSingle();
-    if (error) toast({ title: "Erro ao carregar premissas", description: error.message, variant: "destructive" });
-    setData(row as unknown as PremissasRow | null);
-    setLoading(false);
-  }
+  useEffect(() => {
+    if (serverData && !data) setData(serverData as unknown as PremissasRow);
+  }, [serverData]);
 
   async function handleSave() {
     if (!data) return;
@@ -68,11 +58,11 @@ export function PremissasTecnicasTab() {
     if (id) {
       const { error } = await supabase.from("premissas_tecnicas").update(payload as any).eq("id", id);
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Premissas atualizadas" });
+      else { toast({ title: "Premissas atualizadas" }); refreshPremissas(); }
     } else {
       const { data: ins, error } = await supabase.from("premissas_tecnicas").insert(payload as any).select("id").single();
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else { setData({ ...data, id: (ins as any).id }); toast({ title: "Premissas criadas" }); }
+      else { setData({ ...data, id: (ins as any).id }); toast({ title: "Premissas criadas" }); refreshPremissas(); }
     }
     setSaving(false);
   }

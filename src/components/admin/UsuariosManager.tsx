@@ -626,7 +626,7 @@ export function UsuariosManager() {
       <UserEditDialog
         user={userToEdit}
         onClose={() => setUserToEdit(null)}
-        onRefresh={fetchUsers}
+        onRefresh={refreshUsers}
         currentUserId={user?.id}
         onNavigateAway={() => navigate("/portal", { replace: true })}
       />

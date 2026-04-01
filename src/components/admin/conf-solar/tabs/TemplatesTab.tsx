@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye } from "lucide-react";
+import { usePropostaTemplates, useRefreshPropostaTemplates } from "@/hooks/useConfSolar";
 
 interface TemplateRow {
   id: string;
@@ -27,23 +28,19 @@ interface TemplateRow {
 }
 
 export function TemplatesTab() {
+  const { data: serverData, isLoading: loading } = usePropostaTemplates();
+  const refreshTemplates = useRefreshPropostaTemplates();
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
-
-  async function loadData() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("proposta_templates")
-      .select("id, nome, descricao, grupo, categoria, tipo, ativo, ordem, thumbnail_url, template_html")
-      .order("ordem", { ascending: true });
-    if (error) toast({ title: "Erro ao carregar templates", description: error.message, variant: "destructive" });
-    setTemplates((data as unknown as TemplateRow[]) || []);
-    setLoading(false);
-  }
+  useEffect(() => {
+    if (serverData && !initialized) {
+      setTemplates(serverData as unknown as TemplateRow[]);
+      setInitialized(true);
+    }
+  }, [serverData]);
 
   function addTemplate() {
     setTemplates([...templates, {
@@ -77,7 +74,8 @@ export function TemplatesTab() {
         }
       }
       toast({ title: "Templates salvos com sucesso" });
-      await loadData();
+      setInitialized(false);
+      refreshTemplates();
     } catch (e: any) {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     }
