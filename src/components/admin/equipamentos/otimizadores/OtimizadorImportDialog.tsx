@@ -177,6 +177,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
       }
 
       let inserted = 0, updated = 0, errors = 0;
+      const errorItems: { fabricante: string; modelo: string; motivo: string }[] = [];
       const insertPayloads = toInsert.map(ot => ({
         fabricante: ot.fabricante, modelo: ot.modelo,
         potencia_wp: ot.potencia_wp || null,
@@ -186,8 +187,30 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
 
       for (let i = 0; i < insertPayloads.length; i += BATCH_SIZE) {
         const chunk = insertPayloads.slice(i, i + BATCH_SIZE);
-        const { error } = await supabase.from("otimizadores_catalogo").insert(chunk as any);
-        if (error) { console.error("[otimizador-import] Erro batch", i, ":", error.message, error.code); errors += chunk.length; } else inserted += chunk.length;
+        const { data, error } = await supabase.from("otimizadores_catalogo").insert(chunk as any).select("id");
+        if (error) {
+          if (error.code === "23505") {
+            for (const item of chunk) {
+              const { error: singleError } = await supabase.from("otimizadores_catalogo").insert(item as any);
+              if (singleError) {
+                if (singleError.code === "23505") {
+                  // Already exists — skip silently
+                } else {
+                  errors++;
+                  errorItems.push({ fabricante: item.fabricante, modelo: item.modelo, motivo: singleError.message });
+                }
+              } else {
+                inserted++;
+              }
+            }
+          } else {
+            console.error("[otimizador-import] Erro no batch:", error.message);
+            errors += chunk.length;
+            errorItems.push(...chunk.map(item => ({ fabricante: item.fabricante, modelo: item.modelo, motivo: error.message })));
+          }
+        } else {
+          inserted += data?.length ?? chunk.length;
+        }
         setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
       }
 
@@ -202,7 +225,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
       qc.invalidateQueries({ queryKey: ["otimizadores-catalogo"] });
       qc.invalidateQueries({ queryKey: ["fornecedores"] });
       const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
-      setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados });
+      setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados, errorItems });
       toast({
         title: "Importação concluída",
         description: [
