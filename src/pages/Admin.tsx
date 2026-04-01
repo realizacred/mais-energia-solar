@@ -84,6 +84,7 @@ const EmailIntegrationsPage = lazy(() => import("@/components/admin/email/EmailI
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const FechamentoCaixaPage = lazy(() => import("@/components/admin/FechamentoCaixaPage").then(m => ({ default: m.FechamentoCaixaPage })));
 const LancamentosPage = lazy(() => import("@/components/admin/financeiro/LancamentosPage"));
+const DREPage = lazy(() => import("@/components/admin/financeiro/DREPage"));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
 const AuditLogsViewer = lazy(() => import("@/components/admin/AuditLogsViewer").then(m => ({ default: m.AuditLogsViewer })));
@@ -298,6 +299,7 @@ const TAB_TITLES: Record<string, string> = {
   "visitas-tecnicas": "Visitas técnicas",
   "financeiro-dashboard": "Financeiro",
   lancamentos: "Lançamentos Financeiros",
+  dre: "DRE",
   recebimentos: "Contas a receber",
   inadimplencia: "Inadimplência",
   comissoes: "Comissões",
@@ -665,6 +667,7 @@ export default function Admin() {
                 <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
                 <Route path="comissoes" element={<ComissoesManager />} />
                 <Route path="fechamento-caixa" element={<FechamentoCaixaPage />} />
+                <Route path="dre" element={<DREPage />} />
                 <Route path="engenharia" element={<Navigate to="/admin/premissas" replace />} />
                 <Route path="financiamento" element={<FinanciamentoConfig />} />
                 <Route path="formas-pagamento" element={<FormasPagamentoPage />} />
