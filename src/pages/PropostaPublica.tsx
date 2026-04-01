@@ -765,7 +765,7 @@ export default function PropostaPublica() {
                         <div>
                           <p className="text-sm font-semibold text-foreground">{op.nome}</p>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                            {op.entrada > 0 && <span>Entrada: {formatBRL(op.entrada)}</span>}
+                            {op.entrada > 0 && !/avista|à vista|a_vista/i.test(`${op.tipo ?? ""} ${op.nome ?? ""}`) && op.num_parcelas > 1 && <span>Entrada: {formatBRL(op.entrada)}</span>}
                             {op.num_parcelas > 0 && <span>{op.num_parcelas}x de {formatBRL(op.valor_parcela)}</span>}
                             {op.taxa_mensal > 0 && <span>Taxa: {formatTaxaMensal(op.taxa_mensal)}</span>}
                           </div>
