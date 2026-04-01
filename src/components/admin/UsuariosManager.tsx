@@ -170,7 +170,7 @@ export function UsuariosManager() {
       setIsDialogOpen(false);
       setSelectedUser(null);
       setSelectedRole("");
-      fetchUsers();
+      refreshUsers();
     } catch (error) {
       console.error("Error adding role:", error);
       toast({
@@ -241,7 +241,7 @@ export function UsuariosManager() {
         return;
       }
 
-      fetchUsers();
+      refreshUsers();
     } catch (error) {
       console.error("Error removing role:", error);
       toast({
@@ -325,7 +325,7 @@ export function UsuariosManager() {
       
       setIsCreateDialogOpen(false);
       setNewUserForm({ nome: "", email: "", password: "", role: "consultor", telefone: "" });
-      fetchUsers();
+      refreshUsers();
     } catch (error: any) {
       console.error("Error creating user:", error);
       toast({
