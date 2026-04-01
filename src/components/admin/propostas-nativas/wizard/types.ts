@@ -23,6 +23,8 @@ export interface LeadSelection {
   bairro?: string;
   cep?: string;
   rede_atendimento?: string;
+  /** Código IBGE do município (propagado de leads ou clientes) */
+  municipio_ibge_codigo?: string | null;
 }
 
 export interface ClienteData {
