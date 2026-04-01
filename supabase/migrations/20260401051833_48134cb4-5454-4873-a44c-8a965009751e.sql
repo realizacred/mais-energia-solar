@@ -1,0 +1,1 @@
+UPDATE integration_providers SET logo_key = 'vertys' WHERE id = 'vertys';
