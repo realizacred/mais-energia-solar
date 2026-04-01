@@ -1844,8 +1844,6 @@ export function ProposalWizard() {
               });
               setRendering(false);
               setGenerating(false);
-              clearTimeout(progressTimer);
-              clearTimeout(progressTimer2);
               return;
             }
 
