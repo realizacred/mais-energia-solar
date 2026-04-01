@@ -176,12 +176,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
   const { data: etiquetasData } = useDealEtiquetas(dealId);
   const toggleEtiquetaMutation = useToggleEtiqueta(dealId);
 
-  // Propostas count (already useQuery in original — keep same query key)
-  const propostasCount = fullData?.deal
-    ? 0 // will be overridden by the existing useQuery in child components if needed
-    : 0;
-
-  // We need the propostas count query to stay — re-add it here
+  // Propostas count
   const { data: propostasCountData = 0 } = usePropostasCount(dealId);
 
   // Derived data from query
