@@ -942,6 +942,17 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 </Button>
               )}
             </div>
+          ) : tab === "solaryum" ? (
+            /* ── Solaryum Tab ── */
+            <SolaryumTab
+              ibgeCodigo={ibgeCodigo ?? null}
+              potenciaKwp={potenciaKwp}
+              onSelectKit={(kit) => {
+                setSelectedSolaryumKitId(kit.idProduto);
+                onSelectKit(kit);
+              }}
+              selectedKitId={selectedSolaryumKitId}
+            />
           ) : (
             /* ── Fechado Tab ── */
             activeKits.length > 0 ? (
