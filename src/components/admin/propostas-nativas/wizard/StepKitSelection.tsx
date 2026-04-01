@@ -77,7 +77,7 @@ interface Props {
   ibgeCodigo?: string | null;
 }
 
-type TabType = "customizado" | "fechado" | "catalogo";
+type TabType = "customizado" | "fechado" | "catalogo" | "solaryum";
 
 function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverride?: number | null): KitCardData | null {
   const modItems = itens.filter(i => i.categoria === "modulo");
