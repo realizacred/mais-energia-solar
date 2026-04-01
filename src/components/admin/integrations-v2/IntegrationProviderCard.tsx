@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -119,11 +119,12 @@ export function IntegrationProviderCard({
   const isStub = isMonitoring && !provider.capabilities?.sync_plants;
   const isComingSoon = provider.status === "coming_soon";
   const isDisabled = isStub || isComingSoon;
+  const [logoError, setLogoError] = useState(false);
 
   const translatedError = isError ? translateSyncError(syncError) : null;
 
-  // Static icon resolution — instant, zero HTTP fallback
-  const iconUrl = getProviderIconUrl(provider.id);
+  // Static icon resolution — try id first, then logo_key fallback
+  const iconUrl = getProviderIconUrl(provider.id) || (provider.logo_key ? getProviderIconUrl(provider.logo_key) : null);
   const FallbackIcon = PROVIDER_ICON_OVERRIDES[provider.id] || CATEGORY_FALLBACK_ICONS[provider.category] || Sun;
 
   return (
@@ -151,11 +152,12 @@ export function IntegrationProviderCard({
               ? "bg-destructive/10 group-hover:bg-destructive/15"
               : "bg-muted/50 group-hover:bg-muted/70",
         )}>
-          {iconUrl ? (
+          {iconUrl && !logoError ? (
             <img
               src={iconUrl}
               alt={provider.label}
               className="max-h-9 max-w-9 object-contain"
+              onError={() => setLogoError(true)}
             />
           ) : (
             <FallbackIcon className="h-6 w-6 text-muted-foreground" />
