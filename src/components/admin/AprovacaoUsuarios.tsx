@@ -92,7 +92,7 @@ export function AprovacaoUsuarios() {
         description: `${user.nome} agora tem acesso como ${CARGO_LABELS[user.cargo_solicitado]?.label || user.cargo_solicitado}.`,
       });
 
-      fetchPendingUsers();
+      refreshPending();
     } catch (error: any) {
       console.error("Error approving user:", error);
       toast({
