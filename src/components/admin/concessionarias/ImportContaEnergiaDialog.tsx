@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
+import { useConcessionariasAtivas } from "@/hooks/useImportContaEnergia";
 import {
   FileUp, Loader2, CheckCircle2, AlertTriangle, Zap, Receipt, ShieldCheck,
   ArrowRight, Search, RefreshCw, Building,
