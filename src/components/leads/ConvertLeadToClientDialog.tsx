@@ -117,7 +117,9 @@ export function ConvertLeadToClientDialog({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [savingAsLead, setSavingAsLead] = useState(false);
+  const { data: equipmentData } = useConversionEquipment();
   const [disjuntores, setDisjuntores] = useState<Disjuntor[]>([]);
+  const [transformadores, setTransformadores] = useState<Transformador[]>([]);
   const [transformadores, setTransformadores] = useState<Transformador[]>([]);
   const [simulacoes, setSimulacoes] = useState<Simulacao[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
