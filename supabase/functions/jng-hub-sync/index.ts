@@ -460,7 +460,7 @@ serve(async (req) => {
         .from("solar_kit_catalog")
         .select("id, external_id")
         .eq("tenant_id", tenant_id)
-        .eq("fornecedor_id", fornecedor_id)
+        .eq("source", "jng")
         .in("external_id", extIds);
 
       const existingMap = new Map<string, string>();
