@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Sun, LayoutGrid, SlidersHorizontal, Sliders, Landmark, Link2 } from "lucide-react";
+import { DollarSign, Sun, LayoutGrid, SlidersHorizontal, Sliders, Landmark, Link2, CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { useTenantPremises } from "@/hooks/useTenantPremises";
 import { Skeleton } from "@/components/ui/skeleton";
