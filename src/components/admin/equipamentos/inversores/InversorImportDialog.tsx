@@ -239,7 +239,7 @@ export function InversorImportDialog({ open, onOpenChange, existingInversores }:
       qc.invalidateQueries({ queryKey: ["inversores-catalogo"] });
       qc.invalidateQueries({ queryKey: ["fornecedores"] });
       const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
-      setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados });
+      setImportResult({ inserted, updated, skipped, errors, fornecedores: fornecedoresCriados, errorItems });
       toast({
         title: errors > 0 ? "Importação com erros" : "Importação concluída",
         description: [
