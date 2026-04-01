@@ -64,11 +64,6 @@ export function FiscalWizard() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sessão expirada");
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user.id).single();
-      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
-
       const payload = {
         cnpj_emitente: settings.cnpj_emitente,
         inscricao_municipal: settings.inscricao_municipal,
@@ -84,14 +79,8 @@ export function FiscalWizard() {
         is_active: settings.is_active,
       };
 
-      if (settings.id) {
-        const { error } = await supabase.from("fiscal_settings").update(payload).eq("id", settings.id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from("fiscal_settings").insert({ ...payload, tenant_id: profile.tenant_id } as any).select("id").single();
-        if (error) throw error;
-        setSettings(prev => ({ ...prev, id: data.id }));
-      }
+      const result = await saveMutation.mutateAsync({ settingsId: settings.id, payload });
+      if (!settings.id) setSettings(prev => ({ ...prev, id: result.id }));
       toast.success("Configuração fiscal salva!");
     } catch (e: any) {
       toast.error("Erro ao salvar: " + e.message);
