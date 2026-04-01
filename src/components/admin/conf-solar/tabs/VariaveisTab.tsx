@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { usePropostaVariaveisCustom, useRefreshPropostaVariaveis } from "@/hooks/useConfSolar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,42 +23,37 @@ interface VarRow {
 }
 
 export function VariaveisTab() {
-  const [vars, setVars] = useState<VarRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: fetchedVars = [], isLoading: loading } = usePropostaVariaveisCustom();
+  const refreshVariaveis = useRefreshPropostaVariaveis();
+  const [vars, setVars] = useState<VarRow[] | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
-
-  async function loadData() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("proposta_variaveis_custom")
-      .select("id, nome, label, expressao, tipo_resultado, categoria, ordem, ativo, descricao")
-      .order("ordem", { ascending: true });
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    setVars((data as unknown as VarRow[]) || []);
-    setLoading(false);
-  }
+  // Use fetched data until user edits locally
+  const displayVars: VarRow[] = vars ?? (fetchedVars as VarRow[]);
 
   function addVar() {
-    setVars([...vars, {
+    const current = [...displayVars];
+    current.push({
       id: crypto.randomUUID(),
       nome: "vc_",
       label: "",
       expressao: "",
       tipo_resultado: "number",
       categoria: "geral",
-      ordem: vars.length,
+      ordem: current.length,
       ativo: true,
       descricao: null,
       isNew: true,
-    }]);
+    });
+    setVars(current);
   }
 
-  function removeVar(idx: number) { setVars(vars.filter((_, i) => i !== idx)); }
+  function removeVar(idx: number) {
+    setVars(displayVars.filter((_, i) => i !== idx));
+  }
 
   function updateVar(idx: number, key: keyof VarRow, value: string | boolean | number) {
-    const updated = [...vars];
+    const updated = [...displayVars];
     updated[idx] = { ...updated[idx], [key]: value };
     // Auto-generate nome from label for new vars
     if (key === "label" && updated[idx].isNew && typeof value === "string") {
@@ -74,7 +70,7 @@ export function VariaveisTab() {
   async function handleSave() {
     setSaving(true);
     try {
-      for (const v of vars) {
+      for (const v of displayVars) {
         if (!v.nome || !v.label) continue;
         const { isNew, id, ...rest } = v;
         const payload = {
@@ -96,7 +92,8 @@ export function VariaveisTab() {
         }
       }
       toast({ title: "Variáveis salvas" });
-      await loadData();
+      setVars(null); // Reset local edits, let hook refetch
+      refreshVariaveis();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     }
@@ -127,13 +124,13 @@ export function VariaveisTab() {
         <p className="text-xs text-muted-foreground mb-4">
           Defina variáveis personalizadas para usar nos templates de proposta. Use <code className="text-primary">{"{{customizada.nome}}"}</code> no template.
         </p>
-        {vars.length === 0 ? (
+        {displayVars.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             Nenhuma variável customizada. Adicione para personalizar seus templates.
           </p>
         ) : (
           <div className="space-y-2">
-            {vars.map((v, i) => (
+            {displayVars.map((v, i) => (
               <div key={v.id} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto_auto_auto] gap-2 items-end p-3 rounded-lg border border-border/40 bg-card">
                 <div className="space-y-1">
                   <Label className="text-[10px] text-muted-foreground">Label</Label>

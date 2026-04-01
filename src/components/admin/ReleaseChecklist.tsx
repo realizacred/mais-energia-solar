@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useReleaseHistory, useRefreshReleaseHistory } from "@/hooks/useReleaseChecklist";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -59,30 +60,16 @@ const DEFAULT_CHECKLIST_ITEMS: Omit<ChecklistItem, "checked">[] = [
   { id: "portal_instalador", label: "Portal do instalador funcional", category: "UI / UX", required: false },
 ];
 
-interface ReleaseRecord {
-  id: string;
-  versao: string;
-  commit_hash: string | null;
-  ambiente: string;
-  status: string;
-  itens: ChecklistItem[];
-  aprovado_por: string | null;
-  aprovado_em: string | null;
-  criado_por: string;
-  observacoes: string | null;
-  created_at: string;
-}
-
 export function ReleaseChecklist() {
   const { user } = useAuth();
+  const { data: history = [], isLoading: loadingHistory } = useReleaseHistory();
+  const refreshHistory = useRefreshReleaseHistory();
   const [items, setItems] = useState<ChecklistItem[]>(
     DEFAULT_CHECKLIST_ITEMS.map(i => ({ ...i, checked: false }))
   );
   const [versao, setVersao] = useState("");
   const [commitHash, setCommitHash] = useState("");
   const [observacoes, setObservacoes] = useState("");
-  const [history, setHistory] = useState<ReleaseRecord[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showGoLiveDialog, setShowGoLiveDialog] = useState(false);
 
@@ -99,31 +86,6 @@ export function ReleaseChecklist() {
   const allRequiredChecked = items.filter(i => i.required).every(i => i.checked);
   const totalChecked = items.filter(i => i.checked).length;
   const progress = Math.round((totalChecked / items.length) * 100);
-
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
-    setLoadingHistory(true);
-    try {
-      const { data, error } = await supabase
-        .from("release_checklists")
-        .select("id, versao, commit_hash, ambiente, status, itens, aprovado_por, aprovado_em, criado_por, observacoes, created_at")
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      setHistory((data || []).map(r => ({
-        ...r,
-        itens: (typeof r.itens === "string" ? JSON.parse(r.itens) : r.itens) as ChecklistItem[],
-      })));
-    } catch (err) {
-      console.error("Error fetching release history:", err);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
 
   const toggleItem = (id: string) => {
     setItems(prev => prev.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
@@ -165,7 +127,7 @@ export function ReleaseChecklist() {
       setCommitHash("");
       setObservacoes("");
       setShowGoLiveDialog(false);
-      fetchHistory();
+      refreshHistory();
     } catch (err: any) {
       console.error("Error saving release checklist:", err);
       toast({
@@ -399,8 +361,8 @@ export function ReleaseChecklist() {
             </div>
           ) : (
             <div className="space-y-3">
-              {history.map((record, i) => {
-                const checkedCount = record.itens?.filter(i => i.checked).length || 0;
+              {history.map((record: any, i: number) => {
+                const checkedCount = record.itens?.filter((it: any) => it.checked).length || 0;
                 const totalCount = record.itens?.length || 0;
                 return (
                   <motion.div
@@ -430,11 +392,6 @@ export function ReleaseChecklist() {
                         <p className="text-xs text-muted-foreground mt-1 truncate">{record.observacoes}</p>
                       )}
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-lg font-bold text-foreground">
-                        {totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0}%
-                      </p>
-                    </div>
                   </motion.div>
                 );
               })}
@@ -443,46 +400,30 @@ export function ReleaseChecklist() {
         </CardContent>
       </Card>
 
-      {/* Go Live Confirmation Dialog */}
+      {/* Go Live Dialog */}
       <Dialog open={showGoLiveDialog} onOpenChange={setShowGoLiveDialog}>
         <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Rocket className="h-5 w-5 text-success" />
-              Confirmar Aprovação para Produção
+              Confirmar Go Live
             </DialogTitle>
             <DialogDescription>
-              Você está prestes a aprovar a versão <strong>{versao}</strong> para produção.
-              Certifique-se de que todos os testes foram realizados.
+              Versão <strong>{versao}</strong> será marcada como aprovada para produção.
+              Todos os {totalChecked} itens verificados serão registrados.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-4">
-            <div className="flex items-center gap-2 text-sm text-foreground">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-              <span>{totalChecked}/{items.length} itens verificados</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-foreground">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-              <span>Todos os itens obrigatórios marcados</span>
-            </div>
-            {commitHash && (
-              <div className="flex items-center gap-2 text-sm text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-success" />
-                <span className="font-mono">Commit: {commitHash.substring(0, 7)}</span>
-              </div>
-            )}
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setShowGoLiveDialog(false)} disabled={saving}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="ghost" onClick={() => setShowGoLiveDialog(false)}>
               Cancelar
             </Button>
             <Button
               onClick={() => handleSave("aprovado")}
               disabled={saving}
-              className="bg-success hover:bg-success/90 text-success-foreground gap-2"
+              className="gap-2 bg-success hover:bg-success/90 text-success-foreground"
             >
               {saving ? <Spinner size="sm" /> : <Rocket className="h-4 w-4" />}
-              Aprovar Release
+              Confirmar Aprovação
             </Button>
           </DialogFooter>
         </DialogContent>

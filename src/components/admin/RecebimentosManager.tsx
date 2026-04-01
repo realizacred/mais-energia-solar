@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
+import { useRecebimentosFull, useClientesAtivos, useRefreshRecebimentos } from "@/hooks/useRecebimentos";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,9 +115,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function RecebimentosManager() {
-  const [recebimentos, setRecebimentos] = useState<Recebimento[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: recebimentos = [], isLoading: loading } = useRecebimentosFull();
+  const { data: clientes = [] } = useClientesAtivos();
+  const refreshRecebimentos = useRefreshRecebimentos();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRecebimento, setEditingRecebimento] = useState<Recebimento | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -128,7 +129,6 @@ export function RecebimentosManager() {
   const [activeTab, setActiveTab] = useState("lista");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-
   const [formData, setFormData] = useState({
     cliente_id: "",
     valor_total: "",
@@ -138,69 +138,23 @@ export function RecebimentosManager() {
     data_acordo: new Date().toISOString().split("T")[0],
   });
 
-  useEffect(() => {
-    fetchRecebimentos();
-    fetchClientes();
-  }, []);
-
   // ⚠️ HARDENING: Realtime for cross-user sync on recebimentos/pagamentos
   useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const refresh = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchRecebimentos(), 600);
+      debounceTimer = setTimeout(() => refreshRecebimentos(), 600);
     };
-
     const channel = supabase
       .channel('recebimentos-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'recebimentos' }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pagamentos' }, refresh)
       .subscribe();
-
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, []);
-
-  const fetchRecebimentos = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("recebimentos")
-        .select(`
-          *,
-          clientes (id, nome, telefone),
-          pagamentos (id, valor_pago, forma_pagamento, data_pagamento, observacoes)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setRecebimentos(data || []);
-    } catch (error) {
-      console.error("Error fetching recebimentos:", error);
-      toast({
-        title: "Erro ao carregar recebimentos",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchClientes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("id, nome, telefone")
-        .eq("ativo", true)
-        .order("nome");
-
-      if (error) throw error;
-      setClientes(data || []);
-    } catch (error) {
-      console.error("Error fetching clientes:", error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,7 +187,7 @@ export function RecebimentosManager() {
 
       setDialogOpen(false);
       resetForm();
-      fetchRecebimentos();
+      refreshRecebimentos();
     } catch (error) {
       console.error("Error saving recebimento:", error);
       toast({
@@ -265,7 +219,7 @@ export function RecebimentosManager() {
       const { error } = await supabase.from("recebimentos").delete().eq("id", id);
       if (error) throw error;
       toast({ title: "Recebimento excluído!" });
-      fetchRecebimentos();
+      refreshRecebimentos();
     } catch (error) {
       console.error("Error deleting recebimento:", error);
       toast({
@@ -698,7 +652,7 @@ export function RecebimentosManager() {
             if (!open) setSelectedRecebimento(null);
           }}
           recebimento={selectedRecebimento}
-          onUpdate={fetchRecebimentos}
+          onUpdate={refreshRecebimentos}
         />
       )}
 
@@ -711,7 +665,7 @@ export function RecebimentosManager() {
             if (!open) setSelectedRecebimento(null);
           }}
           recebimento={selectedRecebimento}
-          onUpdate={fetchRecebimentos}
+          onUpdate={refreshRecebimentos}
         />
       )}
     </motion.div>
