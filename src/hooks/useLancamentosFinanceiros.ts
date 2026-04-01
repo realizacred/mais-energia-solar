@@ -38,9 +38,9 @@ export function useLancamentos(filtros: LancamentoFiltros = {}) {
   return useQuery({
     queryKey: [QUERY_KEY, filtros],
     queryFn: async () => {
-      let query = supabase
-        .from("lancamentos_financeiros" as "leads")
-        .select("*, clientes:cliente_id(nome), projetos:projeto_id(nome_projeto)" as "*", { count: "exact" })
+      let query = (supabase as any)
+        .from("lancamentos_financeiros")
+        .select("*, clientes:cliente_id(nome), projetos:projeto_id(nome_projeto)", { count: "exact" })
         .order("data_lancamento", { ascending: false })
         .order("created_at", { ascending: false });
 
