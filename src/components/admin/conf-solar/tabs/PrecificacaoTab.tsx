@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { Save, Loader2, DollarSign } from "lucide-react";
+import { usePricingConfig, useRefreshPricingConfig } from "@/hooks/useConfSolar";
 
 interface PricingRow {
   id: string;
@@ -22,26 +23,15 @@ interface PricingRow {
   requer_aprovacao_desconto: boolean;
 }
 
-const SELECT_COLS = "id, markup_equipamentos_percent, markup_servicos_percent, margem_minima_percent, comissao_padrao_percent, comissao_gerente_percent, preco_kwp_minimo, preco_kwp_maximo, preco_kwp_sugerido, desconto_maximo_percent, requer_aprovacao_desconto";
-
 export function PrecificacaoTab() {
+  const { data: serverData, isLoading: loading } = usePricingConfig();
+  const refreshConfig = useRefreshPricingConfig();
   const [data, setData] = useState<PricingRow | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
-
-  async function loadData() {
-    setLoading(true);
-    const { data: row, error } = await supabase
-      .from("pricing_config")
-      .select(SELECT_COLS)
-      .limit(1)
-      .maybeSingle();
-    if (error) toast({ title: "Erro ao carregar precificação", description: error.message, variant: "destructive" });
-    setData(row as unknown as PricingRow | null);
-    setLoading(false);
-  }
+  useEffect(() => {
+    if (serverData && !data) setData(serverData as unknown as PricingRow);
+  }, [serverData]);
 
   async function handleSave() {
     if (!data) return;
@@ -50,11 +40,11 @@ export function PrecificacaoTab() {
     if (id) {
       const { error } = await supabase.from("pricing_config").update(payload as any).eq("id", id);
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else toast({ title: "Precificação atualizada" });
+      else { toast({ title: "Precificação atualizada" }); refreshConfig(); }
     } else {
       const { data: ins, error } = await supabase.from("pricing_config").insert(payload as any).select("id").single();
       if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-      else { setData({ ...data, id: (ins as any).id }); toast({ title: "Precificação criada" }); }
+      else { setData({ ...data, id: (ins as any).id }); toast({ title: "Precificação criada" }); refreshConfig(); }
     }
     setSaving(false);
   }
