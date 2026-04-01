@@ -315,13 +315,13 @@ serve(async (req) => {
         const categorias = Array.isArray(testData) ? testData.length : 0;
         await syncLog(supabase, tenant_id, "info",
           "Teste de conexão JNG realizado com sucesso", {
-          marcas_paineis: marcas,
+          categorias,
         });
         return new Response(
           JSON.stringify({
             success: true,
             test: true,
-            message: `Conexão JNG validada. ${marcas} marcas de painéis disponíveis.`
+            message: `Conexão JNG validada. ${categorias} categorias disponíveis.`
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
