@@ -103,7 +103,7 @@ export function PremissasPage() {
         </TabsContent>
       </Tabs>
 
-      {tab !== "area-telhado" && tab !== "tributacao" && tab !== "integracoes" && (
+      {tab !== "area-telhado" && tab !== "tributacao" && (
         <PremissasFooter
           isDirty={ctx.isDirty}
           saving={ctx.saving}
