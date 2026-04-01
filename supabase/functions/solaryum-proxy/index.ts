@@ -53,21 +53,25 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Fetch tenant token using service_role to bypass RLS
+    // Fetch token from integrations_api_configs (where the UI saves it)
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: tp } = await serviceClient
-      .from("tenant_premises")
-      .select("solaryum_token_vertys, solaryum_token_jng")
+    // integration_providers.id is the provider slug ('jng' or 'vertys')
+    const { data: apiConfig } = await serviceClient
+      .from("integrations_api_configs")
+      .select("credentials")
       .eq("tenant_id", profile.tenant_id)
+      .eq("provider", distribuidor)
+      .eq("is_active", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    const token = distribuidor === "vertys"
-      ? (tp as any)?.solaryum_token_vertys
-      : (tp as any)?.solaryum_token_jng;
+    const creds = apiConfig?.credentials as Record<string, string> | null;
+    const token = creds?.token ?? creds?.api_key ?? null;
 
     if (!token) {
       return new Response(
