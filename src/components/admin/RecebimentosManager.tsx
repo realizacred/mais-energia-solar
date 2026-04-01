@@ -665,7 +665,7 @@ export function RecebimentosManager() {
             if (!open) setSelectedRecebimento(null);
           }}
           recebimento={selectedRecebimento}
-          onUpdate={fetchRecebimentos}
+          onUpdate={refreshRecebimentos}
         />
       )}
     </motion.div>
