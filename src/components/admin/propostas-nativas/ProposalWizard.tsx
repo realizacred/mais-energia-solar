@@ -2059,7 +2059,9 @@ export function ProposalWizard() {
 
     // Intercept: validate Kit step — block if kit cost is zero
     if (currentStepKey === STEP_KEYS.KIT && itens.length > 0) {
-      const custoKit = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+      const custoKit = (venda.custo_kit_override != null && venda.custo_kit_override > 0)
+        ? venda.custo_kit_override
+        : itens.reduce((s, i) => s + (i.quantidade ?? 0) * (i.preco_unitario ?? 0), 0);
       if (custoKit <= 0) {
         toast({
           title: "Kit com custo zerado",
@@ -2279,7 +2281,7 @@ export function ProposalWizard() {
         ));
 
       case STEP_KEYS.KIT: {
-        const kitVal = validateKit(itens, potenciaKwp);
+        const kitVal = validateKit(itens, potenciaKwp, venda.custo_kit_override);
         return wrap("kit", (
           <div className="space-y-4">
             <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} />
