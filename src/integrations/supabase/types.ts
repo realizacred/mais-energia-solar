@@ -9337,6 +9337,85 @@ export type Database = {
         }
         Relationships: []
       }
+      lancamentos_financeiros: {
+        Row: {
+          categoria: string
+          cliente_id: string | null
+          comprovante_url: string | null
+          created_at: string | null
+          created_by: string | null
+          data_lancamento: string
+          descricao: string
+          forma_pagamento: string | null
+          id: string
+          observacoes: string | null
+          projeto_id: string | null
+          status: string
+          tenant_id: string
+          tipo: string
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          cliente_id?: string | null
+          comprovante_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_lancamento?: string
+          descricao: string
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          projeto_id?: string | null
+          status?: string
+          tenant_id: string
+          tipo: string
+          updated_at?: string | null
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          cliente_id?: string | null
+          comprovante_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_lancamento?: string
+          descricao?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          projeto_id?: string | null
+          status?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_financeiros_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_financeiros_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layouts_solares: {
         Row: {
           cliente_id: string | null
