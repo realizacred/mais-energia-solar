@@ -183,12 +183,12 @@ export function RecebimentosManager() {
       if (editingRecebimento) {
         const { error } = await supabase
           .from("recebimentos")
-          .update(recebimentoData)
+          .update(recebimentoData as any)
           .eq("id", editingRecebimento.id);
         if (error) throw error;
         toast({ title: "Recebimento atualizado!" });
       } else {
-        const { error } = await supabase.from("recebimentos").insert(recebimentoData);
+        const { error } = await supabase.from("recebimentos").insert(recebimentoData as any);
         if (error) throw error;
         toast({ title: "Recebimento cadastrado!" });
       }
