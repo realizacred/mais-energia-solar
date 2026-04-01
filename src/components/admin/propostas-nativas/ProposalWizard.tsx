@@ -925,6 +925,7 @@ export function ProposalWizard() {
                     _clienteId: cli.id,
                   } as any;
                   setSelectedLead(syntheticLead);
+                  if (cli.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(cli.municipio_ibge_codigo);
                   // console.log("[ProposalWizard] Synthetic lead created from cliente:", cli.id);
                 }
               }
