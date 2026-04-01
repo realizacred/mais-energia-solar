@@ -290,56 +290,13 @@ export function ValidacaoVendasManager() {
 
     setApproving(selectedCliente.id);
     try {
-      // Get "Convertido" status id
-      const { data: convertidoStatus } = await supabase
-        .from("lead_status").select("id").eq("nome", "Convertido").single();
-      if (!convertidoStatus) throw new Error("Status 'Convertido' não encontrado");
-
-      // Call atomic RPC — venda + composition + status updates in single transaction
-      const { data: vendaId, error: rpcError } = await (supabase as any).rpc("approve_venda_with_composition", {
-        p_cliente_id: selectedCliente.id,
-        p_lead_id: selectedCliente.lead_id || null,
-        p_valor_total: valorBase,
-        p_status_convertido_id: convertidoStatus.id,
-        p_observacoes: null,
-        p_itens: computedItems,
+      await approveVendaMutation.mutateAsync({
+        clienteId: selectedCliente.id,
+        leadId: selectedCliente.lead_id || null,
+        valorTotal: valorBase,
+        observacoes: null,
+        itens: computedItems,
       });
-
-      if (rpcError) {
-        console.error("[handleApprove] RPC error:", rpcError);
-        throw new Error(rpcError.message);
-      }
-
-      // console.log("[handleApprove] Venda aprovada atomicamente:", vendaId);
-
-      // Create recebimento automatically (non-blocking)
-      try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("tenant_id")
-          .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
-          .maybeSingle();
-
-        if (profile?.tenant_id && vendaId) {
-          const { data: recData, error: recError } = await supabase.functions.invoke(
-            "create-recebimento-from-venda",
-            {
-              body: {
-                venda_id: vendaId,
-                cliente_id: selectedCliente.id,
-                tenant_id: profile.tenant_id,
-              },
-            }
-          );
-          if (recError) {
-            console.warn("[handleApprove] Recebimento auto-creation failed (non-blocking):", recError);
-          } else {
-            // console.log("[handleApprove] Recebimento criado:", recData);
-          }
-        }
-      } catch (recErr) {
-        console.warn("[handleApprove] Recebimento auto-creation error (non-blocking):", recErr);
-      }
 
       toast({
         title: "Venda validada!",
@@ -348,13 +305,7 @@ export function ValidacaoVendasManager() {
       setApprovalDialogOpen(false);
       setSelectedCliente(null);
       setPaymentItems([]);
-      // Clean up consultant-prefilled payment data (DB + localStorage)
-      if (selectedCliente?.id) {
-        await supabase
-          .from("clientes")
-          .update({ payment_composition: null } as any)
-          .eq("id", selectedCliente.id);
-      }
+      // Clean up localStorage
       if (selectedCliente?.lead_id) {
         localStorage.removeItem(`lead_payment_composition_${selectedCliente.lead_id}`);
       }
@@ -370,36 +321,19 @@ export function ValidacaoVendasManager() {
     if (!selectedCliente || !motivoRejeicao.trim()) return;
     setRejecting(true);
     try {
-      if (reopenTarget && selectedCliente.lead_id) {
-        await supabase.from("leads").update({
-          status_id: reopenTarget.id,
-          observacoes: `Rejeição de validação: ${motivoRejeicao}`,
-        }).eq("id", selectedCliente.lead_id);
-        await supabase.from("orcamentos").update({ status_id: reopenTarget.id }).eq("lead_id", selectedCliente.lead_id);
-      }
-
-      const depChecks = await Promise.all([
-        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id).neq("status", "excluida"),
-        supabase.from("projetos").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
-        supabase.from("deals").select("id", { count: "exact", head: true }).eq("customer_id", selectedCliente.id),
-        supabase.from("appointments").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
-        supabase.from("obras").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
-        supabase.from("wa_conversations").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
-      ]);
-      const depNames = ["Propostas", "Projetos", "Negociações", "Agendamentos", "Obras", "Conversas WhatsApp"];
-      const blocking: string[] = [];
-      depChecks.forEach((res, i) => {
-        if ((res.count ?? 0) > 0) blocking.push(`${depNames[i]} (${res.count})`);
+      const result = await rejectVendaMutation.mutateAsync({
+        clienteId: selectedCliente.id,
+        leadId: selectedCliente.lead_id,
+        reopenStatusId: reopenTarget?.id || null,
+        motivoRejeicao,
       });
 
-      if (blocking.length > 0) {
-        await supabase.from("clientes").update({ ativo: false }).eq("id", selectedCliente.id);
+      if (result.deactivated) {
         toast({
           title: "Venda rejeitada",
-          description: `Cliente desativado (possui ${blocking.join(", ")} vinculados).`,
+          description: `Cliente desativado (possui ${result.blocking.join(", ")} vinculados).`,
         });
       } else {
-        await supabase.from("clientes").delete().eq("id", selectedCliente.id);
         toast({
           title: "Venda rejeitada",
           description: `A venda de ${selectedCliente.nome} foi rejeitada. Motivo registrado.`,
