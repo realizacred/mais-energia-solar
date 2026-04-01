@@ -151,6 +151,7 @@ export function ProposalWizard() {
   // ─── Custom fields availability (extracted hook)
   const { hasCustomFieldsPre } = useCustomFieldsAvailability();
   const { data: proposalTemplates = [] } = useProposalTemplates();
+  const { data: solarPremises } = useSolarPremises();
   const { data: paymentInterestConfigs } = usePaymentInterestConfigs();
   const formasPagamentoProprias = useMemo(
     () => (paymentInterestConfigs ?? []).filter(c => c.ativo),
