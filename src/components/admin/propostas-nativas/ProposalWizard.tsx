@@ -670,6 +670,35 @@ export function ProposalWizard() {
             consultor_nome_comissao: ve.consultor_nome_comissao || "",
           };
 
+          // ── Backfill venda fields lost by engine snapshot ──
+          // Engine snapshots (generate-proposal) don't always preserve venda.custo_instalacao
+          // and custo_comissao. When they're 0/null, recover from the previous version.
+          if (vendaMapped.custo_instalacao === 0 || vendaMapped.custo_comissao === 0) {
+            try {
+              const { data: prevVersions } = await supabase
+                .from("proposta_versoes")
+                .select("snapshot")
+                .eq("proposta_id", propostaIdFromUrl)
+                .neq("id", versaoIdFromUrl)
+                .order("created_at", { ascending: false })
+                .limit(3);
+              // Find the first previous version that has a non-zero value
+              for (const pv of prevVersions || []) {
+                const pvVenda = (pv.snapshot as any)?.venda;
+                if (!pvVenda) continue;
+                if (vendaMapped.custo_instalacao === 0 && Number(pvVenda.custo_instalacao) > 0) {
+                  vendaMapped.custo_instalacao = Number(pvVenda.custo_instalacao);
+                }
+                if (vendaMapped.custo_comissao === 0 && Number(pvVenda.custo_comissao) > 0) {
+                  vendaMapped.custo_comissao = Number(pvVenda.custo_comissao);
+                }
+                if (vendaMapped.custo_instalacao > 0 && vendaMapped.custo_comissao > 0) break;
+              }
+            } catch {
+              // Non-critical — proceed with 0 if backfill fails
+            }
+          }
+
           // Map engine premissas to PremissasData
           const premissasMapped = {
             imposto: Number(premissasEngine.imposto) || 0,
