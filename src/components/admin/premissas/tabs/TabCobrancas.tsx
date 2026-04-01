@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, EyeOff, CreditCard, Landmark, Receipt, Settings2, Copy, Link } from "lucide-react";
+import { Eye, EyeOff, CreditCard, Landmark, Receipt, Settings2, Copy, Link, MessageSquare } from "lucide-react";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 import { useWebhookUrl } from "@/hooks/useWebhookConfig";
 import { toast } from "sonner";
