@@ -22,11 +22,13 @@ import {
 } from "@/components/ui/tooltip";
 import {
   Calendar, CheckCircle, AlertTriangle, Clock, Zap, CreditCard,
-  Loader2, ExternalLink, Copy, Barcode, QrCode,
+  Loader2, ExternalLink, Copy, Barcode, QrCode, Receipt,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatBRL } from "@/lib/formatters";
+import { CobrancaDialog, type CobrancaParcela } from "./CobrancaDialog";
 
 interface Parcela {
   id: string;
@@ -35,15 +37,19 @@ interface Parcela {
   data_vencimento: string;
   status: string;
   pagamento_id: string | null;
-}
-
-interface ChargeData {
-  parcela_id: string;
-  gateway_charge_id: string | null;
-  gateway_status: string;
-  boleto_pdf_url: string | null;
-  pix_payload: string | null;
-  pix_qr_code_url: string | null;
+  cobranca_status: string | null;
+  cobranca_id: string | null;
+  cobranca_gateway: string | null;
+  boleto_url: string | null;
+  boleto_linha_digitavel: string | null;
+  boleto_codigo_barras: string | null;
+  pix_qr_code: string | null;
+  pix_copia_cola: string | null;
+  cobranca_valor_original: number | null;
+  cobranca_valor_cobrado: number | null;
+  cobranca_multa_aplicada: number | null;
+  cobranca_juros_aplicado: number | null;
+  cobranca_paga_em: string | null;
 }
 
 interface Recebimento {
