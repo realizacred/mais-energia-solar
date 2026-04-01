@@ -330,33 +330,58 @@ export function ProposalWizard() {
   // Track async DB restore to block UI during loading (race condition fix)
   const [isRestoring, setIsRestoring] = useState(!!(propostaIdFromUrl && versaoIdFromUrl));
 
-  const collectSnapshot = useCallback((): WizardSnapshot => ({
+  const collectSnapshot = useCallback((): WizardSnapshot => {
+    // Recalculate pagamentoOpcoes with current precoFinal before saving.
+    // When StepPagamento is unmounted its useEffect never reruns,
+    // so à vista / financiamento values can be stale.
+    const pagamentoOpcoesAtualizadas = pagamentoOpcoes.map(op => {
+      if (op.tipo === "a_vista") {
+        return {
+          ...op,
+          valor_financiado: precoFinal,
+          entrada: precoFinal,
+          valor_parcela: precoFinal,
+          num_parcelas: 1,
+        };
+      }
+      if (op.tipo === "financiamento" && precoFinal > 0) {
+        return {
+          ...op,
+          valor_financiado: precoFinal,
+        };
+      }
+      return op;
+    });
+
+    return {
+      locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
+      locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
+      selectedLead, cliente, clienteMunicipioIbgeCodigo, ucs, grupo, potenciaKwp,
+      customFieldValues, premissas, preDimensionamento,
+      itens, layouts, manualKits, adicionais, servicos, venda,
+      pagamentoOpcoes: pagamentoOpcoesAtualizadas,
+      nomeProposta, descricaoProposta, templateSelecionado,
+      step,
+      geracaoMensalEstimada,
+      // QW10 — top-level geração keys for backend resolvers
+      geracao_mensal_kwh: geracaoMensalEstimada ?? 0,
+      geracao_anual_kwh: (geracaoMensalEstimada ?? 0) * 12,
+      // QW9 — consultor keys for backend resolvers
+      consultor_nome: (selectedLead as any)?.consultor_nome
+        ?? (selectedLead as any)?.responsavel_nome ?? "",
+      consultor_email: (selectedLead as any)?.consultor_email ?? "",
+      consultor_telefone: (selectedLead as any)?.consultor_telefone ?? "",
+      // Formas de pagamento próprias (admin-configured) — embedded for public page
+      formas_pagamento_proprias: formasPagamentoProprias,
+    };
+  }, [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
     locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
     selectedLead, cliente, clienteMunicipioIbgeCodigo, ucs, grupo, potenciaKwp,
     customFieldValues, premissas, preDimensionamento,
     itens, layouts, manualKits, adicionais, servicos, venda,
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
-    step,
-    geracaoMensalEstimada,
-    // QW10 — top-level geração keys for backend resolvers
-    geracao_mensal_kwh: geracaoMensalEstimada ?? 0,
-    geracao_anual_kwh: (geracaoMensalEstimada ?? 0) * 12,
-    // QW9 — consultor keys for backend resolvers
-    consultor_nome: (selectedLead as any)?.consultor_nome
-      ?? (selectedLead as any)?.responsavel_nome ?? "",
-    consultor_email: (selectedLead as any)?.consultor_email ?? "",
-    consultor_telefone: (selectedLead as any)?.consultor_telefone ?? "",
-    // Formas de pagamento próprias (admin-configured) — embedded for public page
-    formas_pagamento_proprias: formasPagamentoProprias,
-  }), [
-    locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
-    locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
-    selectedLead, cliente, clienteMunicipioIbgeCodigo, ucs, grupo, potenciaKwp,
-    customFieldValues, premissas, preDimensionamento,
-    itens, layouts, manualKits, adicionais, servicos, venda,
-    pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
-    step, geracaoMensalEstimada, formasPagamentoProprias,
+    step, geracaoMensalEstimada, formasPagamentoProprias, precoFinal,
   ]);
 
   // ─── Local draft: auto-save to localStorage on every state change
