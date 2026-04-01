@@ -86,8 +86,8 @@ export function PagamentosComissaoDialog({
   onUpdate,
   initialShowForm = false,
 }: PagamentosComissaoDialogProps) {
-  const [pagamentos, setPagamentos] = useState<PagamentoComissao[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: pagamentos = [], isLoading: loading } = usePagamentosComissao(comissao.id, open);
+  const refreshPagamentos = useRefreshPagamentosComissao(comissao.id);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(initialShowForm);
   const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
@@ -99,37 +99,6 @@ export function PagamentosComissaoDialog({
     data_pagamento: new Date().toISOString().split("T")[0],
     observacoes: "",
   });
-
-  const fetchPagamentos = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("pagamentos_comissao")
-        .select("id, valor_pago, data_pagamento, forma_pagamento, observacoes, comprovante_url")
-        .eq("comissao_id", comissao.id)
-        .order("data_pagamento", { ascending: false });
-
-      if (error) throw error;
-      setPagamentos(data || []);
-    } catch (error) {
-      console.error("Error fetching pagamentos:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch pagamentos when dialog opens
-  useState(() => {
-    if (open) {
-      fetchPagamentos();
-      setShowForm(initialShowForm);
-    }
-  });
-
-  // Re-fetch when dialog opens
-  if (open && pagamentos.length === 0 && !loading) {
-    fetchPagamentos();
-  }
 
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor_pago, 0);
   const saldoRestante = comissao.valor_comissao - totalPago;
