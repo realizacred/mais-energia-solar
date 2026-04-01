@@ -267,12 +267,7 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    if (!fornecedor_id) {
-      return new Response(
-        JSON.stringify({ success: false, error: "fornecedor_id obrigatório", code: "MISSING_FORNECEDOR_ID" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // fornecedor_id is optional for JNG HubB2B — products are imported with source='jng'
 
     // Fetch credentials
     const { data: config, error: configErr } = await supabase
