@@ -30,6 +30,8 @@ import { CriarKitManualModal, type KitMeta } from "./kit/CriarKitManualModal";
 import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
 import { EditarLayoutModal } from "./kit/EditarLayoutModal";
 import { MesAMesDialog } from "./uc/UCModals";
+import { SolaryumTab } from "./SolaryumTab";
+import type { ProdutoSolaryum } from "@/hooks/useSolaryumKits";
 
 interface CatalogoModuloUnificado {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
@@ -77,7 +79,7 @@ interface Props {
   ibgeCodigo?: string | null;
 }
 
-type TabType = "customizado" | "fechado" | "catalogo";
+type TabType = "customizado" | "fechado" | "catalogo" | "solaryum";
 
 function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverride?: number | null): KitCardData | null {
   const modItems = itens.filter(i => i.categoria === "modulo");
@@ -157,6 +159,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const [confirmReplace, setConfirmReplace] = useState<{ kitId: string; kitName: string } | null>(null);
   const [includeComponents, setIncludeComponents] = useState(false);
   const catalogLoaded = useRef(false);
+  const [selectedSolaryumKitId, setSelectedSolaryumKitId] = useState<number | null>(null);
 
   // Derive selected catalog kit ID from manualKits meta
   const selectedCatalogKitId = useMemo(() => {
@@ -546,6 +549,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           <div className="flex items-center border-b border-border/50">
             {([
               { key: "catalogo" as const, label: "📦 Catálogo" },
+              { key: "solaryum" as const, label: "🔌 Solaryum" },
               { key: "customizado" as const, label: `Customizado${manualKits.length > 0 ? ` (${manualKits.length})` : ""}` },
               { key: "fechado" as const, label: "Fechado" },
             ]).map(t => (
@@ -938,6 +942,72 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 </Button>
               )}
             </div>
+          ) : tab === "solaryum" ? (
+            /* ── Solaryum Tab ── */
+            <SolaryumTab
+              ibgeCodigo={ibgeCodigo ?? null}
+              potenciaKwp={potenciaKwp}
+              onSelectKit={(solKit: ProdutoSolaryum) => {
+                setSelectedSolaryumKitId(solKit.idProduto);
+                const potKwp = solKit.potencia >= 100 ? solKit.potencia / 1000 : solKit.potencia;
+                const modComps = (solKit.composicao ?? []).filter(c =>
+                  c.idCategoria === 1 || c.categoria?.toLowerCase()?.includes("painel") || c.categoria?.toLowerCase()?.includes("modulo") || c.categoria?.toLowerCase()?.includes("módulo")
+                );
+                const invComps = (solKit.composicao ?? []).filter(c =>
+                  c.idCategoria === 2 || c.categoria?.toLowerCase()?.includes("inversor")
+                );
+                const newItens: KitItemRow[] = [];
+                if (modComps.length > 0) {
+                  modComps.forEach(c => {
+                    newItens.push({
+                      id: crypto.randomUUID(), descricao: c.descricao || "Módulo",
+                      fabricante: c.marca || solKit.marcaPainel || "", modelo: c.descricao || "",
+                      potencia_w: c.potencia || 0, quantidade: c.qtd || 1,
+                      preco_unitario: 0, categoria: "modulo", avulso: false,
+                    });
+                  });
+                } else {
+                  newItens.push({
+                    id: crypto.randomUUID(), descricao: solKit.descricao || "Módulo Solar",
+                    fabricante: solKit.marcaPainel || "", modelo: solKit.descricao || "",
+                    potencia_w: potKwp * 1000, quantidade: 1,
+                    preco_unitario: 0, categoria: "modulo", avulso: false,
+                  });
+                }
+                if (invComps.length > 0) {
+                  invComps.forEach(c => {
+                    newItens.push({
+                      id: crypto.randomUUID(), descricao: c.descricao || "Inversor",
+                      fabricante: c.marca || solKit.marcaInversor || "", modelo: c.descricao || "",
+                      potencia_w: c.potencia || 0, quantidade: c.qtd || 1,
+                      preco_unitario: 0, categoria: "inversor", avulso: false,
+                    });
+                  });
+                }
+                const totalPot = newItens.reduce((s, i) => s + i.potencia_w * i.quantidade, 0);
+                if (totalPot > 0 && solKit.precoVenda > 0) {
+                  newItens.forEach(i => {
+                    i.preco_unitario = Math.round(((i.potencia_w * i.quantidade) / totalPot * solKit.precoVenda / i.quantidade) * 100) / 100;
+                  });
+                }
+                onItensChange(newItens);
+                const card = kitItemsToCardData(newItens);
+                if (card) {
+                  card.precoTotal = solKit.precoVenda;
+                  card.distribuidorNome = "Solaryum";
+                  const meta: KitMeta = {
+                    distribuidorNome: "Solaryum",
+                    nomeKit: solKit.descricao || "Kit Solaryum",
+                    codigoKit: String(solKit.idProduto),
+                    topologia: solKit.tipoInv === 1 ? "Microinversor" : solKit.tipoInv === 2 ? "Híbrido" : "Tradicional",
+                    custo: solKit.precoVenda,
+                  };
+                  setManualKits([{ card, itens: newItens, meta }]);
+                }
+                toast({ title: "Kit Solaryum selecionado", description: `${potKwp.toFixed(2)} kWp • ${formatBRL(solKit.precoVenda)}` });
+              }}
+              selectedKitId={selectedSolaryumKitId}
+            />
           ) : (
             /* ── Fechado Tab ── */
             activeKits.length > 0 ? (
