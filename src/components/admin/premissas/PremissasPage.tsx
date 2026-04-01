@@ -20,6 +20,7 @@ const TABS = [
   { value: "area-telhado", label: "Dados técnicos do telhado", icon: LayoutGrid },
   { value: "valores-padroes", label: "Valores padrões", icon: SlidersHorizontal },
   { value: "tributacao", label: "Tributação", icon: Landmark },
+  { value: "integracoes", label: "Integrações", icon: Link2 },
 ] as const;
 
 export function PremissasPage() {
