@@ -236,7 +236,7 @@ export function PendingDocumentationWidget({
                           <Badge 
                             key={idx} 
                             variant="outline" 
-                            className="text-xs bg-destructive/10 text-destructive border-destructive/30"
+                            className="text-[11px] bg-warning/10 text-warning border border-warning/30 rounded-full px-2.5 py-0.5 font-medium"
                           >
                             {doc}
                           </Badge>
