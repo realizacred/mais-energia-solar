@@ -79,6 +79,30 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
   const { data: checklists = [], isLoading: loadingChecklists } = useChecklistsByProjeto(dealId);
   const criarChecklist = useCriarChecklist();
 
+  // Gate: verificar se existe proposta aceita/principal
+  const { data: temPropostaAceita = false } = useQuery({
+    queryKey: ["proposta-aceita-gate", dealId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("propostas_nativas")
+        .select("id, is_principal, status")
+        .eq("deal_id", dealId)
+        .in("status", ["aceita", "accepted", "aprovada", "ganha"])
+        .limit(1);
+      if (data && data.length > 0) return true;
+      // Fallback: check is_principal
+      const { data: principal } = await supabase
+        .from("propostas_nativas")
+        .select("id")
+        .eq("deal_id", dealId)
+        .eq("is_principal", true)
+        .limit(1);
+      return (principal && principal.length > 0) || false;
+    },
+    enabled: !!dealId,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [finalizarOpen, setFinalizarOpen] = useState<string | null>(null);
 
