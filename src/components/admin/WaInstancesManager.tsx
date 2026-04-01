@@ -61,7 +61,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: ty
 };
 
 export function WaInstancesManager() {
-  const { instances, loading, updateInstance, deleteInstance, checkStatus, checkingStatus, syncHistory } = useWaInstances();
+  const { instances, loading, updateInstance, deleteInstance, checkStatus, checkingStatus, syncHistory, vendedores, instanceVendedores, saveVendedores } = useWaInstances();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
@@ -70,24 +70,6 @@ export function WaInstancesManager() {
   const [qrInstance, setQrInstance] = useState<WaInstance | null>(null);
   const [syncDays, setSyncDays] = useState("365");
   const [isSyncing, setIsSyncing] = useState(false);
-
-  const { data: vendedores = [] } = useQuery({
-    queryKey: ["vendedores-wa-instances"],
-    queryFn: async () => {
-      const { data } = await supabase.from("consultores").select("id, nome, user_id").eq("ativo", true);
-      return data || [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: instanceVendedores = [] } = useQuery({
-    queryKey: ["wa-instance-vendedores"],
-    queryFn: async () => {
-      const { data } = await supabase.from("wa_instance_consultores").select("instance_id, consultor_id");
-      return data || [];
-    },
-    staleTime: 30 * 1000,
-  });
 
   const getInstanceVendedorIds = (instanceId: string) =>
     instanceVendedores.filter((iv: any) => iv.instance_id === instanceId).map((iv: any) => iv.consultor_id);
