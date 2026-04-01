@@ -73,6 +73,8 @@ interface Props {
   somenteGhi?: boolean;
   /** Override de custo do kit definido no Centro Financeiro */
   custoKitOverride?: number | null;
+  /** Código IBGE do município do cliente — usado para integrações (Solaryum frete) */
+  ibgeCodigo?: string | null;
 }
 
 type TabType = "customizado" | "fechado" | "catalogo";
