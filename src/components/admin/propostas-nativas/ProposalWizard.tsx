@@ -1818,8 +1818,7 @@ export function ProposalWizard() {
               response_format: "json",
             }),
           });
-          clearTimeout(progressTimer);
-          clearTimeout(progressTimer2);
+          setGenerationStatus("converting_pdf");
           if (!rawResp.ok) {
             const errBody = await rawResp.text();
             let parsedBody: any = null;
