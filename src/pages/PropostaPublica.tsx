@@ -68,6 +68,8 @@ export default function PropostaPublica() {
     empresaNome: string | null;
     empresaLogo: string | null;
     empresaTelefone: string | null;
+    motivo_invalidacao: string | null;
+    latestTokenUrl: string | null;
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [decision, setDecision] = useState<"aceita" | "recusada" | null>(null);
