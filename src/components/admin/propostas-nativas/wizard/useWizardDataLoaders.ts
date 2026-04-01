@@ -179,18 +179,22 @@ export function useTenantTarifas() {
       const tpAny = tp as any;
 
       let concNome = "";
+      let concFioB = 0;
       const concId = tpAny.concessionaria_id as string | null;
       if (concId) {
         const { data: conc } = await supabase
           .from("concessionarias")
-          .select("nome")
+          .select("nome, tarifa_fio_b")
           .eq("id", concId)
           .maybeSingle();
         concNome = conc?.nome || "";
+        concFioB = Number((conc as any)?.tarifa_fio_b) || 0;
       }
 
       setTenantTarifas({
         ...tpAny,
+        // Fallback: se tusd_fio_b_bt não está preenchido no tenant, usar da concessionária
+        tusd_fio_b_bt: Number(tpAny.tusd_fio_b_bt) || concFioB,
         concessionaria_nome: concNome,
         concessionaria_id: concId || undefined,
       });
