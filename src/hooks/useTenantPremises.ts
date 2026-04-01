@@ -175,6 +175,20 @@ export const PREMISES_DEFAULTS: TenantPremises = {
   solaryum_token_jng: "",
   solaryum_cif_descarga: false,
   solaryum_ibge_fallback: "",
+  // Gateway de cobrança
+  gateway_preferido: "pagseguro",
+  pagseguro_token: "",
+  pagseguro_sandbox: true,
+  asaas_token: "",
+  asaas_sandbox: true,
+  inter_client_id: "",
+  inter_client_secret: "",
+  inter_sandbox: true,
+  sicoob_client_id: "",
+  sicoob_sandbox: true,
+  cobranca_multa_percentual: 2.00,
+  cobranca_juros_percentual: 1.00,
+  cobranca_dias_vencimento: 30,
 };
 
 export interface RoofAreaFactor {
