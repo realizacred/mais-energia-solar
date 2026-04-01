@@ -68,6 +68,8 @@ export default function PropostaPublica() {
     empresaNome: string | null;
     empresaLogo: string | null;
     empresaTelefone: string | null;
+    motivo_invalidacao: string | null;
+    latestTokenUrl: string | null;
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [decision, setDecision] = useState<"aceita" | "recusada" | null>(null);
@@ -175,45 +177,55 @@ export default function PropostaPublica() {
 
       if (tdErr || !td) { setError("Link inválido ou expirado."); setLoading(false); return; }
 
-      // Check if token was invalidated (new version created)
+      // Check if token was invalidated (new version created or proposal deleted)
       if (td.invalidado_em) {
-        // Fetch tenant info for branded error screen
         try {
           const { data: proposta } = await (supabase as any)
             .from("propostas_nativas")
             .select("tenant_id")
             .eq("id", td.proposta_id)
             .maybeSingle();
-          if (proposta?.tenant_id) {
-            const { data: tenant } = await supabase
-              .from("tenants")
-              .select("nome")
-              .eq("id", proposta.tenant_id)
-              .maybeSingle();
-            const { data: brand } = await supabase
-              .from("brand_settings")
-              .select("logo_url")
-              .eq("tenant_id", proposta.tenant_id)
-              .maybeSingle();
-            // Try to get company phone from consultores (first active)
-            const { data: consultor } = await (supabase as any)
-              .from("consultores")
-              .select("telefone")
-              .eq("tenant_id", proposta.tenant_id)
-              .eq("ativo", true)
+
+          let latestTokenUrl: string | null = null;
+          // Only look for latest token if invalidated by new version (not deletion)
+          if (td.motivo_invalidacao === 'nova_versao_criada') {
+            const { data: latestToken } = await (supabase as any)
+              .from("proposta_aceite_tokens")
+              .select("token")
+              .eq("proposta_id", td.proposta_id)
+              .is("invalidado_em", null)
+              .is("used_at", null)
+              .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle();
+            if (latestToken?.token) {
+              latestTokenUrl = `/proposta/${latestToken.token}`;
+            }
+          }
+
+          if (proposta?.tenant_id) {
+            const [tenantRes, brandRes, consultorRes] = await Promise.all([
+              supabase.from("tenants").select("nome").eq("id", proposta.tenant_id).maybeSingle(),
+              supabase.from("brand_settings").select("logo_url").eq("tenant_id", proposta.tenant_id).maybeSingle(),
+              (supabase as any).from("consultores").select("telefone").eq("tenant_id", proposta.tenant_id).eq("ativo", true).limit(1).maybeSingle(),
+            ]);
             setInvalidatedInfo({
               invalidado_em: td.invalidado_em,
-              empresaNome: tenant?.nome || null,
-              empresaLogo: brand?.logo_url || null,
-              empresaTelefone: consultor?.telefone || null,
+              empresaNome: tenantRes.data?.nome || null,
+              empresaLogo: brandRes.data?.logo_url || null,
+              empresaTelefone: consultorRes.data?.telefone || null,
+              motivo_invalidacao: td.motivo_invalidacao || null,
+              latestTokenUrl,
             });
             setLoading(false);
             return;
           }
         } catch { /* fallback to generic error */ }
-        setError("Este link não está mais disponível. Uma nova versão da proposta foi gerada.");
+        setError(
+          td.motivo_invalidacao === 'proposta_excluida'
+            ? "Esta proposta foi removida e o link não está mais disponível."
+            : "Este link não está mais disponível. Uma nova versão da proposta foi gerada."
+        );
         setLoading(false);
         return;
       }
@@ -401,6 +413,7 @@ export default function PropostaPublica() {
 
   // ── INVALIDATED TOKEN (new version created) ─────────
   if (invalidatedInfo) {
+    const isDeleted = invalidatedInfo.motivo_invalidacao === 'proposta_excluida';
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
         <div className="max-w-md w-full text-center space-y-6">
@@ -418,11 +431,13 @@ export default function PropostaPublica() {
 
           <div className="space-y-2">
             <h1 className="text-xl font-bold text-foreground">
-              Este link não está mais disponível
+              {isDeleted ? "Proposta removida" : "Este link não está mais disponível"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Uma nova versão desta proposta foi gerada.
-              {invalidatedInfo.empresaNome && (
+              {isDeleted
+                ? "Esta proposta foi removida e o link não está mais ativo."
+                : "Uma nova versão desta proposta foi gerada."}
+              {!isDeleted && invalidatedInfo.empresaNome && !invalidatedInfo.latestTokenUrl && (
                 <>
                   {" "}Entre em contato com{" "}
                   <span className="font-medium text-foreground">
@@ -433,6 +448,16 @@ export default function PropostaPublica() {
               )}
             </p>
           </div>
+
+          {invalidatedInfo.latestTokenUrl && (
+            <a
+              href={invalidatedInfo.latestTokenUrl}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition"
+            >
+              <Zap className="w-4 h-4" />
+              Ver versão atualizada
+            </a>
+          )}
 
           {invalidatedInfo.empresaTelefone && (
             <a
