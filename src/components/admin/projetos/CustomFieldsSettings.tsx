@@ -1265,8 +1265,8 @@ function SwitchRow({ label, checked, onChange }: { label: string; checked: boole
 }
 
 function SwitchCell({ value, fieldId, column, onUpdate }: { value: boolean; fieldId: string; column: string; onUpdate: () => void }) {
+  const toggleMutation = useToggleCustomField();
   const [checked, setChecked] = useState(value);
-  // Sync local state when parent re-renders with updated value
   useEffect(() => { setChecked(value); }, [value]);
   return (
     <Switch
@@ -1274,8 +1274,7 @@ function SwitchCell({ value, fieldId, column, onUpdate }: { value: boolean; fiel
       onCheckedChange={async (v) => {
         setChecked(v);
         try {
-          const { error } = await supabase.from("deal_custom_fields").update({ [column]: v } as any).eq("id", fieldId);
-          if (error) throw error;
+          await toggleMutation.mutateAsync({ id: fieldId, column, value: v });
           onUpdate();
         } catch { setChecked(value); }
       }}
