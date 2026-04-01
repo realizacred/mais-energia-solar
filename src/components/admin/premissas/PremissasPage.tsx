@@ -103,6 +103,9 @@ export function PremissasPage() {
         <TabsContent value="integracoes" className="mt-4">
           <TabIntegracoes premises={ctx.premises} onChange={ctx.setPremises} />
         </TabsContent>
+        <TabsContent value="cobrancas" className="mt-4">
+          <TabCobrancas premises={ctx.premises} onChange={ctx.setPremises} />
+        </TabsContent>
       </Tabs>
 
       {tab !== "area-telhado" && tab !== "tributacao" && (
