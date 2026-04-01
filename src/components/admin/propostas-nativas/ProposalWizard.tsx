@@ -1237,6 +1237,7 @@ export function ProposalWizard() {
 
         if (cli.estado) setLocEstado(cli.estado);
         if (cli.cidade) setLocCidade(cli.cidade);
+        if (cli.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(cli.municipio_ibge_codigo);
 
         if (cli.lead_id) {
           const { data: lead } = await supabase
