@@ -16,6 +16,7 @@ export interface PropostaFinalValidationInput {
   precoFinal: number;
   geracaoMensalKwh: number;
   consumoTotal: number;
+  economiaMensal?: number;
   locEstado: string;
   locCidade: string;
   locDistribuidoraNome: string;
