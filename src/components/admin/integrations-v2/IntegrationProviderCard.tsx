@@ -119,6 +119,7 @@ export function IntegrationProviderCard({
   const isStub = isMonitoring && !provider.capabilities?.sync_plants;
   const isComingSoon = provider.status === "coming_soon";
   const isDisabled = isStub || isComingSoon;
+  const [logoError, setLogoError] = useState(false);
 
   const translatedError = isError ? translateSyncError(syncError) : null;
 
