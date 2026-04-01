@@ -21300,6 +21300,10 @@ export type Database = {
           shading_loss_percent: number | null
           sobredimensionamento_padrao: number
           soiling_loss_percent: number | null
+          solaryum_cif_descarga: boolean | null
+          solaryum_ibge_fallback: string | null
+          solaryum_token_jng: string | null
+          solaryum_token_vertys: string | null
           sombreamento_config: Json
           tarifa: number
           tarifa_te_fora_ponta: number
@@ -21366,6 +21370,10 @@ export type Database = {
           shading_loss_percent?: number | null
           sobredimensionamento_padrao?: number
           soiling_loss_percent?: number | null
+          solaryum_cif_descarga?: boolean | null
+          solaryum_ibge_fallback?: string | null
+          solaryum_token_jng?: string | null
+          solaryum_token_vertys?: string | null
           sombreamento_config?: Json
           tarifa?: number
           tarifa_te_fora_ponta?: number
@@ -21432,6 +21440,10 @@ export type Database = {
           shading_loss_percent?: number | null
           sobredimensionamento_padrao?: number
           soiling_loss_percent?: number | null
+          solaryum_cif_descarga?: boolean | null
+          solaryum_ibge_fallback?: string | null
+          solaryum_token_jng?: string | null
+          solaryum_token_vertys?: string | null
           sombreamento_config?: Json
           tarifa?: number
           tarifa_te_fora_ponta?: number
