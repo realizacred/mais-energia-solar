@@ -96,7 +96,7 @@ export function FiscalWizard() {
       if (error) throw error;
       if (data.success) {
         toast.success(data.message);
-        loadServices();
+        reloadServices();
       } else {
         toast.warning(data.error || data.message);
       }
