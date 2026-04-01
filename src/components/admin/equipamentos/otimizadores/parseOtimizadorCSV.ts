@@ -69,7 +69,7 @@ export function parseDistributorOtimizadorCSV(csvText: string): OtimizadorParseR
     const potencia = extractPotenciaWpOtimizador(m.modelo);
     if (potencia === null) continue; // é inversor, não otimizador
     if (potencia <= 0) {
-      warnings.push({ line: 0, issue: `Potência (W) não detectada no modelo "${m.fabricante} ${m.modelo}" — preencha manualmente` });
+      warnings.push({ line: 0, raw: "", issue: `Potência (W) não detectada no modelo "${m.fabricante} ${m.modelo}" — preencha manualmente` });
     }
     otimizadores.push({
       fabricante: m.fabricante,
