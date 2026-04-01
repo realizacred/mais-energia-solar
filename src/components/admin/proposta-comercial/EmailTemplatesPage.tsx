@@ -32,25 +32,13 @@ const CANAL_ICON: Record<string, any> = {
 };
 
 export function EmailTemplatesPage() {
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: templates = [], isLoading: loading } = useEmailTemplatesList();
+  const saveMutation = useSaveEmailTemplate();
+  const deleteMutation = useDeleteEmailTemplate();
+  const duplicateMutation = useDuplicateEmailTemplate();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<EmailTemplate>>({});
   const [showPreview, setShowPreview] = useState(false);
-
-  const loadTemplates = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("proposta_email_templates" as any)
-      .select("id, nome, assunto, corpo_html, corpo_texto, canal, is_default, ativo, ordem, variaveis")
-      .order("ordem", { ascending: true });
-    setTemplates((data as unknown as EmailTemplate[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadTemplates();
-  }, []);
 
   const startNew = () => {
     setEditingId("new");
