@@ -448,12 +448,32 @@ function StepClienteForm({
 
       {/* Lead selection */}
       {selectedLead ? (
-        <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/15">
-          <div>
-            <p className="font-semibold">{selectedLead.nome}</p>
-            <p className="text-sm text-muted-foreground">{formatPhoneBR(selectedLead.telefone)} • {selectedLead.lead_code}</p>
+        <div className="bg-card border border-border rounded-lg p-3 border-l-[3px] border-l-success rounded-tl-none rounded-bl-none">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                <FileText className="w-3.5 h-3.5 text-success" />
+              </div>
+              <span className="text-[11px] font-medium text-success uppercase tracking-wide">
+                Lead vinculado
+              </span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClearLead}>Trocar</Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClearLead}>Trocar</Button>
+          <p className="text-sm font-semibold text-foreground mb-1">{selectedLead.nome}</p>
+          <p className="text-xs text-muted-foreground">{formatPhoneBR(selectedLead.telefone)} • {selectedLead.lead_code}</p>
+          {selectedLead.media_consumo && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <span className="text-[11px] bg-success/10 text-success rounded-full px-2.5 py-0.5 font-medium">
+                {selectedLead.media_consumo} kWh
+              </span>
+              {selectedLead.tipo_telhado && (
+                <span className="text-[11px] bg-success/10 text-success rounded-full px-2.5 py-0.5 font-medium">
+                  {selectedLead.tipo_telhado}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
