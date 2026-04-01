@@ -11,6 +11,26 @@
  *  2. Nunca retorna undefined — optional → "-", required → missing_required.
  *  3. PDF só pode ser gerado se missing_required estiver vazio.
  *  4. Registra auditoria (missing, fallbacks).
+ *
+ * ARQUITETURA DE VARIÁVEIS — DOIS RESOLVERS (AP-15)
+ *
+ * FRONTEND (este arquivo): usado no preview/audit do sistema
+ * BACKEND (supabase/functions/_shared/resolvers/): usado na geração do PDF
+ *
+ * PADRÃO FE: case "nome_variavel" → retorna valor calculado
+ * PADRÃO BE: out["nome_variavel"] = valor (resolver por domínio)
+ *
+ * FALLBACK: o FE usa deepGet(finalSnapshot, key) como fallback —
+ * variáveis calculadas pelo BE e salvas no snapshot ficam disponíveis
+ * no FE automaticamente, SEM precisar duplicar a lógica.
+ *
+ * QUANDO ADICIONAR AO FE: apenas se precisar de preview em tempo real
+ * antes de gerar o PDF (ex: mostrar na tela durante o wizard).
+ * Variáveis só exibidas no PDF final → manter apenas no BE.
+ *
+ * Variáveis críticas de energia solar disponíveis via snapshot:
+ * potencia_kwp, economia_mensal, payback_anos, geracao_mensal,
+ * modulo_*, inversor_*, bateria_*, tarifa_*, consumo_mensal
  */
 
 import { VARIABLES_CATALOG, type CatalogVariable } from "./variablesCatalog";
