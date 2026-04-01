@@ -193,59 +193,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
     return counts;
   }, [leads]);
 
-  useEffect(() => {
-    fetchVendedores();
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      // Fetch profiles with user_id to link to vendedores
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, nome")
-        .eq("ativo", true)
-        .order("nome");
-
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error) {
-      console.error("Erro ao buscar usuários:", error);
-    }
-  };
-
-  // Get list of user_ids already linked to vendedores
-  const linkedUserIds = useMemo(() => {
-    return vendedores
-      .filter(v => v.user_id && v.id !== editingVendedor?.id)
-      .map(v => v.user_id);
-  }, [vendedores, editingVendedor]);
-
-  // Available users (not yet linked to another vendedor)
-  const availableUsers = useMemo(() => {
-    return users.filter(u => !linkedUserIds.includes(u.user_id));
-  }, [users, linkedUserIds]);
-
-  const fetchVendedores = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("consultores")
-        .select("id, nome, telefone, email, codigo, slug, ativo, user_id, created_at, percentual_comissao")
-        .order("nome");
-
-      if (error) throw error;
-      setVendedores(data as any || []);
-    } catch (error) {
-      console.error("Erro ao buscar vendedores:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os consultores.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchUsers = () => refreshVendedores();
+  const fetchVendedores = () => refreshVendedores();
 
   const handleSave = async () => {
     if (!formData.nome.trim() || !formData.telefone.trim()) {
