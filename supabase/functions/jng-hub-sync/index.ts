@@ -81,17 +81,50 @@ interface JngProduto {
 }
 
 // ── Fetch helper (HubB2B — /hubB2B/Produtos) ───────────────
-async function fetchJngKits(token: string, ibge?: string): Promise<any[]> {
-  const params = new URLSearchParams({ token });
-  if (ibge) {
-    params.set("ibge", ibge);
+async function fetchJngKits(
+  token: string,
+  ibge: string,
+  options?: {
+    paginaAtual?: number;
+    qtdPorPagina?: number;
+    potenciaMinima?: number | null;
+    potenciaMaxima?: number | null;
   }
+): Promise<any[]> {
+  const params = new URLSearchParams({ token });
+  params.set("ibge", ibge);
+
+  const paginaAtual = Number.isFinite(options?.paginaAtual)
+    ? Math.max(1, Math.trunc(Number(options?.paginaAtual)))
+    : 1;
+  const qtdPorPagina = Number.isFinite(options?.qtdPorPagina)
+    ? Math.max(1, Math.trunc(Number(options?.qtdPorPagina)))
+    : 100;
+
+  params.set("paginaAtual", String(paginaAtual));
+  params.set("qtdPorPagina", String(qtdPorPagina));
+
+  if (options?.potenciaMinima != null && Number.isFinite(options.potenciaMinima)) {
+    params.set("potenciaMinima", String(options.potenciaMinima));
+  }
+  if (options?.potenciaMaxima != null && Number.isFinite(options.potenciaMaxima)) {
+    params.set("potenciaMaxima", String(options.potenciaMaxima));
+  }
+
   const url = `${JNG_BASE}/hubB2B/Produtos?${params.toString()}`;
   // console.log("[jng] fetchKits URL:", url);
   const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`JNG kits failed: ${res.status} ${body}`);
+    const err = new Error(`JNG kits failed: ${res.status} ${body}`) as Error & {
+      status?: number;
+      details?: string;
+      url?: string;
+    };
+    err.status = res.status;
+    err.details = body;
+    err.url = url;
+    throw err;
   }
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -254,6 +287,10 @@ serve(async (req) => {
       mode = "full_replace",
     } = body;
     const test_only = !!body.test_only;
+    const paginaAtual = Number(body.paginaAtual ?? 1);
+    const qtdPorPagina = Number(body.qtdPorPagina ?? 100);
+    const potenciaMinima = body.potenciaMinima != null ? Number(body.potenciaMinima) : null;
+    const potenciaMaxima = body.potenciaMaxima != null ? Number(body.potenciaMaxima) : null;
 
     // ── Validations (§EF-S1) ──
     if (!tenant_id) {
@@ -454,7 +491,12 @@ serve(async (req) => {
     // ── Fetch único — Plataforma-V1 não tem paginação ──
     let batchProducts: any[] = [];
     try {
-      batchProducts = await fetchJngKits(token, effectiveIbge);
+      batchProducts = await fetchJngKits(token, effectiveIbge, {
+        paginaAtual,
+        qtdPorPagina,
+        potenciaMinima,
+        potenciaMaxima,
+      });
       // console.log(`[jng-hub-sync] Fetched ${batchProducts.length} kits`);
       await syncLog(supabase, tenant_id, "info",
         `${batchProducts.length} kits retornados pela API`, {
@@ -463,16 +505,33 @@ serve(async (req) => {
       });
     } catch (e: any) {
       console.error("[jng-hub-sync] Error fetching kits:", e);
+      const responseStatus =
+        typeof e?.status === "number" && e.status >= 400 && e.status < 600
+          ? e.status
+          : 500;
+      const upstreamDetails = typeof e?.details === "string" ? e.details : null;
+      const detailsLower = (upstreamDetails || "").toLowerCase();
+      const isIbgeError = responseStatus === 400 && detailsLower.includes("ibge");
+
       await syncLog(supabase, tenant_id, "error", "Erro ao buscar kits JNG", {
         error: e.message,
         ibge: effectiveIbge,
+        upstream_status: responseStatus,
+        upstream_details: upstreamDetails,
       });
       await supabase.from("integration_sync_state")
         .update({ status: "error", last_error: e.message, last_run_at: new Date().toISOString() })
         .eq("id", syncState.id);
       return new Response(
-        JSON.stringify({ success: false, error: e.message, code: "FETCH_ERROR" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: isIbgeError
+            ? "Código IBGE ausente/inválido para sincronização JNG. Informe um IBGE válido no sync ou configure tenant_premises.solaryum_ibge_fallback."
+            : e.message,
+          code: isIbgeError ? "MISSING_IBGE" : "FETCH_ERROR",
+          details: upstreamDetails,
+        }),
+        { status: isIbgeError ? 400 : responseStatus, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
