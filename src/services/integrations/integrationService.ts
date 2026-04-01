@@ -294,7 +294,8 @@ export async function connectSupplierProvider(
       const hasAny = Object.values(mergedForValidation).some(v => typeof v === "string" && v.trim());
       if (!hasAny) throw new Error("Informe as credenciais para conectar o fornecedor");
     }
-    const fornecedorId = SUPPLIER_FORNECEDOR_IDS[providerKey] || config?.fornecedor_id || null;
+    const isProxyProvider = providerKey === "jng" || providerKey === "vertys";
+    const fornecedorId = isProxyProvider ? null : (SUPPLIER_FORNECEDOR_IDS[providerKey] || config?.fornecedor_id || null);
     const now = new Date().toISOString();
 
     const mergedSettings = {
