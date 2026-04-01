@@ -44,8 +44,6 @@ export function TemplatePreviewDialog({
   templateTipo = "html",
   fileUrl,
 }: TemplatePreviewDialogProps) {
-  const [propostas, setPropostas] = useState<PropostaOption[]>([]);
-  const [loadingList, setLoadingList] = useState(false);
   const [selectedProposta, setSelectedProposta] = useState<PropostaOption | null>(null);
   const [search, setSearch] = useState("");
   const [renderedHtml, setRenderedHtml] = useState<string | null>(null);
@@ -54,27 +52,15 @@ export function TemplatePreviewDialog({
 
   const isDocx = templateTipo === "docx";
 
+  const { data: propostas = [], isLoading: loadingList } = usePropostasParaPreview(open);
+
   useEffect(() => {
     if (!open) {
       setSelectedProposta(null);
       setRenderedHtml(null);
       setSearch("");
-      setPropostas([]);
-      return;
     }
-    loadPropostas();
   }, [open]);
-
-  const loadPropostas = async () => {
-    setLoadingList(true);
-    const { data } = await supabase
-      .from("propostas_nativas")
-      .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id")
-      .order("created_at", { ascending: false })
-      .limit(100);
-    setPropostas((data as PropostaOption[]) || []);
-    setLoadingList(false);
-  };
 
   const filteredPropostas = useMemo(() => {
     if (!search.trim()) return propostas;
