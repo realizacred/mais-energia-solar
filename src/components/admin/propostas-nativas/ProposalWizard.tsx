@@ -1563,6 +1563,7 @@ export function ProposalWizard() {
 
   const handleSelectLead = (lead: LeadSelection) => {
     setSelectedLead(lead);
+    if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
     if (lead.estado) setLocEstado(lead.estado);
     if (lead.cidade) setLocCidade(lead.cidade);
     const mappedTelhado = mapLeadTipoTelhadoToProposal(lead.tipo_telhado);
