@@ -1210,7 +1210,7 @@ export function ProposalWizard() {
       try {
         const { data: cli } = await supabase
           .from("clientes")
-          .select("id, nome, telefone, email, cpf_cnpj, empresa, cep, rua, numero, complemento, bairro, cidade, estado, lead_id")
+          .select("id, nome, telefone, email, cpf_cnpj, empresa, cep, rua, numero, complemento, bairro, cidade, estado, lead_id, municipio_ibge_codigo")
           .eq("id", customerIdFromUrl)
           .single();
         if (cancelled || !cli) return;
