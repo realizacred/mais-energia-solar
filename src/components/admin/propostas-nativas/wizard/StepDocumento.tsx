@@ -941,24 +941,36 @@ export function StepDocumento({
               <FileDown className="h-3.5 w-3.5" />
               Download de Doc
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={() => handleCopyLink(true)}
-            >
-              {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
-              Copiar link com rastreio
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={() => handleCopyLink(false)}
-            >
-              {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-              Copiar link sem rastreio
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                  onClick={() => handleCopyLink(true)}
+                  disabled={!outputPdfPath}
+                >
+                  {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
+                  Copiar link com rastreio
+                </Button>
+              </TooltipTrigger>
+              {!outputPdfPath && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                  onClick={() => handleCopyLink(false)}
+                  disabled={!outputPdfPath}
+                >
+                  {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                  Copiar link sem rastreio
+                </Button>
+              </TooltipTrigger>
+              {!outputPdfPath && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+            </Tooltip>
             <Button
               variant="ghost"
               size="sm"
