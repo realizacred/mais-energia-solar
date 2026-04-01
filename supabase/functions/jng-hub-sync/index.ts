@@ -591,7 +591,7 @@ serve(async (req) => {
       skipped,
     });
 
-    console.log(`[jng-hub-sync] ${msg}`);
+    // console.log(`[jng-hub-sync] ${msg}`);
 
     return new Response(
       JSON.stringify({
