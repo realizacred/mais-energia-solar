@@ -1,14 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
 import { AlertCircle, CheckCircle2, FileText, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { valorPorExtenso, formatCurrency } from "@/utils/valorPorExtenso";
+import { formatCurrency } from "@/utils/valorPorExtenso";
 import { formatPhoneBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import { useVariableMapperData } from "@/hooks/useVariableMapper";
 
 // ── Types ────────────────────────────────────────
 interface VariableMapping {
@@ -32,16 +32,13 @@ const VARIABLE_DEFS: Array<{
   label: string;
   group: string;
   source: VariableMapping["source"];
-  path: string; // dot-notation path into loaded data
+  path: string;
 }> = [
-  // Cliente
   { key: "cliente_nome", label: "Nome completo", group: "Cliente", source: "cliente", path: "cliente.nome" },
   { key: "cliente_cpf_cnpj", label: "CPF / CNPJ", group: "Cliente", source: "cliente", path: "cliente.cpf_cnpj" },
   { key: "cliente_telefone", label: "Telefone", group: "Cliente", source: "cliente", path: "cliente.telefone" },
   { key: "cliente_email", label: "E-mail", group: "Cliente", source: "cliente", path: "cliente.email" },
   { key: "cliente_endereco", label: "Endereço completo", group: "Cliente", source: "cliente", path: "cliente.endereco" },
-
-  // Sistema / Engenharia
   { key: "potencia_sistema", label: "Potência (kWp)", group: "Engenharia", source: "projeto", path: "projeto.potencia_kwp" },
   { key: "modulo_quantidade", label: "Qtd. Módulos", group: "Engenharia", source: "projeto", path: "projeto.numero_modulos" },
   { key: "modulo_marca", label: "Modelo dos Módulos", group: "Engenharia", source: "projeto", path: "projeto.modelo_modulos" },
@@ -49,8 +46,6 @@ const VARIABLE_DEFS: Array<{
   { key: "inversores_utilizados", label: "Qtd. Inversores", group: "Engenharia", source: "projeto", path: "projeto.numero_inversores" },
   { key: "area_util", label: "Área útil (m²)", group: "Engenharia", source: "projeto", path: "projeto.area_util_m2" },
   { key: "geracao_mensal_media", label: "Geração mensal (kWh)", group: "Engenharia", source: "projeto", path: "projeto.geracao_mensal_media_kwh" },
-
-  // Financeiro
   { key: "valor_venda_total", label: "Valor total", group: "Financeiro", source: "projeto", path: "projeto.valor_total" },
   { key: "preco_por_extenso", label: "Valor por extenso", group: "Financeiro", source: "calculado", path: "_calc.preco_por_extenso" },
   { key: "forma_pagamento", label: "Forma de pagamento", group: "Financeiro", source: "projeto", path: "projeto.forma_pagamento" },
@@ -58,12 +53,8 @@ const VARIABLE_DEFS: Array<{
   { key: "valor_financiado", label: "Valor financiado", group: "Financeiro", source: "projeto", path: "projeto.valor_financiado" },
   { key: "numero_parcelas", label: "Nº parcelas", group: "Financeiro", source: "projeto", path: "projeto.numero_parcelas" },
   { key: "valor_parcela", label: "Valor da parcela", group: "Financeiro", source: "projeto", path: "projeto.valor_parcela" },
-
-  // Instalação
   { key: "prazo_estimado_dias", label: "Prazo instalação (dias)", group: "Instalação", source: "projeto", path: "projeto.prazo_estimado_dias" },
   { key: "prazo_vistoria", label: "Prazo vistoria (dias)", group: "Instalação", source: "projeto", path: "projeto.prazo_vistoria_dias" },
-
-  // Empresa
   { key: "empresa_nome", label: "Razão social", group: "Empresa", source: "empresa", path: "tenant.nome" },
   { key: "empresa_cnpj", label: "CNPJ", group: "Empresa", source: "empresa", path: "tenant.documento" },
 ];
@@ -84,70 +75,7 @@ function formatDisplayValue(value: any, key: string): string {
 
 // ── Component ────────────────────────────────────
 export function VariableMapperPanel({ dealId, customerId, projetoId, onGenerateContract }: Props) {
-  const [loading, setLoading] = useState(true);
-  const [dataMap, setDataMap] = useState<Record<string, any>>({});
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const promises: Array<Promise<Record<string, any>>> = [];
-
-      // 1. Cliente
-      if (customerId) {
-        promises.push(
-          Promise.resolve(
-            supabase.from("clientes").select("nome, cpf_cnpj, telefone, email, rua, numero, bairro, cidade, estado, cep").eq("id", customerId).maybeSingle()
-              .then(({ data }) => {
-                if (data) {
-                  const endereco = [data.rua, data.numero, data.bairro, data.cidade, data.estado, data.cep].filter(Boolean).join(", ");
-                  return { cliente: { ...data, endereco } };
-                }
-                return {};
-              })
-          )
-        );
-      } else {
-        promises.push(Promise.resolve({}));
-      }
-
-      // 2. Projeto (deal)
-      promises.push(
-        Promise.resolve(
-          supabase.from("projetos").select("potencia_kwp, numero_modulos, modelo_modulos, modelo_inversor, valor_total, valor_equipamentos, valor_mao_obra, area_util_m2, geracao_mensal_media_kwh, forma_pagamento, valor_entrada, valor_financiado, numero_parcelas, valor_parcela, prazo_estimado_dias, prazo_vistoria_dias, numero_inversores, tenant_id").eq("id", dealId).maybeSingle()
-            .then(({ data }) => ({ projeto: data || {} }))
-        )
-      );
-
-      // 3. Tenant
-      promises.push(
-        Promise.resolve(
-          supabase.from("profiles").select("tenant_id").limit(1).single()
-            .then(async ({ data: profile }) => {
-              if (!profile?.tenant_id) return {};
-              const { data: tenant } = await supabase.from("tenants").select("nome, documento").eq("id", profile.tenant_id).maybeSingle();
-              return { tenant: tenant || {} };
-            })
-        )
-      );
-
-      const results = await Promise.all(promises);
-      const merged = Object.assign({}, ...results);
-
-      // Calculated fields
-      const valorTotal = merged.projeto?.valor_total;
-      merged._calc = {
-        preco_por_extenso: valorTotal ? valorPorExtenso(Number(valorTotal)) : null,
-      };
-
-      setDataMap(merged);
-    } catch (err) {
-      console.error("VariableMapper load error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { loadData(); }, [dealId, customerId]);
+  const { data: dataMap = {}, isLoading: loading, refetch } = useVariableMapperData(dealId, customerId);
 
   const mappings: VariableMapping[] = useMemo(() => {
     return VARIABLE_DEFS.map(def => ({
@@ -197,7 +125,7 @@ export function VariableMapperPanel({ dealId, customerId, projetoId, onGenerateC
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={loadData}>
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => refetch()}>
             <RefreshCw className="h-3 w-3" /> Atualizar
           </Button>
           {onGenerateContract && (

@@ -32,6 +32,7 @@ import type { DatasetConfig, DatasetRow, VersionRow } from "./base-meteorologica
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useIrradianceDatasets, getExpectedPoints, isVersionStalled } from "@/hooks/useIrradianceDatasets";
+import { useAdminGuard as useAdminGuardQuery, useIrradianceDatasetsAndVersions as useIrradianceDatasetsAndVersionsQuery } from "@/hooks/useBaseMeteorologica";
 import { getMonthlyIrradiance, type IrradianceLookupResult } from "@/services/irradiance-provider";
 import { CsvImportPanel } from "./base-meteorologica/CsvImportPanel";
 import { VersionHistory } from "./base-meteorologica/VersionHistory";
@@ -65,29 +66,16 @@ const STATUS_COLORS: Record<string, string> = {
   failed: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
-// ── Auth Guard ───────────────────────────────────────────
-function useAdminGuard() {
-  const [state, setState] = useState<"loading" | "authorized" | "denied">("loading");
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setState("denied"); return; }
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-      const isAdmin = roles?.some((r: any) => ["admin", "super_admin", "gerente"].includes(r.role));
-      setState(isAdmin ? "authorized" : "denied");
-    })();
-  }, []);
-  return state;
-}
-
 // ── Main Page ────────────────────────────────────────────
 export function BaseMeteorologicaPage() {
-  const auth = useAdminGuard();
-  const [datasets, setDatasets] = useState<DatasetRow[]>([]);
-  const [versions, setVersions] = useState<VersionRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: auth = "loading" } = useAdminGuardQuery();
   const [cleanedUp, setCleanedUp] = useState(false);
   const [tab, setTab] = useState("overview");
+
+  const { data: dsData, refetch: reloadDsData } = useIrradianceDatasetsAndVersionsQuery(auth === "authorized");
+  const datasets = dsData?.datasets || [];
+  const versions = dsData?.versions || [];
+  const loading = auth === "loading" || !dsData;
 
   // Audit hook
   const {
@@ -112,16 +100,9 @@ export function BaseMeteorologicaPage() {
   const [purgeConfirm, setPurgeConfirm] = useState("");
   const [purging, setPurging] = useState(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    const [dsRes, verRes] = await Promise.all([
-      supabase.from("irradiance_datasets").select("id, code, name").order("code"),
-      supabase.from("irradiance_dataset_versions").select("id, dataset_id, version_tag, source_note, ingested_at, checksum_sha256, row_count, status, metadata, created_at, updated_at").order("created_at", { ascending: false }),
-    ]);
-    if (dsRes.data) setDatasets(dsRes.data);
-    if (verRes.data) setVersions(verRes.data as VersionRow[]);
-    setLoading(false);
-  }, []);
+  const loadData = useCallback(() => {
+    reloadDsData();
+  }, [reloadDsData]);
 
   // Auto-cleanup stuck versions on first load
   useEffect(() => {
@@ -137,8 +118,6 @@ export function BaseMeteorologicaPage() {
         loadData();
         auditReload();
       })();
-    } else if (auth === "authorized" && cleanedUp) {
-      loadData();
     }
   }, [auth, cleanedUp, loadData, auditReload]);
 

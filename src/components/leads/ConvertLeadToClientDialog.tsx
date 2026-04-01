@@ -8,6 +8,7 @@ import { MissingDocsConfirmModal } from "./MissingDocsConfirmModal";
 import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
 import { useOfflineConversionSync, getCachedEquipment, setCachedEquipment } from "@/hooks/useOfflineConversionSync";
+import { useConversionEquipment } from "@/hooks/useConvertLeadToClient";
 import { createEmptyItem } from "@/services/paymentComposition/types";
 import { validateComposition } from "@/services/paymentComposition/calculator";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
@@ -116,6 +117,7 @@ export function ConvertLeadToClientDialog({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [savingAsLead, setSavingAsLead] = useState(false);
+  const { data: equipmentData } = useConversionEquipment();
   const [disjuntores, setDisjuntores] = useState<Disjuntor[]>([]);
   const [transformadores, setTransformadores] = useState<Transformador[]>([]);
   const [simulacoes, setSimulacoes] = useState<Simulacao[]>([]);
@@ -205,44 +207,16 @@ export function ConvertLeadToClientDialog({
 
   // Online status is now provided by useOfflineConversionSync
 
-  // Load equipment options
+  // Sync equipment from hook into local state
   useEffect(() => {
-    const loadEquipment = async () => {
-      // Try cache first for offline support
-      const cached = getCachedEquipment();
-      if (cached) {
-        setDisjuntores(cached.disjuntores);
-        setTransformadores(cached.transformadores);
-      }
+    if (equipmentData) {
+      setDisjuntores(equipmentData.disjuntores);
+      setTransformadores(equipmentData.transformadores);
+    }
+  }, [equipmentData]);
 
-      if (!navigator.onLine) return;
-      
-      try {
-        const [disjuntoresRes, transformadoresRes] = await Promise.all([
-          supabase.from("disjuntores").select("id, amperagem, descricao, ativo").eq("ativo", true).order("amperagem"),
-          supabase.from("transformadores").select("id, potencia_kva, descricao, ativo").eq("ativo", true).order("potencia_kva"),
-        ]);
-
-        if (disjuntoresRes.data) {
-          setDisjuntores(disjuntoresRes.data);
-        }
-        if (transformadoresRes.data) {
-          setTransformadores(transformadoresRes.data);
-        }
-        // Cache for offline use
-        if (disjuntoresRes.data && transformadoresRes.data) {
-          setCachedEquipment(disjuntoresRes.data, transformadoresRes.data);
-        }
-        if (disjuntoresRes.error) console.warn("[ConvertLead] disjuntores error:", disjuntoresRes.error);
-        if (transformadoresRes.error) console.warn("[ConvertLead] transformadores error:", transformadoresRes.error);
-      } catch (err) {
-        console.error("[ConvertLead] loadEquipment crash:", err);
-      }
-    };
-
-    loadEquipment();
-
-    // Check if "Aguardando Documentação" status exists
+  // Check if "Aguardando Documentação" status exists
+  useEffect(() => {
     const checkAguardandoStatus = async () => {
       if (!navigator.onLine) return;
       try {
