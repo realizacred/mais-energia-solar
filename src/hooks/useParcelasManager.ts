@@ -18,7 +18,7 @@ export function useParcelasData(recebimentoId: string, enabled: boolean) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("parcelas")
-        .select("id, numero_parcela, valor, data_vencimento, status, pagamento_id, recebimento_id")
+        .select("id, numero_parcela, valor, data_vencimento, status, pagamento_id, recebimento_id, cobranca_status, cobranca_id, cobranca_gateway, boleto_url, boleto_linha_digitavel, boleto_codigo_barras, pix_qr_code, pix_copia_cola, cobranca_valor_original, cobranca_valor_cobrado, cobranca_multa_aplicada, cobranca_juros_aplicado, cobranca_paga_em")
         .eq("recebimento_id", recebimentoId)
         .order("numero_parcela");
 
