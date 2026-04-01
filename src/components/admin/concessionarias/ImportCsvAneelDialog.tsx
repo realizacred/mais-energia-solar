@@ -274,8 +274,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
           if (stripped) concByNormMatch[stripped] = c;
         }
         
-        if (aliasRes.data) {
-          for (const a of aliasRes.data) {
+        if (aliasData) {
+          for (const a of aliasData) {
             const c = concById.get(a.concessionaria_id);
             if (c) concByNormMatch[normMatch(a.alias_aneel)] = c;
           }
