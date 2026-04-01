@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Sun, LayoutGrid, SlidersHorizontal, Sliders, Landmark, Link2 } from "lucide-react";
+import { DollarSign, Sun, LayoutGrid, SlidersHorizontal, Sliders, Landmark, Link2, CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { useTenantPremises } from "@/hooks/useTenantPremises";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +12,7 @@ import { TabValoresPadroes } from "./tabs/TabValoresPadroes";
 import { TabTributacao } from "./tabs/TabTributacao";
 import { PremissasFooter } from "./PremissasFooter";
 import { TabIntegracoes } from "./tabs/TabIntegracoes";
+import { TabCobrancas } from "./tabs/TabCobrancas";
 import { motion } from "framer-motion";
 
 const TABS = [
@@ -21,6 +22,7 @@ const TABS = [
   { value: "valores-padroes", label: "Valores padrões", icon: SlidersHorizontal },
   { value: "tributacao", label: "Tributação", icon: Landmark },
   { value: "integracoes", label: "Integrações", icon: Link2 },
+  { value: "cobrancas", label: "Cobranças", icon: CreditCard },
 ] as const;
 
 export function PremissasPage() {
@@ -100,6 +102,9 @@ export function PremissasPage() {
         </TabsContent>
         <TabsContent value="integracoes" className="mt-4">
           <TabIntegracoes premises={ctx.premises} onChange={ctx.setPremises} />
+        </TabsContent>
+        <TabsContent value="cobrancas" className="mt-4">
+          <TabCobrancas premises={ctx.premises} onChange={ctx.setPremises} />
         </TabsContent>
       </Tabs>
 
