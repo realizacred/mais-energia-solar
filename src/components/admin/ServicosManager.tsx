@@ -86,7 +86,60 @@ export function ServicosManager() {
     descricao: "",
     observacoes: "",
   });
-      fetchData();
+
+  const handleClienteChange = (clienteId: string) => {
+    const cliente = clientes.find(c => c.id === clienteId);
+    setFormData(prev => ({
+      ...prev,
+      cliente_id: clienteId,
+      endereco: cliente?.endereco || prev.endereco,
+      bairro: cliente?.bairro || prev.bairro,
+      cidade: cliente?.cidade || prev.cidade,
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.instalador_id || !formData.data_agendada) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Selecione instalador e data",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("servicos_agendados").insert([{
+        instalador_id: formData.instalador_id,
+        tipo: formData.tipo as "instalacao" | "manutencao" | "visita_tecnica" | "suporte",
+        data_agendada: formData.data_agendada,
+        cliente_id: formData.cliente_id || null,
+        hora_inicio: formData.hora_inicio || null,
+        endereco: formData.endereco || null,
+        bairro: formData.bairro || null,
+        cidade: formData.cidade || null,
+        descricao: formData.descricao || null,
+        observacoes: formData.observacoes || null,
+      }]).select("id").single();
+
+      if (error) throw error;
+
+      toast({ title: "Serviço agendado com sucesso!" });
+      setDialogOpen(false);
+      setFormData({
+        cliente_id: "",
+        instalador_id: "",
+        tipo: "instalacao",
+        data_agendada: "",
+        hora_inicio: "",
+        endereco: "",
+        bairro: "",
+        cidade: "",
+        descricao: "",
+        observacoes: "",
+      });
+      refreshServicos();
     } catch (error) {
       const appError = handleSupabaseError(error, "create_servico");
       toast({
