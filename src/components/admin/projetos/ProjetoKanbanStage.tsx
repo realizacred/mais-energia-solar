@@ -1,6 +1,7 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useKanbanAutomations, useKanbanStagePermissions } from "@/hooks/useProjetoKanbanStage";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Zap, Plus, Settings2, Clock, Eye, Lock, Palette, ChevronDown, DollarSign, Filter, Search, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
