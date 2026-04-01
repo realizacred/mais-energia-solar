@@ -15,7 +15,13 @@ export interface FechamentoCaixa {
   total_recebido: number;
   total_parcelas_pagas: number;
   total_recebimentos_quitados: number;
+  total_receitas_avulsas: number;
+  total_despesas: number;
+  total_receitas: number;
+  saldo_periodo: number;
   breakdown_formas: Record<string, number>;
+  breakdown_categorias: Record<string, number>;
+  breakdown_despesas: Record<string, number>;
   status: string;
   fechado_por: string | null;
   fechado_em: string | null;
@@ -28,6 +34,12 @@ export interface ResumoFechamento {
   total: number;
   quantidade: number;
   formas: Record<string, number>;
+  receitasAvulsas: number;
+  despesas: number;
+  breakdownCategorias: Record<string, number>;
+  breakdownDespesas: Record<string, number>;
+  totalReceitas: number;
+  saldoPeriodo: number;
 }
 
 export function useFechamentosCaixa() {
@@ -50,14 +62,15 @@ export function useResumoFechamento(dataInicio: string, dataFim: string) {
   return useQuery({
     queryKey: ["resumo-fechamento", dataInicio, dataFim],
     queryFn: async (): Promise<ResumoFechamento> => {
-      const { data, error } = await supabase
+      // 1. Pagamentos (parcelas pagas)
+      const { data: pagData, error: pagErr } = await supabase
         .from("pagamentos")
         .select("valor_pago, forma_pagamento, data_pagamento")
         .gte("data_pagamento", dataInicio)
         .lte("data_pagamento", dataFim);
-      if (error) throw error;
+      if (pagErr) throw pagErr;
 
-      const items = data || [];
+      const items = pagData || [];
       const total = items.reduce((s, p) => s + Number(p.valor_pago || 0), 0);
       const formas = items.reduce((acc, p) => {
         const f = p.forma_pagamento || "outros";
@@ -65,7 +78,47 @@ export function useResumoFechamento(dataInicio: string, dataFim: string) {
         return acc;
       }, {} as Record<string, number>);
 
-      return { total, quantidade: items.length, formas };
+      // 2. Lançamentos financeiros do período
+      const { data: lancData, error: lancErr } = await (supabase as any)
+        .from("lancamentos_financeiros")
+        .select("tipo, categoria, valor, status")
+        .gte("data_lancamento", dataInicio)
+        .lte("data_lancamento", dataFim)
+        .neq("status", "cancelado");
+      if (lancErr) throw lancErr;
+
+      const lancs = (lancData || []) as Array<{ tipo: string; categoria: string; valor: number; status: string }>;
+
+      let receitasAvulsas = 0;
+      const breakdownCategorias: Record<string, number> = {};
+      let despesas = 0;
+      const breakdownDespesas: Record<string, number> = {};
+
+      for (const l of lancs) {
+        const v = Number(l.valor);
+        if (l.tipo === "receita") {
+          receitasAvulsas += v;
+          breakdownCategorias[l.categoria] = (breakdownCategorias[l.categoria] || 0) + v;
+        } else {
+          despesas += v;
+          breakdownDespesas[l.categoria] = (breakdownDespesas[l.categoria] || 0) + v;
+        }
+      }
+
+      const totalReceitas = total + receitasAvulsas;
+      const saldoPeriodo = totalReceitas - despesas;
+
+      return {
+        total,
+        quantidade: items.length,
+        formas,
+        receitasAvulsas,
+        despesas,
+        breakdownCategorias,
+        breakdownDespesas,
+        totalReceitas,
+        saldoPeriodo,
+      };
     },
     staleTime: 1000 * 30,
     enabled: !!dataInicio && !!dataFim,
@@ -110,6 +163,12 @@ export function useCriarFechamento() {
       totalRecebido: number;
       totalParcelas: number;
       breakdownFormas: Record<string, number>;
+      totalReceitasAvulsas: number;
+      totalDespesas: number;
+      totalReceitas: number;
+      saldoPeriodo: number;
+      breakdownCategorias: Record<string, number>;
+      breakdownDespesas: Record<string, number>;
       observacoes?: string;
       fechadoPor: string;
     }) => {
@@ -121,7 +180,13 @@ export function useCriarFechamento() {
           data_fim: payload.dataFim,
           total_recebido: payload.totalRecebido,
           total_parcelas_pagas: payload.totalParcelas,
+          total_receitas_avulsas: payload.totalReceitasAvulsas,
+          total_despesas: payload.totalDespesas,
+          total_receitas: payload.totalReceitas,
+          saldo_periodo: payload.saldoPeriodo,
           breakdown_formas: payload.breakdownFormas,
+          breakdown_categorias: payload.breakdownCategorias,
+          breakdown_despesas: payload.breakdownDespesas,
           status: "fechado",
           fechado_por: payload.fechadoPor,
           fechado_em: new Date().toISOString(),
