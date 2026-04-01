@@ -879,7 +879,7 @@ export function ProposalWizard() {
               // No lead_id on proposta — try to get lead from cliente, or synthesize from cliente data
               const { data: cli } = await supabase
                 .from("clientes")
-                .select("id, nome, telefone, email, lead_id, estado, cidade")
+                .select("id, nome, telefone, email, lead_id, estado, cidade, municipio_ibge_codigo")
                 .eq("id", propostaMeta.cliente_id)
                 .maybeSingle();
 
