@@ -193,6 +193,18 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
     return counts;
   }, [leads]);
 
+  // Get list of user_ids already linked to vendedores
+  const linkedUserIds = useMemo(() => {
+    return vendedores
+      .filter(v => v.user_id && v.id !== editingVendedor?.id)
+      .map(v => v.user_id);
+  }, [vendedores, editingVendedor]);
+
+  // Available users (not yet linked to another vendedor)
+  const availableUsers = useMemo(() => {
+    return users.filter(u => !linkedUserIds.includes(u.user_id));
+  }, [users, linkedUserIds]);
+
   const fetchUsers = () => refreshVendedores();
   const fetchVendedores = () => refreshVendedores();
 
