@@ -566,12 +566,27 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
 
             {importResult && (
               <div className="text-center space-y-3 py-4">
-                <CheckCircle2 className="w-12 h-12 text-success mx-auto" />
+                <CheckCircle2 className={`w-12 h-12 mx-auto ${importResult.errors > 0 ? 'text-warning' : 'text-success'}`} />
                 <p className="text-lg font-semibold text-foreground">Importação concluída</p>
                 <p className="text-sm text-muted-foreground">
                   {importResult.inserted} inseridas · {importResult.updated} atualizadas · {importResult.skipped} já existiam no catálogo
                   {importResult.errors > 0 && ` · ${importResult.errors} erros`}
                 </p>
+                {importResult.errorItems && importResult.errorItems.length > 0 && (
+                  <details className="mt-3 text-left">
+                    <summary className="text-sm text-destructive cursor-pointer font-medium">
+                      {importResult.errorItems.length} erro(s) — ver detalhes
+                    </summary>
+                    <ul className="mt-2 text-xs text-muted-foreground space-y-1 max-h-40 overflow-y-auto border border-border rounded-lg p-2">
+                      {importResult.errorItems.map((item, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="font-medium text-foreground">{item.fabricante} {item.modelo}</span>
+                          <span className="text-destructive">{item.motivo}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </div>
             )}
           </div>
