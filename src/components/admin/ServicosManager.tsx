@@ -92,7 +92,7 @@ export function ServicosManager() {
     setFormData(prev => ({
       ...prev,
       cliente_id: clienteId,
-      endereco: cliente?.endereco || prev.endereco,
+      endereco: (cliente as any)?.endereco || prev.endereco,
       bairro: cliente?.bairro || prev.bairro,
       cidade: cliente?.cidade || prev.cidade,
     }));
