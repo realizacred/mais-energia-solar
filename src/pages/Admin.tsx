@@ -297,6 +297,7 @@ const TAB_TITLES: Record<string, string> = {
   servicos: "Agenda de serviços",
   "visitas-tecnicas": "Visitas técnicas",
   "financeiro-dashboard": "Financeiro",
+  lancamentos: "Lançamentos Financeiros",
   recebimentos: "Contas a receber",
   inadimplencia: "Inadimplência",
   comissoes: "Comissões",
