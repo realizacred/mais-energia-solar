@@ -1,6 +1,10 @@
-# AGENTS.md v3.1 — Mais Energia Solar CRM
+# AGENTS.md v3.2 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-03-31 (v3.1 — Sprints Visuais concluídos)
+# Última atualização: 2026-04-01 (v3.2 — Migração C-01 concluída + Gate de instalação)
+# Changelog v3.2: Migração C-01 concluída (40+ hooks, ~170 queries migradas)
+#                 RB-22 (gate instalação), RB-23 (console.log EF) adicionados
+#                 DA-15 (arquitetura dois resolvers) adicionado
+#                 Tabela completa de hooks criados adicionada
 # Changelog v3.1: Sprints Visuais V1-V5 concluídos — ver Bloco 10
 # Changelog v3.0: RB-16, RB-17, AP-21, AP-22, AP-23, AP-24 adicionados
 #                 DA-12, DA-13, DA-14 adicionados
@@ -177,6 +181,20 @@ RB-21 SHADOW SEMÂNTICO EM CARDS (NOVO v3.1)
     SEMPRE use: hover:shadow-md para cards com hover
     EXCEÇÃO: tooltips, dropdowns, modais, elementos flutuantes
 
+RB-22 GATE DE INSTALAÇÃO OBRIGATÓRIO (NOVO v3.2)
+    Todo projeto deve bloquear "Iniciar checklist de instalação" enquanto
+    não houver proposta com status IN ('aceita','accepted','aprovada','ganha')
+    OU is_principal = true.
+    SEMPRE use: useQuery + disabled no botão + banner de aviso bg-warning/10
+    Implementado em: ProjetoInstalacaoTab.tsx
+
+RB-23 CONSOLE.LOG PROIBIDO EM EDGE FUNCTIONS (NOVO v3.2)
+    Edge Functions em produção não podem ter console.log ativo.
+    SEMPRE use: console.error apenas para erros reais com prefixo do módulo
+    Para debug: comentar // console.log() — nunca ativo no deploy
+    ATENÇÃO: ao comentar console.log multi-linha, comentar TODAS as linhas
+    (incluindo o corpo do objeto), não apenas a primeira linha
+
 # =============================================================================
 # BLOCO 2 — BOAS PRÁTICAS
 # =============================================================================
@@ -316,6 +334,16 @@ DA-14 MIGRAÇÃO PROGRESSIVA DE DÉBITO TÉCNICO (NOVO v3.0)
     Decisão: Migrar por módulo, um por vez, com build verificado entre cada módulo.
              Priorizar por frequência de edição, não por tamanho do componente.
     Quando quebrar: NUNCA migrar mais de um módulo por PR sem revisão.
+
+DA-15 ARQUITETURA DE VARIÁVEIS DE PROPOSTA — DOIS RESOLVERS (NOVO v3.2)
+    Contexto: Auditoria 2026-04 — 59 variáveis existiam só no backend.
+              O FE usa deepGet(finalSnapshot, key) como fallback automático.
+    Decisão: Frontend (resolveProposalVariables.ts) = preview/audit no wizard.
+             Backend (_shared/resolvers/) = geração do PDF.
+             Fallback via snapshot elimina necessidade de duplicar lógica.
+             Adicionar ao FE apenas se precisar de preview em tempo real.
+    Quando quebrar: NUNCA duplicar lógica de cálculo entre FE e BE.
+    Documentado em: AP-15 no resolver FE (comentário de topo).
 
 # =============================================================================
 # BLOCO 6 — REFERÊNCIA RÁPIDA DE PADRÕES (§1–§50)
@@ -505,6 +533,57 @@ files.forEach(file => {
 - EXCEÇÃO: chat bubbles, avatares, ícones decorativos — rounded-2xl correto
 - EXCEÇÃO: landing page institucional — estilo próprio, não alterar
 
+### Migração C-01 — CONCLUÍDA v3.2
+- Total de queries migradas: ~170
+- Hooks criados: 40+
+- supabase.from() restantes em componentes: 91 (writes imperativos em handlers — corretos per §16)
+- PropostaPublica.tsx: página pública, aceitável per Bloco 10
+- AuthForm.tsx: protegido per Bloco 10, não modificar
+
+#### Hooks criados — Tabela completa
+
+| Hook | Funções exportadas | Módulo |
+|---|---|---|
+| useSignatureData.ts | useSaveSignatureSettings, useDeleteSigner, useSaveSigner | SignatureTab |
+| useTemplatePreview.ts | usePropostasParaPreview, buildPropostaContext | TemplatePreviewDialog |
+| useMeterDetail.ts | useLinkedUC, useDeleteMeter | MeterDetailPage |
+| useImportCsvAneel.ts | useConcessionariasForMatch, useInsertAneelSyncRun | ImportCsvAneelDialog |
+| useWaInstances.ts | vendedoresQuery, instanceVendedoresQuery, saveVendedoresMutation | WaInstancesManager |
+| useFiscalEmissao.ts | useFiscalInvoices, useFiscalMunicipalServices, useFiscalSettings, useFiscalInvoiceEvents, useCreateFiscalInvoice | FiscalEmissao |
+| useVariableMapper.ts | useVariableMapperData | VariableMapperPanel |
+| useBaseMeteorologica.ts | useAdminGuard, useIrradianceDatasetsAndVersions | BaseMeteorologicaPage |
+| useFiscalWizard.ts | useFiscalWizardSettings, useFiscalWizardServices, useSaveFiscalSettings | FiscalWizard |
+| useConvertLeadToClient.ts | useConversionEquipment | ConvertLeadToClientDialog |
+| useAutoReplyConfig.ts | useAutoReplyConfigData, useSaveAutoReplyConfig | AutoReplyConfig |
+| useParcelasManager.ts | useParcelasData, useGatewayActive | ParcelasManager |
+| useEmailTemplates.ts | useEmailTemplatesList, useSaveEmailTemplate, useDeleteEmailTemplate, useDuplicateEmailTemplate | EmailTemplatesPage |
+| useProjetoKanbanStage.ts | useKanbanAutomations, useKanbanStagePermissions | ProjetoKanbanStage |
+| useFiscalLogs.ts | useFiscalProviderRequests, useFiscalProviderWebhooks | FiscalLogs |
+| useDirectorOverview.ts | useLeadStats | DirectorOverview |
+| useUsuarios.ts | useIsAdmin, useUsuariosList, useRefreshUsuarios | UsuariosManager |
+| useConfSolar.ts | usePricingConfig, usePremissasTecnicas, usePropostaTemplates, usePropostaVariaveisCustom | conf-solar tabs |
+| useAprovacaoUsuarios.ts | usePendingUsers, useRefreshPendingUsers | AprovacaoUsuarios |
+| usePagamentosComissao.ts | usePagamentosComissao, useRefreshPagamentosComissao | PagamentosComissaoDialog |
+| useRecebimentos.ts | useRecebimentosFull, useClientesAtivos, useRefreshRecebimentos | RecebimentosManager |
+| useReleaseChecklist.ts | useReleaseHistory, useRefreshReleaseHistory | ReleaseChecklist |
+| useServicos.ts | useServicosData, useRefreshServicos | ServicosManager |
+| useVendedorMetas.ts | useVendedorMetasData, useRefreshVendedorMetas | VendedorMetasIndividuais |
+| useVendedores.ts | useVendedoresList, useUserProfiles, useRefreshVendedores | VendedoresManager |
+| useImportContaEnergia.ts | useConcessionariasAtivas | ImportContaEnergiaDialog |
+
+### Gate de instalação — IMPLEMENTADO v3.2
+- ProjetoInstalacaoTab.tsx: useQuery verifica proposta aceita
+- Botões "Iniciar checklist" desabilitados sem proposta aceita
+- Banner bg-warning/10 com AlertTriangle exibido
+
+### Validação pré-geração — MELHORADA v3.2
+- validatePropostaFinal.ts: adicionada verificação W6b (economia mensal)
+- economiaMensal passada pelo ProposalWizard ao validador
+
+### console.log em Edge Functions — LIMPO v3.2
+- template-preview/index.ts: 24 console.log comentados
+- Corrigidos 2 blocos multi-linha com corpo de objeto dangling
+
 # =============================================================================
 # BLOCO 11 — REGRAS DE ESCOPO
 # =============================================================================
@@ -682,5 +761,5 @@ Regras de adaptação:
 - Grids: sempre começar com grid-cols-1, subir com sm: e lg:
 
 # =============================================================================
-# FIM DO AGENTS.md v3.1
+# FIM DO AGENTS.md v3.2
 # =============================================================================
