@@ -10,12 +10,15 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Calculator, TrendingUp, CreditCard, AlertTriangle, Lock,
-  Download, Eye, Receipt, FileText,
+  Download, FileText, ChevronDown, ArrowUpCircle, ArrowDownCircle,
 } from "lucide-react";
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,10 +26,9 @@ import {
   useFechamentosCaixa, useResumoFechamento, usePagamentosPeriodo, useCriarFechamento,
 } from "@/hooks/useFechamentoCaixa";
 import { StatCard } from "@/components/ui-kit/StatCard";
+import { formatBRL } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+import { CATEGORIAS_DESPESA, CATEGORIAS_RECEITA } from "@/hooks/useLancamentosFinanceiros";
 
 const formatDateBR = (d: string) =>
   format(new Date(d), "dd/MM/yyyy", { locale: ptBR });
@@ -41,6 +43,9 @@ const FORMAS_LABEL: Record<string, string> = {
   financiamento: "Financiamento",
   outros: "Outros",
 };
+
+const ALL_CATS = [...CATEGORIAS_RECEITA, ...CATEGORIAS_DESPESA];
+const catLabel = (v: string) => ALL_CATS.find((c) => c.value === v)?.label || v;
 
 export function FechamentoCaixaPage() {
   const today = new Date();
@@ -80,13 +85,20 @@ export function FechamentoCaixaPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const r = resumoFechamento.data;
       await criarFechamento.mutateAsync({
         tipo: tipoFechamento,
         dataInicio: tipoData.inicio,
         dataFim: tipoData.fim,
-        totalRecebido: resumoFechamento.data?.total || 0,
-        totalParcelas: resumoFechamento.data?.quantidade || 0,
-        breakdownFormas: resumoFechamento.data?.formas || {},
+        totalRecebido: r?.total || 0,
+        totalParcelas: r?.quantidade || 0,
+        breakdownFormas: r?.formas || {},
+        totalReceitasAvulsas: r?.receitasAvulsas || 0,
+        totalDespesas: r?.despesas || 0,
+        totalReceitas: r?.totalReceitas || 0,
+        saldoPeriodo: r?.saldoPeriodo || 0,
+        breakdownCategorias: r?.breakdownCategorias || {},
+        breakdownDespesas: r?.breakdownDespesas || {},
         observacoes: observacoes || undefined,
         fechadoPor: user.id,
       });
@@ -116,7 +128,7 @@ export function FechamentoCaixaPage() {
   if (loadingFechamentos) {
     return (
       <div className="space-y-6 p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="p-5"><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-4 w-32" /></Card>
           ))}
@@ -128,7 +140,7 @@ export function FechamentoCaixaPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <Calculator className="w-5 h-5 text-primary" />
@@ -142,24 +154,24 @@ export function FechamentoCaixaPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={TrendingUp}
-          label="Recebido hoje"
-          value={formatCurrency(resumo?.total || 0)}
+          label="Receitas (período)"
+          value={formatBRL(resumo?.totalReceitas || 0)}
           color="success"
         />
         <StatCard
-          icon={CreditCard}
-          label="Pagamentos registrados"
-          value={String(resumo?.quantidade || 0)}
-          color="primary"
+          icon={ArrowDownCircle}
+          label="Despesas (período)"
+          value={formatBRL(resumo?.despesas || 0)}
+          color="destructive"
         />
         <StatCard
-          icon={Receipt}
-          label="Formas utilizadas"
-          value={String(Object.keys(resumo?.formas || {}).length)}
-          color="info"
+          icon={CreditCard}
+          label="Saldo do período"
+          value={formatBRL(resumo?.saldoPeriodo || 0)}
+          color={(resumo?.saldoPeriodo || 0) >= 0 ? "primary" : "destructive"}
         />
         <StatCard
           icon={AlertTriangle}
@@ -169,16 +181,74 @@ export function FechamentoCaixaPage() {
         />
       </div>
 
+      {/* Breakdown resumo do período */}
+      {resumo && (
+        <Card className="shadow-sm">
+          <CardContent className="p-5 space-y-3">
+            <h3 className="text-base font-semibold text-foreground">Resumo do Período</h3>
+            <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="font-semibold text-foreground">Origem</TableHead>
+                    <TableHead className="font-semibold text-foreground text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow className="hover:bg-muted/30">
+                    <TableCell className="text-foreground">Propostas (parcelas)</TableCell>
+                    <TableCell className="text-right font-mono text-sm text-success">{formatBRL(resumo.total)}</TableCell>
+                  </TableRow>
+                  {resumo.receitasAvulsas > 0 && (
+                    <TableRow className="hover:bg-muted/30">
+                      <TableCell className="text-foreground">Receitas avulsas</TableCell>
+                      <TableCell className="text-right font-mono text-sm text-success">{formatBRL(resumo.receitasAvulsas)}</TableCell>
+                    </TableRow>
+                  )}
+                  <TableRow className="bg-success/5 hover:bg-success/10 font-semibold">
+                    <TableCell className="text-foreground font-semibold">Total Receitas</TableCell>
+                    <TableCell className="text-right font-mono text-sm text-success font-bold">{formatBRL(resumo.totalReceitas)}</TableCell>
+                  </TableRow>
+
+                  {/* Despesas breakdown */}
+                  {Object.entries(resumo.breakdownDespesas).map(([cat, val]) => (
+                    <TableRow key={cat} className="hover:bg-muted/30">
+                      <TableCell className="text-foreground pl-6">{catLabel(cat)}</TableCell>
+                      <TableCell className="text-right font-mono text-sm text-destructive">- {formatBRL(val)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {resumo.despesas > 0 && (
+                    <TableRow className="bg-destructive/5 hover:bg-destructive/10 font-semibold">
+                      <TableCell className="text-foreground font-semibold">Total Despesas</TableCell>
+                      <TableCell className="text-right font-mono text-sm text-destructive font-bold">- {formatBRL(resumo.despesas)}</TableCell>
+                    </TableRow>
+                  )}
+
+                  <TableRow className={cn("font-bold", (resumo.saldoPeriodo >= 0) ? "bg-primary/5" : "bg-destructive/5")}>
+                    <TableCell className="text-foreground font-bold text-base">Saldo</TableCell>
+                    <TableCell className={cn("text-right font-mono font-bold text-base",
+                      resumo.saldoPeriodo >= 0 ? "text-primary" : "text-destructive"
+                    )}>
+                      {formatBRL(resumo.saldoPeriodo)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Breakdown por forma */}
       {resumo && Object.keys(resumo.formas).length > 0 && (
-        <Card>
+        <Card className="shadow-sm">
           <CardContent className="p-5">
             <h3 className="text-sm font-semibold text-foreground mb-3">Por forma de pagamento</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {Object.entries(resumo.formas).map(([forma, valor]) => (
                 <div key={forma} className="flex justify-between items-center p-3 rounded-lg border border-border bg-muted/30">
                   <span className="text-sm text-muted-foreground">{FORMAS_LABEL[forma] || forma}</span>
-                  <span className="text-sm font-semibold text-foreground font-mono">{formatCurrency(valor)}</span>
+                  <span className="text-sm font-semibold text-foreground font-mono">{formatBRL(valor)}</span>
                 </div>
               ))}
             </div>
@@ -187,10 +257,10 @@ export function FechamentoCaixaPage() {
       )}
 
       {/* Tabela de Pagamentos */}
-      <Card>
-        <div className="flex items-center justify-between p-4 border-b border-border">
+      <Card className="shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b border-border gap-2">
           <h2 className="text-sm font-semibold text-foreground">Pagamentos do período</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               type="date"
               value={periodoInicio}
@@ -243,7 +313,7 @@ export function FechamentoCaixaPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-mono font-medium text-foreground">
-                      {formatCurrency(p.valor_pago)}
+                      {formatBRL(p.valor_pago)}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-32 truncate">
                       {p.observacoes || "—"}
@@ -257,7 +327,7 @@ export function FechamentoCaixaPage() {
       </Card>
 
       {/* Histórico de Fechamentos */}
-      <Card>
+      <Card className="shadow-sm">
         <div className="p-4 border-b border-border">
           <h2 className="text-sm font-semibold text-foreground">Histórico de fechamentos</h2>
         </div>
@@ -269,31 +339,59 @@ export function FechamentoCaixaPage() {
         ) : (
           <div className="divide-y divide-border">
             {fechamentos.map((f) => (
-              <div key={f.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {f.tipo === "diario" ? "Diário" : f.tipo === "semanal" ? "Semanal" : "Mensal"}
-                    {" — "}{formatDateBR(f.data_inicio)}
-                    {f.data_inicio !== f.data_fim && ` a ${formatDateBR(f.data_fim)}`}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {f.total_parcelas_pagas} pagamentos
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className="font-mono font-bold text-foreground">{formatCurrency(f.total_recebido)}</p>
-                  <Badge variant="outline" className={cn(
-                    "text-xs",
-                    f.status === "conferido"
-                      ? "bg-success/10 text-success border-success/30"
-                      : f.status === "fechado"
-                      ? "bg-primary/10 text-primary border-primary/30"
-                      : "bg-muted text-muted-foreground"
-                  )}>
-                    {f.status === "conferido" ? "Conferido" : f.status === "fechado" ? "Fechado" : "Aberto"}
-                  </Badge>
-                </div>
-              </div>
+              <Collapsible key={f.id}>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors cursor-pointer">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {f.tipo === "diario" ? "Diário" : f.tipo === "semanal" ? "Semanal" : "Mensal"}
+                        {" — "}{formatDateBR(f.data_inicio)}
+                        {f.data_inicio !== f.data_fim && ` a ${formatDateBR(f.data_fim)}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {f.total_parcelas_pagas} pagamentos
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="font-mono font-bold text-foreground">{formatBRL(f.saldo_periodo || f.total_recebido)}</p>
+                        {f.total_despesas > 0 && (
+                          <p className="text-xs text-destructive font-mono">- {formatBRL(f.total_despesas)}</p>
+                        )}
+                      </div>
+                      <Badge variant="outline" className={cn(
+                        "text-xs",
+                        f.status === "conferido"
+                          ? "bg-success/10 text-success border-success/30"
+                          : f.status === "fechado"
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "bg-muted text-muted-foreground"
+                      )}>
+                        {f.status === "conferido" ? "Conferido" : f.status === "fechado" ? "Fechado" : "Aberto"}
+                      </Badge>
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="px-4 pb-4 space-y-2">
+                    {f.breakdown_despesas && Object.keys(f.breakdown_despesas).length > 0 && (
+                      <div className="rounded-lg border border-border p-3 space-y-1">
+                        <p className="text-xs font-semibold text-foreground mb-1">Despesas</p>
+                        {Object.entries(f.breakdown_despesas).map(([cat, val]) => (
+                          <div key={cat} className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">{catLabel(cat)}</span>
+                            <span className="text-destructive font-mono">- {formatBRL(val as number)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {f.observacoes && (
+                      <p className="text-xs text-muted-foreground italic">{f.observacoes}</p>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             ))}
           </div>
         )}
@@ -308,14 +406,14 @@ export function FechamentoCaixaPage() {
             </div>
             <div className="flex-1">
               <DialogTitle className="text-base font-semibold text-foreground">Fechar Caixa</DialogTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Consolide e valide os pagamentos do período</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Consolide e valide receitas e despesas do período</p>
             </div>
           </DialogHeader>
 
           <ScrollArea className="flex-1 min-h-0">
             <div className="p-5 space-y-4">
               {/* Tipo de fechamento */}
-              <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {(["diario", "semanal", "mensal"] as const).map((tipo) => (
                   <Button
                     key={tipo}
@@ -333,30 +431,76 @@ export function FechamentoCaixaPage() {
                 ))}
               </div>
 
-              {/* Resumo do período */}
-              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Período</span>
-                  <span className="text-foreground">
-                    {formatDateBR(tipoData.inicio)}
-                    {tipoData.inicio !== tipoData.fim && ` a ${formatDateBR(tipoData.fim)}`}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total recebido</span>
-                  <span className="font-bold text-foreground">{formatCurrency(resumoFechamento.data?.total || 0)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Pagamentos</span>
-                  <span className="text-foreground">{resumoFechamento.data?.quantidade || 0}</span>
-                </div>
-                {resumoFechamento.data && Object.entries(resumoFechamento.data.formas).map(([f, v]) => (
-                  <div key={f} className="flex justify-between text-xs">
-                    <span className="text-muted-foreground pl-3">{FORMAS_LABEL[f] || f}</span>
-                    <span className="text-muted-foreground">{formatCurrency(v)}</span>
-                  </div>
-                ))}
+              {/* Resumo do período - tabela completa */}
+              <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
+                <Table>
+                  <TableBody>
+                    <TableRow className="hover:bg-muted/30">
+                      <TableCell className="text-sm text-muted-foreground">Período</TableCell>
+                      <TableCell className="text-right text-sm text-foreground">
+                        {formatDateBR(tipoData.inicio)}
+                        {tipoData.inicio !== tipoData.fim && ` a ${formatDateBR(tipoData.fim)}`}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow className="hover:bg-muted/30">
+                      <TableCell className="text-sm text-foreground">
+                        <span className="flex items-center gap-2"><ArrowUpCircle className="w-3.5 h-3.5 text-success" /> Propostas (parcelas)</span>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm text-success">{formatBRL(resumoFechamento.data?.total || 0)}</TableCell>
+                    </TableRow>
+                    {(resumoFechamento.data?.receitasAvulsas || 0) > 0 && (
+                      <TableRow className="hover:bg-muted/30">
+                        <TableCell className="text-sm text-foreground">
+                          <span className="flex items-center gap-2"><ArrowUpCircle className="w-3.5 h-3.5 text-success" /> Receitas avulsas</span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm text-success">{formatBRL(resumoFechamento.data?.receitasAvulsas || 0)}</TableCell>
+                      </TableRow>
+                    )}
+                    <TableRow className="bg-success/5 font-semibold">
+                      <TableCell className="text-sm font-semibold text-foreground">Total Receitas</TableCell>
+                      <TableCell className="text-right font-mono text-sm font-bold text-success">{formatBRL(resumoFechamento.data?.totalReceitas || 0)}</TableCell>
+                    </TableRow>
+
+                    {/* Despesas */}
+                    {resumoFechamento.data && Object.entries(resumoFechamento.data.breakdownDespesas).map(([cat, val]) => (
+                      <TableRow key={cat} className="hover:bg-muted/30">
+                        <TableCell className="text-sm text-foreground pl-6">
+                          <span className="flex items-center gap-2"><ArrowDownCircle className="w-3.5 h-3.5 text-destructive" /> {catLabel(cat)}</span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm text-destructive">- {formatBRL(val)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {(resumoFechamento.data?.despesas || 0) > 0 && (
+                      <TableRow className="bg-destructive/5 font-semibold">
+                        <TableCell className="text-sm font-semibold text-foreground">Total Despesas</TableCell>
+                        <TableCell className="text-right font-mono text-sm font-bold text-destructive">- {formatBRL(resumoFechamento.data?.despesas || 0)}</TableCell>
+                      </TableRow>
+                    )}
+
+                    <TableRow className={cn("font-bold", (resumoFechamento.data?.saldoPeriodo || 0) >= 0 ? "bg-primary/5" : "bg-destructive/5")}>
+                      <TableCell className="font-bold text-foreground">Saldo</TableCell>
+                      <TableCell className={cn("text-right font-mono font-bold",
+                        (resumoFechamento.data?.saldoPeriodo || 0) >= 0 ? "text-primary" : "text-destructive"
+                      )}>
+                        {formatBRL(resumoFechamento.data?.saldoPeriodo || 0)}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </div>
+
+              {/* Breakdown formas */}
+              {resumoFechamento.data && Object.entries(resumoFechamento.data.formas).length > 0 && (
+                <div className="rounded-lg border border-border p-3 space-y-1">
+                  <p className="text-xs font-semibold text-foreground mb-1">Por forma de pagamento</p>
+                  {Object.entries(resumoFechamento.data.formas).map(([f, v]) => (
+                    <div key={f} className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">{FORMAS_LABEL[f] || f}</span>
+                      <span className="text-foreground font-mono">{formatBRL(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Observações */}
               <Textarea
