@@ -18759,6 +18759,7 @@ export type Database = {
       recebimentos: {
         Row: {
           cliente_id: string | null
+          composicao_acordada: Json
           created_at: string
           data_acordo: string
           descricao: string | null
@@ -18769,12 +18770,15 @@ export type Database = {
           proposta_id: string | null
           status: string
           tenant_id: string
+          total_pago: number
+          ultimo_pagamento_em: string | null
           unit_id: string | null
           updated_at: string
           valor_total: number
         }
         Insert: {
           cliente_id?: string | null
+          composicao_acordada?: Json
           created_at?: string
           data_acordo?: string
           descricao?: string | null
@@ -18785,12 +18789,15 @@ export type Database = {
           proposta_id?: string | null
           status?: string
           tenant_id?: string
+          total_pago?: number
+          ultimo_pagamento_em?: string | null
           unit_id?: string | null
           updated_at?: string
           valor_total: number
         }
         Update: {
           cliente_id?: string | null
+          composicao_acordada?: Json
           created_at?: string
           data_acordo?: string
           descricao?: string | null
@@ -18801,6 +18808,8 @@ export type Database = {
           proposta_id?: string | null
           status?: string
           tenant_id?: string
+          total_pago?: number
+          ultimo_pagamento_em?: string | null
           unit_id?: string | null
           updated_at?: string
           valor_total?: number
