@@ -128,11 +128,11 @@ export function FollowUpNotifications({
       case "critical":
         return <Badge variant="destructive" className="text-xs font-medium">Crítico ({days}d)</Badge>;
       case "high":
-        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">{days} dias</Badge>;
+        return <Badge variant="outline" className="text-[11px] font-semibold bg-destructive/10 text-destructive border-destructive/30 rounded-full px-2 py-0.5 shrink-0">{days}d</Badge>;
       case "medium":
-        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">{days} dias</Badge>;
+        return <Badge variant="outline" className="text-[11px] font-semibold bg-warning/10 text-warning border-warning/30 rounded-full px-2 py-0.5 shrink-0">{days}d</Badge>;
       default:
-        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">{days} dias</Badge>;
+        return <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground rounded-full px-2 py-0.5 shrink-0">{days}d</Badge>;
     }
   };
 
@@ -205,7 +205,7 @@ export function FollowUpNotifications({
       </CardHeader>
       <CardContent className="flex-1 min-h-0 flex flex-col px-4 pt-0 pb-3">
         <ScrollArea className="flex-1 min-h-0 max-h-[200px]">
-          <div className="space-y-2">
+          <div className="divide-y divide-border">
             {leads.map((lead) => (
               <div
                 key={lead.id}
@@ -249,11 +249,11 @@ export function FollowUpNotifications({
           </div>
         </ScrollArea>
         
-        <div className="mt-3 pt-3 border-t text-xs text-muted-foreground flex items-center gap-2">
-          <Clock className="h-3 w-3" />
+        <div className="flex items-center gap-1.5 pt-2 mt-2 border-t border-border text-xs text-muted-foreground">
+          <Clock className="w-3.5 h-3.5" />
           <span>
             {criticalCount > 0 
-              ? `${criticalCount} lead(s) precisam de atenção urgente`
+              ? <>{criticalCount} lead(s) precisam de <strong className="text-foreground">atenção urgente</strong></>
               : "Contate os leads listados para manter o engajamento"
             }
           </span>

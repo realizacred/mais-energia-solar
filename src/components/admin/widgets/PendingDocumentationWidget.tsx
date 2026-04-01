@@ -120,9 +120,9 @@ export function PendingDocumentationWidget({
       return <Badge variant="destructive" className="text-xs font-medium">Crítico ({days}d)</Badge>;
     }
     if (days >= 3) {
-      return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">{days}d</Badge>;
+    return <Badge variant="outline" className="text-[11px] font-semibold bg-warning/10 text-warning border-warning/30 rounded-full px-2 py-0.5 shrink-0">{days}d</Badge>;
     }
-    return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">{days}d</Badge>;
+    return <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground rounded-full px-2 py-0.5 shrink-0">{days}d</Badge>;
   };
 
   const handleClick = (lead: PendingLead) => {
@@ -236,7 +236,7 @@ export function PendingDocumentationWidget({
                           <Badge 
                             key={idx} 
                             variant="outline" 
-                            className="text-xs bg-destructive/10 text-destructive border-destructive/30"
+                            className="text-[11px] bg-warning/10 text-warning border border-warning/30 rounded-full px-2.5 py-0.5 font-medium"
                           >
                             {doc}
                           </Badge>
@@ -251,11 +251,9 @@ export function PendingDocumentationWidget({
         </ScrollArea>
         
         {leads.length > 0 && (
-          <div className="mt-3 pt-3 border-t text-xs text-muted-foreground flex items-center gap-2">
-            <Clock className="h-3 w-3" />
-            <span>
-              Tempo médio de espera: {Math.round(leads.reduce((acc, lead) => acc + getDaysWaiting(lead.updated_at), 0) / leads.length)} dias
-            </span>
+        <div className="flex items-center gap-1.5 pt-2 mt-2 border-t border-border text-xs text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Tempo médio de espera: <strong className="text-foreground">{Math.round(leads.reduce((acc, lead) => acc + getDaysWaiting(lead.updated_at), 0) / leads.length)} dias</strong></span>
           </div>
         )}
       </CardContent>
