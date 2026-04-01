@@ -12620,40 +12620,85 @@ export type Database = {
       }
       parcelas: {
         Row: {
+          boleto_codigo_barras: string | null
+          boleto_linha_digitavel: string | null
+          boleto_url: string | null
+          cobranca_gateway: string | null
+          cobranca_gerada_em: string | null
+          cobranca_id: string | null
+          cobranca_juros_aplicado: number | null
+          cobranca_multa_aplicada: number | null
+          cobranca_paga_em: string | null
+          cobranca_status: string | null
+          cobranca_valor_cobrado: number | null
+          cobranca_valor_original: number | null
           created_at: string
           data_vencimento: string
           id: string
           numero_parcela: number
           pagamento_id: string | null
+          pix_copia_cola: string | null
+          pix_qr_code: string | null
           recebimento_id: string
           status: string
           tenant_id: string
           updated_at: string
           valor: number
+          webhook_payload: Json | null
         }
         Insert: {
+          boleto_codigo_barras?: string | null
+          boleto_linha_digitavel?: string | null
+          boleto_url?: string | null
+          cobranca_gateway?: string | null
+          cobranca_gerada_em?: string | null
+          cobranca_id?: string | null
+          cobranca_juros_aplicado?: number | null
+          cobranca_multa_aplicada?: number | null
+          cobranca_paga_em?: string | null
+          cobranca_status?: string | null
+          cobranca_valor_cobrado?: number | null
+          cobranca_valor_original?: number | null
           created_at?: string
           data_vencimento: string
           id?: string
           numero_parcela: number
           pagamento_id?: string | null
+          pix_copia_cola?: string | null
+          pix_qr_code?: string | null
           recebimento_id: string
           status?: string
           tenant_id?: string
           updated_at?: string
           valor: number
+          webhook_payload?: Json | null
         }
         Update: {
+          boleto_codigo_barras?: string | null
+          boleto_linha_digitavel?: string | null
+          boleto_url?: string | null
+          cobranca_gateway?: string | null
+          cobranca_gerada_em?: string | null
+          cobranca_id?: string | null
+          cobranca_juros_aplicado?: number | null
+          cobranca_multa_aplicada?: number | null
+          cobranca_paga_em?: string | null
+          cobranca_status?: string | null
+          cobranca_valor_cobrado?: number | null
+          cobranca_valor_original?: number | null
           created_at?: string
           data_vencimento?: string
           id?: string
           numero_parcela?: number
           pagamento_id?: string | null
+          pix_copia_cola?: string | null
+          pix_qr_code?: string | null
           recebimento_id?: string
           status?: string
           tenant_id?: string
           updated_at?: string
           valor?: number
+          webhook_payload?: Json | null
         }
         Relationships: [
           {
@@ -21277,7 +21322,12 @@ export type Database = {
       }
       tenant_premises: {
         Row: {
+          asaas_sandbox: boolean | null
+          asaas_token: string | null
           base_irradiancia: string
+          cobranca_dias_vencimento: number | null
+          cobranca_juros_percentual: number | null
+          cobranca_multa_percentual: number | null
           concessionaria_id: string | null
           considerar_custo_disponibilidade: boolean
           considerar_custo_disponibilidade_solar: boolean
@@ -21293,17 +21343,23 @@ export type Database = {
           fase_tensao_rede: string
           fator_simultaneidade: number
           fornecedor_filtro: string
+          gateway_preferido: string | null
           geracao_mensal_por_kwp: number
           grupo_tarifario: string
           id: string
           imposto_energia: number
           inclinacao_modulos: number
           inflacao_energetica: number
+          inter_client_id: string | null
+          inter_client_secret: string | null
+          inter_sandbox: boolean | null
           kg_co2_por_kwh: number
           margem_potencia_ideal: number
           other_losses_percent: number | null
           outros_encargos_atual: number
           outros_encargos_novo: number
+          pagseguro_sandbox: boolean | null
+          pagseguro_token: string | null
           percentual_economia: number
           perda_eficiencia_microinversor: number
           perda_eficiencia_otimizador: number
@@ -21311,6 +21367,8 @@ export type Database = {
           preco_demanda: number
           preco_demanda_geracao: number
           shading_loss_percent: number | null
+          sicoob_client_id: string | null
+          sicoob_sandbox: boolean | null
           sobredimensionamento_padrao: number
           soiling_loss_percent: number | null
           solaryum_cif_descarga: boolean | null
@@ -21347,7 +21405,12 @@ export type Database = {
           vpl_taxa_desconto: number
         }
         Insert: {
+          asaas_sandbox?: boolean | null
+          asaas_token?: string | null
           base_irradiancia?: string
+          cobranca_dias_vencimento?: number | null
+          cobranca_juros_percentual?: number | null
+          cobranca_multa_percentual?: number | null
           concessionaria_id?: string | null
           considerar_custo_disponibilidade?: boolean
           considerar_custo_disponibilidade_solar?: boolean
@@ -21363,17 +21426,23 @@ export type Database = {
           fase_tensao_rede?: string
           fator_simultaneidade?: number
           fornecedor_filtro?: string
+          gateway_preferido?: string | null
           geracao_mensal_por_kwp?: number
           grupo_tarifario?: string
           id?: string
           imposto_energia?: number
           inclinacao_modulos?: number
           inflacao_energetica?: number
+          inter_client_id?: string | null
+          inter_client_secret?: string | null
+          inter_sandbox?: boolean | null
           kg_co2_por_kwh?: number
           margem_potencia_ideal?: number
           other_losses_percent?: number | null
           outros_encargos_atual?: number
           outros_encargos_novo?: number
+          pagseguro_sandbox?: boolean | null
+          pagseguro_token?: string | null
           percentual_economia?: number
           perda_eficiencia_microinversor?: number
           perda_eficiencia_otimizador?: number
@@ -21381,6 +21450,8 @@ export type Database = {
           preco_demanda?: number
           preco_demanda_geracao?: number
           shading_loss_percent?: number | null
+          sicoob_client_id?: string | null
+          sicoob_sandbox?: boolean | null
           sobredimensionamento_padrao?: number
           soiling_loss_percent?: number | null
           solaryum_cif_descarga?: boolean | null
@@ -21417,7 +21488,12 @@ export type Database = {
           vpl_taxa_desconto?: number
         }
         Update: {
+          asaas_sandbox?: boolean | null
+          asaas_token?: string | null
           base_irradiancia?: string
+          cobranca_dias_vencimento?: number | null
+          cobranca_juros_percentual?: number | null
+          cobranca_multa_percentual?: number | null
           concessionaria_id?: string | null
           considerar_custo_disponibilidade?: boolean
           considerar_custo_disponibilidade_solar?: boolean
@@ -21433,17 +21509,23 @@ export type Database = {
           fase_tensao_rede?: string
           fator_simultaneidade?: number
           fornecedor_filtro?: string
+          gateway_preferido?: string | null
           geracao_mensal_por_kwp?: number
           grupo_tarifario?: string
           id?: string
           imposto_energia?: number
           inclinacao_modulos?: number
           inflacao_energetica?: number
+          inter_client_id?: string | null
+          inter_client_secret?: string | null
+          inter_sandbox?: boolean | null
           kg_co2_por_kwh?: number
           margem_potencia_ideal?: number
           other_losses_percent?: number | null
           outros_encargos_atual?: number
           outros_encargos_novo?: number
+          pagseguro_sandbox?: boolean | null
+          pagseguro_token?: string | null
           percentual_economia?: number
           perda_eficiencia_microinversor?: number
           perda_eficiencia_otimizador?: number
@@ -21451,6 +21533,8 @@ export type Database = {
           preco_demanda?: number
           preco_demanda_geracao?: number
           shading_loss_percent?: number | null
+          sicoob_client_id?: string | null
+          sicoob_sandbox?: boolean | null
           sobredimensionamento_padrao?: number
           soiling_loss_percent?: number | null
           solaryum_cif_descarga?: boolean | null
