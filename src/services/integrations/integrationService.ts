@@ -271,6 +271,7 @@ export async function connectSupplierProvider(
   credentials: Record<string, string>
 ): Promise<{ success: boolean; config_id?: string; error?: string }> {
   let affectedConfigId: string | undefined;
+  let resolvedProviderKey: string | undefined;
   try {
     const tenantId = await getCurrentTenantId();
     const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
