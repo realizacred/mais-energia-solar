@@ -571,7 +571,7 @@ serve(async (req) => {
         .map(([f, c]) => `${f}: ${c}`)
         .join(", ");
 
-      console.log(`[jng-hub-sync] FINAL: ${fabData.length} products, marcas: ${summary}`);
+      // console.log(`[jng-hub-sync] FINAL: ${fabData.length} products, marcas: ${summary}`);
       await syncLog(supabase, tenant_id, "info", `Catálogo JNG final: ${fabData.length} produtos`, {
         fabricantes: Object.fromEntries(fabCount),
         total: fabData.length,
