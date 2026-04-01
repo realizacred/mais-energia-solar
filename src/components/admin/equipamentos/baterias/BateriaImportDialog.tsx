@@ -241,6 +241,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
   const [aiProgress, setAiProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{
     inserted: number; updated: number; skipped: number; errors: number;
+    errorItems?: { fabricante: string; modelo: string; motivo: string }[];
   } | null>(null);
 
   const existingMap = useMemo(() => {
