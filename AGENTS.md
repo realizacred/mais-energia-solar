@@ -335,6 +335,16 @@ DA-14 MIGRAÇÃO PROGRESSIVA DE DÉBITO TÉCNICO (NOVO v3.0)
              Priorizar por frequência de edição, não por tamanho do componente.
     Quando quebrar: NUNCA migrar mais de um módulo por PR sem revisão.
 
+DA-15 ARQUITETURA DE VARIÁVEIS DE PROPOSTA — DOIS RESOLVERS (NOVO v3.2)
+    Contexto: Auditoria 2026-04 — 59 variáveis existiam só no backend.
+              O FE usa deepGet(finalSnapshot, key) como fallback automático.
+    Decisão: Frontend (resolveProposalVariables.ts) = preview/audit no wizard.
+             Backend (_shared/resolvers/) = geração do PDF.
+             Fallback via snapshot elimina necessidade de duplicar lógica.
+             Adicionar ao FE apenas se precisar de preview em tempo real.
+    Quando quebrar: NUNCA duplicar lógica de cálculo entre FE e BE.
+    Documentado em: AP-15 no resolver FE (comentário de topo).
+
 # =============================================================================
 # BLOCO 6 — REFERÊNCIA RÁPIDA DE PADRÕES (§1–§50)
 # =============================================================================
