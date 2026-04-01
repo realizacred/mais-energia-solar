@@ -11,7 +11,7 @@ import { MeterAlertConfig } from "./MeterAlertConfig";
 import { MeterCommandPanel } from "./MeterCommandPanel";
 import { MeterAlarmPanel } from "./MeterAlarmPanel";
 import { MeterPhaseStatus } from "./MeterPhaseStatus";
-import { supabase } from "@/integrations/supabase/client";
+import { useLinkedUC, useDeleteMeter } from "@/hooks/useMeterDetail";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
@@ -74,18 +74,14 @@ export default function MeterDetailPage() {
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const deleteMeterMutation = useDeleteMeter();
+
   async function handleDeleteMeter() {
     if (!id) return;
     setDeleting(true);
     try {
-      await supabase.from("meter_status_latest").delete().eq("meter_device_id", id);
-      await supabase.from("meter_readings").delete().eq("meter_device_id", id);
-      await supabase.from("meter_alerts").delete().eq("meter_device_id", id);
-      await supabase.from("unit_meter_links").delete().eq("meter_device_id", id);
-      const { error: delErr } = await supabase.from("meter_devices").delete().eq("id", id);
-      if (delErr) throw delErr;
+      await deleteMeterMutation.mutateAsync(id);
       toast({ title: "Medidor excluído com sucesso" });
-      qc.invalidateQueries({ queryKey: ["meter_devices"] });
       navigate("/admin/medidores");
     } catch (err: any) {
       toast({ title: "Erro ao excluir", description: err?.message, variant: "destructive" });
@@ -146,20 +142,7 @@ export default function MeterDetailPage() {
 
   const activeLink = links.find(l => l.is_active);
 
-  const { data: linkedUC } = useQuery({
-    queryKey: ["uc_for_meter", activeLink?.unit_id],
-    queryFn: async () => {
-      if (!activeLink) return null;
-      const { data } = await supabase
-        .from("units_consumidoras")
-        .select("id, nome, codigo_uc")
-        .eq("id", activeLink.unit_id)
-        .single();
-      return data;
-    },
-    enabled: !!activeLink,
-    staleTime: STALE_NORMAL,
-  });
+  const { data: linkedUC } = useLinkedUC(activeLink?.unit_id);
 
   // Chart data
   const chartData = useMemo(() => {
