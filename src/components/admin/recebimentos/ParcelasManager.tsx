@@ -85,19 +85,13 @@ const FORMAS_PAGAMENTO = [
   { value: "financiamento", label: "Financiamento" },
 ];
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-};
-
 export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: ParcelasManagerProps) {
   const queryClient = useQueryClient();
   const { data: parcelasData, isLoading: loading } = useParcelasData(recebimento.id, open);
-  const { data: gatewayActive = false } = useGatewayActive();
   const parcelas = parcelasData?.parcelas ?? [];
-  const charges = parcelasData?.charges ?? new Map<string, ChargeData>();
   const [generating, setGenerating] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
-  const [chargingId, setChargingId] = useState<string | null>(null);
+  const [cobrancaParcela, setCobrancaParcela] = useState<Parcela | null>(null);
   const [payForm, setPayForm] = useState({
     forma_pagamento: "pix",
     data_pagamento: new Date().toISOString().split("T")[0],
@@ -174,36 +168,6 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
     }
   };
 
-  // ── Asaas charge generation ──
-  const gerarCobranca = async (parcela: Parcela) => {
-    setChargingId(parcela.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("asaas-create-charge", {
-        body: { parcela_id: parcela.id },
-      });
-
-      if (error) throw error;
-
-      if (data?.error) {
-        toast({ title: "Erro ao gerar cobrança", description: data.error, variant: "destructive" });
-        return;
-      }
-
-      toast({ title: data.already_exists ? "Cobrança já existente recuperada ✅" : "Cobrança gerada com sucesso! ✅" });
-      refreshParcelas(); // Refresh charges
-    } catch (err: any) {
-      console.error("Error creating charge:", err);
-      toast({ title: "Erro ao gerar cobrança", description: err.message, variant: "destructive" });
-    } finally {
-      setChargingId(null);
-    }
-  };
-
-  const copyPix = (payload: string) => {
-    navigator.clipboard.writeText(payload);
-    toast({ title: "Código Pix copiado! 📋" });
-  };
-
   const isVencida = (dataVencimento: string, status: string) => {
     return status === "pendente" && new Date(dataVencimento) < new Date();
   };
@@ -211,10 +175,12 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
   const totalPago = parcelas.filter((p) => p.status === "paga").reduce((acc, p) => acc + p.valor, 0);
   const totalPendente = parcelas.filter((p) => p.status !== "paga" && p.status !== "cancelada").reduce((acc, p) => acc + p.valor, 0);
 
-  const canCharge = (p: Parcela) =>
-    gatewayActive && p.status !== "paga" && p.status !== "cancelada" && !charges.get(p.id)?.gateway_charge_id;
-
-  const hasCharge = (p: Parcela) => !!charges.get(p.id)?.gateway_charge_id;
+  const getCobrancaBadge = (p: Parcela) => {
+    const cs = p.cobranca_status;
+    if (cs === "pago") return { label: `Pago via ${p.cobranca_gateway || "gateway"}`, variant: "bg-success/10 text-success border-success/20" as const, icon: <CheckCircle className="h-3 w-3" /> };
+    if (cs === "gerada") return { label: "Gerada", variant: "bg-info/10 text-info border-info/20" as const, icon: <Receipt className="h-3 w-3" /> };
+    return { label: "Sem cobrança", variant: "bg-muted text-muted-foreground border-border" as const, icon: null };
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
