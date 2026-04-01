@@ -12518,39 +12518,67 @@ export type Database = {
       }
       pagamentos: {
         Row: {
+          banco_origem: string | null
           comprovante_url: string | null
           created_at: string
           data_pagamento: string
           forma_pagamento: string
+          gateway_utilizado: string | null
           id: string
+          numero_autorizacao: string | null
+          numero_cheque: string | null
+          numero_parcelas_cartao: number | null
           observacoes: string | null
+          observacoes_internas: string | null
+          parcela_id: string | null
           recebimento_id: string
           tenant_id: string
           valor_pago: number
         }
         Insert: {
+          banco_origem?: string | null
           comprovante_url?: string | null
           created_at?: string
           data_pagamento?: string
           forma_pagamento: string
+          gateway_utilizado?: string | null
           id?: string
+          numero_autorizacao?: string | null
+          numero_cheque?: string | null
+          numero_parcelas_cartao?: number | null
           observacoes?: string | null
+          observacoes_internas?: string | null
+          parcela_id?: string | null
           recebimento_id: string
           tenant_id?: string
           valor_pago: number
         }
         Update: {
+          banco_origem?: string | null
           comprovante_url?: string | null
           created_at?: string
           data_pagamento?: string
           forma_pagamento?: string
+          gateway_utilizado?: string | null
           id?: string
+          numero_autorizacao?: string | null
+          numero_cheque?: string | null
+          numero_parcelas_cartao?: number | null
           observacoes?: string | null
+          observacoes_internas?: string | null
+          parcela_id?: string | null
           recebimento_id?: string
           tenant_id?: string
           valor_pago?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "pagamentos_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pagamentos_recebimento_id_fkey"
             columns: ["recebimento_id"]
