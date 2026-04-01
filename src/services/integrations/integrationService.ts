@@ -26,6 +26,7 @@ const KNOWN_SUPPLIER_KEYS: Record<string, string> = {
 const SUPPLIER_FORNECEDOR_IDS: Record<string, string> = {
   edeltec: "a1b2c3d4-0001-4000-8000-000000000001",
   jng: "a1b2c3d4-0002-4000-8000-000000000002",
+  vertys: "a1b2c3d4-0003-4000-8000-000000000003",
 };
 
 /** Edge function name per supplier for sync/test */
