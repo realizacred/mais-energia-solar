@@ -49,6 +49,7 @@ const ICON_MAP: Record<string, string> = {
   vertys: "vertys.png",
 
   // SVG assets
+  jng: "jng.svg",
   afore: "afore.svg",
   agendor: "agendor.svg",
   asaas: "asaas.svg",
