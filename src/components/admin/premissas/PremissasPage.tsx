@@ -22,6 +22,7 @@ const TABS = [
   { value: "valores-padroes", label: "Valores padrões", icon: SlidersHorizontal },
   { value: "tributacao", label: "Tributação", icon: Landmark },
   { value: "integracoes", label: "Integrações", icon: Link2 },
+  { value: "cobrancas", label: "Cobranças", icon: CreditCard },
 ] as const;
 
 export function PremissasPage() {
