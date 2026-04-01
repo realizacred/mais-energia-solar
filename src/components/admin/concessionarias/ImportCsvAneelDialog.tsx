@@ -83,6 +83,8 @@ function getStepIcons(): Record<PipelineStepId, React.ReactNode> {
 
 export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: Props) {
   const { toast } = useToast();
+  const { data: matchData } = useConcessionariasForMatch(open);
+  const insertSyncRun = useInsertAneelSyncRun();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
