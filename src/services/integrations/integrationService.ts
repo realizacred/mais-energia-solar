@@ -110,6 +110,22 @@ async function testSupplierConnection(
   providerKey: string,
   fornecedorId?: string | null
 ): Promise<void> {
+  // Solaryum-based providers (JNG, Vertys): test via BuscarFiltros (no IBGE needed)
+  if (providerKey === "jng" || providerKey === "vertys") {
+    const distribuidor = providerKey as "jng" | "vertys";
+    const { data, error } = await supabase.functions.invoke("solaryum-proxy", {
+      body: { distribuidor, endpoint: "BuscarFiltros", params: {} },
+    });
+    if (error) {
+      const parsed = await parseInvokeError(error);
+      throw new Error(parsed.message);
+    }
+    if (!data) {
+      throw new Error("Falha ao validar credenciais — resposta vazia do Solaryum");
+    }
+    return;
+  }
+
   const fnName = SUPPLIER_SYNC_FUNCTIONS[providerKey];
   if (!fnName) return;
 
