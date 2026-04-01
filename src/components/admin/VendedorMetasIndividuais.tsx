@@ -52,88 +52,40 @@ import { useVendedorMetasData, useRefreshVendedorMetas } from "@/hooks/useVended
    comissao_base_percent: number;
  }
  
- export function VendedorMetasIndividuais() {
-   const { toast } = useToast();
-   const [loading, setLoading] = useState(true);
-   const [saving, setSaving] = useState(false);
-   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
-   const [metas, setMetas] = useState<Map<string, VendedorMeta>>(new Map());
-   const [globalConfig, setGlobalConfig] = useState<GlobalConfig | null>(null);
-   const [editingVendedor, setEditingVendedor] = useState<Vendedor | null>(null);
-   const [editingMeta, setEditingMeta] = useState<Partial<VendedorMeta>>({});
- 
-   const currentYear = new Date().getFullYear();
-   const currentMonth = new Date().getMonth() + 1;
- 
-   useEffect(() => {
-     fetchData();
-   }, []);
- 
-   const fetchData = async () => {
-     try {
-       setLoading(true);
- 
-       // Fetch global config
-       const { data: configData } = await supabase
-         .from("gamification_config")
-         .select("meta_orcamentos_mensal, meta_conversoes_mensal, meta_valor_mensal, comissao_base_percent")
-         .single();
- 
-       if (configData) {
-         setGlobalConfig({
-           meta_orcamentos_mensal: configData.meta_orcamentos_mensal,
-           meta_conversoes_mensal: configData.meta_conversoes_mensal,
-           meta_valor_mensal: Number(configData.meta_valor_mensal),
-           comissao_base_percent: Number(configData.comissao_base_percent),
-         });
-       }
- 
-       // Fetch vendedores
-       const { data: vendedoresData } = await supabase
-         .from("consultores")
-         .select("id, nome, ativo")
-         .eq("ativo", true)
-         .order("nome");
- 
-       if (vendedoresData) {
-         setVendedores(vendedoresData);
-       }
- 
-       // Fetch metas for current month
-       const { data: metasData } = await supabase
-         .from("consultor_metas")
-         .select("id, consultor_id, mes, ano, meta_orcamentos, meta_conversoes, meta_valor, comissao_percent, usa_meta_individual")
-         .eq("mes", currentMonth)
-         .eq("ano", currentYear);
- 
-       if (metasData) {
-         const metasMap = new Map<string, VendedorMeta>();
-         for (const meta of metasData) {
-           metasMap.set((meta as any).consultor_id, {
-             id: meta.id,
-             vendedor_id: (meta as any).consultor_id,
-             mes: meta.mes,
-             ano: meta.ano,
-             meta_orcamentos: meta.meta_orcamentos,
-             meta_conversoes: meta.meta_conversoes,
-             meta_valor: meta.meta_valor ? Number(meta.meta_valor) : null,
-             comissao_percent: meta.comissao_percent ? Number(meta.comissao_percent) : null,
-             usa_meta_individual: meta.usa_meta_individual || false,
-           });
-         }
-         setMetas(metasMap);
-       }
-     } catch (error) {
-       console.error("Error fetching data:", error);
-       toast({
-         title: "Erro",
-         description: "Não foi possível carregar os dados.",
-         variant: "destructive",
-       });
-     } finally {
-       setLoading(false);
-     }
-   };
+export function VendedorMetasIndividuais() {
+  const { toast } = useToast();
+  const refreshMetas = useRefreshVendedorMetas();
+  const { data: metasData, isLoading: loading } = useVendedorMetasData();
+
+  const globalConfig = metasData?.globalConfig ?? null;
+  const vendedores = metasData?.vendedores ?? [];
+  const metasRaw = metasData?.metas ?? [];
+
+  // Build metas map from hook data
+  const metas = useMemo(() => {
+    const metasMap = new Map<string, VendedorMeta>();
+    for (const meta of metasRaw) {
+      metasMap.set((meta as any).consultor_id, {
+        id: meta.id,
+        vendedor_id: (meta as any).consultor_id,
+        mes: meta.mes,
+        ano: meta.ano,
+        meta_orcamentos: meta.meta_orcamentos,
+        meta_conversoes: meta.meta_conversoes,
+        meta_valor: meta.meta_valor ? Number(meta.meta_valor) : null,
+        comissao_percent: meta.comissao_percent ? Number(meta.comissao_percent) : null,
+        usa_meta_individual: meta.usa_meta_individual || false,
+      });
+    }
+    return metasMap;
+  }, [metasRaw]);
+
+  const [saving, setSaving] = useState(false);
+  const [editingVendedor, setEditingVendedor] = useState<Vendedor | null>(null);
+  const [editingMeta, setEditingMeta] = useState<Partial<VendedorMeta>>({});
+
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
  
    const handleEditVendedor = (vendedor: Vendedor) => {
      const existingMeta = metas.get(vendedor.id);
