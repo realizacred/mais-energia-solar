@@ -165,9 +165,12 @@ export function TabCobrancas({ premises, onChange }: Props) {
           <SandboxToggle
             checked={premises.pagseguro_sandbox ?? true}
             onCheckedChange={(v) => set("pagseguro_sandbox", v)}
+          />
           <WebhookUrlField gateway="pagseguro" />
         </CardContent>
       </Card>
+
+      {/* Asaas */}
       <Card className="border-border/60">
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
