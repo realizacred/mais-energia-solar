@@ -237,8 +237,7 @@ export function StepResumo({
                   <span className="font-medium text-foreground">{cidade || "—"}</span>
                   <span className="text-muted-foreground">Telhado</span>
                   <span className="font-medium text-foreground">{tipoTelhado || "—"}</span>
-                  <span className="text-muted-foreground">Estrutura</span>
-                  <span className="font-medium text-foreground">{estruturaResumo || "—"}</span>
+                  <span className="text-muted-foreground">Distribuidora</span>
                   <span className="text-muted-foreground">Distribuidora</span>
                   <span className="font-medium text-foreground">{distribuidoraNome || "—"}</span>
                   <span className="text-muted-foreground">Irradiação</span>
