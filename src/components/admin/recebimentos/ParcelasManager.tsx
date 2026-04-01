@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useParcelasData, useGatewayActive } from "@/hooks/useParcelasManager";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,65 +84,21 @@ const formatCurrency = (value: number) => {
 };
 
 export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: ParcelasManagerProps) {
-  const [parcelas, setParcelas] = useState<Parcela[]>([]);
-  const [charges, setCharges] = useState<Map<string, ChargeData>>(new Map());
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: parcelasData, isLoading: loading } = useParcelasData(recebimento.id, open);
+  const { data: gatewayActive = false } = useGatewayActive();
+  const parcelas = parcelasData?.parcelas ?? [];
+  const charges = parcelasData?.charges ?? new Map<string, ChargeData>();
   const [generating, setGenerating] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [chargingId, setChargingId] = useState<string | null>(null);
-  const [gatewayActive, setGatewayActive] = useState(false);
   const [payForm, setPayForm] = useState({
     forma_pagamento: "pix",
     data_pagamento: new Date().toISOString().split("T")[0],
   });
 
-  useEffect(() => {
-    if (open) {
-      fetchParcelas();
-      checkGateway();
-    }
-  }, [open, recebimento.id]);
-
-  const checkGateway = async () => {
-    try {
-      const { data } = await supabase
-        .from("payment_gateway_config")
-        .select("is_active")
-        .eq("provider", "asaas")
-        .maybeSingle();
-      setGatewayActive(data?.is_active ?? false);
-    } catch { /* ignore */ }
-  };
-
-  const fetchParcelas = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("parcelas")
-        .select("id, numero_parcela, valor, data_vencimento, status, pagamento_id, recebimento_id")
-        .eq("recebimento_id", recebimento.id)
-        .order("numero_parcela");
-
-      if (error) throw error;
-      setParcelas(data || []);
-
-      // Fetch existing charges for these parcelas
-      if (data?.length) {
-        const ids = data.map((p) => p.id);
-        const { data: chargeRows } = await supabase
-          .from("payment_gateway_charges")
-          .select("parcela_id, gateway_charge_id, gateway_status, boleto_pdf_url, pix_payload, pix_qr_code_url")
-          .in("parcela_id", ids);
-
-        const map = new Map<string, ChargeData>();
-        chargeRows?.forEach((c) => map.set(c.parcela_id, c as ChargeData));
-        setCharges(map);
-      }
-    } catch (error) {
-      console.error("Error fetching parcelas:", error);
-      toast({ title: "Erro ao carregar parcelas", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
+  const refreshParcelas = () => {
+    queryClient.invalidateQueries({ queryKey: ["parcelas-manager", recebimento.id] });
   };
 
   const gerarParcelas = async () => {
@@ -167,7 +125,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
       if (error) throw error;
 
       toast({ title: `${recebimento.numero_parcelas} parcelas geradas!` });
-      fetchParcelas();
+      refreshParcelas();
       onUpdate();
     } catch (error) {
       console.error("Error generating parcelas:", error);
@@ -202,7 +160,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
 
       toast({ title: `Parcela ${parcela.numero_parcela} paga!` });
       setPayingId(null);
-      fetchParcelas();
+      refreshParcelas();
       onUpdate();
     } catch (error) {
       console.error("Error updating parcela:", error);
@@ -226,7 +184,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
       }
 
       toast({ title: data.already_exists ? "Cobrança já existente recuperada ✅" : "Cobrança gerada com sucesso! ✅" });
-      fetchParcelas(); // Refresh charges
+      refreshParcelas(); // Refresh charges
     } catch (err: any) {
       console.error("Error creating charge:", err);
       toast({ title: "Erro ao gerar cobrança", description: err.message, variant: "destructive" });

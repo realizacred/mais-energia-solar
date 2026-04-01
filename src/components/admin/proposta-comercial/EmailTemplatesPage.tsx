@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, Trash2, Edit2, Save, X, Mail, Copy, MessageCircle, Eye, Variable } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,21 +10,14 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { renderTemplate, SAMPLE_TEMPLATE_VARS, TEMPLATE_VARIABLES_CATALOG } from "@/utils/templateRenderer";
-
-interface EmailTemplate {
-  id: string;
-  nome: string;
-  assunto: string;
-  corpo_html: string;
-  corpo_texto: string | null;
-  canal: string;
-  is_default: boolean;
-  ativo: boolean;
-  ordem: number;
-  variaveis: any[] | null;
-}
+import {
+  useEmailTemplatesList,
+  useSaveEmailTemplate,
+  useDeleteEmailTemplate,
+  useDuplicateEmailTemplate,
+  type EmailTemplate,
+} from "@/hooks/useEmailTemplates";
 
 const CANAL_OPTIONS = [
   { value: "email", label: "Email" },
@@ -39,25 +32,13 @@ const CANAL_ICON: Record<string, any> = {
 };
 
 export function EmailTemplatesPage() {
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: templates = [], isLoading: loading } = useEmailTemplatesList();
+  const saveMutation = useSaveEmailTemplate();
+  const deleteMutation = useDeleteEmailTemplate();
+  const duplicateMutation = useDuplicateEmailTemplate();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<EmailTemplate>>({});
   const [showPreview, setShowPreview] = useState(false);
-
-  const loadTemplates = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("proposta_email_templates" as any)
-      .select("id, nome, assunto, corpo_html, corpo_texto, canal, is_default, ativo, ordem, variaveis")
-      .order("ordem", { ascending: true });
-    setTemplates((data as unknown as EmailTemplate[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadTemplates();
-  }, []);
 
   const startNew = () => {
     setEditingId("new");
@@ -110,21 +91,13 @@ export function EmailTemplatesPage() {
       };
 
       if (editingId === "new") {
-        const { error } = await supabase
-          .from("proposta_email_templates" as any)
-          .insert(payload);
-        if (error) throw error;
+        await saveMutation.mutateAsync({ data: payload });
         toast({ title: "Template criado!" });
       } else {
-        const { error } = await supabase
-          .from("proposta_email_templates" as any)
-          .update(payload)
-          .eq("id", editingId!);
-        if (error) throw error;
+        await saveMutation.mutateAsync({ id: editingId!, data: payload });
         toast({ title: "Template atualizado!" });
       }
       cancelEdit();
-      loadTemplates();
     } catch (e: any) {
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
     }
@@ -132,14 +105,17 @@ export function EmailTemplatesPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este template?")) return;
-    await supabase.from("proposta_email_templates" as any).delete().eq("id", id);
-    toast({ title: "Template excluído" });
-    loadTemplates();
+    try {
+      await deleteMutation.mutateAsync(id);
+      toast({ title: "Template excluído" });
+    } catch {
+      toast({ title: "Erro ao excluir", variant: "destructive" });
+    }
   };
 
   const handleDuplicate = async (t: EmailTemplate) => {
     try {
-      const { error } = await supabase.from("proposta_email_templates" as any).insert({
+      await duplicateMutation.mutateAsync({
         nome: `${t.nome} (cópia)`,
         assunto: t.assunto,
         corpo_html: t.corpo_html,
@@ -149,9 +125,7 @@ export function EmailTemplatesPage() {
         ativo: false,
         ordem: templates.length,
       });
-      if (error) throw error;
       toast({ title: "Template duplicado!" });
-      loadTemplates();
     } catch (e: any) {
       toast({ title: "Erro ao duplicar", description: e.message, variant: "destructive" });
     }

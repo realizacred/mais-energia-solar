@@ -1,40 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FileText, Loader2, Search } from "lucide-react";
-import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { useFiscalProviderRequests, useFiscalProviderWebhooks } from "@/hooks/useFiscalLogs";
 import { format } from "date-fns";
 
 export function FiscalLogs() {
   const [activeTab, setActiveTab] = useState<"requests" | "webhooks">("requests");
-  const [requests, setRequests] = useState<any[]>([]);
-  const [webhooks, setWebhooks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const { data: requests = [], isLoading: loadingReqs } = useFiscalProviderRequests();
+  const { data: webhooks = [], isLoading: loadingWh } = useFiscalProviderWebhooks();
 
-  const loadData = async () => {
-    setLoading(true);
-    const [reqRes, whRes] = await Promise.all([
-      supabase.from("fiscal_provider_requests")
-        .select("id, endpoint, method, response_status, duration_ms, error_message, created_at")
-        .order("created_at", { ascending: false })
-        .limit(100),
-      supabase.from("fiscal_provider_webhooks")
-        .select("id, event_type, processed, error_message, created_at")
-        .order("created_at", { ascending: false })
-        .limit(100),
-    ]);
-    setRequests(reqRes.data || []);
-    setWebhooks(whRes.data || []);
-    setLoading(false);
-  };
+  const loading = loadingReqs || loadingWh;
 
   return (
     <div className="space-y-4">

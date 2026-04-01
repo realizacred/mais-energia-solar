@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin, useUsuariosList, useRefreshUsuarios, type UserWithRoles } from "@/hooks/useUsuarios";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
@@ -75,16 +76,6 @@ interface UserProfile {
   ativo: boolean;
 }
 
-interface UserWithRoles {
-  user_id: string;
-  nome: string;
-  email?: string;
-  ativo: boolean;
-  roles: string[];
-  created_at?: string;
-  last_sign_in_at?: string | null;
-}
-
 interface NewUserForm {
   nome: string;
   email: string;
@@ -102,10 +93,18 @@ const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.El
 };
 
 export function UsuariosManager() {
-  const [users, setUsers] = useState<UserWithRoles[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [checkingPermission, setCheckingPermission] = useState(true);
-  const [canManageUsers, setCanManageUsers] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { guardLimit, LimitDialog } = usePlanGuard();
+
+  // Permission check via hook
+  const { data: canManageUsers = false, isLoading: checkingPermission } = useIsAdmin(user?.id);
+
+  // Users list via hook
+  const { data: users = [], isLoading: loading } = useUsuariosList(canManageUsers);
+  const refreshUsers = useRefreshUsuarios();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
@@ -119,63 +118,6 @@ export function UsuariosManager() {
     role: "consultor",
   });
   const [userToEdit, setUserToEdit] = useState<UserWithRoles | null>(null);
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { guardLimit, LimitDialog } = usePlanGuard();
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const checkAndLoad = async () => {
-      setCheckingPermission(true);
-      setLoading(true);
-
-      if (!user) {
-        if (!cancelled) {
-          setCanManageUsers(false);
-          setCheckingPermission(false);
-          setLoading(false);
-        }
-        return;
-      }
-
-      try {
-        // Only admins can manage users/roles (matches backend policies)
-        const { data: roles, error } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id);
-
-        if (error) throw error;
-
-        const isAdmin = (roles ?? []).some((r) => r.role === "admin");
-
-        if (cancelled) return;
-        setCanManageUsers(isAdmin);
-        setCheckingPermission(false);
-
-        if (isAdmin) {
-          await fetchUsers();
-        } else {
-          setLoading(false);
-        }
-      } catch (e) {
-        console.error("Error checking permissions:", e);
-        if (!cancelled) {
-          setCanManageUsers(false);
-          setCheckingPermission(false);
-          setLoading(false);
-        }
-      }
-    };
-
-    checkAndLoad();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
 
   // ⚠️ HARDENING: Realtime for cross-user sync on profiles/roles
   useEffect(() => {
@@ -184,7 +126,7 @@ export function UsuariosManager() {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const refresh = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchUsers(), 700);
+      debounceTimer = setTimeout(() => refreshUsers(), 700);
     };
 
     const channel = supabase
@@ -199,60 +141,6 @@ export function UsuariosManager() {
       supabase.removeChannel(channel);
     };
   }, [canManageUsers]);
-
-  const fetchUsers = async () => {
-    try {
-      // Parallel fetch: profiles, roles, and emails
-      const [profilesRes, rolesRes, emailsRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, nome, ativo, created_at").order("nome"),
-        supabase.from("user_roles").select("id, user_id, role, created_at, created_by"),
-        (async () => {
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.access_token) {
-              return await supabase.functions.invoke("list-users-emails", {
-                headers: { Authorization: `Bearer ${session.access_token}` },
-              });
-            }
-          } catch (e) {
-            console.warn("Could not fetch user emails:", e);
-          }
-          return null;
-        })(),
-      ]);
-
-      if (profilesRes.error) throw profilesRes.error;
-      if (rolesRes.error) throw rolesRes.error;
-
-      const profiles = profilesRes.data;
-      const roles = rolesRes.data;
-      const emailMap: Record<string, string> = emailsRes?.data?.emails || {};
-      const lastSignInMap: Record<string, string | null> = emailsRes?.data?.last_sign_in || {};
-
-      // Combine profiles with roles and emails
-      const usersWithRoles: UserWithRoles[] = (profiles || []).map(profile => {
-        return {
-          ...profile,
-          email: emailMap[profile.user_id] || undefined,
-          last_sign_in_at: lastSignInMap[profile.user_id] ?? null,
-          roles: (roles || [])
-            .filter(r => r.user_id === profile.user_id)
-            .map(r => r.role),
-        };
-      });
-
-      setUsers(usersWithRoles);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os usuários.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAddRole = async () => {
     if (!selectedUser || !selectedRole) return;
@@ -282,7 +170,7 @@ export function UsuariosManager() {
       setIsDialogOpen(false);
       setSelectedUser(null);
       setSelectedRole("");
-      fetchUsers();
+      refreshUsers();
     } catch (error) {
       console.error("Error adding role:", error);
       toast({
@@ -353,7 +241,7 @@ export function UsuariosManager() {
         return;
       }
 
-      fetchUsers();
+      refreshUsers();
     } catch (error) {
       console.error("Error removing role:", error);
       toast({
@@ -437,7 +325,7 @@ export function UsuariosManager() {
       
       setIsCreateDialogOpen(false);
       setNewUserForm({ nome: "", email: "", password: "", role: "consultor", telefone: "" });
-      fetchUsers();
+      refreshUsers();
     } catch (error: any) {
       console.error("Error creating user:", error);
       toast({

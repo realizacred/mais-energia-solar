@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useLeadStats } from "@/hooks/useDirectorOverview";
 import {
   Brain,
   TrendingUp,
@@ -32,14 +31,7 @@ export function DirectorOverview({ insights }: Props) {
   const isGenerating = generating === "daily_summary";
 
   // Pipeline adoption alert
-  const [leadStats, setLeadStats] = useState<{ total: number; semStatus: number } | null>(null);
-  useEffect(() => {
-    (async () => {
-      const { count: total } = await supabase.from("leads").select("id", { count: "exact", head: true }).is("deleted_at", null);
-      const { count: semStatus } = await supabase.from("leads").select("id", { count: "exact", head: true }).is("deleted_at", null).is("status_id", null);
-      setLeadStats({ total: total || 0, semStatus: semStatus || 0 });
-    })();
-  }, []);
+  const { data: leadStats } = useLeadStats();
 
   const trendIcon = (t: string) => {
     if (t === "up") return <TrendingUp className="h-4 w-4 text-success" />;
