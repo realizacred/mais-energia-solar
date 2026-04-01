@@ -45,19 +45,19 @@ export function useLancamentos(filtros: LancamentoFiltros = {}) {
         .order("created_at", { ascending: false });
 
       if (filtros.tipo && filtros.tipo !== "todos") {
-        query = query.eq("tipo" as "id", filtros.tipo as string);
+        query = query.eq("tipo", filtros.tipo);
       }
       if (filtros.categoria) {
-        query = query.eq("categoria" as "id", filtros.categoria as string);
+        query = query.eq("categoria", filtros.categoria);
       }
       if (filtros.status && filtros.status !== "todos") {
-        query = query.eq("status" as "id", filtros.status as string);
+        query = query.eq("status", filtros.status);
       }
       if (filtros.dataInicio) {
-        query = query.gte("data_lancamento" as "id", filtros.dataInicio as string);
+        query = query.gte("data_lancamento", filtros.dataInicio);
       }
       if (filtros.dataFim) {
-        query = query.lte("data_lancamento" as "id", filtros.dataFim as string);
+        query = query.lte("data_lancamento", filtros.dataFim);
       }
 
       const { data, error } = await query;
