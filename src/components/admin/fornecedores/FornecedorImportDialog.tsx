@@ -146,6 +146,7 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
   const [overwriteIds, setOverwriteIds] = useState<Set<number>>(new Set());
   const [importResult, setImportResult] = useState<{
     inserted: number; updated: number; skipped: number; errors: number;
+    errorItems?: { nome: string; motivo: string }[];
   } | null>(null);
 
   const existingMap = useMemo(() => {
@@ -198,6 +199,7 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
     try {
       const { tenantId } = await getCurrentTenantId();
       let inserted = 0, updated = 0, errors = 0;
+      const errorItems: { nome: string; motivo: string }[] = [];
       const totalOps = newItems.length + toUpdate.length;
 
       // Insert new
@@ -212,8 +214,20 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
         for (let i = 0; i < payloads.length; i += BATCH) {
           const chunk = payloads.slice(i, i + BATCH);
           const { error } = await supabase.from("fornecedores").insert(chunk as any);
-          if (error) { console.error("Erro inserindo fornecedores:", error.message); errors += chunk.length; }
-          else inserted += chunk.length;
+          if (error) {
+            // Fallback: try one by one
+            for (const item of chunk) {
+              const { error: se } = await supabase.from("fornecedores").insert(item as any);
+              if (se) {
+                errors++;
+                errorItems.push({ nome: item.nome, motivo: se.message });
+              } else {
+                inserted++;
+              }
+            }
+          } else {
+            inserted += chunk.length;
+          }
           setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
         }
       }
@@ -229,7 +243,8 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
         if (dup.item.tipo) updatePayload.tipo = dup.item.tipo;
         if (Object.keys(updatePayload).length > 0) {
           const { error } = await supabase.from("fornecedores").update(updatePayload).eq("id", dup.existingId);
-          if (error) errors++; else updated++;
+          if (error) { errors++; errorItems.push({ nome: dup.item.nome, motivo: error.message }); }
+          else updated++;
         } else {
           updated++;
         }
@@ -237,7 +252,7 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
       }
 
       const skipped = duplicateItems.length - toUpdate.length;
-      setImportResult({ inserted, updated, skipped, errors });
+      setImportResult({ inserted, updated, skipped, errors, errorItems });
       toast({
         title: "Importação concluída",
         description: `${inserted} criados · ${updated} atualizados · ${skipped} ignorados${errors > 0 ? ` · ${errors} erros` : ""}`,
@@ -363,6 +378,21 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
                   <span>{importResult.skipped} ignorados</span>
                   {importResult.errors > 0 && <span className="text-destructive">{importResult.errors} erros</span>}
                 </div>
+                {importResult.errorItems && importResult.errorItems.length > 0 && (
+                  <details className="mt-3 text-left">
+                    <summary className="text-sm text-destructive cursor-pointer font-medium">
+                      {importResult.errorItems.length} erro(s) — ver detalhes
+                    </summary>
+                    <ul className="mt-2 text-xs text-muted-foreground space-y-1 max-h-40 overflow-y-auto border border-border rounded-lg p-2">
+                      {importResult.errorItems.map((item, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="font-medium text-foreground">{item.nome}</span>
+                          <span className="text-destructive">{item.motivo}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </div>
             )}
 
