@@ -581,7 +581,7 @@ export function ProposalWizard() {
       try {
         const { data: versao } = await supabase
           .from("proposta_versoes")
-          .select("id, proposta_id, snapshot, potencia_kwp, valor_total, status, grupo")
+          .select("id, proposta_id, snapshot, potencia_kwp, valor_total, status, grupo, output_pdf_path, output_docx_path")
           .eq("id", versaoIdFromUrl)
           .single();
 
