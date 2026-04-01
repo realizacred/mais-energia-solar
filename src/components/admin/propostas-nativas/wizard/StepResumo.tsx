@@ -238,7 +238,6 @@ export function StepResumo({
                   <span className="text-muted-foreground">Telhado</span>
                   <span className="font-medium text-foreground">{tipoTelhado || "—"}</span>
                   <span className="text-muted-foreground">Distribuidora</span>
-                  <span className="text-muted-foreground">Distribuidora</span>
                   <span className="font-medium text-foreground">{distribuidoraNome || "—"}</span>
                   <span className="text-muted-foreground">Irradiação</span>
                   <span className="font-medium text-foreground">{(Number(irradiacao) || 0) > 0 ? `${(Number(irradiacao) || 0).toFixed(2)} kWh/m²/dia` : "—"}</span>
