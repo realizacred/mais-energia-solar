@@ -1448,7 +1448,9 @@ export function ProposalWizard() {
           bairro: lead.bairro || undefined,
           cep: lead.cep || undefined,
           endereco: lead.rua || undefined,
+          municipio_ibge_codigo: lead.municipio_ibge_codigo || undefined,
         });
+        if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
 
         // When ORC is present, skip location pre-fill — ORC data has priority
         if (!orcTakesPriority) {
