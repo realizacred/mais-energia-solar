@@ -335,12 +335,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     updatePipeline("commit", "active", "Importando registros…");
 
     try {
-      const [concRes, aliasRes] = await Promise.all([
-        supabase.from("concessionarias").select("id, nome, sigla, nome_aneel_oficial"),
-        supabase.from("concessionaria_aneel_aliases").select("concessionaria_id, alias_aneel"),
-      ]);
-      if (concRes.error) throw concRes.error;
-      const concessionarias = concRes.data;
+      const concessionarias = matchData?.concessionarias;
       if (!concessionarias?.length) {
         toast({ title: "Nenhuma concessionária cadastrada", variant: "destructive" });
         setImporting(false);
@@ -359,8 +354,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
         const stripped = stripSuffixes(normMatch(c.nome));
         if (stripped) concByNormMatch[stripped] = c;
       }
-      if (aliasRes.data) {
-        for (const a of aliasRes.data) {
+      if (matchData?.aliases) {
+        for (const a of matchData.aliases) {
           const c = concById.get(a.concessionaria_id);
           if (c) concByNormMatch[normMatch(a.alias_aneel)] = c;
         }
