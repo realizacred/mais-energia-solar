@@ -519,11 +519,16 @@ export async function disconnectProvider(providerId: string, providerLabel?: str
   // Supplier integrations (integrations_api_configs)
   try {
     const tenantId = await getCurrentTenantId();
-    const { config } = await findSupplierConfig(tenantId, providerId, providerLabel);
+    const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
     if (config?.id) {
+      const keepActive = providerKey === "jng" || providerKey === "vertys";
       await (supabase as any)
         .from("integrations_api_configs")
-        .update({ status: "disconnected", is_active: false, updated_at: new Date().toISOString() })
+        .update({
+          status: "disconnected",
+          is_active: keepActive ? true : false,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", config.id);
     }
   } catch {

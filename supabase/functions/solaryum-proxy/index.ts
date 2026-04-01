@@ -1,7 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2/cors";
 
 const BASE_URL = "https://api-d1542.cloud.solaryum.com.br";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const ENDPOINT_MAP: Record<string, string> = {
   "BuscarFiltros": "/hubB2B/Categoria",
