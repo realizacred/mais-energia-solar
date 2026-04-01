@@ -117,6 +117,43 @@ export function RecebimentosManager() {
   const { data: recebimentos = [], isLoading: loading } = useRecebimentosFull();
   const { data: clientes = [] } = useClientesAtivos();
   const refreshRecebimentos = useRefreshRecebimentos();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingRecebimento, setEditingRecebimento] = useState<Recebimento | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [saving, setSaving] = useState(false);
+  const [selectedRecebimento, setSelectedRecebimento] = useState<Recebimento | null>(null);
+  const [pagamentosDialogOpen, setPagamentosDialogOpen] = useState(false);
+  const [parcelasDialogOpen, setParcelasDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("lista");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [formData, setFormData] = useState({
+    cliente_id: "",
+    valor_total: "",
+    forma_pagamento_acordada: "",
+    numero_parcelas: "1",
+    descricao: "",
+    data_acordo: new Date().toISOString().split("T")[0],
+  });
+
+  // ⚠️ HARDENING: Realtime for cross-user sync on recebimentos/pagamentos
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const refresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => refreshRecebimentos(), 600);
+    };
+    const channel = supabase
+      .channel('recebimentos-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recebimentos' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pagamentos' }, refresh)
+      .subscribe();
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
