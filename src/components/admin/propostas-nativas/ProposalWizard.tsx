@@ -581,7 +581,7 @@ export function ProposalWizard() {
       try {
         const { data: versao } = await supabase
           .from("proposta_versoes")
-          .select("id, proposta_id, snapshot, potencia_kwp, valor_total, status, grupo")
+          .select("id, proposta_id, snapshot, potencia_kwp, valor_total, status, grupo, output_pdf_path, output_docx_path")
           .eq("id", versaoIdFromUrl)
           .single();
 
@@ -994,6 +994,28 @@ export function ProposalWizard() {
           }
         } catch (enrichErr) {
           console.warn("[ProposalWizard] Failed to enrich lead/deal from propostas_nativas:", enrichErr);
+        }
+
+        // Restaurar preview do PDF se a versão já foi gerada
+        const restoredPdfPath = (versao as any)?.output_pdf_path ?? null;
+        const restoredDocxPath = (versao as any)?.output_docx_path ?? null;
+
+        if (restoredPdfPath) {
+          setOutputPdfPath(restoredPdfPath);
+          setOutputDocxPath(restoredDocxPath);
+          setGenerationStatus("ready");
+
+          const { data: signedData } = await supabase.storage
+            .from("proposta-documentos")
+            .createSignedUrl(restoredPdfPath, 3600);
+
+          if (signedData?.signedUrl) {
+            setPdfBlobUrl(signedData.signedUrl);
+          }
+        } else if (restoredDocxPath) {
+          setOutputPdfPath(null);
+          setOutputDocxPath(restoredDocxPath);
+          setGenerationStatus("ready");
         }
 
         const isLegacy = rawSnapshot.source === "legacy_import";
