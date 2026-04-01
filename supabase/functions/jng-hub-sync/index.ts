@@ -480,7 +480,7 @@ serve(async (req) => {
       const { error: upsertErr } = await supabase
         .from("solar_kit_catalog")
         .upsert(mappedProducts, {
-          onConflict: "tenant_id,fornecedor_id,external_id",
+          onConflict: "tenant_id,source,external_id",
           ignoreDuplicates: false,
         });
 
