@@ -416,9 +416,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
       if (error) throw error;
       
-      setVendedores(prev => 
-        prev.map(v => v.id === vendedor.id ? { ...v, ativo: !v.ativo } : v)
-      );
+      refreshVendedores();
       
       toast({
         title: vendedor.ativo ? "Consultor desativado" : "Consultor ativado",
