@@ -166,10 +166,10 @@ export function useUpdateLancamento() {
         updates.comprovante_url = urlData.publicUrl;
       }
 
-      const { data, error } = await supabase
-        .from("lancamentos_financeiros" as "leads")
-        .update(updates as Record<string, string>)
-        .eq("id" as "id", id)
+      const { data, error } = await (supabase as any)
+        .from("lancamentos_financeiros")
+        .update(updates)
+        .eq("id", id)
         .select()
         .single();
 
