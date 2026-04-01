@@ -275,6 +275,7 @@ export async function connectSupplierProvider(
   try {
     const tenantId = await getCurrentTenantId();
     const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
+    resolvedProviderKey = providerKey;
 
     console.log("[connectSupplierProvider] providerId:", providerId, "providerLabel:", providerLabel, "resolved key:", providerKey, "config found:", !!config, "config.provider:", config?.provider);
 
