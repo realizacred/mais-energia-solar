@@ -71,6 +71,11 @@ export interface TenantPremises {
   geracao_mensal_por_kwp: number;
   custo_por_kwp: number;
   kg_co2_por_kwh: number;
+  // Solaryum integration
+  solaryum_token_vertys: string;
+  solaryum_token_jng: string;
+  solaryum_cif_descarga: boolean;
+  solaryum_ibge_fallback: string;
 }
 
 export interface SombreamentoLevel {
