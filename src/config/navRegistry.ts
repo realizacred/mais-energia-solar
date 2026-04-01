@@ -110,6 +110,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
 
   // ── 7. Financeiro ──
   { nav_key: "financeiro-dashboard", label_default: "Dashboard", group_default: "Financeiro", order_default: -1, icon: "TrendingUp", description: "Visão consolidada de receitas e comissões", keywords: ["financeiro", "dashboard", "receita", "visão geral"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "lancamentos", label_default: "Lançamentos", group_default: "Financeiro", order_default: -0.5, icon: "ArrowLeftRight", description: "Receitas e despesas avulsas", keywords: ["lançamento", "receita", "despesa", "avulso", "caixa", "entrada", "saída"], criticality: "normal", permission: "admin_only" },
   { nav_key: "recebimentos", label_default: "Recebimentos", group_default: "Financeiro", order_default: 0, icon: "DollarSign", description: "Controle de parcelas e pagamentos", keywords: ["pagamento", "parcela", "receber", "financeiro"], criticality: "normal", permission: "admin_only" },
   { nav_key: "inadimplencia", label_default: "Inadimplência", group_default: "Financeiro", order_default: 1, icon: "AlertTriangle", description: "Parcelas vencidas e cobranças", keywords: ["atraso", "devedor", "cobrança", "inadimplente"], criticality: "normal", permission: "admin_only" },
   { nav_key: "comissoes", label_default: "Comissões", group_default: "Financeiro", order_default: 2, icon: "Wallet", description: "Cálculo e controle de comissões", keywords: ["comissão", "consultor", "bonificação", "percentual"], criticality: "normal", permission: "admin_only" },

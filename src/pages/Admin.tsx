@@ -83,6 +83,7 @@ const ClienteEnergiaDashboardPage = lazy(() => import("@/components/admin/energi
 const EmailIntegrationsPage = lazy(() => import("@/components/admin/email/EmailIntegrationsPage").then(m => ({ default: m.EmailIntegrationsPage })));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const FechamentoCaixaPage = lazy(() => import("@/components/admin/FechamentoCaixaPage").then(m => ({ default: m.FechamentoCaixaPage })));
+const LancamentosPage = lazy(() => import("@/components/admin/financeiro/LancamentosPage"));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
 const AuditLogsViewer = lazy(() => import("@/components/admin/AuditLogsViewer").then(m => ({ default: m.AuditLogsViewer })));
@@ -296,6 +297,7 @@ const TAB_TITLES: Record<string, string> = {
   servicos: "Agenda de serviços",
   "visitas-tecnicas": "Visitas técnicas",
   "financeiro-dashboard": "Financeiro",
+  lancamentos: "Lançamentos Financeiros",
   recebimentos: "Contas a receber",
   inadimplencia: "Inadimplência",
   comissoes: "Comissões",
@@ -658,6 +660,7 @@ export default function Admin() {
                 
                 {/* Financeiro */}
                 <Route path="financeiro-dashboard" element={<FinanceiroDashboard />} />
+                <Route path="lancamentos" element={<LancamentosPage />} />
                 <Route path="recebimentos" element={<RecebimentosManager />} />
                 <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
                 <Route path="comissoes" element={<ComissoesManager />} />
