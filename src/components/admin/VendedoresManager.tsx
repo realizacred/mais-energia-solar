@@ -53,9 +53,12 @@ interface VendedoresManagerProps {
 }
 
 export default function VendedoresManager({ leads: propLeads }: VendedoresManagerProps = {}) {
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: vendedoresData = [], isLoading: loadingVendedores, refetch: refetchVendedores } = useVendedoresList();
+  const { data: userProfilesData = [] } = useUserProfiles();
+  const refreshVendedores = useRefreshVendedores();
+  const vendedores = vendedoresData as Vendedor[];
+  const users = userProfilesData as UserProfile[];
+  const loading = loadingVendedores;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingVendedor, setEditingVendedor] = useState<Vendedor | null>(null);

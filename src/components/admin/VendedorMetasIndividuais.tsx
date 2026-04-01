@@ -146,7 +146,7 @@ export function VendedorMetasIndividuais() {
        });
  
        setEditingVendedor(null);
-       fetchData();
+       refreshMetas();
      } catch (error) {
        console.error("Error saving meta:", error);
        toast({
