@@ -251,11 +251,9 @@ export function PendingDocumentationWidget({
         </ScrollArea>
         
         {leads.length > 0 && (
-          <div className="mt-3 pt-3 border-t text-xs text-muted-foreground flex items-center gap-2">
-            <Clock className="h-3 w-3" />
-            <span>
-              Tempo médio de espera: {Math.round(leads.reduce((acc, lead) => acc + getDaysWaiting(lead.updated_at), 0) / leads.length)} dias
-            </span>
+        <div className="flex items-center gap-1.5 pt-2 mt-2 border-t border-border text-xs text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Tempo médio de espera: <strong className="text-foreground">{Math.round(leads.reduce((acc, lead) => acc + getDaysWaiting(lead.updated_at), 0) / leads.length)} dias</strong></span>
           </div>
         )}
       </CardContent>
