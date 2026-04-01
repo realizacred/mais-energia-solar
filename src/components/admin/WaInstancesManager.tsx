@@ -287,23 +287,11 @@ export function WaInstancesManager() {
           const instanceId = editInstance.id;
           updateInstance({ id: instanceId, updates: data });
 
-          // Sync junction table
+          // Sync junction table via hook
           const tenantId = editInstance.tenant_id;
           if (tenantId) {
-            await supabase.from("wa_instance_consultores").delete().eq("instance_id", instanceId);
-            if (selectedVendedorIds.length > 0) {
-              await supabase.from("wa_instance_consultores").insert(
-                selectedVendedorIds.map((vid) => ({
-                  instance_id: instanceId,
-                  consultor_id: vid,
-                  tenant_id: tenantId,
-                }))
-              );
-            }
-            const legacyVendedorId = selectedVendedorIds.length === 1 ? selectedVendedorIds[0] : null;
-            await supabase.from("wa_instances").update({ consultor_id: legacyVendedorId } as any).eq("id", instanceId);
+            await saveVendedores({ instanceId, tenantId, vendedorIds: selectedVendedorIds });
           }
-          queryClient.invalidateQueries({ queryKey: ["wa-instance-vendedores"] });
           setEditInstance(null);
         }}
         onCreateSuccess={() => {
