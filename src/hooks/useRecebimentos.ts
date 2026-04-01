@@ -1,7 +1,7 @@
 // §16: Queries só em hooks — NUNCA em componentes
 // §23: staleTime obrigatório
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const STALE_TIME = 1000 * 60 * 5;
@@ -56,4 +56,44 @@ export function useRecebimentos(filters?: RecebimentoFilters) {
     },
     staleTime: STALE_TIME,
   });
+}
+
+export function useRecebimentosFull() {
+  return useQuery({
+    queryKey: ["recebimentos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("recebimentos")
+        .select(`
+          *,
+          clientes (id, nome, telefone),
+          pagamentos (id, valor_pago, forma_pagamento, data_pagamento, observacoes)
+        `)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useClientesAtivos() {
+  return useQuery({
+    queryKey: ["clientes-ativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone")
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useRefreshRecebimentos() {
+  const qc = useQueryClient();
+  return () => qc.invalidateQueries({ queryKey: ["recebimentos"] });
 }
