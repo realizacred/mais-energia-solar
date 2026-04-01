@@ -11,9 +11,6 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui-kit/TablePagination";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrichEquipmentBatch } from "@/hooks/useEnrichEquipment";
 import { useQueryClient } from "@tanstack/react-query";
