@@ -46,6 +46,7 @@ const ICON_MAP: Record<string, string> = {
 
   // PNG assets (suppliers)
   edeltec: "edeltec.png",
+  vertys: "vertys.png",
 
   // SVG assets
   afore: "afore.svg",
