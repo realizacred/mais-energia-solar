@@ -120,9 +120,9 @@ export function PendingDocumentationWidget({
       return <Badge variant="destructive" className="text-xs font-medium">Crítico ({days}d)</Badge>;
     }
     if (days >= 3) {
-      return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">{days}d</Badge>;
+    return <Badge variant="outline" className="text-[11px] font-semibold bg-warning/10 text-warning border-warning/30 rounded-full px-2 py-0.5 shrink-0">{days}d</Badge>;
     }
-    return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">{days}d</Badge>;
+    return <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground rounded-full px-2 py-0.5 shrink-0">{days}d</Badge>;
   };
 
   const handleClick = (lead: PendingLead) => {

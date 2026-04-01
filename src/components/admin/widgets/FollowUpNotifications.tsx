@@ -249,11 +249,11 @@ export function FollowUpNotifications({
           </div>
         </ScrollArea>
         
-        <div className="mt-3 pt-3 border-t text-xs text-muted-foreground flex items-center gap-2">
-          <Clock className="h-3 w-3" />
+        <div className="flex items-center gap-1.5 pt-2 mt-2 border-t border-border text-xs text-muted-foreground">
+          <Clock className="w-3.5 h-3.5" />
           <span>
             {criticalCount > 0 
-              ? `${criticalCount} lead(s) precisam de atenção urgente`
+              ? <>{criticalCount} lead(s) precisam de <strong className="text-foreground">atenção urgente</strong></>
               : "Contate os leads listados para manter o engajamento"
             }
           </span>
