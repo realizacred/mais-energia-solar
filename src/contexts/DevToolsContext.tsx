@@ -53,7 +53,7 @@ export function DevToolsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isSuperAdmin) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === "D") {
+      if (e.ctrlKey && e.shiftKey && e.key === "X") {
         e.preventDefault();
         setState((prev) => {
           const next = !prev.enabled;
