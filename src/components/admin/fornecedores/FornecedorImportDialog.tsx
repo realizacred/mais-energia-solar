@@ -146,6 +146,7 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
   const [overwriteIds, setOverwriteIds] = useState<Set<number>>(new Set());
   const [importResult, setImportResult] = useState<{
     inserted: number; updated: number; skipped: number; errors: number;
+    errorItems?: { nome: string; motivo: string }[];
   } | null>(null);
 
   const existingMap = useMemo(() => {
