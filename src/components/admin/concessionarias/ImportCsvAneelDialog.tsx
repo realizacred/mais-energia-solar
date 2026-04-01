@@ -258,11 +258,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     setParsed(records);
 
     try {
-      const [concRes, aliasRes] = await Promise.all([
-        supabase.from("concessionarias").select("id, nome, sigla, nome_aneel_oficial"),
-        supabase.from("concessionaria_aneel_aliases").select("concessionaria_id, alias_aneel"),
-      ]);
-      const concessionarias = concRes.data;
+      const concessionarias = matchData?.concessionarias;
+      const aliasData = matchData?.aliases;
       
       if (concessionarias?.length) {
         const concById = new Map(concessionarias.map(c => [c.id, c]));
