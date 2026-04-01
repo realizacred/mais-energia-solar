@@ -559,7 +559,7 @@ serve(async (req) => {
       .from("solar_kit_catalog")
       .select("fabricante")
       .eq("tenant_id", tenant_id)
-      .eq("fornecedor_id", fornecedor_id);
+      .eq("source", "jng");
 
     if (fabData) {
       const fabCount = new Map<string, number>();
