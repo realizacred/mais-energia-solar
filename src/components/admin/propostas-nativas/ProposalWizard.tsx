@@ -386,6 +386,11 @@ export function ProposalWizard() {
     if (s.mapSnapshots != null) setMapSnapshots(s.mapSnapshots);
     if (s.selectedLead != null) setSelectedLead(s.selectedLead);
     if (s.cliente != null) setCliente(s.cliente);
+    if ((s as any).clienteMunicipioIbgeCodigo !== undefined) setClienteMunicipioIbgeCodigo((s as any).clienteMunicipioIbgeCodigo ?? null);
+    // Also extract IBGE from selectedLead if available
+    if (!((s as any).clienteMunicipioIbgeCodigo) && s.selectedLead?.municipio_ibge_codigo) {
+      setClienteMunicipioIbgeCodigo(s.selectedLead.municipio_ibge_codigo);
+    }
     // Fallback: snapshots antigos podem usar "unidades_consumidoras" em vez de "ucs"
     const ucsData = s.ucs ?? (s as any).unidades_consumidoras ?? null;
     if (Array.isArray(ucsData) && ucsData.length > 0) {
