@@ -135,16 +135,34 @@ const CONTEXT_LABELS: Record<string, string> = {
 
 export function CustomFieldsSettings() {
   const [activeTab, setActiveTab] = useState("campos");
+  const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
+  const [editingField, setEditingField] = useState<CustomField | null>(null);
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<ActivityType | null>(null);
+  const [motivoDialogOpen, setMotivoDialogOpen] = useState(false);
+  const [editingMotivo, setEditingMotivo] = useState<MotivoPerda | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [contextFilter, setContextFilter] = useState("projeto");
+
+  // ─── Queries via hooks ───
   const { data: fields = [], isLoading: fieldsLoading } = useCustomFieldsList();
   const { data: activityTypes = [], isLoading: actLoading } = useActivityTypesList();
   const { data: stages = [] } = usePipelineStages();
   const { data: pipelines = [] } = usePipelinesList();
   const loading = fieldsLoading || actLoading;
+
+  // ─── Mutations via hooks ───
   const saveFieldMutation = useSaveCustomField();
   const deleteFieldMutation = useDeleteCustomField();
   const toggleFieldMutation = useToggleCustomField();
   const saveActivityMutation = useSaveActivityType();
   const deleteActivityMutation = useDeleteActivityType();
+
+  // ─── Use canonical hook for motivos_perda (SSOT) ───
+  const { motivos, loading: motivosLoading, upsert: upsertMotivo, remove: removeMotivo } = useMotivosPerda();
+
+  // ─── Premissas (SSOT via useTenantPremises) ───
+  const premissasCtx = useTenantPremises();
 
   // ─── Custom Field CRUD ───
   const [fieldForm, setFieldForm] = useState({
@@ -158,16 +176,8 @@ export function CustomFieldsSettings() {
     required_stage_ids: [] as string[],
     icon: "" as string,
   });
-  const [stages, setStages] = useState<StageInfo[]>([]);
   const [fieldWizardStep, setFieldWizardStep] = useState<"type" | "config">("type");
   const [optionsText, setOptionsText] = useState("");
-
-  // Load pipelines and stages
-  useEffect(() => {
-    supabase.from("pipeline_stages").select("id, name, pipeline_id, position").order("position").then(({ data }) => {
-      if (data) setStages(data as StageInfo[]);
-    });
-  }, []);
 
   const openFieldDialog = (field?: CustomField) => {
     if (field) {
@@ -215,7 +225,6 @@ export function CustomFieldsSettings() {
     if (!fieldForm.title.trim() || !fieldForm.field_key.trim()) return;
     setSaving(true);
     try {
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
       const normalizedFieldType = normalizeFieldType(fieldForm.field_type);
       const options = OPTION_TYPES.includes(normalizedFieldType)
         ? optionsText.split("\n").map(s => s.trim()).filter(Boolean)
@@ -228,20 +237,11 @@ export function CustomFieldsSettings() {
         important_on_funnel: formRest.important_stage_ids.length > 0,
         required_on_funnel: formRest.required_stage_ids.length > 0,
         icon: icon || null,
-        tenant_id: (profile as any)?.tenant_id,
       };
 
-      if (editingField) {
-        const { error } = await supabase.from("deal_custom_fields").update(payload).eq("id", editingField.id);
-        if (error) throw error;
-        toast({ title: "Campo atualizado" });
-      } else {
-        const { error } = await supabase.from("deal_custom_fields").insert(payload as any);
-        if (error) throw error;
-        toast({ title: "Campo criado" });
-      }
+      await saveFieldMutation.mutateAsync({ id: editingField?.id, data: payload });
+      toast({ title: editingField ? "Campo atualizado" : "Campo criado" });
       setFieldDialogOpen(false);
-      loadAll();
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
@@ -250,8 +250,7 @@ export function CustomFieldsSettings() {
   const handleDeleteField = async (id: string) => {
     if (!window.confirm("Tem certeza que deseja remover este campo?")) return;
     try {
-      await supabase.from("deal_custom_fields").delete().eq("id", id);
-      setFields(prev => prev.filter(f => f.id !== id));
+      await deleteFieldMutation.mutateAsync(id);
       toast({ title: "Campo removido" });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -263,14 +262,6 @@ export function CustomFieldsSettings() {
     title: "", visible_on_funnel: true, icon: "circle-dot",
     visibilityMode: "all" as "all" | "some", pipeline_ids: [] as string[],
   });
-  const [pipelines, setPipelines] = useState<{ id: string; name: string }[]>([]);
-
-  // Load pipelines for the funnel selector
-  useEffect(() => {
-    supabase.from("pipelines").select("id, name").order("created_at").then(({ data }) => {
-      if (data) setPipelines(data);
-    });
-  }, []);
 
   const openActivityDialog = (at?: ActivityType) => {
     if (at) {
@@ -293,23 +284,15 @@ export function CustomFieldsSettings() {
     if (!activityForm.title.trim()) return;
     setSaving(true);
     try {
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
       const payload = {
         title: activityForm.title,
         visible_on_funnel: activityForm.visible_on_funnel,
         icon: activityForm.icon || "circle-dot",
         pipeline_ids: activityForm.visibilityMode === "all" ? [] : activityForm.pipeline_ids,
-        tenant_id: (profile as any)?.tenant_id,
       };
-      if (editingActivity) {
-        await supabase.from("deal_activity_types").update(payload as any).eq("id", editingActivity.id);
-        toast({ title: "Tipo atualizado" });
-      } else {
-        await supabase.from("deal_activity_types").insert(payload as any);
-        toast({ title: "Tipo criado" });
-      }
+      await saveActivityMutation.mutateAsync({ id: editingActivity?.id, data: payload });
+      toast({ title: editingActivity ? "Tipo atualizado" : "Tipo criado" });
       setActivityDialogOpen(false);
-      loadAll();
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
@@ -318,8 +301,7 @@ export function CustomFieldsSettings() {
   const handleDeleteActivity = async (id: string) => {
     if (!window.confirm("Tem certeza que deseja remover este tipo de atividade?")) return;
     try {
-      await supabase.from("deal_activity_types").delete().eq("id", id);
-      setActivityTypes(prev => prev.filter(a => a.id !== id));
+      await deleteActivityMutation.mutateAsync(id);
       toast({ title: "Tipo removido" });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
