@@ -149,11 +149,22 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
       </div>
 
       {/* ALERTA — sem proposta aceita */}
-      {!temPropostaAceita && availableTemplates.length > 0 && (
+      {!temPropostaAceita && availableTemplates.length > 0 && checklists.length === 0 && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm text-warning">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>
             Nenhuma proposta aceita encontrada. Aceite uma proposta na aba <strong>Propostas</strong> antes de iniciar a instalação.
+          </span>
+        </div>
+      )}
+
+      {/* ALERTA — checklists órfãos sem proposta aceita */}
+      {!temPropostaAceita && checklists.length > 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>
+            Atenção: existem checklists de instalação mas <strong>não há proposta aceita</strong> neste projeto.
+            Aceite uma proposta ou os checklists serão removidos automaticamente ao deletar as propostas.
           </span>
         </div>
       )}
