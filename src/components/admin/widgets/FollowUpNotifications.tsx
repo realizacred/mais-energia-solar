@@ -128,11 +128,11 @@ export function FollowUpNotifications({
       case "critical":
         return <Badge variant="destructive" className="text-xs font-medium">Crítico ({days}d)</Badge>;
       case "high":
-        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">{days} dias</Badge>;
+        return <Badge variant="outline" className="text-[11px] font-semibold bg-destructive/10 text-destructive border-destructive/30 rounded-full px-2 py-0.5 shrink-0">{days}d</Badge>;
       case "medium":
-        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">{days} dias</Badge>;
+        return <Badge variant="outline" className="text-[11px] font-semibold bg-warning/10 text-warning border-warning/30 rounded-full px-2 py-0.5 shrink-0">{days}d</Badge>;
       default:
-        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">{days} dias</Badge>;
+        return <Badge variant="outline" className="text-[11px] font-semibold bg-muted text-muted-foreground rounded-full px-2 py-0.5 shrink-0">{days}d</Badge>;
     }
   };
 
