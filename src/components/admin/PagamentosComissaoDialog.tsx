@@ -152,11 +152,8 @@ export function PagamentosComissaoDialog({
         .eq("id", comissao.id);
 
       toast({ title: "Pagamento registrado!" });
-      resetForm();
-      fetchPagamentos();
+      refreshPagamentos();
       onUpdate();
-    } catch (error) {
-      console.error("Error saving pagamento:", error);
       toast({ title: "Erro ao registrar pagamento", variant: "destructive" });
     } finally {
       setSaving(false);
