@@ -122,8 +122,8 @@ export function IntegrationProviderCard({
 
   const translatedError = isError ? translateSyncError(syncError) : null;
 
-  // Static icon resolution — instant, zero HTTP fallback
-  const iconUrl = getProviderIconUrl(provider.id);
+  // Static icon resolution — try id first, then logo_key fallback
+  const iconUrl = getProviderIconUrl(provider.id) || (provider.logo_key ? getProviderIconUrl(provider.logo_key) : null);
   const FallbackIcon = PROVIDER_ICON_OVERRIDES[provider.id] || CATEGORY_FALLBACK_ICONS[provider.category] || Sun;
 
   return (

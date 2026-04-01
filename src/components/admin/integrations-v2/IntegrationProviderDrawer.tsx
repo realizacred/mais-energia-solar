@@ -53,7 +53,7 @@ export function IntegrationProviderDrawer({
   const isComingSoon = provider.status === "coming_soon";
   const hasFields = fields.length > 0 && !isComingSoon;
 
-  const iconUrl = getProviderIconUrl(provider.id);
+  const iconUrl = getProviderIconUrl(provider.id) || (provider.logo_key ? getProviderIconUrl(provider.logo_key) : null);
 
   const isSecretField = (field: CredentialField) => {
     const key = field.key.toLowerCase();
