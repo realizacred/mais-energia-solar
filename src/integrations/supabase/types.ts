@@ -18588,7 +18588,7 @@ export type Database = {
       }
       recebimentos: {
         Row: {
-          cliente_id: string
+          cliente_id: string | null
           created_at: string
           data_acordo: string
           descricao: string | null
@@ -18596,6 +18596,7 @@ export type Database = {
           id: string
           numero_parcelas: number
           projeto_id: string | null
+          proposta_id: string | null
           status: string
           tenant_id: string
           unit_id: string | null
@@ -18603,7 +18604,7 @@ export type Database = {
           valor_total: number
         }
         Insert: {
-          cliente_id: string
+          cliente_id?: string | null
           created_at?: string
           data_acordo?: string
           descricao?: string | null
@@ -18611,6 +18612,7 @@ export type Database = {
           id?: string
           numero_parcelas?: number
           projeto_id?: string | null
+          proposta_id?: string | null
           status?: string
           tenant_id?: string
           unit_id?: string | null
@@ -18618,7 +18620,7 @@ export type Database = {
           valor_total: number
         }
         Update: {
-          cliente_id?: string
+          cliente_id?: string | null
           created_at?: string
           data_acordo?: string
           descricao?: string | null
@@ -18626,6 +18628,7 @@ export type Database = {
           id?: string
           numero_parcelas?: number
           projeto_id?: string | null
+          proposta_id?: string | null
           status?: string
           tenant_id?: string
           unit_id?: string | null
@@ -18645,6 +18648,13 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
             referencedColumns: ["id"]
           },
           {
