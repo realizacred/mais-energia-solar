@@ -239,7 +239,7 @@ export interface KitValidationResult {
   warnings: string[];
 }
 
-export function validateKit(itens: KitItemRow[], potenciaKwp: number): KitValidationResult {
+export function validateKit(itens: KitItemRow[], potenciaKwp: number, custoKitOverride?: number | null): KitValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -256,8 +256,11 @@ export function validateKit(itens: KitItemRow[], potenciaKwp: number): KitValida
     warnings.push("Nenhum inversor adicionado — verifique antes de gerar a proposta.");
   }
 
-  const itensPrecoZero = itens.filter(i => i.preco_unitario <= 0 && i.quantidade > 0);
-  if (itensPrecoZero.length > 0) {
+  const custoTotal = (custoKitOverride != null && custoKitOverride > 0)
+    ? custoKitOverride
+    : itens.reduce((s, i) => s + (i.preco_unitario ?? 0) * (i.quantidade ?? 0), 0);
+  const itensPrecoZero = itens.filter(i => (i.preco_unitario ?? 0) <= 0 && (i.quantidade ?? 0) > 0);
+  if (itensPrecoZero.length > 0 && custoTotal <= 0) {
     warnings.push(`${itensPrecoZero.length} item(ns) com preço unitário R$ 0,00.`);
   }
 

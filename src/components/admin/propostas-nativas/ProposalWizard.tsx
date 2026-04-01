@@ -2059,7 +2059,9 @@ export function ProposalWizard() {
 
     // Intercept: validate Kit step — block if kit cost is zero
     if (currentStepKey === STEP_KEYS.KIT && itens.length > 0) {
-      const custoKit = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+      const custoKit = (venda.custo_kit_override != null && venda.custo_kit_override > 0)
+        ? venda.custo_kit_override
+        : itens.reduce((s, i) => s + (i.quantidade ?? 0) * (i.preco_unitario ?? 0), 0);
       if (custoKit <= 0) {
         toast({
           title: "Kit com custo zerado",
