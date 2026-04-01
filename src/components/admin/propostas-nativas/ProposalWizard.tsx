@@ -351,7 +351,7 @@ export function ProposalWizard() {
   }), [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
     locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
-    selectedLead, cliente, ucs, grupo, potenciaKwp,
+    selectedLead, cliente, clienteMunicipioIbgeCodigo, ucs, grupo, potenciaKwp,
     customFieldValues, premissas, preDimensionamento,
     itens, layouts, manualKits, adicionais, servicos, venda,
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
