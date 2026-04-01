@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAutoReplyConfigData, useSaveAutoReplyConfig } from "@/hooks/useAutoReplyConfig";
 
 type AutoReplyData = {
   ativo: boolean;
@@ -29,51 +29,35 @@ const DEFAULTS: AutoReplyData = {
 };
 
 export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
+  const { data: loadedConfig, isLoading: loading } = useAutoReplyConfigData(tenantId);
+  const saveMutation = useSaveAutoReplyConfig();
   const [config, setConfig] = useState<AutoReplyData>(DEFAULTS);
   const [baseline, setBaseline] = useState<AutoReplyData>(DEFAULTS);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [exists, setExists] = useState(false);
 
   const isDirty = useMemo(() => JSON.stringify(config) !== JSON.stringify(baseline), [config, baseline]);
 
-  useEffect(() => { loadConfig(); }, [tenantId]);
-
-  const loadConfig = async () => {
-    const { data, error } = await supabase
-      .from("wa_auto_reply_config")
-      .select("ativo, mensagem_fora_horario, mensagem_feriado, cooldown_minutos, silenciar_sla, silenciar_alertas")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
-
-    if (data) {
-      setConfig(data);
-      setBaseline(data);
+  useEffect(() => {
+    if (loadedConfig) {
+      setConfig(loadedConfig);
+      setBaseline(loadedConfig);
       setExists(true);
     }
-    setLoading(false);
-  };
+  }, [loadedConfig]);
 
   const updateField = <K extends keyof AutoReplyData>(key: K, value: AutoReplyData[K]) => {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
 
   const handleSave = async () => {
-    setSaving(true);
-    const payload = { tenant_id: tenantId, ...config };
-
-    const { error } = exists
-      ? await supabase.from("wa_auto_reply_config").update(config).eq("tenant_id", tenantId)
-      : await supabase.from("wa_auto_reply_config").insert(payload);
-
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await saveMutation.mutateAsync({ tenantId, config, exists });
       setExists(true);
       setBaseline(config);
       toast({ title: "Configuração de auto-resposta salva!" });
+    } catch (error: any) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     }
-    setSaving(false);
   };
 
   if (loading) {
@@ -98,8 +82,8 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
             <MessageSquareOff className="h-4 w-4 text-primary" />
             <CardTitle className="text-base">Auto-resposta Fora do Horário</CardTitle>
           </div>
-          <Button size="sm" onClick={handleSave} disabled={saving || !isDirty} className="gap-1.5">
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending || !isDirty} className="gap-1.5">
+            {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Salvar
           </Button>
         </div>
@@ -108,7 +92,6 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Ativar */}
         <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/60">
           <div className="space-y-0.5">
             <p className="text-sm font-medium">Ativar auto-resposta</p>
@@ -121,7 +104,6 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
 
         {config.ativo && (
           <>
-            {/* Mensagem fora do horário */}
             <div className="space-y-2">
               <Label>Mensagem fora do horário</Label>
               <Textarea
@@ -132,7 +114,6 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
               />
             </div>
 
-            {/* Mensagem feriado */}
             <div className="space-y-2">
               <Label>Mensagem em feriados</Label>
               <Textarea
@@ -143,7 +124,6 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
               />
             </div>
 
-            {/* Cooldown */}
             <div className="space-y-2">
               <Label>Cooldown entre envios (minutos)</Label>
               <div className="flex items-center gap-2">
@@ -166,7 +146,6 @@ export function AutoReplyConfig({ tenantId }: { tenantId: string }) {
               </p>
             </div>
 
-            {/* SLA + Alertas */}
             <div className="space-y-3 pt-2 border-t border-border/60">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Comportamento fora do horário</p>
               
