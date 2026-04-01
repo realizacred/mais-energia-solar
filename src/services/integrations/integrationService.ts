@@ -309,9 +309,7 @@ export async function connectSupplierProvider(
       const existingCreds = (config.credentials as Record<string, string>) || {};
       const mergedCredentials = { ...existingCreds, ...credentials };
 
-      const { error: updateError } = await (supabase as any)
-        .from("integrations_api_configs")
-        .update({
+      const updatePayload: Record<string, unknown> = {
           provider: providerKey,
           name: config.name || providerLabel,
           credentials: mergedCredentials,
@@ -319,7 +317,13 @@ export async function connectSupplierProvider(
           is_active: true,
           settings: mergedSettings,
           updated_at: now,
-        })
+        };
+      // Clear fake fornecedor_id for proxy-based providers
+      if (isProxyProvider) updatePayload.fornecedor_id = null;
+
+      const { error: updateError } = await (supabase as any)
+        .from("integrations_api_configs")
+        .update(updatePayload)
         .eq("id", config.id);
 
       if (updateError) throw updateError;
