@@ -170,7 +170,7 @@ export function PagamentosComissaoDialog({
       const { error } = await supabase.from("pagamentos_comissao").delete().eq("id", id);
       if (error) throw error;
       toast({ title: "Pagamento excluído!" });
-      fetchPagamentos();
+      refreshPagamentos();
       onUpdate();
     } catch (error) {
       console.error("Error deleting pagamento:", error);
