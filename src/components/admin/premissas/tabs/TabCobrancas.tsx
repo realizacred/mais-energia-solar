@@ -191,10 +191,9 @@ export function TabCobrancas({ premises, onChange }: Props) {
             checked={premises.asaas_sandbox ?? true}
             onCheckedChange={(v) => set("asaas_sandbox", v)}
           />
+          <WebhookUrlField gateway="asaas" />
         </CardContent>
       </Card>
-
-      {/* Banco Inter */}
       <Card className="border-border/60">
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
