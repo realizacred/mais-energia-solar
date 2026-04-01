@@ -120,7 +120,7 @@ export function AprovacaoUsuarios() {
         description: "O acesso foi negado.",
       });
 
-      fetchPendingUsers();
+      refreshPending();
     } catch (error: any) {
       console.error("Error rejecting user:", error);
       toast({
