@@ -533,6 +533,57 @@ files.forEach(file => {
 - EXCEÇÃO: chat bubbles, avatares, ícones decorativos — rounded-2xl correto
 - EXCEÇÃO: landing page institucional — estilo próprio, não alterar
 
+### Migração C-01 — CONCLUÍDA v3.2
+- Total de queries migradas: ~170
+- Hooks criados: 40+
+- supabase.from() restantes em componentes: 91 (writes imperativos em handlers — corretos per §16)
+- PropostaPublica.tsx: página pública, aceitável per Bloco 10
+- AuthForm.tsx: protegido per Bloco 10, não modificar
+
+#### Hooks criados — Tabela completa
+
+| Hook | Funções exportadas | Módulo |
+|---|---|---|
+| useSignatureData.ts | useSaveSignatureSettings, useDeleteSigner, useSaveSigner | SignatureTab |
+| useTemplatePreview.ts | usePropostasParaPreview, buildPropostaContext | TemplatePreviewDialog |
+| useMeterDetail.ts | useLinkedUC, useDeleteMeter | MeterDetailPage |
+| useImportCsvAneel.ts | useConcessionariasForMatch, useInsertAneelSyncRun | ImportCsvAneelDialog |
+| useWaInstances.ts | vendedoresQuery, instanceVendedoresQuery, saveVendedoresMutation | WaInstancesManager |
+| useFiscalEmissao.ts | useFiscalInvoices, useFiscalMunicipalServices, useFiscalSettings, useFiscalInvoiceEvents, useCreateFiscalInvoice | FiscalEmissao |
+| useVariableMapper.ts | useVariableMapperData | VariableMapperPanel |
+| useBaseMeteorologica.ts | useAdminGuard, useIrradianceDatasetsAndVersions | BaseMeteorologicaPage |
+| useFiscalWizard.ts | useFiscalWizardSettings, useFiscalWizardServices, useSaveFiscalSettings | FiscalWizard |
+| useConvertLeadToClient.ts | useConversionEquipment | ConvertLeadToClientDialog |
+| useAutoReplyConfig.ts | useAutoReplyConfigData, useSaveAutoReplyConfig | AutoReplyConfig |
+| useParcelasManager.ts | useParcelasData, useGatewayActive | ParcelasManager |
+| useEmailTemplates.ts | useEmailTemplatesList, useSaveEmailTemplate, useDeleteEmailTemplate, useDuplicateEmailTemplate | EmailTemplatesPage |
+| useProjetoKanbanStage.ts | useKanbanAutomations, useKanbanStagePermissions | ProjetoKanbanStage |
+| useFiscalLogs.ts | useFiscalProviderRequests, useFiscalProviderWebhooks | FiscalLogs |
+| useDirectorOverview.ts | useLeadStats | DirectorOverview |
+| useUsuarios.ts | useIsAdmin, useUsuariosList, useRefreshUsuarios | UsuariosManager |
+| useConfSolar.ts | usePricingConfig, usePremissasTecnicas, usePropostaTemplates, usePropostaVariaveisCustom | conf-solar tabs |
+| useAprovacaoUsuarios.ts | usePendingUsers, useRefreshPendingUsers | AprovacaoUsuarios |
+| usePagamentosComissao.ts | usePagamentosComissao, useRefreshPagamentosComissao | PagamentosComissaoDialog |
+| useRecebimentos.ts | useRecebimentosFull, useClientesAtivos, useRefreshRecebimentos | RecebimentosManager |
+| useReleaseChecklist.ts | useReleaseHistory, useRefreshReleaseHistory | ReleaseChecklist |
+| useServicos.ts | useServicosData, useRefreshServicos | ServicosManager |
+| useVendedorMetas.ts | useVendedorMetasData, useRefreshVendedorMetas | VendedorMetasIndividuais |
+| useVendedores.ts | useVendedoresList, useUserProfiles, useRefreshVendedores | VendedoresManager |
+| useImportContaEnergia.ts | useConcessionariasAtivas | ImportContaEnergiaDialog |
+
+### Gate de instalação — IMPLEMENTADO v3.2
+- ProjetoInstalacaoTab.tsx: useQuery verifica proposta aceita
+- Botões "Iniciar checklist" desabilitados sem proposta aceita
+- Banner bg-warning/10 com AlertTriangle exibido
+
+### Validação pré-geração — MELHORADA v3.2
+- validatePropostaFinal.ts: adicionada verificação W6b (economia mensal)
+- economiaMensal passada pelo ProposalWizard ao validador
+
+### console.log em Edge Functions — LIMPO v3.2
+- template-preview/index.ts: 24 console.log comentados
+- Corrigidos 2 blocos multi-linha com corpo de objeto dangling
+
 # =============================================================================
 # BLOCO 11 — REGRAS DE ESCOPO
 # =============================================================================
