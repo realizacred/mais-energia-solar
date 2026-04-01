@@ -385,7 +385,9 @@ export function ProposalWizard() {
     if (s.mapSnapshots != null) setMapSnapshots(s.mapSnapshots);
     if (s.selectedLead != null) setSelectedLead(s.selectedLead);
     if (s.cliente != null) setCliente(s.cliente);
-    if (s.ucs != null) setUcs(s.ucs);
+    // Fallback: snapshots antigos podem usar "unidades_consumidoras" em vez de "ucs"
+    const ucsData = s.ucs ?? (s as any).unidades_consumidoras ?? null;
+    if (Array.isArray(ucsData) && ucsData.length > 0) setUcs(ucsData);
     if (s.grupo != null) setGrupo(s.grupo);
     if (s.potenciaKwp != null) setPotenciaKwp(s.potenciaKwp);
     if (s.customFieldValues != null) setCustomFieldValues(s.customFieldValues);
@@ -673,7 +675,7 @@ export function ProposalWizard() {
             mapSnapshots: rawSnapshot.mapSnapshots || [],
             selectedLead: ws.selectedLead ?? rawSnapshot.selectedLead ?? null,
             cliente: ws.cliente ?? rawSnapshot.cliente ?? undefined as any,
-            ucs: rawSnapshot.ucs || [],
+            ucs: rawSnapshot.ucs || rawSnapshot.unidades_consumidoras || [],
             grupo: rawSnapshot.ucs?.length > 1 ? "multi" : (uc0.subgrupo?.startsWith("A") ? "A" : "B1"),
             potenciaKwp: tecnico.potencia_kwp || versao.potencia_kwp || 0,
             itens: engineItens,
@@ -721,7 +723,7 @@ export function ProposalWizard() {
             if (!Array.isArray(s.pagamentoOpcoes)) (s as any).pagamentoOpcoes = [];
             if (!Array.isArray(s.itens)) (s as any).itens = [];
             if (!Array.isArray(s.adicionais)) (s as any).adicionais = [];
-            if (!Array.isArray(s.ucs)) (s as any).ucs = [];
+            if (!Array.isArray(s.ucs)) (s as any).ucs = (s as any).unidades_consumidoras || [];
             if (!Array.isArray(s.layouts)) (s as any).layouts = [];
             if (!Array.isArray(s.manualKits)) (s as any).manualKits = [];
             if (!Array.isArray((s as any).formas_pagamento_proprias)) (s as any).formas_pagamento_proprias = [];
