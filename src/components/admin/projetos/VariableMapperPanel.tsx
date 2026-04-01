@@ -116,7 +116,7 @@ export function VariableMapperPanel({ dealId, customerId, projetoId, onGenerateC
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-bold text-foreground">Vínculo de Contrato</h3>
-          <Badge variant={missingCount === 0 ? "default" : "destructive"} className="text-[10px]">
+          <Badge variant="outline" className={cn("text-[10px]", missingCount === 0 ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20")}>
             {missingCount === 0 ? (
               <><CheckCircle2 className="h-3 w-3 mr-1" /> Completo</>
             ) : (
@@ -155,7 +155,7 @@ export function VariableMapperPanel({ dealId, customerId, projetoId, onGenerateC
         <div
           className={cn(
             "h-full rounded-full transition-all duration-500",
-            readyPercent === 100 ? "bg-success" : readyPercent > 60 ? "bg-warning" : "bg-destructive"
+            readyPercent >= 80 ? "bg-success" : readyPercent >= 50 ? "bg-warning" : "bg-destructive"
           )}
           style={{ width: `${readyPercent}%` }}
         />
