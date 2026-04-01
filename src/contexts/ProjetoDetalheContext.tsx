@@ -1,10 +1,16 @@
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { useMotivosPerda } from "@/hooks/useDistribution";
 import { formatProjetoLabel } from "@/lib/format-entity-labels";
 import { toast } from "@/hooks/use-toast";
+import {
+  useProjetoDetalheData,
+  useDealEtiquetas,
+  useToggleEtiqueta,
+  projetoDetalheKeys,
+} from "@/hooks/useProjetoDetalheData";
 
 // ─── Shared Types ──────────────────────────────────
 export interface DealDetail {
@@ -163,40 +169,37 @@ interface ProviderProps {
 }
 
 export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, children }: ProviderProps) {
-  // ── Data states ──
-  const [deal, setDeal] = useState<DealDetail | null>(null);
-  const [history, setHistory] = useState<StageHistory[]>([]);
-  const [stages, setStages] = useState<StageInfo[]>([]);
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
-  const [customerCpfCnpj, setCustomerCpfCnpj] = useState("");
-  const [customerAddress, setCustomerAddress] = useState("");
-  const [customerEmpresa, setCustomerEmpresa] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [pipelines, setPipelines] = useState<PipelineInfo[]>([]);
-  const [allStagesMap, setAllStagesMap] = useState<Map<string, StageInfo[]>>(new Map());
-  const { data: propostasCount = 0 } = useQuery({
-    queryKey: ["deal-proposals-count", dealId],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from("propostas_nativas")
-        .select("id", { count: "exact", head: true })
-        .eq("deal_id", dealId)
-        .neq("status", "excluida");
-      return count || 0;
-    },
-    staleTime: 1000 * 60 * 5,
-    enabled: !!dealId,
-  });
-  const [docsCount, setDocsCount] = useState(0);
-  const [userNamesMap, setUserNamesMap] = useState<Map<string, string>>(new Map());
+  const queryClient = useQueryClient();
+
+  // ── Data from hooks ──
+  const { data: fullData, isLoading: loadingData } = useProjetoDetalheData(dealId);
+  const { data: etiquetasData } = useDealEtiquetas(dealId);
+  const toggleEtiquetaMutation = useToggleEtiqueta(dealId);
+
+  // Propostas count
+  const { data: propostasCountData = 0 } = usePropostasCount(dealId);
+
+  // Derived data from query
+  const deal = fullData?.deal ?? null;
+  const history = fullData?.history ?? [];
+  const stages = fullData?.stages ?? [];
+  const customerName = fullData?.customerName ?? "";
+  const customerPhone = fullData?.customerPhone ?? "";
+  const customerEmail = fullData?.customerEmail ?? "";
+  const customerCpfCnpj = fullData?.customerCpfCnpj ?? "";
+  const customerAddress = fullData?.customerAddress ?? "";
+  const customerEmpresa = fullData?.customerEmpresa ?? "";
+  const ownerName = fullData?.ownerName ?? "";
+  const pipelines = fullData?.pipelines ?? [];
+  const allStagesMap = fullData?.allStagesMap ?? new Map<string, StageInfo[]>();
+  const docsCount = fullData?.docsCount ?? 0;
+  const userNamesMap = fullData?.userNamesMap ?? new Map<string, string>();
+  const dealEtiquetas = etiquetasData?.dealEtiquetas ?? [];
+  const allEtiquetas = etiquetasData?.allEtiquetas ?? [];
 
   // ── UI states ──
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab") as TabId | null;
-  
 
   const validTabs: TabId[] = ["gerenciamento", "comunicacao", "propostas", "documentos", "instalacao"];
 
@@ -206,11 +209,10 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
       : "gerenciamento"
   );
 
-  // React to tab param changes (e.g. clicking proposal icon on kanban)
+  // React to tab param changes
   useEffect(() => {
     if (tabFromUrl && validTabs.includes(tabFromUrl)) {
       setActiveTabState(tabFromUrl);
-      // Clear tab param from URL after applying (keep URL clean)
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.delete("tab");
@@ -222,6 +224,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
   const setActiveTab = useCallback((tab: TabId) => {
     setActiveTabState(tab);
   }, []);
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteBlocking, setDeleteBlocking] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
@@ -231,8 +234,6 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
   const [lossMotivo, setLossMotivo] = useState("");
   const [lossObs, setLossObs] = useState("");
   const [lossSaving, setLossSaving] = useState(false);
-  const [dealEtiquetas, setDealEtiquetas] = useState<EtiquetaItem[]>([]);
-  const [allEtiquetas, setAllEtiquetas] = useState<EtiquetaItem[]>([]);
   const [etiquetaPopoverOpen, setEtiquetaPopoverOpen] = useState(false);
 
   const { motivos, loading: loadingMotivos } = useMotivosPerda();
@@ -264,76 +265,40 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
   }, [stages, allStagesMap]);
 
   const tabBadge = useCallback((tabId: string) => {
-    if (tabId === "propostas") return propostasCount;
+    if (tabId === "propostas") return propostasCountData;
     if (tabId === "documentos") return docsCount;
     return null;
-  }, [propostasCount, docsCount]);
+  }, [propostasCountData, docsCount]);
 
   const updateDealLocal = useCallback((patch: Partial<DealDetail>) => {
-    setDeal(prev => prev ? { ...prev, ...patch } : prev);
-  }, []);
-
-  // ── Silent refresh ──
-  const silentRefresh = useCallback(async () => {
-    try {
-      const { data: d } = await supabase.from("deals").select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num").eq("id", dealId).single();
-      if (d) {
-        setDeal(d as DealDetail);
-        const [stagesRes, historyRes, ownerRes] = await Promise.all([
-          supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", (d as any).pipeline_id).order("position"),
-          supabase.from("deal_stage_history").select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata").eq("deal_id", dealId).order("moved_at", { ascending: false }),
-          supabase.from("consultores").select("nome").eq("id", (d as any).owner_id).single(),
-        ]);
-        setStages((stagesRes.data || []) as StageInfo[]);
-        setHistory((historyRes.data || []) as StageHistory[]);
-        if (ownerRes.data) setOwnerName((ownerRes.data as any).nome);
+    queryClient.setQueryData(
+      projetoDetalheKeys.detail(dealId),
+      (old: any) => {
+        if (!old) return old;
+        return { ...old, deal: { ...old.deal, ...patch } };
       }
-    } catch { /* silent */ }
-  }, [dealId]);
+    );
+  }, [dealId, queryClient]);
 
-  // ── Refresh customer ──
+  // ── silentRefresh → invalidateQueries ──
+  const silentRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
+  }, [dealId, queryClient]);
+
+  // ── refreshCustomer → invalidateQueries ──
   const refreshCustomer = useCallback(async () => {
-    if (!deal?.customer_id) return;
-    const { data: c } = await supabase.from("clientes").select("nome, telefone, email, cpf_cnpj, empresa, rua, numero, bairro, cidade, estado, cep").eq("id", deal.customer_id).single();
-    if (c) {
-      const cl = c as any;
-      setCustomerName(cl.nome);
-      setCustomerPhone(cl.telefone || "");
-      setCustomerEmail(cl.email || "");
-      setCustomerCpfCnpj(cl.cpf_cnpj || "");
-      setCustomerEmpresa(cl.empresa || "");
-      const parts = [cl.rua, cl.numero ? `n° ${cl.numero}` : null, cl.bairro, cl.cidade ? `${cl.cidade} (${cl.estado || ""})` : null, cl.cep ? `CEP: ${cl.cep}` : null].filter(Boolean);
-      setCustomerAddress(parts.join(", "));
-    }
-  }, [deal?.customer_id]);
+    await queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
+  }, [dealId, queryClient]);
 
-  // ── Etiquetas ──
-  const loadEtiquetas = useCallback(async () => {
-    const [relRes, allRes] = await Promise.all([
-      supabase.from("projeto_etiqueta_rel").select("etiqueta_id").eq("projeto_id", dealId),
-      supabase.from("projeto_etiquetas").select("id, nome, cor, short, icon").eq("ativo", true).order("ordem"),
-    ]);
-    const allEts = (allRes.data || []) as EtiquetaItem[];
-    setAllEtiquetas(allEts);
-    const relIds = new Set((relRes.data || []).map((r: any) => r.etiqueta_id));
-    setDealEtiquetas(allEts.filter(e => relIds.has(e.id)));
-  }, [dealId]);
-
+  // ── toggleEtiqueta ──
   const toggleEtiqueta = useCallback(async (etId: string) => {
     try {
       const has = dealEtiquetas.some(e => e.id === etId);
-      if (has) {
-        const { error } = await supabase.from("projeto_etiqueta_rel").delete().eq("projeto_id", dealId).eq("etiqueta_id", etId);
-        if (error) { console.error("Erro ao remover etiqueta:", error); return; }
-      } else {
-        const { error } = await supabase.from("projeto_etiqueta_rel").insert({ projeto_id: dealId, etiqueta_id: etId } as any);
-        if (error) { console.error("Erro ao adicionar etiqueta:", error); return; }
-      }
-      await loadEtiquetas();
+      await toggleEtiquetaMutation.mutateAsync({ etId, has });
     } catch (err) {
       console.error("toggleEtiqueta error:", err);
     }
-  }, [dealId, dealEtiquetas, loadEtiquetas]);
+  }, [dealEtiquetas, toggleEtiquetaMutation]);
 
   // ── Delete handler ──
   const handleDeleteProject = useCallback(async () => {
@@ -450,100 +415,20 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     }
   }, [lossMotivo, lossObs, deal, stages, updateDealLocal, silentRefresh]);
 
-
-  // ── Effects ──
-
-  // Load deal data
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const [dealRes, historyRes] = await Promise.all([
-          supabase.from("deals").select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num").eq("id", dealId).single(),
-          supabase.from("deal_stage_history").select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata").eq("deal_id", dealId).order("moved_at", { ascending: false }),
-        ]);
-
-        if (dealRes.error) throw dealRes.error;
-        const d = dealRes.data as DealDetail;
-        setDeal(d);
-        const historyData = (historyRes.data || []) as StageHistory[];
-        setHistory(historyData);
-
-        const movedByIds = [...new Set(historyData.map(h => h.moved_by).filter(Boolean))] as string[];
-        if (movedByIds.length > 0) {
-          supabase.from("profiles").select("user_id, nome").in("user_id", movedByIds)
-            .then(({ data: profiles }) => {
-              if (profiles) {
-                const map = new Map<string, string>();
-                (profiles as any[]).forEach(p => map.set(p.user_id, p.nome));
-                setUserNamesMap(map);
-              }
-            });
-        }
-
-        const [stagesRes, customerRes, ownerRes, pipelinesRes, allStagesRes] = await Promise.all([
-          supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", d.pipeline_id).order("position"),
-          d.customer_id ? supabase.from("clientes").select("nome, telefone, email, cpf_cnpj, empresa, rua, numero, bairro, cidade, estado, cep").eq("id", d.customer_id).single() : Promise.resolve({ data: null }),
-          supabase.from("consultores").select("nome").eq("id", d.owner_id).single(),
-          supabase.from("pipelines").select("id, name").eq("is_active", true).order("name"),
-          supabase.from("pipeline_stages").select("id, name, position, pipeline_id, is_closed, is_won, probability").order("position"),
-        ]);
-
-        setStages((stagesRes.data || []) as StageInfo[]);
-        if (customerRes.data) {
-          const c = customerRes.data as any;
-          setCustomerName(c.nome);
-          setCustomerPhone(c.telefone || "");
-          setCustomerEmail(c.email || "");
-          setCustomerCpfCnpj(c.cpf_cnpj || "");
-          setCustomerEmpresa(c.empresa || "");
-          const parts = [c.rua, c.numero ? `n° ${c.numero}` : null, c.bairro, c.cidade ? `${c.cidade} (${c.estado || ""})` : null, c.cep ? `CEP: ${c.cep}` : null].filter(Boolean);
-          setCustomerAddress(parts.join(", "));
-        }
-        if (ownerRes.data) setOwnerName((ownerRes.data as any).nome);
-        if (pipelinesRes.data) setPipelines(pipelinesRes.data as PipelineInfo[]);
-        if (allStagesRes.data) {
-          const map = new Map<string, StageInfo[]>();
-          (allStagesRes.data as any[]).forEach(s => {
-            const arr = map.get(s.pipeline_id) || [];
-            arr.push({ id: s.id, name: s.name, position: s.position, is_closed: s.is_closed, is_won: s.is_won, probability: s.probability });
-            map.set(s.pipeline_id, arr);
-          });
-          setAllStagesMap(map);
-        }
-
-        supabase.from("profiles").select("tenant_id").limit(1).single().then(({ data: profile }) => {
-          if (profile) {
-            supabase.storage.from("projeto-documentos").list(`${(profile as any).tenant_id}/deals/${d.id}`, { limit: 100 })
-              .then(({ data: files }) => setDocsCount(files?.length || 0));
-          }
-        });
-      } catch (err) {
-        console.error("ProjetoDetalhe:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [dealId]);
-
-  // Load etiquetas
-  useEffect(() => { loadEtiquetas(); }, [dealId, loadEtiquetas]);
-
-  // Realtime subscription
+  // ── Realtime subscription ──
   useEffect(() => {
     const channel = supabase
       .channel(`deal-${dealId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "deals", filter: `id=eq.${dealId}` }, () => {
-        silentRefresh();
+        queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "deal_stage_history", filter: `deal_id=eq.${dealId}` }, () => {
-        silentRefresh();
+        queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [dealId, silentRefresh]);
+  }, [dealId, queryClient]);
 
   // ── Context value ──
   const value = useMemo<ProjetoDetalheContextValue>(() => ({
@@ -553,7 +438,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     deal,
     history,
     stages,
-    loading,
+    loading: loadingData,
     customerName,
     customerPhone,
     customerEmail,
@@ -563,7 +448,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     ownerName,
     pipelines,
     allStagesMap,
-    propostasCount,
+    propostasCount: propostasCountData,
     docsCount,
     userNamesMap,
     dealEtiquetas,
@@ -606,9 +491,9 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     tabBadge,
   }), [
     dealId, onBack, initialPipelineId,
-    deal, history, stages, loading,
+    deal, history, stages, loadingData,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress, customerEmpresa,
-    ownerName, pipelines, allStagesMap, propostasCount, docsCount, userNamesMap,
+    ownerName, pipelines, allStagesMap, propostasCountData, docsCount, userNamesMap,
     dealEtiquetas, allEtiquetas, etiquetaPopoverOpen,
     toggleEtiqueta, activeTab, deleteDialogOpen, deleteBlocking, deleting,
     handleDeleteProject, confirmConsultorId, confirmConsultorName, handleConfirmConsultor,
@@ -622,4 +507,21 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
       {children}
     </ProjetoDetalheContext.Provider>
   );
+}
+
+// ─── Internal: propostas count query (kept from original) ──
+function usePropostasCount(dealId: string) {
+  return useQuery({
+    queryKey: projetoDetalheKeys.propostasCount(dealId),
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("propostas_nativas")
+        .select("id", { count: "exact", head: true })
+        .eq("deal_id", dealId)
+        .neq("status", "excluida");
+      return count || 0;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!dealId,
+  });
 }
