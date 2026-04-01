@@ -1433,7 +1433,7 @@ export function ProposalWizard() {
       try {
         const { data: lead } = await supabase
           .from("leads")
-          .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, bairro, cep, rua, numero, complemento, valor_estimado, observacoes, area")
+          .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, bairro, cep, rua, numero, complemento, valor_estimado, observacoes, area, municipio_ibge_codigo")
           .eq("id", leadIdFromUrl)
           .single();
         if (cancelled || !lead) return;
