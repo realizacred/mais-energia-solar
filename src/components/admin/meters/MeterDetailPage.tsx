@@ -142,20 +142,7 @@ export default function MeterDetailPage() {
 
   const activeLink = links.find(l => l.is_active);
 
-  const { data: linkedUC } = useQuery({
-    queryKey: ["uc_for_meter", activeLink?.unit_id],
-    queryFn: async () => {
-      if (!activeLink) return null;
-      const { data } = await supabase
-        .from("units_consumidoras")
-        .select("id, nome, codigo_uc")
-        .eq("id", activeLink.unit_id)
-        .single();
-      return data;
-    },
-    enabled: !!activeLink,
-    staleTime: STALE_NORMAL,
-  });
+  const { data: linkedUC } = useLinkedUC(activeLink?.unit_id);
 
   // Chart data
   const chartData = useMemo(() => {
