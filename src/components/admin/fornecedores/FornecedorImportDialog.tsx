@@ -378,6 +378,21 @@ export function FornecedorImportDialog({ open, onOpenChange, existingFornecedore
                   <span>{importResult.skipped} ignorados</span>
                   {importResult.errors > 0 && <span className="text-destructive">{importResult.errors} erros</span>}
                 </div>
+                {importResult.errorItems && importResult.errorItems.length > 0 && (
+                  <details className="mt-3 text-left">
+                    <summary className="text-sm text-destructive cursor-pointer font-medium">
+                      {importResult.errorItems.length} erro(s) — ver detalhes
+                    </summary>
+                    <ul className="mt-2 text-xs text-muted-foreground space-y-1 max-h-40 overflow-y-auto border border-border rounded-lg p-2">
+                      {importResult.errorItems.map((item, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="font-medium text-foreground">{item.nome}</span>
+                          <span className="text-destructive">{item.motivo}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </div>
             )}
 
