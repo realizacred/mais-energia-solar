@@ -129,6 +129,7 @@ function mapRowToSolarPremises(row: Record<string, unknown>): SolarPremises {
     shading_loss_percent: (row.shading_loss_percent as number) ?? SOLAR_DEFAULTS.shading_loss_percent,
     soiling_loss_percent: (row.soiling_loss_percent as number) ?? SOLAR_DEFAULTS.soiling_loss_percent,
     other_losses_percent: (row.other_losses_percent as number) ?? SOLAR_DEFAULTS.other_losses_percent,
+    solaryum_ibge_fallback: (row.solaryum_ibge_fallback as string) ?? SOLAR_DEFAULTS.solaryum_ibge_fallback,
   };
 }
 
