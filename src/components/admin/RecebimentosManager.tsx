@@ -114,93 +114,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function RecebimentosManager() {
-  const [recebimentos, setRecebimentos] = useState<Recebimento[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingRecebimento, setEditingRecebimento] = useState<Recebimento | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [saving, setSaving] = useState(false);
-  const [selectedRecebimento, setSelectedRecebimento] = useState<Recebimento | null>(null);
-  const [pagamentosDialogOpen, setPagamentosDialogOpen] = useState(false);
-  const [parcelasDialogOpen, setParcelasDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("lista");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-
-  const [formData, setFormData] = useState({
-    cliente_id: "",
-    valor_total: "",
-    forma_pagamento_acordada: "",
-    numero_parcelas: "1",
-    descricao: "",
-    data_acordo: new Date().toISOString().split("T")[0],
-  });
-
-  useEffect(() => {
-    fetchRecebimentos();
-    fetchClientes();
-  }, []);
-
-  // ⚠️ HARDENING: Realtime for cross-user sync on recebimentos/pagamentos
-  useEffect(() => {
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    const refresh = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchRecebimentos(), 600);
-    };
-
-    const channel = supabase
-      .channel('recebimentos-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'recebimentos' }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pagamentos' }, refresh)
-      .subscribe();
-
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchRecebimentos = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("recebimentos")
-        .select(`
-          *,
-          clientes (id, nome, telefone),
-          pagamentos (id, valor_pago, forma_pagamento, data_pagamento, observacoes)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setRecebimentos(data || []);
-    } catch (error) {
-      console.error("Error fetching recebimentos:", error);
-      toast({
-        title: "Erro ao carregar recebimentos",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchClientes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("id, nome, telefone")
-        .eq("ativo", true)
-        .order("nome");
-
-      if (error) throw error;
-      setClientes(data || []);
-    } catch (error) {
-      console.error("Error fetching clientes:", error);
-    }
-  };
+  const { data: recebimentos = [], isLoading: loading } = useRecebimentosFull();
+  const { data: clientes = [] } = useClientesAtivos();
+  const refreshRecebimentos = useRefreshRecebimentos();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
