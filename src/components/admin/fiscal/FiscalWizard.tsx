@@ -17,7 +17,9 @@ import { useFiscalWizardSettings, useFiscalWizardServices, useSaveFiscalSettings
 const ESTADOS_BR = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
 export function FiscalWizard() {
-  const [loading, setLoading] = useState(true);
+  const { data: loadedSettings, isLoading: loading } = useFiscalWizardSettings();
+  const { data: services = [], refetch: reloadServices } = useFiscalWizardServices();
+  const saveMutation = useSaveFiscalSettings();
   const [saving, setSaving] = useState(false);
   const [syncingServices, setSyncingServices] = useState(false);
   const [settings, setSettings] = useState({
@@ -36,53 +38,28 @@ export function FiscalWizard() {
     homologation_tested: false,
     is_active: false,
   });
-  const [services, setServices] = useState<any[]>([]);
 
+  // Populate local state from loaded settings
   useEffect(() => {
-    loadSettings();
-    loadServices();
-  }, []);
-
-  const loadSettings = async () => {
-    setLoading(true);
-    try {
-      const { data } = await supabase
-        .from("fiscal_settings")
-        .select("id, cnpj_emitente, inscricao_municipal, municipio_emitente, uf_emitente, regime_tributario, portal_nacional_enabled, allow_deductions, auto_issue_on_payment, default_service_description, default_observations, default_taxes, homologation_tested, is_active")
-        .maybeSingle();
-      if (data) {
-        setSettings({
-          id: data.id,
-          cnpj_emitente: data.cnpj_emitente || "",
-          inscricao_municipal: data.inscricao_municipal || "",
-          municipio_emitente: data.municipio_emitente || "",
-          uf_emitente: data.uf_emitente || "",
-          regime_tributario: data.regime_tributario || "simples_nacional",
-          portal_nacional_enabled: data.portal_nacional_enabled || false,
-          allow_deductions: data.allow_deductions || false,
-          auto_issue_on_payment: data.auto_issue_on_payment || false,
-          default_service_description: data.default_service_description || "",
-          default_observations: data.default_observations || "",
-          default_taxes: (data.default_taxes as Record<string, unknown>) || {},
-          homologation_tested: data.homologation_tested || false,
-          is_active: data.is_active || false,
-        });
-      }
-    } catch (e) {
-      console.error("Error loading fiscal settings:", e);
-    } finally {
-      setLoading(false);
+    if (loadedSettings) {
+      setSettings({
+        id: loadedSettings.id,
+        cnpj_emitente: loadedSettings.cnpj_emitente || "",
+        inscricao_municipal: loadedSettings.inscricao_municipal || "",
+        municipio_emitente: loadedSettings.municipio_emitente || "",
+        uf_emitente: loadedSettings.uf_emitente || "",
+        regime_tributario: loadedSettings.regime_tributario || "simples_nacional",
+        portal_nacional_enabled: loadedSettings.portal_nacional_enabled || false,
+        allow_deductions: loadedSettings.allow_deductions || false,
+        auto_issue_on_payment: loadedSettings.auto_issue_on_payment || false,
+        default_service_description: loadedSettings.default_service_description || "",
+        default_observations: loadedSettings.default_observations || "",
+        default_taxes: (loadedSettings.default_taxes as Record<string, unknown>) || {},
+        homologation_tested: loadedSettings.homologation_tested || false,
+        is_active: loadedSettings.is_active || false,
+      });
     }
-  };
-
-  const loadServices = async () => {
-    const { data } = await supabase
-      .from("fiscal_municipal_services")
-      .select("id, service_code, service_name, is_manual, is_active, synced_at")
-      .eq("is_active", true)
-      .order("service_name");
-    setServices(data || []);
-  };
+  }, [loadedSettings]);
 
   const handleSave = async () => {
     setSaving(true);
