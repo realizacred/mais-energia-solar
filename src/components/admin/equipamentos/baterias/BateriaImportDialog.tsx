@@ -241,6 +241,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
   const [aiProgress, setAiProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{
     inserted: number; updated: number; skipped: number; errors: number;
+    errorItems?: { fabricante: string; modelo: string; motivo: string }[];
   } | null>(null);
 
   const existingMap = useMemo(() => {
@@ -338,6 +339,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
     try {
       const { tenantId } = await getCurrentTenantId();
       let inserted = 0, updated = 0, errors = 0;
+      const errorItems: { fabricante: string; modelo: string; motivo: string }[] = [];
       const insertPayloads = toInsert.map(b => ({
         fabricante: b.fabricante, modelo: b.modelo,
         energia_kwh: b.energia_kwh || null,
@@ -349,8 +351,30 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
 
       for (let i = 0; i < insertPayloads.length; i += BATCH_SIZE) {
         const chunk = insertPayloads.slice(i, i + BATCH_SIZE);
-        const { error } = await supabase.from("baterias").insert(chunk as any);
-        if (error) { console.error("[bateria-import] Erro batch", i, ":", error.message, error.code); errors += chunk.length; } else inserted += chunk.length;
+        const { data, error } = await supabase.from("baterias").insert(chunk as any).select("id");
+        if (error) {
+          if (error.code === "23505") {
+            for (const item of chunk) {
+              const { error: singleError } = await supabase.from("baterias").insert(item as any);
+              if (singleError) {
+                if (singleError.code === "23505") {
+                  // Already exists — skip silently
+                } else {
+                  errors++;
+                  errorItems.push({ fabricante: item.fabricante, modelo: item.modelo, motivo: singleError.message });
+                }
+              } else {
+                inserted++;
+              }
+            }
+          } else {
+            console.error("[bateria-import] Erro no batch:", error.message);
+            errors += chunk.length;
+            errorItems.push(...chunk.map(item => ({ fabricante: item.fabricante, modelo: item.modelo, motivo: error.message })));
+          }
+        } else {
+          inserted += data?.length ?? chunk.length;
+        }
         setProgress(Math.round(((i + chunk.length) / totalOps) * 100));
       }
 
@@ -366,7 +390,7 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
 
       qc.invalidateQueries({ queryKey: ["baterias"] });
       const skipped = duplicateItems.length - toUpdate.length + suspectItems.length - suspectsToImport.length;
-      setImportResult({ inserted, updated, skipped, errors });
+      setImportResult({ inserted, updated, skipped, errors, errorItems });
       toast({
         title: "Importação concluída",
         description: [
@@ -542,12 +566,27 @@ export function BateriaImportDialog({ open, onOpenChange, existingBaterias }: Pr
 
             {importResult && (
               <div className="text-center space-y-3 py-4">
-                <CheckCircle2 className="w-12 h-12 text-success mx-auto" />
+                <CheckCircle2 className={`w-12 h-12 mx-auto ${importResult.errors > 0 ? 'text-warning' : 'text-success'}`} />
                 <p className="text-lg font-semibold text-foreground">Importação concluída</p>
                 <p className="text-sm text-muted-foreground">
                   {importResult.inserted} inseridas · {importResult.updated} atualizadas · {importResult.skipped} já existiam no catálogo
                   {importResult.errors > 0 && ` · ${importResult.errors} erros`}
                 </p>
+                {importResult.errorItems && importResult.errorItems.length > 0 && (
+                  <details className="mt-3 text-left">
+                    <summary className="text-sm text-destructive cursor-pointer font-medium">
+                      {importResult.errorItems.length} erro(s) — ver detalhes
+                    </summary>
+                    <ul className="mt-2 text-xs text-muted-foreground space-y-1 max-h-40 overflow-y-auto border border-border rounded-lg p-2">
+                      {importResult.errorItems.map((item, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="font-medium text-foreground">{item.fabricante} {item.modelo}</span>
+                          <span className="text-destructive">{item.motivo}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </div>
             )}
           </div>
