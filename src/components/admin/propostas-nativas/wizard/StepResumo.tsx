@@ -108,18 +108,6 @@ export function StepResumo({
   const custoBase = custoKit + custoServicosEfetivo + (Number(custoComissao) || 0) + (Number(custoOutros) || 0);
   const margemRealPercentual = custoBase > 0 ? ((precoFinal - custoBase) / custoBase) * 100 : 0;
 
-  const estruturaResumo = Array.from(
-    new Set(
-      itens
-        .filter((item) => {
-          const categoria = (item.categoria || "").toLowerCase();
-          const descricao = (item.descricao || "").toLowerCase();
-          return categoria === "estrutura" || descricao.includes("estrutura") || descricao.includes("fixação") || descricao.includes("fixacao");
-        })
-        .map((item) => (item.descricao || "").trim())
-        .filter(Boolean),
-    ),
-  ).join(" • ");
 
   return (
     <div className="space-y-4">
