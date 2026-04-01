@@ -379,7 +379,7 @@ export async function connectSupplierProvider(
     if (affectedConfigId) {
       // Proxy-based providers (JNG/Vertys) stay is_active=true even on test failure
       // because they don't need sync — the proxy reads credentials on demand
-      const provKey = providerKey ?? "";
+      const provKey = resolvedProviderKey ?? "";
       const keepActive = provKey === "jng" || provKey === "vertys";
       await updateSupplierConfigState(affectedConfigId, {
         status: "error",
