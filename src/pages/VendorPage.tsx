@@ -18,6 +18,8 @@ export default function VendorPage() {
   const [vendedorNome, setVendedorNome] = useState<string | null>(null);
   const [validationState, setValidationState] = useState<ValidationState>("loading");
 
+  const [retryCount, setRetryCount] = useState(0);
+
   // Validate vendor code and load name
   useEffect(() => {
     const validateAndLoadVendedor = async () => {
@@ -26,14 +28,26 @@ export default function VendorPage() {
         return;
       }
 
+      setValidationState("loading");
+
       try {
         // Use secure RPC that allows public access (no auth required)
         const { data, error } = await supabase
           .rpc("validate_consultor_code", { _codigo: codigo });
 
         if (error) {
-          console.error("Error validating vendor:", error);
-          setValidationState("invalid");
+          // Distinguish network/server errors from actual invalid codes
+          const isNetworkError = !navigator.onLine || 
+            error.message?.includes("Failed to fetch") ||
+            error.message?.includes("NetworkError") ||
+            error.code === "PGRST301";
+          
+          if (isNetworkError) {
+            console.error("[VendorPage] Network error validating vendor:", error.message);
+            setValidationState("network_error");
+          } else {
+            setValidationState("invalid");
+          }
           return;
         }
 
@@ -48,13 +62,13 @@ export default function VendorPage() {
           setValidationState("invalid");
         }
       } catch (err) {
-        console.error("Error validating vendor:", err);
-        setValidationState("invalid");
+        console.error("[VendorPage] Error validating vendor:", err);
+        setValidationState("network_error");
       }
     };
 
     validateAndLoadVendedor();
-  }, [codigo]);
+  }, [codigo, retryCount]);
 
   // Loading state
   if (validationState === "loading") {
