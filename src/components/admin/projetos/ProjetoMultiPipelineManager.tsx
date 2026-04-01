@@ -271,8 +271,12 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
           {/* Active pipeline stepper */}
           {activeMembership && (() => {
-            const pStages = (allStagesMap.get(activeMembership.pipeline_id) || []).sort((a, b) => a.position - b.position);
-            const currentIndex = pStages.findIndex(s => s.id === activeMembership.stage_id);
+            const allPStages = (allStagesMap.get(activeMembership.pipeline_id) || []).sort((a, b) => a.position - b.position);
+            // Separate linear stages from terminal "lost" stages (is_closed && !is_won)
+            const linearStages = allPStages.filter(s => !(s.is_closed && !s.is_won));
+            const terminalLostStages = allPStages.filter(s => s.is_closed && !s.is_won);
+            const currentLinearIndex = linearStages.findIndex(s => s.id === activeMembership.stage_id);
+            const isOnTerminal = terminalLostStages.some(s => s.id === activeMembership.stage_id);
             const isComercial = activeMembership.pipeline_name.toLowerCase() === "comercial";
 
             return (
@@ -303,22 +307,22 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                   )}
                 </div>
 
-                {/* Mini stepper */}
+                {/* Mini stepper — linear stages only */}
                 <div className="relative pt-1">
                   <div className="absolute top-[14px] left-0 right-0 h-0.5 bg-border rounded-full" />
-                  {pStages.length > 1 && (
+                  {linearStages.length > 1 && !isOnTerminal && currentLinearIndex >= 0 && (
                     <motion.div
                       className="absolute top-[14px] left-0 h-0.5 bg-success rounded-full"
                       initial={{ width: "0%" }}
-                      animate={{ width: `${(currentIndex / (pStages.length - 1)) * 100}%` }}
+                      animate={{ width: `${(currentLinearIndex / (linearStages.length - 1)) * 100}%` }}
                       transition={{ duration: 0.5, ease: "easeOut" }}
                     />
                   )}
                   <div className="relative flex justify-between">
-                    {pStages.map((stage, i) => {
-                      const isPast = i < currentIndex;
-                      const isCurrent = i === currentIndex;
-                      const isFuture = i > currentIndex;
+                    {linearStages.map((stage, i) => {
+                      const isPast = !isOnTerminal && i < currentLinearIndex;
+                      const isCurrent = !isOnTerminal && i === currentLinearIndex;
+                      const isFuture = isOnTerminal || i > currentLinearIndex;
 
                       return (
                         <Tooltip key={stage.id}>
@@ -363,6 +367,41 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                     })}
                   </div>
                 </div>
+
+                {/* Terminal stages (e.g. "Perdido") — shown separately below the line */}
+                {terminalLostStages.length > 0 && (
+                  <div className="flex items-center gap-2 pt-1">
+                    {terminalLostStages.map(stage => {
+                      const isCurrent = stage.id === activeMembership.stage_id;
+                      return (
+                        <Tooltip key={stage.id}>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => {
+                                if (stage.id !== activeMembership.stage_id) {
+                                  changeStage(activeMembership.id, stage.id);
+                                }
+                              }}
+                              className={cn(
+                                "flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-medium border transition-all cursor-pointer",
+                                isCurrent
+                                  ? "bg-destructive/10 text-destructive border-destructive/30"
+                                  : "bg-muted/40 text-muted-foreground border-border hover:bg-destructive/5 hover:text-destructive"
+                              )}
+                            >
+                              <X className="h-2.5 w-2.5" />
+                              {stage.name}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs">
+                            {stage.name} • {stage.probability}%
+                            {isCurrent && " (atual)"}
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })()}
