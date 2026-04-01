@@ -19,12 +19,14 @@ const KNOWN_SUPPLIER_KEYS: Record<string, string> = {
   edeltec: "edeltec",
   "c43e8a33-0c83-414e-8391-9c9dd648d731": "edeltec",
   jng: "jng",
+  vertys: "vertys",
 };
 
 /** Known supplier fornecedor_id — maps provider key to fornecedores UUID */
 const SUPPLIER_FORNECEDOR_IDS: Record<string, string> = {
   edeltec: "a1b2c3d4-0001-4000-8000-000000000001",
   jng: "a1b2c3d4-0002-4000-8000-000000000002",
+  vertys: "a1b2c3d4-0003-4000-8000-000000000003",
 };
 
 /** Edge function name per supplier for sync/test */
@@ -108,6 +110,22 @@ async function testSupplierConnection(
   providerKey: string,
   fornecedorId?: string | null
 ): Promise<void> {
+  // Solaryum-based providers (JNG, Vertys): test via BuscarFiltros (no IBGE needed)
+  if (providerKey === "jng" || providerKey === "vertys") {
+    const distribuidor = providerKey as "jng" | "vertys";
+    const { data, error } = await supabase.functions.invoke("solaryum-proxy", {
+      body: { distribuidor, endpoint: "BuscarFiltros", params: {} },
+    });
+    if (error) {
+      const parsed = await parseInvokeError(error);
+      throw new Error(parsed.message);
+    }
+    if (!data) {
+      throw new Error("Falha ao validar credenciais — resposta vazia do Solaryum");
+    }
+    return;
+  }
+
   const fnName = SUPPLIER_SYNC_FUNCTIONS[providerKey];
   if (!fnName) return;
 
@@ -267,9 +285,9 @@ export async function connectSupplierProvider(
       if (!mergedForValidation.apiKey?.trim() || !mergedForValidation.secret?.trim()) {
         throw new Error("Informe API Key e Secret para conectar a Edeltec");
       }
-    } else if (providerKey === "jng") {
+    } else if (providerKey === "jng" || providerKey === "vertys") {
       if (!mergedForValidation.token?.trim()) {
-        throw new Error("Informe o Token de acesso para conectar a JNG");
+        throw new Error(`Informe o Token de acesso para conectar a ${providerKey === "jng" ? "JNG" : "Vertys"}`);
       }
     } else {
       // Generic: require at least one non-empty credential
