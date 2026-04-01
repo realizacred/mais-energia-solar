@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useMotivosPerda } from "@/hooks/useDistribution";
+import {
+  useCustomFieldsList, useActivityTypesList, usePipelineStages, usePipelinesList,
+  useSaveCustomField, useDeleteCustomField, useToggleCustomField,
+  useSaveActivityType, useDeleteActivityType,
+} from "@/hooks/useCustomFieldsSettings";
 import { useTenantPremises } from "@/hooks/useTenantPremises";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
