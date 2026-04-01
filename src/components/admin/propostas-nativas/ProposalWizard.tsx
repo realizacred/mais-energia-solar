@@ -385,7 +385,9 @@ export function ProposalWizard() {
     if (s.mapSnapshots != null) setMapSnapshots(s.mapSnapshots);
     if (s.selectedLead != null) setSelectedLead(s.selectedLead);
     if (s.cliente != null) setCliente(s.cliente);
-    if (s.ucs != null) setUcs(s.ucs);
+    // Fallback: snapshots antigos podem usar "unidades_consumidoras" em vez de "ucs"
+    const ucsData = s.ucs ?? (s as any).unidades_consumidoras ?? null;
+    if (Array.isArray(ucsData) && ucsData.length > 0) setUcs(ucsData);
     if (s.grupo != null) setGrupo(s.grupo);
     if (s.potenciaKwp != null) setPotenciaKwp(s.potenciaKwp);
     if (s.customFieldValues != null) setCustomFieldValues(s.customFieldValues);
