@@ -79,19 +79,40 @@ function isDistributorFormat(text: string): boolean {
 
 /** Extrai energia em kWh do nome do modelo de bateria */
 function extractEnergyFromModel(item: string): number | null {
-  // Padrão: número com decimal seguido de kWh ou KWH
-  const kwhMatch = item.match(/(\d+\.?\d*)\s*[Kk][Ww][Hh]/);
-  if (kwhMatch) return parseFloat(kwhMatch[1]);
+  if (!item) return null;
+  const m = item.toUpperCase().trim();
 
-  // Padrão: número decimal isolado que parece capacidade (ex: "HVS 10.2" → 10.2)
-  const decimalMatch = item.match(/\b(\d+\.\d+)\b/);
+  // Excluir modelos sem capacidade no nome (EP CUBE, EP11, EP5)
+  if (/^EP(?:\s*CUBE|\d+)\b/.test(m)) return null;
+
+  // Padrão 1: kWh explícito (ex: "5.1kWh", "10 KWH")
+  const p1 = m.match(/(\d+(?:[.,]\d+)?)\s*KWH/);
+  if (p1) return parseFloat(p1[1].replace(',', '.'));
+
+  // Padrão 2: G + número (ex: SE-G5.1, G5.3)
+  const p2 = m.match(/G(\d+(?:[.,]\d+)?)/);
+  if (p2) return parseFloat(p2[1].replace(',', '.'));
+
+  // Padrão 3: F + número antes de hífen (ex: F12.8-H, F16.0-H)
+  const p3 = m.match(/(?:^|[-\s])F(\d+(?:[.,]\d+)?)-/);
+  if (p3) return parseFloat(p3[1].replace(',', '.'));
+
+  // Padrão 4: letra(s) + número + letra (ex: DL5.0C, A5.0-30)
+  const p4 = m.match(/^[A-Z]{1,2}(\d+(?:[.,]\d+)?)[A-Z-]/);
+  if (p4) {
+    const val = parseFloat(p4[1].replace(',', '.'));
+    if (val >= 1 && val <= 200) return val;
+  }
+
+  // Padrão 5: número decimal isolado que parece capacidade (ex: "HVS 10.2" → 10.2)
+  const decimalMatch = m.match(/\b(\d+[.,]\d+)\b/);
   if (decimalMatch) {
-    const val = parseFloat(decimalMatch[1]);
+    const val = parseFloat(decimalMatch[1].replace(',', '.'));
     if (val >= 1 && val <= 500) return val;
   }
 
-  // Padrão: US3000C → 3000 Wh = 3 kWh
-  const whMatch = item.match(/(\d{4,5})[A-Za-z]/);
+  // Padrão 6: US3000C → 3000 Wh = 3 kWh
+  const whMatch = m.match(/(\d{4,5})[A-Z]/);
   if (whMatch) {
     const wh = parseInt(whMatch[1]);
     if (wh >= 1000 && wh <= 50000) return wh / 1000;
@@ -138,7 +159,7 @@ function parseDistributorBateria(text: string): { baterias: ParsedBateria[]; war
     seenKeys.add(key);
 
     if (energia_kwh <= 0) {
-      warnings.push({ line: idx + 2, issue: `Energia não detectada: "${fullName}"` });
+      warnings.push({ line: idx + 2, issue: `Capacidade (kWh) não detectada no modelo "${fullName}" — preencha manualmente` });
     }
 
     baterias.push({
@@ -197,7 +218,7 @@ function parseBateriaCSV(text: string): { baterias: ParsedBateria[]; warnings: {
     }
 
     if (energia_kwh <= 0) {
-      warnings.push({ line: i + 1, issue: `Energia não detectada: "${fabricante} ${modelo}"` });
+      warnings.push({ line: i + 1, issue: `Capacidade (kWh) não detectada no modelo "${fabricante} ${modelo}" — preencha manualmente` });
     }
 
     baterias.push({ fabricante, modelo, energia_kwh, tipo_bateria, tensao_nominal_v });
