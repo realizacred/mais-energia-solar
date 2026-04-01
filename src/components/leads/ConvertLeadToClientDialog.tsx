@@ -233,7 +233,6 @@ export function ConvertLeadToClientDialog({
     };
     checkAguardandoStatus();
   }, []);
-  }, []);
 
   // Load simulations for this lead
   useEffect(() => {
