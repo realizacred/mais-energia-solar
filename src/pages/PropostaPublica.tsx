@@ -586,11 +586,62 @@ export default function PropostaPublica() {
 
       {/* ── CENÁRIOS INTERATIVOS — only on simulacao view ── */}
       {hasCenarios && isSimulacaoView && (
-        <PublicPaymentSection
-          cenarios={cenarios}
-          selectedCenario={selectedCenario}
-          onSelectCenario={setSelectedCenario}
-        />
+        <div className="max-w-lg mx-auto px-4 pb-4">
+          <Card className="border-border/60">
+            <CardContent className="py-4 space-y-3">
+              <h3 className="text-sm font-semibold text-center text-foreground">Escolha a melhor opção</h3>
+              {cenarios.map((c) => {
+                const isSelected = selectedCenario === c.id;
+                const isAVista = /avista|à vista|a_vista/i.test(`${c.tipo} ${c.nome}`) || c.num_parcelas <= 1;
+                return (
+                  <div
+                    key={c.id}
+                    className={cn(
+                      "rounded-xl border-2 p-4 transition-all cursor-pointer",
+                      isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/30"
+                    )}
+                    onClick={() => setSelectedCenario(c.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{c.nome}</p>
+                        <p className="text-lg font-bold text-primary mt-0.5">{formatBRL(c.preco_final)}</p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                          {c.entrada_valor > 0 && c.num_parcelas > 1 && !isAVista && (
+                            <span>Entrada: {formatBRL(c.entrada_valor)}</span>
+                          )}
+                          {c.num_parcelas > 1 && <span>{c.num_parcelas}x de {formatBRL(c.valor_parcela)}</span>}
+                          {c.taxa_juros_mensal > 0 && <span>Taxa: {formatTaxaMensal(c.taxa_juros_mensal)}</span>}
+                          {!isAVista && c.num_parcelas <= 1 && <span>Pagamento único</span>}
+                          {isAVista && <span>Pagamento à vista</span>}
+                        </div>
+                      </div>
+                      <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0", isSelected ? "border-primary bg-primary" : "border-border")}>
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-primary-foreground" />}
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-border/50">
+                        <div className="text-center">
+                          <p className="text-xs font-bold text-foreground">{Number.isFinite(c.payback_meses) ? `${c.payback_meses}m` : "—"}</p>
+                          <p className="text-[9px] text-muted-foreground">Payback</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs font-bold text-foreground">{Number.isFinite(c.tir_anual) ? `${c.tir_anual.toFixed(1)}%` : "—"}</p>
+                          <p className="text-[9px] text-muted-foreground">TIR</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs font-bold text-foreground">{Number.isFinite(c.roi_25_anos) ? formatBRL(c.roi_25_anos) : "—"}</p>
+                          <p className="text-[9px] text-muted-foreground">ROI 25a</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Financial Summary — only on simulacao view */}
