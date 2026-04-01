@@ -156,6 +156,11 @@ export const PREMISES_DEFAULTS: TenantPremises = {
   geracao_mensal_por_kwp: 130,
   custo_por_kwp: 5500,
   kg_co2_por_kwh: 0.084,
+  // Solaryum integration
+  solaryum_token_vertys: "",
+  solaryum_token_jng: "",
+  solaryum_cif_descarga: false,
+  solaryum_ibge_fallback: "",
 };
 
 export interface RoofAreaFactor {
