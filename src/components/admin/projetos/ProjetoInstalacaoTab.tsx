@@ -148,6 +148,16 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
         </div>
       </div>
 
+      {/* ALERTA — sem proposta aceita */}
+      {!temPropostaAceita && availableTemplates.length > 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm text-warning">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>
+            Nenhuma proposta aceita encontrada. Aceite uma proposta na aba <strong>Propostas</strong> antes de iniciar a instalação.
+          </span>
+        </div>
+      )}
+
       {/* CARDS DE INICIAR — templates disponíveis */}
       {availableTemplates.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -158,7 +168,8 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
               <button
                 key={t.id}
                 onClick={() => handleIniciar(t.id)}
-                disabled={criarChecklist.isPending}
+                disabled={criarChecklist.isPending || !temPropostaAceita}
+                title={!temPropostaAceita ? "É necessário ter uma proposta aceita para iniciar a instalação" : undefined}
                 className="flex flex-col items-start gap-3 p-5 rounded-lg border border-border bg-card hover:border-primary/30 hover:bg-primary/5 transition-all text-left group disabled:opacity-50"
               >
                 <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center transition-colors", cfg.iconBg)}>
