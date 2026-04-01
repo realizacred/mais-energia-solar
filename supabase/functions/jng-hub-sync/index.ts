@@ -80,15 +80,14 @@ interface JngProduto {
   composicao: ProdutoComposicaoHubB2B[] | null;
 }
 
-// ── Fetch helper (Plataforma-V1 — sem paginação) ────────────
+// ── Fetch helper (HubB2B — /hubB2B/Produtos) ───────────────
 async function fetchJngKits(token: string, ibge?: string): Promise<any[]> {
   const params = new URLSearchParams({ token });
   if (ibge) {
     params.set("ibge", ibge);
-    params.set("cifComDescarga", "false");
   }
-  const url = `${JNG_BASE}/integracaoPlataforma/BuscarKits?${params.toString()}`;
-  console.log("[jng] fetchKits URL:", url);
+  const url = `${JNG_BASE}/hubB2B/Produtos?${params.toString()}`;
+  // console.log("[jng] fetchKits URL:", url);
   const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
@@ -268,12 +267,7 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    if (!fornecedor_id) {
-      return new Response(
-        JSON.stringify({ success: false, error: "fornecedor_id obrigatório", code: "MISSING_FORNECEDOR_ID" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // fornecedor_id is optional for JNG HubB2B — products are imported with source='jng'
 
     // Fetch credentials
     const { data: config, error: configErr } = await supabase
@@ -307,27 +301,27 @@ serve(async (req) => {
       );
     }
 
-    // ── Test-only mode — usa BuscarFiltros (não precisa de ibge) ──
+    // ── Test-only mode — usa /hubB2B/Categoria (não precisa de ibge) ──
     if (test_only) {
       try {
-        const testUrl = `${JNG_BASE}/integracaoPlataforma/BuscarFiltros?token=${token}`;
-        console.log("[jng] test URL:", testUrl);
+        const testUrl = `${JNG_BASE}/hubB2B/Categoria?token=${encodeURIComponent(token)}`;
+        // console.log("[jng] test URL:", testUrl);
         const testRes = await fetch(testUrl);
         if (!testRes.ok) {
           const body = await testRes.text();
           throw new Error(`${testRes.status} ${body}`);
         }
         const testData = await testRes.json();
-        const marcas = testData?.marcasPaineis?.length ?? 0;
+        const categorias = Array.isArray(testData) ? testData.length : 0;
         await syncLog(supabase, tenant_id, "info",
           "Teste de conexão JNG realizado com sucesso", {
-          marcas_paineis: marcas,
+          categorias,
         });
         return new Response(
           JSON.stringify({
             success: true,
             test: true,
-            message: `Conexão JNG validada. ${marcas} marcas de painéis disponíveis.`
+            message: `Conexão JNG validada. ${categorias} categorias disponíveis.`
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -402,11 +396,12 @@ serve(async (req) => {
 
       // FULL_REPLACE: delete existing records
       if (mode === "full_replace") {
-        const { error: delError } = await supabase
+        let delQuery = supabase
           .from("solar_kit_catalog")
           .delete()
-          .eq("tenant_id", tenant_id)
-          .eq("fornecedor_id", fornecedor_id);
+          .eq("tenant_id", tenant_id);
+        delQuery = fornecedor_id ? delQuery.eq("fornecedor_id", fornecedor_id) : delQuery.eq("source", "jng");
+        const { error: delError } = await delQuery;
 
         if (delError) {
           console.error("[jng-hub-sync] Full replace delete error:", delError);
@@ -430,7 +425,7 @@ serve(async (req) => {
     let batchProducts: any[] = [];
     try {
       batchProducts = await fetchJngKits(token, ibge);
-      console.log(`[jng-hub-sync] Fetched ${batchProducts.length} kits`);
+      // console.log(`[jng-hub-sync] Fetched ${batchProducts.length} kits`);
       await syncLog(supabase, tenant_id, "info",
         `${batchProducts.length} kits retornados pela API`, {
         count: batchProducts.length,
@@ -577,7 +572,7 @@ serve(async (req) => {
         .map(([f, c]) => `${f}: ${c}`)
         .join(", ");
 
-      console.log(`[jng-hub-sync] FINAL: ${fabData.length} products, marcas: ${summary}`);
+      // console.log(`[jng-hub-sync] FINAL: ${fabData.length} products, marcas: ${summary}`);
       await syncLog(supabase, tenant_id, "info", `Catálogo JNG final: ${fabData.length} produtos`, {
         fabricantes: Object.fromEntries(fabCount),
         total: fabData.length,
@@ -597,7 +592,7 @@ serve(async (req) => {
       skipped,
     });
 
-    console.log(`[jng-hub-sync] ${msg}`);
+    // console.log(`[jng-hub-sync] ${msg}`);
 
     return new Response(
       JSON.stringify({
