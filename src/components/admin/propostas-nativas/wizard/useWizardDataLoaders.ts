@@ -44,6 +44,14 @@ export function applyTenantTarifasToUC(
     outros_encargos_novo: uc.outros_encargos_novo || t.outros_encargos_novo || 0,
     imposto_energia: uc.imposto_energia || ((getFioBCobranca() ?? 0.90) * 100),
     fator_simultaneidade: uc.fator_simultaneidade || (uc.is_geradora ? 30 : 20),
+    // Aplicar fase_tensao_rede do tenant se UC ainda está no default
+    fase_tensao: (uc.fase_tensao && uc.fase_tensao !== "bifasico_127_220")
+      ? uc.fase_tensao
+      : ((t.fase_tensao_rede as UCData["fase_tensao"]) || uc.fase_tensao),
+    // Aplicar grupo_tarifario do tenant se UC ainda está no default
+    grupo_tarifario: (uc.grupo_tarifario && uc.grupo_tarifario !== "B")
+      ? uc.grupo_tarifario
+      : ((t.grupo_tarifario as UCData["grupo_tarifario"]) || uc.grupo_tarifario),
   };
 }
 
