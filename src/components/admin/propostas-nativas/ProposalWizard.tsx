@@ -891,6 +891,7 @@ export function ProposalWizard() {
                   .single();
                 if (lead) {
                   setSelectedLead(lead as any);
+                  if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
                   // console.log("[ProposalWizard] Lead enriched from cliente.lead_id:", lead.id);
                 }
               } else if (cli) {
