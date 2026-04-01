@@ -159,7 +159,7 @@ function parseDistributorBateria(text: string): { baterias: ParsedBateria[]; war
     seenKeys.add(key);
 
     if (energia_kwh <= 0) {
-      warnings.push({ line: idx + 2, issue: `Energia não detectada: "${fullName}"` });
+      warnings.push({ line: idx + 2, issue: `Capacidade (kWh) não detectada no modelo "${fullName}" — preencha manualmente` });
     }
 
     baterias.push({
