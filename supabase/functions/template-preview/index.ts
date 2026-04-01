@@ -999,36 +999,42 @@ Deno.serve(async (req) => {
       return jsonError("proposta_id ou lead_id é obrigatório", 400);
     }
 
-    // ── 3. BUSCAR TEMPLATE ────────────────────────────────
-    const { data: template, error: tmplErr } = await adminClient
-      .from("proposta_templates")
-      .select("id, nome, tipo, file_url, template_html")
-      .eq("id", template_id)
-      .eq("tenant_id", tenantId)
-      .single();
+    // ── 3+4. BUSCAR TEMPLATE + PROPOSTA EM PARALELO ──────
+    // Template e proposta são independentes — buscar juntos
+    const [templateRes, propostaRes] = await Promise.all([
+      adminClient
+        .from("proposta_templates")
+        .select("id, nome, tipo, file_url, template_html")
+        .eq("id", template_id)
+        .eq("tenant_id", tenantId)
+        .single(),
+      proposta_id
+        ? adminClient
+            .from("propostas_nativas")
+            .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id")
+            .eq("id", proposta_id)
+            .eq("tenant_id", tenantId)
+            .single()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
 
+    const template = templateRes.data;
+    const tmplErr = templateRes.error;
     if (tmplErr || !template) return jsonError("Template não encontrado neste tenant", 404);
     if (template.tipo !== "docx" || !template.file_url) {
       return jsonError("Template não é DOCX ou não tem arquivo", 400);
     }
 
-    // ── 4. RESOLVER PROPOSTA → LEAD/CLIENTE/PROJETO ───────
     let leadId = bodyLeadId;
     let propostaData: any = null;
     let versaoData: any = null;
 
     if (proposta_id) {
-      const { data: proposta, error: propErr } = await adminClient
-        .from("propostas_nativas")
-        .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id")
-        .eq("id", proposta_id)
-        .eq("tenant_id", tenantId)
-        .single();
+      if (propostaRes.error || !propostaRes.data) return jsonError("Proposta não encontrada neste tenant", 404);
+      propostaData = propostaRes.data;
+      leadId = propostaRes.data.lead_id;
 
-      if (propErr || !proposta) return jsonError("Proposta não encontrada neste tenant", 404);
-      propostaData = proposta;
-      leadId = proposta.lead_id;
-
+      // Versão depende de proposta_id — buscar sequencialmente
       const { data: versao } = await adminClient
         .from("proposta_versoes")
         .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")

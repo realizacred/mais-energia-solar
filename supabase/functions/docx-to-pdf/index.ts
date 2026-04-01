@@ -73,9 +73,10 @@ Deno.serve(async (req) => {
     formData.append("files", blob, filename || "proposta.docx");
     formData.append("landscape", "false");
     formData.append("nativePageRanges", "1-");
-    formData.append("losslessImageCompression", "true");
-    formData.append("reduceImageResolution", "false");
-    formData.append("quality", "100");
+    formData.append("losslessImageCompression", "false");
+    formData.append("reduceImageResolution", "true");
+    formData.append("quality", "90");
+    formData.append("maxImageResolution", "150");
     formData.append("exportFormFields", "false");
     formData.append("skipEmptyPages", "true");
 
