@@ -93,6 +93,7 @@ export const SOLAR_DEFAULTS: SolarPremises = {
   shading_loss_percent: 8,
   soiling_loss_percent: 5,
   other_losses_percent: 12,
+  solaryum_ibge_fallback: "",
 };
 
 // ─── Query Key ──────────────────────────────────────
