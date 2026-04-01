@@ -83,6 +83,7 @@ const ClienteEnergiaDashboardPage = lazy(() => import("@/components/admin/energi
 const EmailIntegrationsPage = lazy(() => import("@/components/admin/email/EmailIntegrationsPage").then(m => ({ default: m.EmailIntegrationsPage })));
 const InadimplenciaDashboard = lazy(() => import("@/components/admin/InadimplenciaDashboard").then(m => ({ default: m.InadimplenciaDashboard })));
 const FechamentoCaixaPage = lazy(() => import("@/components/admin/FechamentoCaixaPage").then(m => ({ default: m.FechamentoCaixaPage })));
+const LancamentosPage = lazy(() => import("@/components/admin/financeiro/LancamentosPage"));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
 const AuditLogsViewer = lazy(() => import("@/components/admin/AuditLogsViewer").then(m => ({ default: m.AuditLogsViewer })));
