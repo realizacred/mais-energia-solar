@@ -174,8 +174,18 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
       {/* Card 2: GD II - Fio B */}
       <SectionCard icon={Zap} title="GD II — TUSD Fio B (100%)" variant="blue">
         {isBT ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <NumField label="TUSD Fio B - BT (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_bt} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_bt")} onChange={(v) => set("tusd_fio_b_bt", v)} />
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <NumField label="TUSD Fio B - BT (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_bt} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_bt")} onChange={(v) => set("tusd_fio_b_bt", v)} />
+            </div>
+            {(!premises.tusd_fio_b_bt || premises.tusd_fio_b_bt <= 0) && (
+              <div className="flex items-center gap-2 rounded-lg bg-warning/10 border border-warning/20 px-3 py-2">
+                <Info className="h-4 w-4 text-warning shrink-0" />
+                <p className="text-xs text-warning">
+                  Campo obrigatório — sem este valor, o Fio B aparecerá como R$ 0,00 nas propostas. Encontre na fatura de energia ou sincronize tarifas ANEEL.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
