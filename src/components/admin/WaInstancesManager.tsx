@@ -48,7 +48,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useWaInstances, type WaInstance } from "@/hooks/useWaInstances";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WaSetupGuide } from "@/components/admin/wa/WaSetupGuide";
 import { WaQRCodeDialog } from "@/components/admin/wa/WaQRCodeDialog";
@@ -61,7 +61,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: ty
 };
 
 export function WaInstancesManager() {
-  const { instances, loading, updateInstance, deleteInstance, checkStatus, checkingStatus, syncHistory } = useWaInstances();
+  const { instances, loading, updateInstance, deleteInstance, checkStatus, checkingStatus, syncHistory, vendedores, instanceVendedores, saveVendedores } = useWaInstances();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
@@ -70,24 +70,6 @@ export function WaInstancesManager() {
   const [qrInstance, setQrInstance] = useState<WaInstance | null>(null);
   const [syncDays, setSyncDays] = useState("365");
   const [isSyncing, setIsSyncing] = useState(false);
-
-  const { data: vendedores = [] } = useQuery({
-    queryKey: ["vendedores-wa-instances"],
-    queryFn: async () => {
-      const { data } = await supabase.from("consultores").select("id, nome, user_id").eq("ativo", true);
-      return data || [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: instanceVendedores = [] } = useQuery({
-    queryKey: ["wa-instance-vendedores"],
-    queryFn: async () => {
-      const { data } = await supabase.from("wa_instance_consultores").select("instance_id, consultor_id");
-      return data || [];
-    },
-    staleTime: 30 * 1000,
-  });
 
   const getInstanceVendedorIds = (instanceId: string) =>
     instanceVendedores.filter((iv: any) => iv.instance_id === instanceId).map((iv: any) => iv.consultor_id);
@@ -305,23 +287,11 @@ export function WaInstancesManager() {
           const instanceId = editInstance.id;
           updateInstance({ id: instanceId, updates: data });
 
-          // Sync junction table
+          // Sync junction table via hook
           const tenantId = editInstance.tenant_id;
           if (tenantId) {
-            await supabase.from("wa_instance_consultores").delete().eq("instance_id", instanceId);
-            if (selectedVendedorIds.length > 0) {
-              await supabase.from("wa_instance_consultores").insert(
-                selectedVendedorIds.map((vid) => ({
-                  instance_id: instanceId,
-                  consultor_id: vid,
-                  tenant_id: tenantId,
-                }))
-              );
-            }
-            const legacyVendedorId = selectedVendedorIds.length === 1 ? selectedVendedorIds[0] : null;
-            await supabase.from("wa_instances").update({ consultor_id: legacyVendedorId } as any).eq("id", instanceId);
+            await saveVendedores({ instanceId, tenantId, vendedorIds: selectedVendedorIds });
           }
-          queryClient.invalidateQueries({ queryKey: ["wa-instance-vendedores"] });
           setEditInstance(null);
         }}
         onCreateSuccess={() => {

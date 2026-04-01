@@ -157,6 +157,69 @@ export function useWaInstances() {
     },
   });
 
+  // ── Vendedores (consultores ativos) ──
+  const vendedoresQuery = useQuery({
+    queryKey: ["vendedores-wa-instances"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("consultores")
+        .select("id, nome, user_id")
+        .eq("ativo", true);
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // ── Instance ↔ Vendedor junction ──
+  const instanceVendedoresQuery = useQuery({
+    queryKey: ["wa-instance-vendedores"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("wa_instance_consultores")
+        .select("instance_id, consultor_id");
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30 * 1000,
+  });
+
+  // ── Save vendedor assignments (junction + legacy field) ──
+  const saveVendedoresMutation = useMutation({
+    mutationFn: async ({
+      instanceId,
+      tenantId,
+      vendedorIds,
+    }: {
+      instanceId: string;
+      tenantId: string;
+      vendedorIds: string[];
+    }) => {
+      await supabase.from("wa_instance_consultores").delete().eq("instance_id", instanceId);
+      if (vendedorIds.length > 0) {
+        const { error } = await supabase.from("wa_instance_consultores").insert(
+          vendedorIds.map((vid) => ({
+            instance_id: instanceId,
+            consultor_id: vid,
+            tenant_id: tenantId,
+          }))
+        );
+        if (error) throw error;
+      }
+      const legacyVendedorId = vendedorIds.length === 1 ? vendedorIds[0] : null;
+      await supabase
+        .from("wa_instances")
+        .update({ consultor_id: legacyVendedorId } as any)
+        .eq("id", instanceId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wa-instance-vendedores"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao salvar vendedores", description: err.message, variant: "destructive" });
+    },
+  });
+
   return {
     instances: instancesQuery.data || [],
     loading: instancesQuery.isLoading,
@@ -165,5 +228,8 @@ export function useWaInstances() {
     checkStatus: checkStatusMutation.mutate,
     checkingStatus: checkStatusMutation.isPending,
     syncHistory: triggerHistorySync,
+    vendedores: vendedoresQuery.data || [],
+    instanceVendedores: instanceVendedoresQuery.data || [],
+    saveVendedores: saveVendedoresMutation.mutateAsync,
   };
 }

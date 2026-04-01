@@ -15,6 +15,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import {
+  useFiscalInvoices,
+  useFiscalMunicipalServices,
+  useFiscalSettings,
+  useFiscalInvoiceEvents,
+  useCreateFiscalInvoice,
+} from "@/hooks/useFiscalEmissao";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   draft: { label: "Rascunho", color: "bg-muted text-muted-foreground" },
@@ -29,32 +36,11 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export function FiscalEmissao() {
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: invoices = [], isLoading: loading } = useFiscalInvoices();
+  const { data: services = [] } = useFiscalMunicipalServices();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [showDetail, setShowDetail] = useState<any>(null);
-  const [services, setServices] = useState<any[]>([]);
-
-  useEffect(() => { loadInvoices(); loadServices(); }, []);
-
-  const loadInvoices = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("fiscal_invoices")
-      .select("id, status, status_asaas, service_description, value, effective_date, invoice_number, pdf_url, xml_url, asaas_invoice_id, municipal_service_name, error_message, created_at, cliente_id")
-      .order("created_at", { ascending: false });
-    setInvoices(data || []);
-    setLoading(false);
-  };
-
-  const loadServices = async () => {
-    const { data } = await supabase
-      .from("fiscal_municipal_services")
-      .select("id, asaas_service_id, service_code, service_name")
-      .eq("is_active", true);
-    setServices(data || []);
-  };
 
   const filtered = invoices.filter(inv =>
     !search || inv.service_description?.toLowerCase().includes(search.toLowerCase()) ||
@@ -99,15 +85,16 @@ export function FiscalEmissao() {
         </div>
       </SectionCard>
 
-      {showCreate && <CreateInvoiceDialog services={services} open={showCreate} onClose={() => setShowCreate(false)} onCreated={loadInvoices} />}
-      {showDetail && <InvoiceDetailDialog invoice={showDetail} open={!!showDetail} onClose={() => setShowDetail(null)} onUpdated={loadInvoices} />}
+      {showCreate && <CreateInvoiceDialog services={services} open={showCreate} onClose={() => setShowCreate(false)} />}
+      {showDetail && <InvoiceDetailDialog invoice={showDetail} open={!!showDetail} onClose={() => setShowDetail(null)} />}
     </div>
   );
 }
 
 // ── Create Invoice Dialog ──
-function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services: any[]; open: boolean; onClose: () => void; onCreated: () => void }) {
-  const [saving, setSaving] = useState(false);
+function CreateInvoiceDialog({ services, open, onClose }: { services: any[]; open: boolean; onClose: () => void }) {
+  const { data: defaults } = useFiscalSettings();
+  const createMutation = useCreateFiscalInvoice();
   const [form, setForm] = useState({
     service_description: "",
     observations: "",
@@ -120,20 +107,17 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
     taxes: { retainIss: false, iss: 0, cofins: 0, csll: 0, inss: 0, ir: 0, pis: 0 },
   });
 
-  // Load defaults
+  // Apply defaults when loaded
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from("fiscal_settings").select("default_service_description, default_observations, default_taxes, allow_deductions").maybeSingle();
-      if (data) {
-        setForm(prev => ({
-          ...prev,
-          service_description: data.default_service_description || "",
-          observations: data.default_observations || "",
-          taxes: (data.default_taxes as any) || prev.taxes,
-        }));
-      }
-    })();
-  }, []);
+    if (defaults) {
+      setForm(prev => ({
+        ...prev,
+        service_description: defaults.default_service_description || "",
+        observations: defaults.default_observations || "",
+        taxes: (defaults.default_taxes as any) || prev.taxes,
+      }));
+    }
+  }, [defaults]);
 
   const handleServiceSelect = (svcId: string) => {
     const svc = services.find(s => s.id === svcId);
@@ -149,15 +133,8 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
 
   const handleSave = async () => {
     if (!form.service_description || !form.value) { toast.error("Descrição e valor são obrigatórios"); return; }
-    setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sessão expirada");
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user.id).single();
-      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
-
-      const { error } = await supabase.from("fiscal_invoices").insert({
-        tenant_id: profile.tenant_id,
+      await createMutation.mutateAsync({
         service_description: form.service_description,
         observations: form.observations || null,
         value: parseFloat(form.value),
@@ -167,16 +144,11 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
         municipal_service_code: form.municipal_service_code || null,
         municipal_service_name: form.municipal_service_name || null,
         taxes: form.taxes,
-        status: "draft",
       });
-      if (error) throw error;
       toast.success("Rascunho criado!");
-      onCreated();
       onClose();
     } catch (e: any) {
       toast.error(e.message);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -189,7 +161,7 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
       subtitle="Emita documentos fiscais"
       submitLabel="Criar Rascunho"
       onSubmit={handleSave}
-      saving={saving}
+      saving={createMutation.isPending}
     >
           <div className="space-y-2">
             <Label>Serviço Municipal</Label>
@@ -227,20 +199,10 @@ function CreateInvoiceDialog({ services, open, onClose, onCreated }: { services:
 }
 
 // ── Invoice Detail Dialog ──
-function InvoiceDetailDialog({ invoice, open, onClose, onUpdated }: { invoice: any; open: boolean; onClose: () => void; onUpdated: () => void }) {
+function InvoiceDetailDialog({ invoice, open, onClose }: { invoice: any; open: boolean; onClose: () => void }) {
   const [scheduling, setScheduling] = useState(false);
   const [canceling, setCanceling] = useState(false);
-  const [events, setEvents] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (invoice?.id) {
-      supabase.from("fiscal_invoice_events")
-        .select("id, event_type, event_source, old_status, new_status, created_at")
-        .eq("invoice_id", invoice.id)
-        .order("created_at", { ascending: false })
-        .then(({ data }) => setEvents(data || []));
-    }
-  }, [invoice?.id]);
+  const { data: events = [] } = useFiscalInvoiceEvents(invoice?.id || null);
 
   const handleSchedule = async () => {
     setScheduling(true);
@@ -249,7 +211,6 @@ function InvoiceDetailDialog({ invoice, open, onClose, onUpdated }: { invoice: a
       if (error) throw error;
       if (data.success) {
         toast.success("Nota agendada com sucesso!");
-        onUpdated();
         onClose();
       } else {
         toast.error(data.error || "Erro ao agendar");
@@ -268,7 +229,6 @@ function InvoiceDetailDialog({ invoice, open, onClose, onUpdated }: { invoice: a
       if (error) throw error;
       if (data.success) {
         toast.success("Cancelamento solicitado!");
-        onUpdated();
         onClose();
       } else {
         toast.error(data.error || "Erro ao cancelar");
