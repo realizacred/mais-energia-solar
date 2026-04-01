@@ -161,7 +161,7 @@ async function processDocxTemplate(
     }
   });
   // Log which files are processed (headers/footers MUST appear here)
-  console.log("[template-preview] XML files to process:", xmlFiles);
+  // console.log("[template-preview] XML files to process:", xmlFiles);
 
   for (const fileName of xmlFiles) {
     const file = zip.file(fileName);
@@ -779,7 +779,7 @@ function cleanupRemainingFragments(xml: string): string {
     const stillFragmented = allComplete.filter((ph) => !intactInRuns.has(ph));
     if (stillFragmented.length === 0) return paraXml;
 
-    console.log(`[template-preview] CLEANUP: normalizing ${stillFragmented.length} fragmented placeholders: ${stillFragmented.join(", ")}`);
+    // console.log(`[template-preview] CLEANUP: normalizing ${stillFragmented.length} fragmented placeholders: ${stillFragmented.join(", ")}`);
 
     // SAFE cleanup: keep all runs/inter-run XML intact, only rewrite <w:t> contents.
     let result = paraXml;
@@ -992,7 +992,7 @@ Deno.serve(async (req) => {
     // ── DEBUG MODE FLAG ───────────────────────────────────
     const debugMode = debug_docx_pdf === true;
     if (debugMode) {
-      console.log("[template-preview] 🔬 FORENSIC DEBUG MODE ENABLED");
+      // console.log("[template-preview] 🔬 FORENSIC DEBUG MODE ENABLED");
     }
 
     if (!proposta_id && !bodyLeadId) {
@@ -1110,7 +1110,7 @@ Deno.serve(async (req) => {
       clienteData: (cliente ?? {}) as Record<string, unknown>,
     });
 
-    console.log(`[template-preview] Variables resolved via domain resolvers: ${Object.keys(vars).length} keys`);
+    // console.log(`[template-preview] Variables resolved via domain resolvers: ${Object.keys(vars).length} keys`);
 
     // ── 6b. POST-PROCESSING: fix cover-page variable issues ──
 
@@ -1166,7 +1166,7 @@ Deno.serve(async (req) => {
         storagePath = template.file_url;
       }
 
-      console.log("[template-preview] downloading template from storage path:", storagePath);
+      // console.log("[template-preview] downloading template from storage path:", storagePath);
 
       // Use createSignedUrl + fetch to avoid SDK encoding issues with spaces in filenames
       const { data: signedData, error: signedError } = await adminClient.storage
@@ -1177,7 +1177,7 @@ Deno.serve(async (req) => {
         console.error("[template-preview] Signed URL error:", signedError?.message, "path:", storagePath);
 
         // Fallback: try direct SDK download
-        console.log("[template-preview] Fallback: trying direct SDK download");
+        // console.log("[template-preview] Fallback: trying direct SDK download");
         const { data: fallbackBlob, error: fallbackErr } = await adminClient.storage
           .from("proposta-templates")
           .download(storagePath);
@@ -1201,14 +1201,14 @@ Deno.serve(async (req) => {
         templateBuffer = new Uint8Array(await fetchResp.arrayBuffer());
       }
 
-      console.log(`[template-preview] DOCX downloaded: ${templateBuffer.byteLength} bytes`);
+      // console.log(`[template-preview] DOCX downloaded: ${templateBuffer.byteLength} bytes`);
     } catch (fetchErr: any) {
       console.error("[template-preview] Download error:", fetchErr?.message, fetchErr?.stack);
       return jsonError(`Erro ao baixar template: ${fetchErr?.message}`, 500);
     }
 
     // ── 8. PROCESSAR TEMPLATE ─────────────────────────────
-    console.log(`[template-preview] Processing DOCX with JSZip-based replacer${debugMode ? " [DEBUG MODE]" : ""}`);
+    // console.log(`[template-preview] Processing DOCX with JSZip-based replacer${debugMode ? " [DEBUG MODE]" : ""}`);
     const originalSize = templateBuffer.byteLength;
 
     let report: Uint8Array;
@@ -1225,7 +1225,7 @@ Deno.serve(async (req) => {
 
       const outputSize = report.length;
       const ratio = originalSize > 0 ? ((outputSize / originalSize) * 100).toFixed(1) : "N/A";
-      console.log(`[template-preview] Size comparison: original=${originalSize}B → output=${outputSize}B (${ratio}%)`);
+      // console.log(`[template-preview] Size comparison: original=${originalSize}B → output=${outputSize}B (${ratio}%)`);
       if (originalSize > 0 && outputSize < originalSize * 0.95) {
         console.warn(`[template-preview] ⚠️ Output is <95% of original — possible content loss!`);
       }
@@ -1234,7 +1234,7 @@ Deno.serve(async (req) => {
       const missingCount = result.missingVars.length;
       const emptyCount = result.emptyVars.length;
       const substituted = totalVars - missingCount - emptyCount;
-      console.log(`[template-preview] Substitution stats: ${substituted} replaced, ${missingCount} missing, ${emptyCount} empty out of ${totalVars} total vars`);
+      // console.log(`[template-preview] Substitution stats: ${substituted} replaced, ${missingCount} missing, ${emptyCount} empty out of ${totalVars} total vars`);
       if (result.missingVars.length > 0) {
         console.warn(`[template-preview] missing_placeholders (kept as-is in output):`, result.missingVars);
       }
@@ -1263,13 +1263,13 @@ Deno.serve(async (req) => {
 
       if (chartInjectionResult.chartsRendered.length > 0) {
         report = chartInjectionResult.output;
-        console.log(`[template-preview] Charts injected: ${chartInjectionResult.chartsRendered.join(", ")}`);
+        // console.log(`[template-preview] Charts injected: ${chartInjectionResult.chartsRendered.join(", ")}`);
       }
       if (chartInjectionResult.chartsFailed.length > 0) {
         console.warn(`[template-preview] Charts failed: ${chartInjectionResult.chartsFailed.join(", ")}`);
       }
       if (chartInjectionResult.chartsSkipped.length > 0) {
-        console.log(`[template-preview] Charts skipped: ${chartInjectionResult.chartsSkipped.join(", ")}`);
+        // console.log(`[template-preview] Charts skipped: ${chartInjectionResult.chartsSkipped.join(", ")}`);
       }
     } catch (chartErr: any) {
       console.error(`[template-preview] Chart injection error (non-blocking): ${chartErr?.message}`);
@@ -1385,7 +1385,7 @@ Deno.serve(async (req) => {
         if (auditPersistErr) {
           console.error("[template-preview] Failed to persist audit:", auditPersistErr.message);
         } else {
-          console.log(`[template-preview] Audit persisted to proposta_versoes ${auditVersao.id}`);
+          // console.log(`[template-preview] Audit persisted to proposta_versoes ${auditVersao.id}`);
         }
       }
     }
@@ -1428,7 +1428,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[template-preview] Audit passed: health=${auditHealth}, score=${healthScore}, errors=${auditErrorCount}, warnings=${auditWarningCount}`);
+    // console.log(`[template-preview] Audit passed: health=${auditHealth}, score=${healthScore}, errors=${auditErrorCount}, warnings=${auditWarningCount}`);
 
     // ── 9. BUILD FILE NAME + PERSIST TO STORAGE ──────────
     const clienteNome = cliente?.nome || lead?.nome || "preview";
@@ -1447,7 +1447,7 @@ Deno.serve(async (req) => {
     const debugStoragePath = `${tenantId}/propostas/${proposta_id || "draft"}/${timestamp}_debug_forensic.json`;
 
     // 9a. Upload DOCX to storage (in parallel with PDF conversion — OPT-5)
-    console.log(`[template-preview] Uploading DOCX to storage: ${docxStoragePath}`);
+    // console.log(`[template-preview] Uploading DOCX to storage: ${docxStoragePath}`);
     const docxUploadPromise = adminClient.storage
       .from("proposta-documentos")
       .upload(docxStoragePath, report, {
@@ -1476,11 +1476,11 @@ Deno.serve(async (req) => {
 
     try {
       gotenbergUrl = await resolveGotenbergUrl(adminClient, tenantId);
-      console.log(`[template-preview] Converting to PDF via Gotenberg: ${gotenbergUrl}`);
+      // console.log(`[template-preview] Converting to PDF via Gotenberg: ${gotenbergUrl}`);
 
       // Hash the DOCX bytes to prove binary integrity
       const docxHashForGotenberg = await hashBytes(report);
-      console.log(`[template-preview] DOCX hash sent to Gotenberg: ${docxHashForGotenberg} (${report.length} bytes)`);
+      // console.log(`[template-preview] DOCX hash sent to Gotenberg: ${docxHashForGotenberg} (${report.length} bytes)`);
 
       const formData = new FormData();
       const blob = new Blob([report], {
@@ -1493,7 +1493,7 @@ Deno.serve(async (req) => {
       }
 
       const conversionUrl = `${gotenbergUrl}/forms/libreoffice/convert`;
-      console.log(`[template-preview] Conversion URL: ${conversionUrl}`);
+      // console.log(`[template-preview] Conversion URL: ${conversionUrl}`);
 
       const gotenbergStart = Date.now();
       const pdfResp = await fetch(conversionUrl, {
@@ -1507,7 +1507,7 @@ Deno.serve(async (req) => {
       if (pdfResp.ok) {
         const pdfBuffer = await pdfResp.arrayBuffer();
         pdfBytes = new Uint8Array(pdfBuffer);
-        console.log(`[template-preview] PDF generated: ${pdfBytes.length} bytes (${gotenbergResponseTime}ms)`);
+        // console.log(`[template-preview] PDF generated: ${pdfBytes.length} bytes (${gotenbergResponseTime}ms)`);
 
         const { error: pdfUploadErr } = await adminClient.storage
           .from("proposta-documentos")
@@ -1607,7 +1607,7 @@ Deno.serve(async (req) => {
         xmlSamplesAfterNorm: debugResult.xmlAfter,
       };
 
-      console.log("[template-preview] 🔬 FORENSIC DEBUG REPORT:", JSON.stringify({
+      // console.log("[template-preview] 🔬 FORENSIC DEBUG REPORT:", JSON.stringify({
         totalMerges: forensicReport.totalMerges,
         structurePreserved: forensicReport.structurePreserved,
         fontsInTemplate: forensicReport.fontsInTemplate,
@@ -1629,7 +1629,7 @@ Deno.serve(async (req) => {
       if (debugUploadErr) {
         console.error("[template-preview] Debug report upload error:", debugUploadErr.message);
       } else {
-        console.log(`[template-preview] 🔬 Debug report saved: ${debugStoragePath}`);
+        // console.log(`[template-preview] 🔬 Debug report saved: ${debugStoragePath}`);
       }
     }
 
@@ -1661,7 +1661,7 @@ Deno.serve(async (req) => {
         if (updateErr) {
           console.error("[template-preview] Failed to update proposta_versoes:", updateErr.message);
         } else {
-          console.log(`[template-preview] proposta_versoes ${latestVersao.id} updated with artifact paths`);
+          // console.log(`[template-preview] proposta_versoes ${latestVersao.id} updated with artifact paths`);
 
           // ── PROMOTE STATUS: Only promote to "gerada" after artifact is persisted ──
           const hasArtifact = !!(pdfBytes && !pdfConversionError) || (!docxUploadErr && docxStoragePath);
@@ -1671,7 +1671,7 @@ Deno.serve(async (req) => {
               .update({ status: "gerada" })
               .eq("id", proposta_id)
               .eq("tenant_id", tenantId);
-            console.log(`[template-preview] propostas_nativas ${proposta_id} status promoted to "gerada"`);
+            // console.log(`[template-preview] propostas_nativas ${proposta_id} status promoted to "gerada"`);
           }
         }
       }
@@ -1680,7 +1680,7 @@ Deno.serve(async (req) => {
     // ── 10. RETURN RESPONSE ──────────────────────────────
     const resolvedVarsCount = Object.keys(vars).length - processedMissingVars.length - processedEmptyVars.length;
 
-    console.log("[template-preview] proposal_generation_completed", JSON.stringify({
+    // console.log("[template-preview] proposal_generation_completed", JSON.stringify({
       proposalId: proposta_id,
       proposalNumber,
       templateName: template.nome,
@@ -1738,7 +1738,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[template-preview] Returning ${report.length} bytes as ${outputDocxFileName}`);
+    // console.log(`[template-preview] Returning ${report.length} bytes as ${outputDocxFileName}`);
 
     return new Response(report, {
       headers: {
@@ -1915,6 +1915,6 @@ async function handleDiagnostic(
     },
   };
 
-  console.log("[template-preview] DIAGNOSTIC REPORT:", JSON.stringify(diagReport, null, 2));
+  // console.log("[template-preview] DIAGNOSTIC REPORT:", JSON.stringify(diagReport, null, 2));
   return new Response(JSON.stringify(diagReport, null, 2), { status: 200, headers: corsJson });
 }
