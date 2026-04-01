@@ -10,7 +10,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { AlertCircle, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type ValidationState = "loading" | "valid" | "invalid";
+type ValidationState = "loading" | "valid" | "invalid" | "network_error";
 
 export default function VendorPage() {
   const { codigo } = useParams<{ codigo: string }>();
