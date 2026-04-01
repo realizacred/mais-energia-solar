@@ -8,8 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { VARIABLES_CATALOG, replaceVariables } from "@/lib/variablesCatalog";
+import { replaceVariables } from "@/lib/variablesCatalog";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { usePropostasParaPreview, buildPropostaContext } from "@/hooks/useTemplatePreview";
 
 interface TemplatePreviewDialogProps {
   open: boolean;
