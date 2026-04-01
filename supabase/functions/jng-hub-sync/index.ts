@@ -397,12 +397,11 @@ serve(async (req) => {
 
       // FULL_REPLACE: delete existing records
       if (mode === "full_replace") {
-        let delQuery = supabase
+        const { error: delError } = await supabase
           .from("solar_kit_catalog")
           .delete()
-          .eq("tenant_id", tenant_id);
-        delQuery = fornecedor_id ? delQuery.eq("fornecedor_id", fornecedor_id) : delQuery.eq("source", "jng");
-        const { error: delError } = await delQuery;
+          .eq("tenant_id", tenant_id)
+          .eq("source", "jng");
 
         if (delError) {
           console.error("[jng-hub-sync] Full replace delete error:", delError);
