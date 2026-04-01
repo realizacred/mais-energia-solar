@@ -22,11 +22,11 @@ const KNOWN_SUPPLIER_KEYS: Record<string, string> = {
   vertys: "vertys",
 };
 
-/** Known supplier fornecedor_id — maps provider key to fornecedores UUID */
+/** Known supplier fornecedor_id — maps provider key to fornecedores UUID.
+ *  JNG and Vertys are proxy-based (solaryum-proxy) and don't have fornecedores rows. */
 const SUPPLIER_FORNECEDOR_IDS: Record<string, string> = {
   edeltec: "a1b2c3d4-0001-4000-8000-000000000001",
-  jng: "a1b2c3d4-0002-4000-8000-000000000002",
-  vertys: "a1b2c3d4-0003-4000-8000-000000000003",
+  // jng and vertys intentionally omitted — they fetch kits in real-time via solaryum-proxy
 };
 
 /** Edge function name per supplier for sync/test */
