@@ -152,11 +152,12 @@ export function IntegrationProviderCard({
               ? "bg-destructive/10 group-hover:bg-destructive/15"
               : "bg-muted/50 group-hover:bg-muted/70",
         )}>
-          {iconUrl ? (
+          {iconUrl && !logoError ? (
             <img
               src={iconUrl}
               alt={provider.label}
               className="max-h-9 max-w-9 object-contain"
+              onError={() => setLogoError(true)}
             />
           ) : (
             <FallbackIcon className="h-6 w-6 text-muted-foreground" />
