@@ -375,6 +375,8 @@ export interface WizardState {
   // Step 0 - Cliente
   selectedLead: LeadSelection | null;
   cliente: ClienteData;
+  /** Código IBGE do município do cliente/lead — usado para integrações (Solaryum) */
+  cliente_municipio_ibge_codigo?: string | null;
   // Step 1 - Comercial
   comercial: ComercialData;
   // Step 2 - UCs
