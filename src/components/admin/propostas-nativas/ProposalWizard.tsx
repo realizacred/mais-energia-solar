@@ -675,7 +675,7 @@ export function ProposalWizard() {
             mapSnapshots: rawSnapshot.mapSnapshots || [],
             selectedLead: ws.selectedLead ?? rawSnapshot.selectedLead ?? null,
             cliente: ws.cliente ?? rawSnapshot.cliente ?? undefined as any,
-            ucs: rawSnapshot.ucs || [],
+            ucs: rawSnapshot.ucs || rawSnapshot.unidades_consumidoras || [],
             grupo: rawSnapshot.ucs?.length > 1 ? "multi" : (uc0.subgrupo?.startsWith("A") ? "A" : "B1"),
             potenciaKwp: tecnico.potencia_kwp || versao.potencia_kwp || 0,
             itens: engineItens,
