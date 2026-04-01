@@ -76,16 +76,6 @@ interface UserProfile {
   ativo: boolean;
 }
 
-interface UserWithRoles {
-  user_id: string;
-  nome: string;
-  email?: string;
-  ativo: boolean;
-  roles: string[];
-  created_at?: string;
-  last_sign_in_at?: string | null;
-}
-
 interface NewUserForm {
   nome: string;
   email: string;
