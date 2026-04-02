@@ -501,7 +501,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             : "Migração concluída",
       });
 
-      if (!dryRun) {
+      if (dryRun) {
+        setDryRunCompleted(true);
+      } else {
         qc.invalidateQueries({ queryKey: ["sm-proposals"] });
         qc.invalidateQueries({ queryKey: ["canonical-check"] });
       }
