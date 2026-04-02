@@ -708,10 +708,11 @@ Deno.serve(async (req) => {
           }
           report.sm_client_name = smClient.name;
 
-          // ── B. Dedupe client by phone_normalized (EXACT match) ──
+          // ── B. Dedupe client by phone_normalized, email, or sm_id (multi-fallback) ──
           const phoneNorm = smClient.phone_normalized || normalizePhone(smClient.phone);
           let clienteId: string | null = null;
 
+          // 1) Match by phone
           if (phoneNorm) {
             const { data: matches } = await adminClient
               .from("clientes")
@@ -736,11 +737,29 @@ Deno.serve(async (req) => {
 
             if (matchCount === 1) {
               clienteId = matches![0].id;
-              report.steps.cliente = { status: "WOULD_LINK", id: clienteId };
+              report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by phone" };
             }
           }
 
-          // Fallback: cpf_cnpj exact match
+          // 2) Fallback: email exact match
+          if (!clienteId && smClient.email) {
+            const emailNorm = smClient.email.trim().toLowerCase();
+            if (emailNorm) {
+              const { data: emailMatches } = await adminClient
+                .from("clientes")
+                .select("id")
+                .eq("tenant_id", tenantId)
+                .eq("email", emailNorm)
+                .limit(1);
+
+              if ((emailMatches || []).length === 1) {
+                clienteId = emailMatches![0].id;
+                report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by email" };
+              }
+            }
+          }
+
+          // 3) Fallback: cpf_cnpj exact match
           if (!clienteId && smClient.document) {
             const docNorm = smClient.document.replace(/\D/g, "");
             if (docNorm.length >= 11) {
@@ -754,6 +773,23 @@ Deno.serve(async (req) => {
                 clienteId = docMatches![0].id;
                 report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by cpf_cnpj" };
               }
+            }
+          }
+
+          // 4) Fallback: sm_client_id in existing cliente_code pattern
+          if (!clienteId) {
+            const resolvedSmClientId = smClient.sm_client_id || smProp.sm_client_id;
+            const codePattern = `SM-${resolvedSmClientId}-`;
+            const { data: codeMatches } = await adminClient
+              .from("clientes")
+              .select("id")
+              .eq("tenant_id", tenantId)
+              .like("cliente_code", `${codePattern}%`)
+              .limit(1);
+
+            if ((codeMatches || []).length === 1) {
+              clienteId = codeMatches![0].id;
+              report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by sm_client_code" };
             }
           }
 
