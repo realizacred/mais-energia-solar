@@ -20577,10 +20577,14 @@ export type Database = {
           created_at: string
           custo_disponibilidade: number | null
           custom_fields_raw: Json | null
+          demanda_adicional: number | null
+          demanda_contratada: number | null
+          demanda_preco: number | null
           description: string | null
           desvio_azimutal: number | null
           dis_energia: string | null
           discount: number | null
+          economia_anual_serie: Json | null
           economia_mensal: number | null
           economia_mensal_percent: number | null
           energy_generation: number | null
@@ -20588,8 +20592,10 @@ export type Database = {
           estado: string | null
           fase: string | null
           fator_geracao: number | null
+          fluxo_caixa_acumulado: Json | null
           generated_at: string | null
           geracao_anual: number | null
+          geracao_mensal_serie: Json | null
           id: string
           inclinacao: number | null
           inflacao_energetica: number | null
@@ -20599,6 +20605,7 @@ export type Database = {
           inversores: string | null
           inverter_model: string | null
           inverter_quantity: number | null
+          irradiacao_mensal_serie: Json | null
           link_pdf: string | null
           migrado_em: string | null
           migrar_para_canonico: boolean
@@ -20607,6 +20614,7 @@ export type Database = {
           modulo_fabricante: string | null
           modulo_potencia_w: number | null
           modulos: string | null
+          outros_encargos: number | null
           panel_model: string | null
           panel_quantity: number | null
           payback: string | null
@@ -20652,10 +20660,14 @@ export type Database = {
           created_at?: string
           custo_disponibilidade?: number | null
           custom_fields_raw?: Json | null
+          demanda_adicional?: number | null
+          demanda_contratada?: number | null
+          demanda_preco?: number | null
           description?: string | null
           desvio_azimutal?: number | null
           dis_energia?: string | null
           discount?: number | null
+          economia_anual_serie?: Json | null
           economia_mensal?: number | null
           economia_mensal_percent?: number | null
           energy_generation?: number | null
@@ -20663,8 +20675,10 @@ export type Database = {
           estado?: string | null
           fase?: string | null
           fator_geracao?: number | null
+          fluxo_caixa_acumulado?: Json | null
           generated_at?: string | null
           geracao_anual?: number | null
+          geracao_mensal_serie?: Json | null
           id?: string
           inclinacao?: number | null
           inflacao_energetica?: number | null
@@ -20674,6 +20688,7 @@ export type Database = {
           inversores?: string | null
           inverter_model?: string | null
           inverter_quantity?: number | null
+          irradiacao_mensal_serie?: Json | null
           link_pdf?: string | null
           migrado_em?: string | null
           migrar_para_canonico?: boolean
@@ -20682,6 +20697,7 @@ export type Database = {
           modulo_fabricante?: string | null
           modulo_potencia_w?: number | null
           modulos?: string | null
+          outros_encargos?: number | null
           panel_model?: string | null
           panel_quantity?: number | null
           payback?: string | null
@@ -20727,10 +20743,14 @@ export type Database = {
           created_at?: string
           custo_disponibilidade?: number | null
           custom_fields_raw?: Json | null
+          demanda_adicional?: number | null
+          demanda_contratada?: number | null
+          demanda_preco?: number | null
           description?: string | null
           desvio_azimutal?: number | null
           dis_energia?: string | null
           discount?: number | null
+          economia_anual_serie?: Json | null
           economia_mensal?: number | null
           economia_mensal_percent?: number | null
           energy_generation?: number | null
@@ -20738,8 +20758,10 @@ export type Database = {
           estado?: string | null
           fase?: string | null
           fator_geracao?: number | null
+          fluxo_caixa_acumulado?: Json | null
           generated_at?: string | null
           geracao_anual?: number | null
+          geracao_mensal_serie?: Json | null
           id?: string
           inclinacao?: number | null
           inflacao_energetica?: number | null
@@ -20749,6 +20771,7 @@ export type Database = {
           inversores?: string | null
           inverter_model?: string | null
           inverter_quantity?: number | null
+          irradiacao_mensal_serie?: Json | null
           link_pdf?: string | null
           migrado_em?: string | null
           migrar_para_canonico?: boolean
@@ -20757,6 +20780,7 @@ export type Database = {
           modulo_fabricante?: string | null
           modulo_potencia_w?: number | null
           modulos?: string | null
+          outros_encargos?: number | null
           panel_model?: string | null
           panel_quantity?: number | null
           payback?: string | null

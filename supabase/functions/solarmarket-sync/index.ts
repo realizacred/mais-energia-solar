@@ -247,6 +247,27 @@ function extractProposalFields(pr: any) {
   const tensaoRede = getVar("tensao_rede") || null;
   const topologia = getVar("topologia") || null;
 
+  // 25-year financial series
+  const fluxoCaixaAcumulado: number[] = [];
+  for (let i = 1; i <= 25; i++) {
+    const val = getVarNum(`fluxo_caixa_acumulado_anual_${i}_uc1`) ||
+                getVarNum(`fluxo_caixa_acumulado_anual_${i}`) || 0;
+    fluxoCaixaAcumulado.push(val);
+  }
+  const economiaAnualSerie: number[] = [];
+  for (let i = 0; i <= 25; i++) {
+    const val = getVarNum(`economia_anual_valor_${i}_uc1`) ||
+                getVarNum(`economia_anual_valor_${i}`) || 0;
+    economiaAnualSerie.push(val);
+  }
+  const mesesNomes = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  const geracaoMensalSerie = mesesNomes.map(m => getVarNum(`geracao_${m}`) || getVarNum(`geracao_${m}_uc1`) || 0);
+  const irradiacaoMensalSerie = mesesNomes.map(m => getVarNum(`irradiacao_${m}`) || 0);
+  const demandaContratada = getVarNum("demanda_contratada") || null;
+  const demandaPreco = getVarNum("demanda_preco_uc1") || null;
+  const demandaAdicional = getVarNum("demanda_adicional") || null;
+  const outrosEncargos = getVarNum("outros_encargos_atual_uc1") || getVarNum("outros_encargos_atual") || null;
+
   return {
     titulo: pr.title || pr.titulo || pr.name || null,
     sm_project_id: pr.project?.id || pr.projectId || pr.project_id || null,
@@ -313,6 +334,16 @@ function extractProposalFields(pr: any) {
     area_util: areaUtil,
     tensao_rede: tensaoRede,
     topologia,
+    // Financial series (25 years)
+    fluxo_caixa_acumulado: fluxoCaixaAcumulado,
+    economia_anual_serie: economiaAnualSerie,
+    geracao_mensal_serie: geracaoMensalSerie,
+    irradiacao_mensal_serie: irradiacaoMensalSerie,
+    // Demand
+    demanda_contratada: demandaContratada,
+    demanda_preco: demandaPreco,
+    demanda_adicional: demandaAdicional,
+    outros_encargos: outrosEncargos,
     // Client address from variables (fallback for migration)
     cliente_cidade: getVar("cliente_cidade") || null,
     cliente_estado: getVar("cliente_estado") || null,
