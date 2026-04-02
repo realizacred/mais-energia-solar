@@ -333,10 +333,10 @@ export function normalizeProposalSnapshot(
 
     // Cliente — fallback chain: cliente obj → top-level camelCase → selectedLead
     clienteNome: str(cliente.nome ?? s.clienteNome ?? s.cliente_nome ?? lead.nome),
-    clienteEmpresa: str(cliente.empresa ?? s.clienteEmpresa ?? s.cliente_empresa),
-    clienteCelular: str(cliente.celular ?? s.clienteCelular ?? s.cliente_celular ?? lead.telefone),
+    clienteEmpresa: str(cliente.empresa ?? s.clienteEmpresa ?? s.cliente_empresa ?? lead.empresa),
+    clienteCelular: str(cliente.celular ?? cliente.telefone ?? s.clienteCelular ?? s.cliente_celular ?? lead.telefone),
     clienteEmail: str(cliente.email ?? s.clienteEmail ?? s.cliente_email ?? lead.email),
-    clienteCpfCnpj: str(cliente.cnpj_cpf ?? s.clienteCpfCnpj ?? s.cliente_cpf_cnpj ?? lead.cpf_cnpj),
+    clienteCpfCnpj: str(cliente.cnpj_cpf ?? cliente.documento ?? s.clienteCpfCnpj ?? s.cliente_cpf_cnpj ?? lead.cpf_cnpj),
 
     // Sistema
     potenciaKwp,
