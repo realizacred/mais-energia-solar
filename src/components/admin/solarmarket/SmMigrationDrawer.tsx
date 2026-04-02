@@ -15,17 +15,14 @@ import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/d
 
 // ─── Constants ──────────────────────────────────────────
 
-const PIPELINE_ID = "9b5cbcf3-a101-4950-b699-778e2e1219e6";
-
-const STAGE_MAP: Record<string, { stage_id: string; proposal_status: string; label: string }> = {
-  approved: { stage_id: "bdad6238-90e1-4e12-b897-53ff61ece1b6", proposal_status: "aceita", label: "Ganho" },
-  sent: { stage_id: "ac9ab64f-b617-48fd-8282-a33482feb30d", proposal_status: "enviada", label: "Proposta Enviada" },
-  viewed: { stage_id: "ac9ab64f-b617-48fd-8282-a33482feb30d", proposal_status: "enviada", label: "Proposta Enviada" },
-  generated: { stage_id: "f3bf1757-77d2-4e0e-aef3-667b294644f9", proposal_status: "rascunho", label: "Negociação" },
-  draft: { stage_id: "fab065c4-c4f7-418d-ba0a-46b91fce3063", proposal_status: "rascunho", label: "Qualificação" },
-  rejected: { stage_id: "fe7433c9-4397-4206-aaec-8d59bdcecdbe", proposal_status: "rejeitada", label: "Perdido" },
+const SM_STATUS_LABEL_MAP: Record<string, { proposal_status: string; label: string }> = {
+  approved: { proposal_status: "aceita", label: "Ganho" },
+  sent: { proposal_status: "enviada", label: "Proposta Enviada" },
+  viewed: { proposal_status: "enviada", label: "Proposta Enviada" },
+  generated: { proposal_status: "rascunho", label: "Negociação" },
+  draft: { proposal_status: "rascunho", label: "Qualificação" },
+  rejected: { proposal_status: "rejeitada", label: "Perdido" },
 };
-const DEFAULT_STAGE = { stage_id: "fab065c4-c4f7-418d-ba0a-46b91fce3063", proposal_status: "rascunho", label: "Qualificação" };
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -78,6 +75,41 @@ function useConsultores() {
       return data || [];
     },
     staleTime: 60_000,
+  });
+}
+
+// ─── Hook: fetch available pipelines ───────────────────
+
+function usePipelines() {
+  return useQuery<{ id: string; name: string }[]>({
+    queryKey: ["pipelines-for-migration"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pipelines")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// ─── Hook: fetch stages for a pipeline ─────────────────
+
+function usePipelineStages(pipelineId: string | null) {
+  return useQuery<{ id: string; name: string }[]>({
+    queryKey: ["pipeline-stages-migration", pipelineId],
+    enabled: !!pipelineId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pipeline_stages")
+        .select("id, name")
+        .eq("pipeline_id", pipelineId!)
+        .order("position", { ascending: true });
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -162,6 +194,8 @@ interface SmMigrationDrawerProps {
 
 export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigrationDrawerProps) {
   const [ownerId, setOwnerId] = useState<string>(""); // always used as fallback
+  const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
+  const [selectedStageId, setSelectedStageId] = useState<string>("");
   const [steps, setSteps] = useState<MigrationStep[]>(INITIAL_STEPS);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);
@@ -171,6 +205,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [logs, setLogs] = useState<string[]>([]);
 
   const { data: consultores = [] } = useConsultores();
+  const { data: pipelines = [] } = usePipelines();
+  const { data: pipelineStages = [] } = usePipelineStages(selectedPipelineId || null);
   const qc = useQueryClient();
 
   const proposal = proposals[0]; // Single or first for display
@@ -181,7 +217,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const { data: projectFunnels = [] } = useSmProjectFunnels(proposal?.sm_project_id ?? null);
   const { data: realClientName } = useSmRealClientName(proposal?.sm_project_id ?? null);
 
-  const stageInfo = proposal ? (STAGE_MAP[proposal.status?.toLowerCase() ?? ""] ?? DEFAULT_STAGE) : DEFAULT_STAGE;
+  const statusLabel = proposal ? (SM_STATUS_LABEL_MAP[proposal.status?.toLowerCase() ?? ""] ?? { proposal_status: "rascunho", label: "Qualificação" }) : { proposal_status: "rascunho", label: "Qualificação" };
+
+  // Auto-select first pipeline when loaded
+  const activePipelineId = selectedPipelineId || pipelines[0]?.id || "";
+  // Auto-select first stage when loaded
+  const activeStageId = selectedStageId || pipelineStages[0]?.id || "";
 
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
@@ -200,6 +241,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   }, []);
 
   const runMigration = useCallback(async (dryRun: boolean) => {
+    if (!activePipelineId) {
+      setError("Nenhum pipeline encontrado. Crie um pipeline comercial antes de migrar.");
+      return;
+    }
     // owner_id is now optional — auto-resolved from SM funnel "Vendedores"
     resetState();
     setRunning(true);
@@ -229,8 +274,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
       const payload: Record<string, any> = {
         dry_run: dryRun,
-        pipeline_id: PIPELINE_ID,
-        stage_id: stageInfo.stage_id,
+        pipeline_id: activePipelineId,
+        stage_id: activeStageId || null,
         auto_resolve_owner: true,
         filters: { internal_ids: internalIds },
         batch_size: internalIds.length,
@@ -310,7 +355,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     } finally {
       setRunning(false);
     }
-  }, [ownerId, internalIds, stageInfo, addLog, resetState, updateStep, isBulk, qc]);
+  }, [ownerId, internalIds, activePipelineId, activeStageId, addLog, resetState, updateStep, isBulk, qc, consultores]);
 
   const handleExecuteConfirm = () => {
     setConfirmOpen(false);
@@ -367,7 +412,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
                   </div>
                   <div>
                     <span className="text-muted-foreground text-xs">Etapa mapeada</span>
-                    <p><Badge className="text-[10px] bg-primary/10 text-primary border-0">{stageInfo.label}</Badge></p>
+                    <p><Badge className="text-[10px] bg-primary/10 text-primary border-0">{statusLabel.label}</Badge></p>
                   </div>
                 </div>
 
@@ -422,13 +467,48 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               </p>
             </div>
 
-            {/* Pipeline info (fixed) */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
-              <Briefcase className="h-3.5 w-3.5" />
-              Pipeline: <span className="font-medium text-foreground">Comercial</span>
-              <ArrowRight className="h-3 w-3" />
-              Etapa: <span className="font-medium text-foreground">{stageInfo.label}</span>
-            </div>
+            {/* Pipeline selector (dynamic) */}
+            {pipelines.length === 0 && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-warning/10 border border-warning/20 text-sm">
+                <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                <p className="text-warning font-medium">Nenhum pipeline encontrado. Crie um pipeline comercial antes de migrar.</p>
+              </div>
+            )}
+            {pipelines.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Pipeline de destino</label>
+                <Select value={activePipelineId} onValueChange={setSelectedPipelineId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Selecione o pipeline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pipelines.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Stage selector (dynamic from selected pipeline) */}
+            {pipelineStages.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Etapa padrão</label>
+                <Select value={activeStageId} onValueChange={setSelectedStageId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Primeira etapa (padrão)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pipelineStages.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  Status SM "{statusLabel.label}" → Etapa: {pipelineStages.find(s => s.id === activeStageId)?.name || "primeira disponível"}
+                </p>
+              </div>
+            )}
 
             {/* Progress */}
             {(running || result) && (
