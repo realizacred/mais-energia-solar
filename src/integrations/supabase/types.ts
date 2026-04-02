@@ -20571,12 +20571,14 @@ export type Database = {
       solar_market_proposals: {
         Row: {
           acceptance_date: string | null
+          area_util: number | null
           cidade: string | null
           consumo_mensal: number | null
           created_at: string
           custo_disponibilidade: number | null
           custom_fields_raw: Json | null
           description: string | null
+          desvio_azimutal: number | null
           dis_energia: string | null
           discount: number | null
           economia_mensal: number | null
@@ -20585,11 +20587,15 @@ export type Database = {
           equipment_cost: number | null
           estado: string | null
           fase: string | null
+          fator_geracao: number | null
           generated_at: string | null
           geracao_anual: number | null
           id: string
+          inclinacao: number | null
           inflacao_energetica: number | null
           installation_cost: number | null
+          inversor_fabricante: string | null
+          inversor_potencia_w: number | null
           inversores: string | null
           inverter_model: string | null
           inverter_quantity: number | null
@@ -20598,6 +20604,8 @@ export type Database = {
           migrar_para_canonico: boolean
           migrar_requested_at: string | null
           migrar_requested_by: string | null
+          modulo_fabricante: string | null
+          modulo_potencia_w: number | null
           modulos: string | null
           panel_model: string | null
           panel_quantity: number | null
@@ -20607,6 +20615,7 @@ export type Database = {
           potencia_kwp: number | null
           preco_total: number | null
           raw_payload: Json | null
+          regra_compensacao: string | null
           rejection_date: string | null
           roof_type: string | null
           send_at: string | null
@@ -20618,12 +20627,16 @@ export type Database = {
           sobredimensionamento: number | null
           status: string | null
           structure_type: string | null
+          subgrupo_tarifario: string | null
           synced_at: string
           tarifa_distribuidora: number | null
+          taxa_desempenho: number | null
           tenant_id: string
+          tensao_rede: string | null
           tipo_dimensionamento: string | null
           tir: number | null
           titulo: string | null
+          topologia: string | null
           valid_until: string | null
           valor_total: number | null
           viewed_at: string | null
@@ -20633,12 +20646,14 @@ export type Database = {
         }
         Insert: {
           acceptance_date?: string | null
+          area_util?: number | null
           cidade?: string | null
           consumo_mensal?: number | null
           created_at?: string
           custo_disponibilidade?: number | null
           custom_fields_raw?: Json | null
           description?: string | null
+          desvio_azimutal?: number | null
           dis_energia?: string | null
           discount?: number | null
           economia_mensal?: number | null
@@ -20647,11 +20662,15 @@ export type Database = {
           equipment_cost?: number | null
           estado?: string | null
           fase?: string | null
+          fator_geracao?: number | null
           generated_at?: string | null
           geracao_anual?: number | null
           id?: string
+          inclinacao?: number | null
           inflacao_energetica?: number | null
           installation_cost?: number | null
+          inversor_fabricante?: string | null
+          inversor_potencia_w?: number | null
           inversores?: string | null
           inverter_model?: string | null
           inverter_quantity?: number | null
@@ -20660,6 +20679,8 @@ export type Database = {
           migrar_para_canonico?: boolean
           migrar_requested_at?: string | null
           migrar_requested_by?: string | null
+          modulo_fabricante?: string | null
+          modulo_potencia_w?: number | null
           modulos?: string | null
           panel_model?: string | null
           panel_quantity?: number | null
@@ -20669,6 +20690,7 @@ export type Database = {
           potencia_kwp?: number | null
           preco_total?: number | null
           raw_payload?: Json | null
+          regra_compensacao?: string | null
           rejection_date?: string | null
           roof_type?: string | null
           send_at?: string | null
@@ -20680,12 +20702,16 @@ export type Database = {
           sobredimensionamento?: number | null
           status?: string | null
           structure_type?: string | null
+          subgrupo_tarifario?: string | null
           synced_at?: string
           tarifa_distribuidora?: number | null
+          taxa_desempenho?: number | null
           tenant_id: string
+          tensao_rede?: string | null
           tipo_dimensionamento?: string | null
           tir?: number | null
           titulo?: string | null
+          topologia?: string | null
           valid_until?: string | null
           valor_total?: number | null
           viewed_at?: string | null
@@ -20695,12 +20721,14 @@ export type Database = {
         }
         Update: {
           acceptance_date?: string | null
+          area_util?: number | null
           cidade?: string | null
           consumo_mensal?: number | null
           created_at?: string
           custo_disponibilidade?: number | null
           custom_fields_raw?: Json | null
           description?: string | null
+          desvio_azimutal?: number | null
           dis_energia?: string | null
           discount?: number | null
           economia_mensal?: number | null
@@ -20709,11 +20737,15 @@ export type Database = {
           equipment_cost?: number | null
           estado?: string | null
           fase?: string | null
+          fator_geracao?: number | null
           generated_at?: string | null
           geracao_anual?: number | null
           id?: string
+          inclinacao?: number | null
           inflacao_energetica?: number | null
           installation_cost?: number | null
+          inversor_fabricante?: string | null
+          inversor_potencia_w?: number | null
           inversores?: string | null
           inverter_model?: string | null
           inverter_quantity?: number | null
@@ -20722,6 +20754,8 @@ export type Database = {
           migrar_para_canonico?: boolean
           migrar_requested_at?: string | null
           migrar_requested_by?: string | null
+          modulo_fabricante?: string | null
+          modulo_potencia_w?: number | null
           modulos?: string | null
           panel_model?: string | null
           panel_quantity?: number | null
@@ -20731,6 +20765,7 @@ export type Database = {
           potencia_kwp?: number | null
           preco_total?: number | null
           raw_payload?: Json | null
+          regra_compensacao?: string | null
           rejection_date?: string | null
           roof_type?: string | null
           send_at?: string | null
@@ -20742,12 +20777,16 @@ export type Database = {
           sobredimensionamento?: number | null
           status?: string | null
           structure_type?: string | null
+          subgrupo_tarifario?: string | null
           synced_at?: string
           tarifa_distribuidora?: number | null
+          taxa_desempenho?: number | null
           tenant_id?: string
+          tensao_rede?: string | null
           tipo_dimensionamento?: string | null
           tir?: number | null
           titulo?: string | null
+          topologia?: string | null
           valid_until?: string | null
           valor_total?: number | null
           viewed_at?: string | null
