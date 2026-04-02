@@ -65,6 +65,7 @@ interface Recebimento {
   numero_parcelas: number;
   descricao: string | null;
   data_acordo: string;
+  data_vencimento?: string | null;
   status: string;
   created_at: string;
   total_pago?: number;
