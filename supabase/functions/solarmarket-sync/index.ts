@@ -192,18 +192,45 @@ function extractProposalFields(pr: any) {
   // Total value = sum of salesValue across all pricing items
   const valorTotal = pricingTable.reduce((sum: number, p: any) => sum + (Number(p.salesValue) || 0), 0);
 
-  // Power from variables
-  const potencia = getVarNum("potencia_sistema") || getVarNum("vc_potencia_sistema") || null;
+  // Power from variables — vc_potencia_sistema is the real key in SM data
+  const potenciaRaw = getVarNum("vc_potencia_sistema") || getVarNum("potencia_sistema") || getVarNum("potencia_pico") || null;
+  // If > 100, probably in Watts → convert to kWp
+  const potencia = potenciaRaw != null ? (potenciaRaw > 100 ? potenciaRaw / 1000 : potenciaRaw) : null;
 
-  // Equipment cost = kit salesValue; Installation cost = instalação salesValue
-  const equipmentCost = kitRow ? Number(kitRow.salesValue) || null : null;
-  const installationCost = instRow ? Number(instRow.salesValue) || null : null;
+  // Equipment cost: prefer KIT item (Módulo/Inversor often have unitCost=0 when bundled in KIT)
+  const equipmentCost = (() => {
+    if (kitRow && Number(kitRow.totalCost || kitRow.salesValue) > 0) {
+      return Number(kitRow.totalCost || kitRow.salesValue);
+    }
+    return (Number(moduloRow?.totalCost || 0)) + (Number(inversorRow?.totalCost || 0)) || null;
+  })();
 
-  // Energy generation from variables
-  const energyGen = getVarNum("geracao_mensal") || getVarNum("geracao_media") || null;
+  // Installation cost
+  const installationCost = instRow ? Number(instRow.salesValue || instRow.totalCost) || null : null;
+
+  // Energy generation: geracao_mensal often missing; compute from monthly values or annual
+  const energyGen = (() => {
+    const meses = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+    const vals = meses.map(m => getVarNum(`geracao_${m}`) || 0);
+    const soma = vals.reduce((a, b) => a + b, 0);
+    if (soma > 0) return Math.round(soma / 12);
+    const anual = getVarNum("geracao_anual_0");
+    if (anual && anual > 0) return Math.round(anual / 12);
+    return getVarNum("geracao_mensal") || getVarNum("geracao_media") || null;
+  })();
 
   // Annual generation
   const geracaoAnual = getVarNum("geracao_anual_0") || null;
+
+  // Fase: try multiple keys
+  const fase = getVar("fase_uc1") || getVar("fase_ligacao") || getVar("fase") || getVar("tipo_ligacao") || null;
+
+  // Irradiação média
+  const irradiacaoMedia = (() => {
+    const meses = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+    const vals = meses.map(m => getVarNum(`irradiacao_${m}`) || 0).filter(v => v > 0);
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  })();
 
   return {
     titulo: pr.title || pr.titulo || pr.name || null,
@@ -240,21 +267,33 @@ function extractProposalFields(pr: any) {
     vpl: getVarNum("vpl"),
     tir: getVarNum("tir"),
     preco_total: getVarNum("preco"),
-    fase: getVar("fase"),
-    tipo_dimensionamento: getVar("tipo"),
+    fase,
+    tipo_dimensionamento: getVar("tipo") || getVar("tipo_dimensionamento") || null,
     dis_energia: getVar("dis_energia"),
-    cidade: getVar("cidade") || pr.project?.client?.city || null,
-    estado: getVar("estado") || pr.project?.client?.state || null,
+    cidade: getVar("cliente_cidade") || getVar("cidade") || pr.project?.client?.city || null,
+    estado: getVar("cliente_estado") || getVar("estado") || pr.project?.client?.state || null,
     geracao_anual: geracaoAnual,
     inflacao_energetica: getVarNum("inflacao_energetica"),
     perda_eficiencia_anual: getVarNum("perda_eficiencia_anual"),
     sobredimensionamento: getVarNum("sobredimensionamento"),
     custo_disponibilidade: getVarNum("custo_disponibilidade_valor"),
+    irradiacao_media: irradiacaoMedia,
     generated_at: pr.generatedAt || null,
     send_at: pr.sendAt || null,
     viewed_at: pr.viewedAt || null,
     acceptance_date: pr.acceptanceDate || null,
     rejection_date: pr.rejectionDate || null,
+    // Client address from variables (fallback for migration)
+    cliente_cidade: getVar("cliente_cidade") || null,
+    cliente_estado: getVar("cliente_estado") || null,
+    cliente_bairro: getVar("cliente_bairro") || null,
+    cliente_endereco: getVar("cliente_endereco") || null,
+    cliente_numero: getVar("cliente_numero") || null,
+    cliente_cep: getVar("cliente_cep") || null,
+    cliente_celular: getVar("cliente_celular") || null,
+    cliente_cnpj_cpf: getVar("cliente_cnpj_cpf") || null,
+    cliente_email: getVar("cliente_email") || null,
+    cliente_empresa: getVar("cliente_empresa") || null,
   };
 }
 
