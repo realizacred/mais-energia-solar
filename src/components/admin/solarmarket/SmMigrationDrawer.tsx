@@ -792,8 +792,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             <Button
               className="flex-1"
               onClick={() => setConfirmOpen(true)}
-              disabled={running || !!existingCanonical || !canMigrate}
-              title={!canMigrate ? "Selecione uma etapa do pipeline antes de migrar" : undefined}
+              disabled={running || (!dryRunCompleted && !!existingCanonical) || !canMigrate}
+              title={!canMigrate ? "Selecione uma etapa do pipeline antes de migrar" : existingCanonical && !dryRunCompleted ? "Execute uma simulação (dry-run) antes de migrar novamente" : undefined}
             >
               Migrar agora
             </Button>
