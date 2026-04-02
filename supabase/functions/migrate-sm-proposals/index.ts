@@ -598,6 +598,64 @@ Deno.serve(async (req) => {
     }
 
 
+    // ─── Helper: resolve principal pipeline from SM funnels ──
+    const FUNNEL_PRIORITY = ['LEAD', 'Vendedores', 'Engenharia', 'Equipamento', 'Compesação', 'Pagamento'];
+    const FUNNEL_TO_CANONICAL: Record<string, string> = {
+      'LEAD': 'Comercial',
+      'Vendedores': 'Vendedor',
+    };
+
+    async function resolvePipelinePrincipalDoFunil(
+      allFunnels: any[] | null,
+      tId: string,
+      fallbackPipelineId: string,
+      fallbackStageId: string | null,
+    ): Promise<{ pipeline_id: string; stage_id: string | null; source: string }> {
+      if (!allFunnels || allFunnels.length === 0) {
+        return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
+      }
+
+      for (const funnelName of FUNNEL_PRIORITY) {
+        const funnel = allFunnels.find((f: any) => f.funnelName === funnelName);
+        if (!funnel) continue;
+
+        const canonicalName = FUNNEL_TO_CANONICAL[funnelName] || funnelName;
+
+        let pipelineId = pipelineCache.get(canonicalName);
+        if (!pipelineId) {
+          const { data: pipeline } = await adminClient
+            .from("pipelines")
+            .select("id")
+            .eq("tenant_id", tId)
+            .ilike("name", canonicalName)
+            .maybeSingle();
+          if (!pipeline) continue;
+          pipelineId = pipeline.id;
+          pipelineCache.set(canonicalName, pipelineId);
+        }
+
+        let stageId: string | null = null;
+        if (funnel.stageName) {
+          const cacheKey = `${pipelineId}::${funnel.stageName.trim()}`;
+          stageId = stageCache.get(cacheKey) || null;
+          if (!stageId) {
+            const { data: stage } = await adminClient
+              .from("pipeline_stages")
+              .select("id")
+              .eq("pipeline_id", pipelineId)
+              .ilike("name", funnel.stageName.trim())
+              .maybeSingle();
+            stageId = stage?.id || null;
+            if (stageId) stageCache.set(cacheKey, stageId);
+          }
+        }
+
+        return { pipeline_id: pipelineId, stage_id: stageId, source: `funil:${funnelName}→${canonicalName}` };
+      }
+
+      return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
+    }
+
     const existingDeals = new Map<string, string>(); // legacy_key -> deal_id
     {
       const { data: deals } = await adminClient
@@ -931,18 +989,27 @@ Deno.serve(async (req) => {
           const legacyKey = `sm:${smProp.sm_proposal_id}`;
           let dealId: string | null = existingDeals.get(legacyKey) || null;
 
+          // Resolve pipeline from SM funnels (auto) or fallback to UI selection
+          const smProjForPipeline = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+          const resolved = await resolvePipelinePrincipalDoFunil(
+            smProjForPipeline?.all_funnels || null,
+            tenantId,
+            params.pipeline_id!,
+            params.stage_id || null,
+          );
+
           if (dealId) {
             report.steps.deal = { status: "WOULD_SKIP", id: dealId };
           } else {
             if (dry_run) {
-              report.steps.deal = { status: "WOULD_CREATE", reason: `owner: ${ownerSource}${ownerAutoCreated ? " (criar)" : ""}` };
+              report.steps.deal = { status: "WOULD_CREATE", reason: `owner: ${ownerSource}${ownerAutoCreated ? " (criar)" : ""}, pipeline: ${resolved.source}` };
             } else {
               // Resolve original SM date for created_at
               const smOriginalDate = smProp.sm_created_at || smProp.generated_at || smProp.send_at || null;
               const dealInsert: Record<string, any> = {
                   tenant_id: tenantId,
-                  pipeline_id: params.pipeline_id!,
-                  stage_id: params.stage_id || null,
+                  pipeline_id: resolved.pipeline_id,
+                  stage_id: resolved.stage_id,
                   customer_id: clienteId!,
                   owner_id: resolvedOwnerId!,
                   title: smClient.name || smProp.titulo || `SM Proposta ${smProp.sm_proposal_id}`,
@@ -974,7 +1041,7 @@ Deno.serve(async (req) => {
               }
               dealId = newDeal!.id;
               existingDeals.set(legacyKey, dealId);
-              report.steps.deal = { status: "WOULD_CREATE", id: dealId };
+              report.steps.deal = { status: "WOULD_CREATE", id: dealId, reason: `pipeline: ${resolved.source}` };
             }
           }
 
