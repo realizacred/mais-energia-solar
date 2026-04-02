@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   DollarSign, Plus, Edit, Trash2, Receipt, CreditCard,
-  Calendar, BarChart3, CalendarDays, Download, X, Info,
+  Calendar, BarChart3, CalendarDays, Download, X, Info, Send,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -40,6 +40,7 @@ import { RelatoriosFinanceiros } from "./recebimentos/RelatoriosFinanceiros";
 import { CalendarioPagamentos } from "./recebimentos/CalendarioPagamentos";
 import { ParcelasAtrasadasWidget } from "./widgets/ParcelasAtrasadasWidget";
 import { PagamentoLivreDialog } from "./recebimentos/PagamentoLivreDialog";
+import { CobrancaWaDialog } from "./recebimentos/CobrancaWaDialog";
 import { PageHeader, StatCard, EmptyState, LoadingState, SearchInput } from "@/components/ui-kit";
 import { TablePagination } from "@/components/ui-kit/TablePagination";
 
@@ -129,6 +130,7 @@ export function RecebimentosManager() {
   const [parcelasDialogOpen, setParcelasDialogOpen] = useState(false);
   const [pagamentosDialogOpen, setPagamentosDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("lista");
+  const [cobrancaWaOpen, setCobrancaWaOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -608,6 +610,14 @@ export function RecebimentosManager() {
                               }} title="Gerenciar Parcelas">
                                 <Calendar className="h-4 w-4" />
                               </Button>
+                              {recebimento.status !== "quitado" && recebimento.status !== "cancelado" && (
+                                <Button size="sm" variant="ghost" onClick={() => {
+                                  setSelectedRecebimento(recebimento);
+                                  setCobrancaWaOpen(true);
+                                }} title="Enviar cobrança por WhatsApp">
+                                  <Send className="h-4 w-4 text-primary" />
+                                </Button>
+                              )}
                               <Button size="sm" variant="ghost" onClick={() => handleEdit(recebimento)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -687,6 +697,25 @@ export function RecebimentosManager() {
           }}
           recebimento={selectedRecebimento}
           onUpdate={refreshRecebimentos}
+        />
+      )}
+
+      {/* Cobranca WA Dialog */}
+      {selectedRecebimento && cobrancaWaOpen && (
+        <CobrancaWaDialog
+          open={cobrancaWaOpen}
+          onClose={() => {
+            setCobrancaWaOpen(false);
+            setSelectedRecebimento(null);
+          }}
+          recebimento={{
+            id: selectedRecebimento.id,
+            valor_total: selectedRecebimento.valor_total,
+            total_pago: calcularTotalPago(selectedRecebimento),
+            descricao: selectedRecebimento.descricao,
+            data_vencimento: selectedRecebimento.data_vencimento,
+            clientes: selectedRecebimento.clientes || null,
+          }}
         />
       )}
     </motion.div>
