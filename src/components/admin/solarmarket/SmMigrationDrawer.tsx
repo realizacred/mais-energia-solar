@@ -285,8 +285,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           updateStep(seq[i].key, { state: "running" });
           await new Promise(r => setTimeout(r, seq[i].ms));
           if (stepAnimCancelRef.current) break;
-          // Mark previous step as "done" (optimistic) when moving to next
-          updateStep(seq[i].key, { state: "done", detail: "Processando..." });
         }
       };
       const animPromise = runStepAnimation();
