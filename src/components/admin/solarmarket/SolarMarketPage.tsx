@@ -761,11 +761,73 @@ export default function SolarMarketPage() {
               </AlertDialogContent>
             </AlertDialog>
 
+            <AlertDialog open={resetMigratedOpen} onOpenChange={(v) => { setResetMigratedOpen(v); if (!v) setResetMigratedText(""); }}>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-warning hover:text-warning border-warning/30 hover:bg-warning/10">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Limpar Migrados
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-warning">
+                    <AlertTriangle className="h-5 w-5" />
+                    Limpar dados migrados
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3">
+                      <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-sm text-warning font-medium">
+                        Remove clientes, projetos, propostas e deals migrados do SM.
+                      </div>
+                      <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                        <li>Clientes, projetos, propostas nativas serão apagados</li>
+                        <li>Deals e recebimentos serão removidos</li>
+                        <li className="font-medium text-success">✅ Dados do SolarMarket (sync) são MANTIDOS</li>
+                        <li className="font-medium text-success">✅ Flags de migração são resetadas para re-migrar</li>
+                      </ul>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-reset-migrated" className="text-sm font-medium">
+                          Digite <span className="font-mono font-bold text-warning">LIMPAR MIGRADOS</span> para confirmar:
+                        </Label>
+                        <Input
+                          id="confirm-reset-migrated"
+                          value={resetMigratedText}
+                          onChange={(e) => setResetMigratedText(e.target.value)}
+                          placeholder="LIMPAR MIGRADOS"
+                          className="font-mono"
+                          autoComplete="off"
+                          disabled={resetMigratedMutation.isPending}
+                        />
+                      </div>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={resetMigratedMutation.isPending}>Cancelar</AlertDialogCancel>
+                  <Button
+                    variant="outline"
+                    onClick={() => resetMigratedMutation.mutate()}
+                    disabled={!canResetMigrated}
+                    className="gap-1.5 border-warning text-warning hover:bg-warning/10"
+                  >
+                    {resetMigratedMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Limpando…
+                      </>
+                    ) : (
+                      "Confirmar Limpeza"
+                    )}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             <AlertDialog open={resetOpen} onOpenChange={(v) => { setResetOpen(v); if (!v) setResetConfirmText(""); }}>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10">
                   <Trash2 className="h-3.5 w-3.5" />
-                  Resetar Dados
+                  Resetar Tudo
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
