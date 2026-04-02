@@ -1041,7 +1041,7 @@ Deno.serve(async (req) => {
               }
               dealId = newDeal!.id;
               existingDeals.set(legacyKey, dealId);
-              report.steps.deal = { status: "WOULD_CREATE", id: dealId };
+              report.steps.deal = { status: "WOULD_CREATE", id: dealId, reason: `pipeline: ${resolved.source}` };
             }
           }
 
