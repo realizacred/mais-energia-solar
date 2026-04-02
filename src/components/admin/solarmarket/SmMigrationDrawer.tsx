@@ -106,8 +106,9 @@ function usePipelineStages(pipelineId: string | null) {
     queryFn: async () => {
       const { data } = await supabase
         .from("pipeline_stages")
-        .select("id, name")
+        .select("id, name, position")
         .eq("pipeline_id", pipelineId!)
+        .eq("is_closed", false)
         .order("position", { ascending: true });
       return data || [];
     },
@@ -232,7 +233,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const activeStageId = selectedStageId || pipelineStages[0]?.id || "";
   const selectedPipeline = pipelines.find(p => p.id === activePipelineId);
   const needsStage = selectedPipeline?.kind === "process";
-  const canMigrate = !!activePipelineId && (!needsStage || !!activeStageId);
+  const canMigrate = !!activePipelineId && (!needsStage || !!activeStageId || pipelineStages.length === 0);
 
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
@@ -652,7 +653,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             )}
 
             {/* Stage selector (dynamic from selected pipeline) */}
-            {pipelineStages.length > 0 && (
+            {activePipelineId && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
                   Etapa padrão {needsStage && <span className="text-destructive">*</span>}
@@ -668,9 +669,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground">
-                  Status SM "{statusLabel.label}" → Etapa: {pipelineStages.find(s => s.id === activeStageId)?.name || "primeira disponível"}
+                  {pipelineStages.length === 0
+                    ? "Nenhuma etapa aberta encontrada; a EF usará fallback."
+                    : `Status SM "${statusLabel.label}" → Etapa: ${pipelineStages.find(s => s.id === activeStageId)?.name || "primeira disponível"}`}
                 </p>
-                {needsStage && !activeStageId && (
+                {needsStage && !activeStageId && pipelineStages.length > 0 && (
                   <p className="text-[10px] text-destructive">
                     Obrigatório para pipelines do tipo processo
                   </p>
