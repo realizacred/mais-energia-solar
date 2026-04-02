@@ -64,6 +64,23 @@ function normalizePhone(raw: string | null): string | null {
   return digits.slice(-11) || null;
 }
 
+/** Extract wattage from model name, e.g. "OSDA ODA620-33V" → 620 */
+function extractPotenciaFromModel(model: string | null): number {
+  if (!model) return 0;
+  // Match 3-4 digit number followed by optional W, before a dash or end
+  const match = model.match(/[\s\-_](\d{3,4})[Ww]?[\s\-_]/);
+  if (match) return parseInt(match[1]);
+  // Fallback: any 3-4 digit number
+  const fallback = model.match(/(\d{3,4})/);
+  return fallback ? parseInt(fallback[1]) : 0;
+}
+
+/** Extract manufacturer (first word) from model name */
+function extractFabricante(model: string | null): string {
+  if (!model) return "";
+  return model.trim().split(/\s+/)[0] || "";
+}
+
 // ─── Status Mapping Helpers ─────────────────────────────
 
 function resolveSmLifecycle(smProp: any): string {
@@ -914,6 +931,20 @@ Deno.serve(async (req) => {
             if (dry_run) {
               report.steps.cliente = { status: "WOULD_CREATE" };
             } else {
+              // FIX 1: Use project address as fallback when client has no address
+              const smProjAddr = smProp.sm_project_id ? (() => {
+                // Fetch from solar_market_projects pre-loaded data via smProjectMap is limited;
+                // use smProp fields which come from solar_market_proposals (has cidade, estado)
+                return {
+                  address: null as string | null,
+                  number: null as string | null,
+                  neighborhood: null as string | null,
+                  city: smProp.cidade || null,
+                  state: smProp.estado || null,
+                  zip_code: null as string | null,
+                };
+              })() : null;
+
               // Try insert, on conflict with cliente_code → link to existing
               const { data: newClient, error: insErr } = await adminClient
                 .from("clientes")
@@ -924,13 +955,13 @@ Deno.serve(async (req) => {
                   telefone_normalized: phoneNorm,
                   email: smClient.email,
                   cpf_cnpj: smClient.document ? smClient.document.replace(/\D/g, "") : null,
-                  cidade: smClient.city,
-                  estado: smClient.state,
-                  bairro: smClient.neighborhood,
-                  rua: smClient.address,
-                  numero: smClient.number,
+                  cidade: smClient.city || smProjAddr?.city || null,
+                  estado: smClient.state || smProjAddr?.state || null,
+                  bairro: smClient.neighborhood || smProjAddr?.neighborhood || null,
+                  rua: smClient.address || smProjAddr?.address || null,
+                  numero: smClient.number || smProjAddr?.number || null,
                   complemento: smClient.complement,
-                  cep: smClient.zip_code_formatted || smClient.zip_code,
+                  cep: smClient.zip_code_formatted || smClient.zip_code || smProjAddr?.zip_code || null,
                   empresa: smClient.company,
                   cliente_code: clienteCode,
                   potencia_kwp: smProp.potencia_kwp || null,
@@ -970,6 +1001,27 @@ Deno.serve(async (req) => {
               } else {
                 clienteId = newClient!.id;
                 report.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
+              }
+            }
+
+            // FIX 7: Update existing linked client if missing address
+            if (clienteId && !dry_run && report.steps.cliente?.status === "WOULD_LINK") {
+              const { data: clienteAtual } = await adminClient
+                .from("clientes")
+                .select("rua, cidade")
+                .eq("id", clienteId)
+                .single();
+              if (clienteAtual && !clienteAtual.rua && !clienteAtual.cidade) {
+                const updateAddr: Record<string, any> = {};
+                if (smClient.address) updateAddr.rua = smClient.address;
+                if (smClient.number) updateAddr.numero = smClient.number;
+                if (smClient.neighborhood) updateAddr.bairro = smClient.neighborhood;
+                if (smClient.city || smProp.cidade) updateAddr.cidade = smClient.city || smProp.cidade;
+                if (smClient.state || smProp.estado) updateAddr.estado = smClient.state || smProp.estado;
+                if (smClient.zip_code_formatted || smClient.zip_code) updateAddr.cep = smClient.zip_code_formatted || smClient.zip_code;
+                if (Object.keys(updateAddr).length > 0) {
+                  await adminClient.from("clientes").update(updateAddr).eq("id", clienteId);
+                }
               }
             }
           }
@@ -1341,16 +1393,19 @@ Deno.serve(async (req) => {
                 is_default: true,
               }];
 
-              // Build canonical itens array (KitItemRow[])
+              // FIX 2: Build canonical itens with potencia_w + fabricante extracted from model name
+              const panelPotencia = extractPotenciaFromModel(smProp.panel_model);
+              const inverterPotencia = extractPotenciaFromModel(smProp.inverter_model);
+
               const itensCanonicos: Record<string, any>[] = [];
               if (smProp.panel_model) {
                 const panelQty = Number(smProp.panel_quantity ?? 0);
                 itensCanonicos.push({
                   categoria: "modulo",
                   descricao: smProp.panel_model,
-                  fabricante: "",
+                  fabricante: extractFabricante(smProp.panel_model),
                   modelo: smProp.panel_model,
-                  potencia_w: 0,
+                  potencia_w: panelPotencia,
                   quantidade: panelQty,
                   preco_unitario: panelQty > 0
                     ? Number(smProp.equipment_cost ?? 0) / panelQty
@@ -1361,10 +1416,10 @@ Deno.serve(async (req) => {
                 itensCanonicos.push({
                   categoria: "inversor",
                   descricao: smProp.inverter_model,
-                  fabricante: "",
+                  fabricante: extractFabricante(smProp.inverter_model),
                   modelo: smProp.inverter_model,
-                  potencia_w: 0,
-                  quantidade: Number(smProp.inverter_quantity ?? 0),
+                  potencia_w: inverterPotencia,
+                  quantidade: Number(smProp.inverter_quantity ?? 1),
                   preco_unitario: 0,
                 });
               }
@@ -1380,6 +1435,9 @@ Deno.serve(async (req) => {
                 });
               }
 
+              // FIX 6: payback as number
+              const paybackNumerico = typeof paybackMeses === "number" ? paybackMeses : 0;
+
               const finalSnapshot: Record<string, any> = {
                 source: "legacy_import",
                 // Canonical WizardState nodes
@@ -1393,23 +1451,47 @@ Deno.serve(async (req) => {
                   nome: smClient?.name ?? "",
                   documento: smClient?.document ?? "",
                   email: smClient?.email ?? "",
-                  telefone: smClient?.phone_formatted || smClient?.phone ?? "",
+                  telefone: (smClient?.phone_formatted || smClient?.phone) ?? "",
                   empresa: smClient?.company ?? "",
-                  cidade: smClient?.city ?? "",
-                  estado: smClient?.state ?? "",
+                  cidade: smClient?.city ?? smProp.cidade ?? "",
+                  estado: smClient?.state ?? smProp.estado ?? "",
                   bairro: smClient?.neighborhood ?? "",
                   rua: smClient?.address ?? "",
                   numero: smClient?.number ?? "",
                   complemento: smClient?.complement ?? "",
-                  cep: smClient?.zip_code_formatted || smClient?.zip_code ?? "",
+                  cep: (smClient?.zip_code_formatted || smClient?.zip_code) ?? "",
+                },
+                // FIX 3: inputs block for wizard re-editing
+                inputs: {
+                  projeto_id: projetoId || null,
+                  cliente_id: clienteId || null,
+                  lead_id: null,
+                  template_id: null,
+                  sm_import: true,
+                },
+                // FIX 4: tecnico block for calculation engines
+                tecnico: {
+                  potencia_kwp: Number(smProp.potencia_kwp ?? 0),
+                  geracao_estimada_kwh: smProp.geracao_anual ? Number(smProp.geracao_anual) : 0,
+                  geracao_mensal_media_kwh: smProp.geracao_anual ? Math.round(Number(smProp.geracao_anual) / 12) : 0,
+                  consumo_total_kwh: Number(smProp.consumo_mensal ?? 0),
+                  numero_modulos: Number(smProp.panel_quantity ?? 0),
+                  potencia_modulo_w: panelPotencia,
+                  area_m2: 0,
                 },
                 itens: itensCanonicos,
                 servicos: servicosCanonicos,
+                // FIX 5: UCs enriched with tarifa_te, distribuidora_id, tipo_dimensionamento
                 ucs: [{
                   consumo_mensal: Number(smProp.consumo_mensal ?? 0),
                   tarifa_energia: Number(smProp.tarifa_distribuidora ?? 0),
+                  tarifa_te: Number(smProp.tarifa_distribuidora ?? 0),
+                  tarifa_tusd: 0,
                   fase: smProp.fase ?? "",
                   distribuidora: smProp.dis_energia ?? "",
+                  distribuidora_id: null,
+                  tipo_dimensionamento: "consumo",
+                  percentual_compensacao: 100,
                 }],
                 premissas: {
                   inflacao_energetica: Number(smProp.inflacao_energetica ?? 0),
@@ -1432,6 +1514,7 @@ Deno.serve(async (req) => {
                 custo_disponibilidade: smProp.custo_disponibilidade,
                 geracao_anual: smProp.geracao_anual,
                 payback_original: smProp.payback,
+                payback_meses: paybackNumerico,
                 payment_conditions: smProp.payment_conditions,
                 panel_model: smProp.panel_model,
                 panel_quantity: smProp.panel_quantity,
