@@ -567,7 +567,8 @@ Deno.serve(async (req) => {
     }
 
     async function resolveOrCreateStage(pipelineId: string, stageName: string, position: number): Promise<string> {
-      const cacheKey = `${pipelineId}::${stageName.trim()}`;
+      const normalizedStageName = normalizeComparableName(stageName);
+      const cacheKey = `${pipelineId}::${normalizedStageName}`;
       if (stageCache.has(cacheKey)) return stageCache.get(cacheKey)!;
 
       // Look up existing stage
@@ -582,6 +583,18 @@ Deno.serve(async (req) => {
       if (existing && existing.length > 0) {
         stageCache.set(cacheKey, existing[0].id);
         return existing[0].id;
+      }
+
+      // Fallback: accent-insensitive match to avoid duplicates like SEBASTIAO/SEBASTIÃO
+      const { data: existingStages } = await adminClient
+        .from("pipeline_stages")
+        .select("id, name")
+        .eq("tenant_id", tenantId)
+        .eq("pipeline_id", pipelineId);
+      const matchedStage = (existingStages || []).find((stage: any) => normalizeComparableName(stage.name) === normalizedStageName);
+      if (matchedStage?.id) {
+        stageCache.set(cacheKey, matchedStage.id);
+        return matchedStage.id;
       }
 
       if (dry_run) {
@@ -650,16 +663,17 @@ Deno.serve(async (req) => {
 
         let stageId: string | null = null;
         if (funnel.stageName) {
-          const cacheKey = `${pipelineId}::${funnel.stageName.trim()}`;
+          const normalizedStageName = normalizeComparableName(funnel.stageName);
+          const cacheKey = `${pipelineId}::${normalizedStageName}`;
           stageId = stageCache.get(cacheKey) || null;
           if (!stageId) {
-            const { data: stage } = await adminClient
+            const { data: stages } = await adminClient
               .from("pipeline_stages")
-              .select("id")
-              .eq("pipeline_id", pipelineId)
-              .ilike("name", funnel.stageName.trim())
-              .maybeSingle();
-            stageId = stage?.id || null;
+              .select("id, name")
+              .eq("tenant_id", tId)
+              .eq("pipeline_id", pipelineId);
+            const matchedStage = (stages || []).find((stage: any) => normalizeComparableName(stage.name) === normalizedStageName);
+            stageId = matchedStage?.id || null;
             if (stageId) stageCache.set(cacheKey, stageId);
           }
         }
