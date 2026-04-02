@@ -231,7 +231,7 @@ export function useSmProjects(syncRunning?: boolean) {
       // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProject>({
         table: "solar_market_projects",
-        select: "id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, responsible, sm_created_at, synced_at",
+        select: "id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, responsible, sm_created_at, synced_at, has_active_proposal",
         orderBy: "synced_at",
         ascending: false,
       });
