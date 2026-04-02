@@ -111,6 +111,7 @@ export interface SmProposal {
   migrar_para_canonico: boolean;
   migrar_requested_at: string | null;
   migrar_requested_by: string | null;
+  migrado_em: string | null;
 }
 
 export interface SmSyncLog {
