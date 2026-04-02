@@ -8,9 +8,9 @@ const corsHeaders = {
 };
 
 const ENDPOINT_MAP: Record<string, string> = {
-  "BuscarFiltros": "/hubB2B/Categoria",
-  "BuscarKits": "/hubB2B/Produtos",
-  "MontarKits": "/hubB2B/Produtos",
+  "BuscarFiltros": "/integracaoPlataforma/BuscarFiltros",
+  "BuscarKits": "/integracaoPlataforma/BuscarKits",
+  "MontarKits": "/integracaoPlataforma/MontarKits",
   "Produtos": "/hubB2B/Produtos",
   "Categoria": "/hubB2B/Categoria",
   "FormasDePagamento": "/hubB2B/FormasDePagamento",
