@@ -399,14 +399,23 @@ Deno.serve(async (req) => {
 
 
     // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
-    const consultoresMap = new Map<string, string>(); // lowercase name → id
+    function normalizeComparableName(value: string | null | undefined): string {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    }
+
+    const consultoresMap = new Map<string, string>(); // normalized name → id
     {
       const { data: consultores } = await adminClient
         .from("consultores")
         .select("id, nome")
         .eq("tenant_id", tenantId);
       for (const c of consultores || []) {
-        if (c.nome) consultoresMap.set(c.nome.toLowerCase().trim(), c.id);
+        const normalizedName = normalizeComparableName(c.nome);
+        if (normalizedName) consultoresMap.set(normalizedName, c.id);
       }
     }
     console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
@@ -465,7 +474,11 @@ Deno.serve(async (req) => {
 
 
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
-      const key = stageName.toLowerCase().trim();
+      const key = normalizeComparableName(stageName);
+      if (!key) {
+        throw new Error("Nome do consultor vazio na resolução automática");
+      }
+
       const existing = consultoresMap.get(key);
       if (existing) return { id: existing, created: false };
 
@@ -482,7 +495,8 @@ Deno.serve(async (req) => {
       }
 
       // Create consultor without user access (user_id = null)
-      const codigo = `SM-${stageName.replace(/\s+/g, "-").substring(0, 20)}`;
+      const codigoBase = key.replace(/\s+/g, "-").substring(0, 20) || "sm-owner";
+      const codigo = `SM-${codigoBase}`;
       const { data: newConsultor, error: consErr } = await adminClient
         .from("consultores")
         .insert({
@@ -553,7 +567,8 @@ Deno.serve(async (req) => {
     }
 
     async function resolveOrCreateStage(pipelineId: string, stageName: string, position: number): Promise<string> {
-      const cacheKey = `${pipelineId}::${stageName.trim()}`;
+      const normalizedStageName = normalizeComparableName(stageName);
+      const cacheKey = `${pipelineId}::${normalizedStageName}`;
       if (stageCache.has(cacheKey)) return stageCache.get(cacheKey)!;
 
       // Look up existing stage
@@ -568,6 +583,18 @@ Deno.serve(async (req) => {
       if (existing && existing.length > 0) {
         stageCache.set(cacheKey, existing[0].id);
         return existing[0].id;
+      }
+
+      // Fallback: accent-insensitive match to avoid duplicates like SEBASTIAO/SEBASTIÃO
+      const { data: existingStages } = await adminClient
+        .from("pipeline_stages")
+        .select("id, name")
+        .eq("tenant_id", tenantId)
+        .eq("pipeline_id", pipelineId);
+      const matchedStage = (existingStages || []).find((stage: any) => normalizeComparableName(stage.name) === normalizedStageName);
+      if (matchedStage?.id) {
+        stageCache.set(cacheKey, matchedStage.id);
+        return matchedStage.id;
       }
 
       if (dry_run) {
@@ -636,16 +663,17 @@ Deno.serve(async (req) => {
 
         let stageId: string | null = null;
         if (funnel.stageName) {
-          const cacheKey = `${pipelineId}::${funnel.stageName.trim()}`;
+          const normalizedStageName = normalizeComparableName(funnel.stageName);
+          const cacheKey = `${pipelineId}::${normalizedStageName}`;
           stageId = stageCache.get(cacheKey) || null;
           if (!stageId) {
-            const { data: stage } = await adminClient
+            const { data: stages } = await adminClient
               .from("pipeline_stages")
-              .select("id")
-              .eq("pipeline_id", pipelineId)
-              .ilike("name", funnel.stageName.trim())
-              .maybeSingle();
-            stageId = stage?.id || null;
+              .select("id, name")
+              .eq("tenant_id", tId)
+              .eq("pipeline_id", pipelineId);
+            const matchedStage = (stages || []).find((stage: any) => normalizeComparableName(stage.name) === normalizedStageName);
+            stageId = matchedStage?.id || null;
             if (stageId) stageCache.set(cacheKey, stageId);
           }
         }
@@ -1568,8 +1596,11 @@ Deno.serve(async (req) => {
           if (!dry_run) {
             summary[overallStatus === "SKIP" ? "WOULD_SKIP" : overallStatus === "SUCCESS" ? "SUCCESS" : "ERROR"]++;
 
-            // Stamp migrado_em on the SM proposal after successful migration
-            if (overallStatus === "SUCCESS") {
+            const propostaStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(report.steps.proposta_nativa?.status || "");
+            const versaoStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(report.steps.proposta_versao?.status || "");
+
+            // Stamp migrado_em only when canonical proposal + version are actually available
+            if (overallStatus === "SUCCESS" && propostaId && propostaStepOk && versaoStepOk) {
               await adminClient
                 .from("solar_market_proposals")
                 .update({ migrado_em: new Date().toISOString() })
