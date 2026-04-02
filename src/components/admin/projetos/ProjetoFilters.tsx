@@ -80,7 +80,7 @@ export function ProjetoFilters({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col xl:flex-row xl:items-end gap-3 xl:gap-4 flex-wrap">
+      <div className="flex flex-wrap items-end gap-3 sm:gap-4">
         {/* Left: Funil | Lista toggle */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0 overflow-x-auto">
           <Button
@@ -134,7 +134,7 @@ export function ProjetoFilters({
         </div>
 
         {/* Right: Filters with labels above */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:flex xl:items-end gap-2 xl:gap-3 xl:ml-auto">
+        <div className="flex flex-wrap items-end gap-2 sm:gap-3 sm:ml-auto">
           {/* Funil - Tabs horizontais */}
           <div className="flex flex-col gap-1">
             <label className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
