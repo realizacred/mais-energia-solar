@@ -331,10 +331,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         }
       }
 
-      // Wait for animation to finish
-      cancelRef.current = true;
-      await animPromise;
-
+      // All batches done
       if (allResults.length === 0) {
         throw new Error(batchErrors[0] || "Nenhum lote retornou resultado de migração.");
       }
