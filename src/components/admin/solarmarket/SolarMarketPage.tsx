@@ -274,6 +274,7 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
             <TableHead>Potência</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Status Migração</TableHead>
             <TableHead>Migração</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
