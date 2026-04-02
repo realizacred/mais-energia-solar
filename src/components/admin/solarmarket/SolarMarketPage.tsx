@@ -310,6 +310,18 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
                 <Badge variant="outline" className="text-[10px]">{pr.status || "—"}</Badge>
               </TableCell>
               <TableCell>
+                {pr.migrado_em ? (
+                  <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Migrado
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-border">
+                    Pendente
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
                 <SmMigrationToggle proposal={pr} />
               </TableCell>
               <TableCell className="text-right" onClick={e => e.stopPropagation()}>
