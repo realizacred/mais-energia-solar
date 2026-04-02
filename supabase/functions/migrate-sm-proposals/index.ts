@@ -808,7 +808,7 @@ Deno.serve(async (req) => {
                 .insert({
                   tenant_id: tenantId,
                   nome: smClient.name || "SM Import",
-                  telefone: smClient.phone_formatted || smClient.phone || "N/A",
+                  telefone: smClient.phone_formatted || smClient.phone || `SM-${resolvedSmClientId}`,
                   telefone_normalized: phoneNorm,
                   email: smClient.email,
                   cpf_cnpj: smClient.document ? smClient.document.replace(/\D/g, "") : null,
