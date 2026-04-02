@@ -581,6 +581,12 @@ export default function SolarMarketPage() {
 
   const lastSync = syncLogs[0];
 
+  const pendingProposals = useMemo(() => proposals.filter(p => !p.migrado_em), [proposals]);
+  const pendingProjectsNoProposal = useMemo(() => projects.filter(p => !p.has_active_proposal && !p.migrado_em), [projects]);
+  const migratedProposalsCount = useMemo(() => proposals.filter(p => !!p.migrado_em).length, [proposals]);
+
+  const [migrateAllOpen, setMigrateAllOpen] = useState(false);
+
   const clientsWithoutProposalsCount = useMemo(() => {
     const clientIdsWithProposals = new Set(proposals.map(p => p.sm_client_id).filter(Boolean));
     return clients.filter(c => !clientIdsWithProposals.has(c.sm_client_id)).length;
