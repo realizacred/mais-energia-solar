@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2 } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
@@ -274,6 +274,7 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
             <TableHead>Potência</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Status Migração</TableHead>
             <TableHead>Migração</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
@@ -307,6 +308,18 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
               </TableCell>
               <TableCell>
                 <Badge variant="outline" className="text-[10px]">{pr.status || "—"}</Badge>
+              </TableCell>
+              <TableCell>
+                {pr.migrado_em ? (
+                  <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Migrado
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-border">
+                    Pendente
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>
                 <SmMigrationToggle proposal={pr} />
@@ -477,6 +490,7 @@ export default function SolarMarketPage() {
   const [filterProjectId, setFilterProjectId] = useState<number | null>(null);
   const [filterProposalStatus, setFilterProposalStatus] = useState("");
   const [filterProposalConsultor, setFilterProposalConsultor] = useState("");
+  const [filterMigrationStatus, setFilterMigrationStatus] = useState<"all" | "pending" | "migrated">("pending");
 
   // Reset state
   const [resetOpen, setResetOpen] = useState(false);
@@ -566,6 +580,12 @@ export default function SolarMarketPage() {
   const deleteClient = useDeleteSmClient();
 
   const lastSync = syncLogs[0];
+
+  const pendingProposals = useMemo(() => proposals.filter(p => !p.migrado_em), [proposals]);
+  const pendingProjectsNoProposal = useMemo(() => projects.filter(p => !p.has_active_proposal && !p.migrado_em), [projects]);
+  const migratedProposalsCount = useMemo(() => proposals.filter(p => !!p.migrado_em).length, [proposals]);
+
+  const [migrateAllOpen, setMigrateAllOpen] = useState(false);
 
   const clientsWithoutProposalsCount = useMemo(() => {
     const clientIdsWithProposals = new Set(proposals.map(p => p.sm_client_id).filter(Boolean));
@@ -660,9 +680,11 @@ export default function SolarMarketPage() {
       );
       filteredProposals = filteredProposals.filter(p => p.sm_project_id && projectIdsForConsultor.has(p.sm_project_id));
     }
+    if (filterMigrationStatus === "pending") filteredProposals = filteredProposals.filter(p => !p.migrado_em);
+    if (filterMigrationStatus === "migrated") filteredProposals = filteredProposals.filter(p => !!p.migrado_em);
 
     return { clients: filteredClients, projects: filteredProjects, proposals: filteredProposals };
-  }, [clients, projects, proposals, search, filterClientId, filterProjectId, filterCity, filterResponsible, filterProposalStatus, filterProposalConsultor]);
+  }, [clients, projects, proposals, search, filterClientId, filterProjectId, filterCity, filterResponsible, filterProposalStatus, filterProposalConsultor, filterMigrationStatus]);
 
   return (
     <div className="space-y-4">
@@ -682,6 +704,53 @@ export default function SolarMarketPage() {
               <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
               {syncIsRunning ? "Sincronizando..." : "Sincronizar Tudo"}
             </Button>
+
+            <Button
+              onClick={() => setMigrateAllOpen(true)}
+              disabled={pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Migrar Tudo ({pendingProposals.length + pendingProjectsNoProposal.length})
+            </Button>
+
+            <AlertDialog open={migrateAllOpen} onOpenChange={setMigrateAllOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <Upload className="h-5 w-5 text-primary" />
+                    Migrar tudo para o sistema canônico
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3">
+                      <p className="text-sm text-foreground font-medium">Serão migrados:</p>
+                      <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                        <li><strong>{pendingProposals.length}</strong> propostas pendentes</li>
+                        <li><strong>{pendingProjectsNoProposal.length}</strong> projetos sem proposta pendentes</li>
+                      </ul>
+                      {migratedProposalsCount > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Já migrados anteriormente: <strong>{migratedProposalsCount}</strong> (serão ignorados)
+                        </p>
+                      )}
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <Button
+                    onClick={() => {
+                      setMigrateAllOpen(false);
+                      openMigrationDrawer(pendingProposals.slice(0, 50));
+                    }}
+                  >
+                    Confirmar Migração
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog open={resetOpen} onOpenChange={(v) => { setResetOpen(v); if (!v) setResetConfirmText(""); }}>
               <AlertDialogTrigger asChild>
@@ -878,6 +947,15 @@ export default function SolarMarketPage() {
         <TabsContent value="propostas" className="mt-3 space-y-3">
           <div className="flex flex-wrap items-center gap-2 justify-between">
             <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={filterMigrationStatus}
+                onChange={(e) => { setFilterMigrationStatus(e.target.value as any); proposalsPag.resetPage(); }}
+                className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
+              >
+                <option value="all">Todos</option>
+                <option value="pending">Pendentes</option>
+                <option value="migrated">Migrados</option>
+              </select>
               <select
                 value={filterProposalStatus}
                 onChange={(e) => { setFilterProposalStatus(e.target.value); proposalsPag.resetPage(); }}

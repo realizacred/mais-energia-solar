@@ -20447,6 +20447,7 @@ export type Database = {
           id: string
           installation_type: string | null
           lead_id: string | null
+          migrado_em: string | null
           name: string | null
           neighborhood: string | null
           number: string | null
@@ -20485,6 +20486,7 @@ export type Database = {
           id?: string
           installation_type?: string | null
           lead_id?: string | null
+          migrado_em?: string | null
           name?: string | null
           neighborhood?: string | null
           number?: string | null
@@ -20523,6 +20525,7 @@ export type Database = {
           id?: string
           installation_type?: string | null
           lead_id?: string | null
+          migrado_em?: string | null
           name?: string | null
           neighborhood?: string | null
           number?: string | null
@@ -20591,6 +20594,7 @@ export type Database = {
           inverter_model: string | null
           inverter_quantity: number | null
           link_pdf: string | null
+          migrado_em: string | null
           migrar_para_canonico: boolean
           migrar_requested_at: string | null
           migrar_requested_by: string | null
@@ -20652,6 +20656,7 @@ export type Database = {
           inverter_model?: string | null
           inverter_quantity?: number | null
           link_pdf?: string | null
+          migrado_em?: string | null
           migrar_para_canonico?: boolean
           migrar_requested_at?: string | null
           migrar_requested_by?: string | null
@@ -20713,6 +20718,7 @@ export type Database = {
           inverter_model?: string | null
           inverter_quantity?: number | null
           link_pdf?: string | null
+          migrado_em?: string | null
           migrar_para_canonico?: boolean
           migrar_requested_at?: string | null
           migrar_requested_by?: string | null

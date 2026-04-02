@@ -51,6 +51,7 @@ export interface SmProject {
   sm_created_at: string | null;
   synced_at: string;
   has_active_proposal?: boolean;
+  migrado_em?: string | null;
 }
 
 export interface SmProposal {
@@ -111,6 +112,7 @@ export interface SmProposal {
   migrar_para_canonico: boolean;
   migrar_requested_at: string | null;
   migrar_requested_by: string | null;
+  migrado_em: string | null;
 }
 
 export interface SmSyncLog {
@@ -234,7 +236,7 @@ export function useSmProjects(syncRunning?: boolean) {
       // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProject>({
         table: "solar_market_projects",
-        select: "id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, responsible, sm_created_at, synced_at, has_active_proposal",
+        select: "id, tenant_id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, installation_type, energy_consumption, responsible, sm_created_at, synced_at, has_active_proposal, migrado_em",
         orderBy: "synced_at",
         ascending: false,
       });
@@ -305,7 +307,7 @@ export function useSmProposals(syncRunning?: boolean) {
       // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProposal>({
         table: "solar_market_proposals",
-        select: "id, tenant_id, sm_proposal_id, sm_project_id, sm_client_id, titulo, description, potencia_kwp, valor_total, status, modulos, inversores, panel_model, panel_quantity, inverter_model, inverter_quantity, discount, installation_cost, equipment_cost, energy_generation, roof_type, structure_type, warranty, payment_conditions, valid_until, sm_created_at, sm_updated_at, synced_at, link_pdf, consumo_mensal, tarifa_distribuidora, economia_mensal, economia_mensal_percent, payback, vpl, tir, preco_total, fase, tipo_dimensionamento, dis_energia, cidade, estado, geracao_anual, inflacao_energetica, perda_eficiencia_anual, sobredimensionamento, custo_disponibilidade, generated_at, send_at, viewed_at, acceptance_date, rejection_date, migrar_para_canonico, migrar_requested_at, migrar_requested_by",
+        select: "id, tenant_id, sm_proposal_id, sm_project_id, sm_client_id, titulo, description, potencia_kwp, valor_total, status, modulos, inversores, panel_model, panel_quantity, inverter_model, inverter_quantity, discount, installation_cost, equipment_cost, energy_generation, roof_type, structure_type, warranty, payment_conditions, valid_until, sm_created_at, sm_updated_at, synced_at, link_pdf, consumo_mensal, tarifa_distribuidora, economia_mensal, economia_mensal_percent, payback, vpl, tir, preco_total, fase, tipo_dimensionamento, dis_energia, cidade, estado, geracao_anual, inflacao_energetica, perda_eficiencia_anual, sobredimensionamento, custo_disponibilidade, generated_at, send_at, viewed_at, acceptance_date, rejection_date, migrar_para_canonico, migrar_requested_at, migrar_requested_by, migrado_em",
         orderBy: "synced_at",
         ascending: false,
       });
