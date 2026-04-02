@@ -206,7 +206,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [confirmText, setConfirmText] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+  const [smoothProgress, setSmoothProgress] = useState(0);
   const cancelRef = useRef(false);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: consultores = [] } = useConsultores();
   const { data: pipelines = [] } = usePipelines();
@@ -238,6 +240,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     setError(null);
     setLogs([]);
     setConfirmText("");
+    setSmoothProgress(0);
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   }, []);
 
   const updateStep = useCallback((name: StepName, update: Partial<MigrationStep>) => {
@@ -276,14 +280,25 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           { key: "proposta", ms: 1500 },
           { key: "versao", ms: 2000 },
         ];
-        for (const step of seq) {
+        for (let i = 0; i < seq.length; i++) {
           if (stepAnimCancelRef.current) break;
-          updateStep(step.key, { state: "running" });
-          await new Promise(r => setTimeout(r, step.ms));
+          updateStep(seq[i].key, { state: "running" });
+          await new Promise(r => setTimeout(r, seq[i].ms));
           if (stepAnimCancelRef.current) break;
+          // Mark previous step as "done" (optimistic) when moving to next
+          updateStep(seq[i].key, { state: "done", detail: "Processando..." });
         }
       };
       const animPromise = runStepAnimation();
+
+      // Smooth time-based progress bar
+      const TOTAL_ESTIMATED_MS = 10_000;
+      const progressStartTime = Date.now();
+      progressIntervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - progressStartTime;
+        const percent = Math.min(95, Math.round((elapsed / TOTAL_ESTIMATED_MS) * 100));
+        setSmoothProgress(percent);
+      }, 200);
 
       const basePayload: Record<string, any> = {
         dry_run: dryRun,
@@ -403,7 +418,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
       // Stop animation and wait for it to finish
       stepAnimCancelRef.current = true;
-      await animPromise;
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      setSmoothProgress(100);
 
       // All batches done
       if (allResults.length === 0) {
@@ -485,6 +501,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       updateStep("done", { state: "error", detail: msg });
     } finally {
       setRunning(false);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     }
   }, [ownerId, internalIds, activePipelineId, activeStageId, addLog, resetState, updateStep, isBulk, qc, consultores, cancelRef]);
 
@@ -496,8 +513,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
   // Progress calculation
   const completedSteps = steps.filter(s => s.state === "done" || s.state === "error" || s.state === "skipped").length;
-  const batchPercent = batchProgress ? Math.round((batchProgress.current / batchProgress.total) * 100) : 0;
-  const progressPercent = running ? Math.max(batchPercent, Math.round((completedSteps / steps.length) * 100)) : (result ? 100 : 0);
+  const progressPercent = running ? smoothProgress : (result ? 100 : 0);
 
   if (!proposal) return null;
 
