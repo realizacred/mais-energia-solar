@@ -761,5 +761,67 @@ Regras de adaptação:
 - Grids: sempre começar com grid-cols-1, subir com sm: e lg:
 
 # =============================================================================
+# BLOCO 13 — SPRINTS CONCLUÍDOS (v3.2)
+# =============================================================================
+
+## Módulo Financeiro
+- F1: Trigger trg_proposta_aceita_recebimento
+- F2: Lançamentos financeiros avulsos
+- F3: Fechamento de caixa com despesas
+- F4: DRE mensal com gráfico e exportação CSV
+
+## Gateways de Cobrança
+- G1: Migration gateways em tenant_premises
+- G2: Edge function gerar-cobranca
+- G3: CobrancaDialog + ParcelasManager
+- G4: PagamentosDialog (8 formas de pagamento)
+- G5: Webhook automático PagSeguro/Asaas
+
+## Conta Corrente do Cliente
+- R1: Recebimentos como conta corrente
+  (PagamentoLivreDialog, trigger sync_recebimento_total_pago)
+- R2: WA automático ao receber pagamento
+  (notificar-pagamento-wa edge function)
+- R3: Cron diário de lembretes de vencimento
+  (verificar-vencimentos edge function)
+- R4: Botão cobrança manual por WA
+  (enviar-cobranca-wa edge function)
+
+## Integração Solaryum JNG/Vertys
+- S1: Infrastructure (solaryum-proxy + TabIntegracoes)
+- S2: IBGE propagado do cliente para WizardState
+- S3: Aba Distribuidores no StepKitSelection
+
+# =============================================================================
+# BLOCO 14 — NOVAS REGRAS (v3.2)
+# =============================================================================
+
+RB-24 RECEBIMENTOS USAM MODELO CONTA CORRENTE
+    Não criar parcelas fixas manualmente.
+    Usar PagamentoLivreDialog para baixas avulsas.
+    Status controlado pelo saldo (total_pago vs valor_total).
+
+RB-25 WA AUTOMÁTICO É FIRE-AND-FORGET
+    Nunca bloquear fluxo de pagamento por falha WA.
+    Sempre usar .catch(() => {}) na chamada.
+    Falha no WA = log de erro, não erro pro usuário.
+
+RB-26 EDGE FUNCTIONS DE NOTIFICAÇÃO WA
+    Sempre usar enqueue_wa_outbox_item via service role.
+    Nunca chamar API WA diretamente da edge function.
+    Idempotency key obrigatória para evitar duplicatas.
+
+RB-27 MIGRATIONS FINANCEIRAS
+    Trigger sync_recebimento_total_pago deve existir
+    para manter total_pago sincronizado automaticamente.
+    Nunca calcular total_pago apenas no frontend.
+
+RB-28 SOLARYUM — ENDPOINT MAP
+    Usar integracaoPlataforma para BuscarKits/MontarKits/BuscarFiltros.
+    Usar hubB2B apenas para Produtos/Categoria.
+    IBGE de Cataguases = '3115300'.
+    Nunca hardcodar IBGE no hook — sempre propagar do WizardState.
+
+# =============================================================================
 # FIM DO AGENTS.md v3.2
 # =============================================================================
