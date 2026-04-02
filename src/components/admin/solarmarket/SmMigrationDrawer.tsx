@@ -83,15 +83,15 @@ function useConsultores() {
 // ─── Hook: fetch available pipelines ───────────────────
 
 function usePipelines() {
-  return useQuery<{ id: string; name: string }[]>({
+  return useQuery<{ id: string; name: string; kind: string }[]>({
     queryKey: ["pipelines-for-migration"],
     queryFn: async () => {
       const { data } = await supabase
         .from("pipelines")
-        .select("id, name")
+        .select("id, name, kind")
         .eq("is_active", true)
         .order("created_at", { ascending: true });
-      return data || [];
+      return (data || []) as { id: string; name: string; kind: string }[];
     },
     staleTime: 1000 * 60 * 5,
   });
