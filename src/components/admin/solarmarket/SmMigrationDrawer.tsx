@@ -467,13 +467,48 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               </p>
             </div>
 
-            {/* Pipeline info (fixed) */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
-              <Briefcase className="h-3.5 w-3.5" />
-              Pipeline: <span className="font-medium text-foreground">Comercial</span>
-              <ArrowRight className="h-3 w-3" />
-              Etapa: <span className="font-medium text-foreground">{stageInfo.label}</span>
-            </div>
+            {/* Pipeline selector (dynamic) */}
+            {pipelines.length === 0 && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-warning/10 border border-warning/20 text-sm">
+                <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                <p className="text-warning font-medium">Nenhum pipeline encontrado. Crie um pipeline comercial antes de migrar.</p>
+              </div>
+            )}
+            {pipelines.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Pipeline de destino</label>
+                <Select value={activePipelineId} onValueChange={setSelectedPipelineId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Selecione o pipeline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pipelines.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Stage selector (dynamic from selected pipeline) */}
+            {pipelineStages.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Etapa padrão</label>
+                <Select value={activeStageId} onValueChange={setSelectedStageId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Primeira etapa (padrão)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pipelineStages.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  Status SM "{statusLabel.label}" → Etapa: {pipelineStages.find(s => s.id === activeStageId)?.name || "primeira disponível"}
+                </p>
+              </div>
+            )}
 
             {/* Progress */}
             {(running || result) && (
