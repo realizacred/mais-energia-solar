@@ -1557,6 +1557,14 @@ Deno.serve(async (req) => {
 
           if (!dry_run) {
             summary[overallStatus === "SKIP" ? "WOULD_SKIP" : overallStatus === "SUCCESS" ? "SUCCESS" : "ERROR"]++;
+
+            // Stamp migrado_em on the SM proposal after successful migration
+            if (overallStatus === "SUCCESS") {
+              await adminClient
+                .from("solar_market_proposals")
+                .update({ migrado_em: new Date().toISOString() })
+                .eq("id", smProp.id);
+            }
           } else {
             // In dry-run: count creates vs links vs skips
             for (const s of allSteps) {
