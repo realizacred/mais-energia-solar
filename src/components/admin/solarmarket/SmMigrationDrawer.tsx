@@ -78,6 +78,41 @@ function useConsultores() {
   });
 }
 
+// ─── Hook: fetch available pipelines ───────────────────
+
+function usePipelines() {
+  return useQuery<{ id: string; name: string }[]>({
+    queryKey: ["pipelines-for-migration"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pipelines")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// ─── Hook: fetch stages for a pipeline ─────────────────
+
+function usePipelineStages(pipelineId: string | null) {
+  return useQuery<{ id: string; name: string }[]>({
+    queryKey: ["pipeline-stages-migration", pipelineId],
+    enabled: !!pipelineId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pipeline_stages")
+        .select("id, name")
+        .eq("pipeline_id", pipelineId!)
+        .order("position", { ascending: true });
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
 // ─── Hook: check if already migrated ───────────────────
 
 function useCanonicalCheck(smProposalId: number | null) {
