@@ -20443,6 +20443,7 @@ export type Database = {
           custom_fields: Json | null
           description: string | null
           energy_consumption: number | null
+          has_active_proposal: boolean | null
           id: string
           installation_type: string | null
           lead_id: string | null
@@ -20480,6 +20481,7 @@ export type Database = {
           custom_fields?: Json | null
           description?: string | null
           energy_consumption?: number | null
+          has_active_proposal?: boolean | null
           id?: string
           installation_type?: string | null
           lead_id?: string | null
@@ -20517,6 +20519,7 @@ export type Database = {
           custom_fields?: Json | null
           description?: string | null
           energy_consumption?: number | null
+          has_active_proposal?: boolean | null
           id?: string
           installation_type?: string | null
           lead_id?: string | null
