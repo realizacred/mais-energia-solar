@@ -1786,7 +1786,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const finalStatus = totalErrors > 0 ? "completed_with_errors" : "completed";
+    const finalStatus = isPartialSync ? "partial" : (totalErrors > 0 ? "completed_with_errors" : "completed");
 
     if (logId) {
       await supabase
@@ -1808,15 +1808,18 @@ Deno.serve(async (req) => {
         { onConflict: "tenant_id" }
       );
 
-    console.log(`[SM Sync] Done: fetched=${totalFetched} upserted=${totalUpserted} errors=${totalErrors}`);
+    console.error(`[SM Sync] Done: fetched=${totalFetched} upserted=${totalUpserted} errors=${totalErrors} partial=${isPartialSync} remaining=${partialRemaining}`);
 
     return new Response(
       JSON.stringify({
         success: true,
+        status: isPartialSync ? "partial" : "success",
         sync_type,
         total_fetched: totalFetched,
         total_upserted: totalUpserted,
         total_errors: totalErrors,
+        remaining: isPartialSync ? partialRemaining : 0,
+        message: isPartialSync ? `Sincronização parcial — ${partialRemaining} projetos restantes. Execute novamente para continuar.` : undefined,
         error_details: errors.length > 0 ? errors.slice(0, 10) : undefined,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
