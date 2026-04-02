@@ -213,6 +213,7 @@ export function RecebimentosManager() {
       valor_total: recebimento.valor_total,
       descricao: recebimento.descricao || "",
       data_acordo: recebimento.data_acordo,
+      data_vencimento: recebimento.data_vencimento || "",
     });
     const comp = Array.isArray(recebimento.composicao_acordada) ? recebimento.composicao_acordada : [];
     setComposicao(comp);
