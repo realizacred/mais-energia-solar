@@ -334,6 +334,16 @@ function extractProposalFields(pr: any) {
     area_util: areaUtil,
     tensao_rede: tensaoRede,
     topologia,
+    // Financial series (25 years)
+    fluxo_caixa_acumulado: fluxoCaixaAcumulado,
+    economia_anual_serie: economiaAnualSerie,
+    geracao_mensal_serie: geracaoMensalSerie,
+    irradiacao_mensal_serie: irradiacaoMensalSerie,
+    // Demand
+    demanda_contratada: demandaContratada,
+    demanda_preco: demandaPreco,
+    demanda_adicional: demandaAdicional,
+    outros_encargos: outrosEncargos,
     // Client address from variables (fallback for migration)
     cliente_cidade: getVar("cliente_cidade") || null,
     cliente_estado: getVar("cliente_estado") || null,
