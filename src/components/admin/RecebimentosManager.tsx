@@ -239,6 +239,7 @@ export function RecebimentosManager() {
       valor_total: 0,
       descricao: "",
       data_acordo: new Date().toISOString().split("T")[0],
+      data_vencimento: "",
     });
     setComposicao([]);
     setEditingRecebimento(null);
