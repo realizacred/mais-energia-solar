@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useNavigate } from "react-router-dom";
-import { ProposalSnapshotView } from "@/components/admin/propostas-nativas/ProposalSnapshotView";
+import { ProposalDadosView } from "@/components/admin/propostas-nativas/ProposalDadosView";
 import { StepDocumento } from "@/components/admin/propostas-nativas/wizard/StepDocumento";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
@@ -302,37 +302,8 @@ function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; lates
   );
 }
 
-function SmArquivoTab({ snapshot }: { snapshot: any }) {
-  const pdfUrl = snapshot.link_pdf;
-  return (
-    <div className="flex gap-5 mt-3">
-      <div className="w-[220px] shrink-0 space-y-3">
-        <p className="text-sm font-bold text-foreground">Opções</p>
-        {pdfUrl && (
-          <div className="space-y-1">
-            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-primary hover:underline py-1">
-              <FileText className="h-3.5 w-3.5" /> Baixar PDF
-            </a>
-            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-primary hover:underline py-1">
-              <ExternalLink className="h-3.5 w-3.5" /> Abrir em nova aba
-            </a>
-          </div>
-        )}
-      </div>
-      <div className="flex-1 min-w-0 border rounded-lg overflow-hidden bg-muted/20">
-        {pdfUrl ? (
-          <iframe src={pdfUrl} className="w-full h-[500px] border-0" title="Preview do PDF" />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
-            <FileText className="h-10 w-10 opacity-20 mb-3" />
-            <p className="text-sm font-medium">Nenhum PDF disponível</p>
-            <p className="text-xs mt-1">Esta proposta não possui arquivo PDF vinculado</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+
+
 
 
 // ─── Native Tab Components ─────────────────────────────
@@ -1188,54 +1159,50 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     )}
                   </TabsContent>
 
-                  {/* ─ Arquivo Tab — uses same StepDocumento as the wizard (SSOT) ─ */}
+                  {/* ─ Arquivo Tab — uses same StepDocumento for all proposals (SSOT) ─ */}
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
-                    {(snapshot as Record<string, any>)?.source === "legacy_import" ? (
-                      <SmArquivoTab snapshot={snapshot as Record<string, any>} />
-                    ) : (
-                      <div className="mt-3">
-                        <StepDocumento
-                          clienteNome={p.cliente_nome || ""}
-                          empresaNome={(snapshot as any)?.clienteEmpresa || p.cliente_nome || ""}
-                          clienteTelefone={(snapshot as any)?.clienteCelular || ""}
-                          clienteEmail={(snapshot as any)?.clienteEmail || ""}
-                          potenciaKwp={latestVersao?.potencia_kwp || 0}
-                          geracaoMensalKwh={latestVersao?.geracao_mensal || 0}
-                          numUcs={((snapshot as any)?.ucs || []).length || 1}
-                          precoFinal={latestVersao?.valor_total || 0}
-                          templateSelecionado={templateSelecionado}
-                          onTemplateSelecionado={setTemplateSelecionado}
-                          generating={false}
-                          rendering={rendering}
-                          result={latestVersao ? {
-                            proposta_id: p.id,
-                            versao_id: latestVersao.id,
-                            success: true,
-                          } : null}
-                          htmlPreview={html}
-                          pdfBlobUrl={pdfSignedUrl}
-                          outputDocxPath={latestVersao?.output_docx_path || undefined}
-                          outputPdfPath={latestVersao?.output_pdf_path || undefined}
-                          generationStatus={
-                            pdfSignedUrl || latestVersao?.output_pdf_path ? "ready" :
-                            html ? "ready" : "idle"
-                          }
-                          generationError={null}
-                          missingVars={[]}
-                          onGenerate={handleRender}
-                          onNewVersion={() => {
-                            navigate(`/admin/propostas-nativas?edit=${p.id}`);
-                          }}
-                          onViewDetail={() => {}}
-                        />
-                      </div>
-                    )}
+                    <div className="mt-3">
+                      <StepDocumento
+                        clienteNome={p.cliente_nome || ""}
+                        empresaNome={(snapshot as any)?.clienteEmpresa || (snapshot as any)?.cliente?.empresa || p.cliente_nome || ""}
+                        clienteTelefone={(snapshot as any)?.clienteCelular || (snapshot as any)?.cliente?.celular || (snapshot as any)?.cliente?.telefone || ""}
+                        clienteEmail={(snapshot as any)?.clienteEmail || (snapshot as any)?.cliente?.email || ""}
+                        potenciaKwp={latestVersao?.potencia_kwp || 0}
+                        geracaoMensalKwh={latestVersao?.geracao_mensal || 0}
+                        numUcs={((snapshot as any)?.ucs || []).length || 1}
+                        precoFinal={latestVersao?.valor_total || 0}
+                        templateSelecionado={templateSelecionado}
+                        onTemplateSelecionado={setTemplateSelecionado}
+                        generating={false}
+                        rendering={rendering}
+                        result={latestVersao ? {
+                          proposta_id: p.id,
+                          versao_id: latestVersao.id,
+                          success: true,
+                        } : null}
+                        htmlPreview={html}
+                        pdfBlobUrl={pdfSignedUrl}
+                        outputDocxPath={latestVersao?.output_docx_path || undefined}
+                        outputPdfPath={latestVersao?.output_pdf_path || undefined}
+                        generationStatus={
+                          pdfSignedUrl || latestVersao?.output_pdf_path ? "ready" :
+                          html ? "ready" : "idle"
+                        }
+                        generationError={null}
+                        missingVars={[]}
+                        onGenerate={handleRender}
+                        onNewVersion={() => {
+                          navigate(`/admin/propostas-nativas?edit=${p.id}`);
+                        }}
+                        onViewDetail={() => {}}
+                      />
+                    </div>
                   </TabsContent>
 
-                  {/* ─ Dados Tab — unified via ProposalSnapshotView (SSOT) ─ */}
+                  {/* ─ Dados Tab — unified via ProposalDadosView (4-column grid) ─ */}
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
-                      <ProposalSnapshotView
+                      <ProposalDadosView
                         snapshot={snapshot as Record<string, unknown> | null}
                         valorTotal={latestVersao?.valor_total}
                         geracaoMensal={latestVersao?.geracao_mensal ?? undefined}
