@@ -51,6 +51,7 @@ export interface SmProject {
   sm_created_at: string | null;
   synced_at: string;
   has_active_proposal?: boolean;
+  migrado_em?: string | null;
 }
 
 export interface SmProposal {
