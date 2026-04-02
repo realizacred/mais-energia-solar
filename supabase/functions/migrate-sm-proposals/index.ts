@@ -1163,8 +1163,44 @@ Deno.serve(async (req) => {
               report.steps.proposta_versao = { status: "WOULD_SKIP", id: existingVer![0].id };
             } else {
               const paybackMeses = parsePaybackMonths(smProp.payback);
+              const valorTotal = smProp.preco_total || smProp.valor_total || 0;
 
-              const finalSnapshot = {
+              // Resolve custo_instalacao with fallbacks
+              let custoInstalacao = smProp.installation_cost || 0;
+              if (!custoInstalacao && smProp.custom_fields_raw?.values) {
+                const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
+                for (const [, entry] of Object.entries(cfVals)) {
+                  const key = String(entry?.key || entry?.label || "").toLowerCase();
+                  if (key.includes("instalac") || key.includes("mão de obra") || key.includes("mao de obra")) {
+                    const val = Number(entry?.value ?? entry?.raw_value ?? 0);
+                    if (val > 0) { custoInstalacao = val; break; }
+                  }
+                }
+              }
+
+              // Build venda object for snapshot
+              const vendaSnapshot = {
+                custo_kit: smProp.equipment_cost || 0,
+                custo_instalacao: custoInstalacao,
+                custo_comissao: 0,
+                custo_outros: 0,
+                margem_percentual: 20,
+                desconto_percentual: smProp.discount || 0,
+                observacoes: "",
+              };
+
+              // Build pagamentoOpcoes default if not available
+              const pagamentoOpcoes = [{
+                id: crypto.randomUUID(),
+                label: smProp.payment_conditions || "À Vista",
+                tipo: "a_vista",
+                parcelas: 1,
+                entrada: 0,
+                valor_parcela: valorTotal,
+                is_default: true,
+              }];
+
+              const finalSnapshot: Record<string, any> = {
                 source: "legacy_import",
                 sm_proposal_id: smProp.sm_proposal_id,
                 link_pdf: smProp.link_pdf,
@@ -1197,6 +1233,8 @@ Deno.serve(async (req) => {
                 acceptance_date: smProp.acceptance_date,
                 rejection_date: smProp.rejection_date,
                 valid_until: smProp.valid_until,
+                venda: vendaSnapshot,
+                pagamentoOpcoes,
               };
 
               const smVerDate = smProp.generated_at || smProp.sm_created_at || null;
