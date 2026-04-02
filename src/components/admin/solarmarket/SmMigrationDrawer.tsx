@@ -669,9 +669,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground">
-                  Status SM "{statusLabel.label}" → Etapa: {pipelineStages.find(s => s.id === activeStageId)?.name || "primeira disponível"}
+                  {pipelineStages.length === 0
+                    ? "Nenhuma etapa aberta encontrada; a EF usará fallback."
+                    : `Status SM "${statusLabel.label}" → Etapa: ${pipelineStages.find(s => s.id === activeStageId)?.name || "primeira disponível"}`}
                 </p>
-                {needsStage && !activeStageId && (
+                {needsStage && !activeStageId && pipelineStages.length > 0 && (
                   <p className="text-[10px] text-destructive">
                     Obrigatório para pipelines do tipo processo
                   </p>
