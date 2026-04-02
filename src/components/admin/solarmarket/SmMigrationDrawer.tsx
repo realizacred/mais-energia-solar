@@ -355,7 +355,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     } finally {
       setRunning(false);
     }
-  }, [ownerId, internalIds, stageInfo, addLog, resetState, updateStep, isBulk, qc]);
+  }, [ownerId, internalIds, activePipelineId, activeStageId, addLog, resetState, updateStep, isBulk, qc, consultores]);
 
   const handleExecuteConfirm = () => {
     setConfirmOpen(false);
