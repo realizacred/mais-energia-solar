@@ -1826,6 +1826,24 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("[SM Sync] Fatal error:", err);
+    // Always finalize sync log on fatal error
+    if (logId) {
+      try {
+        await supabase
+          .from("solar_market_sync_logs")
+          .update({
+            status: "failed",
+            total_fetched: totalFetched,
+            total_upserted: totalUpserted,
+            total_errors: totalErrors + 1,
+            error_message: ((err as Error).message || "Internal error").slice(0, 500),
+            finished_at: new Date().toISOString(),
+          })
+          .eq("id", logId);
+      } catch (_) {
+        // best-effort log update
+      }
+    }
     return new Response(
       JSON.stringify({ error: (err as Error).message || "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
