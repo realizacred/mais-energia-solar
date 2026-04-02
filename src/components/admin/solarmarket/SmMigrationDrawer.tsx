@@ -206,7 +206,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [confirmText, setConfirmText] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+  const [smoothProgress, setSmoothProgress] = useState(0);
   const cancelRef = useRef(false);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: consultores = [] } = useConsultores();
   const { data: pipelines = [] } = usePipelines();
