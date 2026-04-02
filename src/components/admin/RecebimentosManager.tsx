@@ -40,6 +40,7 @@ import { RelatoriosFinanceiros } from "./recebimentos/RelatoriosFinanceiros";
 import { CalendarioPagamentos } from "./recebimentos/CalendarioPagamentos";
 import { ParcelasAtrasadasWidget } from "./widgets/ParcelasAtrasadasWidget";
 import { PagamentoLivreDialog } from "./recebimentos/PagamentoLivreDialog";
+import { CobrancaWaDialog } from "./recebimentos/CobrancaWaDialog";
 import { PageHeader, StatCard, EmptyState, LoadingState, SearchInput } from "@/components/ui-kit";
 import { TablePagination } from "@/components/ui-kit/TablePagination";
 
