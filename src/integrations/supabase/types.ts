@@ -27156,6 +27156,7 @@ export type Database = {
         Args: { p_new_password: string; p_user_id: string }
         Returns: Json
       }
+      reset_migrated_data: { Args: { p_tenant_id: string }; Returns: Json }
       reset_solar_data_layer: { Args: { _confirm: string }; Returns: Json }
       reset_tenant_data: { Args: { p_tenant_id: string }; Returns: Json }
       resolve_consultor_public: {
