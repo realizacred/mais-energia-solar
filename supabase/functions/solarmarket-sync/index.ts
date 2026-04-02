@@ -572,13 +572,13 @@ Deno.serve(async (req) => {
       console.log(`[SM Sync] Skipping SM API auth for ${sync_type} (DB-only operation)`);
     }
 
-    // ─── Cleanup stale "running" logs ────────────────────
+    // ─── Cleanup stale "running" logs (older than 3 min) ──
     await supabase
       .from("solar_market_sync_logs")
-      .update({ status: "failed", finished_at: new Date().toISOString(), total_errors: 1 })
+      .update({ status: "failed", finished_at: new Date().toISOString(), total_errors: 1, error_message: "Timeout — sync expirou sem finalizar" })
       .eq("tenant_id", tenantId)
       .eq("status", "running")
-      .lt("started_at", new Date(Date.now() - 120_000).toISOString());
+      .lt("started_at", new Date(Date.now() - 180_000).toISOString());
 
     // ─── Create sync log ───────────────────────────────────
     const { data: syncLog } = await supabase
