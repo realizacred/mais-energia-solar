@@ -674,9 +674,11 @@ export default function SolarMarketPage() {
       );
       filteredProposals = filteredProposals.filter(p => p.sm_project_id && projectIdsForConsultor.has(p.sm_project_id));
     }
+    if (filterMigrationStatus === "pending") filteredProposals = filteredProposals.filter(p => !p.migrado_em);
+    if (filterMigrationStatus === "migrated") filteredProposals = filteredProposals.filter(p => !!p.migrado_em);
 
     return { clients: filteredClients, projects: filteredProjects, proposals: filteredProposals };
-  }, [clients, projects, proposals, search, filterClientId, filterProjectId, filterCity, filterResponsible, filterProposalStatus, filterProposalConsultor]);
+  }, [clients, projects, proposals, search, filterClientId, filterProjectId, filterCity, filterResponsible, filterProposalStatus, filterProposalConsultor, filterMigrationStatus]);
 
   return (
     <div className="space-y-4">
