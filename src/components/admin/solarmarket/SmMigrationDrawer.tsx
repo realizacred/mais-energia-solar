@@ -416,7 +416,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
       // Stop animation and wait for it to finish
       stepAnimCancelRef.current = true;
-      await animPromise;
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      setSmoothProgress(100);
 
       // All batches done
       if (allResults.length === 0) {
