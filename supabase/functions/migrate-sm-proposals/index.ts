@@ -1393,16 +1393,19 @@ Deno.serve(async (req) => {
                 is_default: true,
               }];
 
-              // Build canonical itens array (KitItemRow[])
+              // FIX 2: Build canonical itens with potencia_w + fabricante extracted from model name
+              const panelPotencia = extractPotenciaFromModel(smProp.panel_model);
+              const inverterPotencia = extractPotenciaFromModel(smProp.inverter_model);
+
               const itensCanonicos: Record<string, any>[] = [];
               if (smProp.panel_model) {
                 const panelQty = Number(smProp.panel_quantity ?? 0);
                 itensCanonicos.push({
                   categoria: "modulo",
                   descricao: smProp.panel_model,
-                  fabricante: "",
+                  fabricante: extractFabricante(smProp.panel_model),
                   modelo: smProp.panel_model,
-                  potencia_w: 0,
+                  potencia_w: panelPotencia,
                   quantidade: panelQty,
                   preco_unitario: panelQty > 0
                     ? Number(smProp.equipment_cost ?? 0) / panelQty
@@ -1413,10 +1416,10 @@ Deno.serve(async (req) => {
                 itensCanonicos.push({
                   categoria: "inversor",
                   descricao: smProp.inverter_model,
-                  fabricante: "",
+                  fabricante: extractFabricante(smProp.inverter_model),
                   modelo: smProp.inverter_model,
-                  potencia_w: 0,
-                  quantidade: Number(smProp.inverter_quantity ?? 0),
+                  potencia_w: inverterPotencia,
+                  quantidade: Number(smProp.inverter_quantity ?? 1),
                   preco_unitario: 0,
                 });
               }
@@ -1431,6 +1434,9 @@ Deno.serve(async (req) => {
                   incluso_no_preco: true,
                 });
               }
+
+              // FIX 6: payback as number
+              const paybackNumerico = typeof paybackMeses === "number" ? paybackMeses : 0;
 
               const finalSnapshot: Record<string, any> = {
                 source: "legacy_import",
@@ -1447,21 +1453,45 @@ Deno.serve(async (req) => {
                   email: smClient?.email ?? "",
                   telefone: smClient?.phone_formatted || smClient?.phone ?? "",
                   empresa: smClient?.company ?? "",
-                  cidade: smClient?.city ?? "",
-                  estado: smClient?.state ?? "",
+                  cidade: smClient?.city ?? smProp.cidade ?? "",
+                  estado: smClient?.state ?? smProp.estado ?? "",
                   bairro: smClient?.neighborhood ?? "",
                   rua: smClient?.address ?? "",
                   numero: smClient?.number ?? "",
                   complemento: smClient?.complement ?? "",
                   cep: smClient?.zip_code_formatted || smClient?.zip_code ?? "",
                 },
+                // FIX 3: inputs block for wizard re-editing
+                inputs: {
+                  projeto_id: projetoId || null,
+                  cliente_id: clienteId || null,
+                  lead_id: null,
+                  template_id: null,
+                  sm_import: true,
+                },
+                // FIX 4: tecnico block for calculation engines
+                tecnico: {
+                  potencia_kwp: Number(smProp.potencia_kwp ?? 0),
+                  geracao_estimada_kwh: smProp.geracao_anual ? Number(smProp.geracao_anual) : 0,
+                  geracao_mensal_media_kwh: smProp.geracao_anual ? Math.round(Number(smProp.geracao_anual) / 12) : 0,
+                  consumo_total_kwh: Number(smProp.consumo_mensal ?? 0),
+                  numero_modulos: Number(smProp.panel_quantity ?? 0),
+                  potencia_modulo_w: panelPotencia,
+                  area_m2: 0,
+                },
                 itens: itensCanonicos,
                 servicos: servicosCanonicos,
+                // FIX 5: UCs enriched with tarifa_te, distribuidora_id, tipo_dimensionamento
                 ucs: [{
                   consumo_mensal: Number(smProp.consumo_mensal ?? 0),
                   tarifa_energia: Number(smProp.tarifa_distribuidora ?? 0),
+                  tarifa_te: Number(smProp.tarifa_distribuidora ?? 0),
+                  tarifa_tusd: 0,
                   fase: smProp.fase ?? "",
                   distribuidora: smProp.dis_energia ?? "",
+                  distribuidora_id: null,
+                  tipo_dimensionamento: "consumo",
+                  percentual_compensacao: 100,
                 }],
                 premissas: {
                   inflacao_energetica: Number(smProp.inflacao_energetica ?? 0),
