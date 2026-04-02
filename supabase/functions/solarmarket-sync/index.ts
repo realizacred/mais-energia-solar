@@ -1340,62 +1340,71 @@ Deno.serve(async (req) => {
           }
 
           const chunk = pendingIds.slice(i, i + CONCURRENCY);
+          const PROPOSAL_TIMEOUT_MS = 10_000;
           const chunkResults = await Promise.allSettled(
             chunk.map(async (projId) => {
               const url = `${baseUrl}/projects/${projId}/proposals`;
-              const res = await fetch(url, { headers: smHeaders });
-              if (!res.ok) {
-                if (res.status === 429) {
-                  const ra = parseInt(res.headers.get("retry-after") || "5", 10);
-                  await delay(ra * 1000);
-                  const retryRes = await fetch(url, { headers: smHeaders });
-                  if (!retryRes.ok) { await retryRes.text(); return []; }
-                  const retryData = await retryRes.json();
-                  return extractProposalArray(retryData).map((pr: any) => {
-                    const cfRaw = buildCustomFieldsRaw(pr);
-                    if (cfRaw) delete cfRaw._warnings;
-                    return {
-                      tenant_id: tenantId,
-                      sm_proposal_id: pr.id,
-                      ...extractProposalFields(pr),
-                      sm_project_id: projId,
-                      raw_payload: pr,
-                      custom_fields_raw: cfRaw,
-                      synced_at: new Date().toISOString(),
-                    };
-                  });
+              const controller = new AbortController();
+              const timer = setTimeout(() => controller.abort(), PROPOSAL_TIMEOUT_MS);
+              try {
+                const res = await fetch(url, { headers: smHeaders, signal: controller.signal });
+                clearTimeout(timer);
+                if (!res.ok) {
+                  if (res.status === 429) {
+                    const ra = parseInt(res.headers.get("retry-after") || "5", 10);
+                    await delay(ra * 1000);
+                    const controller2 = new AbortController();
+                    const timer2 = setTimeout(() => controller2.abort(), PROPOSAL_TIMEOUT_MS);
+                    try {
+                      const retryRes = await fetch(url, { headers: smHeaders, signal: controller2.signal });
+                      clearTimeout(timer2);
+                      if (!retryRes.ok) { await retryRes.text(); return []; }
+                      const retryData = await retryRes.json();
+                      return extractProposalArray(retryData).map((pr: any) => {
+                        const cfRaw = buildCustomFieldsRaw(pr);
+                        if (cfRaw) delete cfRaw._warnings;
+                        return {
+                          tenant_id: tenantId,
+                          sm_proposal_id: pr.id,
+                          ...extractProposalFields(pr),
+                          sm_project_id: projId,
+                          raw_payload: pr,
+                          custom_fields_raw: cfRaw,
+                          synced_at: new Date().toISOString(),
+                        };
+                      });
+                    } catch {
+                      clearTimeout(timer2);
+                      return [];
+                    }
+                  }
+                  if (batchCount < 5) {
+                    const errBody = await res.text();
+                    console.warn(`[SM Sync] Project ${projId} proposals returned ${res.status}: ${errBody.slice(0, 200)}`);
+                  } else {
+                    await res.text();
+                  }
+                  return [];
                 }
-                // Log non-429 errors for first few projects
-                if (batchCount < 5) {
-                  const errBody = await res.text();
-                  console.warn(`[SM Sync] Project ${projId} proposals returned ${res.status}: ${errBody.slice(0, 200)}`);
-                } else {
-                  await res.text();
-                }
+                const propData = await res.json();
+                const proposals = extractProposalArray(propData);
+                return proposals.map((pr: any) => {
+                  const cfRaw = buildCustomFieldsRaw(pr);
+                  if (cfRaw) delete cfRaw._warnings;
+                  return {
+                    tenant_id: tenantId,
+                    sm_proposal_id: pr.id,
+                    ...extractProposalFields(pr),
+                    sm_project_id: projId,
+                    raw_payload: pr,
+                    custom_fields_raw: cfRaw,
+                    synced_at: new Date().toISOString(),
+                  };
+                });
+              } catch {
+                clearTimeout(timer);
                 return [];
               }
-              const propData = await res.json();
-
-              // Debug: log first 3 project responses to understand structure
-              if (batchCount + chunk.indexOf(projId) < 3) {
-                const keys = propData ? (Array.isArray(propData) ? `array[${propData.length}]` : `object{${Object.keys(propData).slice(0, 15).join(",")}}`) : "null";
-                console.log(`[SM Sync] Project ${projId} proposals response: ${keys}`);
-              }
-
-              const proposals = extractProposalArray(propData);
-              return proposals.map((pr: any) => {
-                const cfRaw = buildCustomFieldsRaw(pr);
-                if (cfRaw) delete cfRaw._warnings;
-                return {
-                  tenant_id: tenantId,
-                  sm_proposal_id: pr.id,
-                  ...extractProposalFields(pr),
-                  sm_project_id: projId,
-                  raw_payload: pr,
-                  custom_fields_raw: cfRaw,
-                  synced_at: new Date().toISOString(),
-                };
-              });
             })
           );
 
