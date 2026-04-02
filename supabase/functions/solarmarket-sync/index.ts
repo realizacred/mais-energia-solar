@@ -591,10 +591,7 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
 
-    const logId = syncLog?.id;
-    let totalFetched = 0;
-    let totalUpserted = 0;
-    let totalErrors = 0;
+    logId = syncLog?.id;
     let hasSolarMarketAuthError = false;
     let isPartialSync = false;
     let partialRemaining = 0;
