@@ -229,6 +229,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const activePipelineId = selectedPipelineId || pipelines[0]?.id || "";
   // Auto-select first stage when loaded
   const activeStageId = selectedStageId || pipelineStages[0]?.id || "";
+  const selectedPipeline = pipelines.find(p => p.id === activePipelineId);
+  const needsStage = selectedPipeline?.kind === "process";
+  const canMigrate = !!activePipelineId && (!needsStage || !!activeStageId);
 
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
