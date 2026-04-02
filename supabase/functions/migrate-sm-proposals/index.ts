@@ -1448,17 +1448,207 @@ Deno.serve(async (req) => {
         reports.push(report);
       }
 
+    // ─── GROUP B: Projects without active proposal ──────────
+    const includeProjectsWithoutProposal = params.include_projects_without_proposal !== false;
+    const groupBReports: any[] = [];
+
+    if (includeProjectsWithoutProposal) {
+      const { data: projectsWithoutProposal } = await adminClient
+        .from("solar_market_projects")
+        .select("id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, address, neighborhood, zip_code, number, complement, installation_type, sm_funnel_name, sm_stage_name, all_funnels, tenant_id, sm_created_at, responsible")
+        .eq("tenant_id", tenantId)
+        .eq("has_active_proposal", false);
+
+      const pwp = projectsWithoutProposal || [];
+      console.log(`[SM Migration] Group B: ${pwp.length} projects without active proposal`);
+
+      for (const proj of pwp) {
+        const groupBReport: any = {
+          sm_project_id: proj.sm_project_id,
+          sm_client_name: null,
+          aborted: false,
+          steps: {},
+          warnings: ["Projeto sem proposta ativa no SolarMarket"],
+          group: "B",
+        };
+
+        try {
+          // Check if project already migrated
+          const { data: existingProjCanonical } = await adminClient
+            .from("projetos")
+            .select("id")
+            .eq("tenant_id", tenantId)
+            .contains("source_metadata", { sm_project_id: proj.sm_project_id })
+            .maybeSingle();
+
+          if (existingProjCanonical) {
+            groupBReport.steps.projeto = { status: "WOULD_SKIP", id: existingProjCanonical.id, reason: "já migrado" };
+            groupBReports.push(groupBReport);
+            summary.WOULD_SKIP = (summary.WOULD_SKIP || 0) + 1;
+            continue;
+          }
+
+          // Resolve client
+          let smClient = proj.sm_client_id ? smClientMap.get(proj.sm_client_id) : null;
+          if (!smClient && proj.sm_client_id) {
+            const { data: clients } = await adminClient
+              .from("solar_market_clients")
+              .select("sm_client_id, name, email, phone, phone_formatted, phone_normalized, document, document_formatted, city, state, neighborhood, address, number, complement, zip_code, zip_code_formatted, company")
+              .eq("tenant_id", tenantId)
+              .eq("sm_client_id", proj.sm_client_id)
+              .limit(1);
+            if (clients?.[0]) smClient = clients[0];
+          }
+
+          groupBReport.sm_client_name = smClient?.name || proj.name || null;
+
+          // Resolve or create canonical client (same logic as Group A)
+          let clienteId: string | null = null;
+
+          if (smClient) {
+            const phoneNorm = smClient.phone_normalized || normalizePhone(smClient.phone);
+            // Match by phone
+            if (phoneNorm) {
+              const { data: matches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("telefone_normalized", phoneNorm).limit(2);
+              if ((matches || []).length === 1) clienteId = matches![0].id;
+            }
+            // Match by email
+            if (!clienteId && smClient.email) {
+              const emailNorm = smClient.email.trim().toLowerCase();
+              if (emailNorm) {
+                const { data: emailMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("email", emailNorm).limit(1);
+                if ((emailMatches || []).length === 1) clienteId = emailMatches![0].id;
+              }
+            }
+            // Match by document
+            if (!clienteId && smClient.document) {
+              const docNorm = smClient.document.replace(/\D/g, "");
+              if (docNorm.length >= 11) {
+                const { data: docMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("cpf_cnpj", docNorm).limit(1);
+                if ((docMatches || []).length === 1) clienteId = docMatches![0].id;
+              }
+            }
+            // Match by SM client code
+            if (!clienteId) {
+              const codePattern = `SM-${smClient.sm_client_id}-`;
+              const { data: codeMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).like("cliente_code", `${codePattern}%`).limit(1);
+              if ((codeMatches || []).length === 1) clienteId = codeMatches![0].id;
+            }
+
+            // Create client if needed
+            if (!clienteId && !dry_run) {
+              const clienteCode = `SM-${smClient.sm_client_id}-${proj.sm_project_id || 0}`;
+              const phoneNorm2 = smClient.phone_normalized || normalizePhone(smClient.phone);
+              const { data: newClient, error: insErr } = await adminClient
+                .from("clientes")
+                .insert({
+                  tenant_id: tenantId,
+                  nome: smClient.name || "SM Import",
+                  telefone: smClient.phone_formatted || smClient.phone || `SM-${smClient.sm_client_id}`,
+                  telefone_normalized: phoneNorm2,
+                  email: smClient.email,
+                  cpf_cnpj: smClient.document ? smClient.document.replace(/\D/g, "") : null,
+                  cidade: smClient.city,
+                  estado: smClient.state,
+                  bairro: smClient.neighborhood,
+                  rua: smClient.address,
+                  numero: smClient.number,
+                  complemento: smClient.complement,
+                  cep: smClient.zip_code_formatted || smClient.zip_code,
+                  empresa: smClient.company,
+                  cliente_code: clienteCode,
+                  potencia_kwp: proj.potencia_kwp || null,
+                })
+                .select("id")
+                .single();
+              if (!insErr && newClient) {
+                clienteId = newClient.id;
+                groupBReport.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
+              } else if (insErr?.message?.includes("uq_clientes_tenant_cliente_code")) {
+                const { data: existing } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("cliente_code", clienteCode).maybeSingle();
+                if (existing) clienteId = existing.id;
+                groupBReport.steps.cliente = { status: "WOULD_LINK", id: clienteId || undefined, reason: "cliente_code já existia" };
+              } else {
+                groupBReport.steps.cliente = { status: "ERROR", reason: insErr?.message || "Erro ao criar cliente" };
+              }
+            } else if (clienteId) {
+              groupBReport.steps.cliente = { status: "WOULD_LINK", id: clienteId };
+            } else if (dry_run) {
+              groupBReport.steps.cliente = { status: "WOULD_CREATE" };
+            }
+          }
+
+          // Create project if not dry_run and we have a client
+          if (!dry_run && clienteId) {
+            const stageKey = (proj.sm_stage_name || "").toLowerCase();
+            const canonicalStatus = stageKey.includes("gan") ? "ganho"
+              : stageKey.includes("perd") ? "perdido"
+              : proj.status === "won" ? "ganho"
+              : proj.status === "lost" ? "perdido"
+              : "em_andamento";
+
+            const { data: newProj, error: projErr } = await adminClient
+              .from("projetos")
+              .insert({
+                tenant_id: tenantId,
+                nome: proj.name || "Projeto SM",
+                cliente_id: clienteId,
+                potencia_kwp: proj.potencia_kwp,
+                status: canonicalStatus === "ganho" ? "concluido" : "criado",
+                cidade_instalacao: proj.city,
+                uf_instalacao: proj.state,
+                bairro_instalacao: proj.neighborhood,
+                rua_instalacao: proj.address,
+                cep_instalacao: proj.zip_code,
+                tipo_instalacao: proj.installation_type,
+                valor_total: proj.valor,
+                source_metadata: {
+                  provider: "solarmarket",
+                  sm_project_id: proj.sm_project_id,
+                  imported_at: new Date().toISOString(),
+                  no_active_proposal: true,
+                },
+                codigo: `PROJ-SM-NP-${proj.sm_project_id}`,
+              })
+              .select("id")
+              .single();
+
+            if (projErr) {
+              groupBReport.steps.projeto = { status: "ERROR", reason: projErr.message };
+              summary.ERROR = (summary.ERROR || 0) + 1;
+            } else {
+              groupBReport.steps.projeto = { status: "WOULD_CREATE", id: newProj!.id };
+              summary.SUCCESS = (summary.SUCCESS || 0) + 1;
+            }
+          } else if (dry_run) {
+            groupBReport.steps.projeto = { status: "WOULD_CREATE" };
+            summary.WOULD_CREATE = (summary.WOULD_CREATE || 0) + 1;
+          } else if (!clienteId) {
+            groupBReport.steps.projeto = { status: "ERROR", reason: "Sem cliente resolvido" };
+            summary.ERROR = (summary.ERROR || 0) + 1;
+          }
+        } catch (err) {
+          groupBReport.aborted = true;
+          groupBReport.steps.projeto = { status: "ERROR", reason: (err as Error).message };
+          summary.ERROR = (summary.ERROR || 0) + 1;
+        }
+
+        groupBReports.push(groupBReport);
+      }
+    }
+
     const result = {
       mode: dry_run ? "dry_run" : "execute",
       total_found: allProposals.length,
       total_processed: proposalsToProcess.length,
+      total_projects_without_proposal: groupBReports.length,
       summary,
-      details: reports.slice(0, 200),
+      details: [...reports.slice(0, 150), ...groupBReports.slice(0, 50)],
       filters_applied: filters,
       has_more: allProposals.length > batch_size,
     };
 
-    console.log(`[SM Migration] Done. Summary: ${JSON.stringify(summary)}`);
+    console.log(`[SM Migration] Done. Summary: ${JSON.stringify(summary)} GroupB: ${groupBReports.length}`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
