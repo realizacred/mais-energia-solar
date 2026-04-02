@@ -443,8 +443,14 @@ export function RecebimentosManager() {
                       </div>
                       <div className="space-y-2">
                         <Label>Data do acordo *</Label>
-                        <DateInput value={formData.data_acordo} onChange={(v) => setFormData({ ...formData, data_acordo: v })} />
+                         <DateInput value={formData.data_acordo} onChange={(v) => setFormData({ ...formData, data_acordo: v })} />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Data de Vencimento (opcional)</Label>
+                      <DateInput value={formData.data_vencimento} onChange={(v) => setFormData({ ...formData, data_vencimento: v })} />
+                      <p className="text-xs text-muted-foreground">Para receber lembretes automáticos via WhatsApp</p>
                     </div>
 
                     {/* Composição acordada */}
