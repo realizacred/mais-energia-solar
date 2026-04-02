@@ -49,7 +49,7 @@ export default function LancamentosPage() {
   });
 
   const { data: lancamentos = [], isLoading } = useLancamentos(filtros);
-  const deleteMutation = useDeleteLancamento();
+  const deleteMutation = useDeleteLancamento(filtros);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LancamentoFinanceiro | null>(null);
@@ -260,6 +260,7 @@ export default function LancamentosPage() {
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); setEditingItem(null); }}
         lancamento={editingItem}
+        filtrosAtuais={filtros}
       />
 
       {/* Delete confirmation */}

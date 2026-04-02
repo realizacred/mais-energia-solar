@@ -34,13 +34,27 @@ export interface LancamentoFiltros {
 
 const QUERY_KEY = "lancamentos-financeiros";
 
+export function getLancamentosQueryKey(filtros: LancamentoFiltros = {}) {
+  return [
+    QUERY_KEY,
+    filtros.tipo || "todos",
+    filtros.categoria || "",
+    filtros.dataInicio || "",
+    filtros.dataFim || "",
+    filtros.status || "todos",
+  ] as const;
+}
+
 export function useLancamentos(filtros: LancamentoFiltros = {}) {
   return useQuery({
-    queryKey: [QUERY_KEY, filtros],
+    queryKey: getLancamentosQueryKey(filtros),
     queryFn: async () => {
+      const { tenantId } = await getCurrentTenantId();
+
       let query = (supabase as any)
         .from("lancamentos_financeiros")
-        .select("*, clientes:cliente_id(nome), projetos:projeto_id(nome_projeto)", { count: "exact" })
+        .select("*", { count: "exact" })
+        .eq("tenant_id", tenantId)
         .order("data_lancamento", { ascending: false })
         .order("created_at", { ascending: false });
 
@@ -62,7 +76,7 @@ export function useLancamentos(filtros: LancamentoFiltros = {}) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as LancamentoFinanceiro[];
+      return (data || []) as LancamentoFinanceiro[];
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -82,7 +96,7 @@ export interface CreateLancamentoInput {
   comprovante?: File | null;
 }
 
-export function useCreateLancamento() {
+export function useCreateLancamento(filtros: LancamentoFiltros = {}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -91,7 +105,6 @@ export function useCreateLancamento() {
 
       let comprovante_url: string | null = null;
       if (input.comprovante) {
-        const ext = input.comprovante.name.split(".").pop();
         const path = `${tenantId}/lancamentos/${crypto.randomUUID()}/${input.comprovante.name}`;
         const { error: uploadError } = await supabase.storage
           .from("comprovantes-pagamento")
@@ -127,7 +140,7 @@ export function useCreateLancamento() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: getLancamentosQueryKey(filtros) });
       toast.success("Lançamento criado com sucesso!");
     },
     onError: (err: Error) => {
@@ -136,7 +149,7 @@ export function useCreateLancamento() {
   });
 }
 
-export function useUpdateLancamento() {
+export function useUpdateLancamento(filtros: LancamentoFiltros = {}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -177,7 +190,7 @@ export function useUpdateLancamento() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: getLancamentosQueryKey(filtros) });
       toast.success("Lançamento atualizado!");
     },
     onError: (err: Error) => {
@@ -186,7 +199,7 @@ export function useUpdateLancamento() {
   });
 }
 
-export function useDeleteLancamento() {
+export function useDeleteLancamento(filtros: LancamentoFiltros = {}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -198,7 +211,7 @@ export function useDeleteLancamento() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: getLancamentosQueryKey(filtros) });
       toast.success("Lançamento excluído!");
     },
     onError: (err: Error) => {
