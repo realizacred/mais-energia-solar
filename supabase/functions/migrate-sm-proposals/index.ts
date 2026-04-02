@@ -1190,19 +1190,87 @@ Deno.serve(async (req) => {
                 observacoes: "",
               };
 
-              // Build pagamentoOpcoes default if not available
+              // Build pagamentoOpcoes in canonical schema
               const pagamentoOpcoes = [{
                 id: crypto.randomUUID(),
+                nome: smProp.payment_conditions || "À Vista",
                 label: smProp.payment_conditions || "À Vista",
-                tipo: "a_vista",
-                parcelas: 1,
+                tipo: "a_vista" as const,
+                valor_financiado: valorTotal,
                 entrada: 0,
+                taxa_mensal: 0,
+                carencia_meses: 0,
+                num_parcelas: 1,
+                parcelas: 1,
                 valor_parcela: valorTotal,
                 is_default: true,
               }];
 
+              // Build canonical itens array (KitItemRow[])
+              const itensCanonicos: Record<string, any>[] = [];
+              if (smProp.panel_model) {
+                const panelQty = Number(smProp.panel_quantity ?? 0);
+                itensCanonicos.push({
+                  categoria: "modulo",
+                  descricao: smProp.panel_model,
+                  fabricante: "",
+                  modelo: smProp.panel_model,
+                  potencia_w: 0,
+                  quantidade: panelQty,
+                  preco_unitario: panelQty > 0
+                    ? Number(smProp.equipment_cost ?? 0) / panelQty
+                    : 0,
+                });
+              }
+              if (smProp.inverter_model) {
+                itensCanonicos.push({
+                  categoria: "inversor",
+                  descricao: smProp.inverter_model,
+                  fabricante: "",
+                  modelo: smProp.inverter_model,
+                  potencia_w: 0,
+                  quantidade: Number(smProp.inverter_quantity ?? 0),
+                  preco_unitario: 0,
+                });
+              }
+
+              // Build canonical servicos array
+              const servicosCanonicos: Record<string, any>[] = [];
+              if (custoInstalacao > 0) {
+                servicosCanonicos.push({
+                  descricao: "Instalação",
+                  categoria: "instalacao",
+                  valor: custoInstalacao,
+                  incluso_no_preco: true,
+                });
+              }
+
               const finalSnapshot: Record<string, any> = {
                 source: "legacy_import",
+                // Canonical WizardState nodes
+                potenciaKwp: Number(smProp.potencia_kwp ?? 0),
+                cliente: {
+                  nome: smClient?.name ?? "",
+                  documento: smClient?.document ?? "",
+                  email: smClient?.email ?? "",
+                  telefone: smClient?.phone ?? "",
+                },
+                itens: itensCanonicos,
+                servicos: servicosCanonicos,
+                ucs: [{
+                  consumo_mensal: Number(smProp.consumo_mensal ?? 0),
+                  tarifa_energia: Number(smProp.tarifa_distribuidora ?? 0),
+                  fase: smProp.fase ?? "",
+                  distribuidora: smProp.dis_energia ?? "",
+                }],
+                premissas: {
+                  inflacao_energetica: Number(smProp.inflacao_energetica ?? 0),
+                  perda_eficiencia_anual: Number(smProp.perda_eficiencia_anual ?? 0),
+                  sobredimensionamento: Number(smProp.sobredimensionamento ?? 0),
+                  custo_disponibilidade: Number(smProp.custo_disponibilidade ?? 0),
+                  geracao_anual: Number(smProp.geracao_anual ?? 0),
+                },
+                // Legacy flat fields (preserved for backward compat)
                 sm_proposal_id: smProp.sm_proposal_id,
                 link_pdf: smProp.link_pdf,
                 tir: smProp.tir,
