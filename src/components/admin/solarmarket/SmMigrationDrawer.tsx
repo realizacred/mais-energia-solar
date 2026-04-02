@@ -285,8 +285,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           updateStep(seq[i].key, { state: "running" });
           await new Promise(r => setTimeout(r, seq[i].ms));
           if (stepAnimCancelRef.current) break;
-          // Mark previous step as "done" (optimistic) when moving to next
-          updateStep(seq[i].key, { state: "done", detail: "Processando..." });
         }
       };
       const animPromise = runStepAnimation();
@@ -404,7 +402,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           // Mark all pending steps as error on failure
           if (!dryRun) {
             for (const s of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-              setSteps(prev => prev.map(st => st.name === s && st.state === "running" ? { ...st, state: "error", detail: msg } : st));
+              setSteps(prev => prev.map(st => st.name === s && (st.state === "running" || st.state === "pending") ? { ...st, state: "error", detail: msg } : st));
             }
           }
           // Continue with remaining batches
@@ -663,11 +661,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {running
-                      ? batchProgress
-                        ? `Processando lote ${batchProgress.current}/${batchProgress.total}...`
-                        : "Processando..."
-                      : result ? "Resultado" : ""}
+                    {running ? "Processando..." : result ? "Resultado" : ""}
                   </span>
                   <span className="text-xs text-muted-foreground font-mono">{progressPercent}%</span>
                 </div>
