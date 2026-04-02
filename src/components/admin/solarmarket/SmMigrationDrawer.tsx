@@ -305,6 +305,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       // Fire animation in parallel (non-blocking)
       const animPromise = animateStepsAsync();
 
+      const batchErrors: string[] = [];
+
       for (let b = 0; b < batches.length; b++) {
         if (cancelRef.current) break;
 
@@ -331,6 +333,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)}`);
         } catch (batchErr: any) {
           const msg = batchErr?.message ?? "Erro desconhecido no lote";
+          batchErrors.push(msg);
           addLog(`ERRO lote ${b + 1}: ${msg}`);
           // Continue with remaining batches
         }
@@ -344,6 +347,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       // Wait for animation to finish
       cancelRef.current = true;
       await animPromise;
+
+      if (allResults.length === 0) {
+        throw new Error(batchErrors[0] || "Nenhum lote retornou resultado de migração.");
+      }
 
       // Merge results from all batches
       const mergedResult: MigrationResult = {
@@ -363,8 +370,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         }
       }
 
+      const hasBatchErrors = batchErrors.length > 0;
       setResult(mergedResult);
       addLog(`Resultado final: ${JSON.stringify(mergedResult.summary)}`);
+      if (hasBatchErrors) {
+        addLog(`Migração parcial: ${batchErrors.length} lote(s) falharam.`);
+      }
 
       // Map server steps to UI steps
       const detail = mergedResult.details?.[0];
@@ -390,15 +401,19 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         }
       } else if (isBulk) {
         // Bulk: mark all steps based on summary
-        const hasErrors = (mergedResult.summary.ERROR || 0) > 0;
+        const hasErrors = hasBatchErrors || (mergedResult.summary.ERROR || 0) > 0;
         for (const s of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
           updateStep(s, { state: hasErrors ? "error" : "done" });
         }
       }
 
       updateStep("done", {
-        state: (mergedResult.summary.ERROR || 0) > 0 ? "error" : "done",
-        detail: dryRun ? "Simulação concluída" : "Migração concluída",
+        state: hasBatchErrors || (mergedResult.summary.ERROR || 0) > 0 ? "error" : "done",
+        detail: hasBatchErrors
+          ? `Migração parcial com falha em ${batchErrors.length} lote(s)`
+          : dryRun
+            ? "Simulação concluída"
+            : "Migração concluída",
       });
 
       if (!dryRun) {

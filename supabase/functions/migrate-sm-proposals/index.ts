@@ -1568,8 +1568,11 @@ Deno.serve(async (req) => {
           if (!dry_run) {
             summary[overallStatus === "SKIP" ? "WOULD_SKIP" : overallStatus === "SUCCESS" ? "SUCCESS" : "ERROR"]++;
 
-            // Stamp migrado_em on the SM proposal after successful migration
-            if (overallStatus === "SUCCESS") {
+            const propostaStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(report.steps.proposta_nativa?.status || "");
+            const versaoStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(report.steps.proposta_versao?.status || "");
+
+            // Stamp migrado_em only when canonical proposal + version are actually available
+            if (overallStatus === "SUCCESS" && propostaId && propostaStepOk && versaoStepOk) {
               await adminClient
                 .from("solar_market_proposals")
                 .update({ migrado_em: new Date().toISOString() })
