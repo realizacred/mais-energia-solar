@@ -1410,9 +1410,9 @@ Deno.serve(async (req) => {
                 itensCanonicos.push({
                   categoria: "modulo",
                   descricao: smProp.panel_model,
-                  fabricante: extractFabricante(smProp.panel_model),
+                  fabricante: smProp.modulo_fabricante || extractFabricante(smProp.panel_model),
                   modelo: smProp.panel_model,
-                  potencia_w: panelPotencia,
+                  potencia_w: smProp.modulo_potencia_w || panelPotencia,
                   quantidade: panelQty,
                   preco_unitario: panelQty > 0 && custoKitReal > 0
                     ? custoKitReal / panelQty
@@ -1423,9 +1423,9 @@ Deno.serve(async (req) => {
                 itensCanonicos.push({
                   categoria: "inversor",
                   descricao: smProp.inverter_model,
-                  fabricante: extractFabricante(smProp.inverter_model),
+                  fabricante: smProp.inversor_fabricante || extractFabricante(smProp.inverter_model),
                   modelo: smProp.inverter_model,
-                  potencia_w: inverterPotencia,
+                  potencia_w: smProp.inversor_potencia_w || inverterPotencia,
                   quantidade: Number(smProp.inverter_quantity ?? 1),
                   preco_unitario: 0,
                 });
