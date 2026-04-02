@@ -18762,6 +18762,7 @@ export type Database = {
           composicao_acordada: Json
           created_at: string
           data_acordo: string
+          data_vencimento: string | null
           descricao: string | null
           forma_pagamento_acordada: string
           id: string
@@ -18781,6 +18782,7 @@ export type Database = {
           composicao_acordada?: Json
           created_at?: string
           data_acordo?: string
+          data_vencimento?: string | null
           descricao?: string | null
           forma_pagamento_acordada: string
           id?: string
@@ -18800,6 +18802,7 @@ export type Database = {
           composicao_acordada?: Json
           created_at?: string
           data_acordo?: string
+          data_vencimento?: string | null
           descricao?: string | null
           forma_pagamento_acordada?: string
           id?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.recebimentos ADD COLUMN IF NOT EXISTS data_vencimento date;

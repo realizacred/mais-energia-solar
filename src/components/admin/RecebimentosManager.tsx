@@ -65,6 +65,7 @@ interface Recebimento {
   numero_parcelas: number;
   descricao: string | null;
   data_acordo: string;
+  data_vencimento?: string | null;
   status: string;
   created_at: string;
   total_pago?: number;
@@ -137,6 +138,7 @@ export function RecebimentosManager() {
     valor_total: 0,
     descricao: "",
     data_acordo: new Date().toISOString().split("T")[0],
+    data_vencimento: "",
   });
   const [composicao, setComposicao] = useState<{ forma: string; valor: number }[]>([]);
 
@@ -175,6 +177,7 @@ export function RecebimentosManager() {
         valor_total: formData.valor_total,
         descricao: formData.descricao || null,
         data_acordo: formData.data_acordo,
+        data_vencimento: formData.data_vencimento || null,
         composicao_acordada: composicao.length > 0 ? composicao : [],
         forma_pagamento_acordada: composicao.length > 0 ? composicao[0].forma : "a_definir",
         numero_parcelas: 1,
@@ -211,6 +214,7 @@ export function RecebimentosManager() {
       valor_total: recebimento.valor_total,
       descricao: recebimento.descricao || "",
       data_acordo: recebimento.data_acordo,
+      data_vencimento: recebimento.data_vencimento || "",
     });
     const comp = Array.isArray(recebimento.composicao_acordada) ? recebimento.composicao_acordada : [];
     setComposicao(comp);
@@ -236,6 +240,7 @@ export function RecebimentosManager() {
       valor_total: 0,
       descricao: "",
       data_acordo: new Date().toISOString().split("T")[0],
+      data_vencimento: "",
     });
     setComposicao([]);
     setEditingRecebimento(null);
@@ -438,8 +443,14 @@ export function RecebimentosManager() {
                       </div>
                       <div className="space-y-2">
                         <Label>Data do acordo *</Label>
-                        <DateInput value={formData.data_acordo} onChange={(v) => setFormData({ ...formData, data_acordo: v })} />
+                         <DateInput value={formData.data_acordo} onChange={(v) => setFormData({ ...formData, data_acordo: v })} />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Data de Vencimento (opcional)</Label>
+                      <DateInput value={formData.data_vencimento} onChange={(v) => setFormData({ ...formData, data_vencimento: v })} />
+                      <p className="text-xs text-muted-foreground">Para receber lembretes automáticos via WhatsApp</p>
                     </div>
 
                     {/* Composição acordada */}
