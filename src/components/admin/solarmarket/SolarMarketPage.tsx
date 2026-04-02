@@ -705,6 +705,53 @@ export default function SolarMarketPage() {
               {syncIsRunning ? "Sincronizando..." : "Sincronizar Tudo"}
             </Button>
 
+            <Button
+              onClick={() => setMigrateAllOpen(true)}
+              disabled={pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Migrar Tudo ({pendingProposals.length + pendingProjectsNoProposal.length})
+            </Button>
+
+            <AlertDialog open={migrateAllOpen} onOpenChange={setMigrateAllOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <Upload className="h-5 w-5 text-primary" />
+                    Migrar tudo para o sistema canônico
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3">
+                      <p className="text-sm text-foreground font-medium">Serão migrados:</p>
+                      <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                        <li><strong>{pendingProposals.length}</strong> propostas pendentes</li>
+                        <li><strong>{pendingProjectsNoProposal.length}</strong> projetos sem proposta pendentes</li>
+                      </ul>
+                      {migratedProposalsCount > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Já migrados anteriormente: <strong>{migratedProposalsCount}</strong> (serão ignorados)
+                        </p>
+                      )}
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <Button
+                    onClick={() => {
+                      setMigrateAllOpen(false);
+                      openMigrationDrawer(pendingProposals.slice(0, 50));
+                    }}
+                  >
+                    Confirmar Migração
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             <AlertDialog open={resetOpen} onOpenChange={(v) => { setResetOpen(v); if (!v) setResetConfirmText(""); }}>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10">
