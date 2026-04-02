@@ -177,6 +177,12 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
                   <div>
                     <p className="font-medium">{p.name || "—"}</p>
                     {p.status && <Badge variant="outline" className="text-[10px] mt-0.5">{p.status}</Badge>}
+                    {(p as any).has_active_proposal === false && (
+                      <Badge variant="outline" className="text-[10px] mt-0.5 bg-muted text-muted-foreground border-border">Sem proposta</Badge>
+                    )}
+                    {(p as any).has_active_proposal === true && (
+                      <Badge variant="outline" className="text-[10px] mt-0.5 bg-success/10 text-success border-success/20">Tem proposta</Badge>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>

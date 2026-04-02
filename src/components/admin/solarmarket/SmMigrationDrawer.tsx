@@ -279,6 +279,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         auto_resolve_owner: true,
         filters: { internal_ids: internalIds },
         batch_size: internalIds.length,
+        include_projects_without_proposal: true,
       };
       // Always send owner_id as fallback for proposals without Vendedores funnel
       if (ownerId && ownerId !== "__auto__") {
