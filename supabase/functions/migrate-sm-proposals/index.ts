@@ -296,7 +296,6 @@ Deno.serve(async (req) => {
       .from("solar_market_proposals")
       .select(SM_PROPOSAL_COLUMNS)
       .eq("tenant_id", tenantId)
-      .not("sm_client_id", "is", null)
       .order("sm_proposal_id", { ascending: true });
 
     if (filters.status) {
