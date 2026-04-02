@@ -314,6 +314,10 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let logId: string | undefined;
+  let totalFetched = 0;
+  let totalUpserted = 0;
+  let totalErrors = 0;
   try {
     // ─── Auth ──────────────────────────────────────────────
     const authHeader = req.headers.get("authorization");
@@ -572,13 +576,13 @@ Deno.serve(async (req) => {
       console.log(`[SM Sync] Skipping SM API auth for ${sync_type} (DB-only operation)`);
     }
 
-    // ─── Cleanup stale "running" logs ────────────────────
+    // ─── Cleanup stale "running" logs (older than 3 min) ──
     await supabase
       .from("solar_market_sync_logs")
-      .update({ status: "failed", finished_at: new Date().toISOString(), total_errors: 1 })
+      .update({ status: "failed", finished_at: new Date().toISOString(), total_errors: 1, error_message: "Timeout — sync expirou sem finalizar" })
       .eq("tenant_id", tenantId)
       .eq("status", "running")
-      .lt("started_at", new Date(Date.now() - 120_000).toISOString());
+      .lt("started_at", new Date(Date.now() - 180_000).toISOString());
 
     // ─── Create sync log ───────────────────────────────────
     const { data: syncLog } = await supabase
@@ -587,10 +591,7 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
 
-    const logId = syncLog?.id;
-    let totalFetched = 0;
-    let totalUpserted = 0;
-    let totalErrors = 0;
+    logId = syncLog?.id;
     let hasSolarMarketAuthError = false;
     let isPartialSync = false;
     let partialRemaining = 0;
@@ -1826,6 +1827,24 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("[SM Sync] Fatal error:", err);
+    // Always finalize sync log on fatal error
+    if (logId) {
+      try {
+        await supabase
+          .from("solar_market_sync_logs")
+          .update({
+            status: "failed",
+            total_fetched: totalFetched,
+            total_upserted: totalUpserted,
+            total_errors: totalErrors + 1,
+            error_message: ((err as Error).message || "Internal error").slice(0, 500),
+            finished_at: new Date().toISOString(),
+          })
+          .eq("id", logId);
+      } catch (_) {
+        // best-effort log update
+      }
+    }
     return new Response(
       JSON.stringify({ error: (err as Error).message || "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

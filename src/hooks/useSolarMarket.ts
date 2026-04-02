@@ -191,16 +191,19 @@ async function fetchAllRows<T>(params: {
   return allRows;
 }
 
-/** Detects if there's an active background sync (cron) by checking recent running logs */
+/** Detects if there's an active background sync (cron) by checking recent running logs.
+ *  Only considers logs started within the last 5 minutes to avoid stale "running" status. */
 export function useIsBackgroundSyncActive() {
   return useQuery<boolean>({
     queryKey: ["sm-bg-sync-active"],
     staleTime: 1000 * 30,
     queryFn: async () => {
+      const fiveMinAgo = new Date(Date.now() - 5 * 60_000).toISOString();
       const { data } = await (supabase as any)
         .from("solar_market_sync_logs")
         .select("id")
         .eq("status", "running")
+        .gte("started_at", fiveMinAgo)
         .limit(1);
       return (data || []).length > 0;
     },
