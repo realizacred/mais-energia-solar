@@ -292,7 +292,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       // Smooth time-based progress bar
       const TOTAL_ESTIMATED_MS = 10_000;
       const progressStartTime = Date.now();
-      const progressInterval = setInterval(() => {
+      progressIntervalRef.current = setInterval(() => {
         const elapsed = Date.now() - progressStartTime;
         const percent = Math.min(95, Math.round((elapsed / TOTAL_ESTIMATED_MS) * 100));
         setSmoothProgress(percent);
