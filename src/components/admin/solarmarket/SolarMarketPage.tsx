@@ -24,6 +24,7 @@ import {
   useIsBackgroundSyncActive,
   useUpdateSmClient,
   useDeleteSmClient,
+  useClearSyncLogs,
   type SmClient,
   type SmProject,
   type SmProposal,
@@ -578,6 +579,7 @@ export default function SolarMarketPage() {
   const { data: customFields = [], isLoading: loadingCF } = useSmCustomFields();
   const updateClient = useUpdateSmClient();
   const deleteClient = useDeleteSmClient();
+  const clearLogs = useClearSyncLogs();
 
   const lastSync = syncLogs[0];
 
@@ -1044,7 +1046,19 @@ export default function SolarMarketPage() {
         </TabsContent>
 
         {/* ─── Logs Tab ───────────────────────────────────── */}
-        <TabsContent value="logs" className="mt-3">
+        <TabsContent value="logs" className="mt-3 space-y-3">
+          <div className="flex justify-end">
+            <Button
+              onClick={() => clearLogs.mutate()}
+              disabled={clearLogs.isPending || syncLogs.length === 0}
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+            >
+              <Trash2 className="h-3 w-3" />
+              Limpar Logs
+            </Button>
+          </div>
           {syncLogs.length === 0 ? (
             <EmptyState icon={Clock} title="Nenhuma sincronização" description="Execute a primeira sincronização." />
           ) : (
