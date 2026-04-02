@@ -1207,25 +1207,51 @@ Deno.serve(async (req) => {
     }
 
     if (sync_type === "full" || sync_type === "proposals") {
+      // ── Resume logic: get projects that already have proposals (shared by both paths) ──
+      const alreadySyncedProjectIds = new Set<number>();
+      {
+        let offset = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data: syncedRows } = await supabase
+            .from("solar_market_proposals")
+            .select("sm_project_id")
+            .eq("tenant_id", tenantId)
+            .range(offset, offset + pageSize - 1);
+          const batch = (syncedRows || []).map((r: any) => r.sm_project_id as number);
+          for (const id of batch) alreadySyncedProjectIds.add(id);
+          if (batch.length < pageSize) break;
+          offset += pageSize;
+        }
+      }
+      console.error(`[SM Sync] Resume check: ${alreadySyncedProjectIds.size} projects already have proposals`);
+
       try {
         // Try bulk endpoint first: GET /proposals
-        console.log(`[SM Sync] Trying bulk /proposals endpoint...`);
+        console.error(`[SM Sync] Trying bulk /proposals endpoint...`);
         const proposals = await fetchAllPages(`${baseUrl}/proposals`, smHeaders);
         totalFetched += proposals.length;
-        console.log(`[SM Sync] Proposals fetched (bulk): ${proposals.length}`);
+        console.error(`[SM Sync] Proposals fetched (bulk): ${proposals.length}`);
 
         // Debug: log first 3 proposals' keys and id fields to understand the structure
         if (proposals.length > 0) {
           for (let di = 0; di < Math.min(3, proposals.length); di++) {
             const pr = proposals[di];
-            console.log(`[SM Sync] Proposal sample ${di}: id=${pr.id}, proposalId=${pr.proposalId}, proposal_id=${pr.proposal_id}, projectId=${pr.projectId || pr.project?.id}, title=${pr.title || pr.titulo || pr.name}, keys=${Object.keys(pr).slice(0, 20).join(",")}`);
+            console.error(`[SM Sync] Proposal sample ${di}: id=${pr.id}, proposalId=${pr.proposalId}, proposal_id=${pr.proposal_id}, projectId=${pr.projectId || pr.project?.id}, title=${pr.title || pr.titulo || pr.name}, keys=${Object.keys(pr).slice(0, 20).join(",")}`);
           }
           // Check for duplicate IDs
           const idSet = new Set(proposals.map((p: any) => p.id));
-          console.log(`[SM Sync] Unique proposal IDs: ${idSet.size} out of ${proposals.length}. Sample IDs: ${[...idSet].slice(0, 10).join(",")}`);
+          console.error(`[SM Sync] Unique proposal IDs: ${idSet.size} out of ${proposals.length}. Sample IDs: ${[...idSet].slice(0, 10).join(",")}`);
         }
 
         if (proposals.length > 0) {
+          // Filter out proposals for projects already synced (resume)
+          const newProposals = proposals.filter((pr: any) => {
+            const projId = pr.project?.id || pr.projectId || pr.project_id || null;
+            return projId == null || !alreadySyncedProjectIds.has(projId);
+          });
+          console.error(`[SM Sync] Bulk proposals: ${proposals.length} total, ${newProposals.length} new (skipping ${proposals.length - newProposals.length} already synced)`);
+
           // Build project→client lookup to resolve sm_client_id from projects
           const projectClientMap = new Map<number, number>();
           {
@@ -1245,9 +1271,9 @@ Deno.serve(async (req) => {
               offset += pageSize;
             }
           }
-          console.log(`[SM Sync] Project→Client lookup built: ${projectClientMap.size} entries`);
+          console.error(`[SM Sync] Project→Client lookup built: ${projectClientMap.size} entries`);
 
-          const rows = proposals.map((pr: any) => {
+          const rows = newProposals.map((pr: any) => {
             const extracted = extractProposalFields(pr);
             const projectId = extracted.sm_project_id || pr.project?.id || pr.projectId || null;
             // Resolve sm_client_id: prefer API value, fallback to project lookup
@@ -1274,7 +1300,7 @@ Deno.serve(async (req) => {
           const validRows = rows.filter((r: any) => r.sm_project_id != null);
           const skipped = rows.length - validRows.length;
           if (skipped > 0) {
-            console.log(`[SM Sync] Skipped ${skipped} proposals without project ID`);
+            console.error(`[SM Sync] Skipped ${skipped} proposals without project ID`);
           }
 
           const result = await batchUpsert(supabase, "solar_market_proposals", validRows, "tenant_id,sm_project_id,sm_proposal_id");
