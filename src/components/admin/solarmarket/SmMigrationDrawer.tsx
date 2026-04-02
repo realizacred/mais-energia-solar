@@ -194,6 +194,8 @@ interface SmMigrationDrawerProps {
 
 export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigrationDrawerProps) {
   const [ownerId, setOwnerId] = useState<string>(""); // always used as fallback
+  const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
+  const [selectedStageId, setSelectedStageId] = useState<string>("");
   const [steps, setSteps] = useState<MigrationStep[]>(INITIAL_STEPS);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);
@@ -203,6 +205,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [logs, setLogs] = useState<string[]>([]);
 
   const { data: consultores = [] } = useConsultores();
+  const { data: pipelines = [] } = usePipelines();
+  const { data: pipelineStages = [] } = usePipelineStages(selectedPipelineId || null);
   const qc = useQueryClient();
 
   const proposal = proposals[0]; // Single or first for display
@@ -213,7 +217,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const { data: projectFunnels = [] } = useSmProjectFunnels(proposal?.sm_project_id ?? null);
   const { data: realClientName } = useSmRealClientName(proposal?.sm_project_id ?? null);
 
-  const stageInfo = proposal ? (STAGE_MAP[proposal.status?.toLowerCase() ?? ""] ?? DEFAULT_STAGE) : DEFAULT_STAGE;
+  const statusLabel = proposal ? (SM_STATUS_LABEL_MAP[proposal.status?.toLowerCase() ?? ""] ?? { proposal_status: "rascunho", label: "Qualificação" }) : { proposal_status: "rascunho", label: "Qualificação" };
+
+  // Auto-select first pipeline when loaded
+  const activePipelineId = selectedPipelineId || pipelines[0]?.id || "";
+  // Auto-select first stage when loaded
+  const activeStageId = selectedStageId || pipelineStages[0]?.id || "";
 
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
@@ -232,6 +241,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   }, []);
 
   const runMigration = useCallback(async (dryRun: boolean) => {
+    if (!activePipelineId) {
+      setError("Nenhum pipeline encontrado. Crie um pipeline comercial antes de migrar.");
+      return;
+    }
     // owner_id is now optional — auto-resolved from SM funnel "Vendedores"
     resetState();
     setRunning(true);
@@ -261,8 +274,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
       const payload: Record<string, any> = {
         dry_run: dryRun,
-        pipeline_id: PIPELINE_ID,
-        stage_id: stageInfo.stage_id,
+        pipeline_id: activePipelineId,
+        stage_id: activeStageId || null,
         auto_resolve_owner: true,
         filters: { internal_ids: internalIds },
         batch_size: internalIds.length,
