@@ -106,8 +106,9 @@ function usePipelineStages(pipelineId: string | null) {
     queryFn: async () => {
       const { data } = await supabase
         .from("pipeline_stages")
-        .select("id, name")
+        .select("id, name, position")
         .eq("pipeline_id", pipelineId!)
+        .eq("is_closed", false)
         .order("position", { ascending: true });
       return data || [];
     },
