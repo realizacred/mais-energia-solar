@@ -276,14 +276,25 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           { key: "proposta", ms: 1500 },
           { key: "versao", ms: 2000 },
         ];
-        for (const step of seq) {
+        for (let i = 0; i < seq.length; i++) {
           if (stepAnimCancelRef.current) break;
-          updateStep(step.key, { state: "running" });
-          await new Promise(r => setTimeout(r, step.ms));
+          updateStep(seq[i].key, { state: "running" });
+          await new Promise(r => setTimeout(r, seq[i].ms));
           if (stepAnimCancelRef.current) break;
+          // Mark previous step as "done" (optimistic) when moving to next
+          updateStep(seq[i].key, { state: "done", detail: "Processando..." });
         }
       };
       const animPromise = runStepAnimation();
+
+      // Smooth time-based progress bar
+      const TOTAL_ESTIMATED_MS = 10_000;
+      const progressStartTime = Date.now();
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - progressStartTime;
+        const percent = Math.min(95, Math.round((elapsed / TOTAL_ESTIMATED_MS) * 100));
+        setSmoothProgress(percent);
+      }, 200);
 
       const basePayload: Record<string, any> = {
         dry_run: dryRun,
