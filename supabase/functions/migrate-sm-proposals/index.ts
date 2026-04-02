@@ -1514,6 +1514,7 @@ Deno.serve(async (req) => {
                 custo_disponibilidade: smProp.custo_disponibilidade,
                 geracao_anual: smProp.geracao_anual,
                 payback_original: smProp.payback,
+                payback_meses: paybackNumerico,
                 payment_conditions: smProp.payment_conditions,
                 panel_model: smProp.panel_model,
                 panel_quantity: smProp.panel_quantity,
