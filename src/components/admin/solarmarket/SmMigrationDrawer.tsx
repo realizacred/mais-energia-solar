@@ -510,8 +510,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
   // Progress calculation
   const completedSteps = steps.filter(s => s.state === "done" || s.state === "error" || s.state === "skipped").length;
-  const batchPercent = batchProgress ? Math.round((batchProgress.current / batchProgress.total) * 100) : 0;
-  const progressPercent = running ? Math.max(batchPercent, Math.round((completedSteps / steps.length) * 100)) : (result ? 100 : 0);
+  const progressPercent = running ? smoothProgress : (result ? 100 : 0);
 
   if (!proposal) return null;
 
