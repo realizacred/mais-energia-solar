@@ -265,7 +265,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       updateStep("fetch", { state: "done", detail: `${internalIds.length} proposta(s) selecionada(s)` });
       addLog(`Invocando edge function...`);
 
-      // Animate intermediate steps
+      // Mark fetch step as running for UI
       if (!dryRun) {
         updateStep("cliente", { state: "running" });
       }
@@ -291,19 +291,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
       const allResults: MigrationResult[] = [];
       setBatchProgress({ current: 0, total: batches.length });
-
-      // Animate steps progressively for non-dry-run
-      const animateStepsAsync = async () => {
-        if (dryRun) return;
-        const stepOrder: StepName[] = ["cliente", "deal", "projeto", "proposta", "versao"];
-        for (const stepName of stepOrder) {
-          if (cancelRef.current) break;
-          updateStep(stepName, { state: "running" });
-          await new Promise(r => setTimeout(r, 1200));
-        }
-      };
-      // Fire animation in parallel (non-blocking)
-      const animPromise = animateStepsAsync();
 
       const batchErrors: string[] = [];
 
