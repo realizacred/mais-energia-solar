@@ -240,6 +240,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     setError(null);
     setLogs([]);
     setConfirmText("");
+    setSmoothProgress(0);
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   }, []);
 
   const updateStep = useCallback((name: StepName, update: Partial<MigrationStep>) => {
