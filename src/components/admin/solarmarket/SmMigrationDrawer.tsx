@@ -201,6 +201,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [steps, setSteps] = useState<MigrationStep[]>(INITIAL_STEPS);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);
+  const [dryRunCompleted, setDryRunCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -241,6 +242,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     setSteps(INITIAL_STEPS);
     setResult(null);
     setError(null);
+    setDryRunCompleted(false);
     setLogs([]);
     setConfirmText("");
     setSmoothProgress(0);
@@ -499,7 +501,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             : "Migração concluída",
       });
 
-      if (!dryRun) {
+      if (dryRun) {
+        setDryRunCompleted(true);
+      } else {
         qc.invalidateQueries({ queryKey: ["sm-proposals"] });
         qc.invalidateQueries({ queryKey: ["canonical-check"] });
       }
@@ -788,8 +792,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             <Button
               className="flex-1"
               onClick={() => setConfirmOpen(true)}
-              disabled={running || !!existingCanonical || !canMigrate}
-              title={!canMigrate ? "Selecione uma etapa do pipeline antes de migrar" : undefined}
+              disabled={running || (!dryRunCompleted && !!existingCanonical) || !canMigrate}
+              title={!canMigrate ? "Selecione uma etapa do pipeline antes de migrar" : existingCanonical && !dryRunCompleted ? "Execute uma simulação (dry-run) antes de migrar novamente" : undefined}
             >
               Migrar agora
             </Button>
