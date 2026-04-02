@@ -242,6 +242,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     setSteps(INITIAL_STEPS);
     setResult(null);
     setError(null);
+    setDryRunCompleted(false);
     setLogs([]);
     setConfirmText("");
     setSmoothProgress(0);
