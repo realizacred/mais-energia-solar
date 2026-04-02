@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   DollarSign, Plus, Edit, Trash2, Receipt, CreditCard,
-  Calendar, BarChart3, CalendarDays, Download, X, Info,
+  Calendar, BarChart3, CalendarDays, Download, X, Info, Send,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
