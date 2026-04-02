@@ -201,6 +201,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [steps, setSteps] = useState<MigrationStep[]>(INITIAL_STEPS);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);
+  const [dryRunCompleted, setDryRunCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
