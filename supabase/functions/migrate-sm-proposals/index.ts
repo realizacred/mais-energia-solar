@@ -1459,7 +1459,7 @@ Deno.serve(async (req) => {
                   rua: smClient?.address ?? "",
                   numero: smClient?.number ?? "",
                   complemento: smClient?.complement ?? "",
-                  cep: smClient?.zip_code_formatted || smClient?.zip_code ?? "",
+                  cep: (smClient?.zip_code_formatted || smClient?.zip_code) ?? "",
                 },
                 // FIX 3: inputs block for wizard re-editing
                 inputs: {
