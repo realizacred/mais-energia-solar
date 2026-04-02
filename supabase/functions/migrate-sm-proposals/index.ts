@@ -696,7 +696,11 @@ Deno.serve(async (req) => {
 
     // Limit total processing to batch_size to avoid timeout
     let proposalsToProcess = allProposals.slice(0, batch_size);
-    console.log(`[SM Migration] Processing ${proposalsToProcess.length} of ${allProposals.length} proposals (batch_size=${batch_size})`);
+    console.error(`[SM Migration] Processing ${proposalsToProcess.length} of ${allProposals.length} proposals (batch_size=${batch_size})`);
+
+    // Time budget: stop processing before edge function timeout
+    const MIGRATION_TIMEOUT_MS = 50_000;
+    const migrationStartTime = Date.now();
 
     // ─── Filter by vendedor if specified ─────
     if (filters.vendedor_name) {
@@ -725,6 +729,12 @@ Deno.serve(async (req) => {
     }
 
     for (const smProp of proposalsToProcess) {
+        // Check time budget before each proposal
+        if (Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS) {
+          console.error(`[SM Migration] Time budget exceeded (${MIGRATION_TIMEOUT_MS}ms). Stopping with partial results.`);
+          break;
+        }
+
         const report: ProposalReport = {
           sm_proposal_id: smProp.sm_proposal_id,
           sm_client_name: null,
