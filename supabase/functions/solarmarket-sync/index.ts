@@ -1597,6 +1597,47 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── Update has_active_proposal flag on projects ──────────
+    if (sync_type === "proposals" || sync_type === "full") {
+      try {
+        // Get all sm_project_ids that have proposals
+        const { data: proposalProjects, error: ppErr } = await supabase
+          .from("solar_market_proposals")
+          .select("sm_project_id")
+          .eq("tenant_id", tenantId);
+        if (ppErr) throw ppErr;
+
+        const projectIdsWithProposal = [...new Set(
+          (proposalProjects ?? []).map((r: any) => r.sm_project_id).filter(Boolean)
+        )];
+
+        // Mark projects WITHOUT proposals as false
+        let q1 = supabase
+          .from("solar_market_projects")
+          .update({ has_active_proposal: false })
+          .eq("tenant_id", tenantId);
+        if (projectIdsWithProposal.length > 0) {
+          q1 = q1.not("sm_project_id", "in", `(${projectIdsWithProposal.map((id: any) => `"${id}"`).join(",")})`);
+        }
+        const { error: u1Err } = await q1;
+        if (u1Err) throw u1Err;
+
+        // Mark projects WITH proposals as true
+        if (projectIdsWithProposal.length > 0) {
+          const { error: u2Err } = await supabase
+            .from("solar_market_projects")
+            .update({ has_active_proposal: true })
+            .eq("tenant_id", tenantId)
+            .in("sm_project_id", projectIdsWithProposal);
+          if (u2Err) throw u2Err;
+        }
+
+        console.log(`[SM Sync] has_active_proposal updated: ${projectIdsWithProposal.length} with proposals`);
+      } catch (hapErr) {
+        console.warn("[SM Sync] has_active_proposal update error:", (hapErr as Error).message);
+      }
+    }
+
     // ─── Backfill custom_fields_raw for existing proposals ──
     if (sync_type === "backfill_cf_raw" || sync_type === "full") {
       try {
