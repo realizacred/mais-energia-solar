@@ -579,6 +579,7 @@ export default function SolarMarketPage() {
   const { data: customFields = [], isLoading: loadingCF } = useSmCustomFields();
   const updateClient = useUpdateSmClient();
   const deleteClient = useDeleteSmClient();
+  const clearLogs = useClearSyncLogs();
 
   const lastSync = syncLogs[0];
 
