@@ -500,6 +500,12 @@ export default function SolarMarketPage() {
   const resetMutation = useResetTenantData();
   const canReset = resetConfirmText === "APAGAR TUDO" && !resetMutation.isPending;
 
+  // Reset migrated only
+  const [resetMigratedOpen, setResetMigratedOpen] = useState(false);
+  const [resetMigratedText, setResetMigratedText] = useState("");
+  const resetMigratedMutation = useResetMigratedData();
+  const canResetMigrated = resetMigratedText === "LIMPAR MIGRADOS" && !resetMigratedMutation.isPending;
+
 
   const [selectedProposalIds, setSelectedProposalIds] = useState<Set<string>>(new Set());
   const [migrationDrawerProposals, setMigrationDrawerProposals] = useState<SmProposal[]>([]);
