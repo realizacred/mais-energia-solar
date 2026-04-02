@@ -661,11 +661,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {running
-                      ? batchProgress
-                        ? `Processando lote ${batchProgress.current}/${batchProgress.total}...`
-                        : "Processando..."
-                      : result ? "Resultado" : ""}
+                    {running ? "Processando..." : result ? "Resultado" : ""}
                   </span>
                   <span className="text-xs text-muted-foreground font-mono">{progressPercent}%</span>
                 </div>
