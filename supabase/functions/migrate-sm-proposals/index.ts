@@ -979,7 +979,7 @@ Deno.serve(async (req) => {
           if (autoResolveOwner && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
 
-            // Priority 2: DB cached funnel data
+            // Priority 1: DB cached funnel data (fast, no external call)
             if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
               if (smProj?.sm_funnel_name?.toLowerCase() === "vendedores" && smProj.sm_stage_name) {
                 try {
@@ -989,6 +989,22 @@ Deno.serve(async (req) => {
                   ownerSource = `db_funnel:${smProj.sm_stage_name}`;
                   (report as any).owner_resolved = { name: smProj.sm_stage_name, id, created, source: "db_vendedores" };
                 } catch (e) { /* fallthrough */ }
+              }
+            }
+
+            // Priority 2: Live fetch from SM API — only if DB cache empty
+            if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
+              const apiFunnelName = await fetchProjectFunnelVendedor(smProp.sm_project_id);
+              if (apiFunnelName) {
+                try {
+                  const { id, created } = await resolveOrCreateConsultor(apiFunnelName);
+                  resolvedOwnerId = id;
+                  ownerAutoCreated = created;
+                  ownerSource = `api_funnel:${apiFunnelName}`;
+                  (report as any).owner_resolved = { name: apiFunnelName, id, created, source: "sm_api_vendedores" };
+                } catch (e) {
+                  (report as any).owner_resolved = { error: (e as Error).message };
+                }
               }
             }
 
