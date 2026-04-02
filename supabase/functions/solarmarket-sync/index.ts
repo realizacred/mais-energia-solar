@@ -232,6 +232,21 @@ function extractProposalFields(pr: any) {
     return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   })();
 
+  // Rich fields from variables
+  const moduloFabricante = getVar("modulo_fabricante") || getVar("painel_fabricante") || null;
+  const moduloPotenciaW = getVarNum("modulo_potencia") || getVarNum("painel_potencia") || null;
+  const inversorFabricante = getVar("inversor_fabricante") || null;
+  const inversorPotenciaW = getVarNum("inversor_potencia") || getVarNum("inversor_potencia_nominal") || null;
+  const subgrupoTarifario = getVar("subgrupo_uc1") || getVar("subgrupo") || null;
+  const regraCompensacao = getVar("regra_comp_uc1") || getVar("regra_compensacao") || null;
+  const inclinacao = getVarNum("inclinacao") || null;
+  const desvioAzimutal = getVarNum("desvio_azimutal") || null;
+  const fatorGeracao = getVarNum("fator_geracao") || null;
+  const taxaDesempenho = getVarNum("taxa_desempenho") || null;
+  const areaUtil = getVarNum("area_util") || null;
+  const tensaoRede = getVar("tensao_rede") || null;
+  const topologia = getVar("topologia") || null;
+
   return {
     titulo: pr.title || pr.titulo || pr.name || null,
     sm_project_id: pr.project?.id || pr.projectId || pr.project_id || null,
@@ -257,7 +272,6 @@ function extractProposalFields(pr: any) {
     valid_until: pr.validUntil || pr.valid_until || pr.expirationDate || null,
     sm_created_at: pr.createdAt || pr.created_at || pr.generatedAt || null,
     sm_updated_at: pr.updatedAt || pr.updated_at || null,
-    // New fields
     link_pdf: pr.linkPdf || pr.link_pdf || null,
     consumo_mensal: getVarNum("consumo_mensal"),
     tarifa_distribuidora: getVarNum("tarifa_distribuidora"),
@@ -283,6 +297,22 @@ function extractProposalFields(pr: any) {
     viewed_at: pr.viewedAt || null,
     acceptance_date: pr.acceptanceDate || null,
     rejection_date: pr.rejectionDate || null,
+    // Rich equipment fields
+    modulo_fabricante: moduloFabricante,
+    modulo_potencia_w: moduloPotenciaW,
+    inversor_fabricante: inversorFabricante,
+    inversor_potencia_w: inversorPotenciaW,
+    // Regulatory / tariff
+    subgrupo_tarifario: subgrupoTarifario,
+    regra_compensacao: regraCompensacao,
+    // Pre-dimensioning
+    inclinacao,
+    desvio_azimutal: desvioAzimutal,
+    fator_geracao: fatorGeracao,
+    taxa_desempenho: taxaDesempenho,
+    area_util: areaUtil,
+    tensao_rede: tensaoRede,
+    topologia,
     // Client address from variables (fallback for migration)
     cliente_cidade: getVar("cliente_cidade") || null,
     cliente_estado: getVar("cliente_estado") || null,
