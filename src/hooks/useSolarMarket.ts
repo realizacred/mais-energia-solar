@@ -50,6 +50,7 @@ export interface SmProject {
   raw_payload: any | null;
   sm_created_at: string | null;
   synced_at: string;
+  has_active_proposal?: boolean;
 }
 
 export interface SmProposal {
