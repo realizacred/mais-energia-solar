@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useRef } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sun, CheckCircle, XCircle, Loader2, Clock, ArrowRight, AlertTriangle, FileText, User, Briefcase, FolderKanban, Copy } from "lucide-react";
@@ -203,6 +205,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+  const cancelRef = useRef(false);
 
   const { data: consultores = [] } = useConsultores();
   const { data: pipelines = [] } = usePipelines();
@@ -248,6 +252,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     // owner_id is now optional — auto-resolved from SM funnel "Vendedores"
     resetState();
     setRunning(true);
+    cancelRef.current = false;
+    setBatchProgress(null);
     addLog(`Iniciando ${dryRun ? "simulação (dry-run)" : "migração real"} para ${internalIds.length} proposta(s)`);
     addLog(ownerId ? `Responsável manual: ${consultores.find(c => c.id === ownerId)?.nome || ownerId}` : "Responsável será auto-resolvido pelo funil Vendedores");
 
@@ -256,61 +262,112 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     addLog("Buscando sessão do usuário...");
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        updateStep("fetch", { state: "error", detail: "Sessão expirada" });
-        setError("Você precisa estar logado. Faça login novamente.");
-        setRunning(false);
-        return;
-      }
-
       updateStep("fetch", { state: "done", detail: `${internalIds.length} proposta(s) selecionada(s)` });
-      addLog(`Token obtido. Invocando edge function...`);
+      addLog(`Invocando edge function...`);
 
       // Animate intermediate steps
       if (!dryRun) {
         updateStep("cliente", { state: "running" });
       }
 
-      const payload: Record<string, any> = {
+      const basePayload: Record<string, any> = {
         dry_run: dryRun,
         pipeline_id: activePipelineId,
         stage_id: activeStageId || null,
         auto_resolve_owner: true,
-        filters: { internal_ids: internalIds },
-        batch_size: internalIds.length,
         include_projects_without_proposal: true,
       };
       // Always send owner_id as fallback for proposals without Vendedores funnel
       if (ownerId && ownerId !== "__auto__") {
-        payload.owner_id = ownerId;
+        basePayload.owner_id = ownerId;
       }
 
-      const { data, error: fnError } = await supabase.functions.invoke("migrate-sm-proposals", {
-        body: payload,
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      // ── Batch processing: split into batches of 10 ──
+      const BATCH_SIZE = 10;
+      const batches: string[][] = [];
+      for (let i = 0; i < internalIds.length; i += BATCH_SIZE) {
+        batches.push(internalIds.slice(i, i + BATCH_SIZE));
+      }
 
-      if (fnError) {
-        let errMsg = fnError.message || "Erro desconhecido";
+      const allResults: MigrationResult[] = [];
+      setBatchProgress({ current: 0, total: batches.length });
+
+      // Animate steps progressively for non-dry-run
+      const animateStepsAsync = async () => {
+        if (dryRun) return;
+        const stepOrder: StepName[] = ["cliente", "deal", "projeto", "proposta", "versao"];
+        for (const stepName of stepOrder) {
+          if (cancelRef.current) break;
+          updateStep(stepName, { state: "running" });
+          await new Promise(r => setTimeout(r, 1200));
+        }
+      };
+      // Fire animation in parallel (non-blocking)
+      const animPromise = animateStepsAsync();
+
+      for (let b = 0; b < batches.length; b++) {
+        if (cancelRef.current) break;
+
+        const batch = batches[b];
+        setBatchProgress({ current: b + 1, total: batches.length });
+        addLog(`Lote ${b + 1}/${batches.length} (${batch.length} propostas)...`);
+
+        const payload = {
+          ...basePayload,
+          filters: { internal_ids: batch },
+          batch_size: batch.length,
+        };
+
         try {
-          const ctx = (fnError as any).context;
-          if (ctx && typeof ctx.json === "function") {
-            const body = await ctx.clone().json();
-            errMsg = body?.error || errMsg;
+          const data = await invokeEdgeFunction<MigrationResult>("migrate-sm-proposals", {
+            body: payload,
+          });
+
+          if ((data as any)?.error) {
+            throw new Error((data as any).error);
           }
-        } catch { /* ignore */ }
-        throw new Error(errMsg);
+
+          allResults.push(data);
+          addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)}`);
+        } catch (batchErr: any) {
+          const msg = batchErr?.message ?? "Erro desconhecido no lote";
+          addLog(`ERRO lote ${b + 1}: ${msg}`);
+          // Continue with remaining batches
+        }
+
+        // Small pause between batches to avoid rate limiting
+        if (b < batches.length - 1) {
+          await new Promise(r => setTimeout(r, 500));
+        }
       }
 
-      const migResult = data as MigrationResult;
-      setResult(migResult);
-      addLog(`Resultado: ${JSON.stringify(migResult.summary)}`);
+      // Wait for animation to finish
+      cancelRef.current = true;
+      await animPromise;
+
+      // Merge results from all batches
+      const mergedResult: MigrationResult = {
+        mode: dryRun ? "dry_run" : "execute",
+        summary: { WOULD_CREATE: 0, WOULD_LINK: 0, WOULD_SKIP: 0, CONFLICT: 0, ERROR: 0, SUCCESS: 0 },
+        details: [],
+        total_found: 0,
+        total_processed: 0,
+      };
+
+      for (const r of allResults) {
+        mergedResult.total_found += r.total_found || 0;
+        mergedResult.total_processed += r.total_processed || 0;
+        if (r.details) mergedResult.details.push(...r.details);
+        for (const [k, v] of Object.entries(r.summary || {})) {
+          mergedResult.summary[k] = (mergedResult.summary[k] || 0) + (v as number);
+        }
+      }
+
+      setResult(mergedResult);
+      addLog(`Resultado final: ${JSON.stringify(mergedResult.summary)}`);
 
       // Map server steps to UI steps
-      const detail = migResult.details?.[0];
+      const detail = mergedResult.details?.[0];
       if (detail) {
         const stepMap: Record<string, StepName> = {
           cliente: "cliente",
@@ -333,14 +390,14 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         }
       } else if (isBulk) {
         // Bulk: mark all steps based on summary
-        const hasErrors = (migResult.summary.ERROR || 0) > 0;
+        const hasErrors = (mergedResult.summary.ERROR || 0) > 0;
         for (const s of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
           updateStep(s, { state: hasErrors ? "error" : "done" });
         }
       }
 
       updateStep("done", {
-        state: (migResult.summary.ERROR || 0) > 0 ? "error" : "done",
+        state: (mergedResult.summary.ERROR || 0) > 0 ? "error" : "done",
         detail: dryRun ? "Simulação concluída" : "Migração concluída",
       });
 
@@ -356,7 +413,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     } finally {
       setRunning(false);
     }
-  }, [ownerId, internalIds, activePipelineId, activeStageId, addLog, resetState, updateStep, isBulk, qc, consultores]);
+  }, [ownerId, internalIds, activePipelineId, activeStageId, addLog, resetState, updateStep, isBulk, qc, consultores, cancelRef]);
 
   const handleExecuteConfirm = () => {
     setConfirmOpen(false);
@@ -366,7 +423,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
   // Progress calculation
   const completedSteps = steps.filter(s => s.state === "done" || s.state === "error" || s.state === "skipped").length;
-  const progressPercent = running ? Math.round((completedSteps / steps.length) * 100) : (result ? 100 : 0);
+  const batchPercent = batchProgress ? Math.round((batchProgress.current / batchProgress.total) * 100) : 0;
+  const progressPercent = running ? Math.max(batchPercent, Math.round((completedSteps / steps.length) * 100)) : (result ? 100 : 0);
 
   if (!proposal) return null;
 
@@ -516,7 +574,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {running ? "Processando..." : result ? "Resultado" : ""}
+                    {running
+                      ? batchProgress
+                        ? `Processando lote ${batchProgress.current}/${batchProgress.total}...`
+                        : "Processando..."
+                      : result ? "Resultado" : ""}
                   </span>
                   <span className="text-xs text-muted-foreground font-mono">{progressPercent}%</span>
                 </div>
