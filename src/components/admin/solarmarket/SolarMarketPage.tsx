@@ -24,6 +24,7 @@ import {
   useIsBackgroundSyncActive,
   useUpdateSmClient,
   useDeleteSmClient,
+  useClearSyncLogs,
   type SmClient,
   type SmProject,
   type SmProposal,

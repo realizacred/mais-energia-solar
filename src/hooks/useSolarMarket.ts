@@ -338,6 +338,38 @@ export function useSmSyncLogs() {
 
 // ─── CRUD Mutations ────────────────────────────────────
 
+export function useClearSyncLogs() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+
+      const { error } = await (supabase as any)
+        .from("solar_market_sync_logs")
+        .delete()
+        .eq("tenant_id", profile.tenant_id)
+        .neq("status", "running");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
+      toast({ title: "Histórico de logs limpo" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao limpar logs", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useUpdateSmClient() {
   const qc = useQueryClient();
   const { toast } = useToast();
