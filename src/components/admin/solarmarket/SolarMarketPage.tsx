@@ -845,38 +845,38 @@ export default function SolarMarketPage() {
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => { setTab(v); clearFilters(); setSearch(""); clientsPag.resetPage(); projectsPag.resetPage(); proposalsPag.resetPage(); noProjectPag.resetPage(); noProposalPag.resetPage(); }}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <TabsList className="h-8">
-            <TabsTrigger value="clientes" className="text-xs px-2.5 h-7">
+          <TabsList className="overflow-x-auto flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="clientes" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
               <Users className="h-3 w-3 mr-1" />
               Clientes ({clients.length})
             </TabsTrigger>
-            <TabsTrigger value="projetos" className="text-xs px-2.5 h-7">
+            <TabsTrigger value="projetos" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
               <FolderKanban className="h-3 w-3 mr-1" />
               Projetos ({filtered.projects.length})
               {filterClientId && <span className="ml-1 text-[10px] text-primary">●</span>}
             </TabsTrigger>
-            <TabsTrigger value="propostas" className="text-xs px-2.5 h-7">
+            <TabsTrigger value="propostas" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
               <FileText className="h-3 w-3 mr-1" />
               Propostas ({filtered.proposals.length})
               {filterProjectId && <span className="ml-1 text-[10px] text-primary">●</span>}
             </TabsTrigger>
-            <TabsTrigger value="sem-projeto" className="text-xs px-2.5 h-7">
+            <TabsTrigger value="sem-projeto" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
               <UserMinus className="h-3 w-3 mr-1" />
               Sem Projeto ({clientsWithoutProjectsCount})
             </TabsTrigger>
-            <TabsTrigger value="sem-proposta" className="text-xs px-2.5 h-7">
+            <TabsTrigger value="sem-proposta" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
               <UserX className="h-3 w-3 mr-1" />
               Sem Proposta ({clientsWithoutProposalsCount})
             </TabsTrigger>
-            <TabsTrigger value="funis" className="text-xs px-2.5 h-7">
+            <TabsTrigger value="funis" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
               <GitBranch className="h-3 w-3 mr-1" />
               Funis ({funnels.length})
             </TabsTrigger>
-            <TabsTrigger value="campos" className="text-xs px-2.5 h-7">
+            <TabsTrigger value="campos" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
               <Settings2 className="h-3 w-3 mr-1" />
               Campos ({customFields.length})
             </TabsTrigger>
-            <TabsTrigger value="logs" className="text-xs px-2.5 h-7">
+            <TabsTrigger value="logs" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
               <Clock className="h-3 w-3 mr-1" />
               Logs
             </TabsTrigger>
