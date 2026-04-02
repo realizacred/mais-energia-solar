@@ -177,6 +177,7 @@ export function RecebimentosManager() {
         valor_total: formData.valor_total,
         descricao: formData.descricao || null,
         data_acordo: formData.data_acordo,
+        data_vencimento: formData.data_vencimento || null,
         composicao_acordada: composicao.length > 0 ? composicao : [],
         forma_pagamento_acordada: composicao.length > 0 ? composicao[0].forma : "a_definir",
         numero_parcelas: 1,
