@@ -314,6 +314,10 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let logId: string | undefined;
+  let totalFetched = 0;
+  let totalUpserted = 0;
+  let totalErrors = 0;
   try {
     // ─── Auth ──────────────────────────────────────────────
     const authHeader = req.headers.get("authorization");
