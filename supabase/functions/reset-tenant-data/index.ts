@@ -22,7 +22,6 @@ serve(async (req) => {
       );
     }
 
-    // Resolve tenant from caller JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -45,16 +44,14 @@ serve(async (req) => {
       );
     }
 
-    // Service role client for deletions (bypasses RLS)
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Resolve tenant_id from profile
     const { data: profile, error: profileErr } = await admin
       .from("profiles")
-      .select("tenant_id")
+      .select("tenant_id, is_admin")
       .eq("user_id", user.id)
       .single();
 
@@ -65,51 +62,37 @@ serve(async (req) => {
       );
     }
 
-    const tenantId = profile.tenant_id;
-
-    // Check admin role
-    const { data: roleData } = await admin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!roleData) {
+    if (!profile.is_admin) {
       return new Response(
         JSON.stringify({ error: "Apenas administradores podem executar esta operação." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Delete in FK order
-    const counts: Record<string, number> = {};
+    const tenantId = profile.tenant_id;
+    const results: Record<string, { ok: boolean; error?: string }> = {};
 
-    const tables = [
-      "pagamentos",
-      "parcelas",
-      "recebimentos",
-    ];
-
-    // Direct tenant_id tables first
-    for (const table of tables) {
-      const { data, error } = await admin
-        .from(table)
-        .delete()
-        .eq("tenant_id", tenantId)
-        .select("id");
-      if (error) {
-        console.error(`[reset-tenant-data] Error deleting ${table}:`, error.message);
-        return new Response(
-          JSON.stringify({ error: `Erro ao apagar ${table}: ${error.message}` }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+    // Helper: delete from table with tenant_id, continue on error
+    const deleteTable = async (table: string) => {
+      try {
+        const { error } = await admin
+          .from(table)
+          .delete()
+          .eq("tenant_id", tenantId);
+        if (error) {
+          console.error(`[reset-tenant-data] Error deleting ${table}: ${error.message}`);
+          results[table] = { ok: false, error: error.message };
+        } else {
+          results[table] = { ok: true };
+        }
+      } catch (e) {
+        console.error(`[reset-tenant-data] Exception deleting ${table}: ${String(e)}`);
+        results[table] = { ok: false, error: String(e) };
       }
-      counts[table] = data?.length ?? 0;
-    }
+    };
 
-    // proposta_versoes via subquery
-    {
+    // 1. Delete proposta_versoes via subquery (no tenant_id column)
+    try {
       const { data: proposalIds } = await admin
         .from("propostas_nativas")
         .select("id")
@@ -117,29 +100,35 @@ serve(async (req) => {
 
       if (proposalIds && proposalIds.length > 0) {
         const ids = proposalIds.map((p: { id: string }) => p.id);
-        const { data, error } = await admin
+        const { error } = await admin
           .from("proposta_versoes")
           .delete()
-          .in("proposta_id", ids)
-          .select("id");
+          .in("proposta_id", ids);
         if (error) {
           console.error("[reset-tenant-data] Error deleting proposta_versoes:", error.message);
-          return new Response(
-            JSON.stringify({ error: `Erro ao apagar proposta_versoes: ${error.message}` }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+          results["proposta_versoes"] = { ok: false, error: error.message };
+        } else {
+          results["proposta_versoes"] = { ok: true };
         }
-        counts["proposta_versoes"] = data?.length ?? 0;
       } else {
-        counts["proposta_versoes"] = 0;
+        results["proposta_versoes"] = { ok: true };
       }
+    } catch (e) {
+      console.error("[reset-tenant-data] Exception deleting proposta_versoes:", String(e));
+      results["proposta_versoes"] = { ok: false, error: String(e) };
     }
 
-    // Remaining tables with tenant_id
-    const remainingTables = [
+    // 2. Delete tables in correct FK order
+    // (children before parents: pagamentos → parcelas → recebimentos,
+    //  propostas_nativas, projetos before deals, clientes last among canonical,
+    //  then SM tables)
+    const orderedTables = [
+      "pagamentos",
+      "parcelas",
+      "recebimentos",
       "propostas_nativas",
-      "deals",
       "projetos",
+      "deals",
       "clientes",
       "solar_market_custom_field_values",
       "solar_market_custom_fields",
@@ -151,30 +140,23 @@ serve(async (req) => {
       "solar_market_sync_logs",
     ];
 
-    for (const table of remainingTables) {
-      const { data, error } = await admin
-        .from(table)
-        .delete()
-        .eq("tenant_id", tenantId)
-        .select("id");
-      if (error) {
-        console.error(`[reset-tenant-data] Error deleting ${table}:`, error.message);
-        return new Response(
-          JSON.stringify({ error: `Erro ao apagar ${table}: ${error.message}` }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      counts[table] = data?.length ?? 0;
+    for (const table of orderedTables) {
+      await deleteTable(table);
     }
 
+    const hasErrors = Object.values(results).some((r) => !r.ok);
+
     return new Response(
-      JSON.stringify({ success: true, counts }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({ success: !hasErrors, tenantId, results }),
+      {
+        status: hasErrors ? 207 : 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (e) {
     console.error("[reset-tenant-data] Unexpected error:", e);
     return new Response(
-      JSON.stringify({ error: e.message ?? "Erro inesperado." }),
+      JSON.stringify({ error: e.message ?? "Erro inesperado.", step: "reset-tenant-data" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
