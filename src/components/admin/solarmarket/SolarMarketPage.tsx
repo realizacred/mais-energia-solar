@@ -441,6 +441,10 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
               <TableCell>
                 {log.status === "completed" ? (
                   <Badge className="text-[10px] bg-success/10 text-success border-0"><CheckCircle className="h-3 w-3 mr-1" />OK</Badge>
+                ) : log.status === "partial" ? (
+                  <Badge className="text-[10px] bg-warning/10 text-warning border-0"><Clock className="h-3 w-3 mr-1" />Parcial</Badge>
+                ) : log.status === "completed_with_errors" ? (
+                  <Badge className="text-[10px] bg-warning/10 text-warning border-0"><AlertTriangle className="h-3 w-3 mr-1" />Com erros</Badge>
                 ) : log.status === "running" ? (
                   <Badge className="text-[10px] bg-warning/10 text-warning border-0"><RefreshCw className="h-3 w-3 mr-1 animate-spin" />Rodando</Badge>
                 ) : (

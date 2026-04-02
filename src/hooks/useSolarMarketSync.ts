@@ -212,9 +212,10 @@ export function useSolarMarketSync() {
         const fetched = data?.total_fetched || 0;
         const upserted = data?.total_upserted || 0;
         const errors = data?.total_errors || 0;
+        const isPartial = data?.status === "partial";
 
         updateStage(stage, {
-          status: errors > 0 ? "error" : "done",
+          status: isPartial ? "done" : (errors > 0 ? "error" : "done"),
           fetched,
           upserted,
           errors,
