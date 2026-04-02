@@ -650,7 +650,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             {/* Stage selector (dynamic from selected pipeline) */}
             {pipelineStages.length > 0 && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Etapa padrão</label>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Etapa padrão {needsStage && <span className="text-destructive">*</span>}
+                </label>
                 <Select value={activeStageId} onValueChange={setSelectedStageId}>
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Primeira etapa (padrão)" />
@@ -664,6 +666,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
                 <p className="text-[10px] text-muted-foreground">
                   Status SM "{statusLabel.label}" → Etapa: {pipelineStages.find(s => s.id === activeStageId)?.name || "primeira disponível"}
                 </p>
+                {needsStage && !activeStageId && (
+                  <p className="text-[10px] text-destructive">
+                    Obrigatório para pipelines do tipo processo
+                  </p>
+                )}
               </div>
             )}
 
