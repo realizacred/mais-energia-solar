@@ -80,7 +80,7 @@ export function ProjetoFilters({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col xl:flex-row xl:items-end gap-3 xl:gap-4 flex-wrap">
+      <div className="flex flex-wrap items-end gap-3 sm:gap-4">
         {/* Left: Funil | Lista toggle */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0 overflow-x-auto">
           <Button
