@@ -699,6 +699,25 @@ export function RecebimentosManager() {
           onUpdate={refreshRecebimentos}
         />
       )}
+
+      {/* Cobranca WA Dialog */}
+      {selectedRecebimento && cobrancaWaOpen && (
+        <CobrancaWaDialog
+          open={cobrancaWaOpen}
+          onClose={() => {
+            setCobrancaWaOpen(false);
+            setSelectedRecebimento(null);
+          }}
+          recebimento={{
+            id: selectedRecebimento.id,
+            valor_total: selectedRecebimento.valor_total,
+            total_pago: calcularTotalPago(selectedRecebimento),
+            descricao: selectedRecebimento.descricao,
+            data_vencimento: selectedRecebimento.data_vencimento,
+            clientes: selectedRecebimento.clientes || null,
+          }}
+        />
+      )}
     </motion.div>
   );
 }
