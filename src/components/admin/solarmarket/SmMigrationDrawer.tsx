@@ -265,10 +265,25 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       updateStep("fetch", { state: "done", detail: `${internalIds.length} proposta(s) selecionada(s)` });
       addLog(`Invocando edge function...`);
 
-      // Mark fetch step as running for UI
-      if (!dryRun) {
-        updateStep("cliente", { state: "running" });
-      }
+      // Sequential step animation running in parallel with EF calls
+      const stepAnimCancelRef = { current: false };
+      const runStepAnimation = async () => {
+        if (dryRun) return;
+        const seq: { key: StepName; ms: number }[] = [
+          { key: "cliente", ms: 1200 },
+          { key: "deal", ms: 1000 },
+          { key: "projeto", ms: 1000 },
+          { key: "proposta", ms: 1500 },
+          { key: "versao", ms: 2000 },
+        ];
+        for (const step of seq) {
+          if (stepAnimCancelRef.current) break;
+          updateStep(step.key, { state: "running" });
+          await new Promise(r => setTimeout(r, step.ms));
+          if (stepAnimCancelRef.current) break;
+        }
+      };
+      const animPromise = runStepAnimation();
 
       const basePayload: Record<string, any> = {
         dry_run: dryRun,
