@@ -8,9 +8,9 @@ const corsHeaders = {
 };
 
 const ENDPOINT_MAP: Record<string, string> = {
-  "BuscarFiltros": "/hubB2B/Categoria",
-  "BuscarKits": "/hubB2B/Produtos",
-  "MontarKits": "/hubB2B/Produtos",
+  "BuscarFiltros": "/integracaoPlataforma/BuscarFiltros",
+  "BuscarKits": "/integracaoPlataforma/BuscarKits",
+  "MontarKits": "/integracaoPlataforma/MontarKits",
   "Produtos": "/hubB2B/Produtos",
   "Categoria": "/hubB2B/Categoria",
   "FormasDePagamento": "/hubB2B/FormasDePagamento",
@@ -123,21 +123,28 @@ Deno.serve(async (req: Request) => {
     const url = new URL(`${BASE_URL}${path}`);
     url.searchParams.set("token", token);
 
-    // Convert potenciaDoKit (kWp) to Watts with ±20% range
+    // Convert potenciaDoKit (kWp) to Watts with ±20% range for hubB2B endpoints
+    const isHubB2B = path.startsWith("/hubB2B");
     if (params.potenciaDoKit != null) {
-      const potW = Number(params.potenciaDoKit) * 1000;
-      url.searchParams.set("potenciaMinima", String(potW * 0.8));
-      url.searchParams.set("potenciaMaxima", String(potW * 1.2));
-      delete params.potenciaDoKit;
+      if (isHubB2B) {
+        // hubB2B uses potenciaMinima/potenciaMaxima in Watts
+        const potW = Number(params.potenciaDoKit) * 1000;
+        url.searchParams.set("potenciaMinima", String(potW * 0.8));
+        url.searchParams.set("potenciaMaxima", String(potW * 1.2));
+        delete params.potenciaDoKit;
+      }
+      // integracaoPlataforma accepts potenciaDoKit directly (kWp)
     }
 
-    // Remove params not supported by HubB2B
-    delete params.fase;
-    delete params.tensao;
-    delete params.tipoInv;
-    delete params.marcaPainel;
-    delete params.marcaInversor;
-    delete params.cifComDescarga;
+    if (isHubB2B) {
+      // Remove params not supported by HubB2B
+      delete params.fase;
+      delete params.tensao;
+      delete params.tipoInv;
+      delete params.marcaPainel;
+      delete params.marcaInversor;
+      delete params.cifComDescarga;
+    }
 
     // Pass remaining params (ibge, paginaAtual, etc.)
     for (const [key, value] of Object.entries(params)) {
