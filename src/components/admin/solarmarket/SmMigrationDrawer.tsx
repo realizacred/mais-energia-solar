@@ -305,7 +305,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         pipeline_id: activePipelineId,
         stage_id: activeStageId || null,
         auto_resolve_owner: true,
-        include_projects_without_proposal: true,
+        include_projects_without_proposal: false,
       };
       // Always send owner_id as fallback for proposals without Vendedores funnel
       if (ownerId && ownerId !== "__auto__") {
