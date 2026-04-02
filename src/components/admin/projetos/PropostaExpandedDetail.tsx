@@ -1289,18 +1289,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   {/* ─ Dados Tab — unified via ProposalSnapshotView (SSOT) ─ */}
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
-                    {(snapshot as Record<string, any>)?.source === "legacy_import" ? (
-                      <SmDadosTab snapshot={snapshot as Record<string, any>} latestVersao={latestVersao} />
-                    ) : (
-                      <div className="mt-3">
-                        <ProposalSnapshotView
-                          snapshot={snapshot as Record<string, unknown> | null}
-                          valorTotal={latestVersao?.valor_total}
-                          geracaoMensal={latestVersao?.geracao_mensal ?? undefined}
-                          economiaMensal={latestVersao?.economia_mensal ?? undefined}
-                        />
-                      </div>
-                    )}
+                    <div className="mt-3">
+                      <ProposalSnapshotView
+                        snapshot={snapshot as Record<string, unknown> | null}
+                        valorTotal={latestVersao?.valor_total}
+                        geracaoMensal={latestVersao?.geracao_mensal ?? undefined}
+                        economiaMensal={latestVersao?.economia_mensal ?? undefined}
+                      />
+                    </div>
                   </TabsContent>
 
                   {/* ─ Histórico Tab ──────────── */}

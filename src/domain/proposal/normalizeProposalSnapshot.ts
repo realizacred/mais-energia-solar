@@ -302,8 +302,14 @@ export function normalizeProposalSnapshot(
       .reduce((sum, m) => sum + (m.potencia_w * m.quantidade) / 1000, 0);
   }
 
-  // Geração mensal — snapshot > UCs > fallback estimado
+  // Geração mensal — snapshot > geracao_anual/12 > UCs > fallback estimado
   let geracaoMensalEstimada = num(s.geracaoMensalEstimada ?? s.geracao_mensal_estimada);
+  if (geracaoMensalEstimada === 0) {
+    const geracaoAnual = num(s.geracao_anual);
+    if (geracaoAnual > 0) {
+      geracaoMensalEstimada = Math.round(geracaoAnual / 12);
+    }
+  }
   if (geracaoMensalEstimada === 0) {
     geracaoMensalEstimada = ucs.reduce((sum, uc) => sum + uc.geracao_mensal_estimada, 0);
   }
