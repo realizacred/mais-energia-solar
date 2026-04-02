@@ -235,21 +235,28 @@ Deno.serve(async (req) => {
       smBaseUrl = (smConfig?.base_url || smBaseUrl).replace(/\/$/, "");
 
       if (apiToken) {
+        const signinController = new AbortController();
+        const signinTimeout = setTimeout(() => signinController.abort(), 10_000);
         try {
           const signinRes = await fetch(`${smBaseUrl}/auth/signin`, {
             method: "POST",
             headers: { Accept: "application/json", "Content-Type": "application/json" },
             body: JSON.stringify({ token: apiToken }),
+            signal: signinController.signal,
           });
           if (signinRes.ok) {
             const signinData = await signinRes.json();
             smAccessToken = signinData.access_token || signinData.accessToken || signinData.token || null;
-            console.log(`[SM Migration] SM API authenticated (token len=${smAccessToken?.length})`);
+            console.error(`[SM Migration] SM API authenticated (token len=${smAccessToken?.length})`);
           } else {
             console.warn(`[SM Migration] SM API auth failed: ${signinRes.status}`);
           }
-        } catch (e) {
-          console.warn(`[SM Migration] SM API auth error: ${(e as Error).message}`);
+        } catch (signinErr: any) {
+          const isTimeout = signinErr?.name === "AbortError";
+          console.warn(`[SM Migration] SM API auth ${isTimeout ? "timeout (10s)" : "error"}: ${signinErr?.message}`);
+          // Don't block migration — continue without SM API token, will use DB fallback
+        } finally {
+          clearTimeout(signinTimeout);
         }
       } else {
         console.warn("[SM Migration] No SM API token found, will fallback to DB responsible field");
