@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
+// invokeEdgeFunction replaced by direct fetch with 120s timeout for migration
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sun, CheckCircle, XCircle, Loader2, Clock, ArrowRight, AlertTriangle, FileText, User, Briefcase, FolderKanban, Copy } from "lucide-react";
@@ -265,7 +265,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       updateStep("fetch", { state: "done", detail: `${internalIds.length} proposta(s) selecionada(s)` });
       addLog(`Invocando edge function...`);
 
-      // Animate intermediate steps
+      // Mark fetch step as running for UI
       if (!dryRun) {
         updateStep("cliente", { state: "running" });
       }
@@ -292,19 +292,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       const allResults: MigrationResult[] = [];
       setBatchProgress({ current: 0, total: batches.length });
 
-      // Animate steps progressively for non-dry-run
-      const animateStepsAsync = async () => {
-        if (dryRun) return;
-        const stepOrder: StepName[] = ["cliente", "deal", "projeto", "proposta", "versao"];
-        for (const stepName of stepOrder) {
-          if (cancelRef.current) break;
-          updateStep(stepName, { state: "running" });
-          await new Promise(r => setTimeout(r, 1200));
-        }
-      };
-      // Fire animation in parallel (non-blocking)
-      const animPromise = animateStepsAsync();
-
       const batchErrors: string[] = [];
 
       for (let b = 0; b < batches.length; b++) {
@@ -321,9 +308,36 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         };
 
         try {
-          const data = await invokeEdgeFunction<MigrationResult>("migrate-sm-proposals", {
-            body: payload,
-          });
+          // Use direct fetch with 120s timeout to avoid "Failed to fetch" on long migrations
+          const projectUrl = import.meta.env.VITE_SUPABASE_URL;
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+          let response: Response;
+          try {
+            response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+              signal: controller.signal,
+            });
+          } finally {
+            clearTimeout(timeoutId);
+          }
+
+          if (!response.ok) {
+            const errBody = await response.json().catch(() => ({}));
+            throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
+          }
+
+          const data = await response.json() as MigrationResult;
 
           if ((data as any)?.error) {
             throw new Error((data as any).error);
@@ -331,10 +345,38 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
           allResults.push(data);
           addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)}`);
+
+          // Update steps progressively from this batch's first detail
+          if (!dryRun && data.details?.[0]) {
+            const detail = data.details[0];
+            const stepMap: Record<string, StepName> = {
+              cliente: "cliente", deal: "deal", projeto: "projeto",
+              proposta_nativa: "proposta", proposta_versao: "versao",
+            };
+            for (const [key, stepName] of Object.entries(stepMap)) {
+              const serverStep = (detail.steps as Record<string, any>)[key];
+              if (serverStep) {
+                const isOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(serverStep.status);
+                updateStep(stepName, {
+                  state: isOk ? "done" : "error",
+                  detail: `${serverStep.status}${serverStep.id ? ` → ${serverStep.id.slice(0, 8)}...` : ""}${serverStep.reason ? ` (${serverStep.reason})` : ""}`,
+                  createdId: serverStep.id,
+                });
+              }
+            }
+          }
         } catch (batchErr: any) {
-          const msg = batchErr?.message ?? "Erro desconhecido no lote";
+          const msg = batchErr?.name === "AbortError"
+            ? "Timeout: migração demorou mais de 120s. Tente com menos propostas."
+            : batchErr?.message ?? "Erro desconhecido no lote";
           batchErrors.push(msg);
           addLog(`ERRO lote ${b + 1}: ${msg}`);
+          // Mark all pending steps as error on failure
+          if (!dryRun) {
+            for (const s of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+              setSteps(prev => prev.map(st => st.name === s && st.state === "running" ? { ...st, state: "error", detail: msg } : st));
+            }
+          }
           // Continue with remaining batches
         }
 
@@ -344,10 +386,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         }
       }
 
-      // Wait for animation to finish
-      cancelRef.current = true;
-      await animPromise;
-
+      // All batches done
       if (allResults.length === 0) {
         throw new Error(batchErrors[0] || "Nenhum lote retornou resultado de migração.");
       }
