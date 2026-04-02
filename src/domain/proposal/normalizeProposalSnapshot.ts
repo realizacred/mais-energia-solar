@@ -302,8 +302,14 @@ export function normalizeProposalSnapshot(
       .reduce((sum, m) => sum + (m.potencia_w * m.quantidade) / 1000, 0);
   }
 
-  // Geração mensal — snapshot > UCs > fallback estimado
+  // Geração mensal — snapshot > geracao_anual/12 > UCs > fallback estimado
   let geracaoMensalEstimada = num(s.geracaoMensalEstimada ?? s.geracao_mensal_estimada);
+  if (geracaoMensalEstimada === 0) {
+    const geracaoAnual = num(s.geracao_anual);
+    if (geracaoAnual > 0) {
+      geracaoMensalEstimada = Math.round(geracaoAnual / 12);
+    }
+  }
   if (geracaoMensalEstimada === 0) {
     geracaoMensalEstimada = ucs.reduce((sum, uc) => sum + uc.geracao_mensal_estimada, 0);
   }
@@ -327,10 +333,10 @@ export function normalizeProposalSnapshot(
 
     // Cliente — fallback chain: cliente obj → top-level camelCase → selectedLead
     clienteNome: str(cliente.nome ?? s.clienteNome ?? s.cliente_nome ?? lead.nome),
-    clienteEmpresa: str(cliente.empresa ?? s.clienteEmpresa ?? s.cliente_empresa),
-    clienteCelular: str(cliente.celular ?? s.clienteCelular ?? s.cliente_celular ?? lead.telefone),
+    clienteEmpresa: str(cliente.empresa ?? s.clienteEmpresa ?? s.cliente_empresa ?? lead.empresa),
+    clienteCelular: str(cliente.celular ?? cliente.telefone ?? s.clienteCelular ?? s.cliente_celular ?? lead.telefone),
     clienteEmail: str(cliente.email ?? s.clienteEmail ?? s.cliente_email ?? lead.email),
-    clienteCpfCnpj: str(cliente.cnpj_cpf ?? s.clienteCpfCnpj ?? s.cliente_cpf_cnpj ?? lead.cpf_cnpj),
+    clienteCpfCnpj: str(cliente.cnpj_cpf ?? cliente.documento ?? s.clienteCpfCnpj ?? s.cliente_cpf_cnpj ?? lead.cpf_cnpj),
 
     // Sistema
     potenciaKwp,

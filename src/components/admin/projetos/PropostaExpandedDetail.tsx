@@ -334,61 +334,6 @@ function SmArquivoTab({ snapshot }: { snapshot: any }) {
   );
 }
 
-function SmDadosTab({ snapshot, latestVersao }: { snapshot: any; latestVersao: VersaoData | undefined }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-3">
-      {/* Sistema */}
-      <div className="border rounded-lg p-4 space-y-3">
-        <h4 className="text-sm font-bold text-foreground">Sistema</h4>
-        <DadosField icon="check" label="Telhado" value={snapshot.roof_type || "—"} />
-        <DadosField icon="text" label="Estrutura" value={snapshot.structure_type || "—"} />
-        <DadosField icon="text" label="Módulo" value={snapshot.panel_model || "—"} />
-        <DadosField icon="text" label="Qtd Módulos" value={snapshot.panel_quantity?.toString() || "—"} />
-        <DadosField icon="text" label="Inversor" value={snapshot.inverter_model || "—"} />
-        <DadosField icon="text" label="Qtd Inversores" value={snapshot.inverter_quantity?.toString() || "—"} />
-        <DadosField icon="text" label="Garantia" value={snapshot.warranty || "—"} />
-      </div>
-
-      {/* Financeiro */}
-      <div className="border rounded-lg p-4 space-y-3">
-        <h4 className="text-sm font-bold text-foreground">Financeiro</h4>
-        <DadosField icon="dollar" label="Custo Equipamento" value={snapshot.equipment_cost ? formatBRL(snapshot.equipment_cost) : "—"} />
-        <DadosField icon="dollar" label="Custo Instalação" value={snapshot.installation_cost ? formatBRL(snapshot.installation_cost) : "—"} />
-        <DadosField icon="dollar" label="Desconto" value={snapshot.discount ? formatBRL(snapshot.discount) : "—"} />
-        <DadosField icon="dollar" label="TIR" value={snapshot.tir ? `${formatNumberBR(snapshot.tir * 100)}%` : "—"} />
-        <DadosField icon="dollar" label="VPL" value={snapshot.vpl ? formatBRL(snapshot.vpl) : "—"} />
-        <DadosField icon="text" label="Payback" value={snapshot.payback_original || "—"} />
-      </div>
-
-      {/* Energia */}
-      <div className="border rounded-lg p-4 space-y-3">
-        <h4 className="text-sm font-bold text-foreground">Energia</h4>
-        <DadosField icon="text" label="Consumo Mensal" value={snapshot.consumo_mensal ? `${formatNumberBR(snapshot.consumo_mensal)} kWh` : "—"} />
-        <DadosField icon="text" label="Geração Anual" value={snapshot.geracao_anual ? `${formatNumberBR(Number(snapshot.geracao_anual))} kWh` : "—"} />
-        <DadosField icon="text" label="Economia %" value={snapshot.economia_mensal_percent ? `${formatNumberBR(snapshot.economia_mensal_percent)}%` : "—"} />
-        <DadosField icon="dollar" label="Tarifa Distribuidora" value={snapshot.tarifa_distribuidora ? `R$ ${Number(snapshot.tarifa_distribuidora).toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}` : "—"} />
-        <DadosField icon="dollar" label="Custo Disponibilidade" value={snapshot.custo_disponibilidade ? formatBRL(snapshot.custo_disponibilidade) : "—"} />
-        <DadosField icon="text" label="Sobredimensionamento" value={snapshot.sobredimensionamento ? `${formatNumberBR(snapshot.sobredimensionamento * 100)}%` : "—"} />
-        <DadosField icon="text" label="Perda Eficiência/Ano" value={snapshot.perda_eficiencia_anual ? `${formatNumberBR(snapshot.perda_eficiencia_anual * 100)}%` : "—"} />
-        <DadosField icon="text" label="Inflação Energética" value={snapshot.inflacao_energetica ? `${formatNumberBR(snapshot.inflacao_energetica * 100)}%` : "—"} />
-      </div>
-
-      {/* Pagamento */}
-      <div className="border rounded-lg p-4 space-y-3">
-        <h4 className="text-sm font-bold text-foreground">Pagamento</h4>
-        <div className="pb-3 border-b border-border/30">
-          <p className="text-xs font-bold text-primary">À vista</p>
-          <p className="text-sm font-bold text-foreground">{formatBRL(latestVersao?.valor_total || 0)}</p>
-        </div>
-        {snapshot.payment_conditions ? (
-          <DadosField icon="text" label="Condições" value={snapshot.payment_conditions} />
-        ) : (
-          <p className="text-xs text-muted-foreground">Sem opções de financiamento</p>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── Native Tab Components ─────────────────────────────
 
@@ -1289,18 +1234,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   {/* ─ Dados Tab — unified via ProposalSnapshotView (SSOT) ─ */}
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
-                    {(snapshot as Record<string, any>)?.source === "legacy_import" ? (
-                      <SmDadosTab snapshot={snapshot as Record<string, any>} latestVersao={latestVersao} />
-                    ) : (
-                      <div className="mt-3">
-                        <ProposalSnapshotView
-                          snapshot={snapshot as Record<string, unknown> | null}
-                          valorTotal={latestVersao?.valor_total}
-                          geracaoMensal={latestVersao?.geracao_mensal ?? undefined}
-                          economiaMensal={latestVersao?.economia_mensal ?? undefined}
-                        />
-                      </div>
-                    )}
+                    <div className="mt-3">
+                      <ProposalSnapshotView
+                        snapshot={snapshot as Record<string, unknown> | null}
+                        valorTotal={latestVersao?.valor_total}
+                        geracaoMensal={latestVersao?.geracao_mensal ?? undefined}
+                        economiaMensal={latestVersao?.economia_mensal ?? undefined}
+                      />
+                    </div>
                   </TabsContent>
 
                   {/* ─ Histórico Tab ──────────── */}
