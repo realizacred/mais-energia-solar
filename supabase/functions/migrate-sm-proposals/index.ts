@@ -20,6 +20,8 @@ interface MigrationParams {
     vendedor_name?: string; // filter by vendedor (SM funnel "Vendedores" stage name)
     proposal_lifecycle?: string; // "aceita" | "enviada" | "vista" | "gerada" | "rejeitada"
   };
+  /** If true, also migrate projects that have no active proposal */
+  include_projects_without_proposal?: boolean;
   batch_size?: number;
   /** Required: pipeline_id to assign deals into */
   pipeline_id?: string;
