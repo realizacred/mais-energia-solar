@@ -51,20 +51,23 @@ serve(async (req) => {
 
     const { data: profile, error: profileErr } = await admin
       .from("profiles")
-      .select("tenant_id, is_admin")
+      .select("tenant_id")
       .eq("user_id", user.id)
       .single();
 
     if (profileErr || !profile?.tenant_id) {
       return new Response(
-        JSON.stringify({ error: "Tenant não encontrado para este usuário." }),
+        JSON.stringify({ error: "Tenant não encontrado para este usuário.", details: profileErr?.message }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    if (!profile.is_admin) {
+    // Check admin via RPC function (is_admin is not a column on profiles)
+    const { data: isAdmin, error: adminErr } = await admin.rpc("is_admin", { _user_id: user.id });
+
+    if (adminErr || !isAdmin) {
       return new Response(
-        JSON.stringify({ error: "Apenas administradores podem executar esta operação." }),
+        JSON.stringify({ error: "Apenas administradores podem executar esta operação.", details: adminErr?.message }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
