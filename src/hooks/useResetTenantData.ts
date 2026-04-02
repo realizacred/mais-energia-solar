@@ -12,16 +12,24 @@ export function useResetTenantData() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      return data as { success: boolean; tenantId?: string; results?: Record<string, { ok: boolean; error?: string }> };
+      return data as { success: boolean; tenantId?: string; counts?: Record<string, number> };
     },
     onSuccess: (data) => {
       qc.clear();
-      const results = data?.results ?? {};
-      const hasErrors = Object.values(results).some((r) => !r?.ok);
-      toast.success("Reset concluído", {
-        description: hasErrors
-          ? "Alguns dados foram apagados, mas houve erros em algumas tabelas."
-          : "Todos os dados foram apagados com sucesso.",
+      const c = data?.counts ?? {};
+      const parts = [
+        c.clientes && `${c.clientes} clientes`,
+        c.projetos && `${c.projetos} projetos`,
+        c.propostas_nativas && `${c.propostas_nativas} propostas`,
+        c.proposta_versoes && `${c.proposta_versoes} versões`,
+        c.deals && `${c.deals} deals`,
+        c.recebimentos && `${c.recebimentos} recebimentos`,
+      ].filter(Boolean);
+
+      toast.success("✅ Reset concluído!", {
+        description: parts.length > 0
+          ? parts.join(", ") + " apagados."
+          : "Todos os dados foram apagados.",
         duration: 8000,
       });
       setTimeout(() => window.location.reload(), 2000);
