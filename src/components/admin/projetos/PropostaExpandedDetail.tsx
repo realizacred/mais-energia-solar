@@ -302,37 +302,8 @@ function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; lates
   );
 }
 
-function SmArquivoTab({ snapshot }: { snapshot: any }) {
-  const pdfUrl = snapshot.link_pdf;
-  return (
-    <div className="flex gap-5 mt-3">
-      <div className="w-[220px] shrink-0 space-y-3">
-        <p className="text-sm font-bold text-foreground">Opções</p>
-        {pdfUrl && (
-          <div className="space-y-1">
-            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-primary hover:underline py-1">
-              <FileText className="h-3.5 w-3.5" /> Baixar PDF
-            </a>
-            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-primary hover:underline py-1">
-              <ExternalLink className="h-3.5 w-3.5" /> Abrir em nova aba
-            </a>
-          </div>
-        )}
-      </div>
-      <div className="flex-1 min-w-0 border rounded-lg overflow-hidden bg-muted/20">
-        {pdfUrl ? (
-          <iframe src={pdfUrl} className="w-full h-[500px] border-0" title="Preview do PDF" />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
-            <FileText className="h-10 w-10 opacity-20 mb-3" />
-            <p className="text-sm font-medium">Nenhum PDF disponível</p>
-            <p className="text-xs mt-1">Esta proposta não possui arquivo PDF vinculado</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+
+
 
 
 // ─── Native Tab Components ─────────────────────────────
