@@ -119,17 +119,26 @@ export function useSolarMarketSync() {
         const fetched = data?.total_fetched || 0;
         const upserted = data?.total_upserted || 0;
         const errors = data?.total_errors || 0;
+        const isPartial = data?.status === "partial";
+        const remaining = data?.remaining || 0;
 
         updateStage(stage, {
-          status: errors > 0 ? "error" : "done",
+          status: isPartial ? "done" : (errors > 0 ? "error" : "done"),
           fetched,
           upserted,
           errors,
         });
 
-        toast.success(
-          `${STAGE_LABELS[stage]}: ${fetched} encontrados, ${upserted} importados.${errors > 0 ? ` (${errors} erros)` : ""}`
-        );
+        if (isPartial) {
+          toast.warning(
+            `${STAGE_LABELS[stage]}: ${upserted} importados. ${remaining} projetos restantes — clique em Sincronizar para continuar.`,
+            { duration: 8000 }
+          );
+        } else {
+          toast.success(
+            `${STAGE_LABELS[stage]}: ${fetched} encontrados, ${upserted} importados.${errors > 0 ? ` (${errors} erros)` : ""}`
+          );
+        }
       }
 
       qc.invalidateQueries({ queryKey: [STAGE_QUERY_KEYS[stage]] });
@@ -203,9 +212,10 @@ export function useSolarMarketSync() {
         const fetched = data?.total_fetched || 0;
         const upserted = data?.total_upserted || 0;
         const errors = data?.total_errors || 0;
+        const isPartial = data?.status === "partial";
 
         updateStage(stage, {
-          status: errors > 0 ? "error" : "done",
+          status: isPartial ? "done" : (errors > 0 ? "error" : "done"),
           fetched,
           upserted,
           errors,
