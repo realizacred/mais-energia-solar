@@ -399,14 +399,23 @@ Deno.serve(async (req) => {
 
 
     // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
-    const consultoresMap = new Map<string, string>(); // lowercase name → id
+    function normalizeComparableName(value: string | null | undefined): string {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    }
+
+    const consultoresMap = new Map<string, string>(); // normalized name → id
     {
       const { data: consultores } = await adminClient
         .from("consultores")
         .select("id, nome")
         .eq("tenant_id", tenantId);
       for (const c of consultores || []) {
-        if (c.nome) consultoresMap.set(c.nome.toLowerCase().trim(), c.id);
+        const normalizedName = normalizeComparableName(c.nome);
+        if (normalizedName) consultoresMap.set(normalizedName, c.id);
       }
     }
     console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
