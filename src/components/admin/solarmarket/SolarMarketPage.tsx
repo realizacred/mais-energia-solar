@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2 } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,18 @@ import { TablePagination } from "@/components/ui-kit/TablePagination";
 import { Input } from "@/components/ui/input";
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from "@/components/ui/select";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { useResetTenantData } from "@/hooks/useResetTenantData";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
 
 // ─── Pagination hook ────────────────────────────────────
 function usePagination(defaultSize = 100) {
@@ -456,7 +468,13 @@ export default function SolarMarketPage() {
   const [filterProposalStatus, setFilterProposalStatus] = useState("");
   const [filterProposalConsultor, setFilterProposalConsultor] = useState("");
 
-  // Migration selection state
+  // Reset state
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState("");
+  const resetMutation = useResetTenantData();
+  const canReset = resetConfirmText === "APAGAR TUDO" && !resetMutation.isPending;
+
+
   const [selectedProposalIds, setSelectedProposalIds] = useState<Set<string>>(new Set());
   const [migrationDrawerProposals, setMigrationDrawerProposals] = useState<SmProposal[]>([]);
   const [migrationDrawerOpen, setMigrationDrawerOpen] = useState(false);
@@ -654,6 +672,72 @@ export default function SolarMarketPage() {
               <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
               {syncIsRunning ? "Sincronizando..." : "Sincronizar Tudo"}
             </Button>
+
+            <AlertDialog open={resetOpen} onOpenChange={(v) => { setResetOpen(v); if (!v) setResetConfirmText(""); }}>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Resetar Dados
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-5 w-5" />
+                    Resetar todos os dados
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-3">
+                      <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive font-medium">
+                        ⚠️ AÇÃO IRREVERSÍVEL — Esta ação irá apagar PERMANENTEMENTE:
+                      </div>
+                      <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                        <li>Todos os clientes</li>
+                        <li>Todos os projetos</li>
+                        <li>Todas as propostas</li>
+                        <li>Todos os recebimentos e pagamentos</li>
+                        <li>Todos os dados sincronizados do SolarMarket</li>
+                      </ul>
+                      <p className="text-sm text-muted-foreground font-medium">
+                        Esta ação NÃO pode ser desfeita.
+                      </p>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-reset-sm" className="text-sm font-medium">
+                          Digite <span className="font-mono font-bold text-destructive">APAGAR TUDO</span> para confirmar:
+                        </Label>
+                        <Input
+                          id="confirm-reset-sm"
+                          value={resetConfirmText}
+                          onChange={(e) => setResetConfirmText(e.target.value)}
+                          placeholder="APAGAR TUDO"
+                          className="font-mono"
+                          autoComplete="off"
+                          disabled={resetMutation.isPending}
+                        />
+                      </div>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={resetMutation.isPending}>Cancelar</AlertDialogCancel>
+                  <Button
+                    variant="destructive"
+                    onClick={() => resetMutation.mutate()}
+                    disabled={!canReset}
+                    className="gap-1.5"
+                  >
+                    {resetMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Apagando dados…
+                      </>
+                    ) : (
+                      "Confirmar Reset"
+                    )}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         }
       />
