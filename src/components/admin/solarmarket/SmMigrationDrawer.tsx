@@ -15,17 +15,14 @@ import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/d
 
 // ─── Constants ──────────────────────────────────────────
 
-const PIPELINE_ID = "9b5cbcf3-a101-4950-b699-778e2e1219e6";
-
-const STAGE_MAP: Record<string, { stage_id: string; proposal_status: string; label: string }> = {
-  approved: { stage_id: "bdad6238-90e1-4e12-b897-53ff61ece1b6", proposal_status: "aceita", label: "Ganho" },
-  sent: { stage_id: "ac9ab64f-b617-48fd-8282-a33482feb30d", proposal_status: "enviada", label: "Proposta Enviada" },
-  viewed: { stage_id: "ac9ab64f-b617-48fd-8282-a33482feb30d", proposal_status: "enviada", label: "Proposta Enviada" },
-  generated: { stage_id: "f3bf1757-77d2-4e0e-aef3-667b294644f9", proposal_status: "rascunho", label: "Negociação" },
-  draft: { stage_id: "fab065c4-c4f7-418d-ba0a-46b91fce3063", proposal_status: "rascunho", label: "Qualificação" },
-  rejected: { stage_id: "fe7433c9-4397-4206-aaec-8d59bdcecdbe", proposal_status: "rejeitada", label: "Perdido" },
+const SM_STATUS_LABEL_MAP: Record<string, { proposal_status: string; label: string }> = {
+  approved: { proposal_status: "aceita", label: "Ganho" },
+  sent: { proposal_status: "enviada", label: "Proposta Enviada" },
+  viewed: { proposal_status: "enviada", label: "Proposta Enviada" },
+  generated: { proposal_status: "rascunho", label: "Negociação" },
+  draft: { proposal_status: "rascunho", label: "Qualificação" },
+  rejected: { proposal_status: "rejeitada", label: "Perdido" },
 };
-const DEFAULT_STAGE = { stage_id: "fab065c4-c4f7-418d-ba0a-46b91fce3063", proposal_status: "rascunho", label: "Qualificação" };
 
 // ─── Types ──────────────────────────────────────────────
 
