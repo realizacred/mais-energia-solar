@@ -1309,7 +1309,7 @@ Deno.serve(async (req) => {
           errors.push(...result.errors);
         }
       } catch (bulkErr) {
-        console.warn(`[SM Sync] Bulk /proposals failed: ${(bulkErr as Error).message}, trying per-project fallback...`);
+        console.error(`[SM Sync] Bulk /proposals failed: ${(bulkErr as Error).message}, trying per-project fallback...`);
 
         // Fallback: fetch per-project, SKIPPING projects already synced (resume logic)
         let ids = projectIds;
@@ -1333,26 +1333,9 @@ Deno.serve(async (req) => {
           ids = allDbIds;
         }
 
-        // ── Resume logic: get projects that already have proposals ──
-        const alreadySyncedSet = new Set<number>();
-        {
-          let offset = 0;
-          const pageSize = 1000;
-          while (true) {
-            const { data: syncedRows } = await supabase
-              .from("solar_market_proposals")
-              .select("sm_project_id")
-              .eq("tenant_id", tenantId)
-              .range(offset, offset + pageSize - 1);
-            const batch = (syncedRows || []).map((r: any) => r.sm_project_id as number);
-            for (const id of batch) alreadySyncedSet.add(id);
-            if (batch.length < pageSize) break;
-            offset += pageSize;
-          }
-        }
-
-        const pendingIds = ids.filter((id: number) => !alreadySyncedSet.has(id));
-        console.log(`[SM Sync] Proposals resume: ${alreadySyncedSet.size} projects already synced, ${pendingIds.length} pending out of ${ids.length} total`);
+        // Use the alreadySyncedProjectIds computed above (shared resume set)
+        const pendingIds = ids.filter((id: number) => !alreadySyncedProjectIds.has(id));
+        console.error(`[SM Sync] Proposals resume: ${alreadySyncedProjectIds.size} projects already synced, ${pendingIds.length} pending out of ${ids.length} total`);
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
@@ -1363,7 +1346,10 @@ Deno.serve(async (req) => {
         // Process in parallel batches of CONCURRENCY
         for (let i = 0; i < pendingIds.length; i += CONCURRENCY) {
           if (Date.now() - startTime > timeBudgetMs) {
-            console.log(`[SM Sync] Time budget exhausted after ${batchCount}/${pendingIds.length} pending projects (${Math.round((Date.now() - startTime) / 1000)}s)`);
+            const remaining = pendingIds.length - batchCount;
+            console.error(`[SM Sync] Time budget exhausted after ${batchCount}/${pendingIds.length} pending projects (${Math.round((Date.now() - startTime) / 1000)}s). Remaining: ${remaining}`);
+            isPartialSync = true;
+            partialRemaining = remaining;
             break;
           }
 
