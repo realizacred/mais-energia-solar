@@ -282,9 +282,17 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         ];
         for (let i = 0; i < seq.length; i++) {
           if (stepAnimCancelRef.current) break;
+          // Mark previous step as visually done before activating next
+          if (i > 0) {
+            updateStep(seq[i - 1].key, { state: "done" });
+          }
           updateStep(seq[i].key, { state: "running" });
           await new Promise(r => setTimeout(r, seq[i].ms));
           if (stepAnimCancelRef.current) break;
+        }
+        // Mark last animated step as done if not cancelled
+        if (!stepAnimCancelRef.current && seq.length > 0) {
+          updateStep(seq[seq.length - 1].key, { state: "done" });
         }
       };
       const animPromise = runStepAnimation();
