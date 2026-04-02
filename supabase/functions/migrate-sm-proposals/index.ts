@@ -64,6 +64,23 @@ function normalizePhone(raw: string | null): string | null {
   return digits.slice(-11) || null;
 }
 
+/** Extract wattage from model name, e.g. "OSDA ODA620-33V" → 620 */
+function extractPotenciaFromModel(model: string | null): number {
+  if (!model) return 0;
+  // Match 3-4 digit number followed by optional W, before a dash or end
+  const match = model.match(/[\s\-_](\d{3,4})[Ww]?[\s\-_]/);
+  if (match) return parseInt(match[1]);
+  // Fallback: any 3-4 digit number
+  const fallback = model.match(/(\d{3,4})/);
+  return fallback ? parseInt(fallback[1]) : 0;
+}
+
+/** Extract manufacturer (first word) from model name */
+function extractFabricante(model: string | null): string {
+  if (!model) return "";
+  return model.trim().split(/\s+/)[0] || "";
+}
+
 // ─── Status Mapping Helpers ─────────────────────────────
 
 function resolveSmLifecycle(smProp: any): string {
