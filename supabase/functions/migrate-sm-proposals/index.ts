@@ -260,9 +260,17 @@ Deno.serve(async (req) => {
     async function fetchProjectFunnelVendedor(smProjectId: number): Promise<string | null> {
       if (!smAccessToken) return null;
       try {
-        const res = await fetch(`${smBaseUrl}/projects/${smProjectId}/funnels`, {
-          headers: { Accept: "application/json", Authorization: `Bearer ${smAccessToken}` },
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        let res: Response;
+        try {
+          res = await fetch(`${smBaseUrl}/projects/${smProjectId}/funnels`, {
+            headers: { Accept: "application/json", Authorization: `Bearer ${smAccessToken}` },
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeout);
+        }
         if (!res.ok) { await res.text(); return null; }
         const data = await res.json();
         const funnels = Array.isArray(data) ? data : data.data ? (Array.isArray(data.data) ? data.data : [data.data]) : [data];
