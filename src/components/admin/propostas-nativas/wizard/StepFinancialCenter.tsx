@@ -103,17 +103,21 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     setLoadedDefaults(true);
   }, [pricingConfig]);
 
-  // Auto-fill instalação from pricing history when still zero (one-time)
+  // Auto-fill instalação from pricing history when still zero
   const [instalacaoDefaultApplied, setInstalacaoDefaultApplied] = useState(false);
   useEffect(() => {
-    if (instalacaoDefaultApplied || loadingHistory) return;
-    if (instalacaoCusto > 0) { setInstalacaoDefaultApplied(true); return; }
+    if (loadingHistory) return;
+    // Always try to fill if custo is zero, even in edit mode
+    if (instalacaoCusto > 0) {
+      setInstalacaoDefaultApplied(true);
+      return;
+    }
     if (suggested?.custo_instalacao != null && suggested.custo_instalacao > 0) {
-      console.debug("[StepFinancialCenter] Instalação pré-preenchida:", suggested.custo_instalacao, "| Origem: pricing_defaults_history");
+      // console.debug("[StepFinancialCenter] Instalação pré-preenchida:", suggested.custo_instalacao, "| Origem: pricing_defaults_history");
       setInstalacaoCusto(suggested.custo_instalacao);
     }
     setInstalacaoDefaultApplied(true);
-  }, [suggested, loadingHistory]);
+  }, [suggested, loadingHistory, instalacaoCusto]);
 
   // ── Auto-load commission from consultant linked to the lead ──
   const [comissaoLoaded, setComissaoLoaded] = useState(false);

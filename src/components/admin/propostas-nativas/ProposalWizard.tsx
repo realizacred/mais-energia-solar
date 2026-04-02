@@ -671,8 +671,33 @@ export function ProposalWizard() {
           };
 
           // ── Backfill venda fields lost by engine snapshot ──
-          // Engine snapshots (generate-proposal) don't always preserve venda.custo_instalacao
-          // and custo_comissao. When they're 0/null, recover from the previous version.
+          // First try: recover from servicos array in the SAME snapshot
+          if (vendaMapped.custo_instalacao === 0) {
+            const snapServicos = rawSnapshot?.servicos as any[];
+            if (Array.isArray(snapServicos)) {
+              const instServ = snapServicos.find(
+                (s: any) => s.tipo === 'instalacao' || s.categoria === 'instalacao' ||
+                  s.nome?.toLowerCase().includes('instala')
+              );
+              if (instServ?.valor > 0) {
+                vendaMapped.custo_instalacao = Number(instServ.valor);
+              }
+            }
+          }
+          if (vendaMapped.custo_comissao === 0) {
+            const snapServicos = rawSnapshot?.servicos as any[];
+            if (Array.isArray(snapServicos)) {
+              const comServ = snapServicos.find(
+                (s: any) => s.tipo === 'comissao' || s.categoria === 'comissao' ||
+                  s.nome?.toLowerCase().includes('comiss')
+              );
+              if (comServ?.valor > 0) {
+                vendaMapped.custo_comissao = Number(comServ.valor);
+              }
+            }
+          }
+
+          // Second try: recover from previous versions
           if (vendaMapped.custo_instalacao === 0 || vendaMapped.custo_comissao === 0) {
             try {
               const { data: prevVersions } = await supabase
@@ -682,7 +707,6 @@ export function ProposalWizard() {
                 .neq("id", versaoIdFromUrl)
                 .order("created_at", { ascending: false })
                 .limit(3);
-              // Find the first previous version that has a non-zero value
               for (const pv of prevVersions || []) {
                 const pvVenda = (pv.snapshot as any)?.venda;
                 if (!pvVenda) continue;
