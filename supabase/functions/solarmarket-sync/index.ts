@@ -592,6 +592,8 @@ Deno.serve(async (req) => {
     let totalUpserted = 0;
     let totalErrors = 0;
     let hasSolarMarketAuthError = false;
+    let isPartialSync = false;
+    let partialRemaining = 0;
     const errors: string[] = [];
 
     // ─── Sync Funnels ──────────────────────────────────────
