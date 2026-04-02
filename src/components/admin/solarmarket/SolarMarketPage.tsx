@@ -44,6 +44,18 @@ import { TablePagination } from "@/components/ui-kit/TablePagination";
 import { Input } from "@/components/ui/input";
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from "@/components/ui/select";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { useResetTenantData } from "@/hooks/useResetTenantData";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
 
 // ─── Pagination hook ────────────────────────────────────
 function usePagination(defaultSize = 100) {
