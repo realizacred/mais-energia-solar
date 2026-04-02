@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
+import { parseInvokeError } from "@/lib/supabaseFunctionError";
 import { toast } from "sonner";
 
 export function useResetTenantData() {
@@ -7,16 +8,30 @@ export function useResetTenantData() {
 
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("reset-tenant-data", {
-        body: { confirm: "APAGAR TUDO" },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data as { success: boolean; tenantId?: string; counts?: Record<string, number> };
+      try {
+        const data = await invokeEdgeFunction<{
+          success: boolean;
+          tenantId?: string;
+          counts?: Record<string, number>;
+          results?: Record<string, number>;
+          error?: string;
+        }>("reset-tenant-data", {
+          body: { confirm: "APAGAR TUDO" },
+        });
+
+        if (data?.error) {
+          throw new Error(data.error);
+        }
+
+        return data;
+      } catch (error) {
+        const parsed = await parseInvokeError(error);
+        throw new Error(parsed.message);
+      }
     },
     onSuccess: (data) => {
       qc.clear();
-      const c = data?.counts ?? {};
+      const c = data?.counts ?? data?.results ?? {};
       const parts = [
         c.clientes && `${c.clientes} clientes`,
         c.projetos && `${c.projetos} projetos`,
