@@ -412,7 +412,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
                   </div>
                   <div>
                     <span className="text-muted-foreground text-xs">Etapa mapeada</span>
-                    <p><Badge className="text-[10px] bg-primary/10 text-primary border-0">{stageInfo.label}</Badge></p>
+                    <p><Badge className="text-[10px] bg-primary/10 text-primary border-0">{statusLabel.label}</Badge></p>
                   </div>
                 </div>
 
