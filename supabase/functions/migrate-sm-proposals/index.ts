@@ -1762,6 +1762,12 @@ Deno.serve(async (req) => {
             } else {
               groupBReport.steps.projeto = { status: "WOULD_CREATE", id: newProj!.id };
               summary.SUCCESS = (summary.SUCCESS || 0) + 1;
+
+              // Stamp migrado_em on the SM project after successful migration
+              await adminClient
+                .from("solar_market_projects")
+                .update({ migrado_em: new Date().toISOString() })
+                .eq("id", proj.id);
             }
           } else if (dry_run) {
             groupBReport.steps.projeto = { status: "WOULD_CREATE" };
