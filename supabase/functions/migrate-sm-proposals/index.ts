@@ -1520,6 +1520,25 @@ Deno.serve(async (req) => {
                   custo_disponibilidade: Number(smProp.custo_disponibilidade ?? 0),
                   geracao_anual: Number(smProp.geracao_anual ?? 0),
                 },
+                // Financial series for charts
+                financeiro: {
+                  fluxo_caixa_acumulado: smProp.fluxo_caixa_acumulado || [],
+                  economia_anual_serie: smProp.economia_anual_serie || [],
+                  payback_meses: paybackNumerico,
+                  tir: smProp.tir || 0,
+                  vpl: smProp.vpl || 0,
+                  economia_mensal: smProp.economia_mensal || 0,
+                },
+                series: {
+                  geracao_mensal: smProp.geracao_mensal_serie || [],
+                  irradiacao_mensal: smProp.irradiacao_mensal_serie || [],
+                },
+                demanda: {
+                  contratada: smProp.demanda_contratada || null,
+                  preco: smProp.demanda_preco || null,
+                  adicional: smProp.demanda_adicional || null,
+                  outros_encargos: smProp.outros_encargos || null,
+                },
                 // Legacy flat fields (preserved for backward compat)
                 sm_proposal_id: smProp.sm_proposal_id,
                 link_pdf: smProp.link_pdf,
