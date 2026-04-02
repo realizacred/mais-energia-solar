@@ -308,9 +308,36 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         };
 
         try {
-          const data = await invokeEdgeFunction<MigrationResult>("migrate-sm-proposals", {
-            body: payload,
-          });
+          // Use direct fetch with 120s timeout to avoid "Failed to fetch" on long migrations
+          const projectUrl = import.meta.env.VITE_SUPABASE_URL;
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+          let response: Response;
+          try {
+            response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+              signal: controller.signal,
+            });
+          } finally {
+            clearTimeout(timeoutId);
+          }
+
+          if (!response.ok) {
+            const errBody = await response.json().catch(() => ({}));
+            throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
+          }
+
+          const data = await response.json() as MigrationResult;
 
           if ((data as any)?.error) {
             throw new Error((data as any).error);
@@ -319,7 +346,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           allResults.push(data);
           addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)}`);
         } catch (batchErr: any) {
-          const msg = batchErr?.message ?? "Erro desconhecido no lote";
+          const msg = batchErr?.name === "AbortError"
+            ? "Timeout: migração demorou mais de 120s. Tente com menos propostas."
+            : batchErr?.message ?? "Erro desconhecido no lote";
           batchErrors.push(msg);
           addLog(`ERRO lote ${b + 1}: ${msg}`);
           // Continue with remaining batches
