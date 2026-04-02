@@ -46,6 +46,7 @@ import { Input } from "@/components/ui/input";
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from "@/components/ui/select";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { useResetTenantData } from "@/hooks/useResetTenantData";
+import { useResetMigratedData } from "@/hooks/useResetMigratedData";
 import {
   AlertDialog,
   AlertDialogCancel,
