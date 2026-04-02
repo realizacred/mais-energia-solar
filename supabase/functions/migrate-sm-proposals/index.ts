@@ -989,18 +989,27 @@ Deno.serve(async (req) => {
           const legacyKey = `sm:${smProp.sm_proposal_id}`;
           let dealId: string | null = existingDeals.get(legacyKey) || null;
 
+          // Resolve pipeline from SM funnels (auto) or fallback to UI selection
+          const smProjForPipeline = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+          const resolved = await resolvePipelinePrincipalDoFunil(
+            smProjForPipeline?.all_funnels || null,
+            tenantId,
+            params.pipeline_id!,
+            params.stage_id || null,
+          );
+
           if (dealId) {
             report.steps.deal = { status: "WOULD_SKIP", id: dealId };
           } else {
             if (dry_run) {
-              report.steps.deal = { status: "WOULD_CREATE", reason: `owner: ${ownerSource}${ownerAutoCreated ? " (criar)" : ""}` };
+              report.steps.deal = { status: "WOULD_CREATE", reason: `owner: ${ownerSource}${ownerAutoCreated ? " (criar)" : ""}, pipeline: ${resolved.source}` };
             } else {
               // Resolve original SM date for created_at
               const smOriginalDate = smProp.sm_created_at || smProp.generated_at || smProp.send_at || null;
               const dealInsert: Record<string, any> = {
                   tenant_id: tenantId,
-                  pipeline_id: params.pipeline_id!,
-                  stage_id: params.stage_id || null,
+                  pipeline_id: resolved.pipeline_id,
+                  stage_id: resolved.stage_id,
                   customer_id: clienteId!,
                   owner_id: resolvedOwnerId!,
                   title: smClient.name || smProp.titulo || `SM Proposta ${smProp.sm_proposal_id}`,
