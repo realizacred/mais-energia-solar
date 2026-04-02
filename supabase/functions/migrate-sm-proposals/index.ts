@@ -931,6 +931,20 @@ Deno.serve(async (req) => {
             if (dry_run) {
               report.steps.cliente = { status: "WOULD_CREATE" };
             } else {
+              // FIX 1: Use project address as fallback when client has no address
+              const smProjAddr = smProp.sm_project_id ? (() => {
+                // Fetch from solar_market_projects pre-loaded data via smProjectMap is limited;
+                // use smProp fields which come from solar_market_proposals (has cidade, estado)
+                return {
+                  address: null as string | null,
+                  number: null as string | null,
+                  neighborhood: null as string | null,
+                  city: smProp.cidade || null,
+                  state: smProp.estado || null,
+                  zip_code: null as string | null,
+                };
+              })() : null;
+
               // Try insert, on conflict with cliente_code → link to existing
               const { data: newClient, error: insErr } = await adminClient
                 .from("clientes")
@@ -941,13 +955,13 @@ Deno.serve(async (req) => {
                   telefone_normalized: phoneNorm,
                   email: smClient.email,
                   cpf_cnpj: smClient.document ? smClient.document.replace(/\D/g, "") : null,
-                  cidade: smClient.city,
-                  estado: smClient.state,
-                  bairro: smClient.neighborhood,
-                  rua: smClient.address,
-                  numero: smClient.number,
+                  cidade: smClient.city || smProjAddr?.city || null,
+                  estado: smClient.state || smProjAddr?.state || null,
+                  bairro: smClient.neighborhood || smProjAddr?.neighborhood || null,
+                  rua: smClient.address || smProjAddr?.address || null,
+                  numero: smClient.number || smProjAddr?.number || null,
                   complemento: smClient.complement,
-                  cep: smClient.zip_code_formatted || smClient.zip_code,
+                  cep: smClient.zip_code_formatted || smClient.zip_code || smProjAddr?.zip_code || null,
                   empresa: smClient.company,
                   cliente_code: clienteCode,
                   potencia_kwp: smProp.potencia_kwp || null,
@@ -987,6 +1001,27 @@ Deno.serve(async (req) => {
               } else {
                 clienteId = newClient!.id;
                 report.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
+              }
+            }
+
+            // FIX 7: Update existing linked client if missing address
+            if (clienteId && !dry_run && report.steps.cliente?.status === "WOULD_LINK") {
+              const { data: clienteAtual } = await adminClient
+                .from("clientes")
+                .select("rua, cidade")
+                .eq("id", clienteId)
+                .single();
+              if (clienteAtual && !clienteAtual.rua && !clienteAtual.cidade) {
+                const updateAddr: Record<string, any> = {};
+                if (smClient.address) updateAddr.rua = smClient.address;
+                if (smClient.number) updateAddr.numero = smClient.number;
+                if (smClient.neighborhood) updateAddr.bairro = smClient.neighborhood;
+                if (smClient.city || smProp.cidade) updateAddr.cidade = smClient.city || smProp.cidade;
+                if (smClient.state || smProp.estado) updateAddr.estado = smClient.state || smProp.estado;
+                if (smClient.zip_code_formatted || smClient.zip_code) updateAddr.cep = smClient.zip_code_formatted || smClient.zip_code;
+                if (Object.keys(updateAddr).length > 0) {
+                  await adminClient.from("clientes").update(updateAddr).eq("id", clienteId);
+                }
               }
             }
           }
