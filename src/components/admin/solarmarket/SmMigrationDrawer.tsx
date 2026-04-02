@@ -233,7 +233,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const activeStageId = selectedStageId || pipelineStages[0]?.id || "";
   const selectedPipeline = pipelines.find(p => p.id === activePipelineId);
   const needsStage = selectedPipeline?.kind === "process";
-  const canMigrate = !!activePipelineId && (!needsStage || !!activeStageId);
+  const canMigrate = !!activePipelineId && (!needsStage || !!activeStageId || pipelineStages.length === 0);
 
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
