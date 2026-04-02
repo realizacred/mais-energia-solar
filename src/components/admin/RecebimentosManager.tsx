@@ -610,6 +610,14 @@ export function RecebimentosManager() {
                               }} title="Gerenciar Parcelas">
                                 <Calendar className="h-4 w-4" />
                               </Button>
+                              {recebimento.status !== "quitado" && recebimento.status !== "cancelado" && (
+                                <Button size="sm" variant="ghost" onClick={() => {
+                                  setSelectedRecebimento(recebimento);
+                                  setCobrancaWaOpen(true);
+                                }} title="Enviar cobrança por WhatsApp">
+                                  <Send className="h-4 w-4 text-primary" />
+                                </Button>
+                              )}
                               <Button size="sm" variant="ghost" onClick={() => handleEdit(recebimento)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
