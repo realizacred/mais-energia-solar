@@ -948,6 +948,15 @@ export default function SolarMarketPage() {
           <div className="flex flex-wrap items-center gap-2 justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <select
+                value={filterMigrationStatus}
+                onChange={(e) => { setFilterMigrationStatus(e.target.value as any); proposalsPag.resetPage(); }}
+                className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
+              >
+                <option value="all">Todos</option>
+                <option value="pending">Pendentes</option>
+                <option value="migrated">Migrados</option>
+              </select>
+              <select
                 value={filterProposalStatus}
                 onChange={(e) => { setFilterProposalStatus(e.target.value); proposalsPag.resetPage(); }}
                 className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
