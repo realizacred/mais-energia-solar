@@ -474,7 +474,11 @@ Deno.serve(async (req) => {
 
 
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
-      const key = stageName.toLowerCase().trim();
+      const key = normalizeComparableName(stageName);
+      if (!key) {
+        throw new Error("Nome do consultor vazio na resolução automática");
+      }
+
       const existing = consultoresMap.get(key);
       if (existing) return { id: existing, created: false };
 
@@ -491,7 +495,8 @@ Deno.serve(async (req) => {
       }
 
       // Create consultor without user access (user_id = null)
-      const codigo = `SM-${stageName.replace(/\s+/g, "-").substring(0, 20)}`;
+      const codigoBase = key.replace(/\s+/g, "-").substring(0, 20) || "sm-owner";
+      const codigo = `SM-${codigoBase}`;
       const { data: newConsultor, error: consErr } = await adminClient
         .from("consultores")
         .insert({
