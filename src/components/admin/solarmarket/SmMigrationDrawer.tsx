@@ -345,12 +345,38 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
           allResults.push(data);
           addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)}`);
+
+          // Update steps progressively from this batch's first detail
+          if (!dryRun && data.details?.[0]) {
+            const detail = data.details[0];
+            const stepMap: Record<string, StepName> = {
+              cliente: "cliente", deal: "deal", projeto: "projeto",
+              proposta_nativa: "proposta", proposta_versao: "versao",
+            };
+            for (const [key, stepName] of Object.entries(stepMap)) {
+              const serverStep = (detail.steps as Record<string, any>)[key];
+              if (serverStep) {
+                const isOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(serverStep.status);
+                updateStep(stepName, {
+                  state: isOk ? "done" : "error",
+                  detail: `${serverStep.status}${serverStep.id ? ` → ${serverStep.id.slice(0, 8)}...` : ""}${serverStep.reason ? ` (${serverStep.reason})` : ""}`,
+                  createdId: serverStep.id,
+                });
+              }
+            }
+          }
         } catch (batchErr: any) {
           const msg = batchErr?.name === "AbortError"
             ? "Timeout: migração demorou mais de 120s. Tente com menos propostas."
             : batchErr?.message ?? "Erro desconhecido no lote";
           batchErrors.push(msg);
           addLog(`ERRO lote ${b + 1}: ${msg}`);
+          // Mark all pending steps as error on failure
+          if (!dryRun) {
+            for (const s of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+              setSteps(prev => prev.map(st => st.name === s && st.state === "running" ? { ...st, state: "error", detail: msg } : st));
+            }
+          }
           // Continue with remaining batches
         }
 
