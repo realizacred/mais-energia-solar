@@ -653,7 +653,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             )}
 
             {/* Stage selector (dynamic from selected pipeline) */}
-            {pipelineStages.length > 0 && (
+            {activePipelineId && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
                   Etapa padrão {needsStage && <span className="text-destructive">*</span>}
