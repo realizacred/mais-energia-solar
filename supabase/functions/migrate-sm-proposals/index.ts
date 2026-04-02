@@ -1451,7 +1451,7 @@ Deno.serve(async (req) => {
                   nome: smClient?.name ?? "",
                   documento: smClient?.document ?? "",
                   email: smClient?.email ?? "",
-                  telefone: smClient?.phone_formatted || smClient?.phone ?? "",
+                  telefone: (smClient?.phone_formatted || smClient?.phone) ?? "",
                   empresa: smClient?.company ?? "",
                   cidade: smClient?.city ?? smProp.cidade ?? "",
                   estado: smClient?.state ?? smProp.estado ?? "",
