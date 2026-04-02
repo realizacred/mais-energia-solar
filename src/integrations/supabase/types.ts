@@ -27088,6 +27088,7 @@ export type Database = {
         Returns: Json
       }
       reset_solar_data_layer: { Args: { _confirm: string }; Returns: Json }
+      reset_tenant_data: { Args: { p_tenant_id: string }; Returns: Json }
       resolve_consultor_public: {
         Args: { _codigo: string }
         Returns: {
