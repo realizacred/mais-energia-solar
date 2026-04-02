@@ -402,7 +402,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           // Mark all pending steps as error on failure
           if (!dryRun) {
             for (const s of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-              setSteps(prev => prev.map(st => st.name === s && st.state === "running" ? { ...st, state: "error", detail: msg } : st));
+              setSteps(prev => prev.map(st => st.name === s && (st.state === "running" || st.state === "pending") ? { ...st, state: "error", detail: msg } : st));
             }
           }
           // Continue with remaining batches
