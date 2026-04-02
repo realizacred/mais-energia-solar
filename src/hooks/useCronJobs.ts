@@ -25,6 +25,7 @@ export const CRON_JOBS: CronJobDefinition[] = [
   { name: "sync-wa-profile-pictures", label: "WA Fotos Perfil", intervalMinutes: 60, description: "Sincroniza fotos de perfil do WhatsApp" },
   { name: "wa-instance-watchdog", label: "WA Watchdog", intervalMinutes: 5, description: "Monitora instâncias WhatsApp" },
   { name: "check-energy-alerts-hourly", label: "Alertas Energia", intervalMinutes: 60, description: "Varredura proativa de alertas energéticos (medidores, faturas, geração, GD)" },
+  { name: "verificar-vencimentos-diario", label: "Lembretes Vencimento", intervalMinutes: 1440, description: "Envia lembretes de vencimento de recebimentos via WhatsApp (diário 08:00 BRT)" },
 ];
 
 export type CronStatus = "success" | "running" | "failed" | "overdue" | "unknown";
