@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import {
   LancamentoFinanceiro,
   CreateLancamentoInput,
+  LancamentoFiltros,
   useCreateLancamento,
   useUpdateLancamento,
   CATEGORIAS_RECEITA,
@@ -23,11 +24,12 @@ interface LancamentoDialogProps {
   open: boolean;
   onClose: () => void;
   lancamento?: LancamentoFinanceiro | null;
+  filtrosAtuais: LancamentoFiltros;
 }
 
-export function LancamentoDialog({ open, onClose, lancamento }: LancamentoDialogProps) {
-  const createMutation = useCreateLancamento();
-  const updateMutation = useUpdateLancamento();
+export function LancamentoDialog({ open, onClose, lancamento, filtrosAtuais }: LancamentoDialogProps) {
+  const createMutation = useCreateLancamento(filtrosAtuais);
+  const updateMutation = useUpdateLancamento(filtrosAtuais);
   const isEditing = !!lancamento;
 
   const [tipo, setTipo] = useState<"receita" | "despesa">("receita");

@@ -260,6 +260,7 @@ export default function LancamentosPage() {
         open={dialogOpen}
         onClose={() => { setDialogOpen(false); setEditingItem(null); }}
         lancamento={editingItem}
+        filtrosAtuais={filtros}
       />
 
       {/* Delete confirmation */}
