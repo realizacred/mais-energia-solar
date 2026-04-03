@@ -62,6 +62,8 @@ export interface ProposalViewModel {
   publicUrl: string | null;
   outputPdfPath: string | null;
   outputDocxPath: string | null;
+  /** URL externa do PDF (ex: SolarMarket S3) — usado para propostas importadas */
+  linkPdf: string | null;
 
   // Tracking
   clienteNome: string;
