@@ -48,10 +48,12 @@ export default function PortalSelector() {
       const savedPreference = localStorage.getItem(PORTAL_PREFERENCE_KEY);
       
       // Get user roles
-      const { data: roles } = await supabase
+      const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id);
+
+      if (rolesError) throw rolesError;
 
       const isVendedor = roles?.some(r => r.role === "consultor" || (r.role as string) === "vendedor");
       const isAdmin = roles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
@@ -59,11 +61,16 @@ export default function PortalSelector() {
 
       // Check if user has vendedor record (required to access vendor portal)
       let hasVendedorRecord = false;
-      const { data: vendedorData } = await (supabase as any)
+      const { data: vendedorData, error: vendedorError } = await (supabase as any)
         .from("consultores")
         .select("id")
         .eq("user_id", user.id)
         .single();
+
+      if (vendedorError && vendedorError.code !== "PGRST116") {
+        throw vendedorError;
+      }
+
       hasVendedorRecord = !!vendedorData;
 
       setAccess({
@@ -83,9 +90,6 @@ export default function PortalSelector() {
 
       // If no valid access at all
       if (availablePortals === 0) {
-        if (!isAdmin && !isVendedor && !isInstalador) {
-          await supabase.auth.signOut();
-        }
         navigate("/auth", { replace: true });
         return;
       }
