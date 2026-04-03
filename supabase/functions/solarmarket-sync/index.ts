@@ -358,6 +358,22 @@ function extractProposalFields(pr: any) {
   };
 }
 
+/** Fields returned by extractProposalFields that do NOT exist in solar_market_proposals table */
+const NON_TABLE_FIELDS = new Set([
+  "cliente_bairro", "cliente_cidade", "cliente_estado", "cliente_endereco",
+  "cliente_numero", "cliente_cep", "cliente_celular", "cliente_cnpj_cpf",
+  "cliente_email", "cliente_empresa", "irradiacao_media",
+]);
+
+/** Strip non-table fields from a proposal row before upsert */
+function stripNonTableFields(row: Record<string, any>): Record<string, any> {
+  const clean: Record<string, any> = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (!NON_TABLE_FIELDS.has(k)) clean[k] = v;
+  }
+  return clean;
+}
+
 /** Deduplicate rows by conflict key fields (keep last occurrence) */
 function deduplicateRows(rows: any[], conflictCols: string[]): any[] {
   const map = new Map<string, any>();
