@@ -92,7 +92,7 @@ export default function Auth() {
         try {
           const savedPreference = localStorage.getItem(PORTAL_PREFERENCE_KEY);
 
-          const [{ data: profile }, { data: roles }] = await Promise.all([
+          const [{ data: profile, error: profileError }, { data: roles, error: rolesError }] = await Promise.all([
             supabase
               .from("profiles")
               .select("status, cargo_solicitado")
@@ -103,6 +103,14 @@ export default function Auth() {
               .select("role")
               .eq("user_id", user.id),
           ]);
+
+          if (profileError) {
+            throw profileError;
+          }
+
+          if (rolesError) {
+            throw rolesError;
+          }
 
           const userRoles = (roles ?? []).map((entry) => entry.role as string);
           const hasGrantedRole = userRoles.some((role) => ACCESS_ROLES.includes(role));
@@ -131,7 +139,7 @@ export default function Auth() {
           if (!hasGrantedRole) {
             clearTimeout(timeoutId);
             setCheckingRole(false);
-            if (profile) {
+            if (profile?.status === "pendente") {
               navigate("/aguardando-aprovacao", { replace: true });
             } else {
               toast({
