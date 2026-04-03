@@ -34,6 +34,8 @@ interface ProposalActionCardsProps {
   validoAte: string | null;
   onEditValidade: () => void;
   lastGeneratedAt: string | null;
+  /** URL externa do PDF (SolarMarket) — propostas importadas */
+  linkPdf?: string | null;
   // Envio
   currentStatus: string;
   sending: boolean;
@@ -51,7 +53,7 @@ export function ProposalActionCards({
   html, rendering, onGenerateFile, onCopyLink, onDownloadPdf, onRender,
   publicUrl, downloadingPdf, validoAte, onEditValidade, lastGeneratedAt,
   currentStatus, sending, onSendWhatsapp, onSendEmail, onScrollToTracking,
-  formattedDate, templateVars,
+  formattedDate, templateVars, linkPdf,
 }: ProposalActionCardsProps) {
   const { data: waTemplates } = useWhatsAppTemplates();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
@@ -144,9 +146,13 @@ export function ProposalActionCards({
           <Separator />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2">
-            <ActionLink icon={Link2} label="Copiar link com rastreio" onClick={() => onCopyLink(true)} />
-            <ActionLink icon={Link2} label="Copiar link sem rastreio" onClick={() => onCopyLink(false)} />
-            <ActionLink icon={Download} label="Download de PDF" onClick={onDownloadPdf} disabled={downloadingPdf || !html} />
+            <ActionLink icon={Link2} label="Copiar link com rastreio" onClick={() => onCopyLink(true)} disabled={!html && !linkPdf} />
+            <ActionLink icon={Link2} label="Copiar link sem rastreio" onClick={() => onCopyLink(false)} disabled={!html && !linkPdf} />
+            {linkPdf && !html ? (
+              <ActionLink icon={Download} label="Download de PDF (original)" onClick={() => window.open(linkPdf, "_blank")} />
+            ) : (
+              <ActionLink icon={Download} label="Download de PDF" onClick={onDownloadPdf} disabled={downloadingPdf || !html} />
+            )}
             <ActionLink icon={Download} label="Download de Doc" onClick={onDownloadPdf} disabled={downloadingPdf || !html} iconColor="text-info" />
             <ActionLink icon={Eye} label="Pré-visualizar template web" onClick={onRender} disabled={!html} />
           </div>

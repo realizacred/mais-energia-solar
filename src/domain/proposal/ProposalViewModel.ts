@@ -62,6 +62,8 @@ export interface ProposalViewModel {
   publicUrl: string | null;
   outputPdfPath: string | null;
   outputDocxPath: string | null;
+  /** URL externa do PDF (ex: SolarMarket S3) — usado para propostas importadas */
+  linkPdf: string | null;
 
   // Tracking
   clienteNome: string;
@@ -168,11 +170,12 @@ export function buildProposalViewModel(input: BuildViewModelInput): ProposalView
     margemPct,
     paybackText,
 
-    hasFile: !!htmlPreview || !!(v as any).output_pdf_path,
+    hasFile: !!htmlPreview || !!(v as any).output_pdf_path || !!(v as any).link_pdf,
     htmlPreview: htmlPreview || null,
     publicUrl: publicUrl || null,
     outputPdfPath: (v as any).output_pdf_path || null,
     outputDocxPath: (v as any).output_docx_path || null,
+    linkPdf: (v as any).link_pdf || null,
 
     clienteNome: clienteNome || snapshot.clienteNome || p.titulo || p.codigo || "Proposta",
     leadId: p.lead_id || null,
