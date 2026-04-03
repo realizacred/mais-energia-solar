@@ -1401,7 +1401,7 @@ Deno.serve(async (req) => {
             const cfRaw = buildCustomFieldsRaw(pr);
             const cfWarnings = cfRaw?._warnings || null;
             if (cfRaw) delete cfRaw._warnings;
-            return {
+            return stripNonTableFields({
               tenant_id: tenantId,
               sm_proposal_id: pr.id,
               ...extracted,
@@ -1411,7 +1411,7 @@ Deno.serve(async (req) => {
               custom_fields_raw: cfRaw,
               warnings: cfWarnings,
               synced_at: new Date().toISOString(),
-            };
+            });
           });
 
           const validRows = rows.filter((r: any) => r.sm_project_id != null);
