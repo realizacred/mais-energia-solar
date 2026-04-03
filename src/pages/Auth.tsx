@@ -11,7 +11,7 @@ import { useLogo } from "@/hooks/useLogo";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 
 const PORTAL_PREFERENCE_KEY = "preferred_portal";
-const ALLOWED_ROLES = ["admin", "gerente", "financeiro", "consultor", "instalador"];
+const ACCESS_ROLES = ["admin", "gerente", "financeiro", "consultor", "vendedor", "instalador", "super_admin"];
 
 const features = [
   {
