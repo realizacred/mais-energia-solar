@@ -1542,15 +1542,22 @@ Deno.serve(async (req) => {
           .or("sm_client_id.is.null,sm_client_id.eq.-1");
 
         let enriched = 0;
+        // Batch update: group by sm_client_id to reduce queries
+        const clientIdGroups = new Map<number, string[]>();
         for (const prop of (nullClientProposals || [])) {
           const clientId = projectClientMap.get(prop.sm_project_id);
           if (clientId) {
-            await supabase
-              .from("solar_market_proposals")
-              .update({ sm_client_id: clientId })
-              .eq("id", prop.id);
+            if (!clientIdGroups.has(clientId)) clientIdGroups.set(clientId, []);
+            clientIdGroups.get(clientId)!.push(prop.id);
             enriched++;
           }
+        }
+        // Batch update per client_id group (avoids N+1)
+        for (const [clientId, propIds] of clientIdGroups) {
+          await supabase
+            .from("solar_market_proposals")
+            .update({ sm_client_id: clientId })
+            .in("id", propIds);
         }
         if (enriched > 0) {
           console.error(`[SM Sync] Enriched ${enriched} proposals with sm_client_id from projects`);
