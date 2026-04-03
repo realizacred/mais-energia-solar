@@ -1271,6 +1271,15 @@ Deno.serve(async (req) => {
                 report.steps.projeto = { status: "WOULD_CREATE", id: projetoId };
               }
             }
+
+            // Link projeto_id to deal (backfill for new or existing deals)
+            if (projetoId && dealId) {
+              await adminClient
+                .from("deals")
+                .update({ projeto_id: projetoId })
+                .eq("id", dealId)
+                .is("projeto_id", null);
+            }
           } else {
             report.steps.projeto = { status: dry_run ? "WOULD_CREATE" : "ERROR", reason: dry_run ? undefined : "no deal_id" };
           }
