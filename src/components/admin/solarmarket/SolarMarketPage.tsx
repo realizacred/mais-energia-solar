@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
@@ -292,7 +292,14 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
                 />
               </TableCell>
               <TableCell>
-                <p className="font-medium">{pr.titulo || "—"}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-medium">{pr.titulo || "—"}</p>
+                  {pr.link_pdf && (
+                    <a href={pr.link_pdf} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} title="Ver PDF">
+                      <ExternalLink className="h-3.5 w-3.5 text-primary hover:text-primary/80" />
+                    </a>
+                  )}
+                </div>
               </TableCell>
               <TableCell>
                 {pr.potencia_kwp ? (
