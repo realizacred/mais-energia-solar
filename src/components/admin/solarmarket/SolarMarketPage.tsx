@@ -32,6 +32,7 @@ import {
   type SmCustomField,
 } from "@/hooks/useSolarMarket";
 import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
+import { useRealtimeSyncLogs } from "@/hooks/useRealtimeSyncLogs";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
