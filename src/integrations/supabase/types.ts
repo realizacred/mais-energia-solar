@@ -26859,9 +26859,7 @@ export type Database = {
         }[]
       }
       get_user_chat_ids: { Args: { _user_id: string }; Returns: string[] }
-      get_user_tenant_id:
-        | { Args: never; Returns: string }
-        | { Args: { _user_id?: string }; Returns: string }
+      get_user_tenant_id: { Args: { _user_id?: string }; Returns: string }
       get_user_unread_conversations:
         | {
             Args: { _limit?: number }
