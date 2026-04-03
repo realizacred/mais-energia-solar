@@ -806,6 +806,7 @@ export function useDealPipeline() {
     createPipeline,
     renamePipeline,
     togglePipelineActive,
+    deletePipeline,
     reorderPipelines,
     createStage,
     renameStage,
