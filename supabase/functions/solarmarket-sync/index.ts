@@ -1466,8 +1466,8 @@ Deno.serve(async (req) => {
           }
           batchCount += chunk.length;
 
-          // Save partial results every 300 rows
-          if (allProposalRows.length >= 300) {
+          // Save partial results every 100 rows (smaller batches to avoid statement timeout)
+          if (allProposalRows.length >= 100) {
             console.log(`[SM Sync] Saving partial proposals batch: ${allProposalRows.length} rows (${batchCount}/${pendingIds.length} projects processed)`);
             const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
             totalUpserted += result.upserted;
@@ -1489,7 +1489,7 @@ Deno.serve(async (req) => {
           errors.push(...result.errors);
         }
 
-        console.log(`[SM Sync] Proposals fallback complete: processed ${batchCount} pending projects`);
+        console.log(`[SM Sync] Proposals complete: processed ${batchCount} pending projects`);
       }
 
       // ── Enrich proposals with sm_client_id from projects ──
