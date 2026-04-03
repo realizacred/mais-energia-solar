@@ -1,6 +1,6 @@
 /// <reference types="google.maps" />
 import { useEffect, useRef, useCallback, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 import {
   Loader2, Map, Satellite, Pencil, Trash2, Camera, Circle, Square,
   Minus, MapPin as MarkerIcon, X, Info, Navigation,
