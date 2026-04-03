@@ -1012,7 +1012,7 @@ Deno.serve(async (req) => {
         console.log(`[SM Sync] Funnel enrichment: ${alreadyEnrichedSet.size} already done, ${pendingEnrich.length} pending`);
         
         let enriched = 0;
-        const funnelTimeBudget = 50_000; // 50s budget for funnel enrichment (increased from 20s)
+        const funnelTimeBudget = 35_000; // 35s budget (reduced to avoid CPU exceeded)
         const funnelStart = Date.now();
 
         for (const projId of pendingEnrich) {
