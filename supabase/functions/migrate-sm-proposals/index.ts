@@ -686,10 +686,9 @@ Deno.serve(async (req) => {
 
 
     // ─── Helper: resolve principal pipeline from SM funnels ──
-    const FUNNEL_PRIORITY = ['LEAD', 'Vendedores', 'Engenharia', 'Equipamento', 'Compesação', 'Pagamento'];
+    const FUNNEL_PRIORITY = ['LEAD', 'Engenharia', 'Equipamento', 'Compesação', 'Pagamento'];
     const FUNNEL_TO_CANONICAL: Record<string, string> = {
       'LEAD': 'Comercial',
-      'Vendedores': 'Vendedor',
     };
 
     async function resolvePipelinePrincipalDoFunil(
