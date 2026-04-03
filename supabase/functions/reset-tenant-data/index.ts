@@ -75,7 +75,29 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenantId)
       .eq("status", "running");
 
-    // Reset via RPC SQL
+    // Deletar tabelas SM antes da RPC para evitar timeout
+    const smTables = [
+      "solar_market_proposals",
+      "solar_market_projects",
+      "solar_market_clients",
+      "solar_market_custom_field_values",
+      "solar_market_custom_fields",
+      "solar_market_funnel_stages",
+      "solar_market_funnels",
+      "solar_market_sync_logs",
+    ];
+
+    for (const table of smTables) {
+      const { error: delErr } = await admin
+        .from(table)
+        .delete()
+        .eq("tenant_id", tenantId);
+      if (delErr) {
+        console.error(`[reset-tenant-data] Error deleting ${table}:`, delErr.message);
+      }
+    }
+
+    // RPC só para dados canônicos (rápido)
     const { data: counts, error: resetErr } = await admin
       .rpc("reset_tenant_data", { p_tenant_id: tenantId });
 
