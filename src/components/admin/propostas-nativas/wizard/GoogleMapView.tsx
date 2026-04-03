@@ -86,28 +86,22 @@ export default function GoogleMapView({
 
     const load = async () => {
       try {
-        const { data } = await supabase
-          .from("integration_configs")
-          .select("api_key, is_active")
-          .eq("service_key", "google_maps")
-          .eq("is_active", true)
-          .maybeSingle();
+        const data = await invokeEdgeFunction<{ key?: string }>("get-maps-key");
 
         if (cancelled) return;
-        if (!data?.api_key) {
+        if (!data?.key) {
           setError("Google Maps não configurado");
           setLoading(false);
           return;
         }
-        apiKeyRef.current = data.api_key;
+        apiKeyRef.current = data.key;
 
-        // Load Google Maps script only if not already present
         if (!window.google?.maps) {
           const existing = document.querySelector('script[src*="maps.googleapis.com"]');
           if (!existing) {
             await new Promise<void>((resolve, reject) => {
               const script = document.createElement("script");
-              script.src = `https://maps.googleapis.com/maps/api/js?key=${data.api_key}&libraries=drawing&v=weekly`;
+              script.src = `https://maps.googleapis.com/maps/api/js?key=${data.key}&libraries=drawing&v=weekly`;
               script.async = true;
               script.defer = true;
               script.onload = () => resolve();
