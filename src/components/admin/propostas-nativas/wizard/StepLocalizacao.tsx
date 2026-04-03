@@ -294,20 +294,15 @@ export function StepLocalizacao({
       setDistKm(null);
 
       try {
-        const { data: mapsConfig } = await supabase
-          .from("integration_configs")
-          .select("api_key, is_active")
-          .eq("service_key", "google_maps")
-          .eq("is_active", true)
-          .maybeSingle();
+        const mapsConfig = await invokeEdgeFunction<{ key?: string }>("get-maps-key");
 
         let lat: number | null = null;
         let lon: number | null = null;
 
-        if (mapsConfig?.api_key) {
+        if (mapsConfig?.key) {
           const query = encodeURIComponent(`${cidade}, ${estado}, Brasil`);
           const resp = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsConfig.api_key}&region=br`,
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsConfig.key}&region=br`,
           );
           const json = await resp.json();
           if (json.status === "OK" && json.results?.[0]) {
