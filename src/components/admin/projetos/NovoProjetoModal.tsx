@@ -43,13 +43,13 @@ const schema = z.object({
   clienteCpfCnpj: z.string().trim().max(18, "CPF/CNPJ inválido").optional(),
   clienteTelefone: z.string().trim().min(10, "Telefone celular é obrigatório").max(11, "Telefone inválido"),
   valor: z.number().min(0).optional(),
-  cep: z.string().trim().min(9, "CEP é obrigatório"),
-  rua: z.string().trim().min(2, "Logradouro é obrigatório").max(150, "Logradouro deve ter no máximo 150 caracteres"),
-  numero: z.string().trim().min(1, "Número é obrigatório").max(20, "Número deve ter no máximo 20 caracteres"),
-  complemento: z.string().trim().max(100, "Complemento deve ter no máximo 100 caracteres").optional(),
-  bairro: z.string().trim().min(2, "Bairro é obrigatório").max(100, "Bairro deve ter no máximo 100 caracteres"),
-  cidade: z.string().trim().min(2, "Cidade é obrigatória").max(100, "Cidade deve ter no máximo 100 caracteres"),
-  estado: z.string().trim().min(2, "UF é obrigatória").max(2, "UF inválida"),
+  cep: z.string().trim().max(9, "CEP inválido").optional().or(z.literal("")),
+  rua: z.string().trim().max(150, "Logradouro deve ter no máximo 150 caracteres").optional().or(z.literal("")),
+  numero: z.string().trim().max(20, "Número deve ter no máximo 20 caracteres").optional().or(z.literal("")),
+  complemento: z.string().trim().max(100, "Complemento deve ter no máximo 100 caracteres").optional().or(z.literal("")),
+  bairro: z.string().trim().max(100, "Bairro deve ter no máximo 100 caracteres").optional().or(z.literal("")),
+  cidade: z.string().trim().max(100, "Cidade deve ter no máximo 100 caracteres").optional().or(z.literal("")),
+  estado: z.string().trim().max(2, "UF inválida").optional().or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof schema>;
