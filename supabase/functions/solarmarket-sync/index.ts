@@ -358,6 +358,22 @@ function extractProposalFields(pr: any) {
   };
 }
 
+/** Fields returned by extractProposalFields that do NOT exist in solar_market_proposals table */
+const NON_TABLE_FIELDS = new Set([
+  "cliente_bairro", "cliente_cidade", "cliente_estado", "cliente_endereco",
+  "cliente_numero", "cliente_cep", "cliente_celular", "cliente_cnpj_cpf",
+  "cliente_email", "cliente_empresa", "irradiacao_media",
+]);
+
+/** Strip non-table fields from a proposal row before upsert */
+function stripNonTableFields(row: Record<string, any>): Record<string, any> {
+  const clean: Record<string, any> = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (!NON_TABLE_FIELDS.has(k)) clean[k] = v;
+  }
+  return clean;
+}
+
 /** Deduplicate rows by conflict key fields (keep last occurrence) */
 function deduplicateRows(rows: any[], conflictCols: string[]): any[] {
   const map = new Map<string, any>();
@@ -1385,7 +1401,7 @@ Deno.serve(async (req) => {
             const cfRaw = buildCustomFieldsRaw(pr);
             const cfWarnings = cfRaw?._warnings || null;
             if (cfRaw) delete cfRaw._warnings;
-            return {
+            return stripNonTableFields({
               tenant_id: tenantId,
               sm_proposal_id: pr.id,
               ...extracted,
@@ -1395,7 +1411,7 @@ Deno.serve(async (req) => {
               custom_fields_raw: cfRaw,
               warnings: cfWarnings,
               synced_at: new Date().toISOString(),
-            };
+            });
           });
 
           const validRows = rows.filter((r: any) => r.sm_project_id != null);
@@ -1478,7 +1494,7 @@ Deno.serve(async (req) => {
                       return extractProposalArray(retryData).map((pr: any) => {
                         const cfRaw = buildCustomFieldsRaw(pr);
                         if (cfRaw) delete cfRaw._warnings;
-                        return {
+                        return stripNonTableFields({
                           tenant_id: tenantId,
                           sm_proposal_id: pr.id,
                           ...extractProposalFields(pr),
@@ -1486,7 +1502,7 @@ Deno.serve(async (req) => {
                           raw_payload: pr,
                           custom_fields_raw: cfRaw,
                           synced_at: new Date().toISOString(),
-                        };
+                        });
                       });
                     } catch {
                       clearTimeout(timer2);
@@ -1506,7 +1522,7 @@ Deno.serve(async (req) => {
                 return proposals.map((pr: any) => {
                   const cfRaw = buildCustomFieldsRaw(pr);
                   if (cfRaw) delete cfRaw._warnings;
-                  return {
+                  return stripNonTableFields({
                     tenant_id: tenantId,
                     sm_proposal_id: pr.id,
                     ...extractProposalFields(pr),
@@ -1514,7 +1530,7 @@ Deno.serve(async (req) => {
                     raw_payload: pr,
                     custom_fields_raw: cfRaw,
                     synced_at: new Date().toISOString(),
-                  };
+                  });
                 });
               } catch {
                 clearTimeout(timer);
