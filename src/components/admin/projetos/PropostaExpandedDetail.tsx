@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useNavigate } from "react-router-dom";
-import { ProposalDadosView } from "@/components/admin/propostas-nativas/ProposalDadosView";
+import { ProposalSnapshotView } from "@/components/admin/propostas-nativas/ProposalSnapshotView";
 import { StepDocumento } from "@/components/admin/propostas-nativas/wizard/StepDocumento";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
@@ -1199,10 +1199,10 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     </div>
                   </TabsContent>
 
-                  {/* ─ Dados Tab — unified via ProposalDadosView (4-column grid) ─ */}
+                  {/* ─ Dados Tab — uses same StepResumo layout as wizard Resumo ─ */}
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
-                      <ProposalDadosView
+                      <ProposalSnapshotView
                         snapshot={snapshot as Record<string, unknown> | null}
                         valorTotal={latestVersao?.valor_total}
                         geracaoMensal={latestVersao?.geracao_mensal ?? undefined}
