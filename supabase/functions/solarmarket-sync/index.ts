@@ -1382,9 +1382,9 @@ Deno.serve(async (req) => {
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
-        const timeBudgetMs = 55_000; // 55s budget
+        const timeBudgetMs = 35_000; // 35s budget (CPU time is stricter than wall time)
         const startTime = Date.now();
-        const CONCURRENCY = 10; // 10 parallel requests
+        const CONCURRENCY = 5; // 5 parallel requests (reduced to avoid CPU exceeded)
 
         // Process in parallel batches of CONCURRENCY
         for (let i = 0; i < pendingIds.length; i += CONCURRENCY) {
