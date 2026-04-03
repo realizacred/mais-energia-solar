@@ -390,7 +390,7 @@ async function batchUpsert(
   table: string,
   rows: any[],
   onConflict: string,
-  batchSize = 50
+  batchSize = 20
 ): Promise<{ upserted: number; errors: string[] }> {
   // Deduplicate to avoid "ON CONFLICT DO UPDATE cannot affect row a second time"
   const conflictCols = onConflict.split(",").map(c => c.trim());
