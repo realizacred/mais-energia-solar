@@ -75,10 +75,24 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenantId)
       .eq("status", "running");
 
-    // Deletar tabelas SM antes da RPC para evitar timeout
-    const smTables = [
-      "solar_market_proposals",
-      "solar_market_projects",
+    // Deletar tabelas SM grandes em lotes para evitar timeout
+    for (const bigTable of ["solar_market_proposals", "solar_market_projects"]) {
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await admin
+          .from(bigTable)
+          .delete()
+          .eq("tenant_id", tenantId)
+          .limit(200)
+          .select("id");
+        if (error || !data || data.length === 0) {
+          hasMore = false;
+        }
+      }
+    }
+
+    // Resto das tabelas SM (pequenas, uma chamada basta)
+    const smallSmTables = [
       "solar_market_clients",
       "solar_market_custom_field_values",
       "solar_market_custom_fields",
@@ -86,15 +100,8 @@ Deno.serve(async (req) => {
       "solar_market_funnels",
       "solar_market_sync_logs",
     ];
-
-    for (const table of smTables) {
-      const { error: delErr } = await admin
-        .from(table)
-        .delete()
-        .eq("tenant_id", tenantId);
-      if (delErr) {
-        console.error(`[reset-tenant-data] Error deleting ${table}:`, delErr.message);
-      }
+    for (const table of smallSmTables) {
+      await admin.from(table).delete().eq("tenant_id", tenantId);
     }
 
     // RPC só para dados canônicos (rápido)
