@@ -53,7 +53,7 @@ export function ProposalActionCards({
   html, rendering, onGenerateFile, onCopyLink, onDownloadPdf, onRender,
   publicUrl, downloadingPdf, validoAte, onEditValidade, lastGeneratedAt,
   currentStatus, sending, onSendWhatsapp, onSendEmail, onScrollToTracking,
-  formattedDate, templateVars,
+  formattedDate, templateVars, linkPdf,
 }: ProposalActionCardsProps) {
   const { data: waTemplates } = useWhatsAppTemplates();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
