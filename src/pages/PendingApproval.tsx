@@ -24,25 +24,35 @@ export default function PendingApproval() {
     if (!user) return;
 
     const checkApproval = async () => {
-      const [{ data: profile, error: profileError }, { data: roles, error: rolesError }] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("status")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id),
-      ]);
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
 
-      if (profileError || rolesError) {
-        console.warn("[PendingApproval] Failed to verify approval status:", profileError?.message || rolesError?.message);
+      if (rolesError) {
+        console.warn("[PendingApproval] Failed to verify approval status:", rolesError.message);
         return;
       }
 
       const userRoles = (roles ?? []).map((entry) => entry.role as string);
       const hasGrantedRole = userRoles.some((role) => ACCESS_ROLES.includes(role));
+      const shouldBypassApprovalToAdmin = userRoles.some((role) => role === "admin" || role === "super_admin");
+
+      if (shouldBypassApprovalToAdmin) {
+        navigate("/admin", { replace: true });
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.warn("[PendingApproval] Failed to verify approval status:", profileError.message);
+        return;
+      }
 
       if (profile?.status === "aprovado" || hasGrantedRole) {
         const isSuperAdmin = userRoles.includes("super_admin");

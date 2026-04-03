@@ -92,21 +92,10 @@ export default function Auth() {
         try {
           const savedPreference = localStorage.getItem(PORTAL_PREFERENCE_KEY);
 
-          const [{ data: profile, error: profileError }, { data: roles, error: rolesError }] = await Promise.all([
-            supabase
-              .from("profiles")
-              .select("status, cargo_solicitado")
-              .eq("user_id", user.id)
-              .maybeSingle(),
-            supabase
-              .from("user_roles")
-              .select("role")
-              .eq("user_id", user.id),
-          ]);
-
-          if (profileError) {
-            throw profileError;
-          }
+          const { data: roles, error: rolesError } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id);
 
           if (rolesError) {
             throw rolesError;
@@ -114,6 +103,24 @@ export default function Auth() {
 
           const userRoles = (roles ?? []).map((entry) => entry.role as string);
           const hasGrantedRole = userRoles.some((role) => ACCESS_ROLES.includes(role));
+          const shouldBypassApprovalToAdmin = userRoles.some((role) => role === "admin" || role === "super_admin");
+
+          if (shouldBypassApprovalToAdmin) {
+            clearTimeout(timeoutId);
+            navigate("/admin", { replace: true });
+            return;
+          }
+
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("status, cargo_solicitado")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (profileError) {
+            throw profileError;
+          }
+
           const isSuperAdmin = userRoles.includes("super_admin");
           const isVendedor = userRoles.some((role) => role === "consultor" || role === "vendedor");
           const isAdmin = userRoles.some((role) => role === "admin" || role === "gerente" || role === "financeiro");
