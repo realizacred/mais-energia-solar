@@ -366,7 +366,8 @@ export function StepLocalizacao({
       .eq("ativo", true)
       .or(`estado.eq.${estado},estado.is.null`)
       .order("nome")
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) console.error("[StepLocalizacao] concessionarias fetch error:", error);
         setConcessionarias((data as ConcessionariaOption[]) || []);
         setLoadingConc(false);
       });
