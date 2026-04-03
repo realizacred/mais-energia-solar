@@ -1494,7 +1494,7 @@ Deno.serve(async (req) => {
                       return extractProposalArray(retryData).map((pr: any) => {
                         const cfRaw = buildCustomFieldsRaw(pr);
                         if (cfRaw) delete cfRaw._warnings;
-                        return {
+                        return stripNonTableFields({
                           tenant_id: tenantId,
                           sm_proposal_id: pr.id,
                           ...extractProposalFields(pr),
@@ -1502,7 +1502,7 @@ Deno.serve(async (req) => {
                           raw_payload: pr,
                           custom_fields_raw: cfRaw,
                           synced_at: new Date().toISOString(),
-                        };
+                        });
                       });
                     } catch {
                       clearTimeout(timer2);
