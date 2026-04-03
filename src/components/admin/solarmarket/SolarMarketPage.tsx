@@ -915,68 +915,81 @@ export default function SolarMarketPage() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => { setTab(v); clearFilters(); setSearch(""); clientsPag.resetPage(); projectsPag.resetPage(); proposalsPag.resetPage(); noProjectPag.resetPage(); noProposalPag.resetPage(); }}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <TabsList className="overflow-x-auto flex-wrap h-auto gap-1 p-1">
-            <TabsTrigger value="clientes" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
-              <Users className="h-3 w-3 mr-1" />
-              Clientes ({clients.length})
+        <div className="space-y-3">
+          {/* Primary tabs row */}
+          <TabsList className="overflow-x-auto flex-nowrap h-auto gap-0.5 p-1 w-full justify-start">
+            <TabsTrigger value="clientes" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              Clientes
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{clients.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="projetos" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
-              <FolderKanban className="h-3 w-3 mr-1" />
-              Projetos ({filtered.projects.length})
-              {filterClientId && <span className="ml-1 text-[10px] text-primary">●</span>}
+            <TabsTrigger value="projetos" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
+              <FolderKanban className="h-3.5 w-3.5" />
+              Projetos
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{filtered.projects.length}</Badge>
+              {filterClientId && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
             </TabsTrigger>
-            <TabsTrigger value="propostas" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
-              <FileText className="h-3 w-3 mr-1" />
-              Propostas ({filtered.proposals.length})
-              {filterProjectId && <span className="ml-1 text-[10px] text-primary">●</span>}
+            <TabsTrigger value="propostas" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Propostas
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{filtered.proposals.length}</Badge>
+              {filterProjectId && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
             </TabsTrigger>
-            <TabsTrigger value="sem-projeto" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
-              <UserMinus className="h-3 w-3 mr-1" />
-              Sem Projeto ({clientsWithoutProjectsCount})
+            <TabsTrigger value="sem-projeto" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
+              <UserMinus className="h-3.5 w-3.5" />
+              S/ Projeto
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{clientsWithoutProjectsCount}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="sem-proposta" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
-              <UserX className="h-3 w-3 mr-1" />
-              Sem Proposta ({clientsWithoutProposalsCount})
+            <TabsTrigger value="sem-proposta" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
+              <UserX className="h-3.5 w-3.5" />
+              S/ Proposta
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{clientsWithoutProposalsCount}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="funis" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
-              <GitBranch className="h-3 w-3 mr-1" />
-              Funis ({funnels.length})
+            <TabsTrigger value="funis" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
+              <GitBranch className="h-3.5 w-3.5" />
+              Funis
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{funnels.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="campos" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
-              <Settings2 className="h-3 w-3 mr-1" />
-              Campos ({customFields.length})
+            <TabsTrigger value="campos" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
+              <Settings2 className="h-3.5 w-3.5" />
+              Campos
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{customFields.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="logs" className="shrink-0 whitespace-nowrap text-xs px-2.5 h-7">
-              <Clock className="h-3 w-3 mr-1" />
+            <TabsTrigger value="logs" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
               Logs
             </TabsTrigger>
           </TabsList>
+
+          {/* Filters row */}
           <div className="flex items-center gap-2 flex-wrap">
             {(filterClientId || filterProjectId || filterCity || filterResponsible) && (
-              <Button variant="ghost" size="sm" onClick={() => { clearFilters(); clientsPag.resetPage(); projectsPag.resetPage(); }} className="text-[11px] h-7 px-2">
-                ✕ Limpar filtros
+              <Button variant="ghost" size="sm" onClick={() => { clearFilters(); clientsPag.resetPage(); projectsPag.resetPage(); }} className="text-xs h-8 px-2 gap-1">
+                <XCircle className="h-3.5 w-3.5" />
+                Limpar filtros
               </Button>
             )}
-            <SearchInput value={search} onChange={(v) => { setSearch(v); clientsPag.resetPage(); projectsPag.resetPage(); proposalsPag.resetPage(); }} placeholder="Nome, telefone, doc..." className="w-48 h-8" />
+            <SearchInput value={search} onChange={(v) => { setSearch(v); clientsPag.resetPage(); projectsPag.resetPage(); proposalsPag.resetPage(); }} placeholder="Nome, telefone, doc..." className="w-52 h-8" />
             {(tab === "clientes" || tab === "sem-projeto" || tab === "sem-proposta") && (
               <>
-                <select
-                  value={filterCity}
-                  onChange={(e) => { setFilterCity(e.target.value); clientsPag.resetPage(); }}
-                  className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
-                >
-                  <option value="">Todas cidades</option>
-                  {uniqueCities.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <select
-                  value={filterResponsible}
-                  onChange={(e) => { setFilterResponsible(e.target.value); clientsPag.resetPage(); }}
-                  className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
-                >
-                  <option value="">Todos responsáveis</option>
-                  {uniqueResponsibles.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+                <SelectUI value={filterCity || "__all__"} onValueChange={(v) => { setFilterCity(v === "__all__" ? "" : v); clientsPag.resetPage(); }}>
+                  <SelectTriggerUI className="h-8 text-xs w-auto min-w-[140px]">
+                    <SelectValueUI placeholder="Todas cidades" />
+                  </SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="__all__">Todas cidades</SelectItemUI>
+                    {uniqueCities.map(c => <SelectItemUI key={c} value={c}>{c}</SelectItemUI>)}
+                  </SelectContentUI>
+                </SelectUI>
+                <SelectUI value={filterResponsible || "__all__"} onValueChange={(v) => { setFilterResponsible(v === "__all__" ? "" : v); clientsPag.resetPage(); }}>
+                  <SelectTriggerUI className="h-8 text-xs w-auto min-w-[160px]">
+                    <SelectValueUI placeholder="Todos responsáveis" />
+                  </SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="__all__">Todos responsáveis</SelectItemUI>
+                    {uniqueResponsibles.map(r => <SelectItemUI key={r} value={r}>{r}</SelectItemUI>)}
+                  </SelectContentUI>
+                </SelectUI>
               </>
             )}
           </div>
