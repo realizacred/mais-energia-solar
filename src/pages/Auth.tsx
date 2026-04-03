@@ -93,18 +93,33 @@ export default function Auth() {
         }, 12_000);
 
         try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("status, cargo_solicitado")
-            .eq("user_id", user.id)
-            .maybeSingle();
+          const savedPreference = localStorage.getItem(PORTAL_PREFERENCE_KEY);
 
-          if (profile?.status === "pendente") {
+          const [{ data: profile }, { data: roles }] = await Promise.all([
+            supabase
+              .from("profiles")
+              .select("status, cargo_solicitado")
+              .eq("user_id", user.id)
+              .maybeSingle(),
+            supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", user.id),
+          ]);
+
+          const userRoles = (roles ?? []).map((entry) => entry.role as string);
+          const hasGrantedRole = userRoles.some((role) => ACCESS_ROLES.includes(role));
+          const isSuperAdmin = userRoles.includes("super_admin");
+          const isVendedor = userRoles.some((role) => role === "consultor" || role === "vendedor");
+          const isAdmin = userRoles.some((role) => role === "admin" || role === "gerente" || role === "financeiro");
+          const isInstalador = userRoles.includes("instalador");
+
+          if (profile?.status === "pendente" && !hasGrantedRole) {
             clearTimeout(timeoutId);
             navigate("/aguardando-aprovacao", { replace: true });
             return;
           }
-          if (profile?.status === "rejeitado") {
+          if (profile?.status === "rejeitado" && !hasGrantedRole) {
             clearTimeout(timeoutId);
             toast({
               title: "Acesso negado",
@@ -114,16 +129,6 @@ export default function Auth() {
             setCheckingRole(false);
             return;
           }
-
-          const savedPreference = localStorage.getItem(PORTAL_PREFERENCE_KEY);
-          const { data: roles } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", user.id);
-
-          const isVendedor = roles?.some(r => r.role === "consultor" || (r.role as string) === "vendedor");
-          const isAdmin = roles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
-          const isInstalador = roles?.some(r => r.role === "instalador");
 
           if (!isVendedor && !isAdmin && !isInstalador) {
             clearTimeout(timeoutId);
