@@ -41,9 +41,8 @@ export default function Auth() {
     searchParams.get("type") === "recovery" ||
     (typeof window !== "undefined" && window.location.hash.includes("type=recovery"));
 
-  // Show message if redirected from protected route
   useEffect(() => {
-    if (user || loading) return; // Don't show if already logged in or still loading
+    if (user || loading) return;
     const redirectFrom = searchParams.get("from");
     if (redirectFrom) {
       const messages: Record<string, string> = {
@@ -64,7 +63,6 @@ export default function Auth() {
   useEffect(() => {
     const checkUserRoleAndRedirect = async () => {
       if (!loading && user && !isRecoveryFlow) {
-        // If user came from a specific PWA route, always go back there
         const redirectFrom = searchParams.get("from");
         if (redirectFrom === "app") {
           navigate("/app", { replace: true });
@@ -80,8 +78,7 @@ export default function Auth() {
         }
 
         setCheckingRole(true);
-        
-        // Timeout safety: never leave user stuck on spinner
+
         const timeoutId = setTimeout(() => {
           console.warn("[auth] Role check timed out, forcing navigation");
           setCheckingRole(false);
@@ -119,6 +116,7 @@ export default function Auth() {
             navigate("/aguardando-aprovacao", { replace: true });
             return;
           }
+
           if (profile?.status === "rejeitado" && !hasGrantedRole) {
             clearTimeout(timeoutId);
             toast({
@@ -130,7 +128,7 @@ export default function Auth() {
             return;
           }
 
-          if (!isVendedor && !isAdmin && !isInstalador) {
+          if (!hasGrantedRole) {
             clearTimeout(timeoutId);
             setCheckingRole(false);
             if (profile) {
@@ -168,7 +166,9 @@ export default function Auth() {
             return;
           }
 
-          if (isInstalador && !isAdmin && !isVendedor) {
+          if (isSuperAdmin && !isAdmin && !isVendedor && !isInstalador) {
+            navigate("/super-admin", { replace: true });
+          } else if (isInstalador && !isAdmin && !isVendedor) {
             navigate("/instalador", { replace: true });
           } else if (isVendedor && !isAdmin && hasVendedorRecord) {
             navigate("/consultor", { replace: true });
@@ -204,39 +204,32 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Panel - Brand / Visual */}
       <div className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative overflow-hidden">
-        {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-secondary via-secondary/95 to-secondary/80" />
-        
-        {/* Decorative elements */}
+
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -translate-y-1/3 translate-x-1/4" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary/8 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4" />
         <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-primary/5 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2" />
-        
-        {/* Grid pattern overlay */}
-        <div 
+
+        <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
-            backgroundSize: '40px 40px',
+            backgroundSize: "40px 40px",
           }}
         />
 
-        {/* Login image if configured */}
         {loginImage && (
           <div className="absolute inset-0">
-            <img 
-              src={loginImage} 
-              alt="" 
+            <img
+              src={loginImage}
+              alt=""
               className="w-full h-full object-cover opacity-20"
             />
           </div>
         )}
-        
-        {/* Content */}
+
         <div className="relative z-10 flex flex-col justify-between p-10 xl:p-14 w-full">
-          {/* Logo */}
           <div>
             <Link to="/" className="inline-block transition-opacity hover:opacity-80">
               <img
@@ -247,7 +240,6 @@ export default function Auth() {
             </Link>
           </div>
 
-          {/* Hero message */}
           <div className="space-y-8">
             <div className="space-y-4">
               <h1 className="text-3xl xl:text-4xl font-bold text-white leading-tight tracking-tight">
@@ -261,7 +253,6 @@ export default function Auth() {
               </p>
             </div>
 
-            {/* Feature list */}
             <div className="space-y-4">
               {features.map((feature, index) => (
                 <div
@@ -279,7 +270,6 @@ export default function Auth() {
             </div>
           </div>
 
-          {/* Bottom testimonial / trust */}
           <div className="space-y-4">
             <div className="h-px bg-white/10" />
             <div className="flex items-center gap-3">
@@ -290,7 +280,7 @@ export default function Auth() {
                     className="w-8 h-8 rounded-full bg-primary/20 border-2 border-secondary flex items-center justify-center"
                   >
                     <span className="text-[10px] font-bold text-primary">
-                      {['ME', 'JS', 'RC'][i - 1]}
+                      {["ME", "JS", "RC"][i - 1]}
                     </span>
                   </div>
                 ))}
@@ -304,9 +294,7 @@ export default function Auth() {
         </div>
       </div>
 
-      {/* Right Panel - Auth Form */}
       <div className="flex-1 flex flex-col min-h-screen bg-background">
-        {/* Top bar - mobile */}
         <div className="flex items-center justify-between p-4 lg:p-6">
           <Link
             to="/"
@@ -315,8 +303,7 @@ export default function Auth() {
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm font-medium">Voltar</span>
           </Link>
-          
-          {/* Logo on mobile */}
+
           <Link to="/" className="lg:hidden">
             <img
               src={brandLogo}
@@ -324,14 +311,12 @@ export default function Auth() {
               className="h-8 w-auto"
             />
           </Link>
-          
-          <div className="w-16" /> {/* Spacer for centering */}
+
+          <div className="w-16" />
         </div>
 
-        {/* Form area */}
         <div className="flex-1 flex items-center justify-center px-4 pb-8 lg:px-8">
           <div className="w-full max-w-[420px] space-y-8">
-            {/* Header */}
             <div className="text-center lg:text-left space-y-2">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto lg:mx-0 mb-4">
                 <Sun className="w-6 h-6 text-primary" />
@@ -344,14 +329,12 @@ export default function Auth() {
               </p>
             </div>
 
-            {/* Auth card */}
             <Card className="border-border/40 shadow-lg bg-card">
               <CardContent className="p-6">
                 <AuthForm />
               </CardContent>
             </Card>
 
-            {/* Footer note */}
             <p className="text-center text-xs text-muted-foreground/60">
               © {new Date().getFullYear()} Mais Energia Solar · Todos os direitos reservados
             </p>
