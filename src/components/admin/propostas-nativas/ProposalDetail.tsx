@@ -153,11 +153,12 @@ export function ProposalDetail() {
         isFinalized={vm.isFinalized}
         cloning={false}
         lastEditDate={vm.atualizadoEm}
-        html={html}
+        html={html || (vm.linkPdf ? "__imported__" : null)}
         rendering={actions.render.isPending}
         onGenerateFile={() => setGenerateDialogOpen(true)}
         onCopyLink={(withTracking) => actions.copyLink.mutate(withTracking)}
-        onDownloadPdf={() => { if (html) actions.downloadPdf.mutate(html); }}
+        onDownloadPdf={() => { if (html) actions.downloadPdf.mutate(html); else if (vm.linkPdf) window.open(vm.linkPdf, "_blank"); }}
+        linkPdf={vm.linkPdf}
         onRender={() => actions.render.mutate()}
         publicUrl={publicUrl}
         downloadingPdf={actions.downloadPdf.isPending}
