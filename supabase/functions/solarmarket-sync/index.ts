@@ -1012,7 +1012,7 @@ Deno.serve(async (req) => {
         console.log(`[SM Sync] Funnel enrichment: ${alreadyEnrichedSet.size} already done, ${pendingEnrich.length} pending`);
         
         let enriched = 0;
-        const funnelTimeBudget = 50_000; // 50s budget for funnel enrichment (increased from 20s)
+        const funnelTimeBudget = 35_000; // 35s budget (reduced to avoid CPU exceeded)
         const funnelStart = Date.now();
 
         for (const projId of pendingEnrich) {
@@ -1382,9 +1382,9 @@ Deno.serve(async (req) => {
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
-        const timeBudgetMs = 55_000; // 55s budget
+        const timeBudgetMs = 35_000; // 35s budget (CPU time is stricter than wall time)
         const startTime = Date.now();
-        const CONCURRENCY = 10; // 10 parallel requests
+        const CONCURRENCY = 5; // 5 parallel requests (reduced to avoid CPU exceeded)
 
         // Process in parallel batches of CONCURRENCY
         for (let i = 0; i < pendingIds.length; i += CONCURRENCY) {
@@ -1476,18 +1476,30 @@ Deno.serve(async (req) => {
           }
           batchCount += chunk.length;
 
-          // Save partial results every 100 rows (smaller batches to avoid statement timeout)
-          if (allProposalRows.length >= 100) {
+          // Save partial results every 50 rows (smaller batches to reduce CPU per cycle)
+          if (allProposalRows.length >= 50) {
             console.error(`[SM Sync] Saving partial proposals batch: ${allProposalRows.length} rows (${batchCount}/${pendingIds.length} projects processed)`);
             const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
             totalUpserted += result.upserted;
             totalErrors += result.errors.length;
             errors.push(...result.errors);
             allProposalRows.length = 0;
+
+            // Update sync log with intermediate progress (enables realtime tracking)
+            if (logId) {
+              await supabase
+                .from("solar_market_sync_logs")
+                .update({
+                  total_fetched: totalFetched,
+                  total_upserted: totalUpserted,
+                  total_errors: totalErrors,
+                })
+                .eq("id", logId);
+            }
           }
 
           // Small delay between parallel batches to respect rate limits
-          await delay(200);
+          await delay(300);
         }
 
         // Save remaining rows
@@ -1530,15 +1542,22 @@ Deno.serve(async (req) => {
           .or("sm_client_id.is.null,sm_client_id.eq.-1");
 
         let enriched = 0;
+        // Batch update: group by sm_client_id to reduce queries
+        const clientIdGroups = new Map<number, string[]>();
         for (const prop of (nullClientProposals || [])) {
           const clientId = projectClientMap.get(prop.sm_project_id);
           if (clientId) {
-            await supabase
-              .from("solar_market_proposals")
-              .update({ sm_client_id: clientId })
-              .eq("id", prop.id);
+            if (!clientIdGroups.has(clientId)) clientIdGroups.set(clientId, []);
+            clientIdGroups.get(clientId)!.push(prop.id);
             enriched++;
           }
+        }
+        // Batch update per client_id group (avoids N+1)
+        for (const [clientId, propIds] of clientIdGroups) {
+          await supabase
+            .from("solar_market_proposals")
+            .update({ sm_client_id: clientId })
+            .in("id", propIds);
         }
         if (enriched > 0) {
           console.error(`[SM Sync] Enriched ${enriched} proposals with sm_client_id from projects`);
@@ -1738,7 +1757,7 @@ Deno.serve(async (req) => {
         let bfErrors = 0;
         let bfOffset = 0;
         const bfPageSize = 200;
-        const bfTimeBudget = 110_000; // 110s budget
+        const bfTimeBudget = 30_000; // 30s budget (reduced to avoid CPU exceeded)
         const bfStart = Date.now();
 
         while (Date.now() - bfStart < bfTimeBudget) {
