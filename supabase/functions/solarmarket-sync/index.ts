@@ -1757,7 +1757,7 @@ Deno.serve(async (req) => {
         let bfErrors = 0;
         let bfOffset = 0;
         const bfPageSize = 200;
-        const bfTimeBudget = 110_000; // 110s budget
+        const bfTimeBudget = 30_000; // 30s budget (reduced to avoid CPU exceeded)
         const bfStart = Date.now();
 
         while (Date.now() - bfStart < bfTimeBudget) {
