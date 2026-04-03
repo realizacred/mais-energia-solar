@@ -1199,10 +1199,10 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     </div>
                   </TabsContent>
 
-                  {/* ─ Dados Tab — unified via ProposalDadosView (4-column grid) ─ */}
+                  {/* ─ Dados Tab — uses same StepResumo layout as wizard Resumo ─ */}
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
-                      <ProposalDadosView
+                      <ProposalSnapshotView
                         snapshot={snapshot as Record<string, unknown> | null}
                         valorTotal={latestVersao?.valor_total}
                         geracaoMensal={latestVersao?.geracao_mensal ?? undefined}
