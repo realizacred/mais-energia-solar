@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
+const ACCESS_ROLES = ["admin", "gerente", "financeiro", "consultor", "vendedor", "instalador", "super_admin"];
+
 export default function PendingApproval() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -18,18 +20,25 @@ export default function PendingApproval() {
       return;
     }
 
-    // Poll for approval status every 10 seconds
     if (!user) return;
 
     const checkApproval = async () => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("status")
-        .eq("user_id", user.id)
-        .single();
+      const [{ data: profile }, { data: roles }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("status")
+          .eq("user_id", user.id)
+          .single(),
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id),
+      ]);
 
-      if (profile?.status === "aprovado") {
-        navigate("/auth", { replace: true }); // Re-trigger role check
+      const hasGrantedRole = (roles ?? []).some((entry) => ACCESS_ROLES.includes(entry.role));
+
+      if (profile?.status === "aprovado" || hasGrantedRole) {
+        navigate("/auth", { replace: true });
       }
     };
 
