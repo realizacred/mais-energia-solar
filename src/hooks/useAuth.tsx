@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicUrl } from "@/lib/getPublicUrl";
@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const authInitializedRef = useRef(false);
 
   const tenantGuardState = useTenantGuard(user?.id);
 
@@ -63,11 +64,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         { event: "DELETE", schema: "public", table: "user_roles", filter: `user_id=eq.${user.id}` },
         async () => {
           // Verify no roles remain before signing out
-          const { data: roles } = await supabase
+          const { data: roles, error } = await supabase
             .from("user_roles")
             .select("role")
             .eq("user_id", user.id);
-          if (!roles || roles.length === 0) {
+
+          if (error) {
+            console.warn("[auth] Failed to verify remaining roles after realtime delete:", error.message);
+            return;
+          }
+
+          if (roles.length === 0) {
             console.warn("[auth] All roles removed via realtime, signing out");
             await signOut("Seus perfis de acesso foram removidos. Entre em contato com o administrador.");
           }
@@ -87,7 +94,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+
+        if (authInitializedRef.current) {
+          setLoading(false);
+        }
       }
     );
 
@@ -95,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      authInitializedRef.current = true;
       setLoading(false);
     });
 
