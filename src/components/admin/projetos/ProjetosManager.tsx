@@ -46,7 +46,7 @@ export function ProjetosManager() {
     filters, applyFilters,
     selectedPipelineStages, ownerColumns,
     consultoresFilter,
-    createPipeline, renamePipeline, togglePipelineActive, reorderPipelines,
+    createPipeline, renamePipeline, togglePipelineActive, deletePipeline, reorderPipelines,
     createStage, renameStage, updateStageProbability, reorderStages, deleteStage,
     moveDealToOwner, moveDealToStage,
     createDeal, fetchAll,
