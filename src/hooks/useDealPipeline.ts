@@ -433,6 +433,45 @@ export function useDealPipeline() {
     toast({ title: is_active ? "Pipeline reativado" : "Pipeline desativado" });
   }, [toast, selectedPipelineId, pipelines]);
 
+  const deletePipeline = useCallback(async (id: string, moveDealsTo?: string) => {
+    // Move deals to another pipeline if specified
+    if (moveDealsTo) {
+      // Find first open stage of target pipeline
+      const targetStages = stages
+        .filter(s => s.pipeline_id === moveDealsTo && !s.is_closed)
+        .sort((a, b) => a.position - b.position);
+      const targetStageId = targetStages[0]?.id || null;
+
+      const { error: moveErr } = await supabase
+        .from("deals")
+        .update({ pipeline_id: moveDealsTo, stage_id: targetStageId } as any)
+        .eq("pipeline_id", id);
+      if (moveErr) {
+        toast({ title: "Erro ao mover deals", description: moveErr.message, variant: "destructive" });
+        return false;
+      }
+    }
+
+    // Delete stages first, then pipeline
+    const { error: stErr } = await supabase.from("pipeline_stages").delete().eq("pipeline_id", id);
+    if (stErr) { toast({ title: "Erro ao remover etapas", description: stErr.message, variant: "destructive" }); return false; }
+
+    // Delete deal_pipeline_stages references
+    await supabase.from("deal_pipeline_stages").delete().eq("pipeline_id", id);
+
+    const { error } = await supabase.from("pipelines").delete().eq("id", id);
+    if (error) { toast({ title: "Erro ao remover pipeline", description: error.message, variant: "destructive" }); return false; }
+
+    setPipelines(prev => prev.filter(p => p.id !== id));
+    setStages(prev => prev.filter(s => s.pipeline_id !== id));
+    if (selectedPipelineId === id) {
+      const next = pipelines.find(p => p.id !== id && p.is_active);
+      setSelectedPipelineId(next?.id || null);
+    }
+    toast({ title: "Pipeline removido" });
+    return true;
+  }, [toast, stages, pipelines, selectedPipelineId]);
+
   const reorderPipelines = useCallback(async (orderedIds: string[]) => {
     // Pipelines don't have position column; skip reorder for now
   }, []);
@@ -767,6 +806,7 @@ export function useDealPipeline() {
     createPipeline,
     renamePipeline,
     togglePipelineActive,
+    deletePipeline,
     reorderPipelines,
     createStage,
     renameStage,

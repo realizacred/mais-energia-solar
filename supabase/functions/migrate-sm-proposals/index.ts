@@ -505,24 +505,52 @@ Deno.serve(async (req) => {
     }
 
 
+    // ─── Vendedor name mapping (SM stage name → canonical consultor name) ──
+    const VENDEDOR_MAP: Record<string, string> = {
+      'bruno': 'BRUNO BANDEIRA',
+      'claudia': 'claudia',
+      'diego': 'diego',
+      'ian': 'ian souza',
+      'renan': 'renan',
+      'sebastiao': 'sebastião',
+      'sebastião': 'sebastião',
+      'rogerio': 'rogerio',
+      'rogério': 'rogerio',
+      'ricardo': 'ricardo',
+      'escritorio': 'escritório',
+      'escritório': 'escritório',
+    };
+
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
       const key = normalizeComparableName(stageName);
       if (!key) {
         throw new Error("Nome do consultor vazio na resolução automática");
       }
 
+      // Priority 1: exact match in consultoresMap
       const existing = consultoresMap.get(key);
       if (existing) return { id: existing, created: false };
 
-      // Also try partial match (first name)
+      // Priority 2: VENDEDOR_MAP lookup — find canonical name and match
+      const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key.includes(k))?.[1];
+      if (mappedName) {
+        const normalizedMapped = normalizeComparableName(mappedName);
+        const mapped = consultoresMap.get(normalizedMapped);
+        if (mapped) return { id: mapped, created: false };
+      }
+
+      // Priority 3: partial match (first name)
       for (const [k, v] of consultoresMap) {
         if (k.startsWith(key) || key.startsWith(k)) {
           return { id: v, created: false };
         }
       }
 
+      // Priority 4: fallback to "Não Definido"
+      const naoDefinido = consultoresMap.get(normalizeComparableName("Não Definido"));
+      if (naoDefinido) return { id: naoDefinido, created: false };
+
       if (dry_run) {
-        // In dry-run, return a placeholder
         return { id: `AUTO_CREATE:${stageName}`, created: true };
       }
 
@@ -537,7 +565,7 @@ Deno.serve(async (req) => {
           telefone: "N/A",
           codigo,
           ativo: true,
-          user_id: null, // No login access
+          user_id: null,
         })
         .select("id")
         .single();
@@ -658,10 +686,9 @@ Deno.serve(async (req) => {
 
 
     // ─── Helper: resolve principal pipeline from SM funnels ──
-    const FUNNEL_PRIORITY = ['LEAD', 'Vendedores', 'Engenharia', 'Equipamento', 'Compesação', 'Pagamento'];
+    const FUNNEL_PRIORITY = ['LEAD', 'Engenharia', 'Equipamento', 'Compesação', 'Pagamento'];
     const FUNNEL_TO_CANONICAL: Record<string, string> = {
       'LEAD': 'Comercial',
-      'Vendedores': 'Vendedor',
     };
 
     async function resolvePipelinePrincipalDoFunil(

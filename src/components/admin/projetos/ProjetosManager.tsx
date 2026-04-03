@@ -46,7 +46,7 @@ export function ProjetosManager() {
     filters, applyFilters,
     selectedPipelineStages, ownerColumns,
     consultoresFilter,
-    createPipeline, renamePipeline, togglePipelineActive, reorderPipelines,
+    createPipeline, renamePipeline, togglePipelineActive, deletePipeline, reorderPipelines,
     createStage, renameStage, updateStageProbability, reorderStages, deleteStage,
     moveDealToOwner, moveDealToStage,
     createDeal, fetchAll,
@@ -395,11 +395,13 @@ export function ProjetosManager() {
                 <ProjetoEtapaManagerDialog
                   pipeline={pipelines.find(p => p.id === editingEtapasFunilId) || null}
                   stages={stages}
+                  allPipelines={pipelines.filter(p => p.is_active && p.id !== editingEtapasFunilId)}
                   onClose={() => setEditingEtapasFunilId(null)}
                   onCreateStage={createStage}
                   onRenameStage={renameStage}
                   onReorderStages={reorderStages}
                   onDeleteStage={deleteStage}
+                  onDeletePipeline={deletePipeline}
                 />
               )}
 
