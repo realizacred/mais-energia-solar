@@ -292,7 +292,14 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
                 />
               </TableCell>
               <TableCell>
-                <p className="font-medium">{pr.titulo || "—"}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-medium">{pr.titulo || "—"}</p>
+                  {pr.link_pdf && (
+                    <a href={pr.link_pdf} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} title="Ver PDF">
+                      <ExternalLink className="h-3.5 w-3.5 text-primary hover:text-primary/80" />
+                    </a>
+                  )}
+                </div>
               </TableCell>
               <TableCell>
                 {pr.potencia_kwp ? (
