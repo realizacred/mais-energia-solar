@@ -575,6 +575,8 @@ export default function SolarMarketPage() {
   };
 
   const { syncAll, syncStage, progress } = useSolarMarketSync();
+  // Realtime: all users see sync progress live
+  useRealtimeSyncLogs();
   const syncIsRunning = progress.isRunning;
   const { data: isBgSyncActive = false } = useIsBackgroundSyncActive();
   const isAnySyncActive = syncIsRunning || isBgSyncActive;
