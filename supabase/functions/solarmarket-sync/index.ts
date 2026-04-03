@@ -390,7 +390,7 @@ async function batchUpsert(
   table: string,
   rows: any[],
   onConflict: string,
-  batchSize = 50
+  batchSize = 20
 ): Promise<{ upserted: number; errors: string[] }> {
   // Deduplicate to avoid "ON CONFLICT DO UPDATE cannot affect row a second time"
   const conflictCols = onConflict.split(",").map(c => c.trim());
@@ -1343,92 +1343,8 @@ Deno.serve(async (req) => {
       }
       console.error(`[SM Sync] Resume check: ${alreadySyncedProjectIds.size} projects already have proposals`);
 
-      try {
-        // Try bulk endpoint first: GET /proposals
-        console.error(`[SM Sync] Trying bulk /proposals endpoint...`);
-        const proposals = await fetchAllPages(`${baseUrl}/proposals`, smHeaders);
-        totalFetched += proposals.length;
-        console.error(`[SM Sync] Proposals fetched (bulk): ${proposals.length}`);
-
-        // Debug: log first 3 proposals' keys and id fields to understand the structure
-        if (proposals.length > 0) {
-          for (let di = 0; di < Math.min(3, proposals.length); di++) {
-            const pr = proposals[di];
-            console.error(`[SM Sync] Proposal sample ${di}: id=${pr.id}, proposalId=${pr.proposalId}, proposal_id=${pr.proposal_id}, projectId=${pr.projectId || pr.project?.id}, title=${pr.title || pr.titulo || pr.name}, keys=${Object.keys(pr).slice(0, 20).join(",")}`);
-          }
-          // Check for duplicate IDs
-          const idSet = new Set(proposals.map((p: any) => p.id));
-          console.error(`[SM Sync] Unique proposal IDs: ${idSet.size} out of ${proposals.length}. Sample IDs: ${[...idSet].slice(0, 10).join(",")}`);
-        }
-
-        if (proposals.length > 0) {
-          // Filter out proposals for projects already synced (resume)
-          const newProposals = proposals.filter((pr: any) => {
-            const projId = pr.project?.id || pr.projectId || pr.project_id || null;
-            return projId == null || !alreadySyncedProjectIds.has(projId);
-          });
-          console.error(`[SM Sync] Bulk proposals: ${proposals.length} total, ${newProposals.length} new (skipping ${proposals.length - newProposals.length} already synced)`);
-
-          // Build project→client lookup to resolve sm_client_id from projects
-          const projectClientMap = new Map<number, number>();
-          {
-            let offset = 0;
-            const pageSize = 1000;
-            while (true) {
-              const { data: projRows } = await supabase
-                .from("solar_market_projects")
-                .select("sm_project_id, sm_client_id")
-                .eq("tenant_id", tenantId)
-                .not("sm_client_id", "is", null)
-                .range(offset, offset + pageSize - 1);
-              for (const r of (projRows || [])) {
-                projectClientMap.set(r.sm_project_id, r.sm_client_id);
-              }
-              if ((projRows || []).length < pageSize) break;
-              offset += pageSize;
-            }
-          }
-          console.error(`[SM Sync] Project→Client lookup built: ${projectClientMap.size} entries`);
-
-          const rows = newProposals.map((pr: any) => {
-            const extracted = extractProposalFields(pr);
-            const projectId = extracted.sm_project_id || pr.project?.id || pr.projectId || null;
-            // Resolve sm_client_id: prefer API value, fallback to project lookup
-            let clientId = extracted.sm_client_id;
-            if (!clientId || clientId === -1 || clientId === "-1") {
-              clientId = projectId ? (projectClientMap.get(projectId) ?? null) : null;
-            }
-            const cfRaw = buildCustomFieldsRaw(pr);
-            const cfWarnings = cfRaw?._warnings || null;
-            if (cfRaw) delete cfRaw._warnings;
-            return stripNonTableFields({
-              tenant_id: tenantId,
-              sm_proposal_id: pr.id,
-              ...extracted,
-              sm_project_id: projectId,
-              sm_client_id: clientId,
-              raw_payload: pr,
-              custom_fields_raw: cfRaw,
-              warnings: cfWarnings,
-              synced_at: new Date().toISOString(),
-            });
-          });
-
-          const validRows = rows.filter((r: any) => r.sm_project_id != null);
-          const skipped = rows.length - validRows.length;
-          if (skipped > 0) {
-            console.error(`[SM Sync] Skipped ${skipped} proposals without project ID`);
-          }
-
-          const result = await batchUpsert(supabase, "solar_market_proposals", validRows, "tenant_id,sm_project_id,sm_proposal_id");
-          totalUpserted += result.upserted;
-          totalErrors += result.errors.length;
-          errors.push(...result.errors);
-        }
-      } catch (bulkErr) {
-        console.error(`[SM Sync] Bulk /proposals failed: ${(bulkErr as Error).message}, trying per-project fallback...`);
-
-        // Fallback: fetch per-project, SKIPPING projects already synced (resume logic)
+      {
+        // Fetch per-project proposals, SKIPPING projects already synced (resume logic)
         let ids = projectIds;
         if (ids.length === 0) {
           // Fetch ALL project IDs from DB
@@ -1550,8 +1466,8 @@ Deno.serve(async (req) => {
           }
           batchCount += chunk.length;
 
-          // Save partial results every 300 rows
-          if (allProposalRows.length >= 300) {
+          // Save partial results every 100 rows (smaller batches to avoid statement timeout)
+          if (allProposalRows.length >= 100) {
             console.log(`[SM Sync] Saving partial proposals batch: ${allProposalRows.length} rows (${batchCount}/${pendingIds.length} projects processed)`);
             const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
             totalUpserted += result.upserted;
@@ -1573,7 +1489,7 @@ Deno.serve(async (req) => {
           errors.push(...result.errors);
         }
 
-        console.log(`[SM Sync] Proposals fallback complete: processed ${batchCount} pending projects`);
+        console.log(`[SM Sync] Proposals complete: processed ${batchCount} pending projects`);
       }
 
       // ── Enrich proposals with sm_client_id from projects ──
