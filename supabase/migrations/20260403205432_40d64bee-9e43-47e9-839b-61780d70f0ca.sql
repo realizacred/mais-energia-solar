@@ -1,0 +1,1 @@
+SELECT service_key, is_active, CASE WHEN api_key IS NULL OR api_key = '' THEN 'missing' ELSE 'present' END AS api_key_status FROM public.integration_configs WHERE service_key = 'google_maps';

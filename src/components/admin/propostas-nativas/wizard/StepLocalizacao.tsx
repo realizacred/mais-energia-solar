@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
 import { useTiposTelhado } from "@/hooks/useTiposTelhado";
 import { ROOF_TYPE_ICONS } from "./roofTypeIcons";
 import { ProjectAddressFields, type ProjectAddress } from "./ProjectAddressFields";
@@ -188,17 +189,12 @@ export function StepLocalizacao({
         // Strategy 2: Google Geocoding REST API
         if (lat === null) {
           try {
-            const { data: mapsConfig } = await supabase
-              .from("integration_configs")
-              .select("api_key, is_active")
-              .eq("service_key", "google_maps")
-              .eq("is_active", true)
-              .maybeSingle();
+            const mapsConfig = await invokeEdgeFunction<{ key?: string }>("get-maps-key");
 
-            if (mapsConfig?.api_key) {
+            if (mapsConfig?.key) {
               const query = encodeURIComponent(addressQuery);
               const resp = await fetch(
-                `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsConfig.api_key}&region=br`
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsConfig.key}&region=br`
               );
               const json = await resp.json();
               if (json.status === "OK" && json.results?.[0]) {
@@ -298,20 +294,15 @@ export function StepLocalizacao({
       setDistKm(null);
 
       try {
-        const { data: mapsConfig } = await supabase
-          .from("integration_configs")
-          .select("api_key, is_active")
-          .eq("service_key", "google_maps")
-          .eq("is_active", true)
-          .maybeSingle();
+        const mapsConfig = await invokeEdgeFunction<{ key?: string }>("get-maps-key");
 
         let lat: number | null = null;
         let lon: number | null = null;
 
-        if (mapsConfig?.api_key) {
+        if (mapsConfig?.key) {
           const query = encodeURIComponent(`${cidade}, ${estado}, Brasil`);
           const resp = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsConfig.api_key}&region=br`,
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsConfig.key}&region=br`,
           );
           const json = await resp.json();
           if (json.status === "OK" && json.results?.[0]) {
@@ -433,18 +424,13 @@ export function StepLocalizacao({
     fetchIrradiacao(lat, lon);
 
     try {
-      const { data: mapsConfig } = await supabase
-        .from("integration_configs")
-        .select("api_key, is_active")
-        .eq("service_key", "google_maps")
-        .eq("is_active", true)
-        .maybeSingle();
+      const mapsConfig = await invokeEdgeFunction<{ key?: string }>("get-maps-key");
 
       let result: Partial<ProjectAddress> = { lat, lon };
 
-      if (mapsConfig?.api_key) {
+      if (mapsConfig?.key) {
         const resp = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${mapsConfig.api_key}&language=pt-BR`
+          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${mapsConfig.key}&language=pt-BR`
         );
         const json = await resp.json();
         if (json.status === "OK" && json.results?.[0]) {
