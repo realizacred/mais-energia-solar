@@ -6,6 +6,39 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+async function deleteTableInBatches(
+  admin: ReturnType<typeof createClient>,
+  table: string,
+  tenantId: string,
+  batchSize = 200
+) {
+  while (true) {
+    const { data: rows, error: selectError } = await admin
+      .from(table)
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .limit(batchSize);
+
+    if (selectError) {
+      throw new Error(`Erro ao listar registros de ${table}: ${selectError.message}`);
+    }
+
+    if (!rows || rows.length === 0) {
+      break;
+    }
+
+    const ids = rows.map((row: { id: string }) => row.id);
+    const { error: deleteError } = await admin
+      .from(table)
+      .delete()
+      .in("id", ids);
+
+    if (deleteError) {
+      throw new Error(`Erro ao apagar registros de ${table}: ${deleteError.message}`);
+    }
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -75,20 +108,9 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenantId)
       .eq("status", "running");
 
-    // Deletar tabelas SM grandes em lotes para evitar timeout
+    // Deletar tabelas SM grandes em lotes por IDs para evitar timeout e erros silenciosos
     for (const bigTable of ["solar_market_proposals", "solar_market_projects"]) {
-      let hasMore = true;
-      while (hasMore) {
-        const { data, error } = await admin
-          .from(bigTable)
-          .delete()
-          .eq("tenant_id", tenantId)
-          .limit(200)
-          .select("id");
-        if (error || !data || data.length === 0) {
-          hasMore = false;
-        }
-      }
+      await deleteTableInBatches(admin, bigTable, tenantId);
     }
 
     // Resto das tabelas SM (pequenas, uma chamada basta)
@@ -96,12 +118,16 @@ Deno.serve(async (req) => {
       "solar_market_clients",
       "solar_market_custom_field_values",
       "solar_market_custom_fields",
+      "solar_market_custom_fields_snapshots",
       "solar_market_funnel_stages",
       "solar_market_funnels",
       "solar_market_sync_logs",
     ];
     for (const table of smallSmTables) {
-      await admin.from(table).delete().eq("tenant_id", tenantId);
+      const { error } = await admin.from(table).delete().eq("tenant_id", tenantId);
+      if (error) {
+        throw new Error(`Erro ao apagar registros de ${table}: ${error.message}`);
+      }
     }
 
     // RPC só para dados canônicos (rápido)
