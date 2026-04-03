@@ -1031,34 +1031,38 @@ export default function SolarMarketPage() {
         <TabsContent value="propostas" className="mt-3 space-y-3">
           <div className="flex flex-wrap items-center gap-2 justify-between">
             <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={filterMigrationStatus}
-                onChange={(e) => { setFilterMigrationStatus(e.target.value as any); proposalsPag.resetPage(); }}
-                className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
-              >
-                <option value="all">Todos</option>
-                <option value="pending">Pendentes</option>
-                <option value="migrated">Migrados</option>
-              </select>
-              <select
-                value={filterProposalStatus}
-                onChange={(e) => { setFilterProposalStatus(e.target.value); proposalsPag.resetPage(); }}
-                className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
-              >
-                <option value="">Todos status</option>
-                {uniqueProposalStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <select
-                value={filterProposalConsultor}
-                onChange={(e) => { setFilterProposalConsultor(e.target.value); proposalsPag.resetPage(); }}
-                className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
-              >
-                <option value="">Todos consultores</option>
-                {uniqueProposalConsultores.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <SelectUI value={filterMigrationStatus} onValueChange={(v) => { setFilterMigrationStatus(v as any); proposalsPag.resetPage(); }}>
+                <SelectTriggerUI className="h-8 text-xs w-auto min-w-[120px]">
+                  <SelectValueUI />
+                </SelectTriggerUI>
+                <SelectContentUI>
+                  <SelectItemUI value="all">Todos</SelectItemUI>
+                  <SelectItemUI value="pending">Pendentes</SelectItemUI>
+                  <SelectItemUI value="migrated">Migrados</SelectItemUI>
+                </SelectContentUI>
+              </SelectUI>
+              <SelectUI value={filterProposalStatus || "__all__"} onValueChange={(v) => { setFilterProposalStatus(v === "__all__" ? "" : v); proposalsPag.resetPage(); }}>
+                <SelectTriggerUI className="h-8 text-xs w-auto min-w-[130px]">
+                  <SelectValueUI placeholder="Todos status" />
+                </SelectTriggerUI>
+                <SelectContentUI>
+                  <SelectItemUI value="__all__">Todos status</SelectItemUI>
+                  {uniqueProposalStatuses.map(s => <SelectItemUI key={s} value={s}>{s}</SelectItemUI>)}
+                </SelectContentUI>
+              </SelectUI>
+              <SelectUI value={filterProposalConsultor || "__all__"} onValueChange={(v) => { setFilterProposalConsultor(v === "__all__" ? "" : v); proposalsPag.resetPage(); }}>
+                <SelectTriggerUI className="h-8 text-xs w-auto min-w-[150px]">
+                  <SelectValueUI placeholder="Todos consultores" />
+                </SelectTriggerUI>
+                <SelectContentUI>
+                  <SelectItemUI value="__all__">Todos consultores</SelectItemUI>
+                  {uniqueProposalConsultores.map(c => <SelectItemUI key={c} value={c}>{c}</SelectItemUI>)}
+                </SelectContentUI>
+              </SelectUI>
               {(filterProposalStatus || filterProposalConsultor) && (
-                <Button variant="ghost" size="sm" onClick={() => { setFilterProposalStatus(""); setFilterProposalConsultor(""); proposalsPag.resetPage(); }} className="text-[11px] h-7 px-2">
-                  ✕ Limpar
+                <Button variant="ghost" size="sm" onClick={() => { setFilterProposalStatus(""); setFilterProposalConsultor(""); proposalsPag.resetPage(); }} className="text-xs h-8 px-2 gap-1">
+                  <XCircle className="h-3.5 w-3.5" />
+                  Limpar
                 </Button>
               )}
             </div>
