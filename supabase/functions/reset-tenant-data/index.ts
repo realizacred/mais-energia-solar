@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
 
     // RPC só para dados canônicos (rápido)
     const { data: counts, error: resetErr } = await admin
-      .rpc("reset_tenant_data", { p_tenant_id: tenantId });
+      .rpc("reset_migrated_data", { p_tenant_id: tenantId });
 
     if (resetErr) {
       return new Response(
