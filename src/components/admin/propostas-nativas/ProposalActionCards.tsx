@@ -34,6 +34,8 @@ interface ProposalActionCardsProps {
   validoAte: string | null;
   onEditValidade: () => void;
   lastGeneratedAt: string | null;
+  /** URL externa do PDF (SolarMarket) — propostas importadas */
+  linkPdf?: string | null;
   // Envio
   currentStatus: string;
   sending: boolean;
