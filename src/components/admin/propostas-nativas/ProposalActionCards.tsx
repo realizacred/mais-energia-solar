@@ -146,9 +146,13 @@ export function ProposalActionCards({
           <Separator />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2">
-            <ActionLink icon={Link2} label="Copiar link com rastreio" onClick={() => onCopyLink(true)} />
-            <ActionLink icon={Link2} label="Copiar link sem rastreio" onClick={() => onCopyLink(false)} />
-            <ActionLink icon={Download} label="Download de PDF" onClick={onDownloadPdf} disabled={downloadingPdf || !html} />
+            <ActionLink icon={Link2} label="Copiar link com rastreio" onClick={() => onCopyLink(true)} disabled={!html && !linkPdf} />
+            <ActionLink icon={Link2} label="Copiar link sem rastreio" onClick={() => onCopyLink(false)} disabled={!html && !linkPdf} />
+            {linkPdf && !html ? (
+              <ActionLink icon={Download} label="Download de PDF (original)" onClick={() => window.open(linkPdf, "_blank")} />
+            ) : (
+              <ActionLink icon={Download} label="Download de PDF" onClick={onDownloadPdf} disabled={downloadingPdf || !html} />
+            )}
             <ActionLink icon={Download} label="Download de Doc" onClick={onDownloadPdf} disabled={downloadingPdf || !html} iconColor="text-info" />
             <ActionLink icon={Eye} label="Pré-visualizar template web" onClick={onRender} disabled={!html} />
           </div>
