@@ -434,13 +434,15 @@ Deno.serve(async (req) => {
   let totalFetched = 0;
   let totalUpserted = 0;
   let totalErrors = 0;
+  // Declare supabase outside try so catch block can access it for log updates
+  let supabase: any = null;
   try {
     // ─── Auth ──────────────────────────────────────────────
     const authHeader = req.headers.get("authorization");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceKey);
+    supabase = createClient(supabaseUrl, serviceKey);
 
     let tenantId: string | null = null;
 
@@ -1324,6 +1326,7 @@ Deno.serve(async (req) => {
     }
 
     if (sync_type === "full" || sync_type === "proposals") {
+      try {
       // ── Resume logic: get projects that already have proposals (shared by both paths) ──
       const alreadySyncedProjectIds = new Set<number>();
       {
@@ -1364,6 +1367,13 @@ Deno.serve(async (req) => {
             offset += pageSize;
           }
           ids = allDbIds;
+          console.error(`[SM Sync] Proposals: loaded ${ids.length} project IDs from DB (projectIds was empty)`);
+        }
+
+        if (ids.length === 0) {
+          console.error(`[SM Sync] Proposals: 0 projects found in DB. Sync projects first before syncing proposals.`);
+          errors.push("proposals: nenhum projeto encontrado no banco. Sincronize projetos primeiro.");
+          totalErrors++;
         }
 
         // Use the alreadySyncedProjectIds computed above (shared resume set)
@@ -1468,7 +1478,7 @@ Deno.serve(async (req) => {
 
           // Save partial results every 100 rows (smaller batches to avoid statement timeout)
           if (allProposalRows.length >= 100) {
-            console.log(`[SM Sync] Saving partial proposals batch: ${allProposalRows.length} rows (${batchCount}/${pendingIds.length} projects processed)`);
+            console.error(`[SM Sync] Saving partial proposals batch: ${allProposalRows.length} rows (${batchCount}/${pendingIds.length} projects processed)`);
             const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
             totalUpserted += result.upserted;
             totalErrors += result.errors.length;
@@ -1482,14 +1492,14 @@ Deno.serve(async (req) => {
 
         // Save remaining rows
         if (allProposalRows.length > 0) {
-          console.log(`[SM Sync] Saving final proposals batch: ${allProposalRows.length} rows`);
+          console.error(`[SM Sync] Saving final proposals batch: ${allProposalRows.length} rows`);
           const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
           totalUpserted += result.upserted;
           totalErrors += result.errors.length;
           errors.push(...result.errors);
         }
 
-        console.log(`[SM Sync] Proposals complete: processed ${batchCount} pending projects`);
+        console.error(`[SM Sync] Proposals complete: processed ${batchCount} pending projects, fetched=${totalFetched}, upserted=${totalUpserted}`);
       }
 
       // ── Enrich proposals with sm_client_id from projects ──
@@ -1531,10 +1541,17 @@ Deno.serve(async (req) => {
           }
         }
         if (enriched > 0) {
-          console.log(`[SM Sync] Enriched ${enriched} proposals with sm_client_id from projects`);
+          console.error(`[SM Sync] Enriched ${enriched} proposals with sm_client_id from projects`);
         }
       } catch (enrichErr) {
         console.warn(`[SM Sync] sm_client_id enrichment error:`, enrichErr);
+      }
+      } catch (proposalStageErr) {
+        console.error("[SM Sync] Proposals stage error:", proposalStageErr);
+        const msg = (proposalStageErr as Error).message || "Erro desconhecido na etapa de propostas";
+        if (msg.includes("SM API 401")) hasSolarMarketAuthError = true;
+        totalErrors++;
+        errors.push(`proposals: ${msg}`);
       }
     }
 
