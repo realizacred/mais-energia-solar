@@ -395,11 +395,13 @@ export function ProjetosManager() {
                 <ProjetoEtapaManagerDialog
                   pipeline={pipelines.find(p => p.id === editingEtapasFunilId) || null}
                   stages={stages}
+                  allPipelines={pipelines.filter(p => p.is_active && p.id !== editingEtapasFunilId)}
                   onClose={() => setEditingEtapasFunilId(null)}
                   onCreateStage={createStage}
                   onRenameStage={renameStage}
                   onReorderStages={reorderStages}
                   onDeleteStage={deleteStage}
+                  onDeletePipeline={deletePipeline}
                 />
               )}
 
