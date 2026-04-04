@@ -28,7 +28,7 @@ import {
   useTenantTarifas, useCustomFieldsAvailability, applyTenantTarifasToUC,
 } from "./wizard/useWizardDataLoaders";
 import { validateGrupoConsistency, resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
-import type { ProposalResolverContext } from "@/lib/resolveProposalVariables";
+import type { ProposalResolverContext, TariffVersionContext } from "@/lib/resolveProposalVariables";
 
 // ── Step Components
 import { StepLocalizacao } from "./wizard/StepLocalizacao";
