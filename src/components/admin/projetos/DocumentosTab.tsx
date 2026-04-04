@@ -120,6 +120,18 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
     );
   };
 
+  const handleSendForSignature = async (doc: GeneratedDocRow) => {
+    try {
+      const { tenantId } = await getCurrentTenantId();
+      signMutation.mutate(
+        { documentoId: doc.id, tenantId },
+        { onSuccess: () => setSignConfirmDoc(null) }
+      );
+    } catch {
+      toast({ title: "Erro ao obter tenant", variant: "destructive" });
+    }
+  };
+
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
 
   return (
