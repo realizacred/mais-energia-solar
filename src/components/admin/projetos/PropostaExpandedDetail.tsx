@@ -105,6 +105,112 @@ interface SnapshotData {
 
 // UCDetailData imported from usePropostaExpandedData hook
 
+// ─── Unified Timeline ────────────────────────────────
+
+interface TimelineEntry {
+  id: string;
+  source: "audit" | "event";
+  label: string;
+  icon: React.ReactNode;
+  dotClass: string;
+  badgeClass: string;
+  userName: string;
+  created_at: string;
+}
+
+const EVENT_META: Record<string, { label: string; dotClass: string; badgeClass: string; iconKey: string }> = {
+  created: { label: "Criou a proposta", dotClass: "border-success/40 bg-success/10 text-success", badgeClass: "bg-success/10 text-success", iconKey: "filePlus" },
+  version_created: { label: "Gerou nova versão", dotClass: "border-warning/40 bg-warning/10 text-warning", badgeClass: "bg-warning/10 text-warning", iconKey: "fileCheck" },
+  status_change: { label: "Alterou status", dotClass: "border-primary/40 bg-primary/10 text-primary", badgeClass: "bg-primary/10 text-primary", iconKey: "refresh" },
+  deleted: { label: "Excluiu a proposta", dotClass: "border-destructive/40 bg-destructive/10 text-destructive", badgeClass: "bg-destructive/10 text-destructive", iconKey: "trash" },
+  cloned: { label: "Clonou a proposta", dotClass: "border-info/40 bg-info/10 text-info", badgeClass: "bg-info/10 text-info", iconKey: "copy" },
+  proposta_enviada: { label: "Enviou a proposta", dotClass: "border-info/40 bg-info/10 text-info", badgeClass: "bg-info/10 text-info", iconKey: "mail" },
+  proposta_visualizada: { label: "Proposta visualizada pelo cliente", dotClass: "border-warning/40 bg-warning/10 text-warning", badgeClass: "bg-warning/10 text-warning", iconKey: "eye" },
+  proposta_aceita: { label: "Proposta aceita pelo cliente", dotClass: "border-success/40 bg-success/10 text-success", badgeClass: "bg-success/10 text-success", iconKey: "check" },
+  proposta_recusada: { label: "Proposta recusada pelo cliente", dotClass: "border-destructive/40 bg-destructive/10 text-destructive", badgeClass: "bg-destructive/10 text-destructive", iconKey: "trash" },
+};
+
+function getEventIcon(iconKey: string): React.ReactNode {
+  switch (iconKey) {
+    case "filePlus": return <FilePlus className="h-3 w-3" />;
+    case "fileCheck": return <FileCheck className="h-3 w-3" />;
+    case "refresh": return <RefreshCw className="h-3 w-3" />;
+    case "trash": return <Trash2 className="h-3 w-3" />;
+    case "copy": return <Copy className="h-3 w-3" />;
+    case "mail": return <Mail className="h-3 w-3" />;
+    case "eye": return <Eye className="h-3 w-3" />;
+    case "check": return <CheckCircle className="h-3 w-3" />;
+    default: return <Clock className="h-3 w-3" />;
+  }
+}
+
+function getStatusChangeLabel(payload: Record<string, any> | null): string {
+  if (!payload) return "Alterou status";
+  const prev = payload.previous_status || payload.previousStatus;
+  const next = payload.new_status || payload.newStatus;
+  if (prev && next) return `Status: ${prev} → ${next}`;
+  if (next) return `Status alterado para ${next}`;
+  return "Alterou status";
+}
+
+function useMergedTimeline(
+  auditLogs: Array<{ id: string; acao: string; tabela: string; user_email: string | null; created_at: string }>,
+  events: ProposalEventEntry[],
+): TimelineEntry[] {
+  return useMemo(() => {
+    const entries: TimelineEntry[] = [];
+
+    // Add proposal_events (semantic — primary source)
+    for (const ev of events) {
+      const meta = EVENT_META[ev.tipo];
+      if (!meta) continue;
+      const label = ev.tipo === "status_change" ? getStatusChangeLabel(ev.payload) : meta.label;
+      entries.push({
+        id: `ev-${ev.id}`,
+        source: "event",
+        label,
+        icon: getEventIcon(meta.iconKey),
+        dotClass: meta.dotClass,
+        badgeClass: meta.badgeClass,
+        userName: "SISTEMA",
+        created_at: ev.created_at,
+      });
+    }
+
+    // Track event timestamps to deduplicate audit_logs
+    const eventTimestamps = new Set(events.map(e => new Date(e.created_at).getTime()));
+
+    // Add audit_logs that DON'T overlap with events (within 5s window)
+    for (const log of auditLogs) {
+      const logTime = new Date(log.created_at).getTime();
+      // Skip if there's a proposal_event within 5 seconds (likely same action)
+      const hasDuplicate = [...eventTimestamps].some(evTime => Math.abs(evTime - logTime) < 5000);
+      if (hasDuplicate) continue;
+
+      const audit = getAuditMeta(log.acao, log.tabela);
+      const userName = log.user_email === "sistema"
+        ? "SISTEMA"
+        : log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
+
+      entries.push({
+        id: `al-${log.id}`,
+        source: "audit",
+        label: audit.label,
+        icon: audit.icon,
+        dotClass: audit.dotClass,
+        badgeClass: audit.badgeClass,
+        userName,
+        created_at: log.created_at,
+      });
+    }
+
+    // Sort by date descending
+    entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return entries;
+  }, [auditLogs, events]);
+}
+
 // ─── Status Badge (SSOT from proposalStatusConfig) ───
 import { getProposalStatusConfig } from "@/lib/proposalStatusConfig";
 
