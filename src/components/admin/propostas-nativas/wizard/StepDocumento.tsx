@@ -62,6 +62,8 @@ interface StepDocumentoProps {
   onCustomFieldValuesChange?: (values: Record<string, any>) => void;
   docxBlob?: Blob | null;
   generationAuditReport?: GenerationAuditReport | null;
+  /** When true, all "Gerar Proposta" buttons are disabled (estimativa not accepted) */
+  estimativaBlocked?: boolean;
 }
 
 // ─── Main Component ───────────────────────────────────────
