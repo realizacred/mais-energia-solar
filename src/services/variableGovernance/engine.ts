@@ -95,11 +95,10 @@ function computeCatalogHealth(
   const ghostPct = Math.round((ghost / total) * 100);
   const featurePendingPct = Math.round((featurePending / total) * 100);
 
-  // Score: weighted — higher is better
-  // Functional (impl + beOnly + custom + passthrough) contributes positively
-  // Ghosts and legacy detract
-  const functionalPct = Math.round(((implemented + beOnly + custom) / total) * 100);
-  const score = Math.max(0, Math.min(100, functionalPct - ghostPct * 2));
+  // Score aligned with real resolver coverage used by the dashboard
+  // Resolved = total - ghosts - future/CDD pending
+  const resolvedCount = total - ghost - featurePending;
+  const score = Math.max(0, Math.min(100, Math.round((resolvedCount / total) * 100)));
 
   let level: CatalogHealthLevel;
   if (score >= 95) level = "saudavel";
