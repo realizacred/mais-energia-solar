@@ -502,6 +502,8 @@ Deno.serve(async (req) => {
     const consultorId = consultorRes.data?.id ?? null;
     const geracaoMediaKwpMes = irradiacaoRes.data?.geracao_media_kwp_mes ?? 120;
     const activeTariff = tariffVersionRes.data;
+    const tenantPremises = tenantPremisesRes.data;
+    const concessionaria = concessionariaRes.data;
     const lastAneelRun = aneelRunRes.data;
 
     // Build Fio B escalation steps
@@ -513,11 +515,19 @@ Deno.serve(async (req) => {
     const percentualFioB = fioBCurrentYear?.percentual ?? 0;
 
     // ── ENFORCEMENT: Recalculate precision from tariff data (NEVER trust frontend) ──
+    const tenantFioB = Number(tenantPremises?.tusd_fio_b_bt) || 0;
+    const concessionariaFioB = Number(concessionaria?.tarifa_fio_b) || 0;
     let backendPrecisao: "exato" | "estimado" = "estimado";
     let backendPrecisaoMotivo = "Fio B real não disponível — usando TUSD total como proxy";
-    if (activeTariff && activeTariff.tusd_fio_b_kwh && activeTariff.tusd_fio_b_kwh > 0) {
+    if (activeTariff?.tusd_fio_b_kwh && activeTariff.tusd_fio_b_kwh > 0) {
       backendPrecisao = "exato";
       backendPrecisaoMotivo = "Fio B real disponível na tariff_version ativa";
+    } else if (tenantFioB > 0) {
+      backendPrecisao = "exato";
+      backendPrecisaoMotivo = "Fio B disponível nas premissas do tenant";
+    } else if (concessionariaFioB > 0) {
+      backendPrecisao = "exato";
+      backendPrecisaoMotivo = "Fio B disponível no cadastro da concessionária";
     }
 
     // ── ENFORCEMENT: GD rule recalculation — uses body.grupo initially, overridden by backendGrupo later ──
