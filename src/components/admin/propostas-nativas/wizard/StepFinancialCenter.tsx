@@ -491,7 +491,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       </div>
 
       {/* Cost Table */}
-      <div className="rounded-xl border border-border/50 overflow-hidden">
+      <div className="rounded-xl border border-border/50 overflow-x-auto">
         {/* Table Header */}
         <div className={cn(
           "grid items-center px-4 py-2.5 bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/20",
