@@ -192,6 +192,28 @@ export default function PropostaLanding() {
       if (versaoRes.data) {
         setVersaoData(versaoRes.data);
         setSnapshot(normalizeProposalSnapshot(versaoRes.data.snapshot as Record<string, unknown> | null));
+
+        // Fetch template HTML from Visual Editor if linked
+        const templateId = (versaoRes.data as any).template_id_used;
+        if (templateId) {
+          try {
+            const { data: tplData } = await supabase
+              .from("proposta_templates")
+              .select("template_html")
+              .eq("id", templateId)
+              .maybeSingle();
+            if (tplData?.template_html) {
+              const parsed = typeof tplData.template_html === "string"
+                ? JSON.parse(tplData.template_html)
+                : tplData.template_html;
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setTemplateBlocks(parsed);
+              }
+            }
+          } catch {
+            // fallback to hardcoded layout
+          }
+        }
       }
 
       const loadedCenarios = cenariosRes.data ?? [];
