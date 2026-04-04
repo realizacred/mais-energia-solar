@@ -374,6 +374,33 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Signature Confirmation Dialog */}
+      <AlertDialog open={!!signConfirmDoc} onOpenChange={(open) => !open && setSignConfirmDoc(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" />
+              Enviar para assinatura eletrônica
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              O documento <strong>"{signConfirmDoc?.title}"</strong> será enviado para assinatura via ZapSign.
+              Os signatários cadastrados receberão um e-mail para assinar digitalmente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => signConfirmDoc && handleSendForSignature(signConfirmDoc)}
+              disabled={signMutation.isPending}
+              className="gap-1.5"
+            >
+              {signMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {signMutation.isPending ? "Enviando..." : "Enviar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
