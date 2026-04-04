@@ -505,8 +505,8 @@ export default function PropostaLanding() {
 
       {/* ━━━ SEÇÃO 0: CAPA ━━━ */}
       <section ref={el => { sectionRefs.current[0] = el; }} style={{
-        background: "linear-gradient(135deg, #1B3A8C, #0D2460, #1a1a3e)",
-        color: "#fff", padding: "3rem 1.5rem 2rem", minHeight: "90vh",
+        background: "var(--hero-bg)",
+        color: "var(--hero-text, #fff)", padding: "3rem 1.5rem 2rem", minHeight: "90vh",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       }}>
         <div style={{
