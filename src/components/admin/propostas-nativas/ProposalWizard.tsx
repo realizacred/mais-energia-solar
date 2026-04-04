@@ -194,6 +194,7 @@ export function ProposalWizard() {
 
   // UCs
   const [ucs, setUcs] = useState<UCData[]>([createEmptyUC(1)]);
+  const [ucsRestoreEpoch, setUcsRestoreEpoch] = useState(0);
   const [grupo, setGrupo] = useState("B1");
   const [potenciaKwp, setPotenciaKwp] = useState<number>(0);
 
