@@ -1277,6 +1277,13 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("pagamento", "pagamento.parcelas_valor", "pagamento_parcelas_valor", "Valor da Parcela", "Valor de cada parcela em BRL", "R$", "R$ 850,00", "BT e MT", { escopo: "documento" }),
   v("pagamento", "pagamento.banco_nome", "pagamento_banco_nome", "Nome do Banco/Financeira", "Nome do banco ou financeira do financiamento", "-", "BV Financeira", "BT e MT", { escopo: "documento" }),
   v("pagamento", "pagamento.condicoes_completas", "pagamento_condicoes_completas", "Condições Completas", "Resumo de todas as condições de pagamento", "-", "Entrada R$ 5.000 + 12x R$ 850 via BV Financeira", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.entrada", "pagamento_entrada", "Entrada (legacy)", "Valor da entrada (alias de pagamento_entrada_valor)", "R$", "R$ 5.000,00", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.total", "pagamento_total", "Valor Total Pagamento", "Valor total do sistema para pagamento", "R$", "R$ 45.000,00", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.parcelas", "pagamento_parcelas", "Parcelas (legacy)", "Número de parcelas (alias de pagamento_parcelas_quantidade)", "UN", "12", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.valor_parcela", "pagamento_valor_parcela", "Valor Parcela (legacy)", "Valor de cada parcela (alias de pagamento_parcelas_valor)", "R$", "R$ 850,00", "BT e MT", { escopo: "documento" }),
+
+  // ── Garantia de Serviço ──
+  v("sistema_solar", "sistema.servico_garantia", "servico_garantia", "Garantia do Serviço", "Garantia da instalação/serviço (ex: 5 anos)", "anos", "5 anos"),
 
   // ──────────────────────────────────────────────────────────────
   v("tabelas", "tabelas.consumo_mensal", "tabela_consumo_mensal", "Tabela consumo mensal", "Tabela com consumo por mês (jan-dez)", "kWh", "{jan:500,...,dez:490}", "BT e MT", { isSeries: true }),
