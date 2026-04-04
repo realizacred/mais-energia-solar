@@ -102,7 +102,7 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
   while (true) {
     const sep = url.includes("?") ? "&" : "?";
     const pageUrl = `${url}${sep}limit=${limit}&page=${page}`;
-    console.log(`[SM Sync] Fetching: ${pageUrl} (accumulated: ${all.length})`);
+    // console.log(`[SM Sync] Fetching: ${pageUrl} (accumulated: ${all.length})`);
 
     let res: Response;
     try {
@@ -115,7 +115,7 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
 
     if (res.status === 429) {
       const retryAfter = parseInt(res.headers.get("retry-after") || "10", 10);
-      console.log(`[SM Sync] Rate limited, waiting ${retryAfter}s...`);
+      // console.log(`[SM Sync] Rate limited, waiting ${retryAfter}s...`);
       await delay(retryAfter * 1000);
       continue;
     }
@@ -129,13 +129,13 @@ async function fetchAllPages(url: string, headers: Record<string, string>): Prom
     const items = Array.isArray(json) ? json : json.data || [];
     all.push(...items);
 
-    console.log(`[SM Sync] Page ${page}: got ${items.length} items, total: ${all.length}`);
+    // console.log(`[SM Sync] Page ${page}: got ${items.length} items, total: ${all.length}`);
 
     if (items.length < limit) break;
     page++;
 
     if (page > 100) {
-      console.log(`[SM Sync] Hit max pages (100), stopping with ${all.length} items`);
+      // console.log(`[SM Sync] Hit max pages (100), stopping with ${all.length} items`);
       break;
     }
 
@@ -396,7 +396,7 @@ async function batchUpsert(
   const conflictCols = onConflict.split(",").map(c => c.trim());
   const uniqueRows = deduplicateRows(rows, conflictCols);
   if (uniqueRows.length < rows.length) {
-    console.log(`[SM Sync] Deduplicated ${table}: ${rows.length} → ${uniqueRows.length} rows`);
+    // console.log(`[SM Sync] Deduplicated ${table}: ${rows.length} → ${uniqueRows.length} rows`);
   }
 
   let upserted = 0;
@@ -454,10 +454,10 @@ Deno.serve(async (req) => {
       (headerCronSecret && cronSecret && headerCronSecret === cronSecret) ||
       (body.cron_secret && cronSecret && body.cron_secret === cronSecret)
     );
-    console.log(`[SM Sync] Cron check: isCron=${isCron}, headerPresent=${!!headerCronSecret}`);
+    // console.log(`[SM Sync] Cron check: isCron=${isCron}, headerPresent=${!!headerCronSecret}`);
 
     if (isCron) {
-      console.log("[SM Sync] Cron mode activated");
+      // console.log("[SM Sync] Cron mode activated");
       // Find tenant with active SolarMarket config
       const { data: configs } = await supabase
         .from("integration_configs")
@@ -479,14 +479,14 @@ Deno.serve(async (req) => {
       }
 
       if (!tenantId) {
-        console.log("[SM Sync] Cron: no tenant with active SM config found");
+        // console.log("[SM Sync] Cron: no tenant with active SM config found");
         return new Response(JSON.stringify({ skipped: true, reason: "no_active_tenant" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     } else {
       // ── User mode: validate JWT ──
-      console.log("[SM Sync] Auth header present:", Boolean(authHeader));
+      // console.log("[SM Sync] Auth header present:", Boolean(authHeader));
 
       if (!authHeader) {
         return new Response(JSON.stringify({ error: "Missing authorization header" }), {
@@ -558,7 +558,7 @@ Deno.serve(async (req) => {
 
     if (runningSync && runningSync.length > 0) {
       const msg = `Sync already running (id=${runningSync[0].id}, started=${runningSync[0].started_at}). Skipping to prevent connection saturation.`;
-      console.log(`[SM Sync] CIRCUIT BREAKER: ${msg}`);
+      // console.log(`[SM Sync] CIRCUIT BREAKER: ${msg}`);
       return new Response(JSON.stringify({ 
         skipped: true, 
         reason: "circuit_breaker", 
@@ -593,14 +593,14 @@ Deno.serve(async (req) => {
       const pendingProposals = (totalProjects || 0) - syncedCount;
       const pendingFunnels = (totalProjects || 0) - (enrichedCount || 0);
 
-      console.log(`[SM Sync] Cron auto: ${pendingProposals} pending proposals, ${pendingFunnels} pending funnels`);
+      // console.log(`[SM Sync] Cron auto: ${pendingProposals} pending proposals, ${pendingFunnels} pending funnels`);
 
       if (pendingProposals > 0) {
         sync_type = "proposals";
       } else if (pendingFunnels > 0) {
         sync_type = "projects"; // This triggers funnel enrichment
       } else {
-        console.log("[SM Sync] Cron: everything synced, skipping");
+        // console.log("[SM Sync] Cron: everything synced, skipping");
         return new Response(JSON.stringify({ 
           skipped: true, 
           reason: "all_synced",
@@ -650,7 +650,7 @@ Deno.serve(async (req) => {
       }
 
       // SolarMarket API v2 — two-step auth: POST /auth/signin with token → get JWT
-      console.log(`[SM Sync] Authenticating with /auth/signin (token len=${apiToken.length}, prefix=${apiToken.slice(0, 8)})`);
+      // console.log(`[SM Sync] Authenticating with /auth/signin (token len=${apiToken.length}, prefix=${apiToken.slice(0, 8)})`);
 
       const signinRes = await fetch(`${baseUrl}/auth/signin`, {
         method: "POST",
@@ -684,14 +684,14 @@ Deno.serve(async (req) => {
         );
       }
 
-      console.log(`[SM Sync] JWT obtained (len=${accessToken.length})`);
+      // console.log(`[SM Sync] JWT obtained (len=${accessToken.length})`);
 
       smHeaders = {
         Accept: "application/json",
         Authorization: `Bearer ${accessToken}`,
       };
     } else {
-      console.log(`[SM Sync] Skipping SM API auth for ${sync_type} (DB-only operation)`);
+      // console.log(`[SM Sync] Skipping SM API auth for ${sync_type} (DB-only operation)`);
     }
 
     // ─── Cleanup stale "running" logs (older than 3 min) ──
@@ -720,7 +720,7 @@ Deno.serve(async (req) => {
       try {
         const funnels = await fetchAllPages(`${baseUrl}/funnels`, smHeaders);
         totalFetched += funnels.length;
-        console.log(`[SM Sync] Funnels fetched: ${funnels.length}`);
+        // console.log(`[SM Sync] Funnels fetched: ${funnels.length}`);
 
         const funnelRows: any[] = [];
         const stageRows: any[] = [];
@@ -777,7 +777,7 @@ Deno.serve(async (req) => {
     // Paginated fetch with version_hash + snapshot
     if (sync_type === "full" || sync_type === "custom_fields") {
       try {
-        console.log(`[SM Sync] Fetching global /custom-fields (paginated)...`);
+        // console.log(`[SM Sync] Fetching global /custom-fields (paginated)...`);
         const allCustomFields: any[] = [];
         let cfPage = 1;
         const cfLimit = 100;
@@ -790,7 +790,7 @@ Deno.serve(async (req) => {
           if (!res.ok || !contentType.includes("application/json")) {
             if (cfPage === 1) {
               const body = await res.text();
-              console.log(`[SM Sync] Global /custom-fields not available (${res.status}). Preview: ${body.slice(0, 100)}`);
+              // console.log(`[SM Sync] Global /custom-fields not available (${res.status}). Preview: ${body.slice(0, 100)}`);
             } else {
               await res.text();
             }
@@ -800,7 +800,7 @@ Deno.serve(async (req) => {
           const json = await res.json();
           const items = Array.isArray(json) ? json : json.data || [];
           allCustomFields.push(...items);
-          console.log(`[SM Sync] Custom fields page ${cfPage}: ${items.length} items, total: ${allCustomFields.length}`);
+          // console.log(`[SM Sync] Custom fields page ${cfPage}: ${items.length} items, total: ${allCustomFields.length}`);
 
           if (items.length < cfLimit) break;
           cfPage++;
@@ -808,7 +808,7 @@ Deno.serve(async (req) => {
         }
 
         totalFetched += allCustomFields.length;
-        console.log(`[SM Sync] Custom field definitions fetched: ${allCustomFields.length}`);
+        // console.log(`[SM Sync] Custom field definitions fetched: ${allCustomFields.length}`);
 
         if (allCustomFields.length > 0) {
           // Compute version_hash per field and build rows
@@ -846,7 +846,7 @@ Deno.serve(async (req) => {
             snapshot_hash: snapshotHash,
             fetched_at: new Date().toISOString(),
           });
-          console.log(`[SM Sync] Custom fields snapshot saved (hash=${snapshotHash})`);
+          // console.log(`[SM Sync] Custom fields snapshot saved (hash=${snapshotHash})`);
         }
       } catch (e) {
         console.warn("[SM Sync] Global custom-fields skipped:", (e as Error).message);
@@ -865,7 +865,7 @@ Deno.serve(async (req) => {
           return typeof name === "string" && name.trim().length > 0;
         });
         const skipped = clients.length - validClients.length;
-        console.log(`[SM Sync] Clients fetched: ${clients.length}, valid (with name): ${validClients.length}, skipped: ${skipped}`);
+        // console.log(`[SM Sync] Clients fetched: ${clients.length}, valid (with name): ${validClients.length}, skipped: ${skipped}`);
 
         const rows = validClients.map((c: any) => {
           const rawPhone = c.primaryPhone || c.phone || c.telefone || "";
@@ -911,7 +911,7 @@ Deno.serve(async (req) => {
         try {
           const { data: matchCount } = await supabase.rpc("sm_match_clients_to_leads", { p_tenant_id: tenantId });
           if (matchCount && matchCount > 0) {
-            console.log(`[SM Sync] Auto-matched ${matchCount} SM clients to leads by phone`);
+            // console.log(`[SM Sync] Auto-matched ${matchCount} SM clients to leads by phone`);
           }
         } catch (matchErr) {
           console.warn("[SM Sync] Lead auto-match error:", matchErr);
@@ -931,7 +931,7 @@ Deno.serve(async (req) => {
       try {
         const projects = await fetchAllPages(`${baseUrl}/projects`, smHeaders);
         totalFetched += projects.length;
-        console.log(`[SM Sync] Projects fetched: ${projects.length}`);
+        // console.log(`[SM Sync] Projects fetched: ${projects.length}`);
 
         const rows = projects.map((p: any) => {
           projectIds.push(p.id);
@@ -1009,7 +1009,7 @@ Deno.serve(async (req) => {
         }
 
         const pendingEnrich = projectIds.filter((id: number) => !alreadyEnrichedSet.has(id));
-        console.log(`[SM Sync] Funnel enrichment: ${alreadyEnrichedSet.size} already done, ${pendingEnrich.length} pending`);
+        // console.log(`[SM Sync] Funnel enrichment: ${alreadyEnrichedSet.size} already done, ${pendingEnrich.length} pending`);
         
         let enriched = 0;
         const funnelTimeBudget = 35_000; // 35s budget (reduced to avoid CPU exceeded)
@@ -1017,7 +1017,7 @@ Deno.serve(async (req) => {
 
         for (const projId of pendingEnrich) {
           if (Date.now() - funnelStart > funnelTimeBudget) {
-            console.log(`[SM Sync] Funnel enrichment time budget hit after ${enriched} projects`);
+            // console.log(`[SM Sync] Funnel enrichment time budget hit after ${enriched} projects`);
             break;
           }
           try {
@@ -1083,7 +1083,7 @@ Deno.serve(async (req) => {
             // Non-fatal, just skip
           }
         }
-        console.log(`[SM Sync] Enriched ${enriched}/${pendingEnrich.length} pending projects with funnel data`);
+        // console.log(`[SM Sync] Enriched ${enriched}/${pendingEnrich.length} pending projects with funnel data`);
       } catch (e) {
         console.error("[SM Sync] Projects error:", e);
         const msg = (e as Error).message;
@@ -1109,7 +1109,7 @@ Deno.serve(async (req) => {
         ids = ids.slice(0, 100); // Limit to avoid timeout
       }
 
-      console.log(`[SM Sync] Fetching custom fields for ${ids.length} projects...`);
+      // console.log(`[SM Sync] Fetching custom fields for ${ids.length} projects...`);
       const cfValueRows: any[] = [];
       const cfDefsMap = new Map<number, any>();
       const projectCfMap = new Map<number, Record<string, any>>();
@@ -1204,7 +1204,7 @@ Deno.serve(async (req) => {
           .eq("sm_project_id", projId);
       }
 
-      console.log(`[SM Sync] Custom fields: ${cfDefsMap.size} definitions, ${cfValueRows.length} values for ${projectCfMap.size} projects`);
+      // console.log(`[SM Sync] Custom fields: ${cfDefsMap.size} definitions, ${cfValueRows.length} values for ${projectCfMap.size} projects`);
     }
 
     // ─── Pre-load custom field definitions for custom_fields_raw enrichment ──
@@ -1229,7 +1229,7 @@ Deno.serve(async (req) => {
           if (bare !== d.key) cfDefsLookup.set(bare, defObj); // e.g. "cap_wifi"
         }
       }
-      console.log(`[SM Sync] Loaded ${cfDefsLookup.size} custom field definitions for enrichment`);
+      // console.log(`[SM Sync] Loaded ${cfDefsLookup.size} custom field definitions for enrichment`);
     }
 
     /** Normalize key: remove brackets, trim */
@@ -1613,7 +1613,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        console.log(`[SM Sync] Standalone funnel enrichment: ${alreadyEnrichedSet2.size} done, ${pendingFunnelIds.length} pending`);
+        // console.log(`[SM Sync] Standalone funnel enrichment: ${alreadyEnrichedSet2.size} done, ${pendingFunnelIds.length} pending`);
 
         if (pendingFunnelIds.length > 0) {
           let enriched = 0;
@@ -1622,7 +1622,7 @@ Deno.serve(async (req) => {
 
           for (const projId of pendingFunnelIds) {
             if (Date.now() - funnelStart > funnelTimeBudget) {
-              console.log(`[SM Sync] Funnel enrichment time budget hit after ${enriched} projects`);
+              // console.log(`[SM Sync] Funnel enrichment time budget hit after ${enriched} projects`);
               break;
             }
             try {
@@ -1682,7 +1682,7 @@ Deno.serve(async (req) => {
               // Non-fatal
             }
           }
-          console.log(`[SM Sync] Standalone enriched ${enriched}/${pendingFunnelIds.length} projects with funnel data`);
+          // console.log(`[SM Sync] Standalone enriched ${enriched}/${pendingFunnelIds.length} projects with funnel data`);
         }
       } catch (e) {
         console.warn("[SM Sync] Standalone funnel enrichment error:", e);
@@ -1724,7 +1724,7 @@ Deno.serve(async (req) => {
           if (u2Err) throw u2Err;
         }
 
-        console.log(`[SM Sync] has_active_proposal updated: ${projectIdsWithProposal.length} with proposals`);
+        // console.log(`[SM Sync] has_active_proposal updated: ${projectIdsWithProposal.length} with proposals`);
       } catch (hapErr) {
         console.warn("[SM Sync] has_active_proposal update error:", (hapErr as Error).message);
       }
@@ -1770,7 +1770,7 @@ Deno.serve(async (req) => {
             .range(bfOffset, bfOffset + bfPageSize - 1);
 
           if (!rows || rows.length === 0) break;
-          console.log(`[SM Sync] Backfill batch: ${rows.length} proposals (offset=${bfOffset}), cfDefsLookup.size=${cfDefsLookup.size}`);
+          // console.log(`[SM Sync] Backfill batch: ${rows.length} proposals (offset=${bfOffset}), cfDefsLookup.size=${cfDefsLookup.size}`);
 
           // Build all cfRaw objects in memory first, then batch update
           const updates: { id: string; custom_fields_raw: any; warnings: any }[] = [];
@@ -1814,13 +1814,13 @@ Deno.serve(async (req) => {
           }
 
           if (backfilled > 0 && backfilled <= updates.length) {
-            console.log(`[SM Sync] Backfill progress: ${backfilled} done, ${bfErrors} errors, elapsed=${Date.now() - bfStart}ms`);
+            // console.log(`[SM Sync] Backfill progress: ${backfilled} done, ${bfErrors} errors, elapsed=${Date.now() - bfStart}ms`);
           }
 
           bfOffset += bfPageSize;
         }
 
-        console.log(`[SM Sync] Backfill complete: ${backfilled} enriched, ${bfErrors} errors, elapsed=${Date.now() - bfStart}ms`);
+        // console.log(`[SM Sync] Backfill complete: ${backfilled} enriched, ${bfErrors} errors, elapsed=${Date.now() - bfStart}ms`);
         if (backfilled > 0) {
           totalUpserted += backfilled;
         }
