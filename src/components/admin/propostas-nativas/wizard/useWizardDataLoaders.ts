@@ -136,13 +136,16 @@ export function useSolarBrainSync(
 
   useEffect(() => {
     if (!solarBrain) return;
-    setPremissas(prev => ({
-      ...prev,
-      imposto: solarBrain.imposto_energia ?? prev.imposto,
-      inflacao_energetica: solarBrain.inflacao_energetica ?? prev.inflacao_energetica,
-      perda_eficiencia_anual: solarBrain.perda_eficiencia ?? prev.perda_eficiencia_anual,
-      sobredimensionamento: solarBrain.sobredimensionamento ?? prev.sobredimensionamento,
-    }));
+    // In edit mode, premissas come from the saved snapshot — don't overwrite
+    if (!skipPremissas) {
+      setPremissas(prev => ({
+        ...prev,
+        imposto: solarBrain.imposto_energia ?? prev.imposto,
+        inflacao_energetica: solarBrain.inflacao_energetica ?? prev.inflacao_energetica,
+        perda_eficiencia_anual: solarBrain.perda_eficiencia ?? prev.perda_eficiencia_anual,
+        sobredimensionamento: solarBrain.sobredimensionamento ?? prev.sobredimensionamento,
+      }));
+    }
     setPreDimensionamento(prev => {
       const configs = { ...prev.topologia_configs };
       if (solarBrain.taxa_desempenho_tradicional != null) {
