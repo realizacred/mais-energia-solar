@@ -33,65 +33,8 @@ import { getLandingThemeCSS, parseModelo } from "@/components/proposal-landing/t
 import { LandingThemeSwitcher } from "@/components/proposal-landing/themes/LandingThemeSwitcher";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   CSS variables + fonts inline
+   CSS is now loaded from themes/landingThemes.ts
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-const LANDING_STYLES = `
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Open+Sans:wght@300;400;500;600&display=swap');
-
-:root {
-  --az: #1B3A8C;
-  --az2: #2550C0;
-  --la: #F07B24;
-  --la2: #E06010;
-  --verde: #16A34A;
-  --cinza: #64748B;
-  --fundo: #F0F4FA;
-  --br: #ffffff;
-}
-
-.pl-landing * { box-sizing: border-box; }
-.pl-landing { font-family: 'Open Sans', sans-serif; color: #1e293b; background: var(--fundo); }
-.pl-landing h1, .pl-landing h2, .pl-landing h3,
-.pl-landing .font-heading { font-family: 'Montserrat', sans-serif; }
-.pl-landing .section-header {
-  background: linear-gradient(135deg, var(--az), var(--az2));
-  color: #fff; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.75rem;
-  border-radius: 12px 12px 0 0;
-}
-.pl-landing .section-header .icon-circle {
-  width: 40px; height: 40px; border-radius: 50%; background: var(--la);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.pl-landing .section-header h2 {
-  font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; margin: 0;
-}
-.pl-landing .card-body {
-  background: var(--br); border: 1px solid #e2e8f0; border-top: none;
-  border-radius: 0 0 12px 12px; padding: 1.5rem;
-}
-.pl-landing .info-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;
-}
-.pl-landing .info-box {
-  background: rgba(27,58,140,0.04); border: 1px solid rgba(27,58,140,0.1);
-  border-radius: 10px; padding: 0.75rem 1rem;
-}
-.pl-landing .info-label { font-size: 0.7rem; color: var(--cinza); text-transform: uppercase; letter-spacing: 0.05em; }
-.pl-landing .info-value { font-family: 'Montserrat', sans-serif; font-weight: 700; color: var(--az); font-size: 0.95rem; }
-.pl-landing .btn-la {
-  background: linear-gradient(135deg, var(--la), var(--la2)); color: #fff;
-  border: none; padding: 0.75rem 2rem; border-radius: 8px; font-family: 'Montserrat', sans-serif;
-  font-weight: 700; cursor: pointer; font-size: 0.95rem; transition: all 0.2s;
-}
-.pl-landing .btn-la:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(240,123,36,0.4); }
-.pl-landing .btn-verde {
-  background: var(--verde); color: #fff; border: none; padding: 0.75rem 2rem;
-  border-radius: 8px; font-family: 'Montserrat', sans-serif; font-weight: 700;
-  cursor: pointer; font-size: 0.95rem; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;
-}
-.pl-landing .btn-verde:hover { background: #15803d; }
-`;
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    Types
