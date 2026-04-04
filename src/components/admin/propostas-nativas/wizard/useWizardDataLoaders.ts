@@ -52,9 +52,9 @@ export function applyTenantTarifasToUC(
     // Aplicar grupo_tarifario do tenant se UC ainda está no default
     // Validar que o valor é "A" ou "B" — valores como "MT"/"BT" são inválidos
     grupo_tarifario: (() => {
-      const ucGrupo = uc.grupo_tarifario;
-      // Se UC já tem grupo válido e não é o default "B", manter
-      if (ucGrupo === "A") return "A";
+      const ucGrupo = uc.grupo_tarifario as string;
+      // Se UC já tem grupo válido "A", manter
+      if (ucGrupo === "A") return "A" as const;
       // Tentar derivar do subgrupo (fonte autoritativa)
       const fromSubgrupo = resolveGrupoFromSubgrupo(uc.subgrupo);
       if (fromSubgrupo) return fromSubgrupo;
@@ -62,7 +62,7 @@ export function applyTenantTarifasToUC(
       const tenantGrupo = t.grupo_tarifario;
       if (tenantGrupo === "A" || tenantGrupo === "B") return tenantGrupo;
       // Default
-      return ucGrupo === "A" || ucGrupo === "B" ? ucGrupo : "B";
+      return ucGrupo === "B" ? "B" as const : "B" as const;
     })(),
   };
 }
