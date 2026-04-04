@@ -82,6 +82,7 @@ export function StepDocumento({
   customFieldValues = {}, onCustomFieldValuesChange,
   docxBlob,
   generationAuditReport,
+  estimativaBlocked = false,
 }: StepDocumentoProps) {
   // ─── Queries via hooks (§16 AGENTS.md) ──────────────────
   const queryClient = useQueryClient();
