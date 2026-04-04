@@ -976,6 +976,7 @@ Deno.serve(async (req) => {
               const { data: newClient, error: insErr } = await adminClient
                 .from("clientes")
                 .insert({
+                  origem: "imported",
                   tenant_id: tenantId,
                   nome: smClient.name || "SM Import",
                   telefone: smClient.phone_formatted || smClient.phone || `SM-${resolvedSmClientId}`,
@@ -1154,6 +1155,7 @@ Deno.serve(async (req) => {
               // Resolve original SM date for created_at
               const smOriginalDate = smProp.sm_created_at || smProp.generated_at || smProp.send_at || null;
               const dealInsert: Record<string, any> = {
+                  origem: "imported",
                   tenant_id: tenantId,
                   pipeline_id: resolved.pipeline_id,
                   stage_id: resolved.stage_id,
@@ -1257,6 +1259,7 @@ Deno.serve(async (req) => {
             } else {
               const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
               const projInsert: Record<string, any> = {
+                  origem: "imported",
                   tenant_id: tenantId,
                   cliente_id: clienteId!,
                   deal_id: dealId,
@@ -1927,6 +1930,7 @@ Deno.serve(async (req) => {
               const { data: newClient, error: insErr } = await adminClient
                 .from("clientes")
                 .insert({
+                  origem: "imported",
                   tenant_id: tenantId,
                   nome: smClient.name || "SM Import",
                   telefone: smClient.phone_formatted || smClient.phone || `SM-${smClient.sm_client_id}`,
@@ -1975,6 +1979,7 @@ Deno.serve(async (req) => {
             const { data: newProj, error: projErr } = await adminClient
               .from("projetos")
               .insert({
+                origem: "imported",
                 tenant_id: tenantId,
                 nome: proj.name || "Projeto SM",
                 cliente_id: clienteId,
