@@ -183,12 +183,15 @@ export function useDealPipeline() {
     // Enrich with proposal data
     if (results.length > 0) {
       const dealIds = results.map(d => d.deal_id);
-      // Fetch customer_id from deals
+      // Fetch canonical deals to enrich cards and drop any stale/orphan projection rows
       const { data: dealsData } = await supabase
         .from("deals")
         .select("id, customer_id, notas, expected_close_date, doc_checklist")
         .in("id", dealIds);
-      
+
+      const existingDealIds = new Set((dealsData || []).map((d: any) => d.id));
+      results = results.filter(d => existingDealIds.has(d.deal_id));
+
       const customerMap = new Map<string, string>();
       const notasMap = new Map<string, string | null>();
       const closeDateMap = new Map<string, string | null>();
