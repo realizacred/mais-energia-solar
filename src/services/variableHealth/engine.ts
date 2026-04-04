@@ -31,8 +31,16 @@ export function buildVariableHealthMap(
 
   if (reports.length === 0) return map;
 
+  // Filter out stale reports older than 30 days to avoid persistent false criticals
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const recentReports = reports.filter(
+    (r) => new Date(r.criado_em).getTime() >= thirtyDaysAgo
+  );
+
+  if (recentReports.length === 0) return map;
+
   // Sort reports oldest first for streak calculation
-  const sorted = [...reports].sort(
+  const sorted = [...recentReports].sort(
     (a, b) => new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime()
   );
 
