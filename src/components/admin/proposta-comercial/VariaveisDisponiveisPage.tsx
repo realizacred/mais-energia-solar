@@ -767,22 +767,29 @@ export function VariaveisDisponiveisPage() {
         </Card>
         <Card className={cn("border-l-[3px]",
           govSummary.catalogHealth.level === "saudavel" ? "border-l-success" :
+          govSummary.catalogHealth.level === "bom" ? "border-l-info" :
           govSummary.catalogHealth.level === "atencao" ? "border-l-warning" : "border-l-destructive"
         )}>
           <CardContent className="flex items-center gap-3 p-4">
             <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
               govSummary.catalogHealth.level === "saudavel" ? "bg-success/10" :
+              govSummary.catalogHealth.level === "bom" ? "bg-info/10" :
               govSummary.catalogHealth.level === "atencao" ? "bg-warning/10" : "bg-destructive/10"
             )}>
               <HeartPulse className={cn("h-4 w-4",
                 govSummary.catalogHealth.level === "saudavel" ? "text-success" :
+                govSummary.catalogHealth.level === "bom" ? "text-info" :
                 govSummary.catalogHealth.level === "atencao" ? "text-warning" : "text-destructive"
               )} />
             </div>
             <div>
               <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.catalogHealth.score}%</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Saúde ({govSummary.catalogHealth.level === "saudavel" ? "Saudável" : govSummary.catalogHealth.level === "atencao" ? "Atenção" : "Crítica"})
+                Saúde ({
+                  govSummary.catalogHealth.level === "saudavel" ? "Saudável" :
+                  govSummary.catalogHealth.level === "bom" ? "Bom" :
+                  govSummary.catalogHealth.level === "atencao" ? "Atenção" : "Crítica"
+                })
               </p>
             </div>
           </CardContent>
