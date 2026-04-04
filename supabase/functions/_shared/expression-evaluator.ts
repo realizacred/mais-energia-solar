@@ -264,15 +264,15 @@ class Parser {
     return left;
   }
 
-  // multiplication: unary ((*|/) unary)*
+  // multiplication: exponent ((*|/) exponent)*
   private parseMultiplication(): ExpressionValue {
-    let left = this.parseUnary();
+    let left = this.parseExponent();
 
     while (true) {
       const tok = this.peek();
       if (tok.type === "op" && (tok.value === "*" || tok.value === "/")) {
         this.advance();
-        const right = this.parseUnary();
+        const right = this.parseExponent();
         if (tok.value === "*") {
           left = toNum(left) * toNum(right);
         } else {
@@ -287,6 +287,18 @@ class Parser {
       }
     }
     return left;
+  }
+
+  // exponent: unary (^ exponent)? — right-associative
+  private parseExponent(): ExpressionValue {
+    const base = this.parseUnary();
+    const tok = this.peek();
+    if (tok.type === "op" && tok.value === "^") {
+      this.advance();
+      const exp = this.parseExponent();
+      return Math.pow(toNum(base), toNum(exp));
+    }
+    return base;
   }
 
   // unary: -unary | primary
