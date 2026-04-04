@@ -383,19 +383,19 @@ export function normalizeProposalSnapshot(
     // Premissas
     premissas,
 
-    // Financeiro
-    economiaMensal: num(s.economiaMensal ?? s.economia_mensal),
-    paybackMeses: num(s.paybackMeses ?? s.payback_meses),
-    tir: num(s.tir),
-    vpl: num(s.vpl),
+    // Financeiro — check root, then financeiro sub-object
+    economiaMensal: num(s.economiaMensal ?? s.economia_mensal ?? fin?.economia_mensal ?? fin?.economiaMensal),
+    paybackMeses: num(s.paybackMeses ?? s.payback_meses ?? fin?.payback_meses ?? fin?.paybackMeses),
+    tir: num(s.tir ?? fin?.tir),
+    vpl: num(s.vpl ?? fin?.vpl),
 
     // Gastos comparativos
-    gastoEnergiaSem: num(s.gastoEnergiaSem ?? s.gasto_energia_sem),
-    gastoEnergiaCom: num(s.gastoEnergiaCom ?? s.gasto_energia_com),
-    gastoDemandaSem: num(s.gastoDemandaSem ?? s.gasto_demanda_sem),
-    gastoDemandaCom: num(s.gastoDemandaCom ?? s.gasto_demanda_com),
-    outrosEncargosSem: num(s.outrosEncargosSem ?? s.outros_encargos_sem),
-    outrosEncargosCom: num(s.outrosEncargosCom ?? s.outros_encargos_com),
+    gastoEnergiaSem: num(s.gastoEnergiaSem ?? s.gasto_energia_sem ?? fin?.gastoEnergiaSem ?? fin?.gasto_energia_sem),
+    gastoEnergiaCom: num(s.gastoEnergiaCom ?? s.gasto_energia_com ?? fin?.gastoEnergiaCom ?? fin?.gasto_energia_com),
+    gastoDemandaSem: num(s.gastoDemandaSem ?? s.gasto_demanda_sem ?? fin?.gastoDemandaSem ?? fin?.gasto_demanda_sem),
+    gastoDemandaCom: num(s.gastoDemandaCom ?? s.gasto_demanda_com ?? fin?.gastoDemandaCom ?? fin?.gasto_demanda_com),
+    outrosEncargosSem: num(s.outrosEncargosSem ?? s.outros_encargos_sem ?? fin?.outrosEncargosSem ?? fin?.outros_encargos_sem),
+    outrosEncargosCom: num(s.outrosEncargosCom ?? s.outros_encargos_com ?? fin?.outrosEncargosCom ?? fin?.outros_encargos_com),
 
     // Metadata
     templateSelecionado: str(s.templateSelecionado ?? s.template_selecionado),
