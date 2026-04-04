@@ -95,7 +95,10 @@ export function resolveClienteComercial(
   set("proposta_perda_eficiencia_anual", snap.perda_eficiencia_anual);
   set("proposta_sobredimensionamento", snap.sobredimensionamento);
 
-  // ── Empresa (brand_settings) ──
+  // ── Empresa (brand_settings + tenants) ──
+  set("empresa_razao_social", ext?.tenantNome);
+  set("empresa_nome_fantasia", ext?.tenantNome);
+  set("empresa_cnpj", brand.cnpj ?? brand.cpf_cnpj);
   set("empresa_cnpj_cpf", brand.cnpj ?? brand.cpf_cnpj);
   set("empresa_cidade", brand.cidade);
   set("empresa_estado", brand.estado);
@@ -103,6 +106,17 @@ export function resolveClienteComercial(
   set("empresa_representante_legal", brand.representante_legal);
   set("empresa_representante_cpf", brand.representante_cpf);
   set("empresa_representante_cargo", brand.representante_cargo);
+
+  // ── Consultor código ──
+  set("consultor_codigo", consultor.codigo ?? consultor.slug ?? (consultor.id ? String(consultor.id).substring(0, 8) : undefined));
+
+  // ── Proposta links ──
+  const baseUrl = Deno.env.get("APP_URL") ?? "https://app.maisenergiasolar.com.br";
+  const tokenPublico = str(versao.token_publico) ?? str(proposta.token_publico);
+  if (tokenPublico) {
+    set("proposta_link", `${baseUrl}/pl/${tokenPublico}`);
+    set("proposta_link_interativo", `${baseUrl}/pl/${tokenPublico}`);
+  }
 
   // ── Projeto ──
   set("projeto_id_externo", snap.projeto_id_externo);
