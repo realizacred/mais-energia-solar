@@ -250,3 +250,51 @@ export function useGerarDocumento(dealId: string) {
     },
   });
 }
+
+/** Enviar documento gerado para assinatura eletrônica via ZapSign */
+export function useEnviarParaAssinatura(dealId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ documentoId, tenantId }: { documentoId: string; tenantId: string }) => {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) throw new Error("Sessão inválida");
+
+      const url = `https://${projectId}.supabase.co/functions/v1/signature-send`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": anonKey,
+        },
+        body: JSON.stringify({
+          documento_id: documentoId,
+          tenant_id: tenantId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao enviar para assinatura");
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_DOCS, dealId] });
+      toast({
+        title: "Documento enviado para assinatura!",
+        description: "O signatário receberá um e-mail para assinar.",
+      });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao enviar para assinatura", description: err.message, variant: "destructive" });
+    },
+  });
+}
