@@ -179,7 +179,7 @@ export default function PropostaLanding() {
 
       const [versaoRes, cenariosRes, propostaRes] = await Promise.all([
         supabase.from("proposta_versoes")
-          .select("id, valor_total, economia_mensal, payback_meses, potencia_kwp, snapshot, output_pdf_path")
+          .select("id, valor_total, economia_mensal, payback_meses, potencia_kwp, snapshot, output_pdf_path, template_id_used")
           .eq("id", td.versao_id).single(),
         (supabase as any).from("proposta_cenarios")
           .select("id, ordem, nome, tipo, is_default, preco_final, entrada_valor, num_parcelas, valor_parcela, taxa_juros_mensal, payback_meses, tir_anual, roi_25_anos, economia_primeiro_ano")
