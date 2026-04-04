@@ -58,6 +58,7 @@ import { WizardStepCard } from "./wizard/WizardStepCard";
 import { useSavedFeedback, SavedFeedbackInline } from "./wizard/SavedFeedback";
 import { EstimativaCheckbox } from "./wizard/EstimativaCheckbox";
 import { MissingVariablesModal } from "./wizard/MissingVariablesModal";
+import { useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
 
 // ── Types
 import {
@@ -138,6 +139,7 @@ function StepContent({ children }: { children: React.ReactNode }) {
 export function ProposalWizard() {
   
   const navigate = useNavigate();
+  const { data: isAdminOrGerente } = useIsAdminOrGerente();
   const [searchParams] = useSearchParams();
   const dealIdFromUrl = searchParams.get("deal_id");
   const customerIdFromUrl = searchParams.get("customer_id");
@@ -2758,10 +2760,12 @@ export function ProposalWizard() {
               Etapa {step + 1}/{activeSteps.length}
             </span>
 
-            <div className="hidden sm:flex items-center gap-1.5 ml-2">
-              <Switch id="debug-toggle" checked={debugMode} onCheckedChange={setDebugMode} className="scale-75" />
-              <Label htmlFor="debug-toggle" className="text-[10px] text-muted-foreground cursor-pointer select-none">Debug</Label>
-            </div>
+            {isAdminOrGerente && (
+              <div className="hidden sm:flex items-center gap-1.5 ml-2">
+                <Switch id="debug-toggle" checked={debugMode} onCheckedChange={setDebugMode} className="scale-75" />
+                <Label htmlFor="debug-toggle" className="text-[10px] text-muted-foreground cursor-pointer select-none">Debug</Label>
+              </div>
+            )}
 
             <div className="h-6 w-px bg-border/50 hidden sm:block" />
 
