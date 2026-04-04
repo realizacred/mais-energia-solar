@@ -701,7 +701,7 @@ export function resolveProposalVariables(
   ctx: ProposalResolverContext
 ): ResolverResult {
   // Diagnostic: log key financial inputs
-  console.debug("[resolveProposalVariables] precoTotal:", ctx.precoTotal, "type:", typeof ctx.precoTotal, "isNaN:", isNaN(ctx.precoTotal as number));
+  // RB-17: diagnostic removed
   const variables: Record<string, string> = {};
   const missing_required: string[] = [];
   const fallbacks: string[] = [];
