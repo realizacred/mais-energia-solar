@@ -551,7 +551,7 @@ export function StepDocumento({
                 </Select>
               )}
             </div>
-            <Button onClick={onGenerate} disabled={!templateSelecionado} className="w-full gap-2">
+            <Button onClick={onGenerate} disabled={!templateSelecionado || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
               <Zap className="h-4 w-4" />
               Gerar Proposta
             </Button>
