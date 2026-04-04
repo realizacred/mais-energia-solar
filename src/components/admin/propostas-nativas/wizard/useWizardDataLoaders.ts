@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSolarPremises } from "@/hooks/useSolarPremises";
 import { getFioBCobranca } from "@/lib/calcGrupoB";
+import { resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
 import type { UCData, PremissasData, PreDimensionamentoData, BancoFinanciamento } from "./types";
 
 /**
@@ -49,9 +50,20 @@ export function applyTenantTarifasToUC(
       ? uc.fase_tensao
       : ((t.fase_tensao_rede as UCData["fase_tensao"]) || uc.fase_tensao),
     // Aplicar grupo_tarifario do tenant se UC ainda está no default
-    grupo_tarifario: (uc.grupo_tarifario && uc.grupo_tarifario !== "B")
-      ? uc.grupo_tarifario
-      : ((t.grupo_tarifario as UCData["grupo_tarifario"]) || uc.grupo_tarifario),
+    // Validar que o valor é "A" ou "B" — valores como "MT"/"BT" são inválidos
+    grupo_tarifario: (() => {
+      const ucGrupo = uc.grupo_tarifario as string;
+      // Se UC já tem grupo válido "A", manter
+      if (ucGrupo === "A") return "A" as const;
+      // Tentar derivar do subgrupo (fonte autoritativa)
+      const fromSubgrupo = resolveGrupoFromSubgrupo(uc.subgrupo);
+      if (fromSubgrupo) return fromSubgrupo;
+      // Tentar do tenant, mas só se for valor válido
+      const tenantGrupo = t.grupo_tarifario;
+      if (tenantGrupo === "A" || tenantGrupo === "B") return tenantGrupo;
+      // Default
+      return ucGrupo === "B" ? "B" as const : "B" as const;
+    })(),
   };
 }
 
