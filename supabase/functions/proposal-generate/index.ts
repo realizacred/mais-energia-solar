@@ -444,7 +444,7 @@ Deno.serve(async (req) => {
     const anoAtual = new Date().getFullYear();
     const distribuidoraId = uc1.distribuidora_id || null;
 
-    const [fioBRes, tributacaoRes, irradiacaoRes, defaultPremissasRes, consultorRes, tariffVersionRes, aneelRunRes] = await Promise.all([
+    const [fioBRes, tributacaoRes, irradiacaoRes, defaultPremissasRes, consultorRes, tariffVersionRes, tenantPremisesRes, concessionariaRes, aneelRunRes] = await Promise.all([
       adminClient.from("fio_b_escalonamento")
         .select("ano, percentual_nao_compensado")
         .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
@@ -474,6 +474,21 @@ Deno.serve(async (req) => {
             .limit(1)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      distribuidoraId
+        ? adminClient.from("tenant_premises")
+            .select("tusd_fio_b_bt, tarifa, concessionaria_id")
+            .eq("tenant_id", tenantId)
+            .eq("concessionaria_id", distribuidoraId)
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      distribuidoraId
+        ? adminClient.from("concessionarias")
+            .select("id, tarifa_fio_b")
+            .eq("tenant_id", tenantId)
+            .eq("id", distribuidoraId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
       // ── ENFORCEMENT: Fetch latest ANEEL sync run ──
       adminClient.from("aneel_sync_runs")
         .select("id, started_at, snapshot_hash, status")
@@ -487,6 +502,8 @@ Deno.serve(async (req) => {
     const consultorId = consultorRes.data?.id ?? null;
     const geracaoMediaKwpMes = irradiacaoRes.data?.geracao_media_kwp_mes ?? 120;
     const activeTariff = tariffVersionRes.data;
+    const tenantPremises = tenantPremisesRes.data;
+    const concessionaria = concessionariaRes.data;
     const lastAneelRun = aneelRunRes.data;
 
     // Build Fio B escalation steps
@@ -498,11 +515,19 @@ Deno.serve(async (req) => {
     const percentualFioB = fioBCurrentYear?.percentual ?? 0;
 
     // ── ENFORCEMENT: Recalculate precision from tariff data (NEVER trust frontend) ──
+    const tenantFioB = Number(tenantPremises?.tusd_fio_b_bt) || 0;
+    const concessionariaFioB = Number(concessionaria?.tarifa_fio_b) || 0;
     let backendPrecisao: "exato" | "estimado" = "estimado";
     let backendPrecisaoMotivo = "Fio B real não disponível — usando TUSD total como proxy";
-    if (activeTariff && activeTariff.tusd_fio_b_kwh && activeTariff.tusd_fio_b_kwh > 0) {
+    if (activeTariff?.tusd_fio_b_kwh && activeTariff.tusd_fio_b_kwh > 0) {
       backendPrecisao = "exato";
       backendPrecisaoMotivo = "Fio B real disponível na tariff_version ativa";
+    } else if (tenantFioB > 0) {
+      backendPrecisao = "exato";
+      backendPrecisaoMotivo = "Fio B disponível nas premissas do tenant";
+    } else if (concessionariaFioB > 0) {
+      backendPrecisao = "exato";
+      backendPrecisaoMotivo = "Fio B disponível no cadastro da concessionária";
     }
 
     // ── ENFORCEMENT: GD rule recalculation — uses body.grupo initially, overridden by backendGrupo later ──
@@ -1224,10 +1249,10 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       regra_gd: backendRegraGd,
       ano_gd: backendAnoGd,
       fio_b_percent_aplicado: backendFioBPercent,
-      origem_tarifa: activeTariff?.origem ?? "desconhecida",
+      origem_tarifa: activeTariff?.origem ?? (tenantFioB > 0 ? "tenant_premises" : concessionariaFioB > 0 ? "concessionaria" : "desconhecida"),
       vigencia_tarifa: activeTariff?.vigencia_inicio ?? null,
       snapshot_hash: activeTariff?.snapshot_hash ?? lastAneelRun?.snapshot_hash ?? null,
-      missing_variables: null, // passed validation
+      missing_variables: null,
       tariff_version_id: activeTariff?.id ?? null,
       aneel_run_id: activeTariff?.run_id ?? lastAneelRun?.id ?? null,
     };
