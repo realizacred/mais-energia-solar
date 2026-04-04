@@ -1138,7 +1138,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.proposta_versao_status", "proposta_versao_status", "Status da Versão", "Status da versão da proposta (rascunho, enviada, aceita)", "-", "enviada"),
 
   // ── Projeto (detalhes — implementadas) ──
-  v("comercial", "comercial.projeto_tipo_instalacao", "projeto_tipo_instalacao", "Tipo de Instalação", "Tipo de instalação do projeto (Residencial, Comercial, etc.)", "-", "Residencial", "BT e MT", { notImplemented: true }),
+  v("comercial", "comercial.projeto_tipo_instalacao", "projeto_tipo_instalacao", "Tipo de Instalação", "Tipo de instalação do projeto (Residencial, Comercial, etc.)", "-", "Residencial"),
   v("comercial", "comercial.projeto_valor_equipamentos", "projeto_valor_equipamentos", "Valor Equipamentos", "Valor total dos equipamentos do projeto", "R$", "30000.00"),
   v("comercial", "comercial.projeto_valor_mao_obra", "projeto_valor_mao_obra", "Valor Mão de Obra", "Valor da mão de obra do projeto", "R$", "8000.00"),
   v("comercial", "comercial.projeto_data_venda", "projeto_data_venda", "Data da Venda", "Data de fechamento da venda", "data", "01/03/2026"),
