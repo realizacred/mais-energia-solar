@@ -613,7 +613,7 @@ export default function PropostaLanding() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, width: "100%", maxWidth: 600, marginTop: 20 }}>
           {[
             { label: "Consumo", value: `${s.consumoTotal} kWh` },
-            { label: "Geração", value: `${s.geracaoMensalEstimada} kWh` },
+            { label: "Geração", value: `${geracaoBase} kWh` },
             { label: "Aumento", value: `${aumento.toFixed(0)}%` },
             { label: "Área", value: `${s.areaUtil.toFixed(1)} m²` },
           ].map(item => (
