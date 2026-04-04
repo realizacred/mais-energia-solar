@@ -444,7 +444,7 @@ Deno.serve(async (req) => {
     const anoAtual = new Date().getFullYear();
     const distribuidoraId = uc1.distribuidora_id || null;
 
-    const [fioBRes, tributacaoRes, irradiacaoRes, defaultPremissasRes, consultorRes, tariffVersionRes, aneelRunRes] = await Promise.all([
+    const [fioBRes, tributacaoRes, irradiacaoRes, defaultPremissasRes, consultorRes, tariffVersionRes, tenantPremisesRes, concessionariaRes, aneelRunRes] = await Promise.all([
       adminClient.from("fio_b_escalonamento")
         .select("ano, percentual_nao_compensado")
         .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
@@ -472,6 +472,21 @@ Deno.serve(async (req) => {
             .eq("is_active", true)
             .order("vigencia_inicio", { ascending: false })
             .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      distribuidoraId
+        ? adminClient.from("tenant_premises")
+            .select("tusd_fio_b_bt, tarifa, concessionaria_id")
+            .eq("tenant_id", tenantId)
+            .eq("concessionaria_id", distribuidoraId)
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      distribuidoraId
+        ? adminClient.from("concessionarias")
+            .select("id, tarifa_fio_b")
+            .eq("tenant_id", tenantId)
+            .eq("id", distribuidoraId)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
       // ── ENFORCEMENT: Fetch latest ANEEL sync run ──
