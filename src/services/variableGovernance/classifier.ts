@@ -140,8 +140,10 @@ export function classifyGovernance(
     classification = "INPUT_WIZARD";
     evidence = "Input do wizard — persistido no snapshot";
   } else if (isSupplier) {
-    classification = "PARCIAL_BE_ONLY";
-    evidence = "Dado de fornecedor/kit — resolvido via snapshot quando kit é selecionado";
+    classification = inBE ? "IMPLEMENTADA" : "PARCIAL_BE_ONLY";
+    evidence = inBE
+      ? "Dado de fornecedor/kit — resolvido via resolver BE e snapshot"
+      : "Dado de fornecedor/kit — resolvido via snapshot quando kit é selecionado";
   } else if (isDynamicField) {
     classification = "IMPLEMENTADA";
     evidence = "Campo dinâmico (deal_custom_fields) — passthrough via snapshot";
