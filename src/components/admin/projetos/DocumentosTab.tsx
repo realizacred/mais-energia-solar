@@ -134,6 +134,29 @@ export function DocumentosTab({ dealId, clienteTelefone }: DocumentosTabProps) {
     }
   };
 
+  const enviarWhatsApp = async (doc: GeneratedDocRow) => {
+    if (!clienteTelefone) {
+      toast({ title: "Cliente sem telefone cadastrado", variant: "destructive" });
+      return;
+    }
+    let mensagem = `Olá! Segue o documento: ${doc.title}`;
+    if (doc.pdf_path) {
+      try {
+        const { data } = await supabase.storage
+          .from("document-files")
+          .createSignedUrl(doc.pdf_path, 7 * 24 * 3600);
+        if (data?.signedUrl) {
+          mensagem += `\n\n${data.signedUrl}`;
+        }
+      } catch {
+        // fire-and-forget per RB-25
+      }
+    }
+    const tel = clienteTelefone.replace(/\D/g, "");
+    const url = `https://wa.me/55${tel}?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, "_blank");
+  };
+
   const loading = loadingFiles || loadingDocs;
 
   // Group generated docs by category
