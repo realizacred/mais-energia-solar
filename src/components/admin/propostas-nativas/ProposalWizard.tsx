@@ -28,7 +28,7 @@ import {
   useTenantTarifas, useCustomFieldsAvailability, applyTenantTarifasToUC,
 } from "./wizard/useWizardDataLoaders";
 import { validateGrupoConsistency, resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
-import type { ProposalResolverContext } from "@/lib/resolveProposalVariables";
+import type { ProposalResolverContext, TariffVersionContext } from "@/lib/resolveProposalVariables";
 
 // ── Step Components
 import { StepLocalizacao } from "./wizard/StepLocalizacao";
@@ -1242,6 +1242,15 @@ export function ProposalWizard() {
   const isGrupoUndefined = !grupoValidation.valid && grupoValidation.error === "grupo_indefinido";
 
   // ─── Enforcement: resolver context
+  // Derive precisao from UC tariff data already in state
+  const precisaoFrontend = useMemo((): 'exato' | 'estimado' => {
+    const uc = ucs[0];
+    if (!uc) return 'estimado';
+    if (uc.tarifa_fio_b && uc.tarifa_fio_b > 0) return 'exato';
+    if (uc.tarifa_distribuidora && uc.tarifa_distribuidora > 0) return 'estimado';
+    return 'estimado';
+  }, [ucs]);
+
   const resolverContext = useMemo<ProposalResolverContext>(() => ({
     cliente: {
       nome: cliente.nome || selectedLead?.nome,
@@ -1263,7 +1272,14 @@ export function ProposalWizard() {
     geracaoMensal: geracaoMensalEstimada > 0 ? geracaoMensalEstimada : undefined,
     precoTotal: precoFinal ?? 0,
     consultorNome: undefined, // filled by backend
-  }), [cliente, selectedLead, ucs, premissas, potenciaKwp, geracaoMensalEstimada, precoFinal, locCidade, locEstado]);
+    tariffVersion: {
+      precisao: precisaoFrontend,
+      te_kwh: 0,
+      tusd_total_kwh: 0,
+      fio_b_real_kwh: null,
+      origem: 'frontend_uc',
+    } satisfies TariffVersionContext,
+  }), [cliente, selectedLead, ucs, premissas, potenciaKwp, geracaoMensalEstimada, precoFinal, locCidade, locEstado, precisaoFrontend]);
 
   const enforcement = useProposalEnforcement(resolverContext);
 
