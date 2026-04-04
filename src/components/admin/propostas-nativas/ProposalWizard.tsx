@@ -27,7 +27,7 @@ import {
   useEquipmentCatalog, useBancosCatalog, useSolarBrainSync,
   useTenantTarifas, useCustomFieldsAvailability, applyTenantTarifasToUC,
 } from "./wizard/useWizardDataLoaders";
-import { validateGrupoConsistency } from "@/lib/validateGrupoConsistency";
+import { validateGrupoConsistency, resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
 import type { ProposalResolverContext } from "@/lib/resolveProposalVariables";
 
 // ── Step Components
