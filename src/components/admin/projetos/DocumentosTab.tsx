@@ -235,6 +235,17 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
                       <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                         {hasPdf && (
                           <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Visualizar PDF"
+                            onClick={() => previewDoc(doc.pdf_path!)}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {hasPdf && (
+                          <Button
                             variant="outline"
                             size="sm"
                             className="h-8 gap-1.5"
@@ -269,6 +280,20 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
                             {signMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive/60 hover:text-destructive"
+                          title="Excluir documento"
+                          disabled={deleteDocMutation.isPending}
+                          onClick={() => {
+                            if (confirm("Excluir este documento?")) {
+                              deleteDocMutation.mutate(doc.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                       {sigStatus ? (
                         <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 shrink-0", sigStatus.color)}>
