@@ -79,7 +79,7 @@ export function TemplatesTab() {
           </Button>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-muted/50 border-b">
