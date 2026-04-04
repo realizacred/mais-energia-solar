@@ -1110,6 +1110,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.empresa_complemento", "empresa_complemento", "Complemento do integrador", "Complemento do endereço da empresa", "-", "Sala 201", "BT e MT", { escopo: "documento" }),
   v("comercial", "comercial.empresa_inscricao_estadual", "empresa_inscricao_estadual", "Inscrição Estadual", "Inscrição estadual da empresa", "-", "062.307.904/0081", "BT e MT", { escopo: "documento" }),
   v("comercial", "comercial.empresa_inscricao_municipal", "empresa_inscricao_municipal", "Inscrição Municipal", "Inscrição municipal da empresa", "-", "0123456", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_documento", "empresa_documento", "Documento da Empresa", "CNPJ ou CPF do integrador", "-", "12.345.678/0001-90", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_ie", "empresa_ie", "IE da Empresa", "Inscrição Estadual (alias)", "-", "062.307.904/0081", "BT e MT", { escopo: "documento" }),
 
   // ── Deal / Negócio (aspiracional — sem modelo no banco) ──
   v("comercial", "comercial.deal_title", "deal_title", "Título do Projeto", "Título do deal/negócio no pipeline", "-", "Projeto Solar Residencial", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
