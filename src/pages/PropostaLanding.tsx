@@ -302,62 +302,9 @@ export default function PropostaLanding() {
     sectionRefs.current[idx]?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  // ─── Loading / Error / Done ───
-  if (loading) return (
-    <div style={{ minHeight: "100vh", background: "var(--fundo, #F0F4FA)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
-      <style>{LANDING_STYLES}</style>
-      <Sun style={{ width: 48, height: 48, color: "#F07B24", animation: "pulse 2s infinite" }} />
-      <Loader2 style={{ width: 24, height: 24, color: "#64748B", animation: "spin 1s linear infinite" }} />
-      <p style={{ color: "#64748B", fontSize: 14 }}>Carregando proposta...</p>
-    </div>
-  );
-
-  if (error) return (
-    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, color: "#fff" }}>
-      <style>{LANDING_STYLES}</style>
-      <AlertTriangle style={{ width: 48, height: 48, color: "#F07B24" }} />
-      <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.4rem" }}>Proposta não encontrada</h2>
-      <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>{error}</p>
-    </div>
-  );
-
-  if (decision) return (
-    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 20, color: "#fff", padding: 24 }}>
-      <style>{LANDING_STYLES}</style>
-      {brand?.logo_white_url && <img src={brand.logo_white_url} alt="" style={{ height: 48, objectFit: "contain", opacity: 0.7 }} />}
-      {decision === "aceita" ? (
-        <>
-          <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(22,163,74,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <CheckCircle2 style={{ width: 40, height: 40, color: "#16A34A" }} />
-          </div>
-          <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Aceita!</h2>
-          <p style={{ color: "rgba(255,255,255,0.6)", textAlign: "center", maxWidth: 400 }}>
-            Obrigado! Sua aceitação foi registrada. A equipe comercial entrará em contato em breve.
-          </p>
-        </>
-      ) : (
-        <>
-          <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(239,68,68,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <XCircle style={{ width: 40, height: 40, color: "#ef4444" }} />
-          </div>
-          <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Recusada</h2>
-          <p style={{ color: "rgba(255,255,255,0.6)", textAlign: "center", maxWidth: 400 }}>
-            Sua resposta foi registrada. A equipe comercial será notificada.
-          </p>
-        </>
-      )}
-    </div>
-  );
-
-  if (!snapshot || !versaoData) return (
-    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-      <style>{LANDING_STYLES}</style>
-      <p>Dados da proposta não encontrados.</p>
-    </div>
-  );
-
-  // ─── Build template variables map from snapshot ───
+  // ─── Build template variables map from snapshot (must be before early returns) ───
   const templateVariables = useMemo(() => {
+    if (!snapshot || !versaoData) return {};
     const s = snapshot;
     const raw = s._raw || {};
     const vars: Record<string, string> = {};
@@ -424,6 +371,60 @@ export default function PropostaLanding() {
 
     return vars;
   }, [snapshot, versaoData, activeCenario, tenantNome, consultorNome, consultorTelefone, brand]);
+
+  // ─── Loading / Error / Done ───
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: "var(--fundo, #F0F4FA)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+      <style>{LANDING_STYLES}</style>
+      <Sun style={{ width: 48, height: 48, color: "#F07B24", animation: "pulse 2s infinite" }} />
+      <Loader2 style={{ width: 24, height: 24, color: "#64748B", animation: "spin 1s linear infinite" }} />
+      <p style={{ color: "#64748B", fontSize: 14 }}>Carregando proposta...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, color: "#fff" }}>
+      <style>{LANDING_STYLES}</style>
+      <AlertTriangle style={{ width: 48, height: 48, color: "#F07B24" }} />
+      <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.4rem" }}>Proposta não encontrada</h2>
+      <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>{error}</p>
+    </div>
+  );
+
+  if (decision) return (
+    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 20, color: "#fff", padding: 24 }}>
+      <style>{LANDING_STYLES}</style>
+      {brand?.logo_white_url && <img src={brand.logo_white_url} alt="" style={{ height: 48, objectFit: "contain", opacity: 0.7 }} />}
+      {decision === "aceita" ? (
+        <>
+          <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(22,163,74,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <CheckCircle2 style={{ width: 40, height: 40, color: "#16A34A" }} />
+          </div>
+          <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Aceita!</h2>
+          <p style={{ color: "rgba(255,255,255,0.6)", textAlign: "center", maxWidth: 400 }}>
+            Obrigado! Sua aceitação foi registrada. A equipe comercial entrará em contato em breve.
+          </p>
+        </>
+      ) : (
+        <>
+          <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(239,68,68,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <XCircle style={{ width: 40, height: 40, color: "#ef4444" }} />
+          </div>
+          <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Recusada</h2>
+          <p style={{ color: "rgba(255,255,255,0.6)", textAlign: "center", maxWidth: 400 }}>
+            Sua resposta foi registrada. A equipe comercial será notificada.
+          </p>
+        </>
+      )}
+    </div>
+  );
+
+  if (!snapshot || !versaoData) return (
+    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+      <style>{LANDING_STYLES}</style>
+      <p>Dados da proposta não encontrados.</p>
+    </div>
+  );
 
   // ─── If Visual Editor template exists, render it ───
   if (templateBlocks && templateBlocks.length > 0) {
