@@ -239,6 +239,7 @@ export function normalizeProposalSnapshot(
   raw: Record<string, unknown> | null | undefined
 ): NormalizedProposalSnapshot {
   const s = (raw || {}) as Record<string, any>;
+  const fin = (s.financeiro || {}) as Record<string, any>;
 
   // Cliente — suporta camelCase e objeto aninhado
   const cliente = s.cliente || {};
