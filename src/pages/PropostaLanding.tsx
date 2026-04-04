@@ -129,6 +129,7 @@ export default function PropostaLanding() {
   const [tenantNome, setTenantNome] = useState<string | null>(null);
   const [consultorNome, setConsultorNome] = useState<string | null>(null);
   const [consultorTelefone, setConsultorTelefone] = useState<string | null>(null);
+  const [templateBlocks, setTemplateBlocks] = useState<TemplateBlock[] | null>(null);
 
   const [activeTab, setActiveTab] = useState(0);
   const [submitting, setSubmitting] = useState(false);
