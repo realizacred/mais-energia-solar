@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Plus, Trash2, Edit2, Save, X, Variable, TestTube, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { Plus, Trash2, Edit2, Save, X, Variable, TestTube, Info, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
-import { validateExpression, evaluate, extractVariables } from "@/lib/expressionEngine";
+import { validateExpression, evaluate, extractVariables, SUPPORTED_FUNCTIONS } from "@/lib/expressionEngine";
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom } from "@/hooks/useVariaveisCustom";
 
 
@@ -56,6 +58,7 @@ const VARIAVEIS_DISPONIVEIS = [
   { nome: "roi_25_anos", desc: "ROI em 25 anos (R$)" },
   { nome: "num_modulos", desc: "Quantidade de módulos" },
   { nome: "num_ucs", desc: "Quantidade de UCs" },
+  { nome: "preco", desc: "Preço (alias de valor_total)" },
 ];
 
 export function VariaveisCustomManager() {
@@ -66,6 +69,9 @@ export function VariaveisCustomManager() {
   const [form, setForm] = useState<Partial<VariavelCustom>>({});
   const [editBaseline, setEditBaseline] = useState<string>("");
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [livePreview, setLivePreview] = useState<string | null>(null);
+  const [copiedVar, setCopiedVar] = useState<string | null>(null);
+  const [showFunctions, setShowFunctions] = useState(false);
 
   const isEditDirty = useMemo(() => {
     if (!editingId) return false;
@@ -75,6 +81,36 @@ export function VariaveisCustomManager() {
     return JSON.stringify(form) !== editBaseline;
   }, [form, editBaseline, editingId]);
 
+  // Live preview as user types
+  useEffect(() => {
+    if (!form.expressao || form.expressao.trim() === "") {
+      setLivePreview(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      try {
+        const validation = validateExpression(form.expressao!);
+        if (!validation.valid) {
+          setLivePreview(`⚠️ ${validation.error}`);
+          return;
+        }
+        const ctx: Record<string, number> = {};
+        VARIAVEIS_DISPONIVEIS.forEach(v => { ctx[v.nome] = 1000; });
+        // Also include other custom vars as test values
+        variaveis.forEach(v => { if (!ctx[v.nome]) ctx[v.nome] = 500; });
+        const result = evaluate(form.expressao!, ctx);
+        if (result !== null) {
+          setLivePreview(`📊 Preview (vars=1000): ${result}`);
+        } else {
+          setLivePreview("⚠️ Resultado nulo — verifique a expressão");
+        }
+      } catch {
+        setLivePreview(null);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [form.expressao, variaveis]);
+
   const startNew = () => {
     setEditingId("new");
     setForm({
@@ -82,6 +118,7 @@ export function VariaveisCustomManager() {
       categoria: "geral", ordem: variaveis.length, ativo: true, descricao: "",
     });
     setTestResult(null);
+    setLivePreview(null);
   };
 
   const startEdit = (v: VariavelCustom) => {
@@ -92,7 +129,7 @@ export function VariaveisCustomManager() {
     setTestResult(null);
   };
 
-  const cancelEdit = () => { setEditingId(null); setForm({}); setTestResult(null); };
+  const cancelEdit = () => { setEditingId(null); setForm({}); setTestResult(null); setLivePreview(null); };
 
   const handleTest = () => {
     if (!form.expressao) return;
@@ -101,9 +138,9 @@ export function VariaveisCustomManager() {
       setTestResult(`❌ ${validation.error}`);
       return;
     }
-    // Test with sample values
     const ctx: Record<string, number> = {};
     VARIAVEIS_DISPONIVEIS.forEach(v => { ctx[v.nome] = 1000; });
+    variaveis.forEach(v => { if (!ctx[v.nome]) ctx[v.nome] = 500; });
     const result = evaluate(form.expressao, ctx);
     setTestResult(result !== null ? `✅ Resultado (com valores de teste = 1000): ${result}` : "⚠️ Resultado nulo");
   };
@@ -120,6 +157,13 @@ export function VariaveisCustomManager() {
     const validation = validateExpression(form.expressao);
     if (!validation.valid) {
       toast({ title: "Expressão inválida", description: validation.error, variant: "destructive" });
+      return;
+    }
+
+    // Check for circular dependencies
+    const deps = extractVariables(form.expressao);
+    if (deps.includes(form.nome)) {
+      toast({ title: "Referência circular", description: "A variável não pode referenciar a si mesma", variant: "destructive" });
       return;
     }
 
@@ -154,6 +198,12 @@ export function VariaveisCustomManager() {
     }
   };
 
+  const handleCopyVar = useCallback((nome: string) => {
+    navigator.clipboard.writeText(`[${nome}]`);
+    setCopiedVar(nome);
+    setTimeout(() => setCopiedVar(null), 1500);
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -175,14 +225,59 @@ export function VariaveisCustomManager() {
         <CardHeader className="py-3">
           <CardTitle className="text-sm">Variáveis disponíveis para expressões</CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 space-y-3">
           <div className="flex flex-wrap gap-1.5">
-            {VARIAVEIS_DISPONIVEIS.map(v => (
-              <Badge key={v.nome} variant="outline" className="text-[10px] cursor-help" title={v.desc}>
-                [{v.nome}]
-              </Badge>
-            ))}
+            <TooltipProvider delayDuration={200}>
+              {VARIAVEIS_DISPONIVEIS.map(v => (
+                <Tooltip key={v.nome}>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] cursor-pointer hover:bg-primary/10 transition-colors"
+                      onClick={() => handleCopyVar(v.nome)}
+                    >
+                      {copiedVar === v.nome ? (
+                        <><Check className="h-2.5 w-2.5 mr-0.5 text-success" /> Copiado!</>
+                      ) : (
+                        <>[{v.nome}]</>
+                      )}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    <p>{v.desc}</p>
+                    <p className="text-muted-foreground">Clique para copiar</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </TooltipProvider>
           </div>
+
+          {/* Supported Functions */}
+          <Collapsible open={showFunctions} onOpenChange={setShowFunctions}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 px-2">
+                <Info className="h-3 w-3" />
+                {showFunctions ? "Ocultar funções" : "Ver funções disponíveis"}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {SUPPORTED_FUNCTIONS.map(fn => (
+                  <div key={fn.name} className="rounded-md border border-border/40 p-2 text-xs">
+                    <p className="font-semibold text-primary">{fn.name}</p>
+                    <p className="text-muted-foreground font-mono text-[10px] mt-0.5">{fn.syntax}</p>
+                    <p className="text-muted-foreground text-[10px] mt-0.5">
+                      Ex: <code className="bg-muted px-1 rounded">{fn.example}</code>
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                💡 Use <code className="bg-muted px-1 rounded">;</code> ou <code className="bg-muted px-1 rounded">,</code> para separar argumentos.
+                Operador <code className="bg-muted px-1 rounded">^</code> suportado para potenciação.
+              </p>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
 
@@ -205,14 +300,19 @@ export function VariaveisCustomManager() {
             <div>
               <Label className="text-xs">Expressão</Label>
               <Textarea value={form.expressao || ""} onChange={e => setForm(f => ({ ...f, expressao: e.target.value }))}
-                placeholder="[economia_anual] / [valor_total] * 100" className="min-h-[60px] text-xs font-mono" />
-              {form.expressao && (
-                <div className="flex items-center gap-2 mt-1">
+                placeholder='Ex: IF([economia_anual] > 5000; [economia_anual] / [valor_total] * 100; 0)' className="min-h-[60px] text-xs font-mono" />
+              <div className="flex flex-col gap-1 mt-1">
+                {form.expressao && (
                   <p className="text-[10px] text-muted-foreground">
                     Variáveis usadas: {extractVariables(form.expressao || "").map(v => `[${v}]`).join(", ") || "nenhuma"}
                   </p>
-                </div>
-              )}
+                )}
+                {livePreview && (
+                  <p className={`text-[10px] font-mono ${livePreview.startsWith("📊") ? "text-primary" : "text-warning"}`}>
+                    {livePreview}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -284,7 +384,7 @@ export function VariaveisCustomManager() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold">{v.label}</p>
                         <Badge variant="outline" className="text-[9px] font-mono">{v.nome}</Badge>
                         <Badge variant="secondary" className="text-[9px]">{v.categoria}</Badge>
