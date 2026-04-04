@@ -628,8 +628,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   useEffect(() => {
     if (!isExpanded || activeTab !== "arquivo" || html || rendering) return;
     if (!latestVersao?.id) return;
-    // Skip auto-render if persisted PDF exists
-    if (latestVersao.output_pdf_path) return;
+    // Skip auto-render if persisted PDF or external link_pdf exists (migrated proposals)
+    if (latestVersao.output_pdf_path || latestVersao.link_pdf) return;
     const vStatus = latestVersao.status?.toLowerCase();
     const pStatus = p.status?.toLowerCase();
     if (vStatus === "generated" || vStatus === "gerada" || vStatus === "ativa" ||
