@@ -18,8 +18,13 @@ export interface GeneratedDocRow {
   template_id: string;
   docx_filled_path: string | null;
   pdf_path: string | null;
+  signature_status: string | null;
+  signature_provider: string | null;
+  envelope_id: string | null;
+  signed_at: string | null;
   template_name?: string;
   template_categoria?: string;
+  requires_signature?: boolean;
 }
 
 export interface DocTemplate {
@@ -71,17 +76,17 @@ export function useProjetoDocumentosGerados(dealId: string) {
     queryFn: async () => {
       const { data: docs } = await supabase
         .from("generated_documents")
-        .select("id, title, status, created_at, template_id, docx_filled_path, pdf_path")
+        .select("id, title, status, created_at, template_id, docx_filled_path, pdf_path, signature_status, signature_provider, envelope_id, signed_at")
         .eq("deal_id", dealId)
         .order("created_at", { ascending: false });
 
       if (!docs || docs.length === 0) return [];
 
-      // Fetch template names for enrichment
+      // Fetch template names + requires_signature for enrichment
       const templateIds = [...new Set((docs as any[]).map(d => d.template_id))];
       const { data: tpls } = await supabase
         .from("document_templates")
-        .select("id, nome, categoria")
+        .select("id, nome, categoria, requires_signature_default")
         .in("id", templateIds);
 
       const tplMap = new Map((tpls || []).map((t: any) => [t.id, t]));
@@ -92,6 +97,7 @@ export function useProjetoDocumentosGerados(dealId: string) {
           ...d,
           template_name: tpl?.nome || "—",
           template_categoria: tpl?.categoria || "outro",
+          requires_signature: tpl?.requires_signature_default ?? false,
         } as GeneratedDocRow;
       });
     },
@@ -241,6 +247,54 @@ export function useGerarDocumento(dealId: string) {
     },
     onError: (err: any) => {
       toast({ title: "Erro ao gerar documento", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
+/** Enviar documento gerado para assinatura eletrônica via ZapSign */
+export function useEnviarParaAssinatura(dealId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ documentoId, tenantId }: { documentoId: string; tenantId: string }) => {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) throw new Error("Sessão inválida");
+
+      const url = `https://${projectId}.supabase.co/functions/v1/signature-send`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": anonKey,
+        },
+        body: JSON.stringify({
+          documento_id: documentoId,
+          tenant_id: tenantId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao enviar para assinatura");
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_DOCS, dealId] });
+      toast({
+        title: "Documento enviado para assinatura!",
+        description: "O signatário receberá um e-mail para assinar.",
+      });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao enviar para assinatura", description: err.message, variant: "destructive" });
     },
   });
 }

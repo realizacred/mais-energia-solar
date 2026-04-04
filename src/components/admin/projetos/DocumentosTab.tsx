@@ -1,17 +1,19 @@
 import { useState, useRef, useMemo } from "react";
-import { FileText, Paperclip, Upload, Trash2, Download, Plus, Activity, Loader2 } from "lucide-react";
+import { FileText, Paperclip, Upload, Trash2, Download, Plus, Activity, Loader2, Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/dateUtils";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 import { VariableMapperPanel } from "./VariableMapperPanel";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
   useProjetoArquivos,
   useProjetoDocumentosGerados,
@@ -19,6 +21,7 @@ import {
   useUploadArquivo,
   useDeletarArquivo,
   useGerarDocumento,
+  useEnviarParaAssinatura,
   downloadArquivo,
   downloadGeneratedDoc,
   type GeneratedDocRow,
@@ -30,8 +33,16 @@ const DOC_STATUS_MAP: Record<string, { label: string; color: string }> = {
   generating: { label: "Gerando...", color: "bg-info/10 text-info" },
   generated: { label: "Gerado", color: "bg-success/10 text-success" },
   sent_for_signature: { label: "Aguardando assinatura", color: "bg-warning/10 text-warning" },
-  signed: { label: "Assinado", color: "bg-success/10 text-success" },
+  signed: { label: "Assinado ✓", color: "bg-success/10 text-success" },
   cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive" },
+};
+
+const SIGNATURE_STATUS_MAP: Record<string, { label: string; color: string }> = {
+  sent: { label: "Enviado", color: "bg-warning/10 text-warning border-warning/20" },
+  viewed: { label: "Visualizado", color: "bg-info/10 text-info border-info/20" },
+  signed: { label: "Assinado ✓", color: "bg-success/10 text-success border-success/20" },
+  refused: { label: "Recusado", color: "bg-destructive/10 text-destructive border-destructive/20" },
+  cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 const DOC_CATEGORY_LABELS: Record<string, string> = {
@@ -59,6 +70,7 @@ interface DocumentosTabProps {
 export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [signConfirmDoc, setSignConfirmDoc] = useState<GeneratedDocRow | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // §16: Queries em hooks — AP-01 resolvido
@@ -69,6 +81,7 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
   const uploadMutation = useUploadArquivo(dealId);
   const deleteMutation = useDeletarArquivo(dealId);
   const generateMutation = useGerarDocumento(dealId);
+  const signMutation = useEnviarParaAssinatura(dealId);
 
   const loading = loadingFiles || loadingDocs;
 
@@ -105,6 +118,18 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
         },
       }
     );
+  };
+
+  const handleSendForSignature = async (doc: GeneratedDocRow) => {
+    try {
+      const { tenantId } = await getCurrentTenantId();
+      signMutation.mutate(
+        { documentoId: doc.id, tenantId },
+        { onSuccess: () => setSignConfirmDoc(null) }
+      );
+    } catch {
+      toast({ title: "Erro ao obter tenant", variant: "destructive" });
+    }
   };
 
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
@@ -145,6 +170,8 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
                   const statusCfg = DOC_STATUS_MAP[doc.status] || DOC_STATUS_MAP.draft;
                   const hasDocx = !!doc.docx_filled_path;
                   const hasPdf = !!doc.pdf_path;
+                  const sigStatus = doc.signature_status ? SIGNATURE_STATUS_MAP[doc.signature_status] : null;
+                  const canSendForSignature = doc.status === "generated" && hasPdf && doc.signature_status !== "signed" && doc.signature_status !== "sent";
 
                   return (
                     <div key={doc.id} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
@@ -178,10 +205,28 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
                             <FileText className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         )}
+                        {canSendForSignature && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-primary"
+                            title="Enviar para assinatura"
+                            onClick={() => setSignConfirmDoc(doc)}
+                            disabled={signMutation.isPending}
+                          >
+                            {signMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
                       </div>
-                      <Badge className={cn("text-[10px] h-5 px-1.5 border-0 shrink-0", statusCfg.color)}>
-                        {statusCfg.label}
-                      </Badge>
+                      {sigStatus ? (
+                        <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 shrink-0", sigStatus.color)}>
+                          {sigStatus.label}
+                        </Badge>
+                      ) : (
+                        <Badge className={cn("text-[10px] h-5 px-1.5 border-0 shrink-0", statusCfg.color)}>
+                          {statusCfg.label}
+                        </Badge>
+                      )}
                     </div>
                   );
                 })}
@@ -329,6 +374,33 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Signature Confirmation Dialog */}
+      <AlertDialog open={!!signConfirmDoc} onOpenChange={(open) => !open && setSignConfirmDoc(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" />
+              Enviar para assinatura eletrônica
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              O documento <strong>"{signConfirmDoc?.title}"</strong> será enviado para assinatura via ZapSign.
+              Os signatários cadastrados receberão um e-mail para assinar digitalmente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => signConfirmDoc && handleSendForSignature(signConfirmDoc)}
+              disabled={signMutation.isPending}
+              className="gap-1.5"
+            >
+              {signMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {signMutation.isPending ? "Enviando..." : "Enviar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
