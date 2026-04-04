@@ -58,8 +58,7 @@ export function EstimativaCheckbox({
           htmlFor="aceite-estimativa"
           className="text-sm text-foreground cursor-pointer leading-relaxed font-medium"
         >
-          Entendi que os valores são estimados e que a economia real pode variar
-          conforme a estrutura tarifária da distribuidora.
+          Confirmo que o cliente foi informado de que os valores são estimados.
         </Label>
       </div>
     </div>
