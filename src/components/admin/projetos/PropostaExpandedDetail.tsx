@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +31,7 @@ import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
 import { ClonePropostaModal } from "./ClonePropostaModal";
 import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
-import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaAuditLogs, type UCDetailData } from "@/hooks/usePropostaExpandedData";
+import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaAuditLogs, usePropostaEvents, type UCDetailData, type ProposalEventEntry } from "@/hooks/usePropostaExpandedData";
 import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
 import { useProposalTemplates } from "@/hooks/useProposalTemplates";
 
@@ -104,6 +104,112 @@ interface SnapshotData {
 }
 
 // UCDetailData imported from usePropostaExpandedData hook
+
+// ─── Unified Timeline ────────────────────────────────
+
+interface TimelineEntry {
+  id: string;
+  source: "audit" | "event";
+  label: string;
+  icon: React.ReactNode;
+  dotClass: string;
+  badgeClass: string;
+  userName: string;
+  created_at: string;
+}
+
+const EVENT_META: Record<string, { label: string; dotClass: string; badgeClass: string; iconKey: string }> = {
+  created: { label: "Criou a proposta", dotClass: "border-success/40 bg-success/10 text-success", badgeClass: "bg-success/10 text-success", iconKey: "filePlus" },
+  version_created: { label: "Gerou nova versão", dotClass: "border-warning/40 bg-warning/10 text-warning", badgeClass: "bg-warning/10 text-warning", iconKey: "fileCheck" },
+  status_change: { label: "Alterou status", dotClass: "border-primary/40 bg-primary/10 text-primary", badgeClass: "bg-primary/10 text-primary", iconKey: "refresh" },
+  deleted: { label: "Excluiu a proposta", dotClass: "border-destructive/40 bg-destructive/10 text-destructive", badgeClass: "bg-destructive/10 text-destructive", iconKey: "trash" },
+  cloned: { label: "Clonou a proposta", dotClass: "border-info/40 bg-info/10 text-info", badgeClass: "bg-info/10 text-info", iconKey: "copy" },
+  proposta_enviada: { label: "Enviou a proposta", dotClass: "border-info/40 bg-info/10 text-info", badgeClass: "bg-info/10 text-info", iconKey: "mail" },
+  proposta_visualizada: { label: "Proposta visualizada pelo cliente", dotClass: "border-warning/40 bg-warning/10 text-warning", badgeClass: "bg-warning/10 text-warning", iconKey: "eye" },
+  proposta_aceita: { label: "Proposta aceita pelo cliente", dotClass: "border-success/40 bg-success/10 text-success", badgeClass: "bg-success/10 text-success", iconKey: "check" },
+  proposta_recusada: { label: "Proposta recusada pelo cliente", dotClass: "border-destructive/40 bg-destructive/10 text-destructive", badgeClass: "bg-destructive/10 text-destructive", iconKey: "trash" },
+};
+
+function getEventIcon(iconKey: string): React.ReactNode {
+  switch (iconKey) {
+    case "filePlus": return <FilePlus className="h-3 w-3" />;
+    case "fileCheck": return <FileCheck className="h-3 w-3" />;
+    case "refresh": return <RefreshCw className="h-3 w-3" />;
+    case "trash": return <Trash2 className="h-3 w-3" />;
+    case "copy": return <Copy className="h-3 w-3" />;
+    case "mail": return <Mail className="h-3 w-3" />;
+    case "eye": return <Eye className="h-3 w-3" />;
+    case "check": return <CheckCircle className="h-3 w-3" />;
+    default: return <Clock className="h-3 w-3" />;
+  }
+}
+
+function getStatusChangeLabel(payload: Record<string, any> | null): string {
+  if (!payload) return "Alterou status";
+  const prev = payload.previous_status || payload.previousStatus;
+  const next = payload.new_status || payload.newStatus;
+  if (prev && next) return `Status: ${prev} → ${next}`;
+  if (next) return `Status alterado para ${next}`;
+  return "Alterou status";
+}
+
+function useMergedTimeline(
+  auditLogs: Array<{ id: string; acao: string; tabela: string; user_email: string | null; created_at: string }>,
+  events: ProposalEventEntry[],
+): TimelineEntry[] {
+  return useMemo(() => {
+    const entries: TimelineEntry[] = [];
+
+    // Add proposal_events (semantic — primary source)
+    for (const ev of events) {
+      const meta = EVENT_META[ev.tipo];
+      if (!meta) continue;
+      const label = ev.tipo === "status_change" ? getStatusChangeLabel(ev.payload) : meta.label;
+      entries.push({
+        id: `ev-${ev.id}`,
+        source: "event",
+        label,
+        icon: getEventIcon(meta.iconKey),
+        dotClass: meta.dotClass,
+        badgeClass: meta.badgeClass,
+        userName: "SISTEMA",
+        created_at: ev.created_at,
+      });
+    }
+
+    // Track event timestamps to deduplicate audit_logs
+    const eventTimestamps = new Set(events.map(e => new Date(e.created_at).getTime()));
+
+    // Add audit_logs that DON'T overlap with events (within 5s window)
+    for (const log of auditLogs) {
+      const logTime = new Date(log.created_at).getTime();
+      // Skip if there's a proposal_event within 5 seconds (likely same action)
+      const hasDuplicate = [...eventTimestamps].some(evTime => Math.abs(evTime - logTime) < 5000);
+      if (hasDuplicate) continue;
+
+      const audit = getAuditMeta(log.acao, log.tabela);
+      const userName = log.user_email === "sistema"
+        ? "SISTEMA"
+        : log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
+
+      entries.push({
+        id: `al-${log.id}`,
+        source: "audit",
+        label: audit.label,
+        icon: audit.icon,
+        dotClass: audit.dotClass,
+        badgeClass: audit.badgeClass,
+        userName,
+        created_at: log.created_at,
+      });
+    }
+
+    // Sort by date descending
+    entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return entries;
+  }, [auditLogs, events]);
+}
 
 // ─── Status Badge (SSOT from proposalStatusConfig) ───
 import { getProposalStatusConfig } from "@/lib/proposalStatusConfig";
@@ -454,6 +560,10 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
   const { data: ucsDetail = [] } = usePropostaExpandedUcs(latestVersao?.id || null, isExpanded);
   const { data: auditLogs = [] } = usePropostaAuditLogs(p.id, versaoIds, isExpanded);
+  const { data: proposalEvents = [] } = usePropostaEvents(p.id, isExpanded);
+
+  // Merge audit_logs + proposal_events into unified timeline
+  const mergedTimeline = useMergedTimeline(auditLogs, proposalEvents);
   const loadingDetail = !snapshotData && isExpanded && !!latestVersao?.id;
 
   // Fallback: buscar dados do lead quando snapshot não tiver dados de cliente/localização
@@ -1302,39 +1412,35 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   {/* ─ Histórico Tab ──────────── */}
                   <TabsContent value="historico" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
-                      {auditLogs.length === 0 ? (
+                      {mergedTimeline.length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-8">Nenhum registro de histórico encontrado</p>
                       ) : (
                         <div className="relative pl-6">
                           {/* Timeline line */}
                           <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-primary/20" />
 
-                          {auditLogs.map((log) => {
-                            const audit = getAuditMeta(log.acao, log.tabela);
-                            const userName = log.user_email === "sistema"
-                              ? "SISTEMA"
-                              : log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
-                            const dateStr = formatDate(log.created_at);
-                            const timeStr = formatTime(log.created_at);
+                          {mergedTimeline.map((entry) => {
+                            const dateStr = formatDate(entry.created_at);
+                            const timeStr = formatTime(entry.created_at);
 
                             return (
-                              <div key={log.id} className="relative flex gap-3 pb-5 last:pb-0">
+                              <div key={entry.id} className="relative flex gap-3 pb-5 last:pb-0">
                                 {/* Timeline dot */}
                                 <div className="absolute -left-6 mt-1">
-                                  <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", audit.dotClass)}>
-                                    {audit.icon}
+                                  <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", entry.dotClass)}>
+                                    {entry.icon}
                                   </div>
                                 </div>
 
                                 {/* Content */}
                                 <div className="min-w-0">
-                                  <p className="text-xs font-bold text-foreground">{userName}</p>
+                                  <p className="text-xs font-bold text-foreground">{entry.userName}</p>
                                   <p className="text-[10px] text-muted-foreground">{dateStr} às {timeStr}</p>
                                   <p className="text-xs mt-0.5 flex items-center gap-1.5">
-                                    <span className={cn("h-4 w-4 rounded-full flex items-center justify-center shrink-0", audit.badgeClass)}>
-                                      {audit.icon}
+                                    <span className={cn("h-4 w-4 rounded-full flex items-center justify-center shrink-0", entry.badgeClass)}>
+                                      {entry.icon}
                                     </span>
-                                    <span className="text-foreground">{audit.label}</span>
+                                    <span className="text-foreground">{entry.label}</span>
                                   </p>
                                 </div>
                               </div>
