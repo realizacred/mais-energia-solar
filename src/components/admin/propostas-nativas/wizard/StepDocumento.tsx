@@ -51,6 +51,7 @@ interface StepDocumentoProps {
   pdfBlobUrl?: string | null;
   outputDocxPath?: string | null;
   outputPdfPath?: string | null;
+  externalPdfUrl?: string | null;
   generationStatus?: "idle" | "calculating" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error";
   generationError?: string | null;
   missingVars?: string[];
@@ -72,6 +73,7 @@ export function StepDocumento({
   templateSelecionado, onTemplateSelecionado,
   generating, rendering, result, htmlPreview, pdfBlobUrl,
   outputDocxPath, outputPdfPath,
+  externalPdfUrl,
   generationStatus = "idle", generationError,
   missingVars = [],
   onGenerate, onNewVersion, onViewDetail,
@@ -284,23 +286,35 @@ export function StepDocumento({
   };
 
   const handleCopyLink = async (withTracker: boolean) => {
-    // BUG-1 fix: Copy PDF signed URL instead of web page URL
-    if (!outputPdfPath) {
+    const directPdfUrl = outputPdfPath
+      ? null
+      : (externalPdfUrl || pdfBlobUrl || null);
+
+    if (!outputPdfPath && !directPdfUrl) {
       toast({ title: "Gere a proposta primeiro para copiar o link do PDF", variant: "destructive" });
       return;
     }
 
     try {
-      const { data: signedData, error: signErr } = await supabase.storage
-        .from("proposta-documentos")
-        .createSignedUrl(outputPdfPath, 604800); // 7 days
+      let url = directPdfUrl;
 
-      if (signErr || !signedData?.signedUrl) {
-        toast({ title: "Erro ao gerar link do PDF", description: signErr?.message, variant: "destructive" });
-        return;
+      if (!url && outputPdfPath) {
+        const { data: signedData, error: signErr } = await supabase.storage
+          .from("proposta-documentos")
+          .createSignedUrl(outputPdfPath, 604800); // 7 days
+
+        if (signErr || !signedData?.signedUrl) {
+          toast({ title: "Erro ao gerar link do PDF", description: signErr?.message, variant: "destructive" });
+          return;
+        }
+
+        url = signedData.signedUrl;
       }
 
-      const url = signedData.signedUrl;
+      if (!url) {
+        toast({ title: "Link do PDF indisponível", variant: "destructive" });
+        return;
+      }
 
       try {
         await navigator.clipboard.writeText(url);
@@ -656,20 +670,31 @@ export function StepDocumento({
           return;
         }
       }
+      if (externalPdfUrl) {
+        window.open(externalPdfUrl, "_blank", "noopener,noreferrer");
+        toast({ title: "PDF aberto em nova aba!" });
+        return;
+      }
       // Fallback to pdfBlobUrl (signed URL already available)
       if (pdfBlobUrl) {
-        const resp = await fetch(pdfBlobUrl);
-        const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = downloadName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast({ title: "PDF baixado com sucesso!" });
-        return;
+        try {
+          const resp = await fetch(pdfBlobUrl);
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = downloadName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast({ title: "PDF baixado com sucesso!" });
+          return;
+        } catch {
+          window.open(pdfBlobUrl, "_blank", "noopener,noreferrer");
+          toast({ title: "PDF aberto em nova aba!" });
+          return;
+        }
       }
       toast({ title: "PDF não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
     };
@@ -948,13 +973,13 @@ export function StepDocumento({
                   size="sm"
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
                   onClick={() => handleCopyLink(true)}
-                  disabled={!outputPdfPath}
+                  disabled={!outputPdfPath && !externalPdfUrl && !pdfBlobUrl}
                 >
                   {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
                   Copiar link com rastreio
                 </Button>
               </TooltipTrigger>
-              {!outputPdfPath && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+              {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -963,13 +988,13 @@ export function StepDocumento({
                   size="sm"
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
                   onClick={() => handleCopyLink(false)}
-                  disabled={!outputPdfPath}
+                  disabled={!outputPdfPath && !externalPdfUrl && !pdfBlobUrl}
                 >
                   {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
                   Copiar link sem rastreio
                 </Button>
               </TooltipTrigger>
-              {!outputPdfPath && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+              {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
             </Tooltip>
             <Button
               variant="ghost"

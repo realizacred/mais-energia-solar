@@ -17,6 +17,7 @@ export interface VersaoProjetoTab {
   created_at: string;
   output_pdf_path: string | null;
   output_docx_path: string | null;
+  link_pdf: string | null;
   public_slug: string | null;
   gerado_em: string | null;
 }
@@ -72,7 +73,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
       // Fetch versoes
       const { data: versoes } = await supabase
         .from("proposta_versoes")
-        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, created_at, snapshot, output_pdf_path, output_docx_path, public_slug, gerado_em")
+        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, created_at, snapshot, output_pdf_path, output_docx_path, link_pdf, public_slug, gerado_em")
         .in("proposta_id", ids)
         .order("versao_numero", { ascending: false });
 
@@ -145,6 +146,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
               geracao_mensal: geracao,
               output_pdf_path: v.output_pdf_path || null,
               output_docx_path: v.output_docx_path || null,
+              link_pdf: v.link_pdf || null,
               public_slug: v.public_slug || null,
               gerado_em: v.gerado_em || v.created_at,
             };
