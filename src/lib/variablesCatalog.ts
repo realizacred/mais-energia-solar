@@ -1181,7 +1181,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ── Consultor (complementares) ──
   v("comercial", "comercial.consultor_telefone", "consultor_telefone", "Telefone do Consultor", "Telefone de contato do consultor", "-", "(31) 99999-0000"),
   v("comercial", "comercial.consultor_email", "consultor_email", "Email do Consultor", "Email de contato do consultor", "-", "consultor@empresa.com"),
-  v("comercial", "comercial.consultor_codigo", "consultor_codigo", "Código do Consultor", "Código identificador do consultor", "-", "CONS-001", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.consultor_codigo", "consultor_codigo", "Código do Consultor", "Código identificador do consultor", "-", "CONS-001"),
 
   // ── Concessionária (detalhes — implementadas) ──
   v("comercial", "comercial.concessionaria_sigla", "concessionaria_sigla", "Sigla da Concessionária", "Sigla/abreviação da concessionária", "-", "CEMIG"),
