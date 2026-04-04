@@ -1129,9 +1129,9 @@ export default function PropostaLanding() {
           display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
         }}>
           <div style={{
-            background: "#fff", borderRadius: 16, padding: 24, width: "90vw", maxWidth: 400,
+            background: "var(--reject-modal-bg)", borderRadius: 16, padding: 24, width: "90vw", maxWidth: 400,
           }}>
-            <h3 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, color: "var(--az)", fontSize: "1.1rem", margin: "0 0 12px" }}>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 800, color: "var(--reject-modal-text)", fontSize: "1.1rem", margin: "0 0 12px" }}>
               Recusar Proposta
             </h3>
             <p style={{ fontSize: "0.85rem", color: "var(--cinza)", marginBottom: 12 }}>
