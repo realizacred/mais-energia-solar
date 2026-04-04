@@ -1246,18 +1246,18 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ──────────────────────────────────────────────────────────────
   // DATA DINÂMICA
   // ──────────────────────────────────────────────────────────────
-  v("documento", "documento.data_hoje", "data_hoje", "Data de Hoje", "Data atual no formato dd/mm/yyyy", "data", "04/04/2026", "BT e MT", { escopo: "documento" }),
-  v("documento", "documento.data_hoje_extenso", "data_hoje_extenso", "Data de Hoje por Extenso", "Data atual por extenso (ex: 04 de abril de 2026)", "data", "04 de abril de 2026", "BT e MT", { escopo: "documento" }),
+  v("contrato", "documento.data_hoje", "data_hoje", "Data de Hoje", "Data atual no formato dd/mm/yyyy", "data", "04/04/2026", "BT e MT", { escopo: "documento" }),
+  v("contrato", "documento.data_hoje_extenso", "data_hoje_extenso", "Data de Hoje por Extenso", "Data atual por extenso (ex: 04 de abril de 2026)", "data", "04 de abril de 2026", "BT e MT", { escopo: "documento" }),
 
   // ──────────────────────────────────────────────────────────────
   // PROJETO
   // ──────────────────────────────────────────────────────────────
-  v("projeto", "projeto.codigo", "projeto_codigo", "Código do Projeto", "Código sequencial do projeto", "-", "PROJ-0042"),
-  v("projeto", "projeto.endereco", "projeto_endereco", "Endereço do Projeto", "Endereço/rua do local de instalação", "-", "Rua Solar, 100"),
-  v("projeto", "projeto.bairro", "projeto_bairro", "Bairro do Projeto", "Bairro do local de instalação", "-", "Centro"),
-  v("projeto", "projeto.cidade", "projeto_cidade", "Cidade do Projeto", "Cidade do local de instalação", "-", "Belo Horizonte"),
-  v("projeto", "projeto.estado", "projeto_estado", "Estado do Projeto", "UF do local de instalação", "-", "MG"),
-  v("projeto", "projeto.cep", "projeto_cep", "CEP do Projeto", "CEP do local de instalação", "-", "30130-000"),
+  v("comercial", "projeto.codigo", "projeto_codigo", "Código do Projeto", "Código sequencial do projeto", "-", "PROJ-0042"),
+  v("comercial", "projeto.endereco", "projeto_endereco", "Endereço do Projeto", "Endereço/rua do local de instalação", "-", "Rua Solar, 100"),
+  v("comercial", "projeto.bairro", "projeto_bairro", "Bairro do Projeto", "Bairro do local de instalação", "-", "Centro"),
+  v("comercial", "projeto.cidade", "projeto_cidade", "Cidade do Projeto", "Cidade do local de instalação", "-", "Belo Horizonte"),
+  v("comercial", "projeto.estado", "projeto_estado", "Estado do Projeto", "UF do local de instalação", "-", "MG"),
+  v("comercial", "projeto.cep", "projeto_cep", "CEP do Projeto", "CEP do local de instalação", "-", "30130-000"),
 
   // ──────────────────────────────────────────────────────────────
   // ASSINATURA
