@@ -1069,7 +1069,7 @@ export function StepDocumento({
               </div>
               <p className="text-sm font-medium text-destructive mb-1">Erro ao gerar preview</p>
               <p className="text-xs text-muted-foreground max-w-sm">{generationError}</p>
-              <Button variant="outline" size="sm" className="mt-3 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate}>
+              <Button variant="outline" size="sm" className="mt-3 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate} disabled={estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}>
                 <Zap className="h-3.5 w-3.5" />
                 Gerar Proposta
               </Button>
