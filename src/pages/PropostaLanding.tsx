@@ -28,6 +28,7 @@ import {
   BarChart3, Calendar, CreditCard, Banknote, TreePine,
   Activity, Clock, Factory, FileText, Users,
 } from "lucide-react";
+import { PropostaChatSection } from "@/components/proposal-landing/PropostaChatSection";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    CSS variables + fonts inline
@@ -1097,6 +1098,9 @@ export default function PropostaLanding() {
       </div>
 
       {/* Footer */}
+      {/* ━━━ SEÇÃO: CHAT COM IA ━━━ */}
+      <PropostaChatSection propostaData={templateVariables} />
+
       <footer style={{
         background: "var(--az)", color: "rgba(255,255,255,0.5)", textAlign: "center",
         padding: "1.5rem", fontSize: "0.75rem",
