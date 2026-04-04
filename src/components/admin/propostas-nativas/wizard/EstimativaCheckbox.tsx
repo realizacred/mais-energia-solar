@@ -37,11 +37,11 @@ export function EstimativaCheckbox({
         </div>
         <div className="space-y-1">
           <p className="text-sm font-semibold text-warning">
-            Economia estimada — atenção necessária
+            Valores estimados — confirme antes de gerar
           </p>
           <p className="text-sm text-foreground">
-            Esta simulação utiliza estimativa de Fio B baseada no TUSD total da ANEEL.
-            O valor real pode variar conforme estrutura tarifária da distribuidora.
+            A tarifa desta distribuidora não possui todos os dados necessários para um cálculo exato.
+            A economia apresentada é uma estimativa e pode variar. Ao confirmar, você declara que o cliente está ciente disso.
           </p>
         </div>
       </div>
