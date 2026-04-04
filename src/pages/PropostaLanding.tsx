@@ -473,7 +473,7 @@ export default function PropostaLanding() {
       {/* ━━━ NAV ━━━ */}
       <nav style={{
         position: "sticky", top: 0, zIndex: 50,
-        background: "var(--az)", borderBottom: "3px solid var(--la)",
+        background: "var(--nav-bg)", borderBottom: "3px solid var(--nav-border)",
         display: "flex", alignItems: "center", gap: 8,
         padding: "0 16px", height: 56, overflowX: "auto",
       }}>
