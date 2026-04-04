@@ -437,7 +437,7 @@ function CustomFieldsTable({ fields }: { fields: SmCustomField[] }) {
   );
 }
 
-function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; status: string; total_fetched: number; total_upserted: number; total_errors: number; started_at: string }> }) {
+function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; status: string; total_fetched: number; total_upserted: number; total_errors: number; started_at: string; error_message?: string | null }> }) {
   return (
     <SectionCard icon={Clock} title="Histórico de Sincronizações" variant="neutral" noPadding>
       <div className="overflow-x-auto">
