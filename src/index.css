@@ -657,6 +657,9 @@
   .kanban-card--lost {
     @apply opacity-50;
   }
+  .kanban-card--proposal-rejected .kanban-card__top-bar {
+    background: linear-gradient(90deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.4));
+  }
   .kanban-card--stagnation-critical .kanban-card__top-bar {
     background: linear-gradient(90deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.4));
   }
