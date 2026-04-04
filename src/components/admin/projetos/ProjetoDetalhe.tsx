@@ -1060,7 +1060,16 @@ function GerenciamentoTab({
             if (e.from_value && e.to_value) return `${translateValue(e.from_value)} → ${translateValue(e.to_value)}`;
             return translateValue(e.to_value) || translateValue(e.from_value) || undefined;
           };
-          setProjectEventEntries(data.map((e: any) => ({
+          // Filter out system noise: value_changed 0→X or X→0 oscillations
+          const filtered = data.filter((e: any) => {
+            if (e.event_type === "value_changed") {
+              const from = parseFloat(e.from_value);
+              const to = parseFloat(e.to_value);
+              if (from === 0 || to === 0) return false;
+            }
+            return true;
+          });
+          setProjectEventEntries(filtered.map((e: any) => ({
             id: `pe-${e.id}`,
             type: PROPOSAL_EVENT_TYPES.has(e.event_type) ? "proposta" as const : "projeto" as const,
             title: EVENT_LABELS[e.event_type] || e.event_type,
