@@ -672,11 +672,11 @@ export function ConvertLeadToClientDialog({
 
       // console.debug("[ConvertLead] Starting conversion for lead:", lead.id);
       // console.debug("[ConvertLead] Files count:", {
-        identidade: identidadeFiles.length,
-        comprovante: comprovanteFiles.length,
-        beneficiaria: beneficiariaFiles.length,
-        assinatura: assinaturaFiles.length,
-      });
+      //   identidade: identidadeFiles.length,
+      //   comprovante: comprovanteFiles.length,
+      //   beneficiaria: beneficiariaFiles.length,
+      //   assinatura: assinaturaFiles.length,
+      // });
 
       const identidadeUrls = await uploadDocumentFiles(identidadeFiles, `${tenantId}/identidade`, supabase);
       const comprovanteUrls = await uploadDocumentFiles(comprovanteFiles, `${tenantId}/comprovante`, supabase);
