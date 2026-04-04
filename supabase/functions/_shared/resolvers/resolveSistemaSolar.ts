@@ -117,6 +117,18 @@ export function resolveSistemaSolar(
   for (const m of MESES) set(`geracao_${m}`, snap[`geracao_${m}`]);
   for (let i = 0; i <= 25; i++) set(`geracao_anual_${i}`, snap[`geracao_anual_${i}`]);
 
+  // Generate geracao_anual_0..25 series if not in snapshot
+  if (!out["geracao_anual_0"] && geracaoMensal != null && geracaoMensal > 0) {
+    const perdaAnual = num(snap.perda_eficiencia_anual) ?? 0.006;
+    const fatorPerda = 1 - perdaAnual;
+    for (let i = 0; i <= 25; i++) {
+      const fator = Math.pow(fatorPerda, i);
+      if (!out[`geracao_anual_${i}`]) {
+        out[`geracao_anual_${i}`] = String(Math.round(geracaoMensal * 12 * fator));
+      }
+    }
+  }
+
   // ── Número de módulos ──
   const numModulos = num(projeto.numero_modulos) ?? num(cliente.numero_placas) ?? num(tecnico.numero_modulos)
     ?? num(snap.numero_modulos) ?? num(snap.modulo_quantidade);

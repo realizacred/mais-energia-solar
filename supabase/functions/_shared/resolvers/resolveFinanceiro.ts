@@ -92,7 +92,7 @@ export function resolveFinanceiro(
     setCur("preco_final", valorTotal);
     setCur("preco_total", valorTotal);
     setCur("preco", valorTotal);
-    // capo_i = inverter warranty in years (resolved in resolveSistemaSolar as inversor_garantia)
+    setCur("investimento", valorTotal);
     setCur("vc_a_vista", valorTotal);
 
     const potencia = num(versao.potencia_kwp) ?? num(projeto.potencia_kwp) ?? num(cliente.potencia_kwp)
