@@ -1270,6 +1270,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         outputPdfPath={latestVersao?.output_pdf_path || undefined}
                         externalPdfUrl={latestVersao?.link_pdf || undefined}
                         generationStatus={
+                          rendering ? "generating_docx" :
                           pdfSignedUrl || latestVersao?.output_pdf_path || latestVersao?.link_pdf ? "ready" :
                           html ? "ready" : "idle"
                         }
