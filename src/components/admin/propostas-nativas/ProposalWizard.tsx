@@ -1321,7 +1321,8 @@ export function ProposalWizard() {
     if (!tenantTarifas) return;
     setUcs(prev => {
       const needsUpdate = prev.some(u =>
-        u.tarifa_distribuidora === 0 && u.tarifa_te_p === 0 && u.tarifa_te_fp === 0
+        (u.tarifa_distribuidora === 0 && u.tarifa_te_p === 0 && u.tarifa_te_fp === 0)
+        || (!u.tarifa_fio_b || u.tarifa_fio_b === 0)
       );
       if (!needsUpdate) return prev;
       return prev.map(u => applyTenantTarifasToUC(u, tenantTarifas));
