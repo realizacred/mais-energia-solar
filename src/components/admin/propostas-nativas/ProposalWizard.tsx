@@ -1329,7 +1329,7 @@ export function ProposalWizard() {
       if (!needsUpdate) return prev;
       return prev.map(u => applyTenantTarifasToUC(u, tenantTarifas));
     });
-  }, [tenantTarifas]);
+  }, [tenantTarifas, ucsRestoreEpoch]);
 
   // Wrapper: auto-apply tenant tariff defaults when UCs change (e.g. new UC added)
   const handleUcsChange = useCallback((newUcs: UCData[] | ((prev: UCData[]) => UCData[])) => {
