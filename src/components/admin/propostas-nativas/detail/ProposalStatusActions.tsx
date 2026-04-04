@@ -62,7 +62,7 @@ export function ProposalStatusActions({
       {isActionable && canReject(currentStatus) && (
         vm.isRejected ? (
           <Button size="sm" variant="destructive" className="gap-1.5 border-destructive/40 text-destructive" onClick={() => onUpdateStatus("enviada")} disabled={updatingStatus}>
-            <XCircle className="h-3.5 w-3.5" /> Remover Rejeição
+            <XCircle className="h-3.5 w-3.5" /> Remover Recusa
           </Button>
         ) : (
           <AlertDialog>
