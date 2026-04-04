@@ -10,15 +10,22 @@ import { type PremissasData } from "./types";
 interface Props {
   premissas: PremissasData;
   onPremissasChange: (p: PremissasData) => void;
+  /** When true, skip auto-loading tenant defaults (edit mode — data from snapshot) */
+  isEditMode?: boolean;
 }
 
-export function StepPremissas({ premissas, onPremissasChange }: Props) {
+export function StepPremissas({ premissas, onPremissasChange, isEditMode }: Props) {
   const [loadingDefaults, setLoadingDefaults] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [source, setSource] = useState<"manual" | "tenant">("manual");
+  const [source, setSource] = useState<"manual" | "tenant">(isEditMode ? "manual" : "manual");
 
   useEffect(() => {
     if (hasLoaded) return;
+    // In edit mode, premissas come from snapshot — don't overwrite on mount
+    if (isEditMode) {
+      setHasLoaded(true);
+      return;
+    }
     loadTenantDefaults();
   }, []);
 
