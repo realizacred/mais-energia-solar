@@ -2541,6 +2541,7 @@ export function ProposalWizard() {
               onCustomFieldValuesChange={setCustomFieldValues}
               docxBlob={docxBlob}
               generationAuditReport={generationAuditReport}
+              estimativaBlocked={enforcement.precisao === "estimado" && !enforcement.aceiteEstimativa}
             />
           </>
         ));

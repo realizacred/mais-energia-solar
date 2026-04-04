@@ -1,6 +1,6 @@
 /**
  * Componente de confirmação obrigatória quando proposta tem precisão ESTIMADA.
- * Exibe banner de alerta + checkbox de aceite antes de permitir gerar PDF.
+ * Exibe card de alerta destacado + checkbox de aceite antes de permitir gerar PDF.
  */
 
 import { AlertTriangle } from "lucide-react";
@@ -23,25 +23,31 @@ export function EstimativaCheckbox({
   if (precisao !== "estimado") return null;
 
   return (
-    <div className={className}>
-      {/* Banner de alerta */}
-      <div className="p-3 rounded-lg bg-warning/10 border border-warning/30 mb-3">
-        <div className="flex items-start gap-2">
-          <AlertTriangle className="w-5 h-5 text-warning mt-0.5 shrink-0" />
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-warning">
-              Economia estimada
-            </p>
-            <p className="text-xs text-muted-foreground">
-              ATENÇÃO: Esta simulação utiliza estimativa de Fio B baseada no TUSD total da ANEEL. 
-              O valor real pode variar conforme estrutura tarifária da distribuidora.
-            </p>
-          </div>
+    <div
+      className={`rounded-lg border-2 p-4 transition-colors ${
+        checked
+          ? "bg-success/5 border-success/40"
+          : "bg-warning/10 border-warning/40"
+      } ${className ?? ""}`}
+    >
+      {/* Header com ícone */}
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-warning/20 shrink-0 mt-0.5">
+          <AlertTriangle className="w-5 h-5 text-warning" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-warning">
+            Economia estimada — atenção necessária
+          </p>
+          <p className="text-sm text-foreground">
+            Esta simulação utiliza estimativa de Fio B baseada no TUSD total da ANEEL.
+            O valor real pode variar conforme estrutura tarifária da distribuidora.
+          </p>
         </div>
       </div>
 
       {/* Checkbox de aceite */}
-      <div className="flex items-start gap-2 px-1">
+      <div className="flex items-start gap-2.5 px-1 pt-2 border-t border-warning/20">
         <Checkbox
           id="aceite-estimativa"
           checked={checked}
@@ -50,9 +56,9 @@ export function EstimativaCheckbox({
         />
         <Label
           htmlFor="aceite-estimativa"
-          className="text-xs text-muted-foreground cursor-pointer leading-relaxed"
+          className="text-sm text-foreground cursor-pointer leading-relaxed font-medium"
         >
-          Entendi que os valores são estimados e que a economia real pode variar 
+          Entendi que os valores são estimados e que a economia real pode variar
           conforme a estrutura tarifária da distribuidora.
         </Label>
       </div>

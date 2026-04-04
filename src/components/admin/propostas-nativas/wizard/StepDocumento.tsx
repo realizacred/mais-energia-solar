@@ -62,6 +62,8 @@ interface StepDocumentoProps {
   onCustomFieldValuesChange?: (values: Record<string, any>) => void;
   docxBlob?: Blob | null;
   generationAuditReport?: GenerationAuditReport | null;
+  /** When true, all "Gerar Proposta" buttons are disabled (estimativa not accepted) */
+  estimativaBlocked?: boolean;
 }
 
 // ─── Main Component ───────────────────────────────────────
@@ -80,6 +82,7 @@ export function StepDocumento({
   customFieldValues = {}, onCustomFieldValuesChange,
   docxBlob,
   generationAuditReport,
+  estimativaBlocked = false,
 }: StepDocumentoProps) {
   // ─── Queries via hooks (§16 AGENTS.md) ──────────────────
   const queryClient = useQueryClient();
@@ -503,7 +506,7 @@ export function StepDocumento({
                 </Select>
               )}
             </div>
-            <Button onClick={onGenerate} disabled={!templateSelecionado} className="w-full gap-2">
+            <Button onClick={onGenerate} disabled={!templateSelecionado || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
               <Zap className="h-4 w-4" />
               Gerar Proposta
             </Button>
@@ -514,7 +517,7 @@ export function StepDocumento({
             </div>
             <p className="text-sm font-semibold text-destructive mb-2">Erro na geração do documento</p>
             <p className="text-xs text-muted-foreground max-w-md">{generationError}</p>
-            <Button variant="outline" size="sm" className="mt-4 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate}>
+            <Button variant="outline" size="sm" className="mt-4 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate} disabled={estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}>
               <Zap className="h-3.5 w-3.5" />
               Gerar Proposta
             </Button>
@@ -548,7 +551,7 @@ export function StepDocumento({
                 </Select>
               )}
             </div>
-            <Button onClick={onGenerate} disabled={!templateSelecionado} className="w-full gap-2">
+            <Button onClick={onGenerate} disabled={!templateSelecionado || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
               <Zap className="h-4 w-4" />
               Gerar Proposta
             </Button>
@@ -624,7 +627,7 @@ export function StepDocumento({
               )}
             </div>
 
-            <Button onClick={onGenerate} disabled={!templateSelecionado || generating} className="w-full gap-2">
+            <Button onClick={onGenerate} disabled={!templateSelecionado || generating || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
               Gerar Proposta
             </Button>
@@ -799,7 +802,8 @@ export function StepDocumento({
                 size="sm"
                 className="w-full gap-2"
                 onClick={onGenerate}
-                disabled={generating || rendering || !templateSelecionado}
+                disabled={generating || rendering || !templateSelecionado || estimativaBlocked}
+                title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 Gerar Proposta
@@ -1065,7 +1069,7 @@ export function StepDocumento({
               </div>
               <p className="text-sm font-medium text-destructive mb-1">Erro ao gerar preview</p>
               <p className="text-xs text-muted-foreground max-w-sm">{generationError}</p>
-              <Button variant="outline" size="sm" className="mt-3 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate}>
+              <Button variant="outline" size="sm" className="mt-3 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate} disabled={estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}>
                 <Zap className="h-3.5 w-3.5" />
                 Gerar Proposta
               </Button>
@@ -1098,7 +1102,7 @@ export function StepDocumento({
             <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-3">
               <Zap className="h-8 w-8 text-primary" />
               <p className="text-sm text-muted-foreground">Nenhuma proposta gerada ainda</p>
-              <Button variant="default" size="sm" className="gap-2" onClick={onGenerate}>
+              <Button variant="default" size="sm" className="gap-2" onClick={onGenerate} disabled={estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}>
                 <Zap className="h-3.5 w-3.5" />
                 Gerar Proposta
               </Button>
