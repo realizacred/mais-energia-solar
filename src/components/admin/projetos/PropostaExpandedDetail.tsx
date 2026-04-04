@@ -447,7 +447,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
     : null;
 
-  // §16: Queries in hooks — AP-01 fix
+  // Templates for DOCX/HTML detection
+  const { data: proposalTemplates = [] } = useProposalTemplates();
+
   const versaoIds = p.versoes.map(v => v.id);
   const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
   const { data: ucsDetail = [] } = usePropostaExpandedUcs(latestVersao?.id || null, isExpanded);
