@@ -976,6 +976,7 @@ Deno.serve(async (req) => {
               const { data: newClient, error: insErr } = await adminClient
                 .from("clientes")
                 .insert({
+                  origem: "imported",
                   tenant_id: tenantId,
                   nome: smClient.name || "SM Import",
                   telefone: smClient.phone_formatted || smClient.phone || `SM-${resolvedSmClientId}`,
