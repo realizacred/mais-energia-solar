@@ -1216,7 +1216,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         }
                         generationError={null}
                         missingVars={[]}
-                        onGenerate={handleRender}
+                        onGenerate={latestVersao?.link_pdf && !latestVersao?.output_pdf_path
+                          ? () => window.open(latestVersao.link_pdf!, "_blank", "noopener,noreferrer")
+                          : handleRender}
                         onNewVersion={() => {
                           navigate(`/admin/propostas-nativas?edit=${p.id}`);
                         }}
