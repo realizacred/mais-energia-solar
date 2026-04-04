@@ -130,10 +130,12 @@ export function resolveClienteComercial(
   if (valorKit != null) set("projeto_valor_equipamentos", fmtVal(valorKit));
   const valorInst = num(snap.valor_instalacao);
   if (valorInst != null) set("projeto_valor_mao_obra", fmtVal(valorInst));
-  set("projeto_data_venda", fmtDate(projeto.created_at));
-  set("projeto_data_instalacao", fmtDate(clienteData.data_instalacao));
+  set("projeto_data_venda", fmtDate(projeto.created_at ?? projeto.data_venda));
+  set("projeto_data_instalacao", fmtDate(projeto.data_instalacao ?? clienteData.data_instalacao));
   set("projeto_status", projeto.status);
   set("projeto_observacoes", snap.observacoes ?? projeto.observacoes);
+  set("projeto_tipo_instalacao", projeto.tipo_instalacao ?? snap.tipo_instalacao);
+  set("projeto_codigo", projeto.codigo);
 
   // ── Projeto (endereço de instalação) ──
   set("projeto_rua_instalacao", projeto.rua_instalacao ?? lead.rua ?? snapCliente.rua);
@@ -141,8 +143,17 @@ export function resolveClienteComercial(
   set("projeto_complemento_instalacao", projeto.complemento_instalacao ?? lead.complemento ?? snapCliente.complemento);
   set("projeto_bairro_instalacao", projeto.bairro_instalacao ?? lead.bairro ?? snapCliente.bairro);
   set("projeto_cidade_instalacao", projeto.cidade_instalacao ?? lead.cidade ?? snapCliente.cidade);
+  set("projeto_estado_instalacao", projeto.uf_instalacao ?? lead.estado ?? snapCliente.estado);
   set("projeto_uf_instalacao", projeto.uf_instalacao ?? lead.estado ?? snapCliente.estado);
   set("projeto_cep_instalacao", projeto.cep_instalacao ?? lead.cep ?? snapCliente.cep);
+
+  // ── Custom fields from snapshot (cap_*, pre_*, pos_*) ──
+  const customFieldValues = safeObj(snap.customFieldValues ?? snap.custom_field_values);
+  for (const [cfKey, cfVal] of Object.entries(customFieldValues)) {
+    if (cfVal != null && cfVal !== "" && typeof cfVal !== "object") {
+      set(cfKey, String(cfVal));
+    }
+  }
 
   // ── Proposta (metadados complementares) ──
   set("proposta_versao_atual", proposta.versao_atual ?? versao.versao_numero);
