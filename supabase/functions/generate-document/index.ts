@@ -184,10 +184,14 @@ async function processDocx(
   for (const [path, data] of Object.entries(unzipped)) {
     if (path.startsWith("word/") && (path.endsWith(".xml") || path.endsWith(".rels"))) {
       let xmlStr = strFromU8(data);
-      // Normalize [ variable ] / [variable] → {{variable}} before processing
+
+      // Step 1: Defragment XML runs to consolidate split text
+      xmlStr = defragmentXml(xmlStr);
+
+      // Step 2: Normalize [ variable ] / [variable] → {{variable}}
       xmlStr = normalizeVariableFormat(xmlStr);
 
-      // Clean up fragmented tags by removing XML tags between {{ and }}
+      // Step 3: Clean up any remaining XML tags trapped inside {{ and }}
       xmlStr = xmlStr.replace(
         /\{\{((?:[^}]|(?:\}[^}]))*?)\}\}/g,
         (fullMatch) => {
