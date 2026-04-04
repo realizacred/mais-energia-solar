@@ -684,11 +684,11 @@ export function ConvertLeadToClientDialog({
       const assinaturaUrls = await uploadDocumentFiles(assinaturaFiles, `${tenantId}/assinatura`, supabase);
 
       // console.debug("[ConvertLead] Upload results:", {
-        identidade: identidadeUrls,
-        comprovante: comprovanteUrls,
-        beneficiaria: beneficiariaUrls,
-        assinatura: assinaturaUrls,
-      });
+      //   identidade: identidadeUrls,
+      //   comprovante: comprovanteUrls,
+      //   beneficiaria: beneficiariaUrls,
+      //   assinatura: assinaturaUrls,
+      // });
 
       let potenciaKwp: number | null = null;
       let valorProjeto: number | null = null;
