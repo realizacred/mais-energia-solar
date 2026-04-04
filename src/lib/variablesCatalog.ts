@@ -1085,6 +1085,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.proposta_status", "proposta_status", "Status da Proposta", "Status atual da proposta (rascunho, gerada, enviada, aceita, etc.)", "-", "gerada"),
   v("comercial", "comercial.proposta_data_envio", "proposta_data_envio", "Data de Envio", "Data em que a proposta foi enviada ao cliente", "data", "05/03/2025"),
   v("comercial", "comercial.proposta_codigo", "proposta_codigo", "Código da Proposta", "Código numérico sequencial da proposta", "-", "2590"),
+  v("comercial", "comercial.titulo", "titulo", "Título da Proposta (legacy)", "Título da proposta (campo raiz do snapshot)", "-", "Proposta Solar Residencial"),
   v("comercial", "comercial.responsavel_nome", "responsavel_nome", "Responsável", "Nome do responsável técnico", "-", "Ross"),
   v("comercial", "comercial.responsavel_email", "responsavel_email", "Responsável E-mail", "Email do responsável", "-", "ross@mail.com.br"),
   v("comercial", "comercial.responsavel_celular", "responsavel_celular", "Responsável Celular", "Celular do responsável", "-", "+55 21 99999-9999"),
