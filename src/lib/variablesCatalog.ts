@@ -1218,6 +1218,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.nome", "cliente_nome", "Nome", "Nome completo do cliente", "", "José da Silva"),
   v("cliente", "cliente.empresa", "cliente_empresa", "Empresa do cliente", "Empresa/razão social do cliente", "", "Fazenda Boa Vista"),
   v("cliente", "cliente.cnpj_cpf", "cliente_cnpj_cpf", "CPF/CNPJ", "CPF ou CNPJ do cliente", "", "123.456.789-00"),
+  v("cliente", "cliente.tipo_pessoa", "cliente_tipo_pessoa", "Tipo de Pessoa", "PF ou PJ — derivado do CPF/CNPJ", "-", "PF"),
   v("cliente", "cliente.email", "cliente_email", "Email", "Email do cliente", "", "jose@email.com"),
   v("cliente", "cliente.celular", "cliente_celular", "Celular", "Celular do cliente", "", "(31) 99999-1234"),
   v("cliente", "cliente.cep", "cliente_cep", "CEP", "CEP do cliente", "", "30130-000"),
