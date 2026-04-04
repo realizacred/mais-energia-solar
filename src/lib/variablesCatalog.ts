@@ -1110,6 +1110,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.empresa_complemento", "empresa_complemento", "Complemento do integrador", "Complemento do endereço da empresa", "-", "Sala 201", "BT e MT", { escopo: "documento" }),
   v("comercial", "comercial.empresa_inscricao_estadual", "empresa_inscricao_estadual", "Inscrição Estadual", "Inscrição estadual da empresa", "-", "062.307.904/0081", "BT e MT", { escopo: "documento" }),
   v("comercial", "comercial.empresa_inscricao_municipal", "empresa_inscricao_municipal", "Inscrição Municipal", "Inscrição municipal da empresa", "-", "0123456", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_documento", "empresa_documento", "Documento da Empresa", "CNPJ ou CPF do integrador", "-", "12.345.678/0001-90", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_ie", "empresa_ie", "IE da Empresa", "Inscrição Estadual (alias)", "-", "062.307.904/0081", "BT e MT", { escopo: "documento" }),
 
   // ── Deal / Negócio (aspiracional — sem modelo no banco) ──
   v("comercial", "comercial.deal_title", "deal_title", "Título do Projeto", "Título do deal/negócio no pipeline", "-", "Projeto Solar Residencial", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
@@ -1146,7 +1148,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.projeto_valor_equipamentos", "projeto_valor_equipamentos", "Valor Equipamentos", "Valor total dos equipamentos do projeto", "R$", "30000.00"),
   v("comercial", "comercial.projeto_valor_mao_obra", "projeto_valor_mao_obra", "Valor Mão de Obra", "Valor da mão de obra do projeto", "R$", "8000.00"),
   v("comercial", "comercial.projeto_data_venda", "projeto_data_venda", "Data da Venda", "Data de fechamento da venda", "data", "01/03/2026"),
-  v("comercial", "comercial.projeto_data_previsao_instalacao", "projeto_data_previsao_instalacao", "Previsão de Instalação", "Data prevista para instalação do projeto", "data", "15/04/2026", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.projeto_data_previsao_instalacao", "projeto_data_previsao_instalacao", "Previsão de Instalação", "Data prevista para instalação do projeto", "data", "15/04/2026"),
   v("comercial", "comercial.projeto_data_instalacao", "projeto_data_instalacao", "Data de Instalação", "Data efetiva da instalação do projeto", "data", "20/04/2026"),
   v("comercial", "comercial.projeto_data_comissionamento", "projeto_data_comissionamento", "Data de Comissionamento", "Data de comissionamento do projeto", "data", "25/04/2026", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_status", "projeto_status", "Status do Projeto", "Status atual do projeto (em andamento, concluído, etc.)", "-", "em_andamento"),
@@ -1166,6 +1168,14 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.projeto_cidade_instalacao", "projeto_cidade_instalacao", "Cidade de Instalação", "Cidade do local de instalação", "-", "Belo Horizonte"),
   v("comercial", "comercial.projeto_uf_instalacao", "projeto_uf_instalacao", "UF de Instalação", "Estado/UF do local de instalação", "-", "MG"),
   v("comercial", "comercial.projeto_cep_instalacao", "projeto_cep_instalacao", "CEP de Instalação", "CEP do local de instalação", "-", "30130-000"),
+  v("comercial", "comercial.projeto_numero", "projeto_numero", "Número do Projeto", "Número/código do projeto", "-", "PRJ-001"),
+  v("comercial", "comercial.projeto_area_util", "projeto_area_util", "Área Útil do Projeto", "Área útil do projeto em m²", "m²", "32.5"),
+  v("comercial", "comercial.projeto_geracao_mensal", "projeto_geracao_mensal", "Geração Mensal do Projeto", "Geração mensal média do projeto", "kWh", "850"),
+  v("comercial", "comercial.concessionaria_icms", "concessionaria_icms", "ICMS Concessionária", "Alíquota ICMS (alias)", "%", "18"),
+  v("comercial", "comercial.concessionaria_fio_b_gd", "concessionaria_fio_b_gd", "Fio B GD", "Tarifa Fio B GD da concessionária", "R$/kWh", "0.2345"),
+  v("financeiro", "financeiro.investimento", "investimento", "Investimento Total", "Valor total do investimento (alias de valor_total)", "R$", "42.500,00"),
+  v("sistema_solar", "sistema_solar.kit_garantia_servico", "kit_garantia_servico", "Garantia do Serviço", "Garantia do serviço de instalação", "anos", "5"),
+  v("sistema_solar", "sistema_solar.servico_garantia", "servico_garantia", "Garantia do Serviço (alias)", "Garantia do serviço de instalação (alias)", "anos", "5"),
   v("comercial", "comercial.projeto_lat_instalacao", "projeto_lat_instalacao", "Latitude Instalação", "Latitude do local de instalação", "-", "-19.9167", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_lon_instalacao", "projeto_lon_instalacao", "Longitude Instalação", "Longitude do local de instalação", "-", "-43.9345", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_observacoes", "projeto_observacoes", "Observações do Projeto", "Observações e notas do projeto", "-", "Telhado com inclinação de 15°"),
@@ -1238,6 +1248,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.estado_civil", "cliente_estado_civil", "Estado Civil", "Estado civil do cliente", "-", "Casado(a)", "BT e MT", { escopo: "documento" }),
   v("cliente", "cliente.nacionalidade", "cliente_nacionalidade", "Nacionalidade", "Nacionalidade do cliente", "-", "Brasileiro(a)", "BT e MT", { escopo: "documento" }),
   v("cliente", "cliente.profissao", "cliente_profissao", "Profissão", "Profissão/ocupação do cliente", "-", "Engenheiro", "BT e MT", { escopo: "documento" }),
+  v("cliente", "cliente.telefone", "cliente_telefone", "Telefone", "Telefone do cliente", "-", "(31) 99999-1234"),
+  v("cliente", "cliente.cpf_cnpj", "cliente_cpf_cnpj", "CPF/CNPJ (flat)", "CPF ou CNPJ (alias flat)", "-", "123.456.789-00"),
+  v("cliente", "cliente.rua", "cliente_rua", "Rua", "Rua/logradouro do cliente", "-", "Rua das Flores"),
+  v("cliente", "cliente.codigo", "cliente_codigo", "Código do Cliente", "Código de identificação do cliente", "-", "CLI-001"),
 
   // ──────────────────────────────────────────────────────────────
   // CONTRATO
