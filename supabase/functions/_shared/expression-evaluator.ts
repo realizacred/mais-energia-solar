@@ -54,8 +54,8 @@ function tokenize(expr: string): Token[] {
     // Skip whitespace
     if (/\s/.test(ch)) { i++; continue; }
 
-    // Semicolon (function argument separator)
-    if (ch === ";") { tokens.push({ type: "semi" }); i++; continue; }
+    // Semicolon or comma (function argument separator)
+    if (ch === ";" || ch === ",") { tokens.push({ type: "semi" }); i++; continue; }
 
     // Variable: [nome_da_variavel]
     if (ch === "[") {
