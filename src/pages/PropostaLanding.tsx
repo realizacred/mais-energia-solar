@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatBRLInteger } from "@/lib/formatters";
 import { TemplateHtmlRenderer } from "@/components/proposal-landing/TemplateHtmlRenderer";
@@ -29,67 +29,12 @@ import {
   Activity, Clock, Factory, FileText, Users,
 } from "lucide-react";
 import { PropostaChatSection } from "@/components/proposal-landing/PropostaChatSection";
+import { getLandingThemeCSS, parseModelo } from "@/components/proposal-landing/themes/landingThemes";
+import { LandingThemeSwitcher } from "@/components/proposal-landing/themes/LandingThemeSwitcher";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   CSS variables + fonts inline
+   CSS is now loaded from themes/landingThemes.ts
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-const LANDING_STYLES = `
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Open+Sans:wght@300;400;500;600&display=swap');
-
-:root {
-  --az: #1B3A8C;
-  --az2: #2550C0;
-  --la: #F07B24;
-  --la2: #E06010;
-  --verde: #16A34A;
-  --cinza: #64748B;
-  --fundo: #F0F4FA;
-  --br: #ffffff;
-}
-
-.pl-landing * { box-sizing: border-box; }
-.pl-landing { font-family: 'Open Sans', sans-serif; color: #1e293b; background: var(--fundo); }
-.pl-landing h1, .pl-landing h2, .pl-landing h3,
-.pl-landing .font-heading { font-family: 'Montserrat', sans-serif; }
-.pl-landing .section-header {
-  background: linear-gradient(135deg, var(--az), var(--az2));
-  color: #fff; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.75rem;
-  border-radius: 12px 12px 0 0;
-}
-.pl-landing .section-header .icon-circle {
-  width: 40px; height: 40px; border-radius: 50%; background: var(--la);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.pl-landing .section-header h2 {
-  font-weight: 800; font-size: 1.1rem; letter-spacing: -0.01em; margin: 0;
-}
-.pl-landing .card-body {
-  background: var(--br); border: 1px solid #e2e8f0; border-top: none;
-  border-radius: 0 0 12px 12px; padding: 1.5rem;
-}
-.pl-landing .info-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;
-}
-.pl-landing .info-box {
-  background: rgba(27,58,140,0.04); border: 1px solid rgba(27,58,140,0.1);
-  border-radius: 10px; padding: 0.75rem 1rem;
-}
-.pl-landing .info-label { font-size: 0.7rem; color: var(--cinza); text-transform: uppercase; letter-spacing: 0.05em; }
-.pl-landing .info-value { font-family: 'Montserrat', sans-serif; font-weight: 700; color: var(--az); font-size: 0.95rem; }
-.pl-landing .btn-la {
-  background: linear-gradient(135deg, var(--la), var(--la2)); color: #fff;
-  border: none; padding: 0.75rem 2rem; border-radius: 8px; font-family: 'Montserrat', sans-serif;
-  font-weight: 700; cursor: pointer; font-size: 0.95rem; transition: all 0.2s;
-}
-.pl-landing .btn-la:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(240,123,36,0.4); }
-.pl-landing .btn-verde {
-  background: var(--verde); color: #fff; border: none; padding: 0.75rem 2rem;
-  border-radius: 8px; font-family: 'Montserrat', sans-serif; font-weight: 700;
-  cursor: pointer; font-size: 0.95rem; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;
-}
-.pl-landing .btn-verde:hover { background: #15803d; }
-`;
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    Types
@@ -115,6 +60,9 @@ const TABS = ["Capa", "Empresa", "Sistema", "Equip.", "Financeiro", "Geração",
 
 export default function PropostaLanding() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const modelo = parseModelo(searchParams.get("modelo"));
+  const LANDING_STYLES = getLandingThemeCSS(modelo);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -377,23 +325,23 @@ export default function PropostaLanding() {
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "var(--fundo, #F0F4FA)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
       <style>{LANDING_STYLES}</style>
-      <Sun style={{ width: 48, height: 48, color: "#F07B24", animation: "pulse 2s infinite" }} />
-      <Loader2 style={{ width: 24, height: 24, color: "#64748B", animation: "spin 1s linear infinite" }} />
-      <p style={{ color: "#64748B", fontSize: 14 }}>Carregando proposta...</p>
+      <Sun style={{ width: 48, height: 48, color: "var(--la, #F07B24)", animation: "pulse 2s infinite" }} />
+      <Loader2 style={{ width: 24, height: 24, color: "var(--cinza, #64748B)", animation: "spin 1s linear infinite" }} />
+      <p style={{ color: "var(--cinza, #64748B)", fontSize: 14 }}>Carregando proposta...</p>
     </div>
   );
 
   if (error) return (
-    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, color: "#fff" }}>
+    <div style={{ minHeight: "100vh", background: "var(--nav-bg, #1B3A8C)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, color: "var(--hero-text, #fff)" }}>
       <style>{LANDING_STYLES}</style>
-      <AlertTriangle style={{ width: 48, height: 48, color: "#F07B24" }} />
-      <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.4rem" }}>Proposta não encontrada</h2>
-      <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>{error}</p>
+      <AlertTriangle style={{ width: 48, height: 48, color: "var(--la, #F07B24)" }} />
+      <h2 style={{ fontFamily: "var(--font-heading, Montserrat, sans-serif)", fontWeight: 800, fontSize: "1.4rem" }}>Proposta não encontrada</h2>
+      <p style={{ color: "var(--hero-muted, rgba(255,255,255,0.6))", fontSize: 14 }}>{error}</p>
     </div>
   );
 
   if (decision) return (
-    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 20, color: "#fff", padding: 24 }}>
+    <div style={{ minHeight: "100vh", background: "var(--nav-bg, #1B3A8C)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 20, color: "var(--hero-text, #fff)", padding: 24 }}>
       <style>{LANDING_STYLES}</style>
       {brand?.logo_white_url && <img src={brand.logo_white_url} alt="" style={{ height: 48, objectFit: "contain", opacity: 0.7 }} />}
       {decision === "aceita" ? (
@@ -401,7 +349,7 @@ export default function PropostaLanding() {
           <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(22,163,74,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <CheckCircle2 style={{ width: 40, height: 40, color: "#16A34A" }} />
           </div>
-          <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Aceita!</h2>
+          <h2 style={{ fontFamily: "var(--font-heading, Montserrat, sans-serif)", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Aceita!</h2>
           <p style={{ color: "rgba(255,255,255,0.6)", textAlign: "center", maxWidth: 400 }}>
             Obrigado! Sua aceitação foi registrada. A equipe comercial entrará em contato em breve.
           </p>
@@ -411,7 +359,7 @@ export default function PropostaLanding() {
           <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(239,68,68,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <XCircle style={{ width: 40, height: 40, color: "#ef4444" }} />
           </div>
-          <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Recusada</h2>
+          <h2 style={{ fontFamily: "var(--font-heading, Montserrat, sans-serif)", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Recusada</h2>
           <p style={{ color: "rgba(255,255,255,0.6)", textAlign: "center", maxWidth: 400 }}>
             Sua resposta foi registrada. A equipe comercial será notificada.
           </p>
@@ -421,7 +369,7 @@ export default function PropostaLanding() {
   );
 
   if (!snapshot || !versaoData) return (
-    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+    <div style={{ minHeight: "100vh", background: "var(--nav-bg, #1B3A8C)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--hero-text, #fff)" }}>
       <style>{LANDING_STYLES}</style>
       <p>Dados da proposta não encontrados.</p>
     </div>
@@ -525,7 +473,7 @@ export default function PropostaLanding() {
       {/* ━━━ NAV ━━━ */}
       <nav style={{
         position: "sticky", top: 0, zIndex: 50,
-        background: "var(--az)", borderBottom: "3px solid var(--la)",
+        background: "var(--nav-bg)", borderBottom: "3px solid var(--nav-border)",
         display: "flex", alignItems: "center", gap: 8,
         padding: "0 16px", height: 56, overflowX: "auto",
       }}>
@@ -557,8 +505,8 @@ export default function PropostaLanding() {
 
       {/* ━━━ SEÇÃO 0: CAPA ━━━ */}
       <section ref={el => { sectionRefs.current[0] = el; }} style={{
-        background: "linear-gradient(135deg, #1B3A8C, #0D2460, #1a1a3e)",
-        color: "#fff", padding: "3rem 1.5rem 2rem", minHeight: "90vh",
+        background: "var(--hero-bg)",
+        color: "var(--hero-text, #fff)", padding: "3rem 1.5rem 2rem", minHeight: "90vh",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       }}>
         <div style={{
@@ -600,11 +548,11 @@ export default function PropostaLanding() {
             { label: "Tensão", value: tensaoRede },
           ].map(item => (
             <div key={item.label} style={{
-              background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
+              background: "var(--hero-overlay)", border: "1px solid var(--hero-overlay-border)",
               borderRadius: 10, padding: "10px 14px",
             }}>
-              <p style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", margin: 0 }}>{item.label}</p>
-              <p style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: "0.85rem", margin: "4px 0 0" }}>{item.value}</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--hero-muted)", textTransform: "uppercase", margin: 0 }}>{item.label}</p>
+              <p style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.85rem", margin: "4px 0 0" }}>{item.value}</p>
             </div>
           ))}
         </div>
@@ -1086,9 +1034,9 @@ export default function PropostaLanding() {
                   value={acceptForm.nome}
                   onChange={e => setAcceptForm(f => ({ ...f, nome: e.target.value }))}
                   style={{
-                    background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-                    borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: "0.85rem",
-                    outline: "none", fontFamily: "Open Sans, sans-serif",
+                    background: "var(--accept-input-bg)", border: "1px solid var(--accept-input-border)",
+                    borderRadius: 8, padding: "10px 14px", color: "var(--accept-input-text)", fontSize: "0.85rem",
+                    outline: "none", fontFamily: "var(--font-body)",
                   }}
                 />
                 <input
@@ -1096,9 +1044,9 @@ export default function PropostaLanding() {
                   value={acceptForm.documento}
                   onChange={e => setAcceptForm(f => ({ ...f, documento: e.target.value }))}
                   style={{
-                    background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-                    borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: "0.85rem",
-                    outline: "none", fontFamily: "Open Sans, sans-serif",
+                    background: "var(--accept-input-bg)", border: "1px solid var(--accept-input-border)",
+                    borderRadius: 8, padding: "10px 14px", color: "var(--accept-input-text)", fontSize: "0.85rem",
+                    outline: "none", fontFamily: "var(--font-body)",
                   }}
                 />
                 <textarea
@@ -1107,9 +1055,9 @@ export default function PropostaLanding() {
                   rows={2}
                   onChange={e => setAcceptForm(f => ({ ...f, obs: e.target.value }))}
                   style={{
-                    background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-                    borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: "0.85rem",
-                    outline: "none", fontFamily: "Open Sans, sans-serif", resize: "none",
+                    background: "var(--accept-input-bg)", border: "1px solid var(--accept-input-border)",
+                    borderRadius: 8, padding: "10px 14px", color: "var(--accept-input-text)", fontSize: "0.85rem",
+                    outline: "none", fontFamily: "var(--font-body)", resize: "none",
                   }}
                 />
               </div>
@@ -1117,10 +1065,10 @@ export default function PropostaLanding() {
 
             {/* CTA final */}
             <div style={{
-              background: "linear-gradient(135deg, #0D2460, var(--az))",
-              borderRadius: 12, padding: "2rem 1.5rem", textAlign: "center", marginTop: 20, color: "#fff",
+              background: "var(--cta-bg)",
+              borderRadius: 12, padding: "2rem 1.5rem", textAlign: "center", marginTop: 20, color: "var(--hero-text, #fff)",
             }}>
-              <h3 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.3rem", margin: "0 0 8px" }}>
+              <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "1.3rem", margin: "0 0 8px" }}>
                 Pronto para economizar?
               </h3>
               <p style={{ fontSize: "0.85rem", opacity: 0.6, marginBottom: 20 }}>
@@ -1167,7 +1115,7 @@ export default function PropostaLanding() {
       <PropostaChatSection propostaData={templateVariables} />
 
       <footer style={{
-        background: "var(--az)", color: "rgba(255,255,255,0.5)", textAlign: "center",
+        background: "var(--footer-bg)", color: "var(--footer-text)", textAlign: "center",
         padding: "1.5rem", fontSize: "0.75rem",
       }}>
         {brand?.logo_white_url && <img src={brand.logo_white_url} alt="" style={{ height: 28, objectFit: "contain", opacity: 0.5, marginBottom: 8 }} />}
@@ -1181,9 +1129,9 @@ export default function PropostaLanding() {
           display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
         }}>
           <div style={{
-            background: "#fff", borderRadius: 16, padding: 24, width: "90vw", maxWidth: 400,
+            background: "var(--reject-modal-bg)", borderRadius: 16, padding: 24, width: "90vw", maxWidth: 400,
           }}>
-            <h3 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, color: "var(--az)", fontSize: "1.1rem", margin: "0 0 12px" }}>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 800, color: "var(--reject-modal-text)", fontSize: "1.1rem", margin: "0 0 12px" }}>
               Recusar Proposta
             </h3>
             <p style={{ fontSize: "0.85rem", color: "var(--cinza)", marginBottom: 12 }}>
@@ -1224,6 +1172,9 @@ export default function PropostaLanding() {
           </div>
         </div>
       )}
+
+      {/* Theme switcher — visible only for logged-in users */}
+      <LandingThemeSwitcher />
     </div>
   );
 }
