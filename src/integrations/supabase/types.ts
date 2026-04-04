@@ -1769,6 +1769,7 @@ export type Database = {
           numero: string | null
           numero_placas: number | null
           observacoes: string | null
+          origem: string | null
           payment_composition: Json | null
           potencia_kwp: number | null
           rua: string | null
@@ -1810,6 +1811,7 @@ export type Database = {
           numero?: string | null
           numero_placas?: number | null
           observacoes?: string | null
+          origem?: string | null
           payment_composition?: Json | null
           potencia_kwp?: number | null
           rua?: string | null
@@ -1851,6 +1853,7 @@ export type Database = {
           numero?: string | null
           numero_placas?: number | null
           observacoes?: string | null
+          origem?: string | null
           payment_composition?: Json | null
           potencia_kwp?: number | null
           rua?: string | null
@@ -3417,6 +3420,7 @@ export type Database = {
           motivo_perda_id: string | null
           motivo_perda_obs: string | null
           notas: string | null
+          origem: string | null
           owner_id: string
           pipeline_id: string
           projeto_id: string | null
@@ -3440,6 +3444,7 @@ export type Database = {
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
           notas?: string | null
+          origem?: string | null
           owner_id: string
           pipeline_id: string
           projeto_id?: string | null
@@ -3463,6 +3468,7 @@ export type Database = {
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
           notas?: string | null
+          origem?: string | null
           owner_id?: string
           pipeline_id?: string
           projeto_id?: string | null
@@ -15136,6 +15142,7 @@ export type Database = {
           numero_modulos: number | null
           numero_parcelas: number | null
           observacoes: string | null
+          origem: string | null
           potencia_kwp: number | null
           prazo_estimado_dias: number | null
           prazo_vistoria_dias: number | null
@@ -15189,6 +15196,7 @@ export type Database = {
           numero_modulos?: number | null
           numero_parcelas?: number | null
           observacoes?: string | null
+          origem?: string | null
           potencia_kwp?: number | null
           prazo_estimado_dias?: number | null
           prazo_vistoria_dias?: number | null
@@ -15242,6 +15250,7 @@ export type Database = {
           numero_modulos?: number | null
           numero_parcelas?: number | null
           observacoes?: string | null
+          origem?: string | null
           potencia_kwp?: number | null
           prazo_estimado_dias?: number | null
           prazo_vistoria_dias?: number | null
