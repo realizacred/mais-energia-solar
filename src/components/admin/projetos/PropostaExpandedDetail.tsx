@@ -628,8 +628,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   useEffect(() => {
     if (!isExpanded || activeTab !== "arquivo" || html || rendering) return;
     if (!latestVersao?.id) return;
-    // Skip auto-render if persisted PDF exists
-    if (latestVersao.output_pdf_path) return;
+    // Skip auto-render if persisted PDF or external link_pdf exists (migrated proposals)
+    if (latestVersao.output_pdf_path || latestVersao.link_pdf) return;
     const vStatus = latestVersao.status?.toLowerCase();
     const pStatus = p.status?.toLowerCase();
     if (vStatus === "generated" || vStatus === "gerada" || vStatus === "ativa" ||
@@ -682,7 +682,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const handleDownloadPdf = async () => {
     setDownloadingPdf(true);
     try {
+      // Fallback: migrated proposals use external link_pdf
       const pdfPath = latestVersao?.output_pdf_path;
+      const externalUrl = latestVersao?.link_pdf;
+
+      if (!pdfPath && externalUrl) {
+        window.open(externalUrl, "_blank", "noopener,noreferrer");
+        toast({ title: "PDF aberto em nova aba" });
+        return;
+      }
+
       if (!pdfPath) {
         toast({ title: "PDF não disponível", description: "Gere o arquivo DOCX/PDF primeiro na aba de documentos.", variant: "destructive" });
         return;
@@ -1207,7 +1216,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         }
                         generationError={null}
                         missingVars={[]}
-                        onGenerate={handleRender}
+                        onGenerate={latestVersao?.link_pdf && !latestVersao?.output_pdf_path
+                          ? () => window.open(latestVersao.link_pdf!, "_blank", "noopener,noreferrer")
+                          : handleRender}
                         onNewVersion={() => {
                           navigate(`/admin/propostas-nativas?edit=${p.id}`);
                         }}
