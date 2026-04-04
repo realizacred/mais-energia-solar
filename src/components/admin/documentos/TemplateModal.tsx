@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Upload, ChevronDown, FileText } from "lucide-react";
+import { ChevronDown, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { VariablesPanel } from "./VariablesPanel";
 import { TemplateFormBuilder } from "./TemplateFormBuilder";
 import type { DocumentTemplate, DocumentCategory, FormFieldSchema, DefaultSigner, CATEGORY_LABELS } from "./types";
@@ -77,12 +78,10 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
     if (file) {
       setUploading(true);
       try {
-        const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
-        const tid = profile?.tenant_id;
-        if (!tid) throw new Error("Tenant não encontrado");
+        const { tenantId } = await getCurrentTenantId();
 
         await supabase.auth.refreshSession();
-        const fileName = `${tid}/templates/${Date.now()}_${file.name}`;
+        const fileName = `${tenantId}/templates/${Date.now()}_${file.name}`;
         const { error } = await supabase.storage.from("document-files").upload(fileName, file);
         if (error) throw error;
         storagePath = fileName;
