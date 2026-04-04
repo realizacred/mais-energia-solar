@@ -81,7 +81,7 @@ function computeCatalogHealth(
     return { level: "critica", score: 0, implementedPct: 0, beOnlyPct: 0, customPct: 0, legacyPct: 0, ghostPct: 0, featurePendingPct: 0 };
   }
 
-  const implemented = counts.IMPLEMENTADA + counts.PASSTHROUGH + counts.CUSTOM_IMPL + counts.DOCUMENTO + counts.INPUT_WIZARD;
+  const implemented = counts.IMPLEMENTADA + counts.PARCIAL_BE_ONLY + counts.PASSTHROUGH + counts.CUSTOM_IMPL + counts.DOCUMENTO + counts.INPUT_WIZARD;
   const beOnly = counts.PARCIAL_BE_ONLY;
   const custom = counts.CUSTOM_BACKEND;
   const legacy = counts.ALIAS_LEGADO + counts.TEMPLATE_LEGADO;
