@@ -1295,7 +1295,7 @@ export function ProposalWizard() {
   }, [itens]);
 
   // ─── Data fetching (extracted hooks)
-  useSolarBrainSync(setPremissas, setPreDimensionamento);
+  useSolarBrainSync(setPremissas, setPreDimensionamento, !!(propostaIdFromUrl && versaoIdFromUrl));
   const tenantTarifas = useTenantTarifas();
 
   // Apply tenant tariff defaults to UCs that still have zero values
