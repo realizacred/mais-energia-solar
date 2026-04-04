@@ -1085,6 +1085,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.proposta_status", "proposta_status", "Status da Proposta", "Status atual da proposta (rascunho, gerada, enviada, aceita, etc.)", "-", "gerada"),
   v("comercial", "comercial.proposta_data_envio", "proposta_data_envio", "Data de Envio", "Data em que a proposta foi enviada ao cliente", "data", "05/03/2025"),
   v("comercial", "comercial.proposta_codigo", "proposta_codigo", "Código da Proposta", "Código numérico sequencial da proposta", "-", "2590"),
+  v("comercial", "comercial.titulo", "titulo", "Título da Proposta (legacy)", "Título da proposta (campo raiz do snapshot)", "-", "Proposta Solar Residencial"),
   v("comercial", "comercial.responsavel_nome", "responsavel_nome", "Responsável", "Nome do responsável técnico", "-", "Ross"),
   v("comercial", "comercial.responsavel_email", "responsavel_email", "Responsável E-mail", "Email do responsável", "-", "ross@mail.com.br"),
   v("comercial", "comercial.responsavel_celular", "responsavel_celular", "Responsável Celular", "Celular do responsável", "-", "+55 21 99999-9999"),
@@ -1100,6 +1101,12 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.empresa_telefone", "empresa_telefone", "Telefone do integrador", "Telefone da empresa", "-", "(31) 3333-0000", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.empresa_email", "empresa_email", "E-mail do integrador", "Email da empresa", "-", "contato@solartech.com", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.empresa_logo_url", "empresa_logo_url", "Logo da empresa", "URL do logotipo da empresa", "-", "https://..."),
+  v("comercial", "comercial.empresa_cep", "empresa_cep", "CEP do integrador", "CEP da empresa", "-", "30130-000", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_bairro", "empresa_bairro", "Bairro do integrador", "Bairro da empresa", "-", "Centro", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_numero", "empresa_numero", "Número do integrador", "Número do endereço da empresa", "-", "100", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_complemento", "empresa_complemento", "Complemento do integrador", "Complemento do endereço da empresa", "-", "Sala 201", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_inscricao_estadual", "empresa_inscricao_estadual", "Inscrição Estadual", "Inscrição estadual da empresa", "-", "062.307.904/0081", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_inscricao_municipal", "empresa_inscricao_municipal", "Inscrição Municipal", "Inscrição municipal da empresa", "-", "0123456", "BT e MT", { escopo: "documento" }),
 
   // ── Deal / Negócio (aspiracional — sem modelo no banco) ──
   v("comercial", "comercial.deal_title", "deal_title", "Título do Projeto", "Título do deal/negócio no pipeline", "-", "Projeto Solar Residencial", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
@@ -1222,6 +1229,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.data_instalacao", "cliente_data_instalacao", "Data de Instalação", "Data de instalação do sistema do cliente", "data", "20/03/2026", "BT e MT", { notImplemented: true }),
   v("cliente", "cliente.numero_placas", "cliente_numero_placas", "Número de Placas", "Quantidade de módulos instalados no cliente", "UN", "20", "BT e MT", { notImplemented: true }),
   v("cliente", "cliente.modelo_inversor", "cliente_modelo_inversor", "Modelo do Inversor", "Modelo do inversor instalado no cliente", "-", "SG36KTL-M", "BT e MT", { notImplemented: true }),
+  v("cliente", "cliente.rg", "cliente_rg", "RG", "Número do RG do cliente", "-", "MG-12.345.678", "BT e MT", { escopo: "documento" }),
+  v("cliente", "cliente.estado_civil", "cliente_estado_civil", "Estado Civil", "Estado civil do cliente", "-", "Casado(a)", "BT e MT", { escopo: "documento" }),
+  v("cliente", "cliente.nacionalidade", "cliente_nacionalidade", "Nacionalidade", "Nacionalidade do cliente", "-", "Brasileiro(a)", "BT e MT", { escopo: "documento" }),
+  v("cliente", "cliente.profissao", "cliente_profissao", "Profissão", "Profissão/ocupação do cliente", "-", "Engenheiro", "BT e MT", { escopo: "documento" }),
 
   // ──────────────────────────────────────────────────────────────
   // CONTRATO
@@ -1230,6 +1241,23 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("contrato", "contrato.data", "contrato_data", "Data do Contrato", "Data de geração do contrato (dd/mm/yyyy)", "data", "26/03/2026", "BT e MT", { escopo: "documento" }),
   v("contrato", "contrato.data_extenso", "contrato_data_extenso", "Data do Contrato por Extenso", "Data de geração do contrato por extenso (ex: 26 de março de 2026)", "data", "26 de março de 2026", "BT e MT", { escopo: "documento" }),
   v("contrato", "contrato.validade", "contrato_validade", "Validade do Contrato", "Data de validade do contrato (hoje + 30 dias)", "data", "25/04/2026", "BT e MT", { escopo: "documento" }),
+  v("contrato", "contrato.numero_contrato", "numero_contrato", "Número do Contrato (legacy)", "Número do contrato (alias de contrato_numero)", "-", "0042", "BT e MT", { escopo: "documento" }),
+
+  // ──────────────────────────────────────────────────────────────
+  // DATA DINÂMICA
+  // ──────────────────────────────────────────────────────────────
+  v("contrato", "documento.data_hoje", "data_hoje", "Data de Hoje", "Data atual no formato dd/mm/yyyy", "data", "04/04/2026", "BT e MT", { escopo: "documento" }),
+  v("contrato", "documento.data_hoje_extenso", "data_hoje_extenso", "Data de Hoje por Extenso", "Data atual por extenso (ex: 04 de abril de 2026)", "data", "04 de abril de 2026", "BT e MT", { escopo: "documento" }),
+
+  // ──────────────────────────────────────────────────────────────
+  // PROJETO
+  // ──────────────────────────────────────────────────────────────
+  v("comercial", "projeto.codigo", "projeto_codigo", "Código do Projeto", "Código sequencial do projeto", "-", "PROJ-0042"),
+  v("comercial", "projeto.endereco", "projeto_endereco", "Endereço do Projeto", "Endereço/rua do local de instalação", "-", "Rua Solar, 100"),
+  v("comercial", "projeto.bairro", "projeto_bairro", "Bairro do Projeto", "Bairro do local de instalação", "-", "Centro"),
+  v("comercial", "projeto.cidade", "projeto_cidade", "Cidade do Projeto", "Cidade do local de instalação", "-", "Belo Horizonte"),
+  v("comercial", "projeto.estado", "projeto_estado", "Estado do Projeto", "UF do local de instalação", "-", "MG"),
+  v("comercial", "projeto.cep", "projeto_cep", "CEP do Projeto", "CEP do local de instalação", "-", "30130-000"),
 
   // ──────────────────────────────────────────────────────────────
   // ASSINATURA
@@ -1249,6 +1277,13 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("pagamento", "pagamento.parcelas_valor", "pagamento_parcelas_valor", "Valor da Parcela", "Valor de cada parcela em BRL", "R$", "R$ 850,00", "BT e MT", { escopo: "documento" }),
   v("pagamento", "pagamento.banco_nome", "pagamento_banco_nome", "Nome do Banco/Financeira", "Nome do banco ou financeira do financiamento", "-", "BV Financeira", "BT e MT", { escopo: "documento" }),
   v("pagamento", "pagamento.condicoes_completas", "pagamento_condicoes_completas", "Condições Completas", "Resumo de todas as condições de pagamento", "-", "Entrada R$ 5.000 + 12x R$ 850 via BV Financeira", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.entrada", "pagamento_entrada", "Entrada (legacy)", "Valor da entrada (alias de pagamento_entrada_valor)", "R$", "R$ 5.000,00", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.total", "pagamento_total", "Valor Total Pagamento", "Valor total do sistema para pagamento", "R$", "R$ 45.000,00", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.parcelas", "pagamento_parcelas", "Parcelas (legacy)", "Número de parcelas (alias de pagamento_parcelas_quantidade)", "UN", "12", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.valor_parcela", "pagamento_valor_parcela", "Valor Parcela (legacy)", "Valor de cada parcela (alias de pagamento_parcelas_valor)", "R$", "R$ 850,00", "BT e MT", { escopo: "documento" }),
+
+  // ── Garantia de Serviço ──
+  v("sistema_solar", "sistema.servico_garantia", "servico_garantia", "Garantia do Serviço", "Garantia da instalação/serviço (ex: 5 anos)", "anos", "5 anos"),
 
   // ──────────────────────────────────────────────────────────────
   v("tabelas", "tabelas.consumo_mensal", "tabela_consumo_mensal", "Tabela consumo mensal", "Tabela com consumo por mês (jan-dez)", "kWh", "{jan:500,...,dez:490}", "BT e MT", { isSeries: true }),
