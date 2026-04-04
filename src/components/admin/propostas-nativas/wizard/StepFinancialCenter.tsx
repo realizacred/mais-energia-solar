@@ -532,12 +532,12 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
               <div key={row.id}>
                 <div
                   className={cn(
-                    "grid items-center px-4 py-2.5 text-xs transition-opacity",
+                    "grid items-center px-4 py-2.5 text-xs transition-opacity min-w-[700px]",
                     !row.checked && "opacity-40",
                     isKit && "cursor-pointer hover:bg-muted/20",
                     viewMode === "resumido"
-                      ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
-                      : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+                      ? "grid-cols-[auto_100px_1fr_60px_100px_80px]"
+                      : "grid-cols-[auto_100px_1fr_60px_100px_100px_90px_100px]"
                   )}
                   onClick={isKit && itens.length > 0 ? () => setKitExpanded(prev => !prev) : undefined}
                 >
