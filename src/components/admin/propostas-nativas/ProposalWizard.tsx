@@ -58,6 +58,7 @@ import { WizardStepCard } from "./wizard/WizardStepCard";
 import { useSavedFeedback, SavedFeedbackInline } from "./wizard/SavedFeedback";
 import { EstimativaCheckbox } from "./wizard/EstimativaCheckbox";
 import { MissingVariablesModal } from "./wizard/MissingVariablesModal";
+import { useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
 
 // ── Types
 import {
