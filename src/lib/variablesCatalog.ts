@@ -1201,7 +1201,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.simulacao_tipo_conta", "simulacao_tipo_conta", "Tipo de Conta", "Tipo de conta de energia da simulação", "-", "Residencial"),
 
   // ── Cliente (aspiracional) ──
-  v("comercial", "comercial.cliente_observacoes", "cliente_observacoes", "Observações do Cliente", "Observações e notas sobre o cliente", "-", "Cliente preferencial", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.cliente_observacoes", "cliente_observacoes", "Observações do Cliente", "Observações e notas sobre o cliente", "-", "Cliente preferencial"),
 
   // ── Representante Legal da Empresa (implementadas) ──
   v("comercial", "comercial.empresa_representante_legal", "empresa_representante_legal", "Representante Legal", "Nome do representante legal da empresa", "-", "Carlos Alberto Silva"),
