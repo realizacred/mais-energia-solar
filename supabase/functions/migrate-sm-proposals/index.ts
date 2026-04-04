@@ -1979,6 +1979,7 @@ Deno.serve(async (req) => {
             const { data: newProj, error: projErr } = await adminClient
               .from("projetos")
               .insert({
+                origem: "imported",
                 tenant_id: tenantId,
                 nome: proj.name || "Projeto SM",
                 cliente_id: clienteId,
