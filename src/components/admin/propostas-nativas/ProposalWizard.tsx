@@ -913,6 +913,17 @@ export function ProposalWizard() {
         //   hasSelectedLead: !!s.selectedLead,
         //   potenciaKwp: s.potenciaKwp,
         // });
+        // ── Sanitizar grupo_tarifario nas UCs restauradas ──
+        // Snapshots antigos podem ter valores inválidos como "MT"/"BT" em vez de "A"/"B"
+        if (Array.isArray(s.ucs)) {
+          (s as any).ucs = s.ucs.map((uc: any) => {
+            const g = uc.grupo_tarifario;
+            if (g === "A" || g === "B") return uc;
+            const resolved = resolveGrupoFromSubgrupo(uc.subgrupo);
+            return { ...uc, grupo_tarifario: resolved || "B" };
+          });
+        }
+
         restoreFromSnapshot(s);
 
         // CRITICAL: Set IDs BEFORE releasing isRestoring
