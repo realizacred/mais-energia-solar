@@ -332,11 +332,11 @@ export default function PropostaLanding() {
   );
 
   if (error) return (
-    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, color: "#fff" }}>
+    <div style={{ minHeight: "100vh", background: "var(--nav-bg, #1B3A8C)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, color: "var(--hero-text, #fff)" }}>
       <style>{LANDING_STYLES}</style>
-      <AlertTriangle style={{ width: 48, height: 48, color: "#F07B24" }} />
-      <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.4rem" }}>Proposta não encontrada</h2>
-      <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>{error}</p>
+      <AlertTriangle style={{ width: 48, height: 48, color: "var(--la, #F07B24)" }} />
+      <h2 style={{ fontFamily: "var(--font-heading, Montserrat, sans-serif)", fontWeight: 800, fontSize: "1.4rem" }}>Proposta não encontrada</h2>
+      <p style={{ color: "var(--hero-muted, rgba(255,255,255,0.6))", fontSize: 14 }}>{error}</p>
     </div>
   );
 
