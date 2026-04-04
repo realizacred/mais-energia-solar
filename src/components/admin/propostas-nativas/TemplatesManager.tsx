@@ -154,6 +154,7 @@ export function TemplatesManager() {
 
       // 2. Insert 3 new templates one by one
       const defaults = [
+        { nome: "Landing Page Alta Conversão", file: "template-landing.json", ordem: 0 },
         { nome: "Template Grid (On-Grid)", file: "template-grid.json", ordem: 1 },
         { nome: "Template Híbrido", file: "template-hybrid.json", ordem: 2 },
         { nome: "Template Dual (Grid + Híbrido)", file: "template-dual.json", ordem: 3 },
