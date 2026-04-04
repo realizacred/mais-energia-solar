@@ -757,10 +757,10 @@ export function ConvertLeadToClientDialog({
       };
 
       // console.debug("[ConvertLead] clientePayload:", {
-        ...clientePayload,
-        identidade_urls: clientePayload.identidade_urls?.length || 0,
-        comprovante_endereco_urls: clientePayload.comprovante_endereco_urls?.length || 0,
-      });
+      //   ...clientePayload,
+      //   identidade_urls: clientePayload.identidade_urls?.length || 0,
+      //   comprovante_endereco_urls: clientePayload.comprovante_endereco_urls?.length || 0,
+      // });
 
       // Check for existing client by lead_id OR by phone (to avoid duplicate cliente_code)
       let existingCliente: { id: string } | null = null;

@@ -301,9 +301,9 @@ export default function DevSeedPage() {
       const projetoIdForProposta = projetoRow?.id || null;
 
       // console.debug("[Seed] proposta payload:", {
-        projetoId: projetoIdForProposta,
-        dealId: seedResult.dealId,
-      });
+      //   projetoId: projetoIdForProposta,
+      //   dealId: seedResult.dealId,
+      // });
 
       const { data: propostaData, error: propostaErr } = await supabase.rpc(
         "create_proposta_nativa_atomic_v2" as any,

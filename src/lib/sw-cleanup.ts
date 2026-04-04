@@ -60,18 +60,18 @@ export async function debugServiceWorkers() {
 
     for (const reg of registrations) {
       // console.log({
-        scope: reg.scope,
-        active: reg.active ? { scriptURL: reg.active.scriptURL, state: reg.active.state } : null,
-        waiting: reg.waiting ? { scriptURL: reg.waiting.scriptURL, state: reg.waiting.state } : null,
-        installing: reg.installing ? { scriptURL: reg.installing.scriptURL, state: reg.installing.state } : null,
-      });
+      //   scope: reg.scope,
+      //   active: reg.active ? { scriptURL: reg.active.scriptURL, state: reg.active.state } : null,
+      //   waiting: reg.waiting ? { scriptURL: reg.waiting.scriptURL, state: reg.waiting.state } : null,
+      //   installing: reg.installing ? { scriptURL: reg.installing.scriptURL, state: reg.installing.state } : null,
+      // });
     }
 
     const controller = navigator.serviceWorker.controller;
     // console.log("[SW Debug] Current controller:", controller ? {
-      scriptURL: controller.scriptURL,
-      state: controller.state,
-    } : "none (page not controlled)");
+    //   scriptURL: controller.scriptURL,
+    //   state: controller.state,
+    // } : "none (page not controlled)");
 
     console.groupEnd();
   } catch (err) {

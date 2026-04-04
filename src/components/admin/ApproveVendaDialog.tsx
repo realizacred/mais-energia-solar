@@ -291,20 +291,18 @@ export function ApproveVendaDialog({
     : "—";
 
   // console.debug("[ApproveVendaDialog] data:", {
-    selectedSimulacaoId,
-    selectedSim,
-    firstSim,
-    clienteSimulacoes: cliente.simulacoes,
-    leadMediaConsumo: cliente.leads?.media_consumo,
-    orcConsumo,
-    potencia, consumo, valorProposta, geracaoMensal, economiaMensal, paybackMeses,
-    disjuntorInfo, transformadorInfo, localizacaoInfo,
-    transformador_id: cliente.transformador_id,
-    transformadores_raw: cliente.transformadores,
-    disjuntor_id: cliente.disjuntor_id,
-    disjuntores_raw: cliente.disjuntores,
-    documents,
-  });
+  //   selectedSimulacaoId, selectedSim, firstSim,
+  //   clienteSimulacoes: cliente.simulacoes,
+  //   leadMediaConsumo: cliente.leads?.media_consumo,
+  //   orcConsumo, potencia, consumo, valorProposta,
+  //   geracaoMensal, economiaMensal, paybackMeses,
+  //   disjuntorInfo, transformadorInfo, localizacaoInfo,
+  //   transformador_id: cliente.transformador_id,
+  //   transformadores_raw: cliente.transformadores,
+  //   disjuntor_id: cliente.disjuntor_id,
+  //   disjuntores_raw: cliente.disjuntores,
+  //   documents,
+  // });
 
   const valorComissao = () => {
     const base = valorVenda || 0;

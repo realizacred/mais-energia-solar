@@ -714,9 +714,9 @@ export function useDealPipeline() {
     }
 
     // console.debug("[createDeal] Inserindo deal:", {
-      title: params.title, ownerId, customerId: params.customerId,
-      pipelineId: pipeId, stageId: targetStageId,
-    });
+    //   title: params.title, ownerId, customerId: params.customerId,
+    //   pipelineId: pipeId, stageId: targetStageId,
+    // });
 
     const { data, error } = await supabase
       .from("deals")

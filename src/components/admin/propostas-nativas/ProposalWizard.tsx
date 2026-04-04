@@ -1809,11 +1809,9 @@ export function ProposalWizard() {
 
     // ── Enforcement gate: block if missing variables or estimativa not accepted
     // console.debug("[ProposalWizard] Enforcement check:", {
-      precoFinal,
-      resolverPrecoTotal: resolverContext.precoTotal,
-      potenciaKwp,
-      resolverResult: enforcement.resolverResult,
-    });
+    //   precoFinal, resolverPrecoTotal: resolverContext.precoTotal,
+    //   potenciaKwp, resolverResult: enforcement.resolverResult,
+    // });
     const gate = enforcement.checkGate();
     if (!gate.allowed) {
       console.warn("[ProposalWizard] PDF blocked:", gate);
