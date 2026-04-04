@@ -304,6 +304,17 @@ export function DocumentosTab({ dealId, clienteTelefone }: DocumentosTabProps) {
                             {signMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                           </Button>
                         )}
+                        {hasPdf && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-success hover:text-success"
+                            title="Enviar via WhatsApp"
+                            onClick={() => enviarWhatsApp(doc)}
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
