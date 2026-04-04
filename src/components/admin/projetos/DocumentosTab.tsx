@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye } from "lucide-react";
+import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye, MessageCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

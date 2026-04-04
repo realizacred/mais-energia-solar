@@ -240,6 +240,7 @@ export function useGerarDocumento(dealId: string) {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY_DOCS, dealId] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
       toast({
         title: "Documento gerado com sucesso!",
         description: `${result.variables_count} variáveis resolvidas.`,
