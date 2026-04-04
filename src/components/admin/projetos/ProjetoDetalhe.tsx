@@ -447,7 +447,7 @@ function ProjetoDetalheContent() {
             <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} />
           )}
           {activeTab === "documentos" && (
-            <DocumentosTab dealId={deal.id} />
+            <DocumentosTab dealId={deal.id} clienteTelefone={customerPhone} />
           )}
           {activeTab === "instalacao" && (
             <ProjetoInstalacaoTab dealId={deal.id} />

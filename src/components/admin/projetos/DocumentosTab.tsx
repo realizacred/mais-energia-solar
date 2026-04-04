@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye } from "lucide-react";
+import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye, MessageCircle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,10 +64,11 @@ function formatSize(bytes: number | undefined) {
 // ─── Props ────────────────────────────────────────
 interface DocumentosTabProps {
   dealId: string;
+  clienteTelefone?: string;
 }
 
 // ─── Component ────────────────────────────────────
-export function DocumentosTab({ dealId }: DocumentosTabProps) {
+export function DocumentosTab({ dealId, clienteTelefone }: DocumentosTabProps) {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [signConfirmDoc, setSignConfirmDoc] = useState<GeneratedDocRow | null>(null);
@@ -131,6 +132,29 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
     } catch {
       toast({ title: "Erro ao abrir arquivo", variant: "destructive" });
     }
+  };
+
+  const enviarWhatsApp = async (doc: GeneratedDocRow) => {
+    if (!clienteTelefone) {
+      toast({ title: "Cliente sem telefone cadastrado", variant: "destructive" });
+      return;
+    }
+    let mensagem = `Olá! Segue o documento: ${doc.title}`;
+    if (doc.pdf_path) {
+      try {
+        const { data } = await supabase.storage
+          .from("document-files")
+          .createSignedUrl(doc.pdf_path, 7 * 24 * 3600);
+        if (data?.signedUrl) {
+          mensagem += `\n\n${data.signedUrl}`;
+        }
+      } catch {
+        // fire-and-forget per RB-25
+      }
+    }
+    const tel = clienteTelefone.replace(/\D/g, "");
+    const url = `https://wa.me/55${tel}?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, "_blank");
   };
 
   const loading = loadingFiles || loadingDocs;
@@ -278,6 +302,17 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
                             disabled={signMutation.isPending}
                           >
                             {signMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
+                        {hasPdf && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-success hover:text-success"
+                            title="Enviar via WhatsApp"
+                            onClick={() => enviarWhatsApp(doc)}
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
                           </Button>
                         )}
                         <Button
