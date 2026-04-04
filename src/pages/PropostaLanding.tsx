@@ -325,9 +325,9 @@ export default function PropostaLanding() {
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "var(--fundo, #F0F4FA)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
       <style>{LANDING_STYLES}</style>
-      <Sun style={{ width: 48, height: 48, color: "#F07B24", animation: "pulse 2s infinite" }} />
-      <Loader2 style={{ width: 24, height: 24, color: "#64748B", animation: "spin 1s linear infinite" }} />
-      <p style={{ color: "#64748B", fontSize: 14 }}>Carregando proposta...</p>
+      <Sun style={{ width: 48, height: 48, color: "var(--la, #F07B24)", animation: "pulse 2s infinite" }} />
+      <Loader2 style={{ width: 24, height: 24, color: "var(--cinza, #64748B)", animation: "spin 1s linear infinite" }} />
+      <p style={{ color: "var(--cinza, #64748B)", fontSize: 14 }}>Carregando proposta...</p>
     </div>
   );
 
