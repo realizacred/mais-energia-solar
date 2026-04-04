@@ -70,3 +70,30 @@ describe("expressionEngine v2 (unified)", () => {
     expect(r).toBe(1);
   });
 });
+
+import { topologicalSortVariables } from "../topologicalSort";
+
+describe("topologicalSortVariables", () => {
+  it("sorts by dependency order", () => {
+    const vars = [
+      { nome: "vc_c", expressao: "[vc_a] + [vc_b]" },
+      { nome: "vc_a", expressao: "[valor_total] * 0.1" },
+      { nome: "vc_b", expressao: "[vc_a] * 2" },
+    ];
+    const { sorted, cycles } = topologicalSortVariables(vars);
+    const names = sorted.map(v => v.nome);
+    expect(names.indexOf("vc_a")).toBeLessThan(names.indexOf("vc_b"));
+    expect(names.indexOf("vc_b")).toBeLessThan(names.indexOf("vc_c"));
+    expect(cycles).toHaveLength(0);
+  });
+
+  it("detects circular dependencies", () => {
+    const vars = [
+      { nome: "vc_x", expressao: "[vc_y] + 1" },
+      { nome: "vc_y", expressao: "[vc_x] + 1" },
+    ];
+    const { sorted, cycles } = topologicalSortVariables(vars);
+    expect(sorted).toHaveLength(0);
+    expect(cycles.length).toBeGreaterThan(0);
+  });
+});
