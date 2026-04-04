@@ -454,6 +454,10 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
   const { data: ucsDetail = [] } = usePropostaExpandedUcs(latestVersao?.id || null, isExpanded);
   const { data: auditLogs = [] } = usePropostaAuditLogs(p.id, versaoIds, isExpanded);
+  const { data: proposalEvents = [] } = usePropostaEvents(p.id, isExpanded);
+
+  // Merge audit_logs + proposal_events into unified timeline
+  const mergedTimeline = useMergedTimeline(auditLogs, proposalEvents);
   const loadingDetail = !snapshotData && isExpanded && !!latestVersao?.id;
 
   // Fallback: buscar dados do lead quando snapshot não tiver dados de cliente/localização
