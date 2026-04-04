@@ -199,15 +199,16 @@ export function TemplatesManager() {
         }
       }
 
+      const total = defaults.length;
       if (errors.length > 0) {
         console.error("Seed errors:", errors);
         toast({ 
-          title: `${successCount}/3 templates criados`, 
+          title: `${successCount}/${total} templates criados`, 
           description: errors.join("; "), 
           variant: successCount === 0 ? "destructive" : "default" 
         });
       } else {
-        toast({ title: "3 templates importados com sucesso!" });
+        toast({ title: `${total} templates importados com sucesso!` });
       }
 
       loadTemplates();
