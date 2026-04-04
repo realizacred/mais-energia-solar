@@ -1146,7 +1146,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.projeto_valor_equipamentos", "projeto_valor_equipamentos", "Valor Equipamentos", "Valor total dos equipamentos do projeto", "R$", "30000.00"),
   v("comercial", "comercial.projeto_valor_mao_obra", "projeto_valor_mao_obra", "Valor Mão de Obra", "Valor da mão de obra do projeto", "R$", "8000.00"),
   v("comercial", "comercial.projeto_data_venda", "projeto_data_venda", "Data da Venda", "Data de fechamento da venda", "data", "01/03/2026"),
-  v("comercial", "comercial.projeto_data_previsao_instalacao", "projeto_data_previsao_instalacao", "Previsão de Instalação", "Data prevista para instalação do projeto", "data", "15/04/2026", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.projeto_data_previsao_instalacao", "projeto_data_previsao_instalacao", "Previsão de Instalação", "Data prevista para instalação do projeto", "data", "15/04/2026"),
   v("comercial", "comercial.projeto_data_instalacao", "projeto_data_instalacao", "Data de Instalação", "Data efetiva da instalação do projeto", "data", "20/04/2026"),
   v("comercial", "comercial.projeto_data_comissionamento", "projeto_data_comissionamento", "Data de Comissionamento", "Data de comissionamento do projeto", "data", "25/04/2026", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_status", "projeto_status", "Status do Projeto", "Status atual do projeto (em andamento, concluído, etc.)", "-", "em_andamento"),
