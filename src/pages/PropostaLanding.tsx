@@ -356,7 +356,86 @@ export default function PropostaLanding() {
     </div>
   );
 
-  // ─── Computed values ───
+  // ─── Build template variables map from snapshot ───
+  const templateVariables = useMemo(() => {
+    const s = snapshot;
+    const raw = s._raw || {};
+    const vars: Record<string, string> = {};
+
+    // Flatten raw snapshot keys
+    for (const [k, v] of Object.entries(raw)) {
+      if (v !== null && v !== undefined) {
+        vars[k] = String(v);
+      }
+    }
+
+    // Standard proposal variables
+    vars["cliente_nome"] = s.clienteNome || "";
+    vars["cliente.nome"] = s.clienteNome || "";
+    vars["potencia_kwp"] = String(s.potenciaKwp || versaoData.potencia_kwp || 0);
+    vars["sistema.potencia_kwp"] = vars["potencia_kwp"];
+    vars["valor_total"] = formatBRL(activeCenario?.preco_final ?? versaoData.valor_total ?? 0);
+    vars["financeiro.valor_total"] = vars["valor_total"];
+    vars["economia_mensal"] = formatBRL(versaoData.economia_mensal ?? s.economiaMensal ?? 0);
+    vars["financeiro.economia_mensal"] = vars["economia_mensal"];
+    vars["payback_meses"] = String(activeCenario?.payback_meses ?? versaoData.payback_meses ?? s.paybackMeses ?? 0);
+    vars["financeiro.payback_meses"] = vars["payback_meses"];
+    vars["consumo_mensal"] = String(s.consumoTotal || 0);
+    vars["sistema.consumo_mensal"] = vars["consumo_mensal"];
+    vars["geracao_mensal"] = String(s.geracaoMensalEstimada || 0);
+    vars["sistema.geracao_mensal"] = vars["geracao_mensal"];
+    vars["cidade"] = s.locCidade || "";
+    vars["cliente.cidade"] = vars["cidade"];
+    vars["estado"] = s.locEstado || "";
+    vars["cliente.estado"] = vars["estado"];
+    vars["empresa_nome"] = tenantNome || "";
+    vars["empresa.nome"] = vars["empresa_nome"];
+    vars["consultor_nome"] = consultorNome || "";
+    vars["consultor.nome"] = vars["consultor_nome"];
+    vars["consultor_telefone"] = consultorTelefone || "";
+    vars["consultor.telefone"] = vars["consultor_telefone"];
+    vars["tipo_telhado"] = String(raw.locTipoTelhado ?? raw.loc_tipo_telhado ?? s.locTipoTelhado ?? "");
+    vars["sistema.tipo_telhado"] = vars["tipo_telhado"];
+
+    // Module/inverter info
+    const modulos = s.itens.filter(i => i.categoria === "modulo" || i.categoria === "modulos");
+    const inversores = s.itens.filter(i => i.categoria === "inversor" || i.categoria === "inversores");
+    if (modulos[0]) {
+      vars["modulo_modelo"] = modulos[0].modelo || "";
+      vars["modulo_fabricante"] = modulos[0].fabricante || "";
+      vars["modulo_potencia_w"] = String(modulos[0].potencia_w || 0);
+      vars["modulo_quantidade"] = String(modulos.reduce((a, m) => a + m.quantidade, 0));
+    }
+    if (inversores[0]) {
+      vars["inversor_modelo"] = inversores[0].modelo || "";
+      vars["inversor_fabricante"] = inversores[0].fabricante || "";
+      vars["inversor_potencia_w"] = String(inversores[0].potencia_w || 0);
+      vars["inversor_quantidade"] = String(inversores.reduce((a, m) => a + m.quantidade, 0));
+    }
+
+    // Tarifa
+    if (s.ucs[0]?.tarifa_distribuidora) {
+      vars["tarifa"] = String(s.ucs[0].tarifa_distribuidora);
+    }
+
+    // Logo
+    if (brand?.logo_url) vars["logo_url"] = brand.logo_url;
+    if (brand?.logo_white_url) vars["logo_white_url"] = brand.logo_white_url;
+
+    return vars;
+  }, [snapshot, versaoData, activeCenario, tenantNome, consultorNome, consultorTelefone, brand]);
+
+  // ─── If Visual Editor template exists, render it ───
+  if (templateBlocks && templateBlocks.length > 0) {
+    return (
+      <div className="pl-landing" style={{ minHeight: "100vh" }}>
+        <style>{LANDING_STYLES}</style>
+        <TemplateHtmlRenderer blocks={templateBlocks} variables={templateVariables} />
+      </div>
+    );
+  }
+
+  // ─── Computed values (fallback hardcoded layout) ───
   const s = snapshot;
   const raw = s._raw || {};
   const valorTotal = activeCenario?.preco_final ?? versaoData.valor_total ?? 0;
@@ -372,9 +451,8 @@ export default function PropostaLanding() {
   const inversores = s.itens.filter(i => i.categoria === "inversor" || i.categoria === "inversores");
   const outrosItens = s.itens.filter(i => !["modulo", "modulos", "inversor", "inversores"].includes(i.categoria));
 
-  const arvoresEq = Math.round(geracaoAnual * 0.0006); // ~0.6 árvores por kWh/ano
+  const arvoresEq = Math.round(geracaoAnual * 0.0006);
 
-  // Geração mensal estimada por mês (distribuição simplificada)
   const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const fatoresMensais = [1.1, 1.05, 1.0, 0.9, 0.8, 0.75, 0.78, 0.88, 0.95, 1.05, 1.1, 1.15];
   const somaFatores = fatoresMensais.reduce((a, b) => a + b, 0);
@@ -383,10 +461,9 @@ export default function PropostaLanding() {
 
   const tarifa = s.ucs[0]?.tarifa_distribuidora ?? 0;
 
-  // ROI table (simplified 10 years)
   const roiTable = Array.from({ length: 10 }, (_, i) => {
     const ano = i + 1;
-    const eco = economiaAnual * Math.pow(1.06, i); // inflação energética 6%
+    const eco = economiaAnual * Math.pow(1.06, i);
     const acumulado = Array.from({ length: ano }, (_, j) => economiaAnual * Math.pow(1.06, j)).reduce((a, b) => a + b, 0) - valorTotal;
     return { ano, economia: eco, acumulado };
   });
