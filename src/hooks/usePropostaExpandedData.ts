@@ -75,3 +75,29 @@ export function usePropostaAuditLogs(propostaId: string | null, versaoIds: strin
     enabled: !!propostaId && versaoIds.length > 0 && enabled,
   });
 }
+
+export interface ProposalEventEntry {
+  id: string;
+  tipo: string;
+  payload: Record<string, any> | null;
+  created_at: string;
+}
+
+export function usePropostaEvents(propostaId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["proposta-events", propostaId],
+    queryFn: async () => {
+      if (!propostaId) return [];
+      const { data, error } = await (supabase as any)
+        .from("proposal_events")
+        .select("id, tipo, payload, created_at")
+        .eq("proposta_id", propostaId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data || []) as ProposalEventEntry[];
+    },
+    staleTime: STALE_TIME,
+    enabled: !!propostaId && enabled,
+  });
+}
