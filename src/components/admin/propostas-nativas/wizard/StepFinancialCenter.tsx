@@ -491,13 +491,13 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       </div>
 
       {/* Cost Table */}
-      <div className="rounded-xl border border-border/50 overflow-hidden">
+      <div className="rounded-xl border border-border/50 overflow-x-auto">
         {/* Table Header */}
         <div className={cn(
-          "grid items-center px-4 py-2.5 bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/20",
+          "grid items-center px-4 py-2.5 bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/20 min-w-[700px]",
           viewMode === "resumido"
-            ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
-            : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+            ? "grid-cols-[auto_100px_1fr_60px_100px_80px]"
+            : "grid-cols-[auto_100px_1fr_60px_100px_100px_90px_100px]"
         )}>
           <span className="w-6" /> {/* checkbox */}
           <span>Categoria</span>
@@ -532,12 +532,12 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
               <div key={row.id}>
                 <div
                   className={cn(
-                    "grid items-center px-4 py-2.5 text-xs transition-opacity",
+                    "grid items-center px-4 py-2.5 text-xs transition-opacity min-w-[700px]",
                     !row.checked && "opacity-40",
                     isKit && "cursor-pointer hover:bg-muted/20",
                     viewMode === "resumido"
-                      ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
-                      : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+                      ? "grid-cols-[auto_100px_1fr_60px_100px_80px]"
+                      : "grid-cols-[auto_100px_1fr_60px_100px_100px_90px_100px]"
                   )}
                   onClick={isKit && itens.length > 0 ? () => setKitExpanded(prev => !prev) : undefined}
                 >
@@ -779,10 +779,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         <div
                           key={item.id}
                           className={cn(
-                            "grid items-center px-4 pl-10 py-2 text-xs text-muted-foreground",
+                            "grid items-center px-4 pl-10 py-2 text-xs text-muted-foreground min-w-[700px]",
                             viewMode === "resumido"
-                              ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
-                              : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+                              ? "grid-cols-[auto_100px_1fr_60px_100px_80px]"
+                              : "grid-cols-[auto_100px_1fr_60px_100px_100px_90px_100px]"
                           )}
                         >
                           <span className="w-6" />
@@ -830,10 +830,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
           {/* Total row */}
           <div className={cn(
-            "grid items-center px-4 py-3 text-xs font-bold bg-muted/5",
+            "grid items-center px-4 py-3 text-xs font-bold bg-muted/5 min-w-[700px]",
             viewMode === "resumido"
-              ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
-              : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+              ? "grid-cols-[auto_100px_1fr_60px_100px_80px]"
+              : "grid-cols-[auto_100px_1fr_60px_100px_100px_90px_100px]"
           )}>
             <span className="w-6" />
             <span />
