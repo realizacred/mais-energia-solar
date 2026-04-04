@@ -1095,6 +1095,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.representante_celular", "representante_celular", "Representante Celular", "Celular do representante", "-", "+55 21 88888-8888"),
   v("comercial", "comercial.projeto_id_externo", "projeto_id_externo", "Identificador externo do Projeto", "ID do projeto em sistema externo", "-", "123123"),
   v("comercial", "comercial.empresa_nome", "empresa_nome", "Empresa do integrador", "Razão social da empresa", "-", "Cruzeiro Esporte Clube"),
+  v("comercial", "comercial.empresa_razao_social", "empresa_razao_social", "Razão Social", "Razão social completa da empresa integradora", "-", "Mais Energia Solar Ltda"),
+  v("comercial", "comercial.empresa_nome_fantasia", "empresa_nome_fantasia", "Nome Fantasia", "Nome fantasia da empresa integradora", "-", "Mais Energia Solar"),
   v("comercial", "comercial.empresa_cnpj_cpf", "empresa_cnpj_cpf", "CNPJ/CPF do integrador", "CNPJ ou CPF da empresa", "-", "44.490.706/0001-54"),
   v("comercial", "comercial.empresa_cidade", "empresa_cidade", "Cidade do integrador", "Cidade da empresa", "-", "Belo Horizonte"),
   v("comercial", "comercial.empresa_estado", "empresa_estado", "Estado do integrador", "Estado da empresa", "-", "MG"),
