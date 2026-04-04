@@ -106,6 +106,7 @@ const App = () => (
               <Route path="/ativar-conta" element={<AtivarConta />} />
               <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
               <Route path="/proposta/:token" element={<PropostaPublica />} />
+              <Route path="/pl/:token" element={<PropostaLanding />} />
               <Route path="/oauth/google/callback" element={<OAuthGoogleCallback />} />
               <Route path="/oauth/google-contacts/callback" element={<GoogleContactsCallbackPage />} />
               <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
