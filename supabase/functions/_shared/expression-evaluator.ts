@@ -91,6 +91,9 @@ function tokenize(expr: string): Token[] {
       continue;
     }
 
+    // Caret (exponentiation)
+    if (ch === "^") { tokens.push({ type: "op", value: "^" }); i++; continue; }
+
     // Operators: <=, >=, <>, !=, ==, =, <, >, +, -, *, /
     if ("+-*/".includes(ch)) {
       tokens.push({ type: "op", value: ch }); i++; continue;
