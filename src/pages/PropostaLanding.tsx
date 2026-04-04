@@ -1055,9 +1055,9 @@ export default function PropostaLanding() {
                   rows={2}
                   onChange={e => setAcceptForm(f => ({ ...f, obs: e.target.value }))}
                   style={{
-                    background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-                    borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: "0.85rem",
-                    outline: "none", fontFamily: "Open Sans, sans-serif", resize: "none",
+                    background: "var(--accept-input-bg)", border: "1px solid var(--accept-input-border)",
+                    borderRadius: 8, padding: "10px 14px", color: "var(--accept-input-text)", fontSize: "0.85rem",
+                    outline: "none", fontFamily: "var(--font-body)", resize: "none",
                   }}
                 />
               </div>
