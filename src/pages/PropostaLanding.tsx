@@ -620,10 +620,10 @@ export default function PropostaLanding() {
         <section ref={el => { sectionRefs.current[1] = el; }} style={{ marginBottom: 32 }}>
           <div className="section-header">
             <div className="icon-circle"><Building2 style={{ width: 20, height: 20, color: "#fff" }} /></div>
-            <h2>A Empresa</h2>
+            <h2>Quem Somos</h2>
           </div>
           <div className="card-body">
-            <div style={{ textAlign: "center", padding: "1rem 0" }}>
+            <div style={{ textAlign: "center", padding: "1rem 0 1.5rem" }}>
               {brand?.logo_url && <img src={brand.logo_url} alt={tenantNome || ""} style={{ height: 60, objectFit: "contain", marginBottom: 16 }} />}
               <h3 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, color: "var(--az)", fontSize: "1.2rem", margin: 0 }}>
                 {tenantNome || "Empresa Solar"}
@@ -631,6 +631,23 @@ export default function PropostaLanding() {
               <p style={{ color: "var(--cinza)", fontSize: "0.85rem", marginTop: 8, maxWidth: 500, margin: "8px auto 0" }}>
                 Empresa especializada em soluções de energia solar fotovoltaica, oferecendo projetos personalizados com equipamentos de alta qualidade e suporte completo.
               </p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {[
+                { emoji: "🏆", title: "EXPERIÊNCIA", desc: "Anos de expertise em projetos fotovoltaicos residenciais e comerciais" },
+                { emoji: "⚡", title: "QUALIDADE", desc: "Equipamentos de primeira linha com certificação e garantia de fábrica" },
+                { emoji: "🛡️", title: "GARANTIA", desc: "Garantia completa sobre equipamentos e serviço de instalação" },
+                { emoji: "📞", title: "SUPORTE", desc: "Suporte técnico dedicado e monitoramento remoto do sistema" },
+              ].map(card => (
+                <div key={card.title} style={{
+                  background: "rgba(27,58,140,0.04)", border: "1px solid rgba(27,58,140,0.1)",
+                  borderRadius: 10, padding: "1rem", textAlign: "center",
+                }}>
+                  <span style={{ fontSize: "1.8rem", display: "block", marginBottom: 8 }}>{card.emoji}</span>
+                  <p style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, color: "var(--az)", fontSize: "0.8rem", margin: "0 0 4px", letterSpacing: "0.05em" }}>{card.title}</p>
+                  <p style={{ fontSize: "0.75rem", color: "var(--cinza)", margin: 0, lineHeight: 1.4 }}>{card.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
