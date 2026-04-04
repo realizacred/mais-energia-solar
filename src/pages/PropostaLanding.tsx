@@ -341,7 +341,7 @@ export default function PropostaLanding() {
   );
 
   if (decision) return (
-    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 20, color: "#fff", padding: 24 }}>
+    <div style={{ minHeight: "100vh", background: "var(--nav-bg, #1B3A8C)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 20, color: "var(--hero-text, #fff)", padding: 24 }}>
       <style>{LANDING_STYLES}</style>
       {brand?.logo_white_url && <img src={brand.logo_white_url} alt="" style={{ height: 48, objectFit: "contain", opacity: 0.7 }} />}
       {decision === "aceita" ? (
