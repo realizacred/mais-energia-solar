@@ -118,7 +118,7 @@ export interface ResolverResult {
 
 // ── Formatters ───────────────────────────────────────────────
 
-// AP-17: all values return pure numbers — template adds units
+// AP-17: all monetary values return pure numbers without R$ — template adds currency symbol
 function fmtCurrency(v: number | null | undefined): string {
   if (v == null) return "-";
   return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
@@ -259,6 +259,19 @@ function resolveFromContext(
   if (key === "comercial.representante_email") return s(ctx.comercial?.representante_email);
   if (key === "comercial.representante_celular") return s(ctx.comercial?.representante_celular);
   if (key === "comercial.empresa_nome") return s(ctx.comercial?.empresa_nome ?? ctx.empresaNome);
+  if (key === "comercial.empresa_razao_social") return s(ctx.empresaNome);
+  if (key === "comercial.empresa_nome_fantasia") return s(ctx.empresaNome);
+  if (key === "comercial.consultor_codigo") return s(ctx.consultorCodigo);
+
+  // proposta_link (FE parity with BE)
+  if (key === "comercial.proposta_link" || key === "comercial.proposta_link_interativo") {
+    const token = s((ctx.finalSnapshot as any)?.token_publico);
+    if (token) {
+      const base = (import.meta as any).env?.VITE_APP_URL ?? "https://app.maisenergiasolar.com.br";
+      return `${base}/pl/${token}`;
+    }
+    return null;
+  }
 
   // P3: proposta_identificador — paridade FE
   if (key === "comercial.proposta_identificador") {
@@ -701,7 +714,7 @@ export function resolveProposalVariables(
   ctx: ProposalResolverContext
 ): ResolverResult {
   // Diagnostic: log key financial inputs
-  console.debug("[resolveProposalVariables] precoTotal:", ctx.precoTotal, "type:", typeof ctx.precoTotal, "isNaN:", isNaN(ctx.precoTotal as number));
+  // RB-17: diagnostic removed
   const variables: Record<string, string> = {};
   const missing_required: string[] = [];
   const fallbacks: string[] = [];

@@ -53,6 +53,12 @@ export function resolveClienteComercial(
   set("cliente_cidade", cliente.cidade ?? lead.cidade ?? snapCliente.cidade);
   set("cliente_estado", cliente.estado ?? lead.estado ?? snapCliente.estado);
 
+  // ── Cliente (campos extras) ──
+  set("cliente_data_nascimento", fmtDate(cliente.data_nascimento ?? clienteData.data_nascimento));
+  set("cliente_observacoes", cliente.observacoes ?? clienteData.observacoes);
+  const cpfCnpj = str(cliente.cpf_cnpj ?? clienteData.cpf_cnpj ?? snapCliente.cpf_cnpj);
+  set("cliente_tipo_pessoa", cpfCnpj && cpfCnpj.length > 14 ? "PJ" : "PF");
+
   // ── Comercial ──
   const now = new Date();
   set("proposta_data", now.toLocaleDateString("pt-BR"));
@@ -95,7 +101,10 @@ export function resolveClienteComercial(
   set("proposta_perda_eficiencia_anual", snap.perda_eficiencia_anual);
   set("proposta_sobredimensionamento", snap.sobredimensionamento);
 
-  // ── Empresa (brand_settings) ──
+  // ── Empresa (brand_settings + tenants) ──
+  set("empresa_razao_social", ext?.tenantNome);
+  set("empresa_nome_fantasia", ext?.tenantNome);
+  set("empresa_cnpj", brand.cnpj ?? brand.cpf_cnpj);
   set("empresa_cnpj_cpf", brand.cnpj ?? brand.cpf_cnpj);
   set("empresa_cidade", brand.cidade);
   set("empresa_estado", brand.estado);
@@ -104,16 +113,29 @@ export function resolveClienteComercial(
   set("empresa_representante_cpf", brand.representante_cpf);
   set("empresa_representante_cargo", brand.representante_cargo);
 
+  // ── Consultor código ──
+  set("consultor_codigo", consultor.codigo ?? consultor.slug ?? (consultor.id ? String(consultor.id).substring(0, 8) : undefined));
+
+  // ── Proposta links ──
+  const baseUrl = Deno.env.get("APP_URL") ?? "https://app.maisenergiasolar.com.br";
+  const tokenPublico = str(versao.token_publico) ?? str(proposta.token_publico);
+  if (tokenPublico) {
+    set("proposta_link", `${baseUrl}/pl/${tokenPublico}`);
+    set("proposta_link_interativo", `${baseUrl}/pl/${tokenPublico}`);
+  }
+
   // ── Projeto ──
   set("projeto_id_externo", snap.projeto_id_externo);
   const valorKit = num(snap.valor_kit);
   if (valorKit != null) set("projeto_valor_equipamentos", fmtVal(valorKit));
   const valorInst = num(snap.valor_instalacao);
   if (valorInst != null) set("projeto_valor_mao_obra", fmtVal(valorInst));
-  set("projeto_data_venda", fmtDate(projeto.created_at));
-  set("projeto_data_instalacao", fmtDate(clienteData.data_instalacao));
+  set("projeto_data_venda", fmtDate(projeto.created_at ?? projeto.data_venda));
+  set("projeto_data_instalacao", fmtDate(projeto.data_instalacao ?? clienteData.data_instalacao));
   set("projeto_status", projeto.status);
   set("projeto_observacoes", snap.observacoes ?? projeto.observacoes);
+  set("projeto_tipo_instalacao", projeto.tipo_instalacao ?? snap.tipo_instalacao);
+  set("projeto_codigo", projeto.codigo);
 
   // ── Projeto (endereço de instalação) ──
   set("projeto_rua_instalacao", projeto.rua_instalacao ?? lead.rua ?? snapCliente.rua);
@@ -121,8 +143,17 @@ export function resolveClienteComercial(
   set("projeto_complemento_instalacao", projeto.complemento_instalacao ?? lead.complemento ?? snapCliente.complemento);
   set("projeto_bairro_instalacao", projeto.bairro_instalacao ?? lead.bairro ?? snapCliente.bairro);
   set("projeto_cidade_instalacao", projeto.cidade_instalacao ?? lead.cidade ?? snapCliente.cidade);
+  set("projeto_estado_instalacao", projeto.uf_instalacao ?? lead.estado ?? snapCliente.estado);
   set("projeto_uf_instalacao", projeto.uf_instalacao ?? lead.estado ?? snapCliente.estado);
   set("projeto_cep_instalacao", projeto.cep_instalacao ?? lead.cep ?? snapCliente.cep);
+
+  // ── Custom fields from snapshot (cap_*, pre_*, pos_*) ──
+  const customFieldValues = safeObj(snap.customFieldValues ?? snap.custom_field_values);
+  for (const [cfKey, cfVal] of Object.entries(customFieldValues)) {
+    if (cfVal != null && cfVal !== "" && typeof cfVal !== "object") {
+      set(cfKey, String(cfVal));
+    }
+  }
 
   // ── Proposta (metadados complementares) ──
   set("proposta_versao_atual", proposta.versao_atual ?? versao.versao_numero);
