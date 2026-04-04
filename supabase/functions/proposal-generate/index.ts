@@ -1249,10 +1249,10 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       regra_gd: backendRegraGd,
       ano_gd: backendAnoGd,
       fio_b_percent_aplicado: backendFioBPercent,
-      origem_tarifa: activeTariff?.origem ?? "desconhecida",
+      origem_tarifa: activeTariff?.origem ?? (tenantFioB > 0 ? "tenant_premises" : concessionariaFioB > 0 ? "concessionaria" : "desconhecida"),
       vigencia_tarifa: activeTariff?.vigencia_inicio ?? null,
       snapshot_hash: activeTariff?.snapshot_hash ?? lastAneelRun?.snapshot_hash ?? null,
-      missing_variables: null, // passed validation
+      missing_variables: null,
       tariff_version_id: activeTariff?.id ?? null,
       aneel_run_id: activeTariff?.run_id ?? lastAneelRun?.id ?? null,
     };
