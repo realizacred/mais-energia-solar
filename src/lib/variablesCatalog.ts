@@ -1223,7 +1223,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.bairro", "cliente_bairro", "Bairro", "Bairro do cliente", "", "Centro"),
   v("cliente", "cliente.cidade", "cliente_cidade", "Cidade", "Cidade do cliente", "", "Belo Horizonte"),
   v("cliente", "cliente.estado", "cliente_estado", "Estado", "Estado/UF do cliente", "", "MG"),
-  v("cliente", "cliente.data_nascimento", "cliente_data_nascimento", "Data de Nascimento", "Data de nascimento do cliente", "data", "15/05/1985", "BT e MT", { notImplemented: true }),
+  v("cliente", "cliente.data_nascimento", "cliente_data_nascimento", "Data de Nascimento", "Data de nascimento do cliente", "data", "15/05/1985"),
   v("cliente", "cliente.potencia_kwp", "cliente_potencia_kwp", "Potência Instalada (kWp)", "Potência do sistema instalado no cliente", "kWp", "8.2", "BT e MT", { notImplemented: true }),
   v("cliente", "cliente.valor_projeto", "cliente_valor_projeto", "Valor do Projeto", "Valor total do projeto do cliente", "R$", "45000.00", "BT e MT", { notImplemented: true }),
   v("cliente", "cliente.data_instalacao", "cliente_data_instalacao", "Data de Instalação", "Data de instalação do sistema do cliente", "data", "20/03/2026", "BT e MT", { notImplemented: true }),
