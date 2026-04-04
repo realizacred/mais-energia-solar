@@ -457,7 +457,7 @@ export function ProjetosManager() {
                       </div>
                       <div className="flex items-center gap-2.5">
                         <span className="w-1 h-5 rounded-full shrink-0 bg-destructive" />
-                        <span className="text-[11px] text-foreground font-medium">Projeto perdido / estagnado +7d</span>
+                        <span className="text-[11px] text-foreground font-medium">Projeto perdido / estagnado +7d / Proposta recusada</span>
                       </div>
                       <div className="flex items-center gap-2.5">
                         <span className="w-1 h-5 rounded-full shrink-0 bg-warning" />
