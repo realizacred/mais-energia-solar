@@ -340,7 +340,7 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
         ) : (
           <div className="space-y-1">
             {files.map(f => (
-              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
+              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all cursor-pointer" onClick={() => previewUpload(f.name)}>
                 <FileText className="h-4 w-4 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
