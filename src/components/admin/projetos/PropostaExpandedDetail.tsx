@@ -588,6 +588,9 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
           </table>
         </div>
       </div>
+
+      {/* Financial KPIs */}
+      <FinancialKPIs snapshot={snapshot as any} latestVersao={latestVersao} />
     </div>
   );
 }
