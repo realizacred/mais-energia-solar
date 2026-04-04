@@ -53,6 +53,12 @@ export function resolveClienteComercial(
   set("cliente_cidade", cliente.cidade ?? lead.cidade ?? snapCliente.cidade);
   set("cliente_estado", cliente.estado ?? lead.estado ?? snapCliente.estado);
 
+  // ── Cliente (campos extras) ──
+  set("cliente_data_nascimento", fmtDate(cliente.data_nascimento ?? clienteData.data_nascimento));
+  set("cliente_observacoes", cliente.observacoes ?? clienteData.observacoes);
+  const cpfCnpj = str(cliente.cpf_cnpj ?? clienteData.cpf_cnpj ?? snapCliente.cpf_cnpj);
+  set("cliente_tipo_pessoa", cpfCnpj && cpfCnpj.length > 14 ? "PJ" : "PF");
+
   // ── Comercial ──
   const now = new Date();
   set("proposta_data", now.toLocaleDateString("pt-BR"));
