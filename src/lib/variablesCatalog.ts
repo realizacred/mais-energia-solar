@@ -1114,11 +1114,11 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.empresa_ie", "empresa_ie", "IE da Empresa", "Inscrição Estadual (alias)", "-", "062.307.904/0081", "BT e MT", { escopo: "documento" }),
 
   // ── Deal / Negócio (aspiracional — sem modelo no banco) ──
-  v("comercial", "comercial.deal_title", "deal_title", "Título do Projeto", "Título do deal/negócio no pipeline", "-", "Projeto Solar Residencial", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.deal_status", "deal_status", "Status do Negócio", "Status do deal (open, won, lost)", "-", "open", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.deal_etiqueta", "deal_etiqueta", "Etiqueta do Projeto", "Etiqueta/tag do deal no pipeline", "-", "Urgente", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.deal_notas", "deal_notas", "Notas do Negócio", "Notas e observações do deal", "-", "Cliente com urgência", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.deal_expected_close_date", "deal_expected_close_date", "Previsão de Fechamento", "Data prevista de fechamento do negócio", "data", "30/04/2026", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.deal_title", "deal_title", "Título do Projeto", "Título do deal/negócio no pipeline", "-", "Projeto Solar Residencial", "BT e MT", { escopo: "aspiracional" }),
+  v("comercial", "comercial.deal_status", "deal_status", "Status do Negócio", "Status do deal (open, won, lost)", "-", "open", "BT e MT", { escopo: "aspiracional" }),
+  v("comercial", "comercial.deal_etiqueta", "deal_etiqueta", "Etiqueta do Projeto", "Etiqueta/tag do deal no pipeline", "-", "Urgente", "BT e MT", { escopo: "aspiracional" }),
+  v("comercial", "comercial.deal_notas", "deal_notas", "Notas do Negócio", "Notas e observações do deal", "-", "Cliente com urgência", "BT e MT", { escopo: "aspiracional" }),
+  v("comercial", "comercial.deal_expected_close_date", "deal_expected_close_date", "Previsão de Fechamento", "Data prevista de fechamento do negócio", "data", "30/04/2026", "BT e MT", { escopo: "aspiracional" }),
 
   // ── Proposta (complementares — implementadas) ──
   v("comercial", "comercial.proposta_num", "proposta_num", "Número da Proposta", "Número sequencial da proposta", "-", "42"),
@@ -1129,10 +1129,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.proposta_enviada_at", "proposta_enviada_at", "Data de Envio da Proposta", "Data em que a proposta foi enviada ao cliente", "data", "10/03/2026"),
   v("comercial", "comercial.proposta_recusa_motivo", "proposta_recusa_motivo", "Motivo de Recusa", "Motivo pelo qual a proposta foi recusada", "-", "Preço elevado"),
   v("comercial", "comercial.proposta_recusada_at", "proposta_recusada_at", "Data de Recusa", "Data em que a proposta foi recusada", "data", "20/03/2026"),
-  v("comercial", "comercial.proposta_regra_gd", "proposta_regra_gd", "Regra GD Aplicada", "Regra de geração distribuída aplicada no cálculo", "-", "Lei 14.300", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.proposta_origem_tarifa", "proposta_origem_tarifa", "Origem da Tarifa", "Fonte de dados da tarifa utilizada no cálculo", "-", "ANEEL", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.proposta_precisao_calculo", "proposta_precisao_calculo", "Precisão do Cálculo", "Nível de precisão do cálculo da proposta", "-", "alta", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.proposta_precisao_motivo", "proposta_precisao_motivo", "Motivo da Precisão", "Motivo da classificação de precisão do cálculo", "-", "Tarifa ANEEL atualizada", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.proposta_regra_gd", "proposta_regra_gd", "Regra GD Aplicada", "Regra de geração distribuída aplicada no cálculo", "-", "Lei 14.300", "BT e MT", { escopo: "aspiracional" }),
+  v("comercial", "comercial.proposta_origem_tarifa", "proposta_origem_tarifa", "Origem da Tarifa", "Fonte de dados da tarifa utilizada no cálculo", "-", "ANEEL", "BT e MT", { escopo: "aspiracional" }),
+  v("comercial", "comercial.proposta_precisao_calculo", "proposta_precisao_calculo", "Precisão do Cálculo", "Nível de precisão do cálculo da proposta", "-", "alta", "BT e MT", { escopo: "aspiracional" }),
+  v("comercial", "comercial.proposta_precisao_motivo", "proposta_precisao_motivo", "Motivo da Precisão", "Motivo da classificação de precisão do cálculo", "-", "Tarifa ANEEL atualizada", "BT e MT", { escopo: "aspiracional" }),
 
   // ── Versão da Proposta (complementares — implementadas) ──
   v("comercial", "comercial.proposta_inflacao_energetica", "proposta_inflacao_energetica", "Inflação Energética (%)", "Premissa de inflação energética usada na proposta", "%", "6.5"),
@@ -1150,15 +1150,15 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.projeto_data_venda", "projeto_data_venda", "Data da Venda", "Data de fechamento da venda", "data", "01/03/2026"),
   v("comercial", "comercial.projeto_data_previsao_instalacao", "projeto_data_previsao_instalacao", "Previsão de Instalação", "Data prevista para instalação do projeto", "data", "15/04/2026"),
   v("comercial", "comercial.projeto_data_instalacao", "projeto_data_instalacao", "Data de Instalação", "Data efetiva da instalação do projeto", "data", "20/04/2026"),
-  v("comercial", "comercial.projeto_data_comissionamento", "projeto_data_comissionamento", "Data de Comissionamento", "Data de comissionamento do projeto", "data", "25/04/2026", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.projeto_data_comissionamento", "projeto_data_comissionamento", "Data de Comissionamento", "Data de comissionamento do projeto", "data", "25/04/2026", "BT e MT", { escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_status", "projeto_status", "Status do Projeto", "Status atual do projeto (em andamento, concluído, etc.)", "-", "em_andamento"),
   v("comercial", "comercial.projeto_forma_pagamento", "projeto_forma_pagamento", "Forma de Pagamento", "Forma de pagamento do projeto", "-", "Financiamento"),
   v("comercial", "comercial.projeto_valor_entrada", "projeto_valor_entrada", "Valor de Entrada", "Valor de entrada do projeto", "R$", "10000.00"),
   v("comercial", "comercial.projeto_valor_financiado", "projeto_valor_financiado", "Valor Financiado", "Valor financiado do projeto", "R$", "35000.00"),
   v("comercial", "comercial.projeto_numero_parcelas", "projeto_numero_parcelas", "Nº de Parcelas", "Número de parcelas do financiamento do projeto", "UN", "60"),
   v("comercial", "comercial.projeto_valor_parcela", "projeto_valor_parcela", "Valor da Parcela", "Valor mensal da parcela do projeto", "R$", "850.00"),
-  v("comercial", "comercial.projeto_prazo_estimado_dias", "projeto_prazo_estimado_dias", "Prazo Estimado (dias)", "Prazo estimado em dias para conclusão do projeto", "dias", "30", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.projeto_prazo_vistoria_dias", "projeto_prazo_vistoria_dias", "Prazo Vistoria (dias)", "Prazo em dias para vistoria da concessionária", "dias", "15", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.projeto_prazo_estimado_dias", "projeto_prazo_estimado_dias", "Prazo Estimado (dias)", "Prazo estimado em dias para conclusão do projeto", "dias", "30", "BT e MT", { escopo: "aspiracional" }),
+  v("comercial", "comercial.projeto_prazo_vistoria_dias", "projeto_prazo_vistoria_dias", "Prazo Vistoria (dias)", "Prazo em dias para vistoria da concessionária", "dias", "15", "BT e MT", { escopo: "aspiracional" }),
 
   // ── Projeto (endereço de instalação) ──
   v("comercial", "comercial.projeto_rua_instalacao", "projeto_rua_instalacao", "Rua de Instalação", "Rua/logradouro do local de instalação", "-", "Rua das Flores"),
@@ -1176,8 +1176,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.investimento", "investimento", "Investimento Total", "Valor total do investimento (alias de valor_total)", "R$", "42.500,00"),
   v("sistema_solar", "sistema_solar.kit_garantia_servico", "kit_garantia_servico", "Garantia do Serviço", "Garantia do serviço de instalação", "anos", "5"),
   v("sistema_solar", "sistema_solar.servico_garantia", "servico_garantia", "Garantia do Serviço (alias)", "Garantia do serviço de instalação (alias)", "anos", "5"),
-  v("comercial", "comercial.projeto_lat_instalacao", "projeto_lat_instalacao", "Latitude Instalação", "Latitude do local de instalação", "-", "-19.9167", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.projeto_lon_instalacao", "projeto_lon_instalacao", "Longitude Instalação", "Longitude do local de instalação", "-", "-43.9345", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.projeto_lat_instalacao", "projeto_lat_instalacao", "Latitude Instalação", "Latitude do local de instalação", "-", "-19.9167", "BT e MT", { escopo: "aspiracional" }),
+  v("comercial", "comercial.projeto_lon_instalacao", "projeto_lon_instalacao", "Longitude Instalação", "Longitude do local de instalação", "-", "-43.9345", "BT e MT", { escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_observacoes", "projeto_observacoes", "Observações do Projeto", "Observações e notas do projeto", "-", "Telhado com inclinação de 15°"),
 
   // ── Proposta (metadados complementares) ──
@@ -1205,7 +1205,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.concessionaria_custo_disponibilidade_bifasico", "concessionaria_custo_disponibilidade_bifasico", "Custo Disp. Bifásico", "Custo de disponibilidade bifásico da concessionária", "kWh", "50"),
   v("comercial", "comercial.concessionaria_custo_disponibilidade_trifasico", "concessionaria_custo_disponibilidade_trifasico", "Custo Disp. Trifásico", "Custo de disponibilidade trifásico da concessionária", "kWh", "100"),
   v("comercial", "comercial.concessionaria_aliquota_icms", "concessionaria_aliquota_icms", "Alíquota ICMS", "Alíquota de ICMS da concessionária", "%", "18"),
-  v("comercial", "comercial.concessionaria_percentual_isencao", "concessionaria_percentual_isencao", "% Isenção SCEE", "Percentual de isenção SCEE da concessionária", "%", "100", "BT e MT", { notImplemented: true }),
+  v("comercial", "comercial.concessionaria_percentual_isencao", "concessionaria_percentual_isencao", "% Isenção SCEE", "Percentual de isenção SCEE da concessionária", "%", "100", "BT e MT", {}),
   v("comercial", "comercial.concessionaria_possui_isencao_scee", "concessionaria_possui_isencao_scee", "Possui Isenção SCEE", "Se a concessionária possui isenção SCEE", "-", "Sim"),
 
   // ── Consultor (nome) ──
@@ -1239,11 +1239,11 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.cidade", "cliente_cidade", "Cidade", "Cidade do cliente", "", "Belo Horizonte"),
   v("cliente", "cliente.estado", "cliente_estado", "Estado", "Estado/UF do cliente", "", "MG"),
   v("cliente", "cliente.data_nascimento", "cliente_data_nascimento", "Data de Nascimento", "Data de nascimento do cliente", "data", "15/05/1985"),
-  v("cliente", "cliente.potencia_kwp", "cliente_potencia_kwp", "Potência Instalada (kWp)", "Potência do sistema instalado no cliente", "kWp", "8.2", "BT e MT", { notImplemented: true }),
-  v("cliente", "cliente.valor_projeto", "cliente_valor_projeto", "Valor do Projeto", "Valor total do projeto do cliente", "R$", "45000.00", "BT e MT", { notImplemented: true }),
-  v("cliente", "cliente.data_instalacao", "cliente_data_instalacao", "Data de Instalação", "Data de instalação do sistema do cliente", "data", "20/03/2026", "BT e MT", { notImplemented: true }),
-  v("cliente", "cliente.numero_placas", "cliente_numero_placas", "Número de Placas", "Quantidade de módulos instalados no cliente", "UN", "20", "BT e MT", { notImplemented: true }),
-  v("cliente", "cliente.modelo_inversor", "cliente_modelo_inversor", "Modelo do Inversor", "Modelo do inversor instalado no cliente", "-", "SG36KTL-M", "BT e MT", { notImplemented: true }),
+  v("cliente", "cliente.potencia_kwp", "cliente_potencia_kwp", "Potência Instalada (kWp)", "Potência do sistema instalado no cliente", "kWp", "8.2", "BT e MT", {}),
+  v("cliente", "cliente.valor_projeto", "cliente_valor_projeto", "Valor do Projeto", "Valor total do projeto do cliente", "R$", "45000.00", "BT e MT", {}),
+  v("cliente", "cliente.data_instalacao", "cliente_data_instalacao", "Data de Instalação", "Data de instalação do sistema do cliente", "data", "20/03/2026", "BT e MT", {}),
+  v("cliente", "cliente.numero_placas", "cliente_numero_placas", "Número de Placas", "Quantidade de módulos instalados no cliente", "UN", "20", "BT e MT", {}),
+  v("cliente", "cliente.modelo_inversor", "cliente_modelo_inversor", "Modelo do Inversor", "Modelo do inversor instalado no cliente", "-", "SG36KTL-M", "BT e MT", {}),
   v("cliente", "cliente.rg", "cliente_rg", "RG", "Número do RG do cliente", "-", "MG-12.345.678", "BT e MT", { escopo: "documento" }),
   v("cliente", "cliente.estado_civil", "cliente_estado_civil", "Estado Civil", "Estado civil do cliente", "-", "Casado(a)", "BT e MT", { escopo: "documento" }),
   v("cliente", "cliente.nacionalidade", "cliente_nacionalidade", "Nacionalidade", "Nacionalidade do cliente", "-", "Brasileiro(a)", "BT e MT", { escopo: "documento" }),
