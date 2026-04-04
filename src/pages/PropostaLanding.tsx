@@ -548,11 +548,11 @@ export default function PropostaLanding() {
             { label: "Tensão", value: tensaoRede },
           ].map(item => (
             <div key={item.label} style={{
-              background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
+              background: "var(--hero-overlay)", border: "1px solid var(--hero-overlay-border)",
               borderRadius: 10, padding: "10px 14px",
             }}>
-              <p style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", margin: 0 }}>{item.label}</p>
-              <p style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, fontSize: "0.85rem", margin: "4px 0 0" }}>{item.value}</p>
+              <p style={{ fontSize: "0.65rem", color: "var(--hero-muted)", textTransform: "uppercase", margin: 0 }}>{item.label}</p>
+              <p style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.85rem", margin: "4px 0 0" }}>{item.value}</p>
             </div>
           ))}
         </div>
