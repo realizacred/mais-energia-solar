@@ -64,6 +64,7 @@ function formatSize(bytes: number | undefined) {
 // ─── Props ────────────────────────────────────────
 interface DocumentosTabProps {
   dealId: string;
+  clienteTelefone?: string;
 }
 
 // ─── Component ────────────────────────────────────
