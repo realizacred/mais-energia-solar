@@ -592,11 +592,11 @@ export default function PropostaLanding() {
         {/* Grid info 2 cols */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, width: "100%", maxWidth: 600 }}>
           {[
-            { label: "Cliente", value: s.clienteNome || "—" },
-            { label: "Cidade", value: `${s.locCidade}/${s.locEstado}` },
-            { label: "Concessionária", value: s.locDistribuidoraNome || "—" },
-            { label: "Grupo Tarifário", value: s.grupo },
-            { label: "Estrutura", value: estrutura || "—" },
+            { label: "Cliente", value: clienteNomeFinal },
+            { label: "Cidade", value: cidadeFinal && estadoFinal ? `${cidadeFinal}/${estadoFinal}` : cidadeFinal || estadoFinal || "—" },
+            { label: "Concessionária", value: concessionariaFinal },
+            { label: "Grupo Tarifário", value: grupoFinal },
+            { label: "Estrutura", value: estruturaFinal },
             { label: "Tensão", value: tensaoRede },
           ].map(item => (
             <div key={item.label} style={{
