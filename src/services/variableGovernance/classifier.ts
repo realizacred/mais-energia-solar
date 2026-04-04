@@ -151,8 +151,8 @@ export function classifyGovernance(
     classification = "IMPLEMENTADA";
     evidence = "Coberta em FE resolver e BE resolver";
   } else if (!inFE && inBE) {
-    classification = "PARCIAL_BE_ONLY";
-    evidence = "BE resolve via flatten/resolvers; FE usa fallback snapshot";
+    classification = "IMPLEMENTADA";
+    evidence = "Resolvida pelo resolver BE; FE usa fallback via snapshot deepGet";
   } else if (inFE && !inBE) {
     classification = "PARCIAL_FE_ONLY";
     evidence = "Só FE resolve — técnica interna, não expor em visão de negócio";
