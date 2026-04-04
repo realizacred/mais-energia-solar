@@ -48,6 +48,7 @@ interface VersaoData {
   geracao_mensal: number | null;
   output_pdf_path: string | null;
   output_docx_path: string | null;
+  link_pdf: string | null;
   public_slug: string | null;
   gerado_em: string | null;
 }
@@ -539,24 +540,39 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   // Fetch signed URL when expanded and PDF path exists
   useEffect(() => {
-    if (!isExpanded || !latestVersao?.output_pdf_path) {
+    if (!isExpanded) {
       setPdfSignedUrl(null);
       setPdfError(false);
       return;
     }
-    setPdfLoading(true);
+
+    if (latestVersao?.output_pdf_path) {
+      setPdfLoading(true);
+      setPdfError(false);
+      supabase.storage.from("proposta-documentos").createSignedUrl(latestVersao.output_pdf_path, 3600)
+        .then(({ data, error }) => {
+          if (error || !data?.signedUrl) {
+            setPdfError(true);
+            setPdfSignedUrl(null);
+          } else {
+            setPdfSignedUrl(data.signedUrl);
+          }
+        })
+        .finally(() => setPdfLoading(false));
+      return;
+    }
+
+    if (latestVersao?.link_pdf) {
+      setPdfSignedUrl(latestVersao.link_pdf);
+      setPdfError(false);
+      setPdfLoading(false);
+      return;
+    }
+
+    setPdfSignedUrl(null);
     setPdfError(false);
-    supabase.storage.from("proposta-documentos").createSignedUrl(latestVersao.output_pdf_path, 3600)
-      .then(({ data, error }) => {
-        if (error || !data?.signedUrl) {
-          setPdfError(true);
-          setPdfSignedUrl(null);
-        } else {
-          setPdfSignedUrl(data.signedUrl);
-        }
-      })
-      .finally(() => setPdfLoading(false));
-  }, [isExpanded, latestVersao?.output_pdf_path]);
+    setPdfLoading(false);
+  }, [isExpanded, latestVersao?.output_pdf_path, latestVersao?.link_pdf]);
 
   // ─── Accept / Reject handler ───
   const updatePropostaStatus = async (newStatus: string, extra?: Record<string, any>) => {
@@ -1184,8 +1200,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         pdfBlobUrl={pdfSignedUrl}
                         outputDocxPath={latestVersao?.output_docx_path || undefined}
                         outputPdfPath={latestVersao?.output_pdf_path || undefined}
+                        externalPdfUrl={latestVersao?.link_pdf || undefined}
                         generationStatus={
-                          pdfSignedUrl || latestVersao?.output_pdf_path ? "ready" :
+                          pdfSignedUrl || latestVersao?.output_pdf_path || latestVersao?.link_pdf ? "ready" :
                           html ? "ready" : "idle"
                         }
                         generationError={null}
