@@ -3,7 +3,7 @@ import {
   Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2,
   ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, List, Info,
   Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
-  FlaskConical, Sparkles, Activity, HeartPulse, Shield, Layers,
+  FlaskConical, Sparkles, Activity, HeartPulse, Shield, Layers, RefreshCw,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useVariableHealth, type HealthClassification } from "@/hooks/useVariableHealth";
