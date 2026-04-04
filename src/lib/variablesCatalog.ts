@@ -1494,10 +1494,10 @@ export const DEFAULT_CUSTOM_VARIABLES: Array<{
   {
     nome: "vc_saldo_renda_fixa_25_anos",
     label: "Saldo renda fixa 25 anos",
-    expressao: "[preco_total] * 1.08",
+    expressao: "[preco_total]*(1+0.074)^25",
     tipo_resultado: "currency",
     categoria: "financeiro",
-    descricao: "Investimento equivalente em renda fixa por 25 anos",
+    descricao: "Investimento equivalente em renda fixa por 25 anos (7,4% a.a.)",
   },
   {
     nome: "vc_roi_primeiro_mes",
