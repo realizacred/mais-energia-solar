@@ -134,7 +134,8 @@ export function StageDealCard({
   const isOverdue = deal.expected_close_date && new Date(deal.expected_close_date) < new Date();
 
   const isWonLost = deal.deal_status === "won" || deal.deal_status === "lost";
-  const isPropostaRecusada = hasActiveProposal && ["recusada", "rejeitada", "perdida"].includes(deal.proposta_status ?? "");
+  const normalizedProposalStatus = deal.proposta_status?.toLowerCase() ?? "";
+  const isPropostaRecusada = hasActiveProposal && ["recusada", "rejeitada", "perdida", "rejected"].includes(normalizedProposalStatus);
   const hasEtiquetaColor = !!etiquetaCfg?.cor;
   const borderClass = isWonLost
     ? (deal.deal_status === "won" ? "kanban-card--won" : "kanban-card--lost")
