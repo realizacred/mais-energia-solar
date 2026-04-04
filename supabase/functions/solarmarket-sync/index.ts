@@ -1856,6 +1856,9 @@ Deno.serve(async (req) => {
     }
 
     const finalStatus = isPartialSync ? "partial" : (totalErrors > 0 ? "completed_with_errors" : "completed");
+    const partialMessage = isPartialSync
+      ? `Parcial: ${partialRemaining} projetos restantes de ${partialRemaining + (totalFetched || 0)} pendentes. Execute novamente para continuar.`
+      : null;
 
     if (logId) {
       await supabase
@@ -1866,6 +1869,7 @@ Deno.serve(async (req) => {
           total_upserted: totalUpserted,
           total_errors: totalErrors,
           finished_at: new Date().toISOString(),
+          error_message: partialMessage || (errors.length > 0 ? errors.slice(0, 5).join("; ") : null),
         })
         .eq("id", logId);
     }
