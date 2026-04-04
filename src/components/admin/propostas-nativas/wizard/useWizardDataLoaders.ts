@@ -129,6 +129,8 @@ export function useBancosCatalog() {
 export function useSolarBrainSync(
   setPremissas: React.Dispatch<React.SetStateAction<PremissasData>>,
   setPreDimensionamento: React.Dispatch<React.SetStateAction<PreDimensionamentoData>>,
+  /** When true, skip overwriting premissas (edit mode — snapshot already restored) */
+  skipPremissas = false,
 ) {
   const { data: solarBrain } = useSolarPremises();
 
