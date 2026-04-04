@@ -8,7 +8,7 @@
  * Document-only vars (contrato, assinatura) are added as isolated enrichment.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { normalizeVariableFormat } from "../_shared/normalizeVariableFormat.ts";
+import { normalizeVariableFormat, defragmentXml } from "../_shared/normalizeVariableFormat.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
 import {
