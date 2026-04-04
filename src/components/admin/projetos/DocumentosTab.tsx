@@ -70,6 +70,7 @@ interface DocumentosTabProps {
 export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [signConfirmDoc, setSignConfirmDoc] = useState<GeneratedDocRow | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // §16: Queries em hooks — AP-01 resolvido
@@ -80,6 +81,7 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
   const uploadMutation = useUploadArquivo(dealId);
   const deleteMutation = useDeletarArquivo(dealId);
   const generateMutation = useGerarDocumento(dealId);
+  const signMutation = useEnviarParaAssinatura(dealId);
 
   const loading = loadingFiles || loadingDocs;
 
