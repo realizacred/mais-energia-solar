@@ -325,3 +325,9 @@ verify_jwt = false
 
 [functions.suggest-formula]
 verify_jwt = false
+
+[functions.signature-send]
+verify_jwt = false
+
+[functions.signature-webhook]
+verify_jwt = false
