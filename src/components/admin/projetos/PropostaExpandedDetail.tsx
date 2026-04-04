@@ -682,7 +682,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const handleDownloadPdf = async () => {
     setDownloadingPdf(true);
     try {
+      // Fallback: migrated proposals use external link_pdf
       const pdfPath = latestVersao?.output_pdf_path;
+      const externalUrl = latestVersao?.link_pdf;
+
+      if (!pdfPath && externalUrl) {
+        window.open(externalUrl, "_blank", "noopener,noreferrer");
+        toast({ title: "PDF aberto em nova aba" });
+        return;
+      }
+
       if (!pdfPath) {
         toast({ title: "PDF não disponível", description: "Gere o arquivo DOCX/PDF primeiro na aba de documentos.", variant: "destructive" });
         return;
