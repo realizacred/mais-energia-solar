@@ -4,6 +4,60 @@
  */
 import { type AnyObj, safeObj, safeArr, str, num, fmtCur, fmtNum, fmtVal, type ResolverExternalContext } from "./types.ts";
 
+// ── Valor por extenso (PT-BR) ──
+const UNIDADES = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez",
+  "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+const DEZENAS = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+const CENTENAS = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+const ESCALAS = [{ s: "", p: "" }, { s: "mil", p: "mil" }, { s: "milhão", p: "milhões" }, { s: "bilhão", p: "bilhões" }];
+
+function grupoExtenso(n: number): string {
+  if (n === 0) return "";
+  if (n === 100) return "cem";
+  const c = Math.floor(n / 100), r = n % 100;
+  const parts: string[] = [];
+  if (c > 0) parts.push(CENTENAS[c]);
+  if (r > 0) {
+    if (r < 20) parts.push(UNIDADES[r]);
+    else { parts.push(DEZENAS[Math.floor(r / 10)]); if (r % 10 > 0) parts.push(UNIDADES[r % 10]); }
+  }
+  return parts.join(" e ");
+}
+
+function inteiroExtenso(n: number): string {
+  if (n === 0) return "zero";
+  const grupos: number[] = [];
+  let v = Math.floor(n);
+  while (v > 0) { grupos.push(v % 1000); v = Math.floor(v / 1000); }
+  const partes: string[] = [];
+  for (let i = grupos.length - 1; i >= 0; i--) {
+    const g = grupos[i];
+    if (g === 0) continue;
+    const esc = ESCALAS[i];
+    if (i === 0) partes.push(grupoExtenso(g));
+    else if (i === 1 && g === 1) partes.push(esc.s);
+    else partes.push(`${grupoExtenso(g)} ${g === 1 ? esc.s : esc.p}`);
+  }
+  if (partes.length > 1) {
+    const ultimo = grupos[0];
+    if (ultimo > 0 && (ultimo < 100 || ultimo % 100 === 0)) {
+      const last = partes.pop()!;
+      return partes.join(", ") + " e " + last;
+    }
+  }
+  return partes.join(", ");
+}
+
+function valorPorExtenso(valor: number): string {
+  if (valor === 0) return "zero reais";
+  const reais = Math.floor(valor);
+  const centavos = Math.round((valor - reais) * 100);
+  const partes: string[] = [];
+  if (reais > 0) partes.push(`${inteiroExtenso(reais)} ${reais === 1 ? "real" : "reais"}`);
+  if (centavos > 0) partes.push(`${inteiroExtenso(centavos)} ${centavos === 1 ? "centavo" : "centavos"}`);
+  return partes.join(" e ");
+}
+
 export function resolveFinanceiro(
   snapshot: AnyObj | null | undefined,
   ext?: ResolverExternalContext,
