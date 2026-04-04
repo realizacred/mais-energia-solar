@@ -779,10 +779,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         <div
                           key={item.id}
                           className={cn(
-                            "grid items-center px-4 pl-10 py-2 text-xs text-muted-foreground",
+                            "grid items-center px-4 pl-10 py-2 text-xs text-muted-foreground min-w-[700px]",
                             viewMode === "resumido"
-                              ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
-                              : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+                              ? "grid-cols-[auto_100px_1fr_60px_100px_80px]"
+                              : "grid-cols-[auto_100px_1fr_60px_100px_100px_90px_100px]"
                           )}
                         >
                           <span className="w-6" />
