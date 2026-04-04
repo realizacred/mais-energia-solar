@@ -148,7 +148,7 @@ export function useProjetoDetalheData(dealId: string) {
         });
       }
 
-      // Docs count
+      // Docs count: storage files + generated documents
       let docsCount = 0;
       const { data: profile } = await supabase
         .from("profiles")
@@ -159,8 +159,13 @@ export function useProjetoDetalheData(dealId: string) {
         const { data: files } = await supabase.storage
           .from("projeto-documentos")
           .list(`${(profile as any).tenant_id}/deals/${d.id}`, { limit: 100 });
-        docsCount = files?.length || 0;
+        docsCount += files?.length || 0;
       }
+      const { count: genDocsCount } = await supabase
+        .from("generated_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("deal_id", d.id);
+      docsCount += genDocsCount || 0;
 
       return {
         deal: d,
