@@ -494,10 +494,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       <div className="rounded-xl border border-border/50 overflow-x-auto">
         {/* Table Header */}
         <div className={cn(
-          "grid items-center px-4 py-2.5 bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/20",
+          "grid items-center px-4 py-2.5 bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/20 min-w-[700px]",
           viewMode === "resumido"
-            ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
-            : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+            ? "grid-cols-[auto_100px_1fr_60px_100px_80px]"
+            : "grid-cols-[auto_100px_1fr_60px_100px_100px_90px_100px]"
         )}>
           <span className="w-6" /> {/* checkbox */}
           <span>Categoria</span>
