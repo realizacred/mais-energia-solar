@@ -701,6 +701,53 @@ function resolveFromContext(
   // ── Extras override ──
   if (ctx.extras && key in ctx.extras) return String(ctx.extras[key]);
 
+  // ── Ghost aliases (Sprint F) ──
+  if (key === "financeiro.investimento" || key === "customizada.investimento") {
+    return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
+  }
+  if (key === "sistema_solar.potencia" || key === "customizada.potencia") {
+    return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
+  }
+  if (key === "comercial.data_hoje" || key === "customizada.data_hoje") {
+    return new Date().toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit", month: "2-digit", year: "numeric"
+    });
+  }
+  if (key === "comercial.descricao" || key === "customizada.descricao") {
+    return s((ctx.finalSnapshot as any)?.descricao) ?? null;
+  }
+  if (key === "comercial.proposta_codigo") {
+    return s((ctx.finalSnapshot as any)?.proposta_codigo ?? (ctx.finalSnapshot as any)?.codigo) ?? null;
+  }
+  if (key === "comercial.titulo" || key === "customizada.titulo") {
+    return s((ctx.finalSnapshot as any)?.proposta_titulo) ?? null;
+  }
+  if (key === "comercial.projeto_codigo") {
+    return s((ctx.finalSnapshot as any)?.projeto_codigo) ?? null;
+  }
+  if (key === "comercial.projeto_bairro" || key === "customizada.projeto_bairro") {
+    return s((ctx.finalSnapshot as any)?.projeto_bairro ?? (ctx.finalSnapshot as any)?.bairro_instalacao) ?? null;
+  }
+  if (key === "comercial.projeto_cidade" || key === "customizada.projeto_cidade") {
+    return s((ctx.finalSnapshot as any)?.projeto_cidade ?? (ctx.finalSnapshot as any)?.cidade_instalacao) ?? null;
+  }
+  if (key === "comercial.projeto_estado" || key === "customizada.projeto_estado") {
+    return s((ctx.finalSnapshot as any)?.projeto_estado ?? (ctx.finalSnapshot as any)?.uf_instalacao) ?? null;
+  }
+  if (key === "comercial.projeto_cep" || key === "customizada.projeto_cep") {
+    return s((ctx.finalSnapshot as any)?.projeto_cep ?? (ctx.finalSnapshot as any)?.cep_instalacao) ?? null;
+  }
+  if (key === "comercial.projeto_endereco" || key === "customizada.projeto_endereco") {
+    const fs = ctx.finalSnapshot as any;
+    if (fs?.projeto_endereco) return String(fs.projeto_endereco);
+    const parts = [fs?.rua_instalacao, fs?.numero_instalacao].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : null;
+  }
+  if (key === "sistema_solar.servico_garantia" || key === "customizada.servico_garantia") {
+    return s((ctx.finalSnapshot as any)?.garantia_servico ?? (ctx.finalSnapshot as any)?.servico_garantia) ?? null;
+  }
+
   return null;
 }
 
