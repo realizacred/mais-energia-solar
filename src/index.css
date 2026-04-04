@@ -648,8 +648,13 @@
     height: 3px;
     background: linear-gradient(90deg, hsl(var(--success)), hsl(var(--success) / 0.5));
   }
+  .kanban-card--won {
+    background: hsl(var(--success) / 0.06);
+    border-color: hsl(var(--success) / 0.25);
+  }
   .kanban-card--won .kanban-card__top-bar {
-    background: linear-gradient(90deg, hsl(var(--success)), hsl(var(--success) / 0.5));
+    height: 4px;
+    background: linear-gradient(90deg, hsl(var(--success)), hsl(var(--success) / 0.6));
   }
   .kanban-card--lost .kanban-card__top-bar {
     background: linear-gradient(90deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.4));
@@ -657,8 +662,13 @@
   .kanban-card--lost {
     @apply opacity-50;
   }
+  .kanban-card--proposal-rejected {
+    background: hsl(var(--destructive) / 0.05);
+    border-color: hsl(var(--destructive) / 0.2);
+  }
   .kanban-card--proposal-rejected .kanban-card__top-bar {
-    background: linear-gradient(90deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.4));
+    height: 4px;
+    background: linear-gradient(90deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.5));
   }
   .kanban-card--stagnation-critical .kanban-card__top-bar {
     background: linear-gradient(90deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.4));
