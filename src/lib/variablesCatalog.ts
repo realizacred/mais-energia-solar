@@ -859,6 +859,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.margem_lucro", "margem_lucro", "Margem de Lucro", "Margem percentual de lucro", "%", "25"),
   v("financeiro", "financeiro.preco", "preco", "Preço Total Venda", "Preço total de venda do projeto", "R$", "200000,00"),
   v("financeiro", "financeiro.preco_por_extenso", "preco_por_extenso", "Preço Total Venda por Extenso", "Valor por extenso do preço total", "R$", "duzentos mil reais e vinte e cinco centavos"),
+  v("financeiro", "financeiro.valor_por_extenso", "valor_por_extenso", "Valor Total por Extenso", "Alias de preco_por_extenso — valor por extenso", "R$", "duzentos mil reais e vinte e cinco centavos"),
   v("financeiro", "financeiro.preco_kwp", "preco_kwp", "Preço por kWp", "Valor por kWp instalado", "R$/kWp", "5113.64"),
   v("financeiro", "financeiro.preco_watt", "preco_watt", "Preço por Watt", "Valor por Watt instalado", "R$/W", "5.11"),
   v("financeiro", "financeiro.preco_watt_numero", "preco_watt_numero", "Preço por Watt (número)", "Valor sem R$/W — para templates com unidade hardcoded", "-", "5,11"),
