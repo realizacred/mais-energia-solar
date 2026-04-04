@@ -151,7 +151,7 @@ export function StageDealCard({
               ? "kanban-card--has-proposal"
               : "kanban-card--no-proposal";
 
-  const topBarStyle = hasEtiquetaColor && !isWonLost && !stagnation
+  const topBarStyle = hasEtiquetaColor && !isWonLost && !isPropostaRecusada && !stagnation
     ? { background: `linear-gradient(90deg, ${etiquetaCfg.cor}, ${etiquetaCfg.cor}80)` }
     : undefined;
 
