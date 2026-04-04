@@ -73,8 +73,8 @@ export function MissingVariablesModal({
               )}
               {reason === "estimativa_not_accepted" && (
                 <p className="text-sm">
-                  É necessário confirmar que entende que os valores são estimados
-                  antes de gerar a proposta. Marque o checkbox de aceite na tela.
+                  Os valores desta proposta são estimados. Confirme que o cliente foi informado
+                  marcando o checkbox de aceite na tela antes de gerar o PDF.
                 </p>
               )}
             </div>

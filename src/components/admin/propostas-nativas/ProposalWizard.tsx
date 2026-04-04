@@ -194,6 +194,7 @@ export function ProposalWizard() {
 
   // UCs
   const [ucs, setUcs] = useState<UCData[]>([createEmptyUC(1)]);
+  const [ucsRestoreEpoch, setUcsRestoreEpoch] = useState(0);
   const [grupo, setGrupo] = useState("B1");
   const [potenciaKwp, setPotenciaKwp] = useState<number>(0);
 
@@ -433,6 +434,7 @@ export function ProposalWizard() {
           tarifa_fio_b: u.tarifa_fio_b || defaults.tarifa_fio_b,
         };
       }));
+      setUcsRestoreEpoch(e => e + 1);
     }
     if (s.grupo != null) setGrupo(s.grupo);
     if (s.potenciaKwp != null) setPotenciaKwp(s.potenciaKwp);
@@ -1327,7 +1329,7 @@ export function ProposalWizard() {
       if (!needsUpdate) return prev;
       return prev.map(u => applyTenantTarifasToUC(u, tenantTarifas));
     });
-  }, [tenantTarifas]);
+  }, [tenantTarifas, ucsRestoreEpoch]);
 
   // Wrapper: auto-apply tenant tariff defaults when UCs change (e.g. new UC added)
   const handleUcsChange = useCallback((newUcs: UCData[] | ((prev: UCData[]) => UCData[])) => {
