@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSolarPremises } from "@/hooks/useSolarPremises";
 import { getFioBCobranca } from "@/lib/calcGrupoB";
+import { resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
 import type { UCData, PremissasData, PreDimensionamentoData, BancoFinanciamento } from "./types";
 
 /**
