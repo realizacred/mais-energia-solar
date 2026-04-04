@@ -1259,6 +1259,7 @@ Deno.serve(async (req) => {
             } else {
               const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
               const projInsert: Record<string, any> = {
+                  origem: "imported",
                   tenant_id: tenantId,
                   cliente_id: clienteId!,
                   deal_id: dealId,
