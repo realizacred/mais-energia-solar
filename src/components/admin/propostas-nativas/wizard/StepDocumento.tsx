@@ -802,7 +802,8 @@ export function StepDocumento({
                 size="sm"
                 className="w-full gap-2"
                 onClick={onGenerate}
-                disabled={generating || rendering || !templateSelecionado}
+                disabled={generating || rendering || !templateSelecionado || estimativaBlocked}
+                title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 Gerar Proposta
