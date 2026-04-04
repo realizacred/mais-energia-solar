@@ -83,6 +83,56 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
   const generateMutation = useGerarDocumento(dealId);
   const signMutation = useEnviarParaAssinatura(dealId);
 
+  const queryClient = useQueryClient();
+  const deleteDocMutation = useMutation({
+    mutationFn: async (docId: string) => {
+      const { error } = await supabase
+        .from("generated_documents")
+        .delete()
+        .eq("id", docId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-documentos-generated", dealId] });
+      toast({ title: "Documento excluído" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const previewDoc = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from("document-files")
+      .createSignedUrl(path, 3600);
+    if (error || !data) {
+      toast({ title: "Erro ao abrir preview", variant: "destructive" });
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  };
+
+  const previewUpload = async (fileName: string) => {
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    try {
+      const tenantId = (await supabase.from("profiles").select("tenant_id").limit(1).single()).data?.tenant_id;
+      if (!tenantId) return;
+      const path = `${tenantId}/deals/${dealId}/${fileName}`;
+      const { data } = await supabase.storage.from("projeto-documentos").createSignedUrl(path, 3600);
+      if (!data?.signedUrl) return;
+      if (["pdf", "png", "jpg", "jpeg", "webp"].includes(ext || "")) {
+        window.open(data.signedUrl, "_blank");
+      } else {
+        const a = document.createElement("a");
+        a.href = data.signedUrl;
+        a.download = fileName;
+        a.click();
+      }
+    } catch {
+      toast({ title: "Erro ao abrir arquivo", variant: "destructive" });
+    }
+  };
+
   const loading = loadingFiles || loadingDocs;
 
   // Group generated docs by category
