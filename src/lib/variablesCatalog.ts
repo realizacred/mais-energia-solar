@@ -1223,6 +1223,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.data_instalacao", "cliente_data_instalacao", "Data de Instalação", "Data de instalação do sistema do cliente", "data", "20/03/2026", "BT e MT", { notImplemented: true }),
   v("cliente", "cliente.numero_placas", "cliente_numero_placas", "Número de Placas", "Quantidade de módulos instalados no cliente", "UN", "20", "BT e MT", { notImplemented: true }),
   v("cliente", "cliente.modelo_inversor", "cliente_modelo_inversor", "Modelo do Inversor", "Modelo do inversor instalado no cliente", "-", "SG36KTL-M", "BT e MT", { notImplemented: true }),
+  v("cliente", "cliente.rg", "cliente_rg", "RG", "Número do RG do cliente", "-", "MG-12.345.678", "BT e MT", { escopo: "documento" }),
+  v("cliente", "cliente.estado_civil", "cliente_estado_civil", "Estado Civil", "Estado civil do cliente", "-", "Casado(a)", "BT e MT", { escopo: "documento" }),
+  v("cliente", "cliente.nacionalidade", "cliente_nacionalidade", "Nacionalidade", "Nacionalidade do cliente", "-", "Brasileiro(a)", "BT e MT", { escopo: "documento" }),
+  v("cliente", "cliente.profissao", "cliente_profissao", "Profissão", "Profissão/ocupação do cliente", "-", "Engenheiro", "BT e MT", { escopo: "documento" }),
 
   // ──────────────────────────────────────────────────────────────
   // CONTRATO
