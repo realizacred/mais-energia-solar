@@ -76,17 +76,17 @@ export function useProjetoDocumentosGerados(dealId: string) {
     queryFn: async () => {
       const { data: docs } = await supabase
         .from("generated_documents")
-        .select("id, title, status, created_at, template_id, docx_filled_path, pdf_path")
+        .select("id, title, status, created_at, template_id, docx_filled_path, pdf_path, signature_status, signature_provider, envelope_id, signed_at")
         .eq("deal_id", dealId)
         .order("created_at", { ascending: false });
 
       if (!docs || docs.length === 0) return [];
 
-      // Fetch template names for enrichment
+      // Fetch template names + requires_signature for enrichment
       const templateIds = [...new Set((docs as any[]).map(d => d.template_id))];
       const { data: tpls } = await supabase
         .from("document_templates")
-        .select("id, nome, categoria")
+        .select("id, nome, categoria, requires_signature_default")
         .in("id", templateIds);
 
       const tplMap = new Map((tpls || []).map((t: any) => [t.id, t]));
@@ -97,6 +97,7 @@ export function useProjetoDocumentosGerados(dealId: string) {
           ...d,
           template_name: tpl?.nome || "—",
           template_categoria: tpl?.categoria || "outro",
+          requires_signature: tpl?.requires_signature_default ?? false,
         } as GeneratedDocRow;
       });
     },
