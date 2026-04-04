@@ -1142,7 +1142,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     <AlertDialog open={recusaDialogOpen} onOpenChange={setRecusaDialogOpen}>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10" disabled={updatingStatus}>
-                          <AlertCircle className="h-3 w-3" /> Rejeitar
+                          <AlertCircle className="h-3 w-3" /> Recusar
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent className="w-[90vw] max-w-md">

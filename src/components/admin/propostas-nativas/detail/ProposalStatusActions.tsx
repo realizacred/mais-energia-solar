@@ -68,7 +68,7 @@ export function ProposalStatusActions({
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button size="sm" variant="destructive" className="gap-1.5" disabled={updatingStatus} onClick={() => setRecusaDate(new Date().toISOString().slice(0, 16))}>
-                <XCircle className="h-3.5 w-3.5" /> Rejeitar
+                <XCircle className="h-3.5 w-3.5" /> Recusar
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
