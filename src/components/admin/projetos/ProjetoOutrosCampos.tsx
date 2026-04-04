@@ -312,13 +312,18 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
     if (!row.dbField) return;
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("clientes")
         .update({ [row.dbField]: value || null })
-        .eq("id", clienteId);
+        .eq("id", clienteId)
+        .select("id");
       if (error) throw error;
-      toast({ title: "Campo atualizado" });
-      onSaved();
+      if (!data || data.length === 0) {
+        toast({ title: "Sem permissão", description: "Não foi possível salvar. Verifique suas permissões ou peça ao administrador.", variant: "destructive" });
+      } else {
+        toast({ title: "Campo atualizado" });
+        onSaved();
+      }
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
