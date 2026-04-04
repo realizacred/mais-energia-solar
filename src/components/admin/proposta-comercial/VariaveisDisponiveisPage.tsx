@@ -697,9 +697,14 @@ export function VariaveisDisponiveisPage() {
         title="Variáveis do Sistema"
         description="Consulte, filtre e gerencie as variáveis usadas nos templates de proposta e contrato."
         actions={
-          <Button size="sm" onClick={openNewModal} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> Nova Custom
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["variable"] })} className="gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" /> Recalcular
+            </Button>
+            <Button size="sm" onClick={openNewModal} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> Nova Custom
+            </Button>
+          </div>
         }
       />
 

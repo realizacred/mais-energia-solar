@@ -102,8 +102,9 @@ function computeCatalogHealth(
   const score = Math.max(0, Math.min(100, functionalPct - ghostPct * 2));
 
   let level: CatalogHealthLevel;
-  if (score >= 70) level = "saudavel";
-  else if (score >= 40) level = "atencao";
+  if (score >= 95) level = "saudavel";
+  else if (score >= 90) level = "bom";
+  else if (score >= 70) level = "atencao";
   else level = "critica";
 
   return { level, score, implementedPct, beOnlyPct, customPct, legacyPct, ghostPct, featurePendingPct };
