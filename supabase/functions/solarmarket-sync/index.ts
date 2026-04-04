@@ -1779,7 +1779,7 @@ Deno.serve(async (req) => {
               const payload = row.raw_payload;
               if (bfOffset === 0 && backfilled === 0 && updates.length === 0) {
                 const vars = Array.isArray(payload?.variables) ? payload.variables : [];
-                console.log(`[SM Sync] Backfill sample: proposal ${row.id}, variables count=${vars.length}, first 3 keys=${vars.slice(0, 3).map((v: any) => v.key).join(",")}`);
+                // console.log(`[SM Sync] Backfill sample: proposal ${row.id}, variables count=${vars.length}, first 3 keys=${vars.slice(0, 3).map((v: any) => v.key).join(",")}`);
               }
               const cfRaw = buildCustomFieldsRaw(payload);
               if (cfRaw) {
