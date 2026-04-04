@@ -349,7 +349,7 @@ export default function PropostaLanding() {
           <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(22,163,74,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <CheckCircle2 style={{ width: 40, height: 40, color: "#16A34A" }} />
           </div>
-          <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Aceita!</h2>
+          <h2 style={{ fontFamily: "var(--font-heading, Montserrat, sans-serif)", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Aceita!</h2>
           <p style={{ color: "rgba(255,255,255,0.6)", textAlign: "center", maxWidth: 400 }}>
             Obrigado! Sua aceitação foi registrada. A equipe comercial entrará em contato em breve.
           </p>
