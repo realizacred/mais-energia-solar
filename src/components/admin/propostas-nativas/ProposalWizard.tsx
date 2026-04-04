@@ -139,6 +139,7 @@ function StepContent({ children }: { children: React.ReactNode }) {
 export function ProposalWizard() {
   
   const navigate = useNavigate();
+  const { data: isAdminOrGerente } = useIsAdminOrGerente();
   const [searchParams] = useSearchParams();
   const dealIdFromUrl = searchParams.get("deal_id");
   const customerIdFromUrl = searchParams.get("customer_id");
