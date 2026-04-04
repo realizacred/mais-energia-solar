@@ -434,6 +434,7 @@ export function ProposalWizard() {
           tarifa_fio_b: u.tarifa_fio_b || defaults.tarifa_fio_b,
         };
       }));
+      setUcsRestoreEpoch(e => e + 1);
     }
     if (s.grupo != null) setGrupo(s.grupo);
     if (s.potenciaKwp != null) setPotenciaKwp(s.potenciaKwp);
