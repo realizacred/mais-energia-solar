@@ -127,7 +127,7 @@ export function TemplatesManager() {
   const docxCount = useMemo(() => templates.filter(t => t.tipo === "docx").length, [templates]);
 
   const seedDefaultTemplates = async () => {
-    if (!confirm("Isso vai EXCLUIR todos os templates WEB existentes e criar 3 novos (Grid, Híbrido, Dual). Continuar?")) return;
+    if (!confirm("Isso vai EXCLUIR todos os templates WEB existentes e criar 4 novos (Landing Page, Grid, Híbrido, Dual). Continuar?")) return;
     
     // loading is managed by react-query now
     try {
