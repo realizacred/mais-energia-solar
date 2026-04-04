@@ -259,6 +259,19 @@ function resolveFromContext(
   if (key === "comercial.representante_email") return s(ctx.comercial?.representante_email);
   if (key === "comercial.representante_celular") return s(ctx.comercial?.representante_celular);
   if (key === "comercial.empresa_nome") return s(ctx.comercial?.empresa_nome ?? ctx.empresaNome);
+  if (key === "comercial.empresa_razao_social") return s(ctx.empresaNome);
+  if (key === "comercial.empresa_nome_fantasia") return s(ctx.empresaNome);
+  if (key === "comercial.consultor_codigo") return s(ctx.consultorCodigo);
+
+  // proposta_link (FE parity with BE)
+  if (key === "comercial.proposta_link" || key === "comercial.proposta_link_interativo") {
+    const token = s((ctx.finalSnapshot as any)?.token_publico);
+    if (token) {
+      const base = (import.meta as any).env?.VITE_APP_URL ?? "https://app.maisenergiasolar.com.br";
+      return `${base}/pl/${token}`;
+    }
+    return null;
+  }
 
   // P3: proposta_identificador — paridade FE
   if (key === "comercial.proposta_identificador") {
