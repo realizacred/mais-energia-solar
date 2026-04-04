@@ -54,8 +54,8 @@ function tokenize(expr: string): Token[] {
     // Skip whitespace
     if (/\s/.test(ch)) { i++; continue; }
 
-    // Semicolon (function argument separator)
-    if (ch === ";") { tokens.push({ type: "semi" }); i++; continue; }
+    // Semicolon or comma (function argument separator)
+    if (ch === ";" || ch === ",") { tokens.push({ type: "semi" }); i++; continue; }
 
     // Variable: [nome_da_variavel]
     if (ch === "[") {
@@ -90,6 +90,9 @@ function tokenize(expr: string): Token[] {
       tokens.push({ type: "number", value: parsed });
       continue;
     }
+
+    // Caret (exponentiation)
+    if (ch === "^") { tokens.push({ type: "op", value: "^" }); i++; continue; }
 
     // Operators: <=, >=, <>, !=, ==, =, <, >, +, -, *, /
     if ("+-*/".includes(ch)) {
@@ -261,15 +264,15 @@ class Parser {
     return left;
   }
 
-  // multiplication: unary ((*|/) unary)*
+  // multiplication: exponent ((*|/) exponent)*
   private parseMultiplication(): ExpressionValue {
-    let left = this.parseUnary();
+    let left = this.parseExponent();
 
     while (true) {
       const tok = this.peek();
       if (tok.type === "op" && (tok.value === "*" || tok.value === "/")) {
         this.advance();
-        const right = this.parseUnary();
+        const right = this.parseExponent();
         if (tok.value === "*") {
           left = toNum(left) * toNum(right);
         } else {
@@ -284,6 +287,18 @@ class Parser {
       }
     }
     return left;
+  }
+
+  // exponent: unary (^ exponent)? — right-associative
+  private parseExponent(): ExpressionValue {
+    const base = this.parseUnary();
+    const tok = this.peek();
+    if (tok.type === "op" && tok.value === "^") {
+      this.advance();
+      const exp = this.parseExponent();
+      return Math.pow(toNum(base), toNum(exp));
+    }
+    return base;
   }
 
   // unary: -unary | primary
