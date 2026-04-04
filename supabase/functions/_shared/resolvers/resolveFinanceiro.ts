@@ -372,5 +372,12 @@ export function resolveFinanceiro(
     set("vc_aumento", snap.vc_aumento ?? fin.vc_aumento);
   }
 
+  // ── Preço por extenso ──
+  if (valorTotal != null && valorTotal > 0) {
+    const extenso = valorPorExtenso(valorTotal);
+    set("preco_por_extenso", extenso);
+    set("valor_por_extenso", extenso);
+  }
+
   return out;
 }
