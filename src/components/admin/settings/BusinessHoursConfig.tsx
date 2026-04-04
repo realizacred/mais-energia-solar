@@ -26,6 +26,46 @@ type HorarioRow = {
   hora_fim: string;
 };
 
+function buildDefaultHorarios() {
+  return DIAS_SEMANA.map(d => ({
+    dia_semana: d.value,
+    ativo: d.value >= 1 && d.value <= 5,
+    hora_inicio: "08:00:00",
+    hora_fim: "18:00:00",
+  }));
+}
+
+function buildHorariosFromLegacy(texto: string | null | undefined): HorarioRow[] {
+  const base = buildDefaultHorarios();
+  if (!texto) return base;
+
+  const normalized = texto.toLowerCase();
+  const timeMatches = [...normalized.matchAll(/(\d{1,2})(?::(\d{2}))?h?/g)];
+  const formatTime = (match?: RegExpMatchArray) => {
+    const h = String(match?.[1] ?? "08").padStart(2, "0");
+    const m = String(match?.[2] ?? "00").padStart(2, "0");
+    return `${h}:${m}:00`;
+  };
+
+  const horaInicio = formatTime(timeMatches[0]);
+  const horaFim = formatTime(timeMatches[1] ?? timeMatches[0]);
+
+  if (normalized.includes("segunda") && normalized.includes("sexta")) {
+    return base.map(d => ({
+      ...d,
+      ativo: d.dia_semana >= 1 && d.dia_semana <= 5,
+      hora_inicio: horaInicio,
+      hora_fim: horaFim,
+    }));
+  }
+
+  return base.map(d => ({
+    ...d,
+    hora_inicio: horaInicio,
+    hora_fim: horaFim,
+  }));
+}
+
 export function BusinessHoursConfig({ tenantId }: { tenantId: string }) {
   const [horarios, setHorarios] = useState<HorarioRow[]>([]);
   const [loading, setLoading] = useState(true);

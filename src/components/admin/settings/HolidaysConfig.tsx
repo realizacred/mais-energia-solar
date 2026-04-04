@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarOff, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,7 @@ export function HolidaysConfig({ tenantId }: { tenantId: string }) {
   const [newData, setNewData] = useState("");
   const [newNome, setNewNome] = useState("");
   const [newTipo, setNewTipo] = useState("local");
+  const autoSeededRef = useRef(false);
 
   const { data: feriados = [], isLoading: loading } = useFeriados(tenantId);
   const addMut = useAddFeriado();
