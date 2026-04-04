@@ -32,6 +32,7 @@ const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
 const AtivarConta = lazy(() => import("./pages/AtivarConta"));
 const PropostaPublica = lazy(() => import("./pages/PropostaPublica"));
+const PropostaLanding = lazy(() => import("./pages/PropostaLanding"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const UCPublica = lazy(() => import("./pages/UCPublica"));

@@ -136,7 +136,7 @@ export default function PropostaLanding() {
 
       if (versaoRes.data) {
         setVersaoData(versaoRes.data);
-        const snap = normalizeProposalSnapshot(versaoRes.data.snapshot);
+        const snap = normalizeProposalSnapshot(versaoRes.data.snapshot as Record<string, unknown> | null);
         setSnapshot(snap);
       }
 
