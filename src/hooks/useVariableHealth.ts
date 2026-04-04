@@ -38,7 +38,7 @@ function useHistoricalAuditReports() {
         .limit(50);
 
       if (error) {
-        console.debug("[useVariableHealth] Error fetching reports:", error.message);
+        // console.debug("[useVariableHealth] Error fetching reports:", error.message);
         return [] as AuditReportRow[];
       }
 
@@ -64,7 +64,7 @@ function useGenerationAuditReports() {
         .limit(20);
 
       if (error) {
-        console.debug("[useVariableHealth] generation_audit_json not available:", error.message);
+        // console.debug("[useVariableHealth] generation_audit_json not available:", error.message);
         return [] as Array<{ report: GenerationAuditReport; created_at: string }>;
       }
 

@@ -8,7 +8,7 @@ async function clearBrowserCaches() {
   try {
     const keys = await caches.keys();
     await Promise.all(keys.map((key) => caches.delete(key)));
-    console.log(`[SW Cleanup] Cleared caches: ${keys.length}`);
+    // console.log(`[SW Cleanup] Cleared caches: ${keys.length}`);
   } catch (err) {
     console.warn("[SW Cleanup] Failed to clear caches:", err);
   }
@@ -32,7 +32,7 @@ export async function cleanupLegacyServiceWorkers(options?: { aggressive?: boole
 
       if (aggressive || isLegacy) {
         const ok = await reg.unregister();
-        console.log(`[SW Cleanup] Unregistered SW: ${scriptURL || reg.scope} → ${ok}`);
+        // console.log(`[SW Cleanup] Unregistered SW: ${scriptURL || reg.scope} → ${ok}`);
       }
     }
 
@@ -50,7 +50,7 @@ export async function cleanupLegacyServiceWorkers(options?: { aggressive?: boole
  */
 export async function debugServiceWorkers() {
   if (!("serviceWorker" in navigator)) {
-    console.log("[SW Debug] serviceWorker not supported");
+    // console.log("[SW Debug] serviceWorker not supported");
     return;
   }
 
@@ -59,7 +59,7 @@ export async function debugServiceWorkers() {
     console.group("[SW Debug] All registrations:", registrations.length);
 
     for (const reg of registrations) {
-      console.log({
+      // console.log({
         scope: reg.scope,
         active: reg.active ? { scriptURL: reg.active.scriptURL, state: reg.active.state } : null,
         waiting: reg.waiting ? { scriptURL: reg.waiting.scriptURL, state: reg.waiting.state } : null,
@@ -68,7 +68,7 @@ export async function debugServiceWorkers() {
     }
 
     const controller = navigator.serviceWorker.controller;
-    console.log("[SW Debug] Current controller:", controller ? {
+    // console.log("[SW Debug] Current controller:", controller ? {
       scriptURL: controller.scriptURL,
       state: controller.state,
     } : "none (page not controlled)");

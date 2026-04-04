@@ -67,7 +67,7 @@ export function useCommissionResolution(leadId: string | null) {
           sourceRecordName: null,
           fallbackReason: "lead_sem_consultor",
         };
-        console.debug("[useCommissionResolution] resolved", result);
+        // console.debug("[useCommissionResolution] resolved", result);
         return result;
       }
 
@@ -98,7 +98,7 @@ export function useCommissionResolution(leadId: string | null) {
           sourceRecordName: consultorNome,
           fallbackReason: null,
         };
-        console.debug("[useCommissionResolution] resolved", result);
+        // console.debug("[useCommissionResolution] resolved", result);
         return result;
       }
 
@@ -139,7 +139,7 @@ export function useCommissionResolution(leadId: string | null) {
               sourceRecordName: (plan as any)?.name ?? null,
               fallbackReason: null,
             };
-            console.debug("[useCommissionResolution] resolved", result);
+            // console.debug("[useCommissionResolution] resolved", result);
             return result;
           }
         }
@@ -168,7 +168,7 @@ export function useCommissionResolution(leadId: string | null) {
           sourceRecordName: null,
           fallbackReason: "consultor_sem_percentual_e_sem_plano",
         };
-        console.debug("[useCommissionResolution] resolved", result);
+        // console.debug("[useCommissionResolution] resolved", result);
         return result;
       }
 
@@ -185,7 +185,7 @@ export function useCommissionResolution(leadId: string | null) {
         sourceRecordName: null,
         fallbackReason: "sem_percentual_configurado",
       };
-      console.debug("[useCommissionResolution] resolved", result);
+      // console.debug("[useCommissionResolution] resolved", result);
       return result;
     },
     staleTime: STALE_TIME,

@@ -39,7 +39,7 @@ function useLatestAuditReports() {
 
       if (error) {
         // Column may not exist yet — graceful fallback
-        console.debug("[useVariableUsage] generation_audit_json not available:", error.message);
+        // console.debug("[useVariableUsage] generation_audit_json not available:", error.message);
         return [] as GenerationAuditReport[];
       }
 

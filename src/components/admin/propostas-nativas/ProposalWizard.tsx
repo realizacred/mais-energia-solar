@@ -1808,7 +1808,7 @@ export function ProposalWizard() {
     }
 
     // ── Enforcement gate: block if missing variables or estimativa not accepted
-    console.debug("[ProposalWizard] Enforcement check:", {
+    // console.debug("[ProposalWizard] Enforcement check:", {
       precoFinal,
       resolverPrecoTotal: resolverContext.precoTotal,
       potenciaKwp,
@@ -2264,7 +2264,7 @@ export function ProposalWizard() {
         skipTemplateCheck: true, // Template is selected in the Proposta step — don't block here
       });
 
-      console.debug("[ProposalWizard] Resumo→Proposta validation:", validation);
+      // console.debug("[ProposalWizard] Resumo→Proposta validation:", validation);
 
       // If there are errors or warnings → show gate modal (blocks navigation)
       if (!validation.canGenerate || validation.needsConfirmation) {
