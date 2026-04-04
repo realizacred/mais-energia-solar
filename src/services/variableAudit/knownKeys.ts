@@ -1094,3 +1094,5 @@ export const BACKEND_TEMPLATE_PREVIEW_KEYS = new Set<string>([
   "vc_total_modulo",
   "vpl",
 ]);
+
+export const SOURCE_MAP: Record<string, { source: string; path: string }> = {};
