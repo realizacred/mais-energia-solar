@@ -2760,10 +2760,12 @@ export function ProposalWizard() {
               Etapa {step + 1}/{activeSteps.length}
             </span>
 
-            <div className="hidden sm:flex items-center gap-1.5 ml-2">
-              <Switch id="debug-toggle" checked={debugMode} onCheckedChange={setDebugMode} className="scale-75" />
-              <Label htmlFor="debug-toggle" className="text-[10px] text-muted-foreground cursor-pointer select-none">Debug</Label>
-            </div>
+            {isAdminOrGerente && (
+              <div className="hidden sm:flex items-center gap-1.5 ml-2">
+                <Switch id="debug-toggle" checked={debugMode} onCheckedChange={setDebugMode} className="scale-75" />
+                <Label htmlFor="debug-toggle" className="text-[10px] text-muted-foreground cursor-pointer select-none">Debug</Label>
+              </div>
+            )}
 
             <div className="h-6 w-px bg-border/50 hidden sm:block" />
 
