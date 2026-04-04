@@ -1,17 +1,19 @@
 import { useState, useRef, useMemo } from "react";
-import { FileText, Paperclip, Upload, Trash2, Download, Plus, Activity, Loader2 } from "lucide-react";
+import { FileText, Paperclip, Upload, Trash2, Download, Plus, Activity, Loader2, Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/dateUtils";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 import { VariableMapperPanel } from "./VariableMapperPanel";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
   useProjetoArquivos,
   useProjetoDocumentosGerados,
@@ -19,6 +21,7 @@ import {
   useUploadArquivo,
   useDeletarArquivo,
   useGerarDocumento,
+  useEnviarParaAssinatura,
   downloadArquivo,
   downloadGeneratedDoc,
   type GeneratedDocRow,
