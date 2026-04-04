@@ -681,6 +681,12 @@ export function StepLocalizacao({
                   <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
                     <Navigation className="h-2.5 w-2.5" /> Distância até o cliente
                   </Label>
+                  {!companyReady && (distanciaKm ?? 0) === 0 ? (
+                    <div className="flex items-center gap-1.5 h-7 px-2 border rounded-md bg-warning/10 border-warning/30 text-[9px] text-warning min-w-[72px]">
+                      <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                      <span>Preencha cidade/estado em Configurações da Empresa</span>
+                    </div>
+                  ) : (
                   <div className="flex items-center gap-1.5">
                     <div
                       className="flex items-center gap-1 h-7 px-2 border rounded-md bg-muted/10 text-xs cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-colors min-w-[72px]"
@@ -695,6 +701,7 @@ export function StepLocalizacao({
                       <Edit3 className="h-2.5 w-2.5 text-muted-foreground/50 ml-auto" />
                     </div>
                   </div>
+                  )}
                 </div>
 
                 {/* Dialog Distância Manual */}
