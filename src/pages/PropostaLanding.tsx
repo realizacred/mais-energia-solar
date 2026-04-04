@@ -14,6 +14,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatBRLInteger } from "@/lib/formatters";
+import { TemplateHtmlRenderer } from "@/components/proposal-landing/TemplateHtmlRenderer";
+import type { TemplateBlock } from "@/components/admin/proposal-builder/types";
 import {
   normalizeProposalSnapshot,
   type NormalizedProposalSnapshot,
