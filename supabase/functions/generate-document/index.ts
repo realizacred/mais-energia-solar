@@ -32,6 +32,11 @@ const corsHeaders = {
 
 // ── Helpers ────────────────────────────────────────
 
+/** Normalize [variable] → {{variable}} (contracts use bracket format) */
+function normalizeBracketVars(text: string): string {
+  return text.replace(/\[\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\]/g, '{{$1}}');
+}
+
 /** Replace {{variable}} placeholders in text */
 function replaceVars(text: string, ctx: Record<string, string>): string {
   return text.replace(/\{\{([^}]+)\}\}/g, (_match, key: string) => {

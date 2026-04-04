@@ -291,23 +291,6 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
         )}
       </section>
 
-      {/* BLOCO 3: Variáveis do Documento */}
-      <section className="space-y-3">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Activity className="h-4 w-4 text-info" />
-            Variáveis do Documento
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Dados usados para gerar contratos e documentos</p>
-        </div>
-        <VariableMapperPanel
-          dealId={dealId}
-          customerId={customerId}
-          onGenerateContract={() => {
-            toast({ title: "Geração de contrato", description: "Funcionalidade será conectada ao motor de documentos." });
-          }}
-        />
-      </section>
 
       {/* BLOCO 4: Checklist de Documentos (última etapa) */}
       <section>
