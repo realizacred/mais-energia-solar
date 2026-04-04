@@ -4,6 +4,44 @@
  */
 import { type AnyObj, safeObj, safeArr, str, num, fmtNum, fmtCur, fmtVal, type ResolverExternalContext } from "./types.ts";
 
+// ── Data por extenso (PT-BR) ──
+const MESES_EXTENSO = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const UNIDADES_EXT = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez",
+  "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+const DEZENAS_EXT = ["", "", "vinte", "trinta"];
+
+function numExtenso(n: number): string {
+  if (n < 20) return UNIDADES_EXT[n];
+  const d = Math.floor(n / 10);
+  const u = n % 10;
+  return u > 0 ? `${DEZENAS_EXT[d]} e ${UNIDADES_EXT[u]}` : DEZENAS_EXT[d];
+}
+
+function dataHojeExtenso(d: Date): string {
+  const dia = d.getDate();
+  const mes = d.getMonth();
+  const ano = d.getFullYear();
+  const diaStr = numExtenso(dia);
+  const mesStr = MESES_EXTENSO[mes];
+  const milhar = Math.floor(ano / 1000);
+  const resto = ano % 1000;
+  const centena = Math.floor(resto / 100);
+  const dezena = resto % 100;
+  const anoPartes: string[] = [];
+  if (milhar === 2) anoPartes.push("dois mil");
+  else if (milhar === 1) anoPartes.push("mil");
+  if (centena > 0 || dezena > 0) {
+    if (dezena < 20 && dezena > 0 && centena === 0) {
+      anoPartes.push(UNIDADES_EXT[dezena]);
+    } else {
+      if (centena > 0) anoPartes.push(["", "cento", "duzentos"][centena] || String(centena * 100));
+      if (dezena > 0) anoPartes.push(numExtenso(dezena));
+    }
+  }
+  return `${diaStr} de ${mesStr} de ${anoPartes.join(" e ")}`;
+}
+
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 /** Format date in pt-BR locale */
