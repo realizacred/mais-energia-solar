@@ -349,7 +349,10 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadArquivo(dealId, f.name)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Visualizar" onClick={(e) => { e.stopPropagation(); previewUpload(f.name); }}>
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar" onClick={(e) => { e.stopPropagation(); downloadArquivo(dealId, f.name); }}>
                     <Download className="h-3.5 w-3.5" />
                   </Button>
                   <Button
