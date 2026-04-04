@@ -1155,6 +1155,7 @@ Deno.serve(async (req) => {
               // Resolve original SM date for created_at
               const smOriginalDate = smProp.sm_created_at || smProp.generated_at || smProp.send_at || null;
               const dealInsert: Record<string, any> = {
+                  origem: "imported",
                   tenant_id: tenantId,
                   pipeline_id: resolved.pipeline_id,
                   stage_id: resolved.stage_id,
