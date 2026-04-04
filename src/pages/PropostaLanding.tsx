@@ -1172,6 +1172,9 @@ export default function PropostaLanding() {
           </div>
         </div>
       )}
+
+      {/* Theme switcher — visible only for logged-in users */}
+      <LandingThemeSwitcher />
     </div>
   );
 }
