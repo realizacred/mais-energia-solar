@@ -1065,10 +1065,10 @@ export default function PropostaLanding() {
 
             {/* CTA final */}
             <div style={{
-              background: "linear-gradient(135deg, #0D2460, var(--az))",
-              borderRadius: 12, padding: "2rem 1.5rem", textAlign: "center", marginTop: 20, color: "#fff",
+              background: "var(--cta-bg)",
+              borderRadius: 12, padding: "2rem 1.5rem", textAlign: "center", marginTop: 20, color: "var(--hero-text, #fff)",
             }}>
-              <h3 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.3rem", margin: "0 0 8px" }}>
+              <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "1.3rem", margin: "0 0 8px" }}>
                 Pronto para economizar?
               </h3>
               <p style={{ fontSize: "0.85rem", opacity: 0.6, marginBottom: 20 }}>
