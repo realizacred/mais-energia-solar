@@ -33,6 +33,7 @@ import { ClonePropostaModal } from "./ClonePropostaModal";
 import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
 import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaAuditLogs, type UCDetailData } from "@/hooks/usePropostaExpandedData";
 import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
+import { useProposalTemplates } from "@/hooks/useProposalTemplates";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -446,7 +447,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
     : null;
 
-  // §16: Queries in hooks — AP-01 fix
+  // Templates for DOCX/HTML detection
+  const { data: proposalTemplates = [] } = useProposalTemplates();
+
   const versaoIds = p.versoes.map(v => v.id);
   const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
   const { data: ucsDetail = [] } = usePropostaExpandedUcs(latestVersao?.id || null, isExpanded);
@@ -663,14 +666,70 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     });
   };
 
-  // Render proposal HTML
+  // Render proposal — handles both HTML (web) and DOCX templates
   const handleRender = async () => {
     if (!latestVersao?.id) return;
+
+    // Detect if selected template is DOCX
+    const selectedTpl = proposalTemplates.find(t => t.id === templateSelecionado);
+    const isDocxTemplate = selectedTpl?.tipo === "docx";
+
     setRendering(true);
     try {
-      const result = await renderProposal(latestVersao.id);
-      if (result.html) setHtml(result.html);
-      else toast({ title: "Proposta renderizada, mas sem HTML retornado." });
+      if (isDocxTemplate && p.id) {
+        // DOCX pipeline: call template-preview → generates DOCX → converts to PDF → saves paths
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJndWhja3FrcG56aXlrcGJ3YmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzgwNzQsImV4cCI6MjA4NjA1NDA3NH0.BQAdNsi05xoWHhYJnnvmW3MIwnm8gbXTqosCTe5Ykxw";
+        const { data: { session } } = await supabase.auth.getSession();
+
+        const rawResp = await fetch(`https://${projectId}.supabase.co/functions/v1/template-preview`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": `Bearer ${session?.access_token || anonKey}`,
+            "apikey": anonKey,
+            "x-client-timeout": "120",
+          },
+          body: JSON.stringify({
+            template_id: templateSelecionado,
+            proposta_id: p.id,
+            response_format: "json",
+          }),
+        });
+
+        if (!rawResp.ok) {
+          const errBody = await rawResp.text();
+          let errorMsg = "Erro ao gerar DOCX";
+          try { errorMsg = JSON.parse(errBody)?.error || errorMsg; } catch { errorMsg = errBody || errorMsg; }
+          throw new Error(errorMsg);
+        }
+
+        const artifactResult = await rawResp.json();
+
+        // If PDF was generated, get signed URL and display it
+        if (artifactResult.output_pdf_path) {
+          const { data: signedData } = await supabase.storage
+            .from("proposta-documentos")
+            .createSignedUrl(artifactResult.output_pdf_path, 3600);
+          if (signedData?.signedUrl) {
+            setPdfSignedUrl(signedData.signedUrl);
+          }
+          toast({ title: "Proposta gerada!", description: "PDF gerado com sucesso." });
+        } else if (artifactResult.output_docx_path) {
+          toast({ title: "DOCX gerado!", description: "PDF não foi convertido. DOCX disponível para download." });
+        } else {
+          toast({ title: "Erro na geração", description: artifactResult.generation_error || "Falha na geração do documento", variant: "destructive" });
+        }
+
+        // Refresh data to pick up new output paths
+        onRefresh();
+      } else {
+        // HTML template: use existing renderProposal
+        const result = await renderProposal(latestVersao.id);
+        if (result.html) setHtml(result.html);
+        else toast({ title: "Proposta renderizada, mas sem HTML retornado." });
+      }
     } catch (e: any) {
       toast({ title: "Erro ao gerar arquivo", description: e.message, variant: "destructive" });
     } finally {
@@ -1211,6 +1270,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         outputPdfPath={latestVersao?.output_pdf_path || undefined}
                         externalPdfUrl={latestVersao?.link_pdf || undefined}
                         generationStatus={
+                          rendering ? "generating_docx" :
                           pdfSignedUrl || latestVersao?.output_pdf_path || latestVersao?.link_pdf ? "ready" :
                           html ? "ready" : "idle"
                         }
