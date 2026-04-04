@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarOff, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,7 @@ export function HolidaysConfig({ tenantId }: { tenantId: string }) {
   const [newData, setNewData] = useState("");
   const [newNome, setNewNome] = useState("");
   const [newTipo, setNewTipo] = useState("local");
+  const autoSeededRef = useRef(false);
 
   const { data: feriados = [], isLoading: loading } = useFeriados(tenantId);
   const addMut = useAddFeriado();
@@ -34,7 +35,7 @@ export function HolidaysConfig({ tenantId }: { tenantId: string }) {
 
   const adding = addMut.isPending || seedMut.isPending;
 
-  const seedNacionais = () => {
+  const buildNationalRows = () => {
     const year = new Date().getFullYear();
     const rows = FERIADOS_NACIONAIS_BR.map(f => ({
       tenant_id: tenantId, data: `${year}-${f.data}`, nome: f.nome, tipo: "nacional" as const, ativo: true,
@@ -43,11 +44,25 @@ export function HolidaysConfig({ tenantId }: { tenantId: string }) {
     rows.push(...FERIADOS_NACIONAIS_BR.map(f => ({
       tenant_id: tenantId, data: `${nextYear}-${f.data}`, nome: f.nome, tipo: "nacional" as const, ativo: true,
     })));
-    seedMut.mutate(rows, {
+    return rows;
+  };
+
+  const seedNacionais = () => {
+    seedMut.mutate(buildNationalRows(), {
       onSuccess: () => toast({ title: "Feriados nacionais adicionados!" }),
       onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
     });
   };
+
+  useEffect(() => {
+    if (loading || feriados.length > 0 || autoSeededRef.current || tenantId === "00000000-0000-0000-0000-000000000001") return;
+    autoSeededRef.current = true;
+    seedMut.mutate(buildNationalRows(), {
+      onError: () => {
+        autoSeededRef.current = false;
+      },
+    });
+  }, [loading, feriados.length, tenantId, seedMut]);
 
   const addFeriado = () => {
     if (!newData || !newNome) {

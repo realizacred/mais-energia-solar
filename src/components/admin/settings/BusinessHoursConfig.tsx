@@ -26,6 +26,46 @@ type HorarioRow = {
   hora_fim: string;
 };
 
+function buildDefaultHorarios() {
+  return DIAS_SEMANA.map(d => ({
+    dia_semana: d.value,
+    ativo: d.value >= 1 && d.value <= 5,
+    hora_inicio: "08:00:00",
+    hora_fim: "18:00:00",
+  }));
+}
+
+function buildHorariosFromLegacy(texto: string | null | undefined): HorarioRow[] {
+  const base = buildDefaultHorarios();
+  if (!texto) return base;
+
+  const normalized = texto.toLowerCase();
+  const timeMatches = [...normalized.matchAll(/(\d{1,2})(?::(\d{2}))?h?/g)];
+  const formatTime = (match?: RegExpMatchArray) => {
+    const h = String(match?.[1] ?? "08").padStart(2, "0");
+    const m = String(match?.[2] ?? "00").padStart(2, "0");
+    return `${h}:${m}:00`;
+  };
+
+  const horaInicio = formatTime(timeMatches[0]);
+  const horaFim = formatTime(timeMatches[1] ?? timeMatches[0]);
+
+  if (normalized.includes("segunda") && normalized.includes("sexta")) {
+    return base.map(d => ({
+      ...d,
+      ativo: d.dia_semana >= 1 && d.dia_semana <= 5,
+      hora_inicio: horaInicio,
+      hora_fim: horaFim,
+    }));
+  }
+
+  return base.map(d => ({
+    ...d,
+    hora_inicio: horaInicio,
+    hora_fim: horaFim,
+  }));
+}
+
 export function BusinessHoursConfig({ tenantId }: { tenantId: string }) {
   const [horarios, setHorarios] = useState<HorarioRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +83,8 @@ export function BusinessHoursConfig({ tenantId }: { tenantId: string }) {
   }, [tenantId]);
 
   const loadHorarios = async () => {
+    let loadedRows: HorarioRow[] = [];
+
     const { data, error } = await supabase
       .from("tenant_horarios_atendimento")
       .select("id, dia_semana, ativo, hora_inicio, hora_fim")
@@ -50,37 +92,31 @@ export function BusinessHoursConfig({ tenantId }: { tenantId: string }) {
       .order("dia_semana");
 
     if (error) {
-      console.error("Error loading hours:", error);
-      // Seed default if empty
-      setHorarios(DIAS_SEMANA.map(d => ({
-        dia_semana: d.value,
-        ativo: d.value >= 1 && d.value <= 5, // Mon-Fri
-        hora_inicio: "08:00:00",
-        hora_fim: "18:00:00",
-      })));
+      console.error("[BusinessHoursConfig] Error loading hours:", error);
+      loadedRows = buildDefaultHorarios();
     } else if (data && data.length > 0) {
-      setHorarios(data.map(d => ({
+      loadedRows = data.map(d => ({
         ...d,
         hora_inicio: d.hora_inicio || "08:00:00",
         hora_fim: d.hora_fim || "18:00:00",
-      })));
+      }));
     } else {
-      // No data yet, seed defaults
-      setHorarios(DIAS_SEMANA.map(d => ({
-        dia_semana: d.value,
-        ativo: d.value >= 1 && d.value <= 5,
-        hora_inicio: "08:00:00",
-        hora_fim: "18:00:00",
-      })));
+      const { data: siteSettings, error: legacyError } = await supabase
+        .from("site_settings")
+        .select("horario_atendimento")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (legacyError) {
+        console.error("[BusinessHoursConfig] Error loading legacy hours:", legacyError);
+      }
+
+      loadedRows = buildHorariosFromLegacy(siteSettings?.horario_atendimento);
     }
+
+    setHorarios(loadedRows);
+    baselineRef.current = JSON.stringify(loadedRows.map(h => ({ dia_semana: h.dia_semana, ativo: h.ativo, hora_inicio: h.hora_inicio, hora_fim: h.hora_fim })));
     setLoading(false);
-    // Set baseline after loading for dirty comparison
-    setTimeout(() => {
-      setHorarios(prev => {
-        baselineRef.current = JSON.stringify(prev.map(h => ({ dia_semana: h.dia_semana, ativo: h.ativo, hora_inicio: h.hora_inicio, hora_fim: h.hora_fim })));
-        return prev;
-      });
-    }, 0);
   };
 
   const updateHorario = (index: number, field: keyof HorarioRow, value: any) => {
