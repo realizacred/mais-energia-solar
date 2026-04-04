@@ -440,26 +440,74 @@ export default function PropostaLanding() {
   // ─── Computed values (fallback hardcoded layout) ───
   const s = snapshot;
   const raw = s._raw || {};
+  const wizardState = (raw._wizard_state || raw.wizardState || {}) as Record<string, any>;
+  const rawInputs = (raw.inputs || {}) as Record<string, any>;
+  const rawUc0 = (Array.isArray(raw.ucs) ? raw.ucs[0] : null) || {} as Record<string, any>;
+  const rawLead = (raw.selectedLead || {}) as Record<string, any>;
+
   const valorTotal = activeCenario?.preco_final ?? versaoData.valor_total ?? 0;
   const economiaMensal = versaoData.economia_mensal ?? s.economiaMensal ?? 0;
   const paybackMeses = activeCenario?.payback_meses ?? versaoData.payback_meses ?? s.paybackMeses ?? 0;
-  const geracaoAnual = s.geracaoMensalEstimada * 12;
+
+  // ─── Capa fallbacks (Correção 2) ───
+  const clienteNomeFinal = s.clienteNome
+    || rawLead.nome || rawInputs.cliente_nome || wizardState.clienteNome
+    || (raw.cliente_nome as string) || "—";
+
+  const cidadeFinal = s.locCidade
+    || rawLead.cidade || rawInputs.cidade || rawUc0.cidade
+    || (raw.cidade as string) || (raw.loc_cidade as string) || "";
+
+  const estadoFinal = s.locEstado
+    || rawLead.estado || rawInputs.estado || rawUc0.estado
+    || (raw.estado as string) || (raw.loc_estado as string) || "";
+
+  const concessionariaFinal = s.locDistribuidoraNome
+    || (raw.dis_energia as string) || (raw.concessionaria as string)
+    || rawUc0.distribuidora || rawUc0.dis_energia || rawUc0.concessionaria_nome || "—";
+
+  const estruturaFinal = s.locTipoTelhado
+    || (raw.tipo_telhado as string) || rawUc0.tipo_telhado || rawInputs.tipo_telhado || "—";
+
+  const tensaoRede = String(raw.tensaoRede ?? raw.tensao_rede ?? rawUc0.fase ?? rawInputs.tensao_rede ?? "220V");
+
+  const grupoFinal = s.grupo
+    || (raw.subgrupo as string) || rawUc0.subgrupo || (raw.grupo_tarifario as string) || "B";
+
+  // ─── Geração fallback (Correção 1) ───
+  // Irradiação média por mês (padrão Brasil Central)
+  const IRRAD_MEDIA_MES = [5.4, 5.1, 4.8, 4.4, 4.1, 3.9, 4.2, 4.7, 5.0, 5.2, 5.3, 5.5];
+  const potKwp = s.potenciaKwp || versaoData.potencia_kwp || 0;
+  const geracaoBase = s.geracaoMensalEstimada > 0
+    ? s.geracaoMensalEstimada
+    : (potKwp > 0 ? Math.round(potKwp * 4.5 * 30 * 0.8) : 0);
+  const geracaoAnual = geracaoBase * 12;
   const economiaAnual = economiaMensal * 12;
-  const aumento = s.consumoTotal > 0 ? ((s.geracaoMensalEstimada / s.consumoTotal) * 100) : 0;
-  const tensaoRede = String(raw.tensaoRede ?? raw.tensao_rede ?? "220V");
-  const estrutura = String(raw.locTipoTelhado ?? raw.loc_tipo_telhado ?? s.locTipoTelhado ?? "");
+  const aumento = s.consumoTotal > 0 ? ((geracaoBase / s.consumoTotal) * 100) : 0;
 
   const modulos = s.itens.filter(i => i.categoria === "modulo" || i.categoria === "modulos");
   const inversores = s.itens.filter(i => i.categoria === "inversor" || i.categoria === "inversores");
   const outrosItens = s.itens.filter(i => !["modulo", "modulos", "inversor", "inversores"].includes(i.categoria));
 
-  const arvoresEq = Math.round(geracaoAnual * 0.0006);
+  const arvoresEq = Math.round(geracaoAnual / 20);
 
   const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+  // Geração mensal: usar irradiação por mês se tiver potência, senão fatores proporcionais
+  const geracaoMensal = meses.map((_, i) => {
+    // Tentar pegar do snapshot
+    const snapKey = `geracao_${meses[i].toLowerCase()}`;
+    const snapVal = raw[snapKey] ?? (Array.isArray(raw.geracao_mensal_kwh) ? (raw.geracao_mensal_kwh as number[])[i] : null);
+    if (snapVal && Number(snapVal) > 0) return Math.round(Number(snapVal));
+    // Fallback: calcular pela irradiação mensal
+    if (potKwp > 0) {
+      return Math.round(potKwp * IRRAD_MEDIA_MES[i] * 30 * 0.8);
+    }
+    return 0;
+  });
+  const maxGeracao = Math.max(...geracaoMensal, 1);
   const fatoresMensais = [1.1, 1.05, 1.0, 0.9, 0.8, 0.75, 0.78, 0.88, 0.95, 1.05, 1.1, 1.15];
   const somaFatores = fatoresMensais.reduce((a, b) => a + b, 0);
-  const geracaoMensal = fatoresMensais.map(f => Math.round((s.geracaoMensalEstimada * 12 * f) / somaFatores));
-  const maxGeracao = Math.max(...geracaoMensal, 1);
 
   const tarifa = s.ucs[0]?.tarifa_distribuidora ?? 0;
 
