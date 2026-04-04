@@ -830,10 +830,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
           {/* Total row */}
           <div className={cn(
-            "grid items-center px-4 py-3 text-xs font-bold bg-muted/5",
+            "grid items-center px-4 py-3 text-xs font-bold bg-muted/5 min-w-[700px]",
             viewMode === "resumido"
-              ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
-              : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+              ? "grid-cols-[auto_100px_1fr_60px_100px_80px]"
+              : "grid-cols-[auto_100px_1fr_60px_100px_100px_90px_100px]"
           )}>
             <span className="w-6" />
             <span />
