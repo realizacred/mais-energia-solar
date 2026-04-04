@@ -60,6 +60,9 @@ const TABS = ["Capa", "Empresa", "Sistema", "Equip.", "Financeiro", "Geração",
 
 export default function PropostaLanding() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const modelo = parseModelo(searchParams.get("modelo"));
+  const LANDING_STYLES = getLandingThemeCSS(modelo);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
