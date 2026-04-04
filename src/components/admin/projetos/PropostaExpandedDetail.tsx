@@ -292,6 +292,67 @@ function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: bool
   return <FileText className={cn("h-6 w-6 shrink-0 mr-3", colorCls)} />;
 }
 
+// ─── Financial KPIs (shared) ──────────────────────────
+function FinancialKPIs({ snapshot, latestVersao }: { snapshot: any; latestVersao: VersaoData | undefined }) {
+  const s = snapshot || {};
+  const fin = s.financeiro || {};
+
+  const tir = fin.tir ?? s.tir ?? null;
+  const vpl = fin.vpl ?? s.vpl ?? null;
+  const paybackMeses = latestVersao?.payback_meses
+    ?? fin.payback_meses
+    ?? s.payback_meses
+    ?? (latestVersao?.valor_total && latestVersao?.economia_mensal && latestVersao.economia_mensal > 0
+        ? Math.round(latestVersao.valor_total / latestVersao.economia_mensal)
+        : null);
+  const economiaMensal = latestVersao?.economia_mensal ?? fin.economia_mensal ?? s.economia_mensal ?? null;
+
+  const paybackLabel = paybackMeses != null
+    ? `${Math.floor(paybackMeses / 12)} anos e ${Math.round(paybackMeses % 12)} meses`
+    : "—";
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+      <div className="flex items-center gap-2 border rounded-lg p-3 bg-card">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-success/10 shrink-0">
+          <TrendingUp className="w-4 h-4 text-success" />
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground">TIR</p>
+          <p className="text-sm font-bold text-foreground">{tir != null ? `${formatNumberBR(Number(tir))}%` : "—"}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 border rounded-lg p-3 bg-card">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+          <PiggyBank className="w-4 h-4 text-primary" />
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground">VPL</p>
+          <p className="text-sm font-bold text-foreground">{vpl != null ? formatBRL(Number(vpl)) : "—"}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 border rounded-lg p-3 bg-card">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-warning/10 shrink-0">
+          <Timer className="w-4 h-4 text-warning" />
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground">Payback</p>
+          <p className="text-sm font-bold text-foreground">{paybackLabel}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 border rounded-lg p-3 bg-card">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-success/10 shrink-0">
+          <DollarSign className="w-4 h-4 text-success" />
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground">Economia/mês</p>
+          <p className="text-sm font-bold text-foreground">{economiaMensal != null && economiaMensal > 0 ? formatBRL(Number(economiaMensal)) : "—"}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── SM (legacy_import) Tab Components ──────────────
 
 function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; latestVersao: VersaoData | undefined; wpPrice: string | null }) {
