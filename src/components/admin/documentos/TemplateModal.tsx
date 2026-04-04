@@ -78,12 +78,10 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
     if (file) {
       setUploading(true);
       try {
-        const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
-        const tid = profile?.tenant_id;
-        if (!tid) throw new Error("Tenant não encontrado");
+        const { tenantId } = await getCurrentTenantId();
 
         await supabase.auth.refreshSession();
-        const fileName = `${tid}/templates/${Date.now()}_${file.name}`;
+        const fileName = `${tenantId}/templates/${Date.now()}_${file.name}`;
         const { error } = await supabase.storage.from("document-files").upload(fileName, file);
         if (error) throw error;
         storagePath = fileName;
