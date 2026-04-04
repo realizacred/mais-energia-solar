@@ -33,8 +33,16 @@ const DOC_STATUS_MAP: Record<string, { label: string; color: string }> = {
   generating: { label: "Gerando...", color: "bg-info/10 text-info" },
   generated: { label: "Gerado", color: "bg-success/10 text-success" },
   sent_for_signature: { label: "Aguardando assinatura", color: "bg-warning/10 text-warning" },
-  signed: { label: "Assinado", color: "bg-success/10 text-success" },
+  signed: { label: "Assinado ✓", color: "bg-success/10 text-success" },
   cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive" },
+};
+
+const SIGNATURE_STATUS_MAP: Record<string, { label: string; color: string }> = {
+  sent: { label: "Enviado", color: "bg-warning/10 text-warning border-warning/20" },
+  viewed: { label: "Visualizado", color: "bg-info/10 text-info border-info/20" },
+  signed: { label: "Assinado ✓", color: "bg-success/10 text-success border-success/20" },
+  refused: { label: "Recusado", color: "bg-destructive/10 text-destructive border-destructive/20" },
+  cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 const DOC_CATEGORY_LABELS: Record<string, string> = {
