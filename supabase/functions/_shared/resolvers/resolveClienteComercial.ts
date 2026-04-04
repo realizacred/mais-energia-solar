@@ -294,6 +294,68 @@ export function resolveClienteComercial(
   // ── Observações ──
   set("vc_observacao", lead.observacoes ?? snap.vc_observacao ?? snap.observacoes);
 
+  // ── Ghost Group 1 — Empresa extras (brand_settings / tenants) ──
+  set("descricao", snap.descricao ?? proposta.descricao);
+  set("proposta_data_envio", fmtDate(proposta.created_at ?? versao.created_at ?? proposta.sent_at));
+  set("proposta_codigo", proposta.codigo ?? (proposta.id ? String(proposta.id).substring(0, 8) : undefined));
+  set("titulo", snap.proposta_titulo ?? proposta.titulo);
+  set("empresa_cep", brand.cep);
+  set("empresa_bairro", brand.bairro);
+  set("empresa_numero", brand.numero);
+  set("empresa_complemento", brand.complemento);
+  set("empresa_inscricao_estadual", brand.inscricao_estadual ?? brand.ie);
+  set("empresa_inscricao_municipal", brand.inscricao_municipal ?? brand.im);
+  set("empresa_endereco", brand.endereco ?? brand.rua);
+  set("empresa_telefone", brand.telefone);
+  set("empresa_email", brand.email);
+  set("empresa_documento", brand.cnpj ?? brand.cpf_cnpj);
+  set("empresa_ie", brand.inscricao_estadual ?? brand.ie);
+
+  // ── Ghost Group 2 — Cliente extras ──
+  set("cliente_rg", cliente.rg ?? clienteData.rg ?? snapCliente.rg ?? snap.cliente_rg);
+  set("cliente_estado_civil", cliente.estado_civil ?? clienteData.estado_civil ?? snap.cliente_estado_civil);
+  set("cliente_nacionalidade", cliente.nacionalidade ?? clienteData.nacionalidade ?? snap.cliente_nacionalidade);
+  set("cliente_profissao", cliente.profissao ?? clienteData.profissao ?? snap.cliente_profissao);
+  set("cliente_telefone", cliente.telefone ?? lead.telefone ?? snapCliente.telefone);
+  set("cliente_cpf_cnpj", cliente.cpf_cnpj ?? snapCliente.cpf_cnpj);
+  set("cliente_rua", cliente.rua ?? snapCliente.rua);
+  set("cliente_codigo", cliente.cliente_code ?? clienteData.cliente_code);
+
+  // ── Ghost Group 3 — Data/Hora ──
+  const agora = new Date();
+  const optsDateBR: Intl.DateTimeFormatOptions = {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit", month: "2-digit", year: "numeric"
+  };
+  set("data_hoje", agora.toLocaleDateString("pt-BR", optsDateBR));
+  set("data_hoje_extenso", dataHojeExtenso(agora));
+
+  // ── Ghost Group 4 — Projeto extras ──
+  const endProj = [projeto.rua_instalacao, projeto.numero_instalacao].filter(Boolean).join(", ");
+  set("projeto_endereco", endProj || projeto.endereco);
+  set("projeto_bairro", projeto.bairro_instalacao);
+  set("projeto_cidade", projeto.cidade_instalacao);
+  set("projeto_estado", projeto.uf_instalacao);
+  set("projeto_cep", projeto.cep_instalacao);
+  set("projeto_numero", projeto.projeto_num ?? projeto.codigo);
+  set("projeto_valor_equipamentos", (() => { const v = num(projeto.valor_equipamentos); return v != null ? fmtVal(v) : undefined; })());
+  set("projeto_valor_mao_obra", (() => { const v = num(projeto.valor_mao_obra); return v != null ? fmtVal(v) : undefined; })());
+  set("projeto_data_previsao_instalacao", fmtDate(projeto.data_previsao_instalacao));
+  set("projeto_area_util", (() => { const v = num(projeto.area_util_m2); return v != null ? fmtNum(v, 1) : undefined; })());
+  set("projeto_geracao_mensal", (() => { const v = num(projeto.geracao_mensal_media_kwh); return v != null ? fmtNum(v, 0) : undefined; })());
+  set("projeto_forma_pagamento", projeto.forma_pagamento);
+  set("projeto_valor_entrada", (() => { const v = num(projeto.valor_entrada); return v != null ? fmtVal(v) : undefined; })());
+  set("projeto_numero_parcelas", projeto.numero_parcelas);
+  set("projeto_valor_parcela", (() => { const v = num(projeto.valor_parcela); return v != null ? fmtVal(v) : undefined; })());
+
+  // ── Ghost Group 5 — Garantia serviço ──
+  set("servico_garantia", snap.garantia_servico ?? snap.kit_garantia_servico);
+  set("kit_garantia_servico", snap.garantia_servico ?? snap.kit_garantia_servico);
+
+  // ── Concessionária extras ──
+  set("concessionaria_icms", (() => { const v = num(snap.imposto_energia ?? snap.aliquota_icms); return v != null ? fmtNum(v, 2) : undefined; })());
+  set("concessionaria_fio_b_gd", (() => { const v = num(snap.fio_b_usado_kwh ?? snap.tarifa_fio_b_gd); return v != null ? fmtNum(v, 4) : undefined; })());
+
   // ── Custom variables from snapshot ──
   if (Array.isArray(snap.variaveis_custom)) {
     for (const vc of snap.variaveis_custom as Array<AnyObj>) {
