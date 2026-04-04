@@ -18,8 +18,13 @@ export interface GeneratedDocRow {
   template_id: string;
   docx_filled_path: string | null;
   pdf_path: string | null;
+  signature_status: string | null;
+  signature_provider: string | null;
+  envelope_id: string | null;
+  signed_at: string | null;
   template_name?: string;
   template_categoria?: string;
+  requires_signature?: boolean;
 }
 
 export interface DocTemplate {
