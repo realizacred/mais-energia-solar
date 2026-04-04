@@ -31,7 +31,24 @@ export function useAutoReplyConfigData(tenantId: string) {
         .eq("tenant_id", tenantId)
         .maybeSingle();
       if (error) throw error;
-      return data as AutoReplyData | null;
+      if (data) return data as AutoReplyData;
+
+      const { data: legacy, error: legacyError } = await supabase
+        .from("whatsapp_automation_config")
+        .select("auto_reply_enabled, auto_reply_message, auto_reply_cooldown_minutes")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (legacyError) throw legacyError;
+      if (!legacy) return null;
+
+      return {
+        ativo: legacy.auto_reply_enabled ?? false,
+        mensagem_fora_horario: legacy.auto_reply_message || "Olá! Nosso horário de atendimento é de segunda a sexta, das 8h às 18h. Retornaremos assim que possível. 😊",
+        mensagem_feriado: "Olá! Hoje estamos em recesso por feriado. Retornaremos no próximo dia útil. 😊",
+        cooldown_minutos: legacy.auto_reply_cooldown_minutes ?? 1440,
+        silenciar_sla: true,
+        silenciar_alertas: true,
+      } as AutoReplyData;
     },
     enabled: !!tenantId,
     staleTime: STALE_TIME,
