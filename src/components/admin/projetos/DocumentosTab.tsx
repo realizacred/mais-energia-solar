@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, CheckCircle2 } from "lucide-react";
+import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/dateUtils";
-import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
@@ -63,11 +62,10 @@ function formatSize(bytes: number | undefined) {
 // ─── Props ────────────────────────────────────────
 interface DocumentosTabProps {
   dealId: string;
-  customerId: string | null;
 }
 
 // ─── Component ────────────────────────────────────
-export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
+export function DocumentosTab({ dealId }: DocumentosTabProps) {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [signConfirmDoc, setSignConfirmDoc] = useState<GeneratedDocRow | null>(null);
@@ -182,27 +180,29 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
                           {doc.template_name} • {formatDate(doc.created_at)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {hasDocx && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Baixar DOCX"
-                            onClick={() => downloadGeneratedDoc(doc.docx_filled_path!)}
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                         {hasPdf && (
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1.5"
                             title="Baixar PDF"
                             onClick={() => downloadGeneratedDoc(doc.pdf_path!)}
                           >
-                            <FileText className="h-3.5 w-3.5 text-destructive" />
+                            <File className="h-3.5 w-3.5" />
+                            PDF
+                          </Button>
+                        )}
+                        {hasDocx && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1.5"
+                            title="Baixar DOCX"
+                            onClick={() => downloadGeneratedDoc(doc.docx_filled_path!)}
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            DOCX
                           </Button>
                         )}
                         {canSendForSignature && (
@@ -291,11 +291,6 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
         )}
       </section>
 
-
-      {/* BLOCO 4: Checklist de Documentos (última etapa) */}
-      <section>
-        <ProjetoDocChecklist dealId={dealId} />
-      </section>
 
       {/* Generate Document Dialog */}
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>

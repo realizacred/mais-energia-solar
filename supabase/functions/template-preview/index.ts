@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import JSZip from "npm:jszip@3.10.1";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
+import { normalizeVariableFormat } from "../_shared/normalizeVariableFormat.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { injectChartsIntoDocx } from "../_shared/chartInjector.ts";
 
@@ -93,7 +94,7 @@ async function hashBytes(data: Uint8Array): Promise<string> {
 /**
  * Robust DOCX template processor.
  * Step 1: Normalize split placeholders by merging <w:r> runs within each <w:p>.
- * Step 2: Simple [key] → value substitution on the normalized XML.
+ * Step 2: Normalize [ key ] / [key] → {{key}}, then substitute on normalized XML.
  * Step 3: Final sweep — missing placeholders stay as-is ([key] or {{key}}), empty→— (NEVER blank).
  *
  * "Empty" means: null, undefined, or whitespace-only string in vars map.
@@ -188,6 +189,7 @@ async function processDocxTemplate(
     // This pass does a full-paragraph text consolidation for paragraphs that STILL
     // contain partial bracket patterns after targeted normalization.
     content = cleanupRemainingFragments(content);
+    content = normalizeVariableFormat(content);
 
     // ── DEBUG: Capture structure after normalization ──
     if (debugMode && fileName === "word/document.xml") {

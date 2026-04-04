@@ -8,6 +8,7 @@
  * Document-only vars (contrato, assinatura) are added as isolated enrichment.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { normalizeVariableFormat } from "../_shared/normalizeVariableFormat.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
 import {
@@ -31,11 +32,6 @@ const corsHeaders = {
 };
 
 // ── Helpers ────────────────────────────────────────
-
-/** Normalize [variable] → {{variable}} (contracts use bracket format) */
-function normalizeBracketVars(text: string): string {
-  return text.replace(/\[\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\]/g, '{{$1}}');
-}
 
 /** Replace {{variable}} placeholders in text */
 function replaceVars(text: string, ctx: Record<string, string>): string {
@@ -188,8 +184,8 @@ async function processDocx(
   for (const [path, data] of Object.entries(unzipped)) {
     if (path.startsWith("word/") && (path.endsWith(".xml") || path.endsWith(".rels"))) {
       let xmlStr = strFromU8(data);
-      // Normalize [variable] → {{variable}} before processing
-      xmlStr = normalizeBracketVars(xmlStr);
+      // Normalize [ variable ] / [variable] → {{variable}} before processing
+      xmlStr = normalizeVariableFormat(xmlStr);
 
       // Clean up fragmented tags by removing XML tags between {{ and }}
       xmlStr = xmlStr.replace(
@@ -263,8 +259,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[generate-document] template=${template_id}, deal=${deal_id}, tenant=${tenantId}`);
-
     // 1. Load template metadata
     const { data: template, error: tplErr } = await supabase
       .from("document_templates")
@@ -300,8 +294,6 @@ Deno.serve(async (req) => {
     }
 
     const templateBytes = new Uint8Array(await fileData.arrayBuffer());
-    console.log(`[generate-document] Template downloaded: ${templateBytes.length} bytes`);
-
     // 3. Load data for variable resolution (parallel queries)
     //    SAME pattern as template-preview — fetch all related entities
     const { data: projeto } = await supabase
@@ -412,8 +404,6 @@ Deno.serve(async (req) => {
       clienteData: (clienteRes.data ?? {}) as Record<string, unknown>,
     });
 
-    console.log(`[generate-document] Variables resolved via flattenSnapshot: ${Object.keys(variables).length} keys`);
-
     // ── 4b. DOCUMENT-ONLY ENRICHMENT (isolated, does not contaminate flatten) ──
     const docEnrichment = buildDocumentEnrichment(clienteRes.data, contratoNumero);
     for (const [k, v] of Object.entries(docEnrichment)) {
@@ -458,12 +448,8 @@ Deno.serve(async (req) => {
       variables["vc_observacao"] = "";
     }
 
-    console.log(`[generate-document] Total variables after enrichment: ${Object.keys(variables).length} keys`);
-    console.log("[generate-document] Variable keys sample:", Object.keys(variables).slice(0, 30));
-
     // 5. Process DOCX — replace variables
     const filledDocx = await processDocx(templateBytes, variables);
-    console.log(`[generate-document] Filled DOCX: ${filledDocx.length} bytes`);
 
     // 6. Save filled DOCX to storage
     const timestamp = Date.now();
@@ -484,8 +470,6 @@ Deno.serve(async (req) => {
         { status: 500, headers: jsonHeaders },
       );
     }
-
-    console.log(`[generate-document] DOCX saved to: ${docxPath}`);
 
     // 7. Convert DOCX to PDF via Gotenberg
     let pdfPath: string | null = null;
@@ -509,8 +493,6 @@ Deno.serve(async (req) => {
 
         const GOTENBERG_URL = await resolveGotenbergUrl(supabase, tenantId);
         const conversionUrl = `${GOTENBERG_URL}/forms/libreoffice/convert`;
-        console.log(`[generate-document] Sending to Gotenberg: ${conversionUrl}`);
-
         const response = await withRetry(
           async () => {
             const res = await fetchWithTimeout(
@@ -548,8 +530,6 @@ Deno.serve(async (req) => {
 
         const pdfBuffer = await response.arrayBuffer();
         const pdfBytes = new Uint8Array(pdfBuffer);
-        console.log(`[generate-document] PDF generated: ${pdfBytes.length} bytes`);
-
         pdfPath = docxPath.replace(/\.docx$/, ".pdf");
         const { error: pdfUploadErr } = await supabase.storage
           .from("document-files")
@@ -561,8 +541,6 @@ Deno.serve(async (req) => {
         if (pdfUploadErr) {
           console.error("[generate-document] PDF upload error:", pdfUploadErr);
           pdfPath = null;
-        } else {
-          console.log(`[generate-document] PDF saved to: ${pdfPath}`);
         }
       } catch (pdfErr: any) {
         console.error("[generate-document] PDF conversion error (non-fatal):", pdfErr?.message);
@@ -617,8 +595,6 @@ Deno.serve(async (req) => {
       }
       docId = inserted.id;
     }
-
-    console.log(`[generate-document] Record saved: ${docId}`);
 
     return new Response(
       JSON.stringify({

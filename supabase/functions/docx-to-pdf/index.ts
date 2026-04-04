@@ -4,6 +4,7 @@
  * With retry (exponential backoff) and circuit breaker.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { normalizeDocxVariableFormat } from "../_shared/normalizeVariableFormat.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import {
   withRetry,
@@ -55,19 +56,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[docx-to-pdf] Converting ${filename || "proposta.docx"}, base64 length: ${docxBase64.length}`);
-
     // Decode base64 to binary
     const binaryStr = atob(docxBase64);
     const docxBytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) {
       docxBytes[i] = binaryStr.charCodeAt(i);
     }
-    console.log(`[docx-to-pdf] DOCX size: ${docxBytes.length} bytes`);
+    const normalizedDocxBytes = normalizeDocxVariableFormat(docxBytes);
 
     // Build multipart form for Gotenberg
     const formData = new FormData();
-    const blob = new Blob([docxBytes], {
+    const blob = new Blob([normalizedDocxBytes], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
     formData.append("files", blob, filename || "proposta.docx");
@@ -107,8 +106,6 @@ Deno.serve(async (req) => {
 
     const GOTENBERG_URL = await resolveGotenbergUrl(supabase, resolvedTenantId);
     const conversionUrl = `${GOTENBERG_URL}/forms/libreoffice/convert`;
-    console.log(`[docx-to-pdf] Sending to Gotenberg: ${conversionUrl}`);
-
     // Retry with exponential backoff: 1s, 2s, 4s
     const response = await withRetry(
       async () => {
@@ -152,7 +149,6 @@ Deno.serve(async (req) => {
 
     const pdfBuffer = await response.arrayBuffer();
     const pdfBytes = new Uint8Array(pdfBuffer);
-    console.log(`[docx-to-pdf] PDF generated: ${pdfBytes.length} bytes`);
 
     // Encode PDF to base64
     let pdfBase64 = "";

@@ -11,6 +11,12 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
+function normalizeVariableFormat(text: string): string {
+  let normalized = text.replace(/\[\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\]/g, "{{$1}}");
+  normalized = normalized.replace(/\[([a-zA-Z_][a-zA-Z0-9_]*)\]/g, "{{$1}}");
+  return normalized;
+}
+
 function slugifyFilePart(value: string, preserveHyphens = false): string {
   let result = value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if (preserveHyphens) {
@@ -47,6 +53,7 @@ function simulateSubstitution(
   content: string,
   vars: Record<string, string | null | undefined>,
 ): { result: string; missingVars: string[]; emptyVars: string[] } {
+  content = normalizeVariableFormat(content);
   const emptyKeysSet = new Set<string>();
   const cleanVars: Record<string, string> = {};
 
@@ -167,6 +174,16 @@ Deno.test("missing variable with mustache syntax", () => {
   );
   assertEquals(result, "Nome: &lt;cliente_nome&gt;");
   assertEquals(missingVars, ["cliente_nome"]);
+});
+
+Deno.test("spaced bracket variable is normalized and replaced", () => {
+  const { result, emptyVars, missingVars } = simulateSubstitution(
+    "Contrato: [ cliente_nome ]",
+    { cliente_nome: "Mateus" },
+  );
+  assertEquals(result, "Contrato: Mateus");
+  assertEquals(emptyVars, []);
+  assertEquals(missingVars, []);
 });
 
 // ═══════════════════════════════════════════════════════════
