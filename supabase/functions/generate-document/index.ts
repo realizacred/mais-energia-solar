@@ -32,6 +32,11 @@ const corsHeaders = {
 
 // ── Helpers ────────────────────────────────────────
 
+/** Normalize [variable] → {{variable}} (contracts use bracket format) */
+function normalizeBracketVars(text: string): string {
+  return text.replace(/\[\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\]/g, '{{$1}}');
+}
+
 /** Replace {{variable}} placeholders in text */
 function replaceVars(text: string, ctx: Record<string, string>): string {
   return text.replace(/\{\{([^}]+)\}\}/g, (_match, key: string) => {
@@ -183,6 +188,8 @@ async function processDocx(
   for (const [path, data] of Object.entries(unzipped)) {
     if (path.startsWith("word/") && (path.endsWith(".xml") || path.endsWith(".rels"))) {
       let xmlStr = strFromU8(data);
+      // Normalize [variable] → {{variable}} before processing
+      xmlStr = normalizeBracketVars(xmlStr);
 
       // Clean up fragmented tags by removing XML tags between {{ and }}
       xmlStr = xmlStr.replace(

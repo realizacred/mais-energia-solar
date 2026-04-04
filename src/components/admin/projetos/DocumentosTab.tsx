@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { FileText, Paperclip, Upload, Trash2, Download, Plus, Activity, Loader2, Send, CheckCircle2 } from "lucide-react";
+import { FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/dateUtils";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
-import { VariableMapperPanel } from "./VariableMapperPanel";
+
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
   useProjetoArquivos,
@@ -291,23 +291,6 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
         )}
       </section>
 
-      {/* BLOCO 3: Variáveis do Documento */}
-      <section className="space-y-3">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Activity className="h-4 w-4 text-info" />
-            Variáveis do Documento
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Dados usados para gerar contratos e documentos</p>
-        </div>
-        <VariableMapperPanel
-          dealId={dealId}
-          customerId={customerId}
-          onGenerateContract={() => {
-            toast({ title: "Geração de contrato", description: "Funcionalidade será conectada ao motor de documentos." });
-          }}
-        />
-      </section>
 
       {/* BLOCO 4: Checklist de Documentos (última etapa) */}
       <section>
