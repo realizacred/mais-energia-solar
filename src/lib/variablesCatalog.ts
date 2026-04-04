@@ -1077,7 +1077,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ──────────────────────────────────────────────────────────────
   v("comercial", "comercial.proposta_identificador", "proposta_identificador", "Identificador da Proposta", "Identificador único da proposta", "-", "2590-1"),
   v("comercial", "comercial.proposta_titulo", "proposta_titulo", "Título da Proposta", "Nome/título da proposta", "-", "Proposta Sistema Fotovoltaico"),
-  v("comercial", "comercial.proposta_link", "proposta_link", "Link da Proposta", "URL de visualização pública da proposta", "-", "https://...", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.proposta_link", "proposta_link", "Link da Proposta", "URL de visualização pública da proposta", "-", "https://..."),
   v("comercial", "comercial.proposta_validade", "proposta_validade", "Validade", "Data de validade da proposta", "data", "15/03/2025"),
   v("comercial", "comercial.proposta_versao", "proposta_versao", "Versão da Proposta", "Número da versão da proposta", "-", "v2"),
   v("comercial", "comercial.proposta_data", "proposta_data", "Data da proposta", "Data de criação da proposta", "data", "01/03/2025"),
