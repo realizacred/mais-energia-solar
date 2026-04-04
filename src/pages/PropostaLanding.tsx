@@ -369,7 +369,7 @@ export default function PropostaLanding() {
   );
 
   if (!snapshot || !versaoData) return (
-    <div style={{ minHeight: "100vh", background: "#1B3A8C", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+    <div style={{ minHeight: "100vh", background: "var(--nav-bg, #1B3A8C)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--hero-text, #fff)" }}>
       <style>{LANDING_STYLES}</style>
       <p>Dados da proposta não encontrados.</p>
     </div>
