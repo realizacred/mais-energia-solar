@@ -29,6 +29,8 @@ import {
   Activity, Clock, Factory, FileText, Users,
 } from "lucide-react";
 import { PropostaChatSection } from "@/components/proposal-landing/PropostaChatSection";
+import { getLandingThemeCSS, parseModelo } from "@/components/proposal-landing/themes/landingThemes";
+import { LandingThemeSwitcher } from "@/components/proposal-landing/themes/LandingThemeSwitcher";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    CSS variables + fonts inline
