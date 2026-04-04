@@ -124,6 +124,7 @@ export interface SmSyncLog {
   total_errors: number;
   started_at: string;
   finished_at: string | null;
+  error_message: string | null;
 }
 
 export interface SmFunnel {
