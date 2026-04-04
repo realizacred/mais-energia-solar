@@ -1115,7 +1115,7 @@ export default function PropostaLanding() {
       <PropostaChatSection propostaData={templateVariables} />
 
       <footer style={{
-        background: "var(--az)", color: "rgba(255,255,255,0.5)", textAlign: "center",
+        background: "var(--footer-bg)", color: "var(--footer-text)", textAlign: "center",
         padding: "1.5rem", fontSize: "0.75rem",
       }}>
         {brand?.logo_white_url && <img src={brand.logo_white_url} alt="" style={{ height: 28, objectFit: "contain", opacity: 0.5, marginBottom: 8 }} />}
