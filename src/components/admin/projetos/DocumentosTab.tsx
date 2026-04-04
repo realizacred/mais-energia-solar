@@ -12,7 +12,7 @@ import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/dateUtils";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
-import { VariableMapperPanel } from "./VariableMapperPanel";
+
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
   useProjetoArquivos,
