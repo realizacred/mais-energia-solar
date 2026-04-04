@@ -749,7 +749,7 @@ export default function PropostaLanding() {
                 <li>Analisamos seu consumo médio de <strong style={{ color: "var(--az)" }}>{s.consumoTotal} kWh/mês</strong></li>
                 <li>Verificamos a irradiação solar em <strong style={{ color: "var(--az)" }}>{s.locCidade}/{s.locEstado}</strong></li>
                 <li>Calculamos o sistema ideal de <strong style={{ color: "var(--la)" }}>{s.potenciaKwp.toFixed(2)} kWp</strong></li>
-                <li>Estimamos geração de <strong style={{ color: "var(--verde)" }}>{s.geracaoMensalEstimada} kWh/mês</strong></li>
+                <li>Estimamos geração de <strong style={{ color: "var(--verde)" }}>{geracaoBase} kWh/mês</strong></li>
               </ol>
             </div>
           </div>
