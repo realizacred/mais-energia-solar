@@ -1098,6 +1098,9 @@ export default function PropostaLanding() {
       </div>
 
       {/* Footer */}
+      {/* ━━━ SEÇÃO: CHAT COM IA ━━━ */}
+      <PropostaChatSection propostaData={templateVariables} />
+
       <footer style={{
         background: "var(--az)", color: "rgba(255,255,255,0.5)", textAlign: "center",
         padding: "1.5rem", fontSize: "0.75rem",
