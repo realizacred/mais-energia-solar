@@ -3,7 +3,7 @@ import {
   Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2,
   ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck, FileText, List, Info,
   Eye, CheckCircle2, AlertTriangle, XCircle, Zap, HelpCircle, Archive,
-  FlaskConical, Sparkles, Activity, HeartPulse, Shield, Layers,
+  FlaskConical, Sparkles, Activity, HeartPulse, Shield, Layers, RefreshCw,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useVariableHealth, type HealthClassification } from "@/hooks/useVariableHealth";
@@ -697,9 +697,14 @@ export function VariaveisDisponiveisPage() {
         title="Variáveis do Sistema"
         description="Consulte, filtre e gerencie as variáveis usadas nos templates de proposta e contrato."
         actions={
-          <Button size="sm" onClick={openNewModal} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> Nova Custom
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["variable"] })} className="gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" /> Recalcular
+            </Button>
+            <Button size="sm" onClick={openNewModal} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> Nova Custom
+            </Button>
+          </div>
         }
       />
 
@@ -762,22 +767,29 @@ export function VariaveisDisponiveisPage() {
         </Card>
         <Card className={cn("border-l-[3px]",
           govSummary.catalogHealth.level === "saudavel" ? "border-l-success" :
+          govSummary.catalogHealth.level === "bom" ? "border-l-info" :
           govSummary.catalogHealth.level === "atencao" ? "border-l-warning" : "border-l-destructive"
         )}>
           <CardContent className="flex items-center gap-3 p-4">
             <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
               govSummary.catalogHealth.level === "saudavel" ? "bg-success/10" :
+              govSummary.catalogHealth.level === "bom" ? "bg-info/10" :
               govSummary.catalogHealth.level === "atencao" ? "bg-warning/10" : "bg-destructive/10"
             )}>
               <HeartPulse className={cn("h-4 w-4",
                 govSummary.catalogHealth.level === "saudavel" ? "text-success" :
+                govSummary.catalogHealth.level === "bom" ? "text-info" :
                 govSummary.catalogHealth.level === "atencao" ? "text-warning" : "text-destructive"
               )} />
             </div>
             <div>
               <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.catalogHealth.score}%</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Saúde ({govSummary.catalogHealth.level === "saudavel" ? "Saudável" : govSummary.catalogHealth.level === "atencao" ? "Atenção" : "Crítica"})
+                Saúde ({
+                  govSummary.catalogHealth.level === "saudavel" ? "Saudável" :
+                  govSummary.catalogHealth.level === "bom" ? "Bom" :
+                  govSummary.catalogHealth.level === "atencao" ? "Atenção" : "Crítica"
+                })
               </p>
             </div>
           </CardContent>

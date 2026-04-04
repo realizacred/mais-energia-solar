@@ -84,7 +84,7 @@ export interface GovernanceValidationError {
 }
 
 /** Catalog health score */
-export type CatalogHealthLevel = "saudavel" | "atencao" | "critica";
+export type CatalogHealthLevel = "saudavel" | "bom" | "atencao" | "critica";
 
 export interface CatalogHealthScore {
   level: CatalogHealthLevel;
