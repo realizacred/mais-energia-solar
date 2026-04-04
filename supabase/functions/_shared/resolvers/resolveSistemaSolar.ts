@@ -284,6 +284,8 @@ export function resolveSistemaSolar(
   set("inversor_mppts_utilizados", snap.inversor_mppts_utilizados);
   set("inversor_codigo", snap.inversor_codigo);
   set("inversor_garantia", snap.inversor_garantia);
+  // capo_i = alias for inverter warranty in years (bug fix: was incorrectly mapped to valor_total)
+  set("capo_i", out["inversor_garantia"] ?? snap.inversor_garantia ?? snap.capo_i);
   set("inversores_potencia_maxima_total", snap.inversores_potencia_maxima_total);
 
   // ── Indexed inversores (with catalog enrichment) ──

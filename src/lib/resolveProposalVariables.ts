@@ -118,7 +118,7 @@ export interface ResolverResult {
 
 // ── Formatters ───────────────────────────────────────────────
 
-// AP-17: all values return pure numbers — template adds units
+// AP-17: all monetary values return pure numbers without R$ — template adds currency symbol
 function fmtCurrency(v: number | null | undefined): string {
   if (v == null) return "-";
   return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
