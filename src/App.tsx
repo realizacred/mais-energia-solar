@@ -32,6 +32,7 @@ const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
 const AtivarConta = lazy(() => import("./pages/AtivarConta"));
 const PropostaPublica = lazy(() => import("./pages/PropostaPublica"));
+const PropostaLanding = lazy(() => import("./pages/PropostaLanding"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const UCPublica = lazy(() => import("./pages/UCPublica"));
@@ -105,6 +106,7 @@ const App = () => (
               <Route path="/ativar-conta" element={<AtivarConta />} />
               <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
               <Route path="/proposta/:token" element={<PropostaPublica />} />
+              <Route path="/pl/:token" element={<PropostaLanding />} />
               <Route path="/oauth/google/callback" element={<OAuthGoogleCallback />} />
               <Route path="/oauth/google-contacts/callback" element={<GoogleContactsCallbackPage />} />
               <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
