@@ -406,6 +406,9 @@ function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; lates
           </table>
         </div>
       </div>
+
+      {/* Financial KPIs */}
+      <FinancialKPIs snapshot={snapshot} latestVersao={latestVersao} />
     </div>
   );
 }
