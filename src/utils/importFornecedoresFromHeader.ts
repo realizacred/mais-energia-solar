@@ -27,8 +27,8 @@ export async function importFornecedoresFromHeader(
 
   if (unique.length === 0) return 0;
 
-  console.log("[importFornecedores] Distribuidoras detectadas:", unique);
-  console.log("[importFornecedores] tenantId:", tenantId);
+  // console.log("[importFornecedores] Distribuidoras detectadas:", unique);
+  // console.log("[importFornecedores] tenantId:", tenantId);
 
   const { data: existing, error: fetchError } = await supabase
     .from("fornecedores")
@@ -47,7 +47,7 @@ export async function importFornecedoresFromHeader(
     name => !existingNames.has(name.toLowerCase().trim())
   );
 
-  console.log("[importFornecedores] toCreate:", toCreate);
+  // console.log("[importFornecedores] toCreate:", toCreate);
 
   if (toCreate.length === 0) return 0;
 
@@ -65,6 +65,6 @@ export async function importFornecedoresFromHeader(
     return 0;
   }
 
-  console.log("[importFornecedores] criados com sucesso:", toCreate.length);
+  // console.log("[importFornecedores] criados com sucesso:", toCreate.length);
   return toCreate.length;
 }

@@ -31,10 +31,10 @@ export function useLeadStatusMap() {
         return [];
       }
 
-      console.debug(
-        "[useLeadStatusMap] Available statuses:",
-        data?.map((s) => `${s.nome} (ordem=${s.ordem}, id=${s.id})`)
-      );
+      // console.debug(
+      //   "[useLeadStatusMap] Available statuses:",
+      //   data?.map((s) => `${s.nome} (ordem=${s.ordem}, id=${s.id})`)
+      // );
       return (data as LeadStatusRecord[]) || [];
     },
     staleTime: 1000 * 60 * 15, // 15 min — static config

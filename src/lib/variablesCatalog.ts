@@ -859,6 +859,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("financeiro", "financeiro.margem_lucro", "margem_lucro", "Margem de Lucro", "Margem percentual de lucro", "%", "25"),
   v("financeiro", "financeiro.preco", "preco", "Preço Total Venda", "Preço total de venda do projeto", "R$", "200000,00"),
   v("financeiro", "financeiro.preco_por_extenso", "preco_por_extenso", "Preço Total Venda por Extenso", "Valor por extenso do preço total", "R$", "duzentos mil reais e vinte e cinco centavos"),
+  v("financeiro", "financeiro.valor_por_extenso", "valor_por_extenso", "Valor Total por Extenso", "Alias de preco_por_extenso — valor por extenso", "R$", "duzentos mil reais e vinte e cinco centavos"),
   v("financeiro", "financeiro.preco_kwp", "preco_kwp", "Preço por kWp", "Valor por kWp instalado", "R$/kWp", "5113.64"),
   v("financeiro", "financeiro.preco_watt", "preco_watt", "Preço por Watt", "Valor por Watt instalado", "R$/W", "5.11"),
   v("financeiro", "financeiro.preco_watt_numero", "preco_watt_numero", "Preço por Watt (número)", "Valor sem R$/W — para templates com unidade hardcoded", "-", "5,11"),
@@ -1077,7 +1078,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ──────────────────────────────────────────────────────────────
   v("comercial", "comercial.proposta_identificador", "proposta_identificador", "Identificador da Proposta", "Identificador único da proposta", "-", "2590-1"),
   v("comercial", "comercial.proposta_titulo", "proposta_titulo", "Título da Proposta", "Nome/título da proposta", "-", "Proposta Sistema Fotovoltaico"),
-  v("comercial", "comercial.proposta_link", "proposta_link", "Link da Proposta", "URL de visualização pública da proposta", "-", "https://...", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.proposta_link", "proposta_link", "Link da Proposta", "URL de visualização pública da proposta", "-", "https://..."),
   v("comercial", "comercial.proposta_validade", "proposta_validade", "Validade", "Data de validade da proposta", "data", "15/03/2025"),
   v("comercial", "comercial.proposta_versao", "proposta_versao", "Versão da Proposta", "Número da versão da proposta", "-", "v2"),
   v("comercial", "comercial.proposta_data", "proposta_data", "Data da proposta", "Data de criação da proposta", "data", "01/03/2025"),
@@ -1094,12 +1095,14 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.representante_celular", "representante_celular", "Representante Celular", "Celular do representante", "-", "+55 21 88888-8888"),
   v("comercial", "comercial.projeto_id_externo", "projeto_id_externo", "Identificador externo do Projeto", "ID do projeto em sistema externo", "-", "123123"),
   v("comercial", "comercial.empresa_nome", "empresa_nome", "Empresa do integrador", "Razão social da empresa", "-", "Cruzeiro Esporte Clube"),
+  v("comercial", "comercial.empresa_razao_social", "empresa_razao_social", "Razão Social", "Razão social completa da empresa integradora", "-", "Mais Energia Solar Ltda"),
+  v("comercial", "comercial.empresa_nome_fantasia", "empresa_nome_fantasia", "Nome Fantasia", "Nome fantasia da empresa integradora", "-", "Mais Energia Solar"),
   v("comercial", "comercial.empresa_cnpj_cpf", "empresa_cnpj_cpf", "CNPJ/CPF do integrador", "CNPJ ou CPF da empresa", "-", "44.490.706/0001-54"),
   v("comercial", "comercial.empresa_cidade", "empresa_cidade", "Cidade do integrador", "Cidade da empresa", "-", "Belo Horizonte"),
   v("comercial", "comercial.empresa_estado", "empresa_estado", "Estado do integrador", "Estado da empresa", "-", "MG"),
-  v("comercial", "comercial.empresa_endereco", "empresa_endereco", "Endereço do integrador", "Endereço completo da empresa", "-", "Rua Solar, 100", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.empresa_telefone", "empresa_telefone", "Telefone do integrador", "Telefone da empresa", "-", "(31) 3333-0000", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
-  v("comercial", "comercial.empresa_email", "empresa_email", "E-mail do integrador", "Email da empresa", "-", "contato@solartech.com", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.empresa_endereco", "empresa_endereco", "Endereço do integrador", "Endereço completo da empresa", "-", "Rua Solar, 100"),
+  v("comercial", "comercial.empresa_telefone", "empresa_telefone", "Telefone do integrador", "Telefone da empresa", "-", "(31) 3333-0000"),
+  v("comercial", "comercial.empresa_email", "empresa_email", "E-mail do integrador", "Email da empresa", "-", "contato@solartech.com"),
   v("comercial", "comercial.empresa_logo_url", "empresa_logo_url", "Logo da empresa", "URL do logotipo da empresa", "-", "https://..."),
   v("comercial", "comercial.empresa_cep", "empresa_cep", "CEP do integrador", "CEP da empresa", "-", "30130-000", "BT e MT", { escopo: "documento" }),
   v("comercial", "comercial.empresa_bairro", "empresa_bairro", "Bairro do integrador", "Bairro da empresa", "-", "Centro", "BT e MT", { escopo: "documento" }),
@@ -1118,7 +1121,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ── Proposta (complementares — implementadas) ──
   v("comercial", "comercial.proposta_num", "proposta_num", "Número da Proposta", "Número sequencial da proposta", "-", "42"),
   v("comercial", "comercial.proposta_status", "proposta_status", "Status da Proposta", "Status atual da proposta (rascunho, enviada, aceita, etc.)", "-", "enviada"),
-  v("comercial", "comercial.proposta_link_pdf", "proposta_link_pdf", "Link do PDF da Proposta", "URL para download do PDF da proposta", "-", "https://...", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.proposta_link_pdf", "proposta_link_pdf", "Link do PDF da Proposta", "URL para download do PDF da proposta", "-", "https://..."),
+  v("comercial", "comercial.proposta_link_interativo", "proposta_link_interativo", "Link Interativo da Proposta", "URL de visualização interativa da proposta (alias de proposta_link)", "-", "https://..."),
   v("comercial", "comercial.proposta_aceita_at", "proposta_aceita_at", "Data de Aceite da Proposta", "Data em que a proposta foi aceita pelo cliente", "data", "15/03/2026"),
   v("comercial", "comercial.proposta_enviada_at", "proposta_enviada_at", "Data de Envio da Proposta", "Data em que a proposta foi enviada ao cliente", "data", "10/03/2026"),
   v("comercial", "comercial.proposta_recusa_motivo", "proposta_recusa_motivo", "Motivo de Recusa", "Motivo pelo qual a proposta foi recusada", "-", "Preço elevado"),
@@ -1138,7 +1142,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.proposta_versao_status", "proposta_versao_status", "Status da Versão", "Status da versão da proposta (rascunho, enviada, aceita)", "-", "enviada"),
 
   // ── Projeto (detalhes — implementadas) ──
-  v("comercial", "comercial.projeto_tipo_instalacao", "projeto_tipo_instalacao", "Tipo de Instalação", "Tipo de instalação do projeto (Residencial, Comercial, etc.)", "-", "Residencial", "BT e MT", { notImplemented: true }),
+  v("comercial", "comercial.projeto_tipo_instalacao", "projeto_tipo_instalacao", "Tipo de Instalação", "Tipo de instalação do projeto (Residencial, Comercial, etc.)", "-", "Residencial"),
   v("comercial", "comercial.projeto_valor_equipamentos", "projeto_valor_equipamentos", "Valor Equipamentos", "Valor total dos equipamentos do projeto", "R$", "30000.00"),
   v("comercial", "comercial.projeto_valor_mao_obra", "projeto_valor_mao_obra", "Valor Mão de Obra", "Valor da mão de obra do projeto", "R$", "8000.00"),
   v("comercial", "comercial.projeto_data_venda", "projeto_data_venda", "Data da Venda", "Data de fechamento da venda", "data", "01/03/2026"),
@@ -1181,7 +1185,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ── Consultor (complementares) ──
   v("comercial", "comercial.consultor_telefone", "consultor_telefone", "Telefone do Consultor", "Telefone de contato do consultor", "-", "(31) 99999-0000"),
   v("comercial", "comercial.consultor_email", "consultor_email", "Email do Consultor", "Email de contato do consultor", "-", "consultor@empresa.com"),
-  v("comercial", "comercial.consultor_codigo", "consultor_codigo", "Código do Consultor", "Código identificador do consultor", "-", "CONS-001", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.consultor_codigo", "consultor_codigo", "Código do Consultor", "Código identificador do consultor", "-", "CONS-001"),
 
   // ── Concessionária (detalhes — implementadas) ──
   v("comercial", "comercial.concessionaria_sigla", "concessionaria_sigla", "Sigla da Concessionária", "Sigla/abreviação da concessionária", "-", "CEMIG"),
@@ -1201,7 +1205,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.simulacao_tipo_conta", "simulacao_tipo_conta", "Tipo de Conta", "Tipo de conta de energia da simulação", "-", "Residencial"),
 
   // ── Cliente (aspiracional) ──
-  v("comercial", "comercial.cliente_observacoes", "cliente_observacoes", "Observações do Cliente", "Observações e notas sobre o cliente", "-", "Cliente preferencial", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
+  v("comercial", "comercial.cliente_observacoes", "cliente_observacoes", "Observações do Cliente", "Observações e notas sobre o cliente", "-", "Cliente preferencial"),
 
   // ── Representante Legal da Empresa (implementadas) ──
   v("comercial", "comercial.empresa_representante_legal", "empresa_representante_legal", "Representante Legal", "Nome do representante legal da empresa", "-", "Carlos Alberto Silva"),
@@ -1214,6 +1218,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.nome", "cliente_nome", "Nome", "Nome completo do cliente", "", "José da Silva"),
   v("cliente", "cliente.empresa", "cliente_empresa", "Empresa do cliente", "Empresa/razão social do cliente", "", "Fazenda Boa Vista"),
   v("cliente", "cliente.cnpj_cpf", "cliente_cnpj_cpf", "CPF/CNPJ", "CPF ou CNPJ do cliente", "", "123.456.789-00"),
+  v("cliente", "cliente.tipo_pessoa", "cliente_tipo_pessoa", "Tipo de Pessoa", "PF ou PJ — derivado do CPF/CNPJ", "-", "PF"),
   v("cliente", "cliente.email", "cliente_email", "Email", "Email do cliente", "", "jose@email.com"),
   v("cliente", "cliente.celular", "cliente_celular", "Celular", "Celular do cliente", "", "(31) 99999-1234"),
   v("cliente", "cliente.cep", "cliente_cep", "CEP", "CEP do cliente", "", "30130-000"),
@@ -1223,7 +1228,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.bairro", "cliente_bairro", "Bairro", "Bairro do cliente", "", "Centro"),
   v("cliente", "cliente.cidade", "cliente_cidade", "Cidade", "Cidade do cliente", "", "Belo Horizonte"),
   v("cliente", "cliente.estado", "cliente_estado", "Estado", "Estado/UF do cliente", "", "MG"),
-  v("cliente", "cliente.data_nascimento", "cliente_data_nascimento", "Data de Nascimento", "Data de nascimento do cliente", "data", "15/05/1985", "BT e MT", { notImplemented: true }),
+  v("cliente", "cliente.data_nascimento", "cliente_data_nascimento", "Data de Nascimento", "Data de nascimento do cliente", "data", "15/05/1985"),
   v("cliente", "cliente.potencia_kwp", "cliente_potencia_kwp", "Potência Instalada (kWp)", "Potência do sistema instalado no cliente", "kWp", "8.2", "BT e MT", { notImplemented: true }),
   v("cliente", "cliente.valor_projeto", "cliente_valor_projeto", "Valor do Projeto", "Valor total do projeto do cliente", "R$", "45000.00", "BT e MT", { notImplemented: true }),
   v("cliente", "cliente.data_instalacao", "cliente_data_instalacao", "Data de Instalação", "Data de instalação do sistema do cliente", "data", "20/03/2026", "BT e MT", { notImplemented: true }),
@@ -1494,10 +1499,10 @@ export const DEFAULT_CUSTOM_VARIABLES: Array<{
   {
     nome: "vc_saldo_renda_fixa_25_anos",
     label: "Saldo renda fixa 25 anos",
-    expressao: "[preco_total] * 1.08",
+    expressao: "[preco_total]*(1+0.074)^25",
     tipo_resultado: "currency",
     categoria: "financeiro",
-    descricao: "Investimento equivalente em renda fixa por 25 anos",
+    descricao: "Investimento equivalente em renda fixa por 25 anos (7,4% a.a.)",
   },
   {
     nome: "vc_roi_primeiro_mes",

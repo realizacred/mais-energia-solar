@@ -17,7 +17,7 @@ export function useReopenLead(onSuccess?: () => void) {
         return false;
       }
 
-      console.debug(`[useReopenLead] Reopening lead ${leadId} to status "${reopenTarget.nome}" (id=${reopenTarget.id})`);
+      // console.debug(`[useReopenLead] Reopening lead ${leadId} to status "${reopenTarget.nome}" (id=${reopenTarget.id})`);
 
       // Reset lead status
       await supabase

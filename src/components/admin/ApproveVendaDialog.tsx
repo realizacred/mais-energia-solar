@@ -290,21 +290,19 @@ export function ApproveVendaDialog({
     ? (cliente.localizacao.includes("google.com/maps") ? "Link de localização informado" : cliente.localizacao)
     : "—";
 
-  console.debug("[ApproveVendaDialog] data:", {
-    selectedSimulacaoId,
-    selectedSim,
-    firstSim,
-    clienteSimulacoes: cliente.simulacoes,
-    leadMediaConsumo: cliente.leads?.media_consumo,
-    orcConsumo,
-    potencia, consumo, valorProposta, geracaoMensal, economiaMensal, paybackMeses,
-    disjuntorInfo, transformadorInfo, localizacaoInfo,
-    transformador_id: cliente.transformador_id,
-    transformadores_raw: cliente.transformadores,
-    disjuntor_id: cliente.disjuntor_id,
-    disjuntores_raw: cliente.disjuntores,
-    documents,
-  });
+  // console.debug("[ApproveVendaDialog] data:", {
+  //   selectedSimulacaoId, selectedSim, firstSim,
+  //   clienteSimulacoes: cliente.simulacoes,
+  //   leadMediaConsumo: cliente.leads?.media_consumo,
+  //   orcConsumo, potencia, consumo, valorProposta,
+  //   geracaoMensal, economiaMensal, paybackMeses,
+  //   disjuntorInfo, transformadorInfo, localizacaoInfo,
+  //   transformador_id: cliente.transformador_id,
+  //   transformadores_raw: cliente.transformadores,
+  //   disjuntor_id: cliente.disjuntor_id,
+  //   disjuntores_raw: cliente.disjuntores,
+  //   documents,
+  // });
 
   const valorComissao = () => {
     const base = valorVenda || 0;

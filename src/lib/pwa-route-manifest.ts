@@ -57,5 +57,5 @@ export function applyRouteManifest() {
     document.head.appendChild(meta);
   }
 
-  console.log("[PWA] applyRouteManifest →", { path, manifestHref, themeColor });
+  // console.log("[PWA] applyRouteManifest →", { path, manifestHref, themeColor });
 }
