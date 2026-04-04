@@ -1412,39 +1412,35 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   {/* ─ Histórico Tab ──────────── */}
                   <TabsContent value="historico" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
-                      {auditLogs.length === 0 ? (
+                      {mergedTimeline.length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-8">Nenhum registro de histórico encontrado</p>
                       ) : (
                         <div className="relative pl-6">
                           {/* Timeline line */}
                           <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-primary/20" />
 
-                          {auditLogs.map((log) => {
-                            const audit = getAuditMeta(log.acao, log.tabela);
-                            const userName = log.user_email === "sistema"
-                              ? "SISTEMA"
-                              : log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
-                            const dateStr = formatDate(log.created_at);
-                            const timeStr = formatTime(log.created_at);
+                          {mergedTimeline.map((entry) => {
+                            const dateStr = formatDate(entry.created_at);
+                            const timeStr = formatTime(entry.created_at);
 
                             return (
-                              <div key={log.id} className="relative flex gap-3 pb-5 last:pb-0">
+                              <div key={entry.id} className="relative flex gap-3 pb-5 last:pb-0">
                                 {/* Timeline dot */}
                                 <div className="absolute -left-6 mt-1">
-                                  <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", audit.dotClass)}>
-                                    {audit.icon}
+                                  <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", entry.dotClass)}>
+                                    {entry.icon}
                                   </div>
                                 </div>
 
                                 {/* Content */}
                                 <div className="min-w-0">
-                                  <p className="text-xs font-bold text-foreground">{userName}</p>
+                                  <p className="text-xs font-bold text-foreground">{entry.userName}</p>
                                   <p className="text-[10px] text-muted-foreground">{dateStr} às {timeStr}</p>
                                   <p className="text-xs mt-0.5 flex items-center gap-1.5">
-                                    <span className={cn("h-4 w-4 rounded-full flex items-center justify-center shrink-0", audit.badgeClass)}>
-                                      {audit.icon}
+                                    <span className={cn("h-4 w-4 rounded-full flex items-center justify-center shrink-0", entry.badgeClass)}>
+                                      {entry.icon}
                                     </span>
-                                    <span className="text-foreground">{audit.label}</span>
+                                    <span className="text-foreground">{entry.label}</span>
                                   </p>
                                 </div>
                               </div>
