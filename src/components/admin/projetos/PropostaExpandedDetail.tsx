@@ -33,6 +33,7 @@ import { ClonePropostaModal } from "./ClonePropostaModal";
 import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
 import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaAuditLogs, type UCDetailData } from "@/hooks/usePropostaExpandedData";
 import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
+import { useProposalTemplates } from "@/hooks/useProposalTemplates";
 
 // ─── Types ──────────────────────────────────────────
 
