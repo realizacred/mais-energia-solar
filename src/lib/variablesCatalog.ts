@@ -546,7 +546,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("entrada", "entrada.custo_disponibilidade_kwh_uc1", "custo_disponibilidade_kwh_uc1", "Custo de Disponibilidade UC #", "Custo de disponibilidade por UC (BT)", "kWh", "100", "BT"),
   v("entrada", "entrada.topologia", "topologia", "Topologia", "Microinversor, String, etc.", "-", "Microinversor"),
   v("entrada", "entrada.fator_simultaneidade", "fator_simultaneidade", "Fator de Simultaneidade", "Fator de simultaneidade para autoconsumo", "%", "10"),
-  v("entrada", "entrada.qtd_ucs", "qtd_ucs", "Qtd. de UCs", "Quantidade total de unidades consumidoras (alias)", "-", "2"),
+  // qtd_ucs removido daqui — canônico em sistema_solar.qtd_ucs (linha 706)
   v("entrada", "entrada.num_ucs", "num_ucs", "Número de UCs", "Quantidade total de unidades consumidoras no projeto", "-", "3"),
 
   // ── Rateio de Créditos ──
