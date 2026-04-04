@@ -725,7 +725,7 @@ export default function PropostaLanding() {
               </div>
               <div className="info-box">
                 <p className="info-label">Geração Prevista</p>
-                <p className="info-value">{s.geracaoMensalEstimada} kWh/mês</p>
+                <p className="info-value">{geracaoBase} kWh/mês</p>
               </div>
               <div className="info-box">
                 <p className="info-label">Aumento</p>
