@@ -107,7 +107,8 @@ export function usePendingValidations() {
 
       const leadIds = leads.map((l) => l.id);
 
-      const { data, error } = await supabase
+      // 1) Fetch clients that have a matching lead
+      const { data: clienteData, error } = await supabase
         .from("clientes")
         .select(`
           id,
@@ -138,15 +139,62 @@ export function usePendingValidations() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      const items = (data as unknown as PendingValidation[]) || [];
-      console.debug("[usePendingValidations] fetched", items.length, "items. Sample:", items[0] && {
-        identidade_urls: items[0].identidade_urls,
-        comprovante_endereco_urls: items[0].comprovante_endereco_urls,
-        comprovante_beneficiaria_urls: items[0].comprovante_beneficiaria_urls,
-        lead_arquivos: items[0].leads?.arquivos_urls,
-        simulacoes: items[0].simulacoes,
-        media_consumo: items[0].leads?.media_consumo,
-      });
+      const clienteItems = (clienteData as unknown as PendingValidation[]) || [];
+
+      // 2) Find leads WITHOUT a client record — show them directly
+      const coveredLeadIds = new Set(clienteItems.map((c) => c.lead_id).filter(Boolean));
+      const orphanLeadIds = leadIds.filter((id) => !coveredLeadIds.has(id));
+
+      let orphanItems: PendingValidation[] = [];
+      if (orphanLeadIds.length > 0) {
+        const { data: orphanLeads } = await supabase
+          .from("leads")
+          .select(`
+            id, nome, telefone, cidade, estado, created_at,
+            lead_code, consultor, consultor_id, media_consumo, arquivos_urls,
+            consultores:consultor_id(id, nome)
+          `)
+          .in("id", orphanLeadIds)
+          .order("created_at", { ascending: false });
+
+        if (orphanLeads) {
+          orphanItems = orphanLeads.map((lead: any) => ({
+            id: `lead-${lead.id}`,
+            nome: lead.nome,
+            telefone: lead.telefone || "",
+            cidade: lead.cidade || null,
+            estado: lead.estado || null,
+            created_at: lead.created_at,
+            lead_id: lead.id,
+            simulacao_aceita_id: null,
+            potencia_kwp: null,
+            valor_projeto: null,
+            disjuntor_id: null,
+            transformador_id: null,
+            localizacao: null,
+            assinatura_url: null,
+            identidade_url: null,
+            identidade_urls: null,
+            comprovante_endereco_url: null,
+            comprovante_endereco_urls: null,
+            comprovante_beneficiaria_urls: null,
+            disjuntores: null,
+            transformadores: null,
+            leads: {
+              consultor: lead.consultor,
+              consultor_id: lead.consultor_id,
+              lead_code: lead.lead_code,
+              media_consumo: lead.media_consumo,
+              arquivos_urls: lead.arquivos_urls,
+              consultores: lead.consultores || null,
+              orcamentos: null,
+            },
+            simulacoes: null,
+          }));
+        }
+      }
+
+      const items = [...clienteItems, ...orphanItems];
       setPendingItems(items);
       setPendingCount(items.length);
     } catch (error) {
