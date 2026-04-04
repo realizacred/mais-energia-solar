@@ -359,7 +359,7 @@ export default function PropostaLanding() {
           <div style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(239,68,68,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <XCircle style={{ width: 40, height: 40, color: "#ef4444" }} />
           </div>
-          <h2 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Recusada</h2>
+          <h2 style={{ fontFamily: "var(--font-heading, Montserrat, sans-serif)", fontWeight: 800, fontSize: "1.6rem" }}>Proposta Recusada</h2>
           <p style={{ color: "rgba(255,255,255,0.6)", textAlign: "center", maxWidth: 400 }}>
             Sua resposta foi registrada. A equipe comercial será notificada.
           </p>
