@@ -76,6 +76,10 @@ export function ProjectAddressFields({
     if (!isAddressEmpty(address) && addressMatchesClient(address, clienteData)) {
       if (!sameAsClient) setSameAsClient(true);
       didAutoApplyRef.current = true;
+      // Trigger geocoding if coordinates are missing
+      if (!address.lat && address.cidade) {
+        forwardGeocode(address);
+      }
       return;
     }
 
