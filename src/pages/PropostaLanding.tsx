@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatBRLInteger } from "@/lib/formatters";
 import { TemplateHtmlRenderer } from "@/components/proposal-landing/TemplateHtmlRenderer";
