@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo } from "react";
-import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send } from "lucide-react";
+import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/dateUtils";
@@ -80,6 +82,56 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
   const deleteMutation = useDeletarArquivo(dealId);
   const generateMutation = useGerarDocumento(dealId);
   const signMutation = useEnviarParaAssinatura(dealId);
+
+  const queryClient = useQueryClient();
+  const deleteDocMutation = useMutation({
+    mutationFn: async (docId: string) => {
+      const { error } = await supabase
+        .from("generated_documents")
+        .delete()
+        .eq("id", docId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-documentos-generated", dealId] });
+      toast({ title: "Documento excluído" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const previewDoc = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from("document-files")
+      .createSignedUrl(path, 3600);
+    if (error || !data) {
+      toast({ title: "Erro ao abrir preview", variant: "destructive" });
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  };
+
+  const previewUpload = async (fileName: string) => {
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    try {
+      const tenantId = (await supabase.from("profiles").select("tenant_id").limit(1).single()).data?.tenant_id;
+      if (!tenantId) return;
+      const path = `${tenantId}/deals/${dealId}/${fileName}`;
+      const { data } = await supabase.storage.from("projeto-documentos").createSignedUrl(path, 3600);
+      if (!data?.signedUrl) return;
+      if (["pdf", "png", "jpg", "jpeg", "webp"].includes(ext || "")) {
+        window.open(data.signedUrl, "_blank");
+      } else {
+        const a = document.createElement("a");
+        a.href = data.signedUrl;
+        a.download = fileName;
+        a.click();
+      }
+    } catch {
+      toast({ title: "Erro ao abrir arquivo", variant: "destructive" });
+    }
+  };
 
   const loading = loadingFiles || loadingDocs;
 
@@ -183,6 +235,17 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
                       <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                         {hasPdf && (
                           <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Visualizar PDF"
+                            onClick={() => previewDoc(doc.pdf_path!)}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {hasPdf && (
+                          <Button
                             variant="outline"
                             size="sm"
                             className="h-8 gap-1.5"
@@ -217,6 +280,20 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
                             {signMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive/60 hover:text-destructive"
+                          title="Excluir documento"
+                          disabled={deleteDocMutation.isPending}
+                          onClick={() => {
+                            if (confirm("Excluir este documento?")) {
+                              deleteDocMutation.mutate(doc.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                       {sigStatus ? (
                         <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 shrink-0", sigStatus.color)}>
@@ -263,7 +340,7 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
         ) : (
           <div className="space-y-1">
             {files.map(f => (
-              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
+              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all cursor-pointer" onClick={() => previewUpload(f.name)}>
                 <FileText className="h-4 w-4 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
@@ -272,14 +349,17 @@ export function DocumentosTab({ dealId }: DocumentosTabProps) {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => downloadArquivo(dealId, f.name)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Visualizar" onClick={(e) => { e.stopPropagation(); previewUpload(f.name); }}>
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar" onClick={(e) => { e.stopPropagation(); downloadArquivo(dealId, f.name); }}>
                     <Download className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => deleteMutation.mutate(f.name)}
+                    onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(f.name); }}
                     disabled={deleteMutation.isPending}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
