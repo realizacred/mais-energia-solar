@@ -1101,6 +1101,12 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.empresa_telefone", "empresa_telefone", "Telefone do integrador", "Telefone da empresa", "-", "(31) 3333-0000", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.empresa_email", "empresa_email", "E-mail do integrador", "Email da empresa", "-", "contato@solartech.com", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
   v("comercial", "comercial.empresa_logo_url", "empresa_logo_url", "Logo da empresa", "URL do logotipo da empresa", "-", "https://..."),
+  v("comercial", "comercial.empresa_cep", "empresa_cep", "CEP do integrador", "CEP da empresa", "-", "30130-000", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_bairro", "empresa_bairro", "Bairro do integrador", "Bairro da empresa", "-", "Centro", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_numero", "empresa_numero", "Número do integrador", "Número do endereço da empresa", "-", "100", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_complemento", "empresa_complemento", "Complemento do integrador", "Complemento do endereço da empresa", "-", "Sala 201", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_inscricao_estadual", "empresa_inscricao_estadual", "Inscrição Estadual", "Inscrição estadual da empresa", "-", "062.307.904/0081", "BT e MT", { escopo: "documento" }),
+  v("comercial", "comercial.empresa_inscricao_municipal", "empresa_inscricao_municipal", "Inscrição Municipal", "Inscrição municipal da empresa", "-", "0123456", "BT e MT", { escopo: "documento" }),
 
   // ── Deal / Negócio (aspiracional — sem modelo no banco) ──
   v("comercial", "comercial.deal_title", "deal_title", "Título do Projeto", "Título do deal/negócio no pipeline", "-", "Projeto Solar Residencial", "BT e MT", { notImplemented: true, escopo: "aspiracional" }),
