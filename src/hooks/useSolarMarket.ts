@@ -124,6 +124,7 @@ export interface SmSyncLog {
   total_errors: number;
   started_at: string;
   finished_at: string | null;
+  error_message: string | null;
 }
 
 export interface SmFunnel {
@@ -323,7 +324,7 @@ export function useSmSyncLogs() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("solar_market_sync_logs")
-        .select("id, sync_type, status, total_fetched, total_upserted, total_errors, started_at, finished_at")
+        .select("id, sync_type, status, total_fetched, total_upserted, total_errors, started_at, finished_at, error_message")
         .order("started_at", { ascending: false })
         .limit(20);
       if (error) throw error;
