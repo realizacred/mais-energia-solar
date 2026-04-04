@@ -28,6 +28,7 @@ import {
   BarChart3, Calendar, CreditCard, Banknote, TreePine,
   Activity, Clock, Factory, FileText, Users,
 } from "lucide-react";
+import { PropostaChatSection } from "@/components/proposal-landing/PropostaChatSection";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    CSS variables + fonts inline
