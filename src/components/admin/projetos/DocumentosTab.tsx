@@ -170,6 +170,8 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
                   const statusCfg = DOC_STATUS_MAP[doc.status] || DOC_STATUS_MAP.draft;
                   const hasDocx = !!doc.docx_filled_path;
                   const hasPdf = !!doc.pdf_path;
+                  const sigStatus = doc.signature_status ? SIGNATURE_STATUS_MAP[doc.signature_status] : null;
+                  const canSendForSignature = doc.status === "generated" && hasPdf && doc.signature_status !== "signed" && doc.signature_status !== "sent";
 
                   return (
                     <div key={doc.id} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
@@ -203,10 +205,28 @@ export function DocumentosTab({ dealId, customerId }: DocumentosTabProps) {
                             <FileText className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         )}
+                        {canSendForSignature && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-primary"
+                            title="Enviar para assinatura"
+                            onClick={() => setSignConfirmDoc(doc)}
+                            disabled={signMutation.isPending}
+                          >
+                            {signMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
                       </div>
-                      <Badge className={cn("text-[10px] h-5 px-1.5 border-0 shrink-0", statusCfg.color)}>
-                        {statusCfg.label}
-                      </Badge>
+                      {sigStatus ? (
+                        <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 shrink-0", sigStatus.color)}>
+                          {sigStatus.label}
+                        </Badge>
+                      ) : (
+                        <Badge className={cn("text-[10px] h-5 px-1.5 border-0 shrink-0", statusCfg.color)}>
+                          {statusCfg.label}
+                        </Badge>
+                      )}
                     </div>
                   );
                 })}
