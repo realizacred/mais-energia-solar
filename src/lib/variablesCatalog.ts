@@ -1240,6 +1240,10 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cliente", "cliente.estado_civil", "cliente_estado_civil", "Estado Civil", "Estado civil do cliente", "-", "Casado(a)", "BT e MT", { escopo: "documento" }),
   v("cliente", "cliente.nacionalidade", "cliente_nacionalidade", "Nacionalidade", "Nacionalidade do cliente", "-", "Brasileiro(a)", "BT e MT", { escopo: "documento" }),
   v("cliente", "cliente.profissao", "cliente_profissao", "Profissão", "Profissão/ocupação do cliente", "-", "Engenheiro", "BT e MT", { escopo: "documento" }),
+  v("cliente", "cliente.telefone", "cliente_telefone", "Telefone", "Telefone do cliente", "-", "(31) 99999-1234"),
+  v("cliente", "cliente.cpf_cnpj", "cliente_cpf_cnpj", "CPF/CNPJ (flat)", "CPF ou CNPJ (alias flat)", "-", "123.456.789-00"),
+  v("cliente", "cliente.rua", "cliente_rua", "Rua", "Rua/logradouro do cliente", "-", "Rua das Flores"),
+  v("cliente", "cliente.codigo", "cliente_codigo", "Código do Cliente", "Código de identificação do cliente", "-", "CLI-001"),
 
   // ──────────────────────────────────────────────────────────────
   // CONTRATO
