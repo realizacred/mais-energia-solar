@@ -662,6 +662,14 @@
   .kanban-card--lost {
     @apply opacity-50;
   }
+  .kanban-card--proposal-accepted {
+    background: hsl(var(--success) / 0.05);
+    border-color: hsl(var(--success) / 0.25);
+  }
+  .kanban-card--proposal-accepted .kanban-card__top-bar {
+    height: 4px;
+    background: linear-gradient(90deg, hsl(var(--success)), hsl(var(--success) / 0.6));
+  }
   .kanban-card--proposal-rejected {
     background: hsl(var(--destructive) / 0.05);
     border-color: hsl(var(--destructive) / 0.2);

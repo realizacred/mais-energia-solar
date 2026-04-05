@@ -16,7 +16,7 @@ import {
   Zap, FileText, MessageSquare, TrendingDown,
   Clock, Phone, StickyNote, Archive,
   UserPlus, Tag, Copy, ExternalLink,
-  Calendar,
+  Calendar, CheckCircle2,
 } from "lucide-react";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import type { DealKanbanCard } from "@/hooks/useDealPipeline";
@@ -136,22 +136,25 @@ export function StageDealCard({
   const isWonLost = deal.deal_status === "won" || deal.deal_status === "lost";
   const normalizedProposalStatus = deal.proposta_status?.toLowerCase() ?? "";
   const isPropostaRecusada = hasActiveProposal && ["recusada", "rejeitada", "perdida", "rejected"].includes(normalizedProposalStatus);
+  const isPropostaAceita = hasActiveProposal && ["aceita", "accepted", "aprovada", "ganha"].includes(normalizedProposalStatus);
   const hasEtiquetaColor = !!etiquetaCfg?.cor;
   const borderClass = isWonLost
     ? (deal.deal_status === "won" ? "kanban-card--won" : "kanban-card--lost")
-    : isPropostaRecusada
-      ? "kanban-card--proposal-rejected"
-      : stagnation === "critical"
-        ? "kanban-card--stagnation-critical"
-        : stagnation === "warning"
-          ? "kanban-card--stagnation-warning"
-          : hasEtiquetaColor
-            ? "kanban-card--etiqueta"
-            : propostaInfo
-              ? "kanban-card--has-proposal"
-              : "kanban-card--no-proposal";
+    : isPropostaAceita
+      ? "kanban-card--proposal-accepted"
+      : isPropostaRecusada
+        ? "kanban-card--proposal-rejected"
+        : stagnation === "critical"
+          ? "kanban-card--stagnation-critical"
+          : stagnation === "warning"
+            ? "kanban-card--stagnation-warning"
+            : hasEtiquetaColor
+              ? "kanban-card--etiqueta"
+              : propostaInfo
+                ? "kanban-card--has-proposal"
+                : "kanban-card--no-proposal";
 
-  const topBarStyle = hasEtiquetaColor && !isWonLost && !isPropostaRecusada && !stagnation
+  const topBarStyle = hasEtiquetaColor && !isWonLost && !isPropostaRecusada && !isPropostaAceita && !stagnation
     ? { background: `linear-gradient(90deg, ${etiquetaCfg.cor}, ${etiquetaCfg.cor}80)` }
     : undefined;
 
@@ -181,7 +184,13 @@ export function StageDealCard({
       {/* Top gradient bar */}
       <div className="kanban-card__top-bar" style={topBarStyle} />
 
-      <div className="px-2 pt-1.5 pb-2 space-y-1">
+      <div className="relative px-2 pt-1.5 pb-2 space-y-1">
+        {/* Accepted check icon */}
+        {isPropostaAceita && (
+          <div className="absolute top-1.5 right-2">
+            <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+          </div>
+        )}
         {/* HEADER: Avatar + Name + kWp badge */}
         <div className="flex items-center gap-2">
           <Avatar className="h-6 w-6 border border-border/40 shrink-0">
