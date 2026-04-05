@@ -69,6 +69,7 @@ export function resolveClienteComercial(
   const brand = ext?.brandSettings ?? {};
   const projeto = ext?.projetoData ?? {};
   const clienteData = ext?.clienteData ?? {};
+  const deal = ext?.dealData ?? {};
 
   const set = (k: string, v: unknown) => {
     const s = str(v);
@@ -96,6 +97,23 @@ export function resolveClienteComercial(
   set("cliente_observacoes", cliente.observacoes ?? clienteData.observacoes);
   const cpfCnpj = str(cliente.cpf_cnpj ?? clienteData.cpf_cnpj ?? snapCliente.cpf_cnpj);
   set("cliente_tipo_pessoa", cpfCnpj && cpfCnpj.length > 14 ? "PJ" : "PF");
+
+  // ── Cliente (campos projeto/instalação — da tabela clientes) ──
+  const cPotKwp = num(cliente.potencia_kwp ?? clienteData.potencia_kwp);
+  if (cPotKwp != null) set("cliente_potencia_kwp", fmtNum(cPotKwp));
+  const cValProjeto = num(cliente.valor_projeto ?? clienteData.valor_projeto);
+  if (cValProjeto != null) set("cliente_valor_projeto", fmtVal(cValProjeto));
+  set("cliente_data_instalacao", fmtDate(cliente.data_instalacao ?? clienteData.data_instalacao));
+  const cNumPlacas = num(cliente.numero_placas ?? clienteData.numero_placas);
+  if (cNumPlacas != null) set("cliente_numero_placas", String(cNumPlacas));
+  set("cliente_modelo_inversor", cliente.modelo_inversor ?? clienteData.modelo_inversor);
+
+  // ── Deal / Kanban ──
+  set("deal_title", deal.title ?? snap.deal_title);
+  set("deal_status", deal.status ?? snap.deal_status);
+  set("deal_etiqueta", deal.etiqueta ?? snap.deal_etiqueta);
+  set("deal_notas", deal.notas ?? snap.deal_notas);
+  set("deal_expected_close_date", fmtDate(deal.expected_close_date ?? snap.deal_expected_close_date));
 
   // ── Comercial ──
   const now = new Date();
@@ -174,6 +192,11 @@ export function resolveClienteComercial(
   set("projeto_observacoes", snap.observacoes ?? projeto.observacoes);
   set("projeto_tipo_instalacao", projeto.tipo_instalacao ?? snap.tipo_instalacao);
   set("projeto_codigo", projeto.codigo);
+  set("projeto_data_comissionamento", fmtDate(projeto.data_comissionamento));
+  set("projeto_prazo_estimado_dias", projeto.prazo_estimado_dias);
+  set("projeto_prazo_vistoria_dias", projeto.prazo_vistoria_dias);
+  set("projeto_lat_instalacao", projeto.lat_instalacao);
+  set("projeto_lon_instalacao", projeto.lon_instalacao);
 
   // ── Projeto (endereço de instalação) ──
   set("projeto_rua_instalacao", projeto.rua_instalacao ?? lead.rua ?? snapCliente.rua);
@@ -249,6 +272,7 @@ export function resolveClienteComercial(
   // Isenção SCEE derivada da regra GD
   const gdRegra = safeObj(snap.gd);
   set("concessionaria_possui_isencao_scee", gdRegra.regra ? "Sim" : "Não");
+  set("concessionaria_percentual_isencao", gdRegra.percentual_isencao ?? snap.percentual_isencao);
 
   // ── Simulação ──
   set("simulacao_tipo_conta", snap.subgrupo ?? "BT");
