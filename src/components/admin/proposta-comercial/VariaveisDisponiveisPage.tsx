@@ -654,12 +654,12 @@ export function VariaveisDisponiveisPage() {
     };
     const c = config[status];
     return (
-      <div className="flex items-center gap-1">
-        <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium", c.className)}>
+      <div className="flex flex-col gap-1">
+        <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium w-fit", c.className)}>
           {c.label}
         </Badge>
         {inDocx && (
-          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium">
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium w-fit">
             Em uso
           </Badge>
         )}
