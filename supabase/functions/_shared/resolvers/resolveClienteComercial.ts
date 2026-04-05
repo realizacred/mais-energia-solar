@@ -108,6 +108,13 @@ export function resolveClienteComercial(
   if (cNumPlacas != null) set("cliente_numero_placas", String(cNumPlacas));
   set("cliente_modelo_inversor", cliente.modelo_inversor ?? clienteData.modelo_inversor);
 
+  // ── Deal / Kanban ──
+  set("deal_title", deal.title ?? snap.deal_title);
+  set("deal_status", deal.status ?? snap.deal_status);
+  set("deal_etiqueta", deal.etiqueta ?? snap.deal_etiqueta);
+  set("deal_notas", deal.notas ?? snap.deal_notas);
+  set("deal_expected_close_date", fmtDate(deal.expected_close_date ?? snap.deal_expected_close_date));
+
   // ── Comercial ──
   const now = new Date();
   set("proposta_data", now.toLocaleDateString("pt-BR"));
