@@ -1122,7 +1122,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
 
   // ── Proposta (complementares — implementadas) ──
   v("comercial", "comercial.proposta_num", "proposta_num", "Número da Proposta", "Número sequencial da proposta", "-", "42"),
-  v("comercial", "comercial.proposta_status", "proposta_status", "Status da Proposta", "Status atual da proposta (rascunho, enviada, aceita, etc.)", "-", "enviada"),
+  // REMOVIDO: duplicata de proposta_status (já existe na linha 1086)
   v("comercial", "comercial.proposta_link_pdf", "proposta_link_pdf", "Link do PDF da Proposta", "URL para download do PDF da proposta", "-", "https://..."),
   v("comercial", "comercial.proposta_link_interativo", "proposta_link_interativo", "Link Interativo da Proposta", "URL de visualização interativa da proposta (alias de proposta_link)", "-", "https://..."),
   v("comercial", "comercial.proposta_aceita_at", "proposta_aceita_at", "Data de Aceite da Proposta", "Data em que a proposta foi aceita pelo cliente", "data", "15/03/2026"),
