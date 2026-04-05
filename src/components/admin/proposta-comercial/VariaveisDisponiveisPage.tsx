@@ -1087,7 +1087,7 @@ export function VariaveisDisponiveisPage() {
                   ].map((col) => (
                     <TableHead
                       key={col.key}
-                      className={cn("text-[10px] cursor-pointer hover:text-foreground select-none transition-colors", col.width)}
+                      className={cn("text-[10px] cursor-pointer hover:text-foreground select-none transition-colors whitespace-nowrap font-semibold", col.width)}
                       onClick={() => toggleSort(col.key)}
                     >
                       <span className="inline-flex items-center gap-1">
