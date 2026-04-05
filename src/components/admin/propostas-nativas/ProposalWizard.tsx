@@ -1302,7 +1302,7 @@ export function ProposalWizard() {
         toast({ title: "Erro ao salvar", description: res.reason || res.message, variant: "destructive" });
         break;
     }
-  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult]);
+  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, syncCustomFieldValues, resolvedDealId]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
