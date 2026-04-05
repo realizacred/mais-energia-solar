@@ -5,6 +5,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
+const BADGE_COLORS: Record<string, string> = {
+  "Lógicas": "bg-info/10 text-info border-info/20",
+  "Matemáticas": "bg-warning/10 text-warning border-warning/20",
+  "Texto": "bg-success/10 text-success border-success/20",
+  "Data": "bg-primary/10 text-primary border-primary/20",
+  "Operadores": "bg-muted text-muted-foreground border-border",
+};
+
 const FUNCTION_GROUPS = [
   {
     group: "Lógicas",
@@ -75,7 +83,7 @@ interface FunctionsReferenceModalProps {
 export function FunctionsReferenceModal({ open, onOpenChange }: FunctionsReferenceModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+      <DialogContent className="w-[90vw] max-w-5xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="p-5 pb-4 border-b border-border shrink-0">
           <DialogTitle className="text-base font-semibold text-foreground">
             Funções Disponíveis no Motor de Expressões
@@ -85,31 +93,26 @@ export function FunctionsReferenceModal({ open, onOpenChange }: FunctionsReferen
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="flex-1 min-h-0">
-          <div className="p-5 space-y-6">
+          <div className="p-5 space-y-5">
             {FUNCTION_GROUPS.map((g) => (
               <div key={g.group}>
-                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px] px-2 py-0 h-5 bg-primary/10 text-primary border-primary/20">{g.group}</Badge>
-                </h3>
-                <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-muted/50">
-                        <th className="text-left px-3 py-2 font-semibold text-foreground w-[100px]">Função</th>
-                        <th className="text-left px-3 py-2 font-semibold text-foreground">Sintaxe</th>
-                        <th className="text-left px-3 py-2 font-semibold text-foreground">Exemplo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {g.fns.map((fn) => (
-                        <tr key={fn.name} className="border-t border-border hover:bg-muted/30">
-                          <td className="px-3 py-2 font-mono font-semibold text-primary">{fn.name}</td>
-                          <td className="px-3 py-2 font-mono text-muted-foreground">{fn.syntax}</td>
-                          <td className="px-3 py-2 font-mono text-foreground">{fn.example}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="mb-2">
+                  <Badge variant="outline" className={`text-xs px-2.5 py-0.5 h-6 font-semibold ${BADGE_COLORS[g.group] || "bg-muted text-muted-foreground border-border"}`}>
+                    {g.group}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                  {g.fns.map((fn) => (
+                    <div key={fn.name} className="flex items-baseline gap-3 py-1.5 border-b border-border/30 last:border-b-0">
+                      <div className="flex-1 min-w-0">
+                        <span className="font-mono font-semibold text-sm text-primary">{fn.name}</span>
+                        <span className="text-sm text-muted-foreground ml-2">{fn.syntax}</span>
+                      </div>
+                      <code className="text-xs font-mono text-foreground bg-muted/50 px-2 py-0.5 rounded shrink-0 max-w-[50%] truncate" title={fn.example}>
+                        {fn.example}
+                      </code>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
