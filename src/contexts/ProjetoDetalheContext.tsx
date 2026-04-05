@@ -422,6 +422,8 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
 
   // ── Realtime subscription ──
   useEffect(() => {
+    if (!dealId) return;
+
     const channel = supabase
       .channel(`deal-${dealId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "deals", filter: `id=eq.${dealId}` }, () => {
@@ -429,6 +431,12 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "deal_stage_history", filter: `deal_id=eq.${dealId}` }, () => {
         queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "clientes" }, () => {
+        queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
+        queryClient.invalidateQueries({ queryKey: ["clientes"] });
+        queryClient.invalidateQueries({ queryKey: ["clientes_list"] });
+        queryClient.invalidateQueries({ queryKey: ["clientes-ativos"] });
       })
       .subscribe();
 
