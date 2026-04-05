@@ -738,7 +738,15 @@ function GerenciamentoTab({
     if (inlineEditField === "telefone" && trimmed) {
       const digitsOnly = trimmed.replace(/\D/g, "");
       if (digitsOnly.length < 10 || digitsOnly.length > 11) {
-        toast({ title: "Telefone inválido", description: "Digite um telefone válido com DDD", variant: "destructive" });
+        toast({ title: "Telefone inválido", description: "Informe DDD + número", variant: "destructive" });
+        return;
+      }
+    }
+
+    // Validate CPF/CNPJ
+    if (inlineEditField === "cpf_cnpj" && trimmed) {
+      if (!isValidCpfCnpj(trimmed)) {
+        toast({ title: "CPF/CNPJ inválido", description: "Verifique o número informado", variant: "destructive" });
         return;
       }
     }
