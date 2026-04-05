@@ -184,7 +184,13 @@ export function StageDealCard({
       {/* Top gradient bar */}
       <div className="kanban-card__top-bar" style={topBarStyle} />
 
-      <div className="px-2 pt-1.5 pb-2 space-y-1">
+      <div className="relative px-2 pt-1.5 pb-2 space-y-1">
+        {/* Accepted check icon */}
+        {isPropostaAceita && (
+          <div className="absolute top-1.5 right-2">
+            <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+          </div>
+        )}
         {/* HEADER: Avatar + Name + kWp badge */}
         <div className="flex items-center gap-2">
           <Avatar className="h-6 w-6 border border-border/40 shrink-0">
