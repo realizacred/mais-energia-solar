@@ -398,6 +398,51 @@ export function resolveFinanceiro(
         out["economia_mensal_p"] = fmtNum((econVal / gastoAtual) * 100, 1);
       }
     }
+
+    // ── Gasto mensal novo após solar ──
+    const econMensalResolved = num(out["economia_mensal"]?.replace(/\./g, "").replace(",", ".")) ?? 0;
+    const gastoNovo = Math.max(0, gastoAtual - econMensalResolved);
+    setCurIfMissing("gasto_total_mensal_novo", gastoNovo);
+    setCurIfMissing("gasto_energia_mensal_novo", gastoNovo);
+
+    // ── Séries anuais (25 anos) — calcular se não existirem no snapshot ──
+    const premissas = safeObj(snap.premissas);
+    const inflacaoEn = num(premissas.inflacao_energetica) ?? num(snap.inflacao_energetica) ?? 9.5;
+    const perdaEfic = num(premissas.perda_eficiencia_anual) ?? num(snap.perda_eficiencia_anual) ?? 0.8;
+    const precoTotalSeries = valorTotal ?? 0;
+    const trocaInvAnos = num(premissas.troca_inversor_anos) ?? num(snap.troca_inversor_anos) ?? 15;
+    const trocaInvCusto = num(premissas.troca_inversor_custo) ?? num(snap.troca_inversor_custo) ?? 30;
+    const geracaoRef = geracaoMensal ?? 0;
+
+    if (econMensalResolved > 0 || geracaoRef > 0) {
+      let fluxoAcumulado = -precoTotalSeries;
+      for (let i = 0; i <= 24; i++) {
+        const fatorPerda = Math.pow(1 - perdaEfic / 100, i);
+        const fatorInflacao = Math.pow(1 + inflacaoEn / 100, i);
+
+        // Geração anual
+        if (!out[`geracao_anual_${i}`] && geracaoRef > 0) {
+          const geracaoAnual = geracaoRef * 12 * fatorPerda;
+          out[`geracao_anual_${i}`] = fmtNum(geracaoAnual, 0);
+        }
+
+        // Economia anual + fluxo de caixa
+        if (!out[`economia_anual_valor_${i}`] && econMensalResolved > 0) {
+          let economiaAnual = econMensalResolved * 12 * fatorInflacao * fatorPerda;
+          if (i === trocaInvAnos) {
+            economiaAnual -= precoTotalSeries * (trocaInvCusto / 100);
+          }
+          out[`economia_anual_valor_${i}`] = fmtVal(economiaAnual);
+          fluxoAcumulado += economiaAnual;
+          if (!out[`fluxo_caixa_acumulado_anual_${i}`]) {
+            out[`fluxo_caixa_acumulado_anual_${i}`] = fmtVal(fluxoAcumulado);
+          }
+          if (!out[`investimento_anual_${i}`]) {
+            out[`investimento_anual_${i}`] = fmtVal(i === 0 ? -precoTotalSeries : 0);
+          }
+        }
+      }
+    }
   }
 
   // ── vc_aumento = ((geracao - consumo) / consumo) * 100 ──
