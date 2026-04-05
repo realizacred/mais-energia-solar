@@ -1287,6 +1287,7 @@ export function ProposalWizard() {
       case "success":
       case "reused":
         applyPersistResult(res);
+        syncCustomFieldValues(res.dealId || resolvedDealId);
         if (res.newVersionCreated) {
           toast({ title: "Nova versão criada", description: res.message });
         } else if (res.status !== "reused") {
