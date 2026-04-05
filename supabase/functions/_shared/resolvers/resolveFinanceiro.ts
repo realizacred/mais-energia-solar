@@ -368,8 +368,9 @@ export function resolveFinanceiro(
     ?? num(tecnico.consumo_total_kwh);
   if (geracaoMensal != null && consumoMensal != null && consumoMensal > 0) {
     const vcAumento = ((geracaoMensal - consumoMensal) / consumoMensal) * 100;
-    setCurIfMissing("vc_aumento", vcAumento);
-    if (!out["vc_aumento"]) out["vc_aumento"] = fmtNum(vcAumento, 1);
+    const vcAumentoStr = `${Math.round(vcAumento)}%`;
+    setCurIfMissing("vc_aumento", vcAumentoStr);
+    if (!out["vc_aumento"]) out["vc_aumento"] = vcAumentoStr;
   } else {
     // Passthrough fallback from snapshot
     set("vc_aumento", snap.vc_aumento ?? fin.vc_aumento);
