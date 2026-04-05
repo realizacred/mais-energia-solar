@@ -667,10 +667,6 @@ export function AuditTabContent({
         </div>
       </div>
 
-      {/* ════════════════════════════════════════════════════════ */}
-      {/* SECTION: Category Breakdown (right after KPIs) */}
-      {/* ════════════════════════════════════════════════════════ */}
-      <CategoryAuditSection entries={categoryAudit} govMap={govMap} />
 
       {/* ════════════════════════════════════════════════════════ */}
       {/* GHOST VARIABLES */}

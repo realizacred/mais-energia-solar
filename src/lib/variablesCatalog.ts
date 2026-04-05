@@ -288,7 +288,7 @@ const VC_DOMAIN_MAP: Record<string, VariableDomain> = {
   vc_p_total_cc: "sistema_solar",
   vc_string_box_cc: "sistema_solar",
   vc_potencia_sistema: "sistema_solar",
-  vc_modulo_potencia: "sistema_solar",
+  
   vc_inversor_potencia_nominal: "sistema_solar",
   vc_estrutura: "sistema_solar",
   // Comercial
@@ -311,8 +311,6 @@ const VC_DOMAIN_MAP: Record<string, VariableDomain> = {
   // Seguro
   vc_incluir_seguro: "financeiro",
   vc_calculo_seguro: "financeiro",
-  // Observação
-  vc_observacao: "proposta",
 };
 
 /** Set of all built-in vc_* keys (hardcoded in catalog, NOT user-created) */
@@ -1460,7 +1458,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("customizada", "customizada.vc_p_total_cc", "vc_p_total_cc", "Potência Total CC", "Potência total CC dos inversores", "kW", "8.2"),
   v("customizada", "customizada.vc_string_box_cc", "vc_string_box_cc", "Incluir String Box CC", "Texto condicional sobre string box", "-", "Este inversor..."),
   v("customizada", "customizada.vc_potencia_sistema", "vc_potencia_sistema", "Potência Sistema Resumo", "Potência do sistema (alias)", "kWp", "8.2"),
-  v("customizada", "customizada.vc_modulo_potencia", "vc_modulo_potencia", "Módulo Potência", "Potência do módulo (alias)", "W", "550"),
+  
   v("customizada", "customizada.vc_inversor_potencia_nominal", "vc_inversor_potencia_nominal", "Inversor Potência Nominal", "Potência nominal do inversor / 1000", "kW", "8.2"),
   v("customizada", "customizada.vc_estrutura", "vc_estrutura", "Estrutura", "Tipo de estrutura (alias cape_telhado)", "-", "Fibrocimento"),
 
@@ -1488,8 +1486,6 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("customizada", "customizada.vc_incluir_seguro", "vc_incluir_seguro", "Incluir Seguro", "Condicional para inclusão de seguro (Sim/Não)", "-", "Sim"),
   v("customizada", "customizada.vc_calculo_seguro", "vc_calculo_seguro", "Cálculo Seguro", "Valor calculado do seguro por período", "R$", "500"),
 
-  // ── Observação ──
-  v("customizada", "customizada.vc_observacao", "vc_observacao", "Observação", "Observação condicional (tensão/inversor)", "-", "Observação técnica"),
 ];
 
 // ── Variáveis Customizadas Default ───────────────────────────
