@@ -378,6 +378,36 @@ export function CustomFieldsSettings() {
   };
 
   const filteredFields = fields.filter(f => f.field_context === contextFilter);
+  const isPosDimensionamento = contextFilter === "pos_dimensionamento";
+
+  // ─── DnD for pos_dimensionamento reorder ───
+  const queryClient = useQueryClient();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = filteredFields.findIndex(f => f.id === active.id);
+    const newIndex = filteredFields.findIndex(f => f.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(filteredFields, oldIndex, newIndex);
+    // Persist new ordem values
+    try {
+      await Promise.all(
+        reordered.map((f, i) =>
+          supabase.from("deal_custom_fields").update({ ordem: i + 1 } as any).eq("id", f.id)
+        )
+      );
+      queryClient.invalidateQueries({ queryKey: ["deal-custom-fields"] });
+      toast({ title: "Ordem atualizada" });
+    } catch {
+      toast({ title: "Erro ao reordenar", variant: "destructive" });
+    }
+  }, [filteredFields, queryClient]);
 
   if (loading || motivosLoading || premissasCtx.loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
