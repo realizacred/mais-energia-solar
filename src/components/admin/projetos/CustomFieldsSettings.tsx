@@ -841,9 +841,17 @@ export function CustomFieldsSettings() {
                       </Tooltip>
                     </div>
                     <div className="flex items-center gap-1">
-                      <code className="flex-1 text-xs font-mono bg-muted/50 border rounded-md px-2.5 h-9 flex items-center text-foreground select-all truncate">
-                        [{fieldForm.field_key || "..."}]
-                      </code>
+                      <Input
+                        value={fieldForm.field_key}
+                        onChange={e => {
+                          const raw = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
+                          setFieldForm(p => ({ ...p, field_key: raw }));
+                          setFieldKeyError(null);
+                        }}
+                        placeholder={`${FIELD_KEY_PREFIXES[fieldForm.field_context] || "cap"}_nome_do_campo`}
+                        className={cn("flex-1 font-mono text-xs h-9", fieldKeyError && "border-destructive")}
+                        disabled={!!editingField}
+                      />
                       <Button
                         type="button"
                         variant="ghost"
@@ -858,6 +866,9 @@ export function CustomFieldsSettings() {
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
                     </div>
+                    {fieldKeyError && (
+                      <p className="text-[11px] text-destructive mt-0.5">{fieldKeyError}</p>
+                    )}
                   </div>
                 </div>
 
