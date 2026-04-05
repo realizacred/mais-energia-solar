@@ -50,6 +50,7 @@ import { useWizardPersistence, type WizardSnapshot, type PersistenceParams, type
 import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
 import { usePaymentInterestConfigs } from "@/hooks/usePaymentInterestConfig";
 import { useDealCustomFieldValues } from "@/hooks/useDealCustomFieldValues";
+import { useSaveDealCustomFieldValues } from "@/hooks/useSaveDealCustomFieldValues";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepResumo } from "./wizard/StepResumo";
 import { StepDocumento } from "./wizard/StepDocumento";
