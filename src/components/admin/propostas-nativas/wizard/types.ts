@@ -190,6 +190,7 @@ export interface KitItemRow {
   tensao_entrada_max?: number;
   eficiencia_maxima?: number;
   fases?: string;
+  garantia_anos?: number;
 }
 
 /** Rótulos legíveis para cada KitCategoria */

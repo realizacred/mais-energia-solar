@@ -20,10 +20,12 @@ import { useFornecedoresNomes } from "@/hooks/useFornecedoresNomes";
 
 interface CatalogoModulo {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
+  garantia_produto_anos?: number | null; garantia_performance_anos?: number | null;
 }
 interface CatalogoInversor {
   id: string; fabricante: string; modelo: string; potencia_nominal_kw: number | null;
   tipo: string | null; fases: string | null;
+  garantia_anos?: number | null;
 }
 interface CatalogoOtimizador {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
@@ -537,6 +539,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           fabricante: cat.fabricante, modelo: cat.modelo, potencia_w: cat.potencia_wp || 0,
           quantidade: m.quantidade, preco_unitario: 0, categoria: "modulo", avulso: false,
           produto_ref: cat.id,
+          garantia_produto_anos: cat.garantia_produto_anos ?? undefined,
+          garantia_performance_anos: cat.garantia_performance_anos ?? undefined,
         });
       }
     });
@@ -557,6 +561,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           fabricante: cat.fabricante, modelo: cat.modelo, potencia_w: (cat.potencia_nominal_kw || 0) * 1000,
           quantidade: inv.quantidade, preco_unitario: 0, categoria: "inversor", avulso: false,
           produto_ref: cat.id,
+          garantia_anos: cat.garantia_anos ?? undefined,
         });
       }
     });
