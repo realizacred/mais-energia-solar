@@ -1,12 +1,13 @@
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { formatBRLInteger as formatBRL, formatPhoneBR } from "@/lib/formatters";
 import { useClienteHasRecebimento, useClienteRecebimentoDetalhes } from "@/hooks/useClienteRecebimento";
 import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
 import { ClienteViewDialog } from "@/components/admin/ClienteViewDialog";
 import { upsertContactFromWhatsApp } from "@/services/contactWhatsAppService";
-import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
+import { formatCpfCnpj, isValidCpfCnpj, onlyDigits } from "@/lib/cpfCnpjUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -737,15 +738,23 @@ function GerenciamentoTab({
     if (inlineEditField === "telefone" && trimmed) {
       const digitsOnly = trimmed.replace(/\D/g, "");
       if (digitsOnly.length < 10 || digitsOnly.length > 11) {
-        toast({ title: "Telefone inválido", description: "Digite um telefone válido com DDD", variant: "destructive" });
+        toast({ title: "Telefone inválido", description: "Informe DDD + número", variant: "destructive" });
+        return;
+      }
+    }
+
+    // Validate CPF/CNPJ
+    if (inlineEditField === "cpf_cnpj" && trimmed) {
+      if (!isValidCpfCnpj(trimmed)) {
+        toast({ title: "CPF/CNPJ inválido", description: "Verifique o número informado", variant: "destructive" });
         return;
       }
     }
 
     setSavingInlineEdit(true);
     try {
-      const valueToSave = inlineEditField === "telefone" && trimmed
-        ? trimmed.replace(/\D/g, "")
+      const valueToSave = (inlineEditField === "telefone" || inlineEditField === "cpf_cnpj") && trimmed
+        ? onlyDigits(trimmed)
         : trimmed || null;
 
       const { error } = await supabase
@@ -1333,6 +1342,13 @@ function GerenciamentoTab({
                     onChange={setInlineEditValue}
                     placeholder="(00) 00000-0000"
                     autoFocus
+                  />
+                ) : inlineEditField === "cpf_cnpj" ? (
+                  <CpfCnpjInput
+                    value={inlineEditValue}
+                    onChange={setInlineEditValue}
+                    label=""
+                    showValidation
                   />
                 ) : (
                   <Input
