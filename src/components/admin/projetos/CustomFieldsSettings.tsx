@@ -221,8 +221,37 @@ export function CustomFieldsSettings() {
     setFieldDialogOpen(true);
   };
 
+  const [fieldKeyError, setFieldKeyError] = useState<string | null>(null);
+
+  const validateFieldKey = (key: string, context: string): string | null => {
+    if (!key.trim()) return "Chave é obrigatória.";
+    if (!/^[a-z0-9_]+$/.test(key)) return "Chave deve conter apenas letras minúsculas, números e underscore.";
+    const expectedPrefix = FIELD_KEY_PREFIXES[context] || "cap";
+    if (!key.startsWith(`${expectedPrefix}_`)) return `Chave deve começar com "${expectedPrefix}_".`;
+    if (key.length < 4) return "Chave muito curta.";
+    return null;
+  };
+
   const handleSaveField = async () => {
     if (!fieldForm.title.trim() || !fieldForm.field_key.trim()) return;
+
+    // Validate field_key format
+    const keyErr = validateFieldKey(fieldForm.field_key, fieldForm.field_context);
+    if (keyErr) {
+      setFieldKeyError(keyErr);
+      return;
+    }
+
+    // Check uniqueness (skip for edits keeping same key)
+    const isDuplicate = fields.some(
+      (f: any) => f.field_key === fieldForm.field_key && f.id !== editingField?.id
+    );
+    if (isDuplicate) {
+      setFieldKeyError("Chave já existe. Escolha outro nome.");
+      return;
+    }
+
+    setFieldKeyError(null);
     setSaving(true);
     try {
       const normalizedFieldType = normalizeFieldType(fieldForm.field_type);
