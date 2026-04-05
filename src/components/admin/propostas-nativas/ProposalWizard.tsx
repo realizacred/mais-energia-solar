@@ -357,6 +357,28 @@ export function ProposalWizard() {
       return op;
     });
 
+    // ── Financial series enrichment (QW11) ──
+    // Compute 25-year series, payback, TIR, VPL, economia before saving
+    const ucGeradoraSnap = ucs.find(u => u.is_geradora) || ucs[0];
+    const tarifaBaseSnap = ucGeradoraSnap?.tarifa_distribuidora || 0.80;
+    const custoDispSnap = ucGeradoraSnap?.custo_disponibilidade_valor || 54.81;
+    const consumoTotalSnap = ucs.reduce((s, u) => s + (u.consumo_mensal || (u.consumo_mensal_p || 0) + (u.consumo_mensal_fp || 0)), 0);
+
+    let financialFields: Record<string, number> = {};
+    if (precoFinal > 0 && potenciaKwp > 0) {
+      const finResult = calcFinancialSeries({
+        precoFinal,
+        potenciaKwp,
+        irradiacao: locIrradiacao,
+        geracaoMensalKwh: geracaoMensalEstimada,
+        consumoTotal: consumoTotalSnap,
+        tarifaBase: tarifaBaseSnap,
+        custoDisponibilidade: custoDispSnap,
+        premissas,
+      });
+      financialFields = flattenFinancialToSnapshot(finResult);
+    }
+
     return {
       locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
       locIrradiacao, locGhiSeries, locSkipPoa, locLatitude, distanciaKm, projectAddress, mapSnapshots,
@@ -377,6 +399,8 @@ export function ProposalWizard() {
       consultor_telefone: (selectedLead as any)?.consultor_telefone ?? "",
       // Formas de pagamento próprias (admin-configured) — embedded for public page
       formas_pagamento_proprias: formasPagamentoProprias,
+      // QW11 — Financial series (25-year), payback, TIR, VPL, economia
+      ...financialFields,
     };
   }, [
     locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
