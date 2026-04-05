@@ -212,7 +212,7 @@ export function useDealPipeline() {
         const [propostasRes, locationRes] = await Promise.all([
           supabase
             .from("propostas_nativas")
-            .select("id, deal_id, status, versao_atual")
+            .select("id, deal_id, status, versao_atual, is_principal")
             .in("deal_id", dealIds)
             .order("created_at", { ascending: false }),
           customerIds.length > 0
