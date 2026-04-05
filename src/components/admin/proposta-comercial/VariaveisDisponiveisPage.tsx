@@ -670,28 +670,26 @@ export function VariaveisDisponiveisPage() {
                           </Tooltip>
 
                           {/* IA — highlight if empty expression */}
-                          {(v.isCustom || v.customId || v.source === "custom_vc") && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost" size="icon"
-                                  className={cn(
-                                    "h-7 w-7",
-                                    v.expressao !== undefined && v.expressao.trim() === ""
-                                      ? "text-warning hover:text-warning hover:bg-warning/10"
-                                      : "text-muted-foreground hover:text-primary"
-                                  )}
-                                  onClick={() => {
-                                    setAiSuggestContext({ varName: v.label, formula: v.expressao });
-                                    setAiSuggestOpen(true);
-                                  }}
-                                >
-                                  <Sparkles className="h-3.5 w-3.5" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-[10px]">Sugerir fórmula com IA</TooltipContent>
-                            </Tooltip>
-                          )}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost" size="icon"
+                                className={cn(
+                                  "h-7 w-7",
+                                  v.expressao !== undefined && v.expressao.trim() === ""
+                                    ? "text-warning hover:text-warning hover:bg-warning/10"
+                                    : "text-muted-foreground hover:text-primary"
+                                )}
+                                onClick={() => {
+                                  setAiSuggestContext({ varName: v.label, formula: v.expressao });
+                                  setAiSuggestOpen(true);
+                                }}
+                              >
+                                <Sparkles className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-[10px]">Sugerir fórmula com IA</TooltipContent>
+                          </Tooltip>
 
                           {/* Editar */}
                           {(v.customId || v.source === "custom_vc") && (
