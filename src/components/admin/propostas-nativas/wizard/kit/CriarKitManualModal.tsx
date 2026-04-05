@@ -539,6 +539,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           fabricante: cat.fabricante, modelo: cat.modelo, potencia_w: cat.potencia_wp || 0,
           quantidade: m.quantidade, preco_unitario: 0, categoria: "modulo", avulso: false,
           produto_ref: cat.id,
+          garantia_produto_anos: cat.garantia_produto_anos ?? undefined,
+          garantia_performance_anos: cat.garantia_performance_anos ?? undefined,
         });
       }
     });
@@ -559,6 +561,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           fabricante: cat.fabricante, modelo: cat.modelo, potencia_w: (cat.potencia_nominal_kw || 0) * 1000,
           quantidade: inv.quantidade, preco_unitario: 0, categoria: "inversor", avulso: false,
           produto_ref: cat.id,
+          garantia_anos: cat.garantia_anos ?? undefined,
         });
       }
     });
