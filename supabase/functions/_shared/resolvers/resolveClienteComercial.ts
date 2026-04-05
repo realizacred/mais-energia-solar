@@ -356,7 +356,7 @@ export function resolveClienteComercial(
   set("empresa_inscricao_estadual", brand.inscricao_estadual ?? brand.ie);
   set("empresa_inscricao_municipal", brand.inscricao_municipal ?? brand.im);
   set("empresa_endereco", brand.endereco ?? brand.rua);
-  set("empresa_telefone", brand.telefone);
+  set("empresa_telefone", formatPhone(str(brand.telefone)));
   set("empresa_email", brand.email);
   set("empresa_documento", brand.cnpj ?? brand.cpf_cnpj);
   set("empresa_ie", brand.inscricao_estadual ?? brand.ie);
