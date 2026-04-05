@@ -285,9 +285,14 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     await queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
   }, [dealId, queryClient]);
 
-  // ── refreshCustomer → invalidateQueries ──
+  // ── refreshCustomer → invalidate deal detail + related queries ──
   const refreshCustomer = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) }),
+      queryClient.invalidateQueries({ queryKey: ["clientes"] }),
+      queryClient.invalidateQueries({ queryKey: ["clientes-ativos"] }),
+      queryClient.invalidateQueries({ queryKey: ["clientes_list"] }),
+    ]);
   }, [dealId, queryClient]);
 
   // ── toggleEtiqueta ──
