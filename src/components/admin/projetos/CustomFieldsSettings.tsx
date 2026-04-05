@@ -218,6 +218,7 @@ export function CustomFieldsSettings() {
       setOptionsText("");
       setFieldWizardStep("type");
     }
+    setFieldKeyError(null);
     setFieldDialogOpen(true);
   };
 
