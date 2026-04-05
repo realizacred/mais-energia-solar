@@ -327,6 +327,7 @@ export function ProposalWizard() {
 
   // ─── Persistence: save draft / update
   const { persistAtomic, saving } = useWizardPersistence();
+  const saveCustomFieldsMutation = useSaveDealCustomFieldValues();
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
