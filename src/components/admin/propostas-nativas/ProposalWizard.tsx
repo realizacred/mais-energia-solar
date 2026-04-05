@@ -1231,6 +1231,7 @@ export function ProposalWizard() {
   }, [customFieldValues, saveCustomFieldsMutation]);
 
   const handleSaveDraft = useCallback(async () => {
+    if (isRestoring) {
       toast({ title: "Aguarde", description: "Carregando dados da proposta..." });
       return;
     }
