@@ -322,9 +322,9 @@ export function resolveFinanceiro(
     set(k, snap[k]);
   }
 
-  // ── Annual series ──
+  // ── Annual series (passthrough from snapshot first) ──
   for (let i = 0; i <= 25; i++) {
-    for (const prefix of ["investimento_anual_", "economia_anual_valor_", "fluxo_caixa_acumulado_anual_"]) {
+    for (const prefix of ["investimento_anual_", "economia_anual_valor_", "fluxo_caixa_acumulado_anual_", "geracao_anual_", "tarifa_distribuidora_"]) {
       set(`${prefix}${i}`, snap[`${prefix}${i}`]);
     }
   }
@@ -377,9 +377,8 @@ export function resolveFinanceiro(
     setCurIfMissing("gasto_energia_mensal_atual", gastoAtual);
     setCurIfMissing("gasto_total_mensal_atual", gastoAtual);
 
-    // Gasto novo = custo disponibilidade (conta mínima)
+    // Custo de disponibilidade for later gasto_novo calculation
     const custoDisp = num(ucGeradora.custo_disponibilidade_valor) ?? num(snap.custo_disponibilidade) ?? 54.81;
-    setCurIfMissing("gasto_total_mensal_novo", custoDisp);
 
     // Economia mensal derivada (fallback se economia_mensal não foi setada acima)
     if (!out["economia_mensal"]) {
@@ -396,6 +395,51 @@ export function resolveFinanceiro(
       const econVal = num(out["economia_mensal"].replace(/\./g, "").replace(",", "."));
       if (econVal != null && gastoAtual > 0) {
         out["economia_mensal_p"] = fmtNum((econVal / gastoAtual) * 100, 1);
+      }
+    }
+
+    // ── Gasto mensal novo após solar ──
+    const econMensalResolved = num(out["economia_mensal"]?.replace(/\./g, "").replace(",", ".")) ?? 0;
+    const gastoNovo = Math.max(0, gastoAtual - econMensalResolved);
+    setCurIfMissing("gasto_total_mensal_novo", gastoNovo);
+    setCurIfMissing("gasto_energia_mensal_novo", gastoNovo);
+
+    // ── Séries anuais (25 anos) — calcular se não existirem no snapshot ──
+    const premissas = safeObj(snap.premissas);
+    const inflacaoEn = num(premissas.inflacao_energetica) ?? num(snap.inflacao_energetica) ?? 9.5;
+    const perdaEfic = num(premissas.perda_eficiencia_anual) ?? num(snap.perda_eficiencia_anual) ?? 0.8;
+    const precoTotalSeries = valorTotal ?? 0;
+    const trocaInvAnos = num(premissas.troca_inversor_anos) ?? num(snap.troca_inversor_anos) ?? 15;
+    const trocaInvCusto = num(premissas.troca_inversor_custo) ?? num(snap.troca_inversor_custo) ?? 30;
+    const geracaoRef = geracaoMensal ?? 0;
+
+    if (econMensalResolved > 0 || geracaoRef > 0) {
+      let fluxoAcumulado = -precoTotalSeries;
+      for (let i = 0; i <= 24; i++) {
+        const fatorPerda = Math.pow(1 - perdaEfic / 100, i);
+        const fatorInflacao = Math.pow(1 + inflacaoEn / 100, i);
+
+        // Geração anual
+        if (!out[`geracao_anual_${i}`] && geracaoRef > 0) {
+          const geracaoAnual = geracaoRef * 12 * fatorPerda;
+          out[`geracao_anual_${i}`] = fmtNum(geracaoAnual, 0);
+        }
+
+        // Economia anual + fluxo de caixa
+        if (!out[`economia_anual_valor_${i}`] && econMensalResolved > 0) {
+          let economiaAnual = econMensalResolved * 12 * fatorInflacao * fatorPerda;
+          if (i === trocaInvAnos) {
+            economiaAnual -= precoTotalSeries * (trocaInvCusto / 100);
+          }
+          out[`economia_anual_valor_${i}`] = fmtVal(economiaAnual);
+          fluxoAcumulado += economiaAnual;
+          if (!out[`fluxo_caixa_acumulado_anual_${i}`]) {
+            out[`fluxo_caixa_acumulado_anual_${i}`] = fmtVal(fluxoAcumulado);
+          }
+          if (!out[`investimento_anual_${i}`]) {
+            out[`investimento_anual_${i}`] = fmtVal(i === 0 ? -precoTotalSeries : 0);
+          }
+        }
       }
     }
   }
