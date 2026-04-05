@@ -69,6 +69,7 @@ export function resolveClienteComercial(
   const brand = ext?.brandSettings ?? {};
   const projeto = ext?.projetoData ?? {};
   const clienteData = ext?.clienteData ?? {};
+  const deal = ext?.dealData ?? {};
 
   const set = (k: string, v: unknown) => {
     const s = str(v);
