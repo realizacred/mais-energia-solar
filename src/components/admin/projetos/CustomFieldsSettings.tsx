@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useMotivosPerda } from "@/hooks/useDistribution";
 import {
   useCustomFieldsList, useActivityTypesList, usePipelineStages, usePipelinesList,
@@ -27,6 +27,16 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 // ─── Types ───
 interface CustomField {
@@ -368,6 +378,36 @@ export function CustomFieldsSettings() {
   };
 
   const filteredFields = fields.filter(f => f.field_context === contextFilter);
+  const isPosDimensionamento = contextFilter === "pos_dimensionamento";
+
+  // ─── DnD for pos_dimensionamento reorder ───
+  const queryClient = useQueryClient();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = filteredFields.findIndex(f => f.id === active.id);
+    const newIndex = filteredFields.findIndex(f => f.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(filteredFields, oldIndex, newIndex);
+    // Persist new ordem values
+    try {
+      await Promise.all(
+        reordered.map((f, i) =>
+          supabase.from("deal_custom_fields").update({ ordem: i + 1 } as any).eq("id", f.id)
+        )
+      );
+      queryClient.invalidateQueries({ queryKey: ["deal-custom-fields"] });
+      toast({ title: "Ordem atualizada" });
+    } catch {
+      toast({ title: "Erro ao reordenar", variant: "destructive" });
+    }
+  }, [filteredFields, queryClient]);
 
   if (loading || motivosLoading || premissasCtx.loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
@@ -440,6 +480,38 @@ export function CustomFieldsSettings() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
+                  {isPosDimensionamento ? (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/30">
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-16">Ordem</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Título</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Chave</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Tipo</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório na Proposta</th>
+                            <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ações</th>
+                          </tr>
+                        </thead>
+                        <SortableContext items={filteredFields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                          <tbody>
+                            {filteredFields.map((f, i) => (
+                              <SortableFieldRow
+                                key={f.id}
+                                field={f}
+                                index={i}
+                                contextFilter={contextFilter}
+                                pipelines={pipelines}
+                                stages={stages}
+                                onEdit={openFieldDialog}
+                                onDelete={handleDeleteField}
+                              />
+                            ))}
+                          </tbody>
+                        </SortableContext>
+                      </table>
+                    </DndContext>
+                  ) : (
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/30">
@@ -456,7 +528,7 @@ export function CustomFieldsSettings() {
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório em etapa</th>
                           </>
                         )}
-                        {(contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
+                        {contextFilter === "pre_dimensionamento" && (
                           <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório na Proposta</th>
                         )}
                         <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ações</th>
@@ -518,7 +590,7 @@ export function CustomFieldsSettings() {
                               </td>
                             </>
                           )}
-                          {(contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
+                          {contextFilter === "pre_dimensionamento" && (
                             <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={() => {}} /></td>
                           )}
                           <td className="px-4 py-2.5 text-right">
@@ -536,6 +608,7 @@ export function CustomFieldsSettings() {
                       })}
                     </tbody>
                   </table>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -1321,6 +1394,63 @@ function SwitchCell({ value, fieldId, column, onUpdate }: { value: boolean; fiel
       }}
       className="scale-75"
     />
+  );
+}
+
+// ─── Sortable Row for DnD (pos_dimensionamento only) ───
+function SortableFieldRow({
+  field: f, index: i, contextFilter, pipelines, stages, onEdit, onDelete,
+}: {
+  field: CustomField; index: number; contextFilter: string;
+  pipelines: { id: string; name: string }[];
+  stages: { id: string; name: string; pipeline_id: string; position: number }[];
+  onEdit: (f: CustomField) => void; onDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: f.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+  const CustomIcon = f.icon ? (icons as any)[toPascal(f.icon)] : null;
+  const FallbackIcon = FIELD_TYPE_ICONS[normalizeFieldType(f.field_type)] || Type;
+  const RowIcon = CustomIcon || FallbackIcon;
+
+  return (
+    <tr ref={setNodeRef} style={style} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+      <td className="px-4 py-2.5">
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
+          <GripVertical className="h-4 w-4" />
+          <span className="text-xs">{i + 1}</span>
+        </button>
+      </td>
+      <td className="px-4 py-2.5 font-medium">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+            <RowIcon className="h-3.5 w-3.5 text-primary" />
+          </div>
+          {f.title}
+        </div>
+      </td>
+      <td className="px-4 py-2.5">
+        <button type="button" className="group inline-flex items-center gap-1"
+          onClick={() => { navigator.clipboard.writeText(`[${f.field_key}]`); toast({ title: `[${f.field_key}] copiado!` }); }}>
+          <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">[{f.field_key}]</code>
+          <Copy className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
+      </td>
+      <td className="px-4 py-2.5">
+        <Badge variant="outline" className="text-[10px]">{FIELD_TYPE_LABELS[normalizeFieldType(f.field_type)] || f.field_type}</Badge>
+      </td>
+      <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={() => {}} /></td>
+      <td className="px-4 py-2.5 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(f)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(f.id)}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </td>
+    </tr>
   );
 }
 
