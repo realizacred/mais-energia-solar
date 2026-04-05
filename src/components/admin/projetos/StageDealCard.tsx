@@ -136,20 +136,23 @@ export function StageDealCard({
   const isWonLost = deal.deal_status === "won" || deal.deal_status === "lost";
   const normalizedProposalStatus = deal.proposta_status?.toLowerCase() ?? "";
   const isPropostaRecusada = hasActiveProposal && ["recusada", "rejeitada", "perdida", "rejected"].includes(normalizedProposalStatus);
+  const isPropostaAceita = hasActiveProposal && ["aceita", "accepted", "aprovada", "ganha"].includes(normalizedProposalStatus);
   const hasEtiquetaColor = !!etiquetaCfg?.cor;
   const borderClass = isWonLost
     ? (deal.deal_status === "won" ? "kanban-card--won" : "kanban-card--lost")
-    : isPropostaRecusada
-      ? "kanban-card--proposal-rejected"
-      : stagnation === "critical"
-        ? "kanban-card--stagnation-critical"
-        : stagnation === "warning"
-          ? "kanban-card--stagnation-warning"
-          : hasEtiquetaColor
-            ? "kanban-card--etiqueta"
-            : propostaInfo
-              ? "kanban-card--has-proposal"
-              : "kanban-card--no-proposal";
+    : isPropostaAceita
+      ? "kanban-card--proposal-accepted"
+      : isPropostaRecusada
+        ? "kanban-card--proposal-rejected"
+        : stagnation === "critical"
+          ? "kanban-card--stagnation-critical"
+          : stagnation === "warning"
+            ? "kanban-card--stagnation-warning"
+            : hasEtiquetaColor
+              ? "kanban-card--etiqueta"
+              : propostaInfo
+                ? "kanban-card--has-proposal"
+                : "kanban-card--no-proposal";
 
   const topBarStyle = hasEtiquetaColor && !isWonLost && !isPropostaRecusada && !stagnation
     ? { background: `linear-gradient(90deg, ${etiquetaCfg.cor}, ${etiquetaCfg.cor}80)` }
