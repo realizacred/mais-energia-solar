@@ -1397,6 +1397,63 @@ function SwitchCell({ value, fieldId, column, onUpdate }: { value: boolean; fiel
   );
 }
 
+// ─── Sortable Row for DnD (pos_dimensionamento only) ───
+function SortableFieldRow({
+  field: f, index: i, contextFilter, pipelines, stages, onEdit, onDelete,
+}: {
+  field: CustomField; index: number; contextFilter: string;
+  pipelines: { id: string; name: string }[];
+  stages: { id: string; name: string; pipeline_id: string; position: number }[];
+  onEdit: (f: CustomField) => void; onDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: f.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+  const CustomIcon = f.icon ? (icons as any)[toPascal(f.icon)] : null;
+  const FallbackIcon = FIELD_TYPE_ICONS[normalizeFieldType(f.field_type)] || Type;
+  const RowIcon = CustomIcon || FallbackIcon;
+
+  return (
+    <tr ref={setNodeRef} style={style} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+      <td className="px-4 py-2.5">
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
+          <GripVertical className="h-4 w-4" />
+          <span className="text-xs">{i + 1}</span>
+        </button>
+      </td>
+      <td className="px-4 py-2.5 font-medium">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+            <RowIcon className="h-3.5 w-3.5 text-primary" />
+          </div>
+          {f.title}
+        </div>
+      </td>
+      <td className="px-4 py-2.5">
+        <button type="button" className="group inline-flex items-center gap-1"
+          onClick={() => { navigator.clipboard.writeText(`[${f.field_key}]`); toast({ title: `[${f.field_key}] copiado!` }); }}>
+          <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">[{f.field_key}]</code>
+          <Copy className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
+      </td>
+      <td className="px-4 py-2.5">
+        <Badge variant="outline" className="text-[10px]">{FIELD_TYPE_LABELS[normalizeFieldType(f.field_type)] || f.field_type}</Badge>
+      </td>
+      <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={() => {}} /></td>
+      <td className="px-4 py-2.5 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(f)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(f.id)}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 // ─── Icon Picker ───
 import { icons } from "lucide-react";
 
