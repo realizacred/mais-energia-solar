@@ -50,6 +50,7 @@ import { useWizardPersistence, type WizardSnapshot, type PersistenceParams, type
 import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
 import { usePaymentInterestConfigs } from "@/hooks/usePaymentInterestConfig";
 import { useDealCustomFieldValues } from "@/hooks/useDealCustomFieldValues";
+import { useSaveDealCustomFieldValues } from "@/hooks/useSaveDealCustomFieldValues";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepResumo } from "./wizard/StepResumo";
 import { StepDocumento } from "./wizard/StepDocumento";
@@ -326,6 +327,7 @@ export function ProposalWizard() {
 
   // ─── Persistence: save draft / update
   const { persistAtomic, saving } = useWizardPersistence();
+  const saveCustomFieldsMutation = useSaveDealCustomFieldValues();
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
@@ -1219,6 +1221,15 @@ export function ProposalWizard() {
     if (res.dealId) setSavedDealId(res.dealId);
   }, []);
 
+  // ─── Fire-and-forget: persist custom field values to deal_custom_field_values (RB-25)
+  const syncCustomFieldValues = useCallback((dealId: string | undefined | null) => {
+    if (!dealId || Object.keys(customFieldValues).length === 0) return;
+    saveCustomFieldsMutation.mutate(
+      { dealId, values: customFieldValues },
+      { onError: (err) => console.error("[ProposalWizard] Custom fields save error:", err) },
+    );
+  }, [customFieldValues, saveCustomFieldsMutation]);
+
   const handleSaveDraft = useCallback(async () => {
     if (isRestoring) {
       toast({ title: "Aguarde", description: "Carregando dados da proposta..." });
@@ -1239,6 +1250,7 @@ export function ProposalWizard() {
     switch (res.status) {
       case "success":
         applyPersistResult(res);
+        syncCustomFieldValues(res.dealId || resolvedDealId);
         toast({ title: "✅ Rascunho salvo" });
         break;
       case "reused":
@@ -1252,7 +1264,7 @@ export function ProposalWizard() {
         toast({ title: "Erro ao salvar", description: res.reason || res.message, variant: "destructive" });
         break;
     }
-  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId]);
+  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId, syncCustomFieldValues]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
     if (isRestoring) {
@@ -1275,6 +1287,7 @@ export function ProposalWizard() {
       case "success":
       case "reused":
         applyPersistResult(res);
+        syncCustomFieldValues(res.dealId || resolvedDealId);
         if (res.newVersionCreated) {
           toast({ title: "Nova versão criada", description: res.message });
         } else if (res.status !== "reused") {
@@ -1289,7 +1302,7 @@ export function ProposalWizard() {
         toast({ title: "Erro ao salvar", description: res.reason || res.message, variant: "destructive" });
         break;
     }
-  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult]);
+  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, syncCustomFieldValues, resolvedDealId]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
