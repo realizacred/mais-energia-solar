@@ -1,6 +1,10 @@
-# AGENTS.md v3.2 — Mais Energia Solar CRM
+# AGENTS.md v3.3 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-01 (v3.2 — Migração C-01 concluída + Gate de instalação)
+# Última atualização: 2026-04-05 (v3.3 — Landing page, documentos, governança variáveis)
+# Changelog v3.3: RB-29..RB-38 adicionados (landing, DOCX, cards, saúde, badges)
+#                 DA-16..DA-20 adicionados (governança, aliases, ZapSign, RLS)
+#                 AP-25..AP-29 adicionados
+#                 Correções críticas: variáveis, documentos, landing, sistema
 # Changelog v3.2: Migração C-01 concluída (40+ hooks, ~170 queries migradas)
 #                 RB-22 (gate instalação), RB-23 (console.log EF) adicionados
 #                 DA-15 (arquitetura dois resolvers) adicionado
