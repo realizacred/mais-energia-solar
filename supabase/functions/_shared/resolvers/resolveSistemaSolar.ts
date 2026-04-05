@@ -195,6 +195,13 @@ export function resolveSistemaSolar(
       const areaM2 = (compMm * largMm) / 1_000_000;
       out["modulo_area"] = fmtNum(areaM2, 2);
       out["modulo_area_numero"] = fmtNum(areaM2, 2);
+
+      // Derived: area_util = modulo_area × numero_modulos (fallback when not in snapshot)
+      const nMod = numModulos ?? totalMod;
+      if (nMod != null && nMod > 0 && !out["area_util"]) {
+        out["area_util"] = fmtNum(areaM2 * nMod, 1);
+        out["area_necessaria"] = out["area_necessaria"] ?? out["area_util"];
+      }
     }
 
     // Temperature coefficients
