@@ -1115,8 +1115,8 @@ export function VariaveisDisponiveisPage() {
                     onClick={() => setDetailVar(v)}
                   >
                     {/* Variável */}
-                    <TableCell className="py-2">
-                      <div className="flex items-center gap-1.5">
+                    <TableCell className="py-2 min-w-[180px]">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <ChevronRight className="h-3 w-3 text-primary/30 shrink-0" />
                         <span className="font-medium text-foreground text-[11px] leading-tight">{v.label}</span>
                         {v.isCustom && (
