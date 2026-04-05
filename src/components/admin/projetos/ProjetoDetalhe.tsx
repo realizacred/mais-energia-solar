@@ -560,7 +560,7 @@ function ProjetoDetalheContent() {
         open={!!editClienteId}
         onOpenChange={(open) => { if (!open) setEditClienteId(null); }}
         clienteId={editClienteId || ""}
-        onSaved={() => silentRefresh?.()}
+        onSaved={() => refreshCustomer?.()}
       />
     </div>
   );
