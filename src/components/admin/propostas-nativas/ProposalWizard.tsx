@@ -49,6 +49,7 @@ import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
 import { useWizardPersistence, type WizardSnapshot, type PersistenceParams, type AtomicPersistResult } from "./wizard/hooks/useWizardPersistence";
 import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
 import { usePaymentInterestConfigs } from "@/hooks/usePaymentInterestConfig";
+import { useDealCustomFieldValues } from "@/hooks/useDealCustomFieldValues";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepResumo } from "./wizard/StepResumo";
 import { StepDocumento } from "./wizard/StepDocumento";
@@ -333,6 +334,26 @@ export function ProposalWizard() {
   const [editingsentProposal, setEditingSentProposal] = useState(false);
   // Track async DB restore to block UI during loading (race condition fix)
   const [isRestoring, setIsRestoring] = useState(!!(propostaIdFromUrl && versaoIdFromUrl));
+
+  // ─── Load deal custom field values as fallback for customFieldValues
+  const effectiveDealId = savedDealId || (projectContext as any)?.dealId || null;
+  const { data: dealFieldValues } = useDealCustomFieldValues(effectiveDealId);
+
+  // Merge deal custom field values into customFieldValues (only for keys not already set)
+  useEffect(() => {
+    if (!dealFieldValues || Object.keys(dealFieldValues).length === 0) return;
+    setCustomFieldValues(prev => {
+      const merged = { ...prev };
+      let changed = false;
+      for (const [key, val] of Object.entries(dealFieldValues)) {
+        if (val != null && val !== "" && (prev[key] === undefined || prev[key] === null || prev[key] === "")) {
+          merged[key] = val;
+          changed = true;
+        }
+      }
+      return changed ? merged : prev;
+    });
+  }, [dealFieldValues]);
 
   const collectSnapshot = useCallback((): WizardSnapshot => {
     // Recalculate pagamentoOpcoes with current precoFinal before saving.

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { User, Building2, Zap, DollarSign, CheckCircle, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { useCustomFieldsList } from "@/hooks/useCustomFieldsSettings";
 import type { Json } from "@/integrations/supabase/types";
 import { formatBRL } from "./types";
 
@@ -61,38 +61,14 @@ export function DialogPosDimensionamento({
   onConfirm,
   onSaveDraft, onSaveActive, saving, savedPropostaId,
 }: Props) {
-  const [fields, setFields] = useState<CustomField[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: allFields, isLoading: loading } = useCustomFieldsList();
 
-  useEffect(() => {
-    if (!open) {
-      setFields([]);
-      setLoading(true);
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    let isMounted = true;
-
-    setLoading(true);
-    supabase
-      .from("deal_custom_fields")
-      .select("id, title, field_key, field_type, options, required_on_proposal, is_active, ordem")
-      .eq("is_active", true)
-      .eq("field_context", "pos_dimensionamento")
-      .order("ordem")
-      .then(({ data }) => {
-        if (!isMounted) return;
-        setFields((data || []) as CustomField[]);
-        setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [open]);
+  const fields = useMemo(() =>
+    (allFields ?? []).filter((f: any) =>
+      f.is_active && f.field_context === "pos_dimensionamento"
+    ).sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0)) as CustomField[],
+    [allFields]
+  );
 
   const updateCustom = (key: string, value: any) => {
     onCustomFieldValuesChange({ ...customFieldValues, [key]: value });
