@@ -1349,7 +1349,6 @@ function GerenciamentoTab({
                     onChange={setInlineEditValue}
                     label=""
                     showValidation
-                    autoFocus
                   />
                 ) : (
                   <Input
