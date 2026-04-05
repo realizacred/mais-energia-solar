@@ -44,6 +44,9 @@ type Token =
 
 const FUNCTIONS = new Set([
   "IF", "SWITCH", "AND", "OR", "NOT", "MAX", "MIN", "ABS", "ROUND", "CHAR",
+  "ROUNDDOWN", "ROUNDUP", "FLOOR", "CEILING", "SQRT", "MOD", "LOG",
+  "CONCAT", "UPPER", "LOWER", "LEN", "TRIM",
+  "TODAY", "YEAR", "MONTH", "DAY",
 ]);
 
 function tokenize(expr: string): Token[] {
