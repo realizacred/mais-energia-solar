@@ -1,12 +1,13 @@
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { formatBRLInteger as formatBRL, formatPhoneBR } from "@/lib/formatters";
 import { useClienteHasRecebimento, useClienteRecebimentoDetalhes } from "@/hooks/useClienteRecebimento";
 import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
 import { ClienteViewDialog } from "@/components/admin/ClienteViewDialog";
 import { upsertContactFromWhatsApp } from "@/services/contactWhatsAppService";
-import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
+import { formatCpfCnpj, isValidCpfCnpj, onlyDigits } from "@/lib/cpfCnpjUtils";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
