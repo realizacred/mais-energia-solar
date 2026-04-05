@@ -20,10 +20,12 @@ import { useFornecedoresNomes } from "@/hooks/useFornecedoresNomes";
 
 interface CatalogoModulo {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
+  garantia_produto_anos?: number | null; garantia_performance_anos?: number | null;
 }
 interface CatalogoInversor {
   id: string; fabricante: string; modelo: string; potencia_nominal_kw: number | null;
   tipo: string | null; fases: string | null;
+  garantia_anos?: number | null;
 }
 interface CatalogoOtimizador {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;

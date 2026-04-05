@@ -36,11 +36,13 @@ import type { ProdutoSolaryum } from "@/hooks/useSolaryumKits";
 interface CatalogoModuloUnificado {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
   tipo_celula: string | null; eficiencia_percent: number | null;
+  garantia_produto_anos?: number | null; garantia_performance_anos?: number | null;
 }
 
 interface CatalogoInversorUnificado {
   id: string; fabricante: string; modelo: string; potencia_nominal_kw: number | null;
   tipo: string | null; mppt_count: number | null; fases: string | null;
+  garantia_anos?: number | null;
 }
 
 interface CatalogoOtimizador {
