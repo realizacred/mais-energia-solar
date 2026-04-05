@@ -1100,7 +1100,7 @@ export function VariaveisDisponiveisPage() {
                       </span>
                     </TableHead>
                   ))}
-                  <TableHead className="text-[10px] w-[80px] text-center">Ações</TableHead>
+                  <TableHead className="text-[10px] w-[80px] text-center font-semibold whitespace-nowrap">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
