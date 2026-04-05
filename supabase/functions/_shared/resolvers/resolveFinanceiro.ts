@@ -359,13 +359,49 @@ export function resolveFinanceiro(
   set("capo_seguro", snap.capo_seguro ?? snap.capital_seguro ?? fin.capo_seguro ?? "");
   set("vc_calculo_seguro", snap.vc_calculo_seguro ?? fin.vc_calculo_seguro ?? "");
 
-  // ── vc_aumento = ((geracao - consumo) / consumo) * 100 ──
-  // Percentual de geração que excede o consumo nominal
+  // ── Gasto atual mensal (QW11 — derive from consumo × tarifa if not in snapshot) ──
   const tecnico = safeObj(snap.tecnico);
   const geracaoMensal = num(snap.geracao_mensal) ?? num(snap.geracaoMensalEstimada)
     ?? num(snap.geracao_mensal_kwh) ?? num(tecnico.geracao_estimada_kwh);
   const consumoMensal = num(snap.consumo_mensal) ?? num(snap.consumo_total_kwh)
     ?? num(tecnico.consumo_total_kwh);
+
+  // Resolve tarifa from UCs
+  const ucsArr = safeArr(snap.ucs);
+  const ucGeradora = ucsArr.find((u: AnyObj) => u.is_geradora) ?? ucsArr[0] ?? {};
+  const tarifaUC = num(ucGeradora.tarifa_distribuidora) ?? num(snap.tarifa_distribuidora);
+
+  if (consumoMensal != null && consumoMensal > 0 && tarifaUC != null && tarifaUC > 0) {
+    const gastoAtual = consumoMensal * tarifaUC;
+    setCurIfMissing("gasto_atual_mensal", gastoAtual);
+    setCurIfMissing("gasto_energia_mensal_atual", gastoAtual);
+    setCurIfMissing("gasto_total_mensal_atual", gastoAtual);
+
+    // Gasto novo = custo disponibilidade (conta mínima)
+    const custoDisp = num(ucGeradora.custo_disponibilidade_valor) ?? num(snap.custo_disponibilidade) ?? 54.81;
+    setCurIfMissing("gasto_total_mensal_novo", custoDisp);
+
+    // Economia mensal derivada (fallback se economia_mensal não foi setada acima)
+    if (!out["economia_mensal"]) {
+      const econDerived = Math.max(0, gastoAtual - custoDisp);
+      setCur("economia_mensal", econDerived);
+      out["economia_mensal_numero"] = fmtNum(econDerived, 2);
+      setCurIfMissing("economia_anual", econDerived * 12);
+      setCurIfMissing("roi_25_anos", econDerived * 12 * 25);
+      setCurIfMissing("economia_25_anos", econDerived * 12 * 25);
+    }
+
+    // Economia percentual derivada
+    if (!out["economia_mensal_p"] && out["economia_mensal"]) {
+      const econVal = num(out["economia_mensal"].replace(/\./g, "").replace(",", "."));
+      if (econVal != null && gastoAtual > 0) {
+        out["economia_mensal_p"] = fmtNum((econVal / gastoAtual) * 100, 1);
+      }
+    }
+  }
+
+  // ── vc_aumento = ((geracao - consumo) / consumo) * 100 ──
+  // Percentual de geração que excede o consumo nominal
   if (geracaoMensal != null && consumoMensal != null && consumoMensal > 0) {
     const vcAumento = ((geracaoMensal - consumoMensal) / consumoMensal) * 100;
     const vcAumentoStr = `${Math.round(vcAumento)}%`;
