@@ -1173,7 +1173,7 @@ export function VariaveisDisponiveisPage() {
 
                     {/* Saúde */}
                     <TableCell className="py-2 text-center">
-                      {v.healthClassification && v.healthClassification !== "unused" ? (
+                      {v.healthClassification && !["unused", "legacy", "duplicate_candidate"].includes(v.healthClassification) ? (
                         <Badge
                           variant="outline"
                           className={cn(
@@ -1186,7 +1186,19 @@ export function VariaveisDisponiveisPage() {
                           {v.healthClassification === "healthy" ? "🟢" : v.healthClassification === "unstable" ? "🟡" : "🔴"}
                         </Badge>
                       ) : (
-                        <span className="text-[10px] text-muted-foreground/40">—</span>
+                        (() => {
+                          const gov = getGovRecord(v.key);
+                          const cls = gov?.classification;
+                          if (!cls) return <span className="text-[10px] text-muted-foreground/40">—</span>;
+                          const isImpl = ["IMPLEMENTADA", "PASSTHROUGH", "CUSTOM_IMPL", "CUSTOM_BACKEND", "INPUT_WIZARD", "DOCUMENTO"].includes(cls);
+                          const isFuture = ["FEATURE_NAO_IMPLEMENTADA", "CDD"].includes(cls);
+                          const isLegacy = ["ALIAS_LEGADO", "TEMPLATE_LEGADO"].includes(cls);
+                          if (isImpl) return <span className="text-[10px]">🟢</span>;
+                          if (isFuture) return <span className="text-[10px] text-muted-foreground/50">⚪</span>;
+                          if (isLegacy) return <span className="text-[10px]">🟡</span>;
+                          if (cls === "FANTASMA_REAL") return <span className="text-[10px]">🔴</span>;
+                          return <span className="text-[10px] text-muted-foreground/40">—</span>;
+                        })()
                       )}
                     </TableCell>
 
