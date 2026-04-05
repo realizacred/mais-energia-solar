@@ -1175,7 +1175,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.concessionaria_fio_b_gd", "concessionaria_fio_b_gd", "Fio B GD", "Tarifa Fio B GD da concessionária", "R$/kWh", "0.2345"),
   v("financeiro", "financeiro.investimento", "investimento", "Investimento Total", "Valor total do investimento (alias de valor_total)", "R$", "42.500,00"),
   v("sistema_solar", "sistema_solar.kit_garantia_servico", "kit_garantia_servico", "Garantia do Serviço", "Garantia do serviço de instalação", "anos", "5"),
-  v("sistema_solar", "sistema_solar.servico_garantia", "servico_garantia", "Garantia do Serviço (alias)", "Garantia do serviço de instalação (alias)", "anos", "5"),
+  // REMOVIDO: duplicata de servico_garantia (já existe na linha 1305 com canonical sistema.servico_garantia)
   v("comercial", "comercial.projeto_lat_instalacao", "projeto_lat_instalacao", "Latitude Instalação", "Latitude do local de instalação", "-", "-19.9167", "BT e MT", { escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_lon_instalacao", "projeto_lon_instalacao", "Longitude Instalação", "Longitude do local de instalação", "-", "-43.9345", "BT e MT", { escopo: "aspiracional" }),
   v("comercial", "comercial.projeto_observacoes", "projeto_observacoes", "Observações do Projeto", "Observações e notas do projeto", "-", "Telhado com inclinação de 15°"),
