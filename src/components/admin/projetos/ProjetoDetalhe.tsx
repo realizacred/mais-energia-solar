@@ -753,8 +753,8 @@ function GerenciamentoTab({
 
     setSavingInlineEdit(true);
     try {
-      const valueToSave = inlineEditField === "telefone" && trimmed
-        ? trimmed.replace(/\D/g, "")
+      const valueToSave = (inlineEditField === "telefone" || inlineEditField === "cpf_cnpj") && trimmed
+        ? onlyDigits(trimmed)
         : trimmed || null;
 
       const { error } = await supabase
@@ -1341,6 +1341,14 @@ function GerenciamentoTab({
                     value={inlineEditValue}
                     onChange={setInlineEditValue}
                     placeholder="(00) 00000-0000"
+                    autoFocus
+                  />
+                ) : inlineEditField === "cpf_cnpj" ? (
+                  <CpfCnpjInput
+                    value={inlineEditValue}
+                    onChange={setInlineEditValue}
+                    label=""
+                    showValidation
                     autoFocus
                   />
                 ) : (
