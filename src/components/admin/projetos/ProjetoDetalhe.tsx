@@ -1946,20 +1946,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
 
-  // Fetch deal snapshot-relevant fields for staleness detection
-  const { data: dealSnapshotMeta } = useQuery({
-    queryKey: ["deal-snapshot-meta", dealId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("deals")
-        .select("kwp, value, updated_at")
-        .eq("id", dealId)
-        .single();
-      return data || null;
-    },
-    staleTime: 1000 * 60 * 5,
-    enabled: !!dealId,
-  });
+  // dealSnapshotMeta query removed — staleness now uses versão timestamps only
 
   // Lead discovery by customer phone
   useEffect(() => {
