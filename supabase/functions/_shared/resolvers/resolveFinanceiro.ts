@@ -377,9 +377,8 @@ export function resolveFinanceiro(
     setCurIfMissing("gasto_energia_mensal_atual", gastoAtual);
     setCurIfMissing("gasto_total_mensal_atual", gastoAtual);
 
-    // Gasto novo = custo disponibilidade (conta mínima)
+    // Custo de disponibilidade for later gasto_novo calculation
     const custoDisp = num(ucGeradora.custo_disponibilidade_valor) ?? num(snap.custo_disponibilidade) ?? 54.81;
-    setCurIfMissing("gasto_total_mensal_novo", custoDisp);
 
     // Economia mensal derivada (fallback se economia_mensal não foi setada acima)
     if (!out["economia_mensal"]) {
