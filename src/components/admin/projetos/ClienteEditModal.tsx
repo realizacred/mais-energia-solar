@@ -107,8 +107,15 @@ export function ClienteEditModal({ open, onOpenChange, clienteId, onSaved }: Cli
         },
       });
       toast({ title: "Cliente atualizado!" });
-      // Invalidate deal queries to refresh customer data in ProjetoDetalhe
-      queryClient.invalidateQueries({ queryKey: ["deal-detail"] });
+      // Invalidate all client-related queries for real-time sync across screens
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["deal-detail"] }),
+        queryClient.invalidateQueries({ queryKey: ["clientes"] }),
+        queryClient.invalidateQueries({ queryKey: ["clientes_list"] }),
+        queryClient.invalidateQueries({ queryKey: ["clientes-ativos"] }),
+        queryClient.invalidateQueries({ queryKey: ["cliente-detail", clienteId] }),
+        queryClient.invalidateQueries({ queryKey: ["post-sale-clients"] }),
+      ]);
       onSaved?.();
       onOpenChange(false);
     } catch (err: any) {
@@ -140,54 +147,52 @@ export function ClienteEditModal({ open, onOpenChange, clienteId, onSaved }: Cli
               <Spinner size="md" />
             </div>
           ) : (
-            <div className="px-4 py-3.5 space-y-4">
-              {/* Dados Pessoais */}
-              <div className="space-y-2.5">
-                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Dados pessoais</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-medium text-muted-foreground">Nome <span className="text-destructive">*</span></Label>
+            <div className="p-5 space-y-4">
+              {/* Dados Pessoais — §DS-06 */}
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold text-foreground border-b border-border pb-2">Dados Pessoais</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">Nome <span className="text-destructive">*</span></Label>
                     <Input
                       value={form.nome}
                       onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                      className="h-8 text-sm"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-medium text-muted-foreground">Telefone <span className="text-destructive">*</span></Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">Telefone <span className="text-destructive">*</span></Label>
                     <PhoneInput
                       value={form.telefone}
                       onChange={(raw) => setForm({ ...form, telefone: raw })}
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-medium text-muted-foreground">E-mail</Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">E-mail</Label>
                     <EmailInput
                       value={form.email}
                       onChange={(v) => setForm({ ...form, email: v })}
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-medium text-muted-foreground">CPF/CNPJ</Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">CPF/CNPJ</Label>
                     <CpfCnpjInput
                       value={form.cpf_cnpj}
                       onChange={(v) => setForm({ ...form, cpf_cnpj: v })}
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-medium text-muted-foreground">Data de Nascimento</Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">Data de Nascimento</Label>
                     <DateInput
                       value={form.data_nascimento}
                       onChange={(v) => setForm({ ...form, data_nascimento: v })}
-                      className="h-8 text-sm"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Endereço */}
-              <div className="space-y-2.5 border-t border-border pt-3.5">
-                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Endereço</p>
+              {/* Endereço — §DS-06 */}
+              <div className="space-y-4">
+                <h3 className="text-base font-semibold text-foreground border-b border-border pb-2">Endereço</h3>
                 <AddressFields
                   value={{
                     cep: form.cep,
@@ -213,14 +218,14 @@ export function ClienteEditModal({ open, onOpenChange, clienteId, onSaved }: Cli
                 />
               </div>
 
-              {/* Observações */}
-              <div className="space-y-1 border-t border-border pt-3.5">
-                <Label className="text-[11px] font-medium text-muted-foreground">Observações</Label>
+              {/* Observações — §DS-06 */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">Observações</Label>
                 <Textarea
                   value={form.observacoes}
                   onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-                  rows={2}
-                  className="text-sm min-h-[48px] resize-y"
+                  rows={3}
+                  className="text-sm resize-y"
                 />
               </div>
             </div>
