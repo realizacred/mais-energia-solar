@@ -627,17 +627,17 @@ export function VariaveisDisponiveisPage() {
         secondary: "bg-secondary/15 text-secondary-foreground border-secondary/20",
       };
       return (
-        <div className="flex items-center gap-1">
-          <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium", colorMap[govRecord.statusColor] ?? colorMap.muted)}>
+        <div className="flex flex-col gap-1">
+          <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium w-fit", colorMap[govRecord.statusColor] ?? colorMap.muted)}>
             {govRecord.statusLabel}
           </Badge>
           {inDocx && (
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium w-fit">
               Em uso
             </Badge>
           )}
           {govRecord.templateWarning === "block" && (
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-destructive/20 bg-destructive/10 text-destructive font-medium">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-destructive/20 bg-destructive/10 text-destructive font-medium w-fit">
               🚫
             </Badge>
           )}
@@ -654,12 +654,12 @@ export function VariaveisDisponiveisPage() {
     };
     const c = config[status];
     return (
-      <div className="flex items-center gap-1">
-        <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium", c.className)}>
+      <div className="flex flex-col gap-1">
+        <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium w-fit", c.className)}>
           {c.label}
         </Badge>
         {inDocx && (
-          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium">
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium w-fit">
             Em uso
           </Badge>
         )}
@@ -1071,7 +1071,7 @@ export function VariaveisDisponiveisPage() {
             <CleanupPanel records={cleanupRecords} summary={cleanupSummary} />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
@@ -1087,7 +1087,7 @@ export function VariaveisDisponiveisPage() {
                   ].map((col) => (
                     <TableHead
                       key={col.key}
-                      className={cn("text-[10px] cursor-pointer hover:text-foreground select-none transition-colors", col.width)}
+                      className={cn("text-[10px] cursor-pointer hover:text-foreground select-none transition-colors whitespace-nowrap font-semibold", col.width)}
                       onClick={() => toggleSort(col.key)}
                     >
                       <span className="inline-flex items-center gap-1">
@@ -1100,7 +1100,7 @@ export function VariaveisDisponiveisPage() {
                       </span>
                     </TableHead>
                   ))}
-                  <TableHead className="text-[10px] w-[80px] text-center">Ações</TableHead>
+                  <TableHead className="text-[10px] w-[80px] text-center font-semibold whitespace-nowrap">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1115,8 +1115,8 @@ export function VariaveisDisponiveisPage() {
                     onClick={() => setDetailVar(v)}
                   >
                     {/* Variável */}
-                    <TableCell className="py-2">
-                      <div className="flex items-center gap-1.5">
+                    <TableCell className="py-2 min-w-[180px]">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <ChevronRight className="h-3 w-3 text-primary/30 shrink-0" />
                         <span className="font-medium text-foreground text-[11px] leading-tight">{v.label}</span>
                         {v.isCustom && (
