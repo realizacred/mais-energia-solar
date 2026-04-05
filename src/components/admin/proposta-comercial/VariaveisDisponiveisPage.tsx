@@ -1253,7 +1253,7 @@ export function VariaveisDisponiveisPage() {
                           </TooltipTrigger>
                           <TooltipContent side="top" className="text-[10px]">Testar</TooltipContent>
                         </Tooltip>
-                        {v.customId && (
+                        {(v.customId || v.source === "custom_vc") && (
                           <>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1262,7 +1262,7 @@ export function VariaveisDisponiveisPage() {
                                   size="icon"
                                   className="h-7 w-7 text-muted-foreground hover:text-warning"
                                   onClick={() => {
-                                    const original = customVarsRaw.find(cv => cv.id === v.customId);
+                                    const original = customVarsRaw.find(cv => cv.id === v.customId || cv.nome === v.key);
                                     if (original) openEditModal(original);
                                   }}
                                 >
@@ -1278,7 +1278,7 @@ export function VariaveisDisponiveisPage() {
                                   size="icon"
                                   className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                   onClick={() => {
-                                    const original = customVarsRaw.find(cv => cv.id === v.customId);
+                                    const original = customVarsRaw.find(cv => cv.id === v.customId || cv.nome === v.key);
                                     if (original) setDeleteTarget(original);
                                   }}
                                 >
