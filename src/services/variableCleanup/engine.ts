@@ -22,6 +22,78 @@ const DEPRECATED_VARS: Record<string, DeprecationInfo> = {
     deprecatedSince: "2026-03-30",
     reason: "Placeholder legado — usar [modulo_garantia] em templates novos",
   },
+  preco_total: {
+    deprecated: true,
+    replacementKey: "valor_total",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [valor_total]",
+  },
+  custo_modulos: {
+    deprecated: true,
+    replacementKey: "modulo_custo_total",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [modulo_custo_total]",
+  },
+  custo_inversores: {
+    deprecated: true,
+    replacementKey: "inversores_custo_total",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [inversores_custo_total]",
+  },
+  custo_estrutura: {
+    deprecated: true,
+    replacementKey: "estrutura_custo_total",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [estrutura_custo_total]",
+  },
+  custo_instalacao: {
+    deprecated: true,
+    replacementKey: "instalacao_custo_total",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [instalacao_custo_total]",
+  },
+  custo_kit: {
+    deprecated: true,
+    replacementKey: "kits_custo_total",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [kits_custo_total]",
+  },
+  margem_percentual: {
+    deprecated: true,
+    replacementKey: "margem_lucro",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [margem_lucro]",
+  },
+  geracao_anual: {
+    deprecated: true,
+    replacementKey: "geracao_anual_0",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [geracao_anual_0]",
+  },
+  modulo_area: {
+    deprecated: true,
+    replacementKey: "modulo_area_m2",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — substituir se [modulo_area_m2] existir no catálogo",
+  },
+  payback_meses: {
+    deprecated: true,
+    replacementKey: "payback",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [payback] (formato texto completo)",
+  },
+  payback_anos: {
+    deprecated: true,
+    replacementKey: "payback",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [payback] (formato texto completo)",
+  },
+  vc_nome: {
+    deprecated: true,
+    replacementKey: "cliente_nome",
+    deprecatedSince: "2026-04-05",
+    reason: "Alias legado — usar [cliente_nome]",
+  },
 };
 
 // ── Hidden variables (persisted in memory for session, could be DB-backed later) ──
