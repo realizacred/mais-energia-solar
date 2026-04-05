@@ -322,9 +322,9 @@ export function resolveFinanceiro(
     set(k, snap[k]);
   }
 
-  // ── Annual series ──
+  // ── Annual series (passthrough from snapshot first) ──
   for (let i = 0; i <= 25; i++) {
-    for (const prefix of ["investimento_anual_", "economia_anual_valor_", "fluxo_caixa_acumulado_anual_"]) {
+    for (const prefix of ["investimento_anual_", "economia_anual_valor_", "fluxo_caixa_acumulado_anual_", "geracao_anual_", "tarifa_distribuidora_"]) {
       set(`${prefix}${i}`, snap[`${prefix}${i}`]);
     }
   }
