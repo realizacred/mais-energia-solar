@@ -420,7 +420,7 @@ export function CustomFieldsSettings() {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex-wrap">
+        <TabsList className="overflow-x-auto flex-wrap h-auto">
           <TabsTrigger value="campos" className="gap-1.5">
             <LayoutGrid className="h-4 w-4" />Campos Customizados
           </TabsTrigger>
@@ -440,18 +440,15 @@ export function CustomFieldsSettings() {
           {/* Context sub-tabs */}
           <div className="flex items-center gap-2 flex-wrap">
             {Object.entries(CONTEXT_LABELS).map(([key, label]) => (
-              <button
+              <Button
                 key={key}
+                variant={contextFilter === key ? "secondary" : "outline"}
+                size="sm"
                 onClick={() => setContextFilter(key)}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-all border",
-                  contextFilter === key
-                    ? "bg-secondary text-secondary-foreground border-secondary"
-                    : "bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted"
-                )}
+                className="shrink-0"
               >
                 {label}
-              </button>
+              </Button>
             ))}
             <div className="flex-1" />
             <Button size="sm" onClick={() => openFieldDialog()} className="gap-1.5">
@@ -554,9 +551,10 @@ export function CustomFieldsSettings() {
                             </div>
                           </td>
                           <td className="px-4 py-2.5">
-                            <button
-                              type="button"
-                              className="group inline-flex items-center gap-1"
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="group inline-flex items-center gap-1 h-auto py-0.5 px-1"
                               onClick={() => {
                                 navigator.clipboard.writeText(`[${f.field_key}]`);
                                 toast({ title: `[${f.field_key}] copiado!` });
@@ -564,7 +562,7 @@ export function CustomFieldsSettings() {
                             >
                               <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">[{f.field_key}]</code>
                               <Copy className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
+                            </Button>
                           </td>
                           <td className="px-4 py-2.5">
                             <Badge variant="outline" className="text-[10px]">{FIELD_TYPE_LABELS[normalizeFieldType(f.field_type)] || f.field_type}</Badge>
@@ -816,16 +814,17 @@ export function CustomFieldsSettings() {
                   const Icon = FIELD_TYPE_ICONS[key] || Type;
                   const colors = FIELD_TYPE_COLORS[key] || FIELD_TYPE_COLORS.text;
                   return (
-                    <button
+                    <Button
                       key={key}
+                      variant="outline"
                       type="button"
                       onClick={() => {
                         setFieldForm(p => ({ ...p, field_type: key }));
                         setFieldWizardStep("config");
                       }}
                       className={cn(
-                        "flex flex-col items-center gap-2.5 p-4 rounded-xl border transition-all",
-                        "hover:shadow-md hover:scale-[1.03] cursor-pointer",
+                        "flex flex-col items-center gap-2.5 p-4 rounded-xl h-auto",
+                        "hover:shadow-md hover:scale-[1.03]",
                         "border-border bg-card text-foreground"
                       )}
                     >
@@ -836,7 +835,7 @@ export function CustomFieldsSettings() {
                         <Icon className={cn("h-5 w-5", colors.text)} />
                       </div>
                       <span className="text-[11px] font-medium text-center leading-tight text-foreground">{label}</span>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -1274,19 +1273,16 @@ function PremissasTabContent({ ctx }: { ctx: ReturnType<typeof useTenantPremises
         {PREMISSA_TABS.map((t) => {
           const Icon = t.icon;
           return (
-            <button
-              key={t.value}
-              onClick={() => setSubTab(t.value)}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-all border flex items-center gap-1.5",
-                subTab === t.value
-                  ? "bg-secondary text-secondary-foreground border-secondary"
-                  : "bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{t.label}</span>
-            </button>
+             <Button
+                key={t.value}
+                variant={subTab === t.value ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setSubTab(t.value)}
+                className="shrink-0 gap-1.5"
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t.label}</span>
+              </Button>
           );
         })}
       </div>
@@ -1333,14 +1329,15 @@ function StageMultiSelect({ label, stages, pipelines, selectedIds, onChange }: {
     <div className="space-y-1.5">
       <Label className="text-xs font-medium">{label}</Label>
       <div className="relative">
-        <button
+        <Button
+          variant="outline"
           type="button"
           onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-between h-9 px-3 border rounded-md bg-background text-sm text-foreground hover:bg-muted/30 transition-colors"
+          className="w-full flex items-center justify-between h-9 px-3 text-sm"
         >
           <span className="truncate">{summary}</span>
           <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", open && "rotate-180")} />
-        </button>
+        </Button>
         {open && (
           <div className="absolute z-50 mt-1 w-full bg-card border rounded-lg shadow-lg p-2 space-y-1 max-h-[200px] overflow-y-auto">
             <label className="flex items-center gap-2 px-2 py-1 text-xs cursor-pointer hover:bg-muted/30 rounded">
@@ -1416,10 +1413,10 @@ function SortableFieldRow({
   return (
     <tr ref={setNodeRef} style={style} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
       <td className="px-4 py-2.5">
-        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="sm" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing flex items-center gap-1.5 text-muted-foreground hover:text-foreground h-auto p-0">
           <GripVertical className="h-4 w-4" />
           <span className="text-xs">{i + 1}</span>
-        </button>
+        </Button>
       </td>
       <td className="px-4 py-2.5 font-medium">
         <div className="flex items-center gap-2">
@@ -1430,11 +1427,11 @@ function SortableFieldRow({
         </div>
       </td>
       <td className="px-4 py-2.5">
-        <button type="button" className="group inline-flex items-center gap-1"
+        <Button variant="ghost" size="sm" className="group inline-flex items-center gap-1 h-auto py-0.5 px-1"
           onClick={() => { navigator.clipboard.writeText(`[${f.field_key}]`); toast({ title: `[${f.field_key}] copiado!` }); }}>
           <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">[{f.field_key}]</code>
           <Copy className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
+        </Button>
       </td>
       <td className="px-4 py-2.5">
         <Badge variant="outline" className="text-[10px]">{FIELD_TYPE_LABELS[normalizeFieldType(f.field_type)] || f.field_type}</Badge>
@@ -1479,12 +1476,14 @@ function IconPicker({ selected, onSelect }: { selected: string; onSelect: (icon:
         if (!Icon) return null;
         const isSelected = selected === name;
         return (
-          <button
+          <Button
             key={name}
+            variant="ghost"
             type="button"
+            size="icon"
             onClick={() => onSelect(name)}
             className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+              "w-8 h-8 rounded-lg",
               isSelected
                 ? "bg-primary/15 text-primary ring-2 ring-primary/30 shadow-sm scale-110"
                 : "hover:bg-primary/10 text-muted-foreground hover:text-primary hover:shadow-sm hover:scale-105"
@@ -1492,7 +1491,7 @@ function IconPicker({ selected, onSelect }: { selected: string; onSelect: (icon:
             title={name}
           >
             <Icon className="h-4 w-4" />
-          </button>
+          </Button>
         );
       })}
     </div>
