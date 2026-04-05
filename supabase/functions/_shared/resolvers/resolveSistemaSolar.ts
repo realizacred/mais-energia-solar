@@ -195,6 +195,13 @@ export function resolveSistemaSolar(
       const areaM2 = (compMm * largMm) / 1_000_000;
       out["modulo_area"] = fmtNum(areaM2, 2);
       out["modulo_area_numero"] = fmtNum(areaM2, 2);
+
+      // Derived: area_util = modulo_area × numero_modulos (fallback when not in snapshot)
+      const nMod = numModulos ?? totalMod;
+      if (nMod != null && nMod > 0 && !out["area_util"]) {
+        out["area_util"] = fmtNum(areaM2 * nMod, 1);
+        out["area_necessaria"] = out["area_necessaria"] ?? out["area_util"];
+      }
     }
 
     // Temperature coefficients
@@ -439,6 +446,23 @@ export function resolveSistemaSolar(
   set("peso_total", snap.peso_total);
   set("estrutura_tipo", snap.estrutura_tipo);
   set("kit_codigo", snap.kit_codigo);
+
+  // ── area_util fallback: estimate from potencia_kwp if dimensions unavailable ──
+  if (!out["area_util"]) {
+    const potKwp = num(out["potencia_kwp"]) ?? num(snap.potencia_kwp) ?? num(tecnico.potencia_kwp);
+    const nMod = num(out["numero_modulos"]) ?? num(snap.numero_modulos);
+    if (nMod != null && nMod > 0) {
+      // Standard module ~2.3m² (typical 580-610W panel: 2.28m x 1.13m ≈ 2.58m²)
+      // Conservative estimate: 2.3m² per module
+      out["area_util"] = fmtNum(nMod * 2.3, 1);
+    } else if (potKwp != null && potKwp > 0) {
+      // Rough estimate: ~5m² per kWp
+      out["area_util"] = fmtNum(potKwp * 5, 1);
+    }
+    if (out["area_util"] && !out["area_necessaria"]) {
+      out["area_necessaria"] = out["area_util"];
+    }
+  }
 
   return out;
 }
