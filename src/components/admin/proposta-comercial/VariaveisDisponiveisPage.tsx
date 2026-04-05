@@ -190,6 +190,7 @@ export function VariaveisDisponiveisPage() {
   const [detailVar, setDetailVar] = useState<EnrichedVariable | null>(null);
   const [varPickerOpen, setVarPickerOpen] = useState(false);
   const [varPickerSearch, setVarPickerSearch] = useState("");
+  const [varPickerDomain, setVarPickerDomain] = useState<string>("todas");
   const [aiSuggestOpen, setAiSuggestOpen] = useState(false);
   const [aiSuggestContext, setAiSuggestContext] = useState<{ varName?: string; formula?: string } | null>(null);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
@@ -229,13 +230,34 @@ export function VariaveisDisponiveisPage() {
     return { broken, nulls, found, hasAudit: !!quickAudit };
   }, [quickAudit]);
 
+  const PICKER_DOMAINS: { key: string; label: string }[] = [
+    { key: "todas", label: "Todas" },
+    { key: "entrada", label: "Entrada" },
+    { key: "sistema_solar", label: "Sistema Solar" },
+    { key: "financeiro", label: "Financeiro" },
+    { key: "conta_energia", label: "Conta de Energia" },
+    { key: "cliente", label: "Cliente" },
+    { key: "projeto", label: "Projeto" },
+    { key: "proposta", label: "Proposta" },
+    { key: "documento", label: "Consultor" },
+    { key: "uc", label: "Concessionária" },
+    { key: "custom", label: "Custom (vc_*)" },
+  ];
+
   const filteredPickerVars = useMemo(() => {
     const term = normalize(varPickerSearch);
     return VARIABLES_CATALOG.filter((v) => {
+      // Domain filter
+      if (varPickerDomain !== "todas") {
+        const d = deriveDomain(v);
+        if (varPickerDomain === "custom") {
+          if (v.category !== "customizada" && !v.legacyKey.includes("vc_")) return false;
+        } else if (d !== varPickerDomain) return false;
+      }
       if (!term) return true;
-      return normalize(v.label).includes(term) || normalize(v.legacyKey).includes(term) || normalize(v.canonicalKey).includes(term);
+      return normalize(v.label).includes(term) || normalize(v.legacyKey).includes(term) || normalize(v.description).includes(term);
     });
-  }, [varPickerSearch]);
+  }, [varPickerSearch, varPickerDomain]);
 
   const CONTEXT_TO_DOMAIN: Record<string, VariableDomain> = {
     projeto: "projeto", pre_dimensionamento: "sistema_solar", pos_dimensionamento: "sistema_solar",
@@ -921,23 +943,38 @@ export function VariaveisDisponiveisPage() {
                   </button>
                   {varPickerOpen && (
                     <div className="border-t border-border">
-                      <div className="p-2">
-                        <Input value={varPickerSearch} onChange={(e) => setVarPickerSearch(e.target.value)} placeholder="Buscar variável..." className="h-7 text-xs" />
+                      <div className="p-2 space-y-2">
+                        <Input value={varPickerSearch} onChange={(e) => setVarPickerSearch(e.target.value)} placeholder="Buscar por chave ou descrição..." className="h-7 text-xs" />
+                        <div className="flex flex-wrap gap-1">
+                          {PICKER_DOMAINS.map((d) => (
+                            <button
+                              key={d.key}
+                              type="button"
+                              className={cn(
+                                "px-2 py-0.5 rounded-full text-[10px] border transition-colors",
+                                varPickerDomain === d.key
+                                  ? "bg-primary/15 text-primary border-primary/30 font-semibold"
+                                  : "bg-muted/30 text-muted-foreground border-border hover:bg-muted/50"
+                              )}
+                              onClick={() => setVarPickerDomain(d.key)}
+                            >
+                              {d.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <div className="max-h-[180px] overflow-y-auto px-2 pb-2 space-y-0.5">
+                      <div className="max-h-64 overflow-y-auto px-2 pb-2 space-y-0.5">
                         {filteredPickerVars.length === 0 ? (
                           <p className="text-[10px] text-muted-foreground text-center py-3">Nenhuma variável encontrada</p>
                         ) : (
-                          filteredPickerVars.slice(0, 50).map((v) => {
+                          filteredPickerVars.map((v) => {
                             const key = v.legacyKey.replace(/^\[|\]$/g, "");
                             return (
                               <button key={v.canonicalKey} type="button"
-                                className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-primary/10 transition-colors flex items-center justify-between gap-2 group"
+                                className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-primary/10 transition-colors flex items-center gap-3 group"
                                 onClick={() => { setForm((f) => ({ ...f, expressao: f.expressao + `[${key}]` })); toast.success(`[${key}] inserido`); }}>
-                                <div className="min-w-0">
-                                  <span className="font-mono text-primary text-[10px]">[{key}]</span>
-                                  <span className="text-muted-foreground ml-1.5">{v.label}</span>
-                                </div>
+                                <code className="font-mono text-primary text-[10px] shrink-0 w-[140px] truncate">[{key}]</code>
+                                <span className="text-muted-foreground truncate flex-1">{v.label}</span>
                                 <Plus className="h-3 w-3 text-primary opacity-0 group-hover:opacity-100 shrink-0" />
                               </button>
                             );
