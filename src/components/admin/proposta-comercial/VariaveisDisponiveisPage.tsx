@@ -1253,7 +1253,7 @@ export function VariaveisDisponiveisPage() {
                           </TooltipTrigger>
                           <TooltipContent side="top" className="text-[10px]">Testar</TooltipContent>
                         </Tooltip>
-                        {v.customId && (
+                        {(v.customId || v.source === "custom_vc") && (
                           <>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1262,7 +1262,7 @@ export function VariaveisDisponiveisPage() {
                                   size="icon"
                                   className="h-7 w-7 text-muted-foreground hover:text-warning"
                                   onClick={() => {
-                                    const original = customVarsRaw.find(cv => cv.id === v.customId);
+                                    const original = customVarsRaw.find(cv => cv.id === v.customId || cv.nome === v.key);
                                     if (original) openEditModal(original);
                                   }}
                                 >
@@ -1278,7 +1278,7 @@ export function VariaveisDisponiveisPage() {
                                   size="icon"
                                   className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                   onClick={() => {
-                                    const original = customVarsRaw.find(cv => cv.id === v.customId);
+                                    const original = customVarsRaw.find(cv => cv.id === v.customId || cv.nome === v.key);
                                     if (original) setDeleteTarget(original);
                                   }}
                                 >
@@ -1511,7 +1511,7 @@ export function VariaveisDisponiveisPage() {
                   );
                 })()}
 
-                {!detailVar.isCustom && !detailVar.customId && (
+                {!detailVar.isCustom && !detailVar.customId && detailVar.source !== "custom_vc" && (
                   <div className="rounded-lg border border-border bg-muted/20 p-3">
                     <p className="text-[10px] text-muted-foreground">
                       ⚙️ <strong>Variável nativa do sistema</strong> — não pode ser excluída ou editada.
@@ -1523,14 +1523,14 @@ export function VariaveisDisponiveisPage() {
           </ScrollArea>
 
           <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
-            {detailVar?.customId && (
+            {(detailVar?.customId || detailVar?.source === "custom_vc") && (
               <>
                 <Button
                   variant="outline"
                   size="sm"
                   className="border-destructive text-destructive hover:bg-destructive/10"
                   onClick={() => {
-                    const original = customVarsRaw.find(cv => cv.id === detailVar.customId);
+                    const original = customVarsRaw.find(cv => cv.id === detailVar.customId || cv.nome === detailVar.key);
                     if (original) { setDeleteTarget(original); setDetailVar(null); }
                   }}
                 >
@@ -1540,7 +1540,7 @@ export function VariaveisDisponiveisPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const original = customVarsRaw.find(cv => cv.id === detailVar.customId);
+                    const original = customVarsRaw.find(cv => cv.id === detailVar.customId || cv.nome === detailVar.key);
                     if (original) { openEditModal(original); setDetailVar(null); }
                   }}
                 >
