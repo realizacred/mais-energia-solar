@@ -150,6 +150,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
               link_pdf: v.link_pdf || null,
               public_slug: v.public_slug || null,
               gerado_em: v.gerado_em || v.created_at,
+              usuario_editou_em: v.usuario_editou_em || null,
             };
           }),
       }));
