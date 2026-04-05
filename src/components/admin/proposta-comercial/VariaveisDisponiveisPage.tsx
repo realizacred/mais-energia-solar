@@ -627,17 +627,17 @@ export function VariaveisDisponiveisPage() {
         secondary: "bg-secondary/15 text-secondary-foreground border-secondary/20",
       };
       return (
-        <div className="flex items-center gap-1">
-          <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium", colorMap[govRecord.statusColor] ?? colorMap.muted)}>
+        <div className="flex flex-col gap-1">
+          <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium w-fit", colorMap[govRecord.statusColor] ?? colorMap.muted)}>
             {govRecord.statusLabel}
           </Badge>
           {inDocx && (
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-info/20 bg-info/10 text-info font-medium w-fit">
               Em uso
             </Badge>
           )}
           {govRecord.templateWarning === "block" && (
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-destructive/20 bg-destructive/10 text-destructive font-medium">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-destructive/20 bg-destructive/10 text-destructive font-medium w-fit">
               🚫
             </Badge>
           )}
