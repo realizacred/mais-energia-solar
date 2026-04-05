@@ -44,6 +44,9 @@ type Token =
 
 const FUNCTIONS = new Set([
   "IF", "SWITCH", "AND", "OR", "NOT", "MAX", "MIN", "ABS", "ROUND", "CHAR",
+  "ROUNDDOWN", "ROUNDUP", "FLOOR", "CEILING", "SQRT", "MOD", "LOG",
+  "CONCAT", "UPPER", "LOWER", "LEN", "TRIM",
+  "TODAY", "YEAR", "MONTH", "DAY",
 ]);
 
 function tokenize(expr: string): Token[] {
@@ -453,6 +456,104 @@ class Parser {
         if (args.length < 1) throw new Error("CHAR requer 1 argumento");
         const code = toNum(args[0]);
         return String.fromCharCode(code);
+      }
+
+      // ── Matemáticas adicionais ──
+
+      case "ROUNDDOWN": {
+        if (args.length < 1) throw new Error("ROUNDDOWN requer 1 argumento");
+        const rd = args.length >= 2 ? toNum(args[1]) : 0;
+        const rf = Math.pow(10, rd);
+        return Math.floor(toNum(args[0]) * rf) / rf;
+      }
+
+      case "ROUNDUP": {
+        if (args.length < 1) throw new Error("ROUNDUP requer 1 argumento");
+        const ru = args.length >= 2 ? toNum(args[1]) : 0;
+        const ruf = Math.pow(10, ru);
+        return Math.ceil(toNum(args[0]) * ruf) / ruf;
+      }
+
+      case "FLOOR": {
+        if (args.length < 1) throw new Error("FLOOR requer 1 argumento");
+        return Math.floor(toNum(args[0]));
+      }
+
+      case "CEILING": {
+        if (args.length < 1) throw new Error("CEILING requer 1 argumento");
+        return Math.ceil(toNum(args[0]));
+      }
+
+      case "SQRT": {
+        if (args.length < 1) throw new Error("SQRT requer 1 argumento");
+        return Math.sqrt(toNum(args[0]));
+      }
+
+      case "MOD": {
+        if (args.length < 2) throw new Error("MOD requer 2 argumentos");
+        const divisor = toNum(args[1]);
+        if (divisor === 0) return 0;
+        return toNum(args[0]) % divisor;
+      }
+
+      case "LOG": {
+        if (args.length < 1) throw new Error("LOG requer 1 argumento");
+        const lv = toNum(args[0]);
+        return lv > 0 ? Math.log(lv) : 0;
+      }
+
+      // ── Texto ──
+
+      case "CONCAT": {
+        return args.map(a => a === null ? "" : String(a)).join("");
+      }
+
+      case "UPPER": {
+        if (args.length < 1) throw new Error("UPPER requer 1 argumento");
+        return String(args[0] ?? "").toUpperCase();
+      }
+
+      case "LOWER": {
+        if (args.length < 1) throw new Error("LOWER requer 1 argumento");
+        return String(args[0] ?? "").toLowerCase();
+      }
+
+      case "LEN": {
+        if (args.length < 1) throw new Error("LEN requer 1 argumento");
+        return String(args[0] ?? "").length;
+      }
+
+      case "TRIM": {
+        if (args.length < 1) throw new Error("TRIM requer 1 argumento");
+        return String(args[0] ?? "").trim();
+      }
+
+      // ── Data ──
+
+      case "TODAY": {
+        const now = new Date();
+        return now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+      }
+
+      case "YEAR": {
+        if (args.length < 1) throw new Error("YEAR requer 1 argumento");
+        const ds = String(args[0] ?? "");
+        const dy = ds.includes("/") ? ds.split("/").pop() : ds.slice(0, 4);
+        return parseInt(dy ?? "0", 10) || 0;
+      }
+
+      case "MONTH": {
+        if (args.length < 1) throw new Error("MONTH requer 1 argumento");
+        const ms = String(args[0] ?? "");
+        const mp = ms.includes("/") ? ms.split("/")[1] : ms.slice(5, 7);
+        return parseInt(mp ?? "0", 10) || 0;
+      }
+
+      case "DAY": {
+        if (args.length < 1) throw new Error("DAY requer 1 argumento");
+        const das = String(args[0] ?? "");
+        const dp = das.includes("/") ? das.split("/")[0] : das.slice(8, 10);
+        return parseInt(dp ?? "0", 10) || 0;
       }
 
       default:
