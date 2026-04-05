@@ -1171,35 +1171,54 @@ export function VariaveisDisponiveisPage() {
                       </span>
                     </TableCell>
 
-                    {/* Saúde */}
+                    {/* Saúde — RB-36: governance é sinal primário, health é refinamento */}
                     <TableCell className="py-2 text-center">
-                      {v.healthClassification && !["unused", "legacy", "duplicate_candidate"].includes(v.healthClassification) ? (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[8px] px-1.5 py-0 h-4 font-medium",
-                            v.healthClassification === "healthy" && "bg-success/15 text-success border-success/20",
-                            v.healthClassification === "unstable" && "bg-warning/15 text-warning border-warning/20",
-                            v.healthClassification === "critical" && "bg-destructive/15 text-destructive border-destructive/20",
-                          )}
-                        >
-                          {v.healthClassification === "healthy" ? "🟢" : v.healthClassification === "unstable" ? "🟡" : "🔴"}
-                        </Badge>
-                      ) : (
-                        (() => {
-                          const gov = getGovRecord(v.key);
-                          const cls = gov?.classification;
-                          if (!cls) return <span className="text-[10px] text-muted-foreground/40">—</span>;
+                      {(() => {
+                        const gov = getGovRecord(v.key);
+                        const cls = gov?.classification;
+
+                        // 1. Governance-based (primary signal per RB-36)
+                        if (cls) {
                           const isImpl = ["IMPLEMENTADA", "PASSTHROUGH", "CUSTOM_IMPL", "CUSTOM_BACKEND", "INPUT_WIZARD", "DOCUMENTO"].includes(cls);
                           const isFuture = ["FEATURE_NAO_IMPLEMENTADA", "CDD"].includes(cls);
                           const isLegacy = ["ALIAS_LEGADO", "TEMPLATE_LEGADO"].includes(cls);
-                          if (isImpl) return <span className="text-[10px]">🟢</span>;
+                          const isPartial = ["PARCIAL_BE_ONLY", "PARCIAL_FE_ONLY", "MAPEAVEL"].includes(cls);
+
+                          if (cls === "FANTASMA_REAL") return <span className="text-[10px]">🔴</span>;
                           if (isFuture) return <span className="text-[10px] text-muted-foreground/50">⚪</span>;
                           if (isLegacy) return <span className="text-[10px]">🟡</span>;
-                          if (cls === "FANTASMA_REAL") return <span className="text-[10px]">🔴</span>;
-                          return <span className="text-[10px] text-muted-foreground/40">—</span>;
-                        })()
-                      )}
+                          if (isPartial) return <span className="text-[10px]">🟡</span>;
+
+                          // Implemented: refine with health data if available and reliable
+                          if (isImpl) {
+                            const hc = v.healthClassification;
+                            if (hc && hc !== "unused" && v.healthScore !== undefined && v.healthScore < 30) {
+                              // Only show red if health score is truly critical AND based on enough data
+                              return <span className="text-[10px]">🟠</span>;
+                            }
+                            return <span className="text-[10px]">🟢</span>;
+                          }
+                        }
+
+                        // 2. Health-only fallback (no governance data)
+                        if (v.healthClassification && !["unused", "legacy", "duplicate_candidate"].includes(v.healthClassification)) {
+                          return (
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[8px] px-1.5 py-0 h-4 font-medium",
+                                v.healthClassification === "healthy" && "bg-success/15 text-success border-success/20",
+                                v.healthClassification === "unstable" && "bg-warning/15 text-warning border-warning/20",
+                                v.healthClassification === "critical" && "bg-destructive/15 text-destructive border-destructive/20",
+                              )}
+                            >
+                              {v.healthClassification === "healthy" ? "🟢" : v.healthClassification === "unstable" ? "🟡" : "🔴"}
+                            </Badge>
+                          );
+                        }
+
+                        return <span className="text-[10px] text-muted-foreground/40">—</span>;
+                      })()}
                     </TableCell>
 
                     {/* Un. */}
