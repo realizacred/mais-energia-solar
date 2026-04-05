@@ -212,7 +212,7 @@ export function useDealPipeline() {
         const [propostasRes, locationRes] = await Promise.all([
           supabase
             .from("propostas_nativas")
-            .select("id, deal_id, status, versao_atual")
+            .select("id, deal_id, status, versao_atual, is_principal")
             .in("deal_id", dealIds)
             .order("created_at", { ascending: false }),
           customerIds.length > 0
@@ -242,15 +242,39 @@ export function useDealPipeline() {
           });
         }
 
-        // Map best proposal per deal (latest by created_at, already sorted)
+        // Map best proposal per deal — priority: is_principal > accepted > sent > latest
+        const STATUS_PRIORITY: Record<string, number> = {
+          aceita: 1, accepted: 1, aprovada: 1, ganha: 1,
+          enviada: 2, sent: 2, vista: 2, visualizada: 2,
+          gerada: 3, generated: 3,
+          rascunho: 4, draft: 4,
+          recusada: 5, rejected: 5, rejeitada: 5, perdida: 5,
+          cancelada: 6, expirada: 6, arquivada: 7,
+        };
         const bestPropostaByDeal = new Map<string, { id: string; status: string; economia: number | null }>();
+        // Group proposals by deal
+        const propostasByDeal = new Map<string, typeof propostas>();
         propostas.forEach((p: any) => {
-          if (!bestPropostaByDeal.has(p.deal_id)) {
-            bestPropostaByDeal.set(p.deal_id, {
-              id: p.id,
-              status: p.status,
-              economia: economiaMap.get(p.id) || null,
-            });
+          const arr = propostasByDeal.get(p.deal_id) || [];
+          arr.push(p);
+          propostasByDeal.set(p.deal_id, arr);
+        });
+        propostasByDeal.forEach((dealPropostas, did) => {
+          // 1. Principal first
+          const principal = dealPropostas.find((p: any) => p.is_principal);
+          if (principal) {
+            bestPropostaByDeal.set(did, { id: principal.id, status: principal.status, economia: economiaMap.get(principal.id) || null });
+            return;
+          }
+          // 2. Sort by status priority (lower = better), then by created_at (already desc)
+          const sorted = [...dealPropostas].sort((a: any, b: any) => {
+            const pa = STATUS_PRIORITY[a.status?.toLowerCase()] ?? 99;
+            const pb = STATUS_PRIORITY[b.status?.toLowerCase()] ?? 99;
+            return pa - pb;
+          });
+          const best = sorted[0];
+          if (best) {
+            bestPropostaByDeal.set(did, { id: best.id, status: best.status, economia: economiaMap.get(best.id) || null });
           }
         });
 
