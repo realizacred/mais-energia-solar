@@ -1,0 +1,1 @@
+DELETE FROM variable_audit_reports WHERE criado_em < now() - interval '7 days';
