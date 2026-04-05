@@ -17602,6 +17602,7 @@ export type Database = {
           tenant_id: string
           tir: number | null
           updated_at: string
+          usuario_editou_em: string | null
           validade_dias: number
           valido_ate: string | null
           valor_total: number | null
@@ -17660,6 +17661,7 @@ export type Database = {
           tenant_id: string
           tir?: number | null
           updated_at?: string
+          usuario_editou_em?: string | null
           validade_dias?: number
           valido_ate?: string | null
           valor_total?: number | null
@@ -17718,6 +17720,7 @@ export type Database = {
           tenant_id?: string
           tir?: number | null
           updated_at?: string
+          usuario_editou_em?: string | null
           validade_dias?: number
           valido_ate?: string | null
           valor_total?: number | null
