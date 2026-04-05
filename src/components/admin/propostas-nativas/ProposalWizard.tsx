@@ -1221,7 +1221,16 @@ export function ProposalWizard() {
     if (res.dealId) setSavedDealId(res.dealId);
   }, []);
 
-  const handleSaveDraft = useCallback(async () => {
+  // ─── Fire-and-forget: persist custom field values to deal_custom_field_values (RB-25)
+  const syncCustomFieldValues = useCallback((dealId: string | undefined | null) => {
+    if (!dealId || Object.keys(customFieldValues).length === 0) return;
+    saveCustomFieldsMutation.mutate(
+      { dealId, values: customFieldValues },
+      { onError: (err) => console.error("[ProposalWizard] Custom fields save error:", err) },
+    );
+  }, [customFieldValues, saveCustomFieldsMutation]);
+
+
     if (isRestoring) {
       toast({ title: "Aguarde", description: "Carregando dados da proposta..." });
       return;
