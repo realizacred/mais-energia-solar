@@ -1,6 +1,10 @@
-# AGENTS.md v3.2 — Mais Energia Solar CRM
+# AGENTS.md v3.3 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-01 (v3.2 — Migração C-01 concluída + Gate de instalação)
+# Última atualização: 2026-04-05 (v3.3 — Landing page, documentos, governança variáveis)
+# Changelog v3.3: RB-29..RB-38 adicionados (landing, DOCX, cards, saúde, badges)
+#                 DA-16..DA-20 adicionados (governança, aliases, ZapSign, RLS)
+#                 AP-25..AP-29 adicionados
+#                 Correções críticas: variáveis, documentos, landing, sistema
 # Changelog v3.2: Migração C-01 concluída (40+ hooks, ~170 queries migradas)
 #                 RB-22 (gate instalação), RB-23 (console.log EF) adicionados
 #                 DA-15 (arquitetura dois resolvers) adicionado
@@ -823,5 +827,189 @@ RB-28 SOLARYUM — ENDPOINT MAP
     Nunca hardcodar IBGE no hook — sempre propagar do WizardState.
 
 # =============================================================================
-# FIM DO AGENTS.md v3.2
+# BLOCO 15 — CHANGELOG v3.3 — Sessão 2026-04-04/05
+# =============================================================================
+
+## NOVAS REGRAS BLOQUEANTES
+
+RB-29 LANDING PAGE PÚBLICA — TEMA PRÓPRIO
+    Página /pl/:token é exceção documentada de RB-02.
+    Paleta própria: #1B3A8C (azul) + #F07B24 (laranja).
+    3 modelos: ?modelo=1 (padrão), ?modelo=2 (clean), ?modelo=3 (dark)
+    Documentar no topo: "Página pública — exceção RB-02 aprovada"
+    Sem AuthGuard. Acesso via token válido (RLS configurado).
+
+RB-30 TEMPLATES DOCX — DESFRAGMENTAÇÃO XML OBRIGATÓRIA
+    Word fragmenta [ variavel ] em múltiplos <w:r> runs.
+    SEMPRE usar defragmentXml() ANTES de normalizeVariableFormat().
+    Normalizar: [ variavel ] e [variavel] → {{variavel}}
+    Aplicar em: generate-document, template-preview, docx-to-pdf
+    Shared: supabase/functions/_shared/normalizeVariableFormat.ts
+
+RB-31 CARD DO PROJETO — STATUS DA PROPOSTA MAIS RELEVANTE
+    Card deve mostrar status da proposta mais relevante:
+    1. is_principal = true → usar essa
+    2. aceita/ganha → verde com borda + fundo success/5
+    3. enviada → azul com borda info/40
+    4. Só mostrar recusada se TODAS recusadas → vermelho
+    5. Default → border-border sem destaque
+    NUNCA usar a proposta mais recente por created_at como padrão.
+
+RB-32 PROPOSTA DESATUALIZADA — APENAS EDIÇÃO MANUAL
+    "Desatualizada" APENAS quando usuário editou após geração.
+    Comparar versao.updated_at vs versao.gerado_em (NÃO deal.updated_at).
+    Grace period mínimo 60s para ignorar updates automáticos do sistema.
+    NÃO marcar como desatualizada por: geração de PDF, update de status,
+    processos automáticos, triggers do banco.
+
+RB-33 SEM AUTOSAVE NO WIZARD DE PROPOSTA
+    Wizard NÃO salva automaticamente no banco de dados.
+    Autosave em localStorage é PERMITIDO (recuperação de rascunho).
+    persistAtomic() APENAS por ação explícita do usuário:
+    - Clique em "Salvar Rascunho"
+    - Clique em "Salvar" / "Ativar"
+    - Clique em "Gerar"
+
+RB-34 DOCUMENTOS GERADOS — AÇÕES OBRIGATÓRIAS
+    Todo documento gerado DEVE ter:
+    - Botão PDF → abre/baixa PDF (se pdf_path existe)
+    - Botão DOCX → baixa DOCX (se docx_filled_path existe)
+    - Botão Preview (Eye) → abre PDF em nova aba via signed URL
+    - Botão WhatsApp → envia link ao cliente (fire-and-forget RB-25)
+    - Botão Deletar (Trash2) → com confirmação dialog
+    Badge de contagem deve incluir: storage files + generated_documents
+
+RB-35 VARIÁVEIS LEGADO — MAPEAMENTO OBRIGATÓRIO
+    Todo alias/legado deve ter substituta mapeada em DEPRECATED_VARS.
+    Mapeamentos obrigatórios implementados:
+    capo_m→modulo_garantia, preco_total→valor_total,
+    vc_nome→cliente_nome, payback_meses→payback,
+    custo_kit→kits_custo_total, margem_percentual→margem_lucro
+
+RB-36 BOLINHA DE SAÚDE — MAPA DE CORES OBRIGATÓRIO
+    NUNCA usar cor fixa na bolinha de saúde de variáveis.
+    SEMPRE usar mapa HEALTH_COLOR com valores do classifier:
+    IMPLEMENTADA/PASSTHROUGH/CUSTOM* → bg-success (verde)
+    FEATURE_NAO_IMPLEMENTADA/CDD → bg-muted-foreground/30 (cinza)
+    FANTASMA_REAL → bg-destructive (vermelho)
+    ALIAS_LEGADO/PARCIAL_BE_ONLY → bg-warning (amarelo)
+
+RB-37 BADGES DE STATUS EM COLUNA
+    NUNCA colocar badge "Em uso" ao lado do badge de STATUS.
+    SEMPRE usar flex-col para empilhar badges verticalmente:
+    <div className="flex flex-col gap-1 items-start">
+      <Badge>Status</Badge>
+      <Badge>Em uso</Badge>
+    </div>
+
+RB-38 HISTÓRICO — FILTRAR RUÍDO DO SISTEMA
+    Eventos value_changed com from_value=0 ou to_value=0
+    devem ser filtrados da exibição do histórico.
+    São causados por geração de proposta, não por usuário.
+
+## NOVAS DECISÕES ARQUITETURAIS
+
+DA-16 MOTOR DE GOVERNANÇA DE VARIÁVEIS
+    knownKeys.ts gerado automaticamente dos resolvers BE (522 chaves).
+    Fantasma = não está em BE, FE, passthrough, custom, nem notImplemented.
+    Futuras (notImplemented=true) NÃO são fantasmas — são planejadas.
+    Meta permanente: 0 fantasmas, saúde ≥ 95%.
+    Atualizar knownKeys.ts sempre que adicionar vars aos resolvers.
+
+DA-17 ALIASES OBRIGATÓRIOS NO RESOLVER BE
+    Aliases criados para compatibilidade com fórmulas custom:
+    preco → valor_total
+    investimento → valor_total
+    potencia → potencia_kwp
+    potencia_sistema → potencia_kwp
+    geracao_anual_0..25 → calculado automaticamente se ausente
+    Implementados em: resolveFinanceiro.ts, resolveSistemaSolar.ts
+
+DA-18 ASSINATURA ELETRÔNICA — ZAPSIGN
+    Provedor: ZapSign (api.zapsign.com.br)
+    Edge functions: signature-send + signature-webhook
+    Webhook: /functions/v1/signature-webhook
+    Status: sent → viewed → signed/refused/cancelled
+    Configuração por tenant em signature_settings.
+    Redeploy obrigatório após alteração.
+
+DA-19 LANDING PAGE — DADOS DO SNAPSHOT
+    Dados vêm do finalSnapshot via hook usePropostaPublica.ts.
+    Usar deepGet com fallback camelCase/snake_case.
+    Fallbacks em cadeia: snapshot → _raw → ucs[0] → selectedLead.
+    Geração mensal: calcular com irradiação se ausente no snapshot.
+    IRRAD_MEDIA_MES = [5.4,5.1,4.8,4.4,4.1,3.9,4.2,4.7,5.0,5.2,5.3,5.5]
+
+DA-20 RLS LANDING PAGE PÚBLICA
+    3 policies para acesso anônimo via token válido:
+    - proposta_versoes: SELECT via proposta_aceite_tokens
+    - propostas_nativas: SELECT via proposta_aceite_tokens
+    - proposta_templates: SELECT via versão + token
+    Token deve ser válido (expires_at > now(), invalidado_em IS NULL)
+
+## NOVOS ANTI-PADRÕES
+
+AP-25 BADGE EM USO SOBREPONDO STATUS
+    ❌ flex gap-1 (sobreposição em colunas estreitas)
+    ✅ flex flex-col gap-1 items-start
+
+AP-26 BOLINHA DE SAÚDE SEM MAPA
+    ❌ Cor fixa ou hardcoded na bolinha
+    ✅ HEALTH_COLOR[v.governance] ?? HEALTH_COLOR[v.healthClassification]
+
+AP-27 CARD COM PROPOSTA MAIS RECENTE
+    ❌ propostas.sort(created_at)[0] para exibir status no card
+    ✅ Priorizar is_principal, depois por relevância de status
+
+AP-28 CONTAGEM DE DOCUMENTOS INCOMPLETA
+    ❌ Contar apenas storage bucket
+    ✅ storage files + generated_documents table
+
+AP-29 CONTRATO SEM DESFRAGMENTAÇÃO
+    ❌ normalizeVariableFormat() direto no XML do Word
+    ✅ defragmentXml() ANTES de normalizeVariableFormat()
+
+## CORREÇÕES CRÍTICAS DESTA SESSÃO
+
+### Variáveis
+- capo_i: era valor_total (bug semântico), agora inversor_garantia ✅
+- [preco] alias → valor_total (fórmulas custom falhavam) ✅
+- Engine: IF, SWITCH, MAX, MIN, ^, separadores , e ; ✅
+- 0 fantasmas, 96% saúde ✅
+
+### Documentos
+- Contrato [ variavel ] → defragmentXml resolve fragmentação Word ✅
+- Botões PDF + DOCX + Preview + WhatsApp + Deletar ✅
+- Badge contagem inclui generated_documents ✅
+
+### Landing page
+- RLS corrigido para acesso anônimo ✅
+- Geração mensal com fallback de irradiação ✅
+- Cidade, concessionária, estrutura com fallbacks ✅
+- 3 modelos visuais implementados ✅
+- Chat IA integrado ✅
+
+### Sistema
+- Clone proposta: 'draft' → 'rascunho' ✅
+- Histórico: filtro de ruído do sistema ✅
+- TIR/VPL/Payback: lendo snapshot.financeiro.* ✅
+- Card: prioridade is_principal + status relevante ✅
+- Card: destaque verde (borda + fundo) quando proposta aceita ✅
+- "Desatualizada": grace period 60s, só edição manual ✅
+- ZapSign: assinatura eletrônica integrada ✅
+- Bolinha de saúde: mapa HEALTH_COLOR por governança ✅
+
+## CHECKLIST ADICIONAL v3.3
+
+[ ] defragmentXml() antes de normalizeVariableFormat() em DOCX
+[ ] knownKeys.ts atualizado ao adicionar vars nos resolvers
+[ ] Badge contagem documentos = storage + generated_documents
+[ ] Card projeto mostra proposta is_principal ou mais relevante
+[ ] Landing page tem exceção RB-02 documentada no topo
+[ ] Aliases preco/investimento/potencia_sistema no resolver BE
+[ ] HEALTH_COLOR mapa completo para bolinha de saúde
+[ ] Badges de status em flex-col (nunca flex-row)
+
+# =============================================================================
+# FIM DO AGENTS.md v3.3
 # =============================================================================
