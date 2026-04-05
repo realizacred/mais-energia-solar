@@ -20,6 +20,7 @@ export interface VersaoProjetoTab {
   link_pdf: string | null;
   public_slug: string | null;
   gerado_em: string | null;
+  usuario_editou_em: string | null;
 }
 
 export interface PropostaNativaProjetoTab {
