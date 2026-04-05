@@ -2024,21 +2024,17 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const outras = propostas.filter(p => p.id !== principal?.id);
 
   const isPropostaOutdated = (prop: any) => {
-    if (!dealSnapshotMeta) return false;
     const lv = prop.versoes?.[0];
     if (!lv?.gerado_em) return false;
-    // Only consider outdated if deal was updated AFTER proposal was generated
-    const dealTime = new Date(dealSnapshotMeta.updated_at).getTime();
-    const propTime = new Date(lv.gerado_em).getTime();
-    if (dealTime <= propTime) return false;
-    // Compare versao direct fields (potencia_kwp, valor_total) against deal
-    const versaoPotencia = Number(lv.potencia_kwp ?? 0);
-    const versaoValor = Number(lv.valor_total ?? 0);
-    const dealPotencia = Number(dealSnapshotMeta.kwp ?? 0);
-    const dealValor = Number(dealSnapshotMeta.value ?? 0);
-    // Only mark as outdated if critical data actually changed
-    if (dealPotencia === 0 && dealValor === 0) return false;
-    return Math.abs(versaoPotencia - dealPotencia) > 0.01 || Math.abs(versaoValor - dealValor) > 1;
+    // Outdated only if the versão was manually edited AFTER the file was generated
+    const geradoTime = new Date(lv.gerado_em).getTime();
+    const versaoUpdated = lv.updated_at ? new Date(lv.updated_at).getTime() : 0;
+    // If versão was not updated after generation, it's up to date
+    if (versaoUpdated <= geradoTime) return false;
+    // Double-check: only if snapshot or key fields actually changed
+    // (system-only updates like status changes don't count)
+    const snapshotUpdated = lv.snapshot_updated_at ? new Date(lv.snapshot_updated_at).getTime() : 0;
+    return snapshotUpdated > geradoTime;
   };
 
   // isPrincipalOutdated removed — staleness badge now shows inside each card individually
