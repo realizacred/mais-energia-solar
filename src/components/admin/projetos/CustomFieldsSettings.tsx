@@ -480,6 +480,38 @@ export function CustomFieldsSettings() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
+                  {isPosDimensionamento ? (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/30">
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-16">Ordem</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Título</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Chave</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Tipo</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório na Proposta</th>
+                            <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ações</th>
+                          </tr>
+                        </thead>
+                        <SortableContext items={filteredFields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                          <tbody>
+                            {filteredFields.map((f, i) => (
+                              <SortableFieldRow
+                                key={f.id}
+                                field={f}
+                                index={i}
+                                contextFilter={contextFilter}
+                                pipelines={pipelines}
+                                stages={stages}
+                                onEdit={openFieldDialog}
+                                onDelete={handleDeleteField}
+                              />
+                            ))}
+                          </tbody>
+                        </SortableContext>
+                      </table>
+                    </DndContext>
+                  ) : (
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/30">
@@ -496,7 +528,7 @@ export function CustomFieldsSettings() {
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório em etapa</th>
                           </>
                         )}
-                        {(contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
+                        {contextFilter === "pre_dimensionamento" && (
                           <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório na Proposta</th>
                         )}
                         <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ações</th>
@@ -558,7 +590,7 @@ export function CustomFieldsSettings() {
                               </td>
                             </>
                           )}
-                          {(contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
+                          {contextFilter === "pre_dimensionamento" && (
                             <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={() => {}} /></td>
                           )}
                           <td className="px-4 py-2.5 text-right">
@@ -576,6 +608,7 @@ export function CustomFieldsSettings() {
                       })}
                     </tbody>
                   </table>
+                  )}
                 </div>
               )}
             </CardContent>
