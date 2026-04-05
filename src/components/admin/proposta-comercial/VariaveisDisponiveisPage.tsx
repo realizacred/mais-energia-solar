@@ -1071,7 +1071,7 @@ export function VariaveisDisponiveisPage() {
             <CleanupPanel records={cleanupRecords} summary={cleanupSummary} />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="rounded-lg border border-border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
