@@ -1230,8 +1230,7 @@ export function ProposalWizard() {
     );
   }, [customFieldValues, saveCustomFieldsMutation]);
 
-
-    if (isRestoring) {
+  const handleSaveDraft = useCallback(async () => {
       toast({ title: "Aguarde", description: "Carregando dados da proposta..." });
       return;
     }
