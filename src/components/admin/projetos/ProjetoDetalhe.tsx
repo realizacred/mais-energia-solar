@@ -2013,12 +2013,16 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const isPropostaOutdated = (prop: any) => {
     const lv = prop.versoes?.[0];
     if (!lv?.gerado_em) return false;
-    // Outdated only if the versão was updated AFTER the file was generated
+
+    // Use usuario_editou_em (explicit user edit) if available, fallback to updated_at
+    const editadoEm = lv.usuario_editou_em;
+    if (!editadoEm) return false;
+
     const geradoTime = new Date(lv.gerado_em).getTime();
-    const versaoUpdated = lv.updated_at ? new Date(lv.updated_at).getTime() : 0;
-    if (versaoUpdated <= geradoTime) return false;
-    // Grace period: ignore updates within 60s of generation (system auto-updates)
-    return (versaoUpdated - geradoTime) > 60_000;
+    const editadoTime = new Date(editadoEm).getTime();
+
+    // Grace period of 60s for system updates that happen right after generation
+    return (editadoTime - geradoTime) > 60_000;
   };
 
   // isPrincipalOutdated removed — staleness badge now shows inside each card individually
