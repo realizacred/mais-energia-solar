@@ -361,8 +361,11 @@ export function resolveFinanceiro(
 
   // ── vc_aumento = ((geracao - consumo) / consumo) * 100 ──
   // Percentual de geração que excede o consumo nominal
-  const geracaoMensal = num(snap.geracao_mensal) ?? num(snap.geracaoMensalEstimada) ?? num(snap.geracao_mensal_kwh);
-  const consumoMensal = num(snap.consumo_mensal) ?? num(snap.consumo_total_kwh);
+  const tecnico = safeObj(snap.tecnico);
+  const geracaoMensal = num(snap.geracao_mensal) ?? num(snap.geracaoMensalEstimada)
+    ?? num(snap.geracao_mensal_kwh) ?? num(tecnico.geracao_estimada_kwh);
+  const consumoMensal = num(snap.consumo_mensal) ?? num(snap.consumo_total_kwh)
+    ?? num(tecnico.consumo_total_kwh);
   if (geracaoMensal != null && consumoMensal != null && consumoMensal > 0) {
     const vcAumento = ((geracaoMensal - consumoMensal) / consumoMensal) * 100;
     setCurIfMissing("vc_aumento", vcAumento);
