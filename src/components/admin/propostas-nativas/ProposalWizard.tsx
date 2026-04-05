@@ -399,6 +399,13 @@ export function ProposalWizard() {
       consultor_telefone: (selectedLead as any)?.consultor_telefone ?? "",
       // Formas de pagamento próprias (admin-configured) — embedded for public page
       formas_pagamento_proprias: formasPagamentoProprias,
+      // QW12 — Cost fields for backend resolvers (passthrough)
+      equipamentos_custo_total: venda.custo_kit ?? 0,
+      instalacao_preco_total: venda.custo_instalacao ?? 0,
+      instalacao_custo_total: venda.custo_instalacao ?? 0,
+      kit_fechado_preco_total: venda.custo_kit ?? 0,
+      kit_fechado_custo_total: venda.custo_kit ?? 0,
+      kits_custo_total: venda.custo_kit ?? 0,
       // QW11 — Financial series (25-year), payback, TIR, VPL, economia
       ...financialFields,
     };

@@ -4,6 +4,32 @@
  */
 import { type AnyObj, safeObj, safeArr, str, num, fmtNum, fmtCur, fmtVal, type ResolverExternalContext } from "./types.ts";
 
+/** Format CPF (11 digits) or CNPJ (14 digits) with punctuation */
+function formatCpfCnpj(v: string | null | undefined): string {
+  if (!v) return "";
+  const digits = String(v).replace(/\D/g, "");
+  if (digits.length === 11) {
+    return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  }
+  if (digits.length === 14) {
+    return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  }
+  return String(v);
+}
+
+/** Format phone number (10 or 11 digits) with punctuation */
+function formatPhone(v: string | null | undefined): string {
+  if (!v) return "";
+  const digits = String(v).replace(/\D/g, "");
+  if (digits.length === 11) {
+    return digits.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+  }
+  if (digits.length === 10) {
+    return digits.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+  }
+  return String(v);
+}
+
 // ── Data por extenso (PT-BR) ──
 const MESES_EXTENSO = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
   "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -80,9 +106,9 @@ export function resolveClienteComercial(
   const nomeCliente = str(cliente.nome) ?? str(lead.nome) ?? str(snapCliente.nome);
   set("cliente_nome", nomeCliente);
   set("vc_nome", nomeCliente);
-  set("cliente_celular", cliente.telefone ?? lead.telefone ?? snapCliente.telefone);
+  set("cliente_celular", formatPhone(str(cliente.telefone ?? lead.telefone ?? snapCliente.telefone)));
   set("cliente_email", cliente.email ?? snapCliente.email);
-  set("cliente_cnpj_cpf", cliente.cpf_cnpj ?? snapCliente.cpf_cnpj);
+  set("cliente_cnpj_cpf", formatCpfCnpj(str(cliente.cpf_cnpj ?? snapCliente.cpf_cnpj)));
   set("cliente_empresa", cliente.empresa ?? snapCliente.empresa);
   set("cliente_cep", cliente.cep ?? lead.cep ?? snapCliente.cep);
   set("cliente_endereco", cliente.rua ?? lead.rua ?? snapCliente.rua);
@@ -130,10 +156,10 @@ export function resolveClienteComercial(
     ?? str(snap.responsavel_nome) ?? str(ext?.tenantNome);
   set("responsavel_nome", consultorNome);
   set("consultor_nome", consultorNome);
-  set("consultor_telefone", consultor.telefone ?? snap.consultor_telefone);
+  set("consultor_telefone", formatPhone(str(consultor.telefone ?? snap.consultor_telefone)));
   set("consultor_email", consultor.email ?? snap.consultor_email);
   set("responsavel_email", consultor.email ?? snap.responsavel_email ?? snap.consultor_email);
-  set("responsavel_celular", consultor.telefone ?? snap.responsavel_celular ?? snap.consultor_telefone);
+  set("responsavel_celular", formatPhone(str(consultor.telefone ?? snap.responsavel_celular ?? snap.consultor_telefone)));
   set("representante_nome", brand.representante_legal ?? snap.representante_nome);
   set("representante_email", snap.representante_email);
   set("representante_celular", snap.representante_celular);
@@ -330,7 +356,7 @@ export function resolveClienteComercial(
   set("empresa_inscricao_estadual", brand.inscricao_estadual ?? brand.ie);
   set("empresa_inscricao_municipal", brand.inscricao_municipal ?? brand.im);
   set("empresa_endereco", brand.endereco ?? brand.rua);
-  set("empresa_telefone", brand.telefone);
+  set("empresa_telefone", formatPhone(str(brand.telefone)));
   set("empresa_email", brand.email);
   set("empresa_documento", brand.cnpj ?? brand.cpf_cnpj);
   set("empresa_ie", brand.inscricao_estadual ?? brand.ie);
@@ -340,8 +366,8 @@ export function resolveClienteComercial(
   set("cliente_estado_civil", cliente.estado_civil ?? clienteData.estado_civil ?? snap.cliente_estado_civil);
   set("cliente_nacionalidade", cliente.nacionalidade ?? clienteData.nacionalidade ?? snap.cliente_nacionalidade);
   set("cliente_profissao", cliente.profissao ?? clienteData.profissao ?? snap.cliente_profissao);
-  set("cliente_telefone", cliente.telefone ?? lead.telefone ?? snapCliente.telefone);
-  set("cliente_cpf_cnpj", cliente.cpf_cnpj ?? snapCliente.cpf_cnpj);
+  set("cliente_telefone", formatPhone(str(cliente.telefone ?? lead.telefone ?? snapCliente.telefone)));
+  set("cliente_cpf_cnpj", formatCpfCnpj(str(cliente.cpf_cnpj ?? snapCliente.cpf_cnpj)));
   set("cliente_rua", cliente.rua ?? snapCliente.rua);
   set("cliente_codigo", cliente.cliente_code ?? clienteData.cliente_code);
 
