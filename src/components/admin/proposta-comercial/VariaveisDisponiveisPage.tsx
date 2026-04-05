@@ -240,6 +240,11 @@ export function VariaveisDisponiveisPage() {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testVar, setTestVar] = useState("");
   const [govFilter, setGovFilter] = useState<GovernanceFilter>("todas");
+  const [showAuditPanel, setShowAuditPanel] = useState(false);
+
+  // Simple filter for the redesigned view
+  type SimpleFilter = "todas" | "em_uso" | "com_erro";
+  const [simpleFilter, setSimpleFilter] = useState<SimpleFilter>("todas");
 
   // §16: queries only in hooks
   const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
