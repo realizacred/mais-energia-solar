@@ -240,6 +240,11 @@ export function VariaveisDisponiveisPage() {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testVar, setTestVar] = useState("");
   const [govFilter, setGovFilter] = useState<GovernanceFilter>("todas");
+  const [showAuditPanel, setShowAuditPanel] = useState(false);
+
+  // Simple filter for the redesigned view
+  type SimpleFilter = "todas" | "em_uso" | "com_erro";
+  const [simpleFilter, setSimpleFilter] = useState<SimpleFilter>("todas");
 
   // §16: queries only in hooks
   const { data: customVarsRaw = [], isLoading: loadingCustom, refetch: refetchCustom } = useVariaveisCustom();
@@ -691,15 +696,15 @@ export function VariaveisDisponiveisPage() {
 
   return (
     <div className="space-y-4">
-      {/* §26: Header padrão AGENTS */}
+      {/* Simplified header — redesign v2 */}
       <PageHeader
-        icon={Database}
-        title="Variáveis do Sistema"
-        description="Consulte, filtre e gerencie as variáveis usadas nos templates de proposta e contrato."
+        icon={Zap}
+        title="Variáveis Custom"
+        description="Gerencie as variáveis personalizadas usadas nos templates de proposta."
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["variable"] })} className="gap-1.5">
-              <RefreshCw className="h-3.5 w-3.5" /> Recalcular
+            <Button variant="outline" size="sm" onClick={() => setShowAuditPanel((v) => !v)} className="gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" /> Auditoria
             </Button>
             <Button size="sm" onClick={openNewModal} className="gap-1.5">
               <Plus className="h-3.5 w-3.5" /> Nova Custom
@@ -708,386 +713,155 @@ export function VariaveisDisponiveisPage() {
         }
       />
 
-      {/* §27: Governance KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Card className="border-l-[3px] border-l-primary">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Database className="h-4 w-4 text-primary" />
+      {/* Audit panel (toggled by Auditoria button) */}
+      {showAuditPanel && (
+        <Card className="border-border">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-foreground">Auditoria & Diagnóstico</h3>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowAuditPanel(false)}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.total}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Total catálogo</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-success">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-            </div>
-            <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.implementada}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Implementadas</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-info">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-9 h-9 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
-              <FileText className="h-4 w-4 text-info" />
-            </div>
-            <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.parcial_be_only + govSummary.passthrough}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">BE/Passthrough</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-warning">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
-              <AlertTriangle className="h-4 w-4 text-warning" />
-            </div>
-            <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.mapeavel + govSummary.parcial_fe_only}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Mapeáveis/FE-only</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-[3px] border-l-destructive">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-              <XCircle className="h-4 w-4 text-destructive" />
-            </div>
-            <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.fantasma_real}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Fantasmas reais</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className={cn("border-l-[3px]",
-          govSummary.catalogHealth.level === "saudavel" ? "border-l-success" :
-          govSummary.catalogHealth.level === "bom" ? "border-l-info" :
-          govSummary.catalogHealth.level === "atencao" ? "border-l-warning" : "border-l-destructive"
-        )}>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
-              govSummary.catalogHealth.level === "saudavel" ? "bg-success/10" :
-              govSummary.catalogHealth.level === "bom" ? "bg-info/10" :
-              govSummary.catalogHealth.level === "atencao" ? "bg-warning/10" : "bg-destructive/10"
-            )}>
-              <HeartPulse className={cn("h-4 w-4",
-                govSummary.catalogHealth.level === "saudavel" ? "text-success" :
-                govSummary.catalogHealth.level === "bom" ? "text-info" :
-                govSummary.catalogHealth.level === "atencao" ? "text-warning" : "text-destructive"
-              )} />
-            </div>
-            <div>
-              <p className="text-xl font-bold tracking-tight text-foreground leading-none">{govSummary.catalogHealth.score}%</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Saúde ({
-                  govSummary.catalogHealth.level === "saudavel" ? "Saudável" :
-                  govSummary.catalogHealth.level === "bom" ? "Bom" :
-                  govSummary.catalogHealth.level === "atencao" ? "Atenção" : "Crítica"
-                })
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Critical health alert */}
-      {hasHealthData && kpiStats.healthCritical > 0 && (
-        <Card className="border-destructive/30 bg-destructive/5">
-          <CardContent className="flex items-center gap-3 p-3">
-            <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-              <HeartPulse className="h-4 w-4 text-destructive" />
+            {/* Quick KPI row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="text-center p-3 rounded-lg bg-muted/30 border border-border">
+                <p className="text-lg font-bold text-foreground">{govSummary.total}</p>
+                <p className="text-[10px] text-muted-foreground">Total catálogo</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-success/5 border border-success/20">
+                <p className="text-lg font-bold text-success">{govSummary.implementada}</p>
+                <p className="text-[10px] text-muted-foreground">Implementadas</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                <p className="text-lg font-bold text-destructive">{govSummary.fantasma_real}</p>
+                <p className="text-[10px] text-muted-foreground">Fantasmas</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <p className="text-lg font-bold text-primary">{govSummary.catalogHealth.score}%</p>
+                <p className="text-[10px] text-muted-foreground">Saúde</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-destructive">
-                {kpiStats.healthCritical} variável(is) crítica(s) detectada(s)
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                Baseado em {healthSummary.totalReportsAnalyzed} auditorias históricas.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0"
-              onClick={() => setStatusFilter("health_critical")}
-            >
-              Ver críticas
-            </Button>
+
+            <AuditTabContent
+              dbCustomVars={dbCustomVars}
+              loadingCustom={loadingCustom}
+              govRecords={govRecords}
+              govSummary={govSummary}
+              onRefresh={async () => {
+                await Promise.all([
+                  refetchCustom(),
+                  queryClient.invalidateQueries({ queryKey: ["audit-variables"] }),
+                  queryClient.invalidateQueries({ queryKey: ["generation-audit-reports-latest"] }),
+                  queryClient.invalidateQueries({ queryKey: ["generation-audit-health"] }),
+                  queryClient.invalidateQueries({ queryKey: ["variable-audit-reports-history"] }),
+                ]);
+              }}
+              onRequestCreateVariable={(suggested) => {
+                setEditingVar(null);
+                const tableCategoria: Record<string, string> = {
+                  clientes: "cliente", deals: "comercial", projetos: "comercial",
+                  propostas_nativas: "comercial", proposta_versoes: "financeiro",
+                  simulacoes: "calculo", consultores: "comercial", concessionarias: "tarifa",
+                };
+                const categoria = tableCategoria[suggested.table] || "geral";
+                const colType = suggested.colType || "string";
+                let expressao = `return snapshot?.${suggested.table}?.${suggested.column} ?? "-";`;
+                if (colType === "number") expressao = `const val = snapshot?.${suggested.table}?.${suggested.column};\nreturn typeof val === "number" ? val : 0;`;
+                else if (colType === "date") expressao = `const val = snapshot?.${suggested.table}?.${suggested.column};\nif (!val) return "-";\nconst d = new Date(val);\nreturn d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });`;
+                else if (colType === "boolean") expressao = `return snapshot?.${suggested.table}?.${suggested.column} ? "Sim" : "Não";`;
+                setForm({ nome: `vc_${suggested.nome}`, label: suggested.label, expressao, precisao: colType === "number" ? 2 : 0 });
+                setModalOpen(true);
+              }}
+            />
           </CardContent>
         </Card>
       )}
 
-      {/* Main card container */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        {/* VIEW tabs (primary navigation) */}
-        <div className="border-b border-border bg-muted/20 px-3 py-2.5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {/* View presets */}
-            {(Object.keys(VARIABLE_VIEW_LABELS) as VariableView[]).map((view) => {
-              const isActive = activeView === view;
-              const count = governanceVariables.filter(v => v.views.includes(view)).length;
-              return (
-                <Button
-                  key={view}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { setActiveView(view); setDomainFilter("todas"); }}
-                  className={cn(
-                    "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20 hover:bg-primary/90"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-                  )}
-                >
-                  <span className="text-xs mr-0.5">{VARIABLE_VIEW_ICONS[view]}</span>
-                  <span>{VARIABLE_VIEW_LABELS[view]}</span>
-                  <span className={cn("text-[9px] font-mono tabular-nums ml-0.5", isActive ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
-                    {count}
-                  </span>
-                </Button>
-              );
-            })}
-
-            {/* All view */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { setActiveView("todas"); setDomainFilter("todas"); }}
-              className={cn(
-                "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
-                activeView === "todas"
-                  ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20 hover:bg-primary/90"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-              )}
-            >
-              <List className="h-3.5 w-3.5 mr-0.5" />
-              <span>Todas</span>
-              <span className={cn("text-[9px] font-mono tabular-nums ml-0.5", activeView === "todas" ? "text-primary-foreground/70" : "text-muted-foreground/40")}>
-                {allVariables.length}
-              </span>
-            </Button>
-
-            <div className="h-5 w-px bg-border/50 mx-1" />
-
-            {/* Audit + Cleanup */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveView("auditoria")}
-              className={cn(
-                "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
-                activeView === "auditoria"
-                  ? "bg-warning text-warning-foreground shadow-sm ring-1 ring-warning/20 hover:bg-warning/90"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-              )}
-            >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Auditoria</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveView("limpeza")}
-              className={cn(
-                "h-auto px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap",
-                activeView === "limpeza"
-                  ? "bg-destructive text-destructive-foreground shadow-sm ring-1 ring-destructive/20 hover:bg-destructive/90"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-              )}
-            >
-              <Archive className="h-3.5 w-3.5" />
-              <span>Limpeza</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Domain filter + Search + status filters */}
-        {isContentView && (
-          <div className="px-3 py-2.5 border-b border-border space-y-2">
-            {/* Domain chips */}
-            <div className="flex flex-wrap items-center gap-1">
-              <span className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider mr-1">Domínio:</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDomainFilter("todas")}
-                className={cn(
-                  "h-6 px-2 text-[10px] rounded-md",
-                  domainFilter === "todas"
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Todos
-              </Button>
-              {DOMAIN_ORDER.map((dom) => {
-                const count = domainCounts[dom] || 0;
-                if (count === 0) return null;
-                return (
-                  <Button
-                    key={dom}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDomainFilter(dom)}
-                    className={cn(
-                      "h-6 px-2 text-[10px] rounded-md",
-                      domainFilter === dom
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <span className="text-xs mr-0.5">{DOMAIN_ICONS[dom]}</span>
-                    {DOMAIN_LABELS[dom]}
-                    <span className="text-[8px] font-mono ml-0.5 opacity-60">{count}</span>
-                  </Button>
-                );
-              })}
-            </div>
-
-            {/* Search + status filters */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
-                <Input
-                  placeholder="Buscar nome, chave, descrição..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-8 h-8 text-xs bg-muted/20 border-border focus:bg-card"
-                />
-                {search && (
-                  <Button variant="ghost" size="icon" className="absolute right-0.5 top-1/2 -translate-y-1/2 h-6 w-6" onClick={() => setSearch("")}>
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-1">
-                {([
-                  { key: "todas", label: "Todas" },
-                  { key: "em_uso", label: "Em uso" },
-                  { key: "ok", label: "OK" },
-                  { key: "warning", label: "Warning" },
-                  { key: "error", label: "Erro" },
-                  { key: "nativa", label: "Nativa" },
-                  { key: "custom", label: `Custom (${kpiStats.custom})` },
-                  ...(kpiStats.campoCustEntidade > 0 ? [{ key: "campo_dinamico" as StatusFilter, label: `Campos Entidade (${kpiStats.campoCustEntidade})` }] : []),
-                  ...(hasHealthData && kpiStats.healthCritical > 0 ? [{ key: "health_critical" as StatusFilter, label: `🔴 Críticas (${kpiStats.healthCritical})` }] : []),
-                ] as { key: StatusFilter; label: string }[]).map((f) => (
-                  <Button
-                    key={f.key}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { setStatusFilter(f.key); setGovFilter("todas"); }}
-                    className={cn(
-                      "h-6 px-2 text-[10px] rounded-md",
-                      statusFilter === f.key && govFilter === "todas"
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {f.label}
-                  </Button>
-                ))}
-                {statusFilter !== "todas" && (
-                  <Button variant="ghost" size="sm" onClick={() => setStatusFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
-                    Limpar
-                  </Button>
-                )}
-              </div>
-
-              {/* Governance filters */}
-              <div className="flex flex-wrap items-center gap-1 border-t border-border/50 pt-1.5 mt-1 w-full">
-                <span className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider mr-1">Governança:</span>
-                {govFilterOptions.map((f) => (
-                  <Button
-                    key={f.key}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { setGovFilter(f.key); if (f.key !== "todas") setStatusFilter("todas"); }}
-                    className={cn(
-                      "h-6 px-2 text-[10px] rounded-md",
-                      govFilter === f.key
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {f.label}
-                    <span className="text-[8px] font-mono ml-0.5 opacity-60">{f.count}</span>
-                  </Button>
-                ))}
-                {govFilter !== "todas" && (
-                  <Button variant="ghost" size="sm" onClick={() => setGovFilter("todas")} className="h-6 px-2 text-[10px] text-destructive">
-                    Limpar
-                  </Button>
-                )}
-              </div>
-              <Badge variant="outline" className="text-[10px] font-mono border-border text-muted-foreground shrink-0 ml-auto">
-                {filtered.length}/{allVariables.length}
-              </Badge>
-            </div>
-          </div>
-        )}
-
-        {/* Content */}
-        {isAuditView ? (
-          <AuditTabContent
-            dbCustomVars={dbCustomVars}
-            loadingCustom={loadingCustom}
-            govRecords={govRecords}
-            govSummary={govSummary}
-            onRefresh={async () => {
-              await Promise.all([
-                refetchCustom(),
-                queryClient.invalidateQueries({ queryKey: ["audit-variables"] }),
-                queryClient.invalidateQueries({ queryKey: ["generation-audit-reports-latest"] }),
-                queryClient.invalidateQueries({ queryKey: ["generation-audit-health"] }),
-                queryClient.invalidateQueries({ queryKey: ["variable-audit-reports-history"] }),
-              ]);
-            }}
-            onRequestCreateVariable={(suggested) => {
-              setEditingVar(null);
-              const tableCategoria: Record<string, string> = {
-                clientes: "cliente", deals: "comercial", projetos: "comercial",
-                propostas_nativas: "comercial", proposta_versoes: "financeiro",
-                simulacoes: "calculo", consultores: "comercial", concessionarias: "tarifa",
-              };
-              const categoria = tableCategoria[suggested.table] || "geral";
-              const colType = suggested.colType || "string";
-              let expressao = `return snapshot?.${suggested.table}?.${suggested.column} ?? "-";`;
-              if (colType === "number") expressao = `const val = snapshot?.${suggested.table}?.${suggested.column};\nreturn typeof val === "number" ? val : 0;`;
-              else if (colType === "date") expressao = `const val = snapshot?.${suggested.table}?.${suggested.column};\nif (!val) return "-";\nconst d = new Date(val);\nreturn d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });`;
-              else if (colType === "boolean") expressao = `return snapshot?.${suggested.table}?.${suggested.column} ? "Sim" : "Não";`;
-              setForm({ nome: `vc_${suggested.nome}`, label: suggested.label, expressao, precisao: colType === "number" ? 2 : 0 });
-              setModalOpen(true);
-            }}
+      {/* Simple search bar + filter */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="relative flex-1 min-w-0 w-full sm:max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+          <Input
+            placeholder="Buscar por nome ou chave..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9 text-sm bg-card border-border"
           />
-        ) : isCleanupView ? (
-          <div className="p-4">
-            <CleanupPanel records={cleanupRecords} summary={cleanupSummary} />
-          </div>
-        ) : (
-          <div className="rounded-lg border border-border overflow-x-auto">
+          {search && (
+            <Button variant="ghost" size="icon" className="absolute right-0.5 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearch("")}>
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          {([
+            { key: "todas" as SimpleFilter, label: "Todas" },
+            { key: "em_uso" as SimpleFilter, label: "Em uso" },
+            { key: "com_erro" as SimpleFilter, label: "Com erro" },
+          ]).map((f) => (
+            <Button
+              key={f.key}
+              variant={simpleFilter === f.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSimpleFilter(f.key)}
+              className="h-8 text-xs"
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Table — custom vars only by default */}
+      {(() => {
+        // Filter to custom vars, apply search + simple filter
+        let tableItems = governanceVariables.filter((v) => v.source === "custom_vc" || v.isCustom || v.customId);
+
+        if (search.trim()) {
+          const q = normalize(search);
+          tableItems = tableItems.filter(
+            (v) =>
+              normalize(v.label).includes(q) ||
+              normalize(v.key).includes(q) ||
+              normalize(v.legacyKey).includes(q)
+          );
+        }
+
+        if (simpleFilter === "em_uso") {
+          tableItems = tableItems.filter((v) => v.inDocx);
+        } else if (simpleFilter === "com_erro") {
+          tableItems = tableItems.filter((v) => v.status === "error" || v.status === "warning" || v.docxBroken || v.docxNull);
+        }
+
+        // Sort
+        const dir = sortDir === "asc" ? 1 : -1;
+        const getVal = (v: EnrichedVariable): string => {
+          switch (sortCol) {
+            case "label": return v.label;
+            case "legacyKey": return v.legacyKey;
+            case "domain": return DOMAIN_LABELS[v.domain] ?? v.domain;
+            case "status": return v.status;
+            default: return v.label;
+          }
+        };
+        tableItems = [...tableItems].sort((a, b) => dir * getVal(a).localeCompare(getVal(b), "pt-BR"));
+
+        return (
+          <div className="rounded-lg border border-border overflow-hidden overflow-x-auto bg-card">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   {[
-                    { key: "label", label: "Variável", width: "min-w-[180px]" },
+                    { key: "label", label: "Nome", width: "min-w-[200px]" },
+                    { key: "legacyKey", label: "Chave", width: "w-[150px]" },
                     { key: "domain", label: "Domínio", width: "w-[140px]" },
-                    { key: "nature", label: "Natureza", width: "w-[120px]" },
-                    { key: "status", label: "Status", width: "w-[140px]" },
-                    { key: "legacyKey", label: "Chave", width: "w-[130px]" },
-                    { key: "source", label: "Origem", width: "w-[100px]" },
-                    { key: "health", label: "Saúde", width: "w-[70px]" },
-                    { key: "unit", label: "Un.", width: "w-[50px]" },
+                    { key: "status", label: "Status", width: "w-[120px]" },
                   ].map((col) => (
                     <TableHead
                       key={col.key}
-                      className={cn("text-[10px] cursor-pointer hover:text-foreground select-none transition-colors whitespace-nowrap font-semibold", col.width)}
+                      className={cn("text-xs cursor-pointer hover:text-foreground select-none transition-colors whitespace-nowrap font-semibold", col.width)}
                       onClick={() => toggleSort(col.key)}
                     >
                       <span className="inline-flex items-center gap-1">
@@ -1100,134 +874,46 @@ export function VariaveisDisponiveisPage() {
                       </span>
                     </TableHead>
                   ))}
-                  <TableHead className="text-[10px] w-[80px] text-center font-semibold whitespace-nowrap">Ações</TableHead>
+                  <TableHead className="text-xs w-[100px] text-center font-semibold whitespace-nowrap">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((v) => (
+                {tableItems.map((v) => (
                   <TableRow
                     key={v.key}
                     className={cn(
                       "hover:bg-muted/30 cursor-pointer transition-colors",
-                      v.notImplemented && "opacity-40",
                       v.status === "error" && "bg-destructive/5",
                     )}
                     onClick={() => setDetailVar(v)}
                   >
-                    {/* Variável */}
-                    <TableCell className="py-2 min-w-[180px]">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <ChevronRight className="h-3 w-3 text-primary/30 shrink-0" />
-                        <span className="font-medium text-foreground text-[11px] leading-tight">{v.label}</span>
-                        {v.isCustom && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-primary/30 text-primary font-mono">custom</Badge>
-                        )}
-                        {v.nature === "campo_custom_entidade" && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-info/30 text-info font-mono">campo</Badge>
-                        )}
-                        {v.nature === "alias_legado" && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-warning/40 bg-warning/10 text-warning font-mono">legado</Badge>
-                        )}
-                        {v.notImplemented && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-muted-foreground/40 text-muted-foreground font-mono">futura</Badge>
-                        )}
-                        {v.isSeries && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 border-secondary/40 text-secondary font-mono">série</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    {/* Domínio */}
-                    <TableCell className="py-2">
-                      <span className="text-[10px] text-muted-foreground">
-                        {DOMAIN_ICONS[v.domain]} {DOMAIN_LABELS[v.domain]}
-                      </span>
-                    </TableCell>
-
-                    {/* Natureza */}
-                    <TableCell className="py-2">
-                      <span className="text-[10px] text-muted-foreground">
-                        {NATURE_LABELS[v.nature]}
-                      </span>
-                    </TableCell>
-
-                    {/* Status */}
-                    <TableCell className="py-2">
-                      <StatusBadgeVar status={v.status} inDocx={v.inDocx} govRecord={getGovRecord(v.key)} />
+                    {/* Nome */}
+                    <TableCell className="py-2.5 min-w-[200px]">
+                      <span className="font-medium text-foreground text-sm">{v.label}</span>
                     </TableCell>
 
                     {/* Chave */}
-                    <TableCell className="py-2">
+                    <TableCell className="py-2.5">
                       <div className="flex items-center gap-1">
-                        <code className="font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded text-[10px] truncate max-w-[110px]">{v.legacyKey}</code>
+                        <code className="font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded text-xs truncate max-w-[120px]">{v.legacyKey}</code>
                         <CopyButton text={v.legacyKey} />
                       </div>
                     </TableCell>
 
-                    {/* Origem */}
-                    <TableCell className="py-2">
-                      <span className={cn("text-[10px] font-medium", getSourceLabel(v.source).color)}>
-                        {getSourceLabel(v.source).label}
+                    {/* Domínio */}
+                    <TableCell className="py-2.5">
+                      <span className="text-xs text-muted-foreground">
+                        {DOMAIN_ICONS[v.domain]} {DOMAIN_LABELS[v.domain]}
                       </span>
                     </TableCell>
 
-                    {/* Saúde — RB-36: governance é sinal primário, health é refinamento */}
-                    <TableCell className="py-2 text-center">
-                      {(() => {
-                        const gov = getGovRecord(v.key);
-                        const cls = gov?.classification;
-
-                        // 1. Governance-based (primary signal per RB-36)
-                        if (cls) {
-                          const isImpl = ["IMPLEMENTADA", "PASSTHROUGH", "CUSTOM_IMPL", "CUSTOM_BACKEND", "INPUT_WIZARD", "DOCUMENTO"].includes(cls);
-                          const isFuture = ["FEATURE_NAO_IMPLEMENTADA", "CDD"].includes(cls);
-                          const isLegacy = ["ALIAS_LEGADO", "TEMPLATE_LEGADO"].includes(cls);
-                          const isPartial = ["PARCIAL_BE_ONLY", "PARCIAL_FE_ONLY", "MAPEAVEL"].includes(cls);
-
-                          if (cls === "FANTASMA_REAL") return <span className="text-[10px]">🔴</span>;
-                          if (isFuture) return <span className="text-[10px] text-muted-foreground/50">⚪</span>;
-                          if (isLegacy) return <span className="text-[10px]">🟡</span>;
-                          if (isPartial) return <span className="text-[10px]">🟡</span>;
-
-                          // Implemented: refine with health data if available and reliable
-                          if (isImpl) {
-                            const hc = v.healthClassification;
-                            if (hc && hc !== "unused" && v.healthScore !== undefined && v.healthScore < 30) {
-                              // Only show red if health score is truly critical AND based on enough data
-                              return <span className="text-[10px]">🟠</span>;
-                            }
-                            return <span className="text-[10px]">🟢</span>;
-                          }
-                        }
-
-                        // 2. Health-only fallback (no governance data)
-                        if (v.healthClassification && !["unused", "legacy", "duplicate_candidate"].includes(v.healthClassification)) {
-                          return (
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-[8px] px-1.5 py-0 h-4 font-medium",
-                                v.healthClassification === "healthy" && "bg-success/15 text-success border-success/20",
-                                v.healthClassification === "unstable" && "bg-warning/15 text-warning border-warning/20",
-                                v.healthClassification === "critical" && "bg-destructive/15 text-destructive border-destructive/20",
-                              )}
-                            >
-                              {v.healthClassification === "healthy" ? "🟢" : v.healthClassification === "unstable" ? "🟡" : "🔴"}
-                            </Badge>
-                          );
-                        }
-
-                        return <span className="text-[10px] text-muted-foreground/40">—</span>;
-                      })()}
-                    </TableCell>
-
-                    {/* Un. */}
-                    <TableCell className="py-2 text-center">
-                      <span className="text-[10px] text-muted-foreground font-mono">{v.unit || "—"}</span>
+                    {/* Status */}
+                    <TableCell className="py-2.5">
+                      <StatusBadgeVar status={v.status} inDocx={v.inDocx} govRecord={getGovRecord(v.key)} />
                     </TableCell>
 
                     {/* Ações */}
-                    <TableCell className="py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                    <TableCell className="py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center gap-0.5">
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1236,22 +922,6 @@ export function VariaveisDisponiveisPage() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="text-[10px]">Ver detalhes</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-success"
-                              onClick={() => {
-                                setTestVar(v.key);
-                                setTestDialogOpen(true);
-                              }}
-                            >
-                              <FlaskConical className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-[10px]">Testar</TooltipContent>
                         </Tooltip>
                         {(v.customId || v.source === "custom_vc") && (
                           <>
@@ -1296,20 +966,16 @@ export function VariaveisDisponiveisPage() {
               </TableBody>
             </Table>
 
-            {filtered.length === 0 && (
+            {tableItems.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
                 <Search className="h-8 w-8 mx-auto opacity-15 mb-2" />
-                <p className="text-xs font-medium">Nenhuma variável encontrada</p>
-                {(statusFilter !== "todas" || domainFilter !== "todas") && (
-                  <Button variant="link" size="sm" onClick={() => { setStatusFilter("todas"); setDomainFilter("todas"); }} className="text-xs mt-1">
-                    Limpar filtros
-                  </Button>
-                )}
+                <p className="text-sm font-medium">Nenhuma variável custom encontrada</p>
+                <p className="text-xs text-muted-foreground mt-1">Crie uma nova variável com o botão "+ Nova Custom"</p>
               </div>
             )}
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* ── Variable Detail Dialog ── */}
       <Dialog open={!!detailVar} onOpenChange={(open) => !open && setDetailVar(null)}>
