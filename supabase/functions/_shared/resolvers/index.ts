@@ -5,7 +5,7 @@
  *   import { resolveAllVariables } from "../_shared/resolvers/index.ts";
  *   const vars = resolveAllVariables(snapshot, ext);
  */
-import { type AnyObj, type ResolverExternalContext, str } from "./types.ts";
+import { type AnyObj, type ResolverExternalContext, str, num, fmtVal } from "./types.ts";
 import { resolveEntrada } from "./resolveEntrada.ts";
 import { resolveFinanceiro } from "./resolveFinanceiro.ts";
 import { resolveSistemaSolar } from "./resolveSistemaSolar.ts";
@@ -85,6 +85,135 @@ function addCanonicalAliases(vars: Record<string, string>): void {
   Object.assign(vars, additions);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Custom variable formula evaluator (lightweight, no external deps)
+// Supports: +, -, *, /, ^, (), IF, SWITCH, MAX, MIN
+// ═══════════════════════════════════════════════════════════════
+
+function evaluateFormula(
+  expression: string,
+  vars: Record<string, string>,
+): { value: number | null; missing: string[] } {
+  const missing: string[] = [];
+
+  // Replace [var_name] with resolved values
+  let expr = expression.replace(/\[([^\]]+)\]/g, (_, key: string) => {
+    const k = key.trim();
+    const val = vars[k];
+    if (val === undefined || val === null || val === "") {
+      missing.push(k);
+      return "NaN";
+    }
+    // Parse pt-BR formatted number: "6.445,86" → 6445.86
+    const cleaned = val.replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? "NaN" : String(n);
+  });
+
+  if (missing.length > 0) return { value: null, missing };
+
+  // Handle IF(cond;then;else) or IF(cond,then,else)
+  expr = expr.replace(/IF\s*\(([^)]+)\)/gi, (_, args: string) => {
+    const parts = args.split(/[;,]/).map(p => p.trim());
+    if (parts.length < 3) return "NaN";
+    try {
+      const cond = Function(`"use strict"; return (${parts[0]});`)();
+      return cond ? parts[1] : parts[2];
+    } catch { return "NaN"; }
+  });
+
+  // Handle MAX/MIN
+  expr = expr.replace(/MAX\s*\(([^)]+)\)/gi, (_, args: string) => {
+    const nums = args.split(/[;,]/).map(p => parseFloat(p.trim())).filter(n => !isNaN(n));
+    return nums.length > 0 ? String(Math.max(...nums)) : "NaN";
+  });
+  expr = expr.replace(/MIN\s*\(([^)]+)\)/gi, (_, args: string) => {
+    const nums = args.split(/[;,]/).map(p => parseFloat(p.trim())).filter(n => !isNaN(n));
+    return nums.length > 0 ? String(Math.min(...nums)) : "NaN";
+  });
+
+  // Replace ^ with ** for exponentiation
+  expr = expr.replace(/\^/g, "**");
+
+  try {
+    const result = Function(`"use strict"; return (${expr});`)();
+    if (typeof result === "number" && isFinite(result)) {
+      return { value: result, missing: [] };
+    }
+    return { value: null, missing: [] };
+  } catch {
+    return { value: null, missing: [] };
+  }
+}
+
+/**
+ * Process variaveis_custom array from snapshot.
+ * Re-evaluates formulas using already-resolved variables.
+ * Uses topological sort to handle inter-dependencies.
+ */
+function processCustomVariables(
+  snapshot: AnyObj,
+  vars: Record<string, string>,
+): void {
+  const customVars = Array.isArray(snapshot.variaveis_custom)
+    ? (snapshot.variaveis_custom as AnyObj[])
+    : [];
+
+  if (customVars.length === 0) return;
+
+  // Build dependency graph
+  const varMap = new Map<string, AnyObj>();
+  for (const cv of customVars) {
+    const nome = str(cv.nome);
+    if (!nome) continue;
+    varMap.set(nome, cv);
+  }
+
+  // Topological sort: resolve vars with no custom dependencies first
+  const resolved = new Set<string>();
+  const maxPasses = varMap.size + 1;
+
+  for (let pass = 0; pass < maxPasses; pass++) {
+    let progress = false;
+
+    for (const [nome, cv] of varMap) {
+      if (resolved.has(nome)) continue;
+      if (vars[nome]) { resolved.add(nome); continue; }
+
+      const expressao = str(cv.expressao);
+      if (!expressao) {
+        // No formula — use pre-computed value if available
+        const preComputed = cv.valor_calculado;
+        if (preComputed !== null && preComputed !== undefined && preComputed !== "" && preComputed !== 0) {
+          vars[nome] = String(preComputed);
+        }
+        resolved.add(nome);
+        progress = true;
+        continue;
+      }
+
+      // Try to evaluate formula
+      const { value, missing } = evaluateFormula(expressao, vars);
+
+      // Check if missing deps are custom vars not yet resolved
+      const hasPendingCustomDeps = missing.some(m => varMap.has(m) && !resolved.has(m));
+      if (hasPendingCustomDeps) continue; // Wait for next pass
+
+      if (value !== null) {
+        vars[nome] = fmtVal(value);
+        resolved.add(nome);
+        progress = true;
+      } else {
+        // Cannot resolve — mark as resolved to avoid infinite loop
+        resolved.add(nome);
+        progress = true;
+      }
+    }
+
+    if (!progress) break;
+  }
+}
+
 /**
  * Resolves ALL proposal variables from a snapshot + optional external context.
  * Returns a flat Record<string, string> with both legacy and canonical keys.
@@ -137,6 +266,9 @@ export function resolveAllVariables(
       if (!vars[k]) vars[k] = v;
     }
   }
+
+  // Step 2b: Process custom variables (re-evaluate formulas with resolved vars)
+  processCustomVariables(snap, vars);
 
   // Step 3: Add canonical aliases
   addCanonicalAliases(vars);
