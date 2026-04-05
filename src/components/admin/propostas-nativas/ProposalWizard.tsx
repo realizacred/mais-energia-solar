@@ -1250,6 +1250,7 @@ export function ProposalWizard() {
     switch (res.status) {
       case "success":
         applyPersistResult(res);
+        syncCustomFieldValues(res.dealId || resolvedDealId);
         toast({ title: "✅ Rascunho salvo" });
         break;
       case "reused":
