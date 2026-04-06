@@ -622,15 +622,7 @@ Deno.serve(async (req) => {
       variables[mk] = stripCurrencyPrefix(val);
     }
 
-    console.error(
-      "[generate-document] DIAG: monetary vars final=",
-      JSON.stringify({
-        preco: variables["preco"] ?? "(MISSING)",
-        preco_por_extenso: variables["preco_por_extenso"] ?? "(MISSING)",
-        equipamentos_custo_total: variables["equipamentos_custo_total"] ?? "(MISSING)",
-        instalacao_preco_total: variables["instalacao_preco_total"] ?? "(MISSING)",
-      }),
-    );
+    // Diagnostic log removed — sensitive financial data (RB-23)
 
     // Phone formatting
     function formatPhoneBR(phone: string | undefined): string {

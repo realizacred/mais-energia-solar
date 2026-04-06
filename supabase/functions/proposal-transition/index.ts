@@ -160,6 +160,29 @@ Deno.serve(async (req) => {
 
     if (updateErr) throw updateErr;
 
+    // 4a. Sync proposta_versoes.status (latest version)
+    try {
+      const statusMap: Record<string, string> = {
+        rascunho: "draft",
+        gerada: "generated",
+        enviada: "sent",
+        vista: "viewed",
+        aceita: "accepted",
+        recusada: "rejected",
+        expirada: "expired",
+        cancelada: "cancelled",
+      };
+      const versaoStatus = statusMap[new_status] || new_status;
+      await admin
+        .from("proposta_versoes")
+        .update({ status: versaoStatus })
+        .eq("proposta_id", proposta_id)
+        .order("versao_numero", { ascending: false })
+        .limit(1);
+    } catch (syncErr) {
+      console.error("[proposal-transition] Erro ao sincronizar proposta_versoes.status:", syncErr);
+    }
+
     // 4b. On accept: reject sibling proposals and clear their is_principal
     if (new_status === "aceita" && proposta.projeto_id) {
       // Clear is_principal on all siblings
@@ -196,10 +219,11 @@ Deno.serve(async (req) => {
     // 5. Commission on accept (with idempotency — check for existing commission)
     if (new_status === "aceita") {
       try {
-        // Check if commission already exists for this proposal
+        // Check if commission already exists for this proposal (tenant-isolated)
         const { data: existingComm } = await admin
           .from("comissoes")
           .select("id")
+          .eq("tenant_id", proposta.tenant_id)
           .eq("projeto_id", proposta.projeto_id)
           .neq("status", "cancelada")
           .maybeSingle();
@@ -249,6 +273,7 @@ Deno.serve(async (req) => {
 
               const dtNow = new Date();
               await admin.from("comissoes").insert({
+                tenant_id: proposta.tenant_id,
                 consultor_id: consultorId,
                 cliente_id: proposta.cliente_id,
                 projeto_id: proposta.projeto_id || null,
