@@ -1045,13 +1045,23 @@ export function StepDocumento({
               </p>
             </div>
           ) : pdfBlobUrl ? (
-            <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
-              <iframe
-                src={pdfBlobUrl}
-                title="Proposta PDF Preview"
-                className="w-full border-0"
-                style={{ height: 800 }}
-              />
+            <div className="space-y-3">
+              {hasRestoredPreview && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                  <p className="text-xs text-warning">
+                    Esta proposta foi editada. Gere uma nova versão para atualizar o documento.
+                  </p>
+                </div>
+              )}
+              <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
+                <iframe
+                  src={pdfBlobUrl}
+                  title="Proposta PDF Preview"
+                  className="w-full border-0"
+                  style={{ height: 800 }}
+                />
+              </div>
             </div>
           ) : htmlPreview && !isDocxSelected ? (
             /* HTML preview ONLY for HTML/web templates — never for DOCX */
