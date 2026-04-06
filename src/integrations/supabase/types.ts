@@ -27058,6 +27058,7 @@ export type Database = {
       normalize_br_phone: { Args: { phone: string }; Returns: string }
       normalize_phone: { Args: { p: string }; Returns: string }
       normalize_phone_e164: { Args: { raw: string }; Returns: string }
+      normalize_proposta_snapshot: { Args: { p_snapshot: Json }; Returns: Json }
       normalize_remote_jid: { Args: { raw_jid: string }; Returns: string }
       normalize_wa_jid: { Args: { raw_jid: string }; Returns: string }
       preview_seed_data: { Args: never; Returns: Json }
