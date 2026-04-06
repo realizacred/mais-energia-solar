@@ -12,36 +12,88 @@ import { injectChartsIntoDocx } from "../_shared/chartInjector.ts";
 // ═══════════════════════════════════════════════════════════════
 
 function evaluateInlineFormulasInText(text: string): string {
-  const ifPattern = /IF\s*\(([^)]+)\)/gi;
+  // Use balanced parentheses matching to support nested IF()
+  const MAX_PASSES = 10;
+  let result = text;
+  for (let pass = 0; pass < MAX_PASSES; pass++) {
+    const ifIdx = findIFStartInline(result);
+    if (ifIdx === -1) break;
+    const openParen = result.indexOf("(", ifIdx);
+    if (openParen === -1) break;
+    const closeParen = findMatchingParenInline(result, openParen);
+    if (closeParen === -1) break;
+    const argsStr = result.substring(openParen + 1, closeParen);
+    const evaluated = evaluateSingleIFInline(argsStr);
+    result = result.substring(0, ifIdx) + evaluated + result.substring(closeParen + 1);
+  }
+  return result;
+}
 
-  return text.replace(ifPattern, (fullMatch, argsStr: string) => {
-    const parts = splitInlineFormulaParts(argsStr);
-    if (parts.length < 3) return fullMatch;
+function findIFStartInline(text: string): number {
+  const lower = text.toLowerCase();
+  let idx = 0;
+  while (idx < text.length) {
+    const pos = lower.indexOf("if", idx);
+    if (pos === -1) return -1;
+    let j = pos + 2;
+    while (j < text.length && text[j] === " ") j++;
+    if (j < text.length && text[j] === "(") return pos;
+    idx = pos + 1;
+  }
+  return -1;
+}
 
-    const condition = parts[0].trim();
-    const thenVal = unquoteInline(parts[1].trim());
-    const elseVal = unquoteInline(parts[2].trim());
-
-    const neqMatch = condition.match(/^(.+?)<>(.+)$/);
-    const eqMatch = condition.match(/^(.+?)=(.+)$/);
-
-    if (neqMatch) {
-      const left = unquoteInline(neqMatch[1].trim());
-      const right = unquoteInline(neqMatch[2].trim());
-      return left !== right ? thenVal : elseVal;
+function findMatchingParenInline(text: string, openPos: number): number {
+  let depth = 0;
+  let inQuote = false;
+  let quoteChar = "";
+  for (let i = openPos; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuote) {
+      if (ch === quoteChar) inQuote = false;
+      continue;
     }
-    if (eqMatch) {
-      const left = unquoteInline(eqMatch[1].trim());
-      const right = unquoteInline(eqMatch[2].trim());
-      return left === right ? thenVal : elseVal;
+    if (ch === '"' || ch === "'") {
+      inQuote = true;
+      quoteChar = ch;
+    } else if (ch === "(") {
+      depth++;
+    } else if (ch === ")") {
+      depth--;
+      if (depth === 0) return i;
     }
+  }
+  return -1;
+}
 
-    const condClean = unquoteInline(condition);
-    if (condClean && condClean !== "0" && condClean.toLowerCase() !== "false") {
-      return thenVal;
-    }
-    return elseVal;
-  });
+function evaluateSingleIFInline(argsStr: string): string {
+  const resolved = evaluateInlineFormulasInText(argsStr);
+  const parts = splitInlineFormulaParts(resolved);
+  if (parts.length < 3) return argsStr;
+
+  const condition = parts[0].trim();
+  const thenVal = unquoteInline(parts[1].trim());
+  const elseVal = unquoteInline(parts[2].trim());
+
+  const neqMatch = condition.match(/^(.+?)<>(.+)$/);
+  const eqMatch = condition.match(/^(.+?)=(.+)$/);
+
+  if (neqMatch) {
+    const left = unquoteInline(neqMatch[1].trim());
+    const right = unquoteInline(neqMatch[2].trim());
+    return left !== right ? thenVal : elseVal;
+  }
+  if (eqMatch) {
+    const left = unquoteInline(eqMatch[1].trim());
+    const right = unquoteInline(eqMatch[2].trim());
+    return left === right ? thenVal : elseVal;
+  }
+
+  const condClean = unquoteInline(condition);
+  if (condClean && condClean !== "0" && condClean.toLowerCase() !== "false") {
+    return thenVal;
+  }
+  return elseVal;
 }
 
 function splitInlineFormulaParts(s: string): string[] {
