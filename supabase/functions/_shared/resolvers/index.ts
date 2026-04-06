@@ -221,7 +221,8 @@ export function resolveAllVariables(
   }
 
   // Step 1b: Flatten customFieldValues directly as flat keys (pos_*, pre_*, cap_*)
-  const cfv = snap.customFieldValues ?? snap.custom_field_values ?? {};
+  const wsForCfv = (snap._wizard_state && typeof snap._wizard_state === "object") ? (snap._wizard_state as AnyObj) : {};
+  const cfv = snap.customFieldValues ?? snap.custom_field_values ?? wsForCfv.customFieldValues ?? {};
   if (typeof cfv === "object" && !Array.isArray(cfv)) {
     for (const [cfKey, cfValue] of Object.entries(cfv as AnyObj)) {
       if (cfValue === null || cfValue === undefined || cfValue === "") continue;

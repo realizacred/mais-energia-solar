@@ -355,7 +355,8 @@ export function resolveFinanceiro(
 
   // ── Legados: capo_m = garantia módulos, capo_seguro = seguro ──
   // capo_m: priority = modulo_garantia from resolveSistemaSolar > snapshot fallbacks
-  const cfv = safeObj(snap.customFieldValues ?? snap.custom_field_values);
+  const ws = safeObj(snap._wizard_state);
+  const cfv = safeObj(snap.customFieldValues ?? snap.custom_field_values ?? ws.customFieldValues);
   set("capo_m", out["modulo_garantia"] ?? snap.capo_m ?? snap.modulo_garantia ?? snap.capital_melhoria ?? fin.capo_m ?? "");
   // capo_seguro: alias from pos_seguro custom field + legacy fallbacks
   set("capo_seguro", cfv.pos_seguro ?? snap.capo_seguro ?? snap.capital_seguro ?? fin.capo_seguro ?? "");
