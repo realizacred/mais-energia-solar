@@ -505,7 +505,7 @@ Deno.serve(async (req) => {
       const { data: propNativa } = await supabase
         .from("propostas_nativas")
         .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id")
-        .eq("projeto_id", deal_id)
+        .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
         .in("status", ["gerada", "aceita", "enviada", "vista"])
         .order("is_principal", { ascending: false })
         .order("created_at", { ascending: false })
