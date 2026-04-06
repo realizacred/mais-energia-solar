@@ -228,10 +228,14 @@ export function resolveFinanceiro(
   ];
   for (const k of costFields) set(k, snap[k]);
 
-  // ── Derive instalacao_preco_total from venda.custo_servicos if not set ──
+  // ── Derive instalacao_preco_total = valor_total - kit_venda ──
   if (!out["instalacao_preco_total"]) {
-    const custoServicos = num(venda.custo_servicos) ?? num(fin.custo_servicos_inclusos) ?? num(fin.custo_servicos) ?? 0;
-    out["instalacao_preco_total"] = fmtVal(custoServicos);
+    const custoKit = num(venda.custo_kit) ?? num(fin.custo_kit) ?? 0;
+    const margem = num(venda.margem_percentual) ?? num(fin.margem_percentual) ?? 0;
+    const kitVenda = custoKit * (1 + margem / 100);
+    const valorTotal = num(venda.valor_total) ?? num(fin.valor_total) ?? num(snap.valor_total) ?? 0;
+    const instPreco = valorTotal - kitVenda;
+    out["instalacao_preco_total"] = fmtVal(instPreco >= 0 ? instPreco : 0);
   }
 
   // ── Ensure equipamentos_custo_total defaults to 0 ──
