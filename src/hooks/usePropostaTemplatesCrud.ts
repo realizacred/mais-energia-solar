@@ -7,6 +7,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+/** Extract storage path from a Supabase public URL */
+function extractStoragePathFromUrl(url: string, bucket: string): string | null {
+  const marker = `/storage/v1/object/public/${bucket}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return decodeURIComponent(url.substring(idx + marker.length));
+}
+
 export interface PropostaTemplateFull {
   id: string;
   nome: string;
@@ -86,19 +94,27 @@ export function useSalvarPropostaTemplate() {
 export function useDeletarPropostaTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (template: { id: string; file_url?: string | null }) => {
       // Desvincular versões que referenciam este template
       const { error: versionsError } = await supabase
         .from("proposta_versoes" as any)
         .update({ template_id_used: null } as any)
-        .eq("template_id_used", id);
+        .eq("template_id_used", template.id);
       if (versionsError) console.warn("[useDeletarPropostaTemplate] Erro ao desvincular versões:", versionsError.message);
 
       const { error } = await supabase
         .from("proposta_templates")
         .delete()
-        .eq("id", id);
+        .eq("id", template.id);
       if (error) throw error;
+
+      // GAP 2: RB-25 fire-and-forget — delete storage file after DB delete
+      if (template.file_url) {
+        const path = extractStoragePathFromUrl(template.file_url, "proposta-templates");
+        if (path) {
+          supabase.storage.from("proposta-templates").remove([path]).catch(() => {});
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY] });

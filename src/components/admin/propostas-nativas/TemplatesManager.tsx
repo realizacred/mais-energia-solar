@@ -251,6 +251,9 @@ export function TemplatesManager() {
       return;
     }
 
+    // GAP 1: Capture old file_url before upload to delete later
+    const oldFileUrl = form.file_url || null;
+
     setUploading(true);
     try {
       await supabase.auth.refreshSession();
@@ -272,6 +275,16 @@ export function TemplatesManager() {
         .upload(fileName, file, { contentType: file.type, upsert: true });
 
       if (uploadError) throw uploadError;
+
+      // RB-25: delete old file fire-and-forget — never block upload
+      if (oldFileUrl) {
+        const marker = `/storage/v1/object/public/proposta-templates/`;
+        const idx = oldFileUrl.indexOf(marker);
+        if (idx !== -1) {
+          const oldPath = decodeURIComponent(oldFileUrl.substring(idx + marker.length));
+          supabase.storage.from("proposta-templates").remove([oldPath]).catch(() => {});
+        }
+      }
 
       const { data: urlData } = supabase.storage
         .from("proposta-templates")
@@ -341,8 +354,9 @@ export function TemplatesManager() {
   };
 
   const handleDelete = async (id: string) => {
+    const tpl = templates.find(t => t.id === id);
     try {
-      await deletarMutation.mutateAsync(id);
+      await deletarMutation.mutateAsync({ id, file_url: tpl?.file_url });
       toast({ title: "Template excluído com sucesso" });
     } catch (e: any) {
       console.error("[TemplatesManager] Erro ao excluir template:", e);
