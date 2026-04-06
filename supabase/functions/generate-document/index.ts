@@ -41,6 +41,90 @@ function replaceVars(text: string, ctx: Record<string, string>): string {
   });
 }
 
+/**
+ * Evaluate inline IF()/SWITCH() formulas in text AFTER variable substitution.
+ * Handles string comparisons like: IF("Integrada"="Integrada"; "texto A"; "texto B")
+ * These appear when the template uses IF([pos_incluir_string_box]="Integrada"; "A"; "B")
+ * and [pos_incluir_string_box] was already substituted with its value.
+ */
+function evaluateInlineFormulas(text: string): string {
+  // Match IF(...) patterns — must handle nested quotes and semicolons
+  const ifPattern = /IF\s*\(([^)]+)\)/gi;
+
+  return text.replace(ifPattern, (fullMatch, argsStr: string) => {
+    // Split by ; or , (respecting quoted strings)
+    const parts = splitFormulaParts(argsStr);
+    if (parts.length < 3) return fullMatch; // malformed — leave as-is
+
+    const condition = parts[0].trim();
+    const thenVal = unquote(parts[1].trim());
+    const elseVal = unquote(parts[2].trim());
+
+    // Evaluate condition: "A"="B" or A=B or "A"<>"B"
+    const neqMatch = condition.match(/^(.+?)<>(.+)$/);
+    const eqMatch = condition.match(/^(.+?)=(.+)$/);
+
+    if (neqMatch) {
+      const left = unquote(neqMatch[1].trim());
+      const right = unquote(neqMatch[2].trim());
+      return left !== right ? thenVal : elseVal;
+    }
+    if (eqMatch) {
+      const left = unquote(eqMatch[1].trim());
+      const right = unquote(eqMatch[2].trim());
+      return left === right ? thenVal : elseVal;
+    }
+
+    // Numeric/truthy check
+    const condClean = unquote(condition);
+    if (condClean && condClean !== "0" && condClean.toLowerCase() !== "false") {
+      return thenVal;
+    }
+    return elseVal;
+  });
+}
+
+/** Split formula arguments respecting quoted strings */
+function splitFormulaParts(s: string): string[] {
+  const parts: string[] = [];
+  let current = "";
+  let inQuote = false;
+  let quoteChar = "";
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inQuote) {
+      if (ch === quoteChar) {
+        inQuote = false;
+      }
+      current += ch;
+    } else if (ch === '"' || ch === "'") {
+      inQuote = true;
+      quoteChar = ch;
+      current += ch;
+    } else if (ch === ";" || ch === ",") {
+      parts.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  parts.push(current);
+  return parts;
+}
+
+/** Remove surrounding quotes from a string */
+function unquote(s: string): string {
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    return s.slice(1, -1);
+  }
+  // Also handle XML-encoded quotes
+  if (s.startsWith("&quot;") && s.endsWith("&quot;")) {
+    return s.slice(6, -6);
+  }
+  return s;
+}
+
 /** Format BRL currency */
 function formatBRL(v: number | null | undefined): string {
   if (v == null) return "";
