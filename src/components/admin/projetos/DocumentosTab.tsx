@@ -440,7 +440,8 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                   );
                 })}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
