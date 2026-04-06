@@ -171,11 +171,21 @@ function sanitizeSnapshot(snapshot: any): Record<string, unknown> {
   // Promote _wizard_state metadata to snapshot root for resolver access
   const ws = rest._wizard_state as Record<string, unknown> | undefined;
   if (ws) {
-    if (ws.descricaoProposta && !result.descricaoProposta) {
+    // descricaoProposta — allow empty string as valid value
+    if (ws.descricaoProposta != null && !result.descricaoProposta) {
       result.descricaoProposta = ws.descricaoProposta;
     }
-    if (ws.nomeProposta && !result.nomeProposta) {
+    // nomeProposta — allow empty string as valid value
+    if (ws.nomeProposta != null && !result.nomeProposta) {
       result.nomeProposta = ws.nomeProposta;
+    }
+    // customFieldValues — critical for pos_*, pre_*, cap_* fields in resolvers
+    if (ws.customFieldValues && typeof ws.customFieldValues === "object" && !result.customFieldValues) {
+      result.customFieldValues = ws.customFieldValues;
+    }
+    // templateSelecionado
+    if (ws.templateSelecionado && !result.templateSelecionado) {
+      result.templateSelecionado = ws.templateSelecionado;
     }
   }
 
