@@ -59,7 +59,7 @@ const MOCK_CONTEXT: ProposalMessageContext = {
   economiaMensal: 680,
   paybackMeses: 48,
   valorTotal: 42500,
-  linkProposta: "https://app.maisenergiasolar.com/p/abc123",
+  linkProposta: "https://app.maisenergiasolar.com/proposta/abc123",
   tipoTelhado: "Cerâmico",
   distribuidora: "CEMIG",
   consultorNome: "Maria Santos",

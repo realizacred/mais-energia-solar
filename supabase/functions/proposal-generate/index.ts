@@ -959,7 +959,7 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
 
     const { data: existingProposta } = await adminClient
       .from("propostas_nativas").select("id, status").match(matchFilter)
-      .not("status", "in", "(aceita,cancelada)")
+      .not("status", "in", "(aceita,cancelada,enviada,vista)")
       .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     if (existingProposta) {
