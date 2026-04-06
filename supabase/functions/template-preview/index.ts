@@ -308,10 +308,7 @@ async function processDocxTemplate(
     // ── STEP 2c: Evaluate inline IF()/SWITCH() formulas after substitution ──
     content = evaluateInlineFormulasInText(content);
 
-    // ── STEP 3: Final sweep — remaining placeholders are MISSING (not in vars) ──
-    // KEEP them exactly as-is ([varName] or {{varName}}) to preserve layout,
-    // enable easy identification, and avoid introducing different characters
-    // that change text width. Only collect them for logging/auditing.
+    // ── STEP 3: Final sweep — collect missing vars for audit, then blank them ──
     const localMissing: string[] = [];
 
     const remainingBracket = /\[([a-zA-Z_][a-zA-Z0-9_.-]{0,120})\]/g;
@@ -327,12 +324,15 @@ async function processDocxTemplate(
       if (!localMissing.includes(varName)) localMissing.push(varName);
     }
 
-    // Do NOT replace — just register for audit
     for (const varName of localMissing) {
       if (!missingVars.includes(varName)) {
         missingVars.push(varName);
       }
     }
+
+    // Replace residual placeholders with blank so they never appear in the PDF
+    content = content.replace(/\{\{[^}]+\}\}/g, "");
+    content = content.replace(/\[[a-zA-Z_][a-zA-Z0-9_.]*\]/g, "");
 
     if (modified) {
       const xmlValid = isValidXmlDocument(content);
