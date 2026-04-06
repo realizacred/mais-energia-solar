@@ -312,7 +312,7 @@ function FinancialKPIs({ snapshot, latestVersao }: { snapshot: any; latestVersao
     : "—";
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div className="flex items-center gap-2 border rounded-lg p-3 bg-card">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-success/10 shrink-0">
           <TrendingUp className="w-4 h-4 text-success" />
@@ -490,106 +490,109 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   const geracaoMensal = (snapshot as Record<string, any>)?.geracaoMensalEstimada || latestVersao?.geracao_mensal || 0;
   const economiaMensal = latestVersao?.economia_mensal || 0;
   return (
-    <div className="flex gap-5 mt-3">
-      {/* Left: Unidades */}
-      <div className="w-[280px] shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-bold text-foreground">Unidades</h4>
-        </div>
-        <div className="border rounded-lg p-3 space-y-3">
-          {(snapshot?.ucs && snapshot.ucs.length > 0) ? (
-            snapshot.ucs.map((uc, idx) => (
-              <div key={idx} className="flex items-start gap-3">
-                <div className={cn("mt-0.5 p-2 rounded-lg shrink-0", uc.is_geradora ? "bg-success/10" : "bg-info/10")}>
-                  {uc.is_geradora ? <SunMedium className="h-5 w-5 text-success" /> : <Home className="h-5 w-5 text-info" />}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-foreground">
-                    {uc.nome}
-                    {uc.is_geradora && <span className="text-[9px] font-normal text-success ml-1">(Geradora)</span>}
-                  </p>
-                  {economiaMensal > 0 && (
-                    <p className="text-[10px] text-muted-foreground">
-                      Economia: {formatBRL(economiaMensal)}{uc.consumo_mensal ? ` (${Math.round((economiaMensal / (uc.tarifa_distribuidora * uc.consumo_mensal)) * 100) || 0}%)` : ""}
+    <div className="space-y-4 mt-3">
+      {/* Row 1: Unidades + Resumo side by side */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Left: Unidades */}
+        <div className="w-full sm:w-72 shrink-0">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-bold text-foreground">Unidades</h4>
+          </div>
+          <div className="border rounded-lg p-3 space-y-3">
+            {(snapshot?.ucs && snapshot.ucs.length > 0) ? (
+              snapshot.ucs.map((uc, idx) => (
+                <div key={idx} className="flex items-start gap-3">
+                  <div className={cn("mt-0.5 p-2 rounded-lg shrink-0", uc.is_geradora ? "bg-success/10" : "bg-info/10")}>
+                    {uc.is_geradora ? <SunMedium className="h-5 w-5 text-success" /> : <Home className="h-5 w-5 text-info" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-foreground">
+                      {uc.nome}
+                      {uc.is_geradora && <span className="text-[9px] font-normal text-success ml-1">(Geradora)</span>}
                     </p>
-                  )}
-                  <p className="text-[10px] text-muted-foreground">Consumo Total: {uc.consumo_mensal} kWh</p>
-                  {uc.is_geradora && geracaoMensal > 0 && (
-                    <p className="text-[10px] text-muted-foreground">Geração Mensal: {geracaoMensal.toLocaleString("pt-BR")} kWh</p>
-                  )}
+                    {economiaMensal > 0 && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Economia: {formatBRL(economiaMensal)}{uc.consumo_mensal ? ` (${Math.round((economiaMensal / (uc.tarifa_distribuidora * uc.consumo_mensal)) * 100) || 0}%)` : ""}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">Consumo Total: {uc.consumo_mensal} kWh</p>
+                    {uc.is_geradora && geracaoMensal > 0 && (
+                      <p className="text-[10px] text-muted-foreground">Geração Mensal: {geracaoMensal.toLocaleString("pt-BR")} kWh</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
-          ) : ucsDetail.length > 0 ? (
-            ucsDetail.map(uc => (
-              <div key={uc.id} className="flex items-start gap-3">
-                <div className="mt-0.5 p-2 rounded-lg shrink-0 bg-info/10">
-                  <Home className="h-5 w-5 text-info" />
+              ))
+            ) : ucsDetail.length > 0 ? (
+              ucsDetail.map(uc => (
+                <div key={uc.id} className="flex items-start gap-3">
+                  <div className="mt-0.5 p-2 rounded-lg shrink-0 bg-info/10">
+                    <Home className="h-5 w-5 text-info" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-foreground">{uc.nome}</p>
+                    <p className="text-[10px] text-muted-foreground">Consumo: {uc.consumo_mensal_kwh} kWh</p>
+                    {uc.geracao_mensal_estimada && (
+                      <p className="text-[10px] text-muted-foreground">Geração: {uc.geracao_mensal_estimada.toFixed(0)} kWh</p>
+                    )}
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-foreground">{uc.nome}</p>
-                  <p className="text-[10px] text-muted-foreground">Consumo: {uc.consumo_mensal_kwh} kWh</p>
-                  {uc.geracao_mensal_estimada && (
-                    <p className="text-[10px] text-muted-foreground">Geração: {uc.geracao_mensal_estimada.toFixed(0)} kWh</p>
-                  )}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-[10px] text-muted-foreground">Sem UCs definidas</p>
-          )}
+              ))
+            ) : (
+              <p className="text-[10px] text-muted-foreground">Sem UCs definidas</p>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Right: Summary table */}
-      <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-bold text-foreground mb-2">Resumo</h4>
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-muted/30 text-muted-foreground">
-                <th className="text-left py-2 px-3 font-semibold">ITEM</th>
-                <th className="text-center py-2 px-3 font-semibold w-16">QTD</th>
-                <th className="text-right py-2 px-3 font-semibold w-28">VALORES</th>
-                <th className="text-right py-2 px-3 font-semibold w-24">% DO TOTAL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {buildSummaryRows().map((row, idx) => (
-                <>
-                  <tr key={idx} className="border-t border-border/20">
-                    <td className="py-2 px-3 font-semibold text-foreground">{row.label}</td>
-                    <td className="py-2 px-3 text-center text-muted-foreground">{row.qty}</td>
-                    <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(row.value)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(row.pct)}%</td>
-                  </tr>
-                  {row.children?.map((child, ci) => (
-                    <tr key={`${idx}-${ci}`} className="border-t border-border/10">
-                      <td className="py-1.5 px-3 pl-6 text-muted-foreground text-[11px]">{child.label}</td>
-                      <td className="py-1.5 px-3 text-center text-muted-foreground text-[11px]">{child.qty}</td>
-                      <td className="py-1.5 px-3" />
-                      <td className="py-1.5 px-3" />
+        {/* Right: Summary table */}
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-bold text-foreground mb-2">Resumo</h4>
+          <div className="border rounded-lg overflow-hidden overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-muted/30 text-muted-foreground">
+                  <th className="text-left py-2 px-3 font-semibold">ITEM</th>
+                  <th className="text-center py-2 px-3 font-semibold w-16">QTD</th>
+                  <th className="text-right py-2 px-3 font-semibold w-28">VALORES</th>
+                  <th className="text-right py-2 px-3 font-semibold w-24">% DO TOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {buildSummaryRows().map((row, idx) => (
+                  <>
+                    <tr key={idx} className="border-t border-border/20">
+                      <td className="py-2 px-3 font-semibold text-foreground">{row.label}</td>
+                      <td className="py-2 px-3 text-center text-muted-foreground">{row.qty}</td>
+                      <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(row.value)}</td>
+                      <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(row.pct)}%</td>
                     </tr>
-                  ))}
-                </>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-dashed border-border">
-                <td className="py-3 px-3 font-bold text-foreground">Total</td>
-                <td />
-                <td className="py-3 px-3 text-right">
-                  {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice.replace('.', ',')} / Wp</span>}
-                  <span className="font-bold text-foreground text-sm">{formatBRL(latestVersao?.valor_total || 0)}</span>
-                </td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
+                    {row.children?.map((child, ci) => (
+                      <tr key={`${idx}-${ci}`} className="border-t border-border/10">
+                        <td className="py-1.5 px-3 pl-6 text-muted-foreground text-[11px]">{child.label}</td>
+                        <td className="py-1.5 px-3 text-center text-muted-foreground text-[11px]">{child.qty}</td>
+                        <td className="py-1.5 px-3" />
+                        <td className="py-1.5 px-3" />
+                      </tr>
+                    ))}
+                  </>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-dashed border-border">
+                  <td className="py-3 px-3 font-bold text-foreground">Total</td>
+                  <td />
+                  <td className="py-3 px-3 text-right">
+                    {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice.replace('.', ',')} / Wp</span>}
+                    <span className="font-bold text-foreground text-sm">{formatBRL(latestVersao?.valor_total || 0)}</span>
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       </div>
 
-      {/* Financial KPIs */}
+      {/* Row 2: Financial KPIs full width */}
       <FinancialKPIs snapshot={snapshot as any} latestVersao={latestVersao} />
     </div>
   );
