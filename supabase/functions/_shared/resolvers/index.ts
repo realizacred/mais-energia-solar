@@ -246,7 +246,12 @@ export function resolveAllVariables(
   const cfv = snap.customFieldValues ?? snap.custom_field_values ?? {};
   if (typeof cfv === "object" && !Array.isArray(cfv)) {
     for (const [cfKey, cfValue] of Object.entries(cfv as AnyObj)) {
-      if (cfValue !== null && cfValue !== undefined && cfValue !== "" && typeof cfValue !== "object") {
+      if (cfValue === null || cfValue === undefined || cfValue === "") continue;
+      if (Array.isArray(cfValue)) {
+        // multi_select / select fields → join as comma-separated string
+        const joined = cfValue.filter((v: unknown) => v != null && v !== "").join(", ");
+        if (joined && !vars[cfKey]) vars[cfKey] = joined;
+      } else if (typeof cfValue !== "object") {
         if (!vars[cfKey]) vars[cfKey] = String(cfValue);
       }
     }

@@ -237,7 +237,11 @@ export function resolveClienteComercial(
   // ── Custom fields from snapshot (cap_*, pre_*, pos_*) ──
   const customFieldValues = safeObj(snap.customFieldValues ?? snap.custom_field_values);
   for (const [cfKey, cfVal] of Object.entries(customFieldValues)) {
-    if (cfVal != null && cfVal !== "" && typeof cfVal !== "object") {
+    if (cfVal == null || cfVal === "") continue;
+    if (Array.isArray(cfVal)) {
+      const joined = cfVal.filter((v: unknown) => v != null && v !== "").join(", ");
+      if (joined) set(cfKey, joined);
+    } else if (typeof cfVal !== "object") {
       set(cfKey, String(cfVal));
     }
   }
