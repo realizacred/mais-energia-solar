@@ -7,6 +7,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+/** Extract storage path from a Supabase public URL */
+function extractStoragePathFromUrl(url: string, bucket: string): string | null {
+  const marker = `/storage/v1/object/public/${bucket}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  return decodeURIComponent(url.substring(idx + marker.length));
+}
+
 export interface PropostaTemplateFull {
   id: string;
   nome: string;
