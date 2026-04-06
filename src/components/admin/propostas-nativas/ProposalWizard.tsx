@@ -1222,7 +1222,6 @@ export function ProposalWizard() {
     overrideVersaoId?: string | null,
   ): PersistenceParams => {
     const snapshot = collectSnapshot();
-    console.error("[DEBUG] snapshot customFieldValues:", JSON.stringify(snapshot.customFieldValues));
     const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
     return {
       effectivePropostaId: overridePropostaId ?? savedPropostaId ?? null,
@@ -2028,6 +2027,7 @@ export function ProposalWizard() {
         },
         pagamento_opcoes: pagamentoOpcoes.map(({ id, ...rest }) => rest),
         observacoes: venda.observacoes || undefined,
+        customFieldValues: customFieldValues ?? {},
         aceite_estimativa: enforcement.aceiteEstimativa || undefined,
         // Wizard-specific state for edit round-trip (engine passes through, not used for calc)
         _wizard_state: {
