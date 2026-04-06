@@ -111,7 +111,10 @@ export function useDeleteCustomField() {
       const { error } = await supabase.from("deal_custom_fields").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK_FIELDS }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QK_FIELDS });
+      qc.invalidateQueries({ queryKey: ["deal-custom-fields-active"] });
+    },
   });
 }
 
@@ -122,7 +125,10 @@ export function useToggleCustomField() {
       const { error } = await supabase.from("deal_custom_fields").update({ [column]: value } as any).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK_FIELDS }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QK_FIELDS });
+      qc.invalidateQueries({ queryKey: ["deal-custom-fields-active"] });
+    },
   });
 }
 
