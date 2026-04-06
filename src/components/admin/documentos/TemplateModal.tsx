@@ -111,7 +111,7 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] max-w-3xl p-0 gap-0 overflow-hidden">
+      <DialogContent className="w-[90vw] max-w-[800px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <FileText className="w-5 h-5 text-primary" />
@@ -122,7 +122,7 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
           </div>
         </DialogHeader>
 
-        <div className="p-5 overflow-y-auto max-h-[70vh]">
+        <div className="p-5 flex-1 min-h-0 overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-6">
           {/* Left — Form */}
           <div className="space-y-4">
