@@ -580,6 +580,10 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── 4b2. doc_* aliases from already-resolved vars ──
+    if (!variables["doc_parcelas"]) variables["doc_parcelas"] = variables["f_ativo_prazo"] ?? variables["f_parcelas"] ?? variables["projeto_numero_parcelas"] ?? "";
+    if (!variables["doc_valor_das_parcelas"]) variables["doc_valor_das_parcelas"] = variables["f_ativo_parcela"] ?? variables["f_valor_parcela"] ?? variables["projeto_valor_parcela"] ?? "";
+
     // ── 4c. POST-PROCESSING (SAME fixes as template-preview — keep in sync!) ──
 
     // FIX 1: potencia_sistema — strip unit suffix to avoid "6,00 kWp kWp"
