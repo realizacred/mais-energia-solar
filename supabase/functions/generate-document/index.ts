@@ -269,6 +269,8 @@ function buildPaymentDescription(composition: any[], valorTotal: number | null):
 function buildDocumentEnrichment(
   cliente: Record<string, any> | null,
   contratoNumero: string,
+  snapshot?: Record<string, any> | null,
+  versaoData?: Record<string, any> | null,
 ): Record<string, string> {
   const ctx: Record<string, string> = {};
   const setDual = (flat: string, dotted: string, val: any) => {
@@ -302,6 +304,29 @@ function buildDocumentEnrichment(
   if (cliente?.payment_composition) {
     const payVars = buildPaymentDescription(cliente.payment_composition, null);
     Object.assign(ctx, payVars);
+  }
+
+  // ── doc_* aliases for contract templates ──
+  // doc_parcelas / doc_valor_das_parcelas from snapshot payment data
+  const snap = snapshot ?? {};
+  const pagOpcoes = snap.pagamentoOpcoes ?? snap.pagamento_opcoes ?? (snap as any)?._wizard_state?.pagamentoOpcoes;
+  if (Array.isArray(pagOpcoes) && pagOpcoes.length > 0) {
+    // Find the active/first financing option
+    const fin = pagOpcoes.find((p: any) => p.tipo === "financiamento" || p.tipo === "parcelado") ?? pagOpcoes[0];
+    const numParcelas = fin?.num_parcelas ?? fin?.numParcelas ?? fin?.prazo ?? fin?.parcelas;
+    const valorParcela = fin?.valor_parcela ?? fin?.valorParcela ?? fin?.parcela ?? fin?.valor_mensal;
+    if (numParcelas) ctx["doc_parcelas"] = String(numParcelas);
+    if (valorParcela != null) ctx["doc_valor_das_parcelas"] = formatBRL(Number(valorParcela));
+  }
+
+  // Fallback from versaoData or snapshot direct fields
+  if (!ctx["doc_parcelas"]) {
+    const fp = snap.f_parcelas ?? snap.f_ativo_prazo ?? versaoData?.f_parcelas;
+    if (fp) ctx["doc_parcelas"] = String(fp);
+  }
+  if (!ctx["doc_valor_das_parcelas"]) {
+    const fv = snap.f_valor_parcela ?? snap.f_ativo_parcela;
+    if (fv != null) ctx["doc_valor_das_parcelas"] = formatBRL(Number(fv));
   }
 
   return ctx;
@@ -459,39 +484,27 @@ Deno.serve(async (req) => {
         ? supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase.from("tenants").select("nome, documento, telefone, email, endereco").eq("id", tenantId).maybeSingle(),
-      // Get latest official proposal version for this deal
+      // Get latest generated proposal version for this deal
+      // Step: find propostas_nativas by deal_id OR projeto_id, then get its versoes
       supabase
-        .from("proposta_versoes")
-        .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
-        .eq("proposta_id", deal_id)
-        .eq("status", "generated")
+        .from("propostas_nativas")
+        .select("id")
+        .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
+        .in("status", ["gerada", "aceita", "enviada", "vista"])
+        .order("is_principal", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle()
-        .then((r) => {
-          if (!r.data) {
-            return supabase
-              .from("propostas_nativas")
-              .select("id")
-              .eq("projeto_id", deal_id)
-              .in("status", ["gerada", "aceita", "enviada", "vista"])
-              .order("is_principal", { ascending: false })
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle()
-              .then((pRes) => {
-                if (!pRes.data) return { data: null };
-                return supabase
-                  .from("proposta_versoes")
-                  .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
-                  .eq("proposta_id", pRes.data.id)
-                  .eq("status", "generated")
-                  .order("created_at", { ascending: false })
-                  .limit(1)
-                  .maybeSingle();
-              });
-          }
-          return r;
+        .then((pRes) => {
+          if (!pRes?.data) return { data: null };
+          return supabase
+            .from("proposta_versoes")
+            .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
+            .eq("proposta_id", pRes.data.id)
+            .eq("status", "generated")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
         }),
       // Brand settings (representante legal)
       supabase
@@ -517,7 +530,7 @@ Deno.serve(async (req) => {
       const { data: propNativa } = await supabase
         .from("propostas_nativas")
         .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id")
-        .eq("projeto_id", deal_id)
+        .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
         .in("status", ["gerada", "aceita", "enviada", "vista"])
         .order("is_principal", { ascending: false })
         .order("created_at", { ascending: false })
@@ -559,13 +572,17 @@ Deno.serve(async (req) => {
     });
 
     // ── 4b. DOCUMENT-ONLY ENRICHMENT (isolated, does not contaminate flatten) ──
-    const docEnrichment = buildDocumentEnrichment(clienteRes.data, contratoNumero);
+    const docEnrichment = buildDocumentEnrichment(clienteRes.data, contratoNumero, snapshot as Record<string, any>, propostaRes.data as Record<string, any>);
     for (const [k, v] of Object.entries(docEnrichment)) {
       // Document vars override only if key not already present (preserves 0, "", false)
       if (!(k in variables)) {
         variables[k] = v;
       }
     }
+
+    // ── 4b2. doc_* aliases from already-resolved vars ──
+    if (!variables["doc_parcelas"]) variables["doc_parcelas"] = variables["f_ativo_prazo"] ?? variables["f_parcelas"] ?? variables["projeto_numero_parcelas"] ?? "";
+    if (!variables["doc_valor_das_parcelas"]) variables["doc_valor_das_parcelas"] = variables["f_ativo_parcela"] ?? variables["f_valor_parcela"] ?? variables["projeto_valor_parcela"] ?? "";
 
     // ── 4c. POST-PROCESSING (SAME fixes as template-preview — keep in sync!) ──
 
