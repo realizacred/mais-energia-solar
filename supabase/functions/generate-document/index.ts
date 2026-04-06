@@ -548,36 +548,18 @@ Deno.serve(async (req) => {
     }
 
     // FIX 1c: equipamentos_custo_total / instalacao_preco_total from snapshot
-    if (!variables["equipamentos_custo_total"] && snapshot) {
-      const snap = snapshot as Record<string, any>;
-      // Try snapshot.venda or snapshot.itens
-      const venda = snap.venda ?? {};
-      let equipCusto = parseLocaleNumber(venda.equipamentos_custo_total)
-        ?? parseLocaleNumber(venda.custo_equipamentos)
-        ?? parseLocaleNumber(venda.equipamentos)
-        ?? parseLocaleNumber(snap.equipamentos_custo_total);
-      if (!equipCusto && Array.isArray(snap.itens)) {
-        equipCusto = snap.itens
-          .filter((it: any) => it.categoria !== "servico" && it.categoria !== "instalacao")
-          .reduce((sum: number, it: any) => {
-            const preco = parseLocaleNumber(it.preco_unitario) ?? parseLocaleNumber(it.preco_venda) ?? 0;
-            const quantidade = parseLocaleNumber(it.quantidade) ?? 1;
-            return sum + (preco * quantidade);
-          }, 0);
-      }
-      if (equipCusto != null && equipCusto > 0) {
-        variables["equipamentos_custo_total"] = formatBRL(equipCusto);
-      }
-    }
-    if (!variables["instalacao_preco_total"] && snapshot) {
+    if ((!variables["equipamentos_custo_total"] || !variables["instalacao_preco_total"]) && snapshot) {
       const snap = snapshot as Record<string, any>;
       const venda = snap.venda ?? {};
       const custoKit = parseLocaleNumber(venda.custo_kit) ?? 0;
-      const margem = parseLocaleNumber(venda.margem_percentual) ?? 0;
-      const kitVenda = custoKit * (1 + margem / 100);
       const valorTotal = parseLocaleNumber((propostaRes.data as any)?.valor_total) ?? parseLocaleNumber(venda.valor_total) ?? 0;
-      const instPreco = valorTotal - kitVenda;
-      variables["instalacao_preco_total"] = formatBRL(instPreco >= 0 ? instPreco : 0);
+      if (!variables["equipamentos_custo_total"]) {
+        variables["equipamentos_custo_total"] = formatBRL(custoKit);
+      }
+      if (!variables["instalacao_preco_total"]) {
+        const instPreco = valorTotal - custoKit;
+        variables["instalacao_preco_total"] = formatBRL(instPreco >= 0 ? instPreco : 0);
+      }
     }
 
     // FIX 1d: modulo_potencia — always suffix with Wp
