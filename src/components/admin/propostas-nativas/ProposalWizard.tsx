@@ -696,7 +696,7 @@ export function ProposalWizard() {
           const premissasEngine = rawSnapshot.premissas || {};
 
           // Map engine itens back to KitItemRow format (restore fabricante, modelo, avulso, id)
-          const engineItens = (rawSnapshot.itens || []).map((it: any) => ({
+          const rawEngineItens = (rawSnapshot.itens || []).map((it: any) => ({
             id: it.id || crypto.randomUUID(),
             descricao: it.descricao || "",
             fabricante: it.fabricante || "",
@@ -708,6 +708,9 @@ export function ProposalWizard() {
             avulso: it.avulso ?? false,
             produto_ref: it.produto_ref || null,
           }));
+
+          // Enrich with current warranty data from catalog (snapshot doesn't persist warranty fields)
+          const engineItens = await enrichKitWarranties(rawEngineItens);
 
           // Map engine venda to wizard VendaData
           const ve = vendaEngine as Record<string, any>;
