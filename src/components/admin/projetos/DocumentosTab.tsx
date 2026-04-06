@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from "react";
-import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye, MessageCircle } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye, ChevronDown } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { SunLoader } from "@/components/loading/SunLoader";
@@ -65,19 +66,45 @@ function formatSize(bytes: number | undefined) {
 interface DocumentosTabProps {
   dealId: string;
   clienteTelefone?: string;
+  consultorTelefone?: string;
 }
 
 // ─── Component ────────────────────────────────────
-export function DocumentosTab({ dealId, clienteTelefone }: DocumentosTabProps) {
+export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: consultorTelefoneProp }: DocumentosTabProps) {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [signConfirmDoc, setSignConfirmDoc] = useState<GeneratedDocRow | null>(null);
+  const [previewDocId, setPreviewDocId] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // §16: Queries em hooks — AP-01 resolvido
   const { data: files = [], isLoading: loadingFiles } = useProjetoArquivos(dealId);
   const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
   const { data: templates = [] } = useDocTemplates();
+
+  // Fetch consultor phone if not passed as prop
+  const { data: consultorData } = useQuery({
+    queryKey: ["projeto-consultor-telefone", dealId],
+    queryFn: async () => {
+      const { data: projeto } = await supabase
+        .from("projetos")
+        .select("consultor_id")
+        .eq("id", dealId)
+        .maybeSingle();
+      if (!projeto?.consultor_id) return null;
+      const { data: consultor } = await supabase
+        .from("consultores")
+        .select("nome, telefone")
+        .eq("id", projeto.consultor_id)
+        .maybeSingle();
+      return consultor;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !consultorTelefoneProp && !!dealId,
+  });
+  const consultorTelefone = consultorTelefoneProp || consultorData?.telefone;
+  const consultorNome = consultorData?.nome;
 
   const uploadMutation = useUploadArquivo(dealId);
   const deleteMutation = useDeletarArquivo(dealId);
@@ -102,7 +129,14 @@ export function DocumentosTab({ dealId, clienteTelefone }: DocumentosTabProps) {
     },
   });
 
-  const previewDoc = async (path: string) => {
+  const togglePreview = async (doc: GeneratedDocRow) => {
+    if (previewDocId === doc.id) {
+      setPreviewDocId(null);
+      setPreviewUrl(null);
+      return;
+    }
+    const path = doc.pdf_path;
+    if (!path) return;
     const { data, error } = await supabase.storage
       .from("document-files")
       .createSignedUrl(path, 3600);
@@ -110,7 +144,8 @@ export function DocumentosTab({ dealId, clienteTelefone }: DocumentosTabProps) {
       toast({ title: "Erro ao abrir preview", variant: "destructive" });
       return;
     }
-    window.open(data.signedUrl, "_blank");
+    setPreviewDocId(doc.id);
+    setPreviewUrl(data.signedUrl);
   };
 
   const previewUpload = async (fileName: string) => {
@@ -134,9 +169,13 @@ export function DocumentosTab({ dealId, clienteTelefone }: DocumentosTabProps) {
     }
   };
 
-  const enviarWhatsApp = async (doc: GeneratedDocRow) => {
-    if (!clienteTelefone) {
-      toast({ title: "Cliente sem telefone cadastrado", variant: "destructive" });
+  const enviarWhatsApp = async (doc: GeneratedDocRow, destinatario: "cliente" | "consultor") => {
+    const telefone = destinatario === "cliente" ? clienteTelefone : consultorTelefone;
+    if (!telefone) {
+      toast({
+        title: destinatario === "cliente" ? "Cliente sem telefone cadastrado" : "Consultor sem telefone cadastrado",
+        variant: "destructive",
+      });
       return;
     }
     let mensagem = `Olá! Segue o documento: ${doc.title}`;
@@ -152,7 +191,7 @@ export function DocumentosTab({ dealId, clienteTelefone }: DocumentosTabProps) {
         // fire-and-forget per RB-25
       }
     }
-    const tel = clienteTelefone.replace(/\D/g, "");
+    const tel = telefone.replace(/\D/g, "");
     const url = `https://wa.me/55${tel}?text=${encodeURIComponent(mensagem)}`;
     window.open(url, "_blank");
   };
@@ -246,98 +285,140 @@ export function DocumentosTab({ dealId, clienteTelefone }: DocumentosTabProps) {
                   const hasPdf = !!doc.pdf_path;
                   const sigStatus = doc.signature_status ? SIGNATURE_STATUS_MAP[doc.signature_status] : null;
                   const canSendForSignature = doc.status === "generated" && hasPdf && doc.signature_status !== "signed" && doc.signature_status !== "sent";
+                  const isPreviewOpen = previewDocId === doc.id;
 
                   return (
-                    <div key={doc.id} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
-                      <FileText className="h-4 w-4 text-primary shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{doc.title}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {doc.template_name} • {formatDate(doc.created_at)}
-                        </p>
+                    <div key={doc.id} className="space-y-0">
+                      <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
+                        <FileText className="h-4 w-4 text-primary shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{doc.title}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {doc.template_name} • {formatDate(doc.created_at)}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1 shrink-0">
+                          {/* Eye — inline PDF preview */}
+                          {hasPdf && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={cn("h-7 w-7", isPreviewOpen && "bg-primary/10 text-primary")}
+                              title="Visualizar PDF"
+                              onClick={() => togglePreview(doc)}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {/* PDF download */}
+                          {hasPdf && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 gap-1 px-2 text-[11px] font-semibold rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20"
+                              title="Baixar PDF"
+                              onClick={() => downloadGeneratedDoc(doc.pdf_path!)}
+                            >
+                              <Download className="h-3 w-3" />
+                              PDF
+                            </Button>
+                          )}
+                          {/* DOCX download */}
+                          {hasDocx && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 gap-1 px-2 text-[11px] font-semibold rounded-md bg-info/10 text-info hover:bg-info/20"
+                              title="Baixar DOCX"
+                              onClick={() => downloadGeneratedDoc(doc.docx_filled_path!)}
+                            >
+                              <Download className="h-3 w-3" />
+                              DOCX
+                            </Button>
+                          )}
+                          {/* Send for signature */}
+                          {canSendForSignature && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-primary"
+                              title="Enviar para assinatura"
+                              onClick={() => setSignConfirmDoc(doc)}
+                              disabled={signMutation.isPending}
+                            >
+                              {signMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                            </Button>
+                          )}
+                          {/* WhatsApp dropdown — send to client or consultor */}
+                          {hasPdf && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-success hover:text-success"
+                                  title="Enviar via WhatsApp"
+                                >
+                                  <Send className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="min-w-[180px]">
+                                <DropdownMenuItem
+                                  onClick={() => enviarWhatsApp(doc, "cliente")}
+                                  disabled={!clienteTelefone}
+                                  className="gap-2"
+                                >
+                                  <Send className="h-3.5 w-3.5" />
+                                  Enviar para Cliente
+                                  {!clienteTelefone && <span className="text-[10px] text-muted-foreground ml-auto">(sem tel.)</span>}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => enviarWhatsApp(doc, "consultor")}
+                                  disabled={!consultorTelefone}
+                                  className="gap-2"
+                                >
+                                  <Send className="h-3.5 w-3.5" />
+                                  Enviar para Consultor
+                                  {!consultorTelefone && <span className="text-[10px] text-muted-foreground ml-auto">(sem tel.)</span>}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                          {/* Delete */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive/60 hover:text-destructive"
+                            title="Excluir documento"
+                            disabled={deleteDocMutation.isPending}
+                            onClick={() => {
+                              if (confirm("Excluir este documento?")) {
+                                deleteDocMutation.mutate(doc.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        {sigStatus ? (
+                          <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 shrink-0", sigStatus.color)}>
+                            {sigStatus.label}
+                          </Badge>
+                        ) : (
+                          <Badge className={cn("text-[10px] h-5 px-1.5 border-0 shrink-0", statusCfg.color)}>
+                            {statusCfg.label}
+                          </Badge>
+                        )}
                       </div>
-                      <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                        {hasPdf && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Visualizar PDF"
-                            onClick={() => previewDoc(doc.pdf_path!)}
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {hasPdf && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1.5"
-                            title="Baixar PDF"
-                            onClick={() => downloadGeneratedDoc(doc.pdf_path!)}
-                          >
-                            <File className="h-3.5 w-3.5" />
-                            PDF
-                          </Button>
-                        )}
-                        {hasDocx && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1.5"
-                            title="Baixar DOCX"
-                            onClick={() => downloadGeneratedDoc(doc.docx_filled_path!)}
-                          >
-                            <FileText className="h-3.5 w-3.5" />
-                            DOCX
-                          </Button>
-                        )}
-                        {canSendForSignature && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-primary"
-                            title="Enviar para assinatura"
-                            onClick={() => setSignConfirmDoc(doc)}
-                            disabled={signMutation.isPending}
-                          >
-                            {signMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                          </Button>
-                        )}
-                        {hasPdf && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-success hover:text-success"
-                            title="Enviar via WhatsApp"
-                            onClick={() => enviarWhatsApp(doc)}
-                          >
-                            <MessageCircle className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive/60 hover:text-destructive"
-                          title="Excluir documento"
-                          disabled={deleteDocMutation.isPending}
-                          onClick={() => {
-                            if (confirm("Excluir este documento?")) {
-                              deleteDocMutation.mutate(doc.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                      {sigStatus ? (
-                        <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 shrink-0", sigStatus.color)}>
-                          {sigStatus.label}
-                        </Badge>
-                      ) : (
-                        <Badge className={cn("text-[10px] h-5 px-1.5 border-0 shrink-0", statusCfg.color)}>
-                          {statusCfg.label}
-                        </Badge>
+                      {/* Inline PDF preview panel */}
+                      {isPreviewOpen && previewUrl && (
+                        <div className="mx-3 mb-2 rounded-lg border border-border overflow-hidden bg-muted/30">
+                          <iframe
+                            src={previewUrl}
+                            className="w-full h-[70vh] border-0"
+                            title={`Preview: ${doc.title}`}
+                          />
+                        </div>
                       )}
                     </div>
                   );
