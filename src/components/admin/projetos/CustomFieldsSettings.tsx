@@ -845,17 +845,15 @@ export function CustomFieldsSettings() {
           {/* ── Step 2: Config Form ── */}
           {fieldWizardStep === "config" && (
             <>
-              {/* Back button */}
-              {!editingField && (
-                <Button variant="ghost"
-                  type="button"
-                  onClick={() => setFieldWizardStep("type")}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Voltar
-                </Button>
-              )}
+              {/* Back button — always visible so user can change type */}
+              <Button variant="ghost"
+                type="button"
+                onClick={() => setFieldWizardStep("type")}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                {editingField ? "Alterar tipo" : "Voltar"}
+              </Button>
 
               {/* Selected type indicator */}
               <div className="flex justify-center py-1">
@@ -945,10 +943,22 @@ export function CustomFieldsSettings() {
                   </div>
                 </div>
 
-                {/* Type (readonly) */}
+                {/* Type — editable via Select */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Tipo</Label>
-                  <Input value={FIELD_TYPE_LABELS[normalizeFieldType(fieldForm.field_type)]} readOnly className="bg-muted/30" />
+                  <Select
+                    value={normalizeFieldType(fieldForm.field_type)}
+                    onValueChange={v => setFieldForm(p => ({ ...p, field_type: v }))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(FIELD_TYPE_LABELS).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Options for select/multi_select */}
