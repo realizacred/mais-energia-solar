@@ -5,7 +5,8 @@
  *   import { resolveAllVariables } from "../_shared/resolvers/index.ts";
  *   const vars = resolveAllVariables(snapshot, ext);
  */
-import { type AnyObj, type ResolverExternalContext, str, num, fmtVal } from "./types.ts";
+import { type AnyObj, type ResolverExternalContext, str, num, fmtVal, fmtNum } from "./types.ts";
+import { evaluateFormula as evalFormulaFull, extractVariables, type ExpressionContext } from "../expressionEngine.ts";
 import { resolveEntrada } from "./resolveEntrada.ts";
 import { resolveFinanceiro } from "./resolveFinanceiro.ts";
 import { resolveSistemaSolar } from "./resolveSistemaSolar.ts";
