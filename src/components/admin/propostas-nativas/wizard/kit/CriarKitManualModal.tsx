@@ -867,7 +867,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       value={m.selectedId}
                       onValueChange={v => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, selectedId: v } : x))}
                       options={[...modulos]
-                        .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_wp || 0) - (a.potencia_wp || 0))
+                        .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || a.modelo.localeCompare(b.modelo))
                         .map(cat => ({
                           value: cat.id,
                           label: `${cat.fabricante} ${cat.modelo}${cat.potencia_wp ? ` (${cat.potencia_wp}W)` : ""}`,
