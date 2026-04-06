@@ -606,7 +606,10 @@ Deno.serve(async (req) => {
       variables["vc_observacao"] = "";
     }
 
-    // ── 4d. DOCUMENT FORMATTING — monetary "R$ " prefix + phone mask ──
+    // ── 4d. DOCUMENT FORMATTING — strip "R$ " prefix from monetary vars + phone mask ──
+    // Templates already contain "R$" before the variable placeholder,
+    // so variables must return ONLY the formatted number (e.g. "7.718,40").
+    // Strip any "R$ " prefix that resolvers may have added.
     const MONETARY_KEYS = new Set([
       "valor_total", "preco", "preco_total", "preco_final", "investimento",
       "equipamentos_custo_total", "instalacao_preco_total", "kits_custo_total",
@@ -620,20 +623,13 @@ Deno.serve(async (req) => {
       "doc_valor_das_parcelas", "f_ativo_parcela", "f_valor_parcela",
       "kit_fechado_custo_total", "kit_fechado_preco_total",
       "otimizador_custo_total", "otimizador_preco_total",
-      "preco_por_extenso", // skip — already text
     ]);
-    // Exclude preco_por_extenso (text, not number)
-    MONETARY_KEYS.delete("preco_por_extenso");
 
     for (const mk of MONETARY_KEYS) {
       const val = variables[mk];
       if (!val) continue;
-      // Already has R$ prefix? skip
-      if (val.startsWith("R$")) continue;
-      // Looks like a formatted number (has comma or dot)? add prefix
-      if (/^\d/.test(val) || /^-?\d/.test(val)) {
-        variables[mk] = `R$ ${val}`;
-      }
+      // Strip "R$ " or "R$" prefix — template already has "R$"
+      variables[mk] = val.replace(/^R\$\s*/i, "").trim();
     }
 
     // Phone formatting
