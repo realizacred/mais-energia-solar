@@ -269,6 +269,8 @@ function buildPaymentDescription(composition: any[], valorTotal: number | null):
 function buildDocumentEnrichment(
   cliente: Record<string, any> | null,
   contratoNumero: string,
+  snapshot?: Record<string, any> | null,
+  versaoData?: Record<string, any> | null,
 ): Record<string, string> {
   const ctx: Record<string, string> = {};
   const setDual = (flat: string, dotted: string, val: any) => {
@@ -302,6 +304,29 @@ function buildDocumentEnrichment(
   if (cliente?.payment_composition) {
     const payVars = buildPaymentDescription(cliente.payment_composition, null);
     Object.assign(ctx, payVars);
+  }
+
+  // ── doc_* aliases for contract templates ──
+  // doc_parcelas / doc_valor_das_parcelas from snapshot payment data
+  const snap = snapshot ?? {};
+  const pagOpcoes = snap.pagamentoOpcoes ?? snap.pagamento_opcoes ?? (snap as any)?._wizard_state?.pagamentoOpcoes;
+  if (Array.isArray(pagOpcoes) && pagOpcoes.length > 0) {
+    // Find the active/first financing option
+    const fin = pagOpcoes.find((p: any) => p.tipo === "financiamento" || p.tipo === "parcelado") ?? pagOpcoes[0];
+    const numParcelas = fin?.num_parcelas ?? fin?.numParcelas ?? fin?.prazo ?? fin?.parcelas;
+    const valorParcela = fin?.valor_parcela ?? fin?.valorParcela ?? fin?.parcela ?? fin?.valor_mensal;
+    if (numParcelas) ctx["doc_parcelas"] = String(numParcelas);
+    if (valorParcela != null) ctx["doc_valor_das_parcelas"] = formatBRL(Number(valorParcela));
+  }
+
+  // Fallback from versaoData or snapshot direct fields
+  if (!ctx["doc_parcelas"]) {
+    const fp = snap.f_parcelas ?? snap.f_ativo_prazo ?? versaoData?.f_parcelas;
+    if (fp) ctx["doc_parcelas"] = String(fp);
+  }
+  if (!ctx["doc_valor_das_parcelas"]) {
+    const fv = snap.f_valor_parcela ?? snap.f_ativo_parcela;
+    if (fv != null) ctx["doc_valor_das_parcelas"] = formatBRL(Number(fv));
   }
 
   return ctx;
