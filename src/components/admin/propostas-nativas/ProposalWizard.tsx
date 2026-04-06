@@ -28,6 +28,7 @@ import {
   useTenantTarifas, useCustomFieldsAvailability, applyTenantTarifasToUC,
 } from "./wizard/useWizardDataLoaders";
 import { validateGrupoConsistency, resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
+import { enrichKitWarranties } from "@/services/enrichKitWarranties";
 import type { ProposalResolverContext, TariffVersionContext } from "@/lib/resolveProposalVariables";
 
 // ── Step Components
