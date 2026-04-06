@@ -88,8 +88,28 @@ interface MotivoPerda {
   ativo: boolean | null;
 }
 
-// Constants imported from CustomFieldEditModal:
-// FIELD_TYPE_LABELS, FIELD_KEY_PREFIXES, CONTEXT_LABELS, normalizeFieldType
+// FIELD_TYPE_LABELS, FIELD_KEY_PREFIXES, CONTEXT_LABELS, normalizeFieldType — imported from CustomFieldEditModal
+
+const FIELD_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  text: Type, textarea: Type, number: Hash, currency: DollarSign,
+  multi_select: ListChecks, select: CheckSquare, date: Calendar,
+  datetime: CalendarClock, file: FileText, boolean: CheckSquare,
+};
+
+const FIELD_TYPE_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
+  text:         { bg: "bg-info/15",        text: "text-info",        ring: "ring-info/30" },
+  textarea:     { bg: "bg-info/15",        text: "text-info",        ring: "ring-info/30" },
+  number:       { bg: "bg-primary/15",     text: "text-primary",     ring: "ring-primary/30" },
+  currency:     { bg: "bg-success/15",     text: "text-success",     ring: "ring-success/30" },
+  multi_select: { bg: "bg-secondary/15",   text: "text-secondary",   ring: "ring-secondary/30" },
+  select:       { bg: "bg-accent/15",      text: "text-accent-foreground", ring: "ring-accent/30" },
+  date:         { bg: "bg-warning/15",     text: "text-warning",     ring: "ring-warning/30" },
+  datetime:     { bg: "bg-warning/15",     text: "text-warning",     ring: "ring-warning/30" },
+  file:         { bg: "bg-destructive/15", text: "text-destructive", ring: "ring-destructive/30" },
+  boolean:      { bg: "bg-success/15",     text: "text-success",     ring: "ring-success/30" },
+};
+
+const OPTION_TYPES = ["select", "multi_select"];
 
 export function CustomFieldsSettings() {
   const [activeTab, setActiveTab] = useState("campos");
