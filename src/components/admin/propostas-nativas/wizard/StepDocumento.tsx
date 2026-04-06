@@ -586,8 +586,9 @@ export function StepDocumento({
       );
     }
 
-    // ── Before generation
-    if (!result) {
+    // ── Before generation (no result AND no restored PDF)
+    const hasRestoredPreview = !result && (!!pdfBlobUrl || !!outputPdfPath);
+    if (!result && !hasRestoredPreview) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
           {/* Left: Template Selection */}
