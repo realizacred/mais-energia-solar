@@ -572,32 +572,12 @@ Deno.serve(async (req) => {
     if (!variables["instalacao_preco_total"] && snapshot) {
       const snap = snapshot as Record<string, any>;
       const venda = snap.venda ?? {};
-      let instCusto = parseLocaleNumber(venda.custo_servicos)
-        ?? parseLocaleNumber(venda.instalacao_preco_total)
-        ?? parseLocaleNumber(venda.custo_instalacao)
-        ?? parseLocaleNumber(venda.instalacao)
-        ?? parseLocaleNumber(snap.instalacao_preco_total)
-        ?? parseLocaleNumber(snap.instalacao_custo_total);
-      if (instCusto == null && Array.isArray(snap.servicos)) {
-        const servicosTotal = snap.servicos.reduce((sum: number, servico: any) => {
-          const valor = parseLocaleNumber(servico?.valor)
-            ?? parseLocaleNumber(servico?.preco)
-            ?? parseLocaleNumber(servico?.preco_unitario)
-            ?? 0;
-          return sum + valor;
-        }, 0);
-        if (servicosTotal > 0) instCusto = servicosTotal;
-      }
-      if (!instCusto && Array.isArray(snap.itens)) {
-        instCusto = snap.itens
-          .filter((it: any) => it.categoria === "servico" || it.categoria === "instalacao")
-          .reduce((sum: number, it: any) => {
-            const preco = parseLocaleNumber(it.preco_unitario) ?? parseLocaleNumber(it.preco_venda) ?? 0;
-            const quantidade = parseLocaleNumber(it.quantidade) ?? 1;
-            return sum + (preco * quantidade);
-          }, 0);
-      }
-      variables["instalacao_preco_total"] = formatBRL(instCusto ?? 0);
+      const custoKit = parseLocaleNumber(venda.custo_kit) ?? 0;
+      const margem = parseLocaleNumber(venda.margem_percentual) ?? 0;
+      const kitVenda = custoKit * (1 + margem / 100);
+      const valorTotal = parseLocaleNumber((propostaRes.data as any)?.valor_total) ?? parseLocaleNumber(venda.valor_total) ?? 0;
+      const instPreco = valorTotal - kitVenda;
+      variables["instalacao_preco_total"] = formatBRL(instPreco >= 0 ? instPreco : 0);
     }
 
     // FIX 1d: modulo_potencia — always suffix with Wp
