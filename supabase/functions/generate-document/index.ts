@@ -179,10 +179,51 @@ function unquote(s: string): string {
   return s;
 }
 
-/** Format BRL currency */
+/** Format monetary value in pt-BR without currency symbol */
 function formatBRL(v: number | null | undefined): string {
-  if (v == null) return "";
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  if (v == null || !Number.isFinite(v)) return "";
+  return v.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function parseLocaleNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  let normalized = raw
+    .replace(/R\$/gi, "")
+    .replace(/%/g, "")
+    .replace(/\s/g, "")
+    .replace(/[^\d,.-]/g, "");
+
+  if (!normalized) return null;
+
+  const hasComma = normalized.includes(",");
+  const hasDot = normalized.includes(".");
+
+  if (hasComma && hasDot) {
+    if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+      normalized = normalized.replace(/\./g, "").replace(",", ".");
+    } else {
+      normalized = normalized.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    normalized = normalized.replace(/\./g, "").replace(/,/g, ".");
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isInversorItem(item: Record<string, any>): boolean {
+  const categoria = String(item?.categoria ?? "").toLowerCase();
+  const tipo = String(item?.tipo ?? "").toLowerCase();
+  return categoria.includes("inversor") || categoria === "inverter" || tipo.includes("inversor");
 }
 
 /** Format date extenso in pt-BR with Brasília timezone */
@@ -316,7 +357,8 @@ function buildDocumentEnrichment(
     const numParcelas = fin?.num_parcelas ?? fin?.numParcelas ?? fin?.prazo ?? fin?.parcelas;
     const valorParcela = fin?.valor_parcela ?? fin?.valorParcela ?? fin?.parcela ?? fin?.valor_mensal;
     if (numParcelas) ctx["doc_parcelas"] = String(numParcelas);
-    if (valorParcela != null) ctx["doc_valor_das_parcelas"] = formatBRL(Number(valorParcela));
+    const valorParcelaNum = parseLocaleNumber(valorParcela);
+    if (valorParcelaNum != null) ctx["doc_valor_das_parcelas"] = formatBRL(valorParcelaNum);
   }
 
   // Fallback from versaoData or snapshot direct fields
@@ -326,7 +368,8 @@ function buildDocumentEnrichment(
   }
   if (!ctx["doc_valor_das_parcelas"]) {
     const fv = snap.f_valor_parcela ?? snap.f_ativo_parcela;
-    if (fv != null) ctx["doc_valor_das_parcelas"] = formatBRL(Number(fv));
+    const fvNum = parseLocaleNumber(fv);
+    if (fvNum != null) ctx["doc_valor_das_parcelas"] = formatBRL(fvNum);
   }
 
   return ctx;
@@ -478,10 +521,34 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const clienteId = projeto?.cliente_id;
+    const clienteSelect = [
+      "id",
+      "tenant_id",
+      "nome",
+      "telefone",
+      "email",
+      "cpf_cnpj",
+      "empresa",
+      "cep",
+      "rua",
+      "numero",
+      "complemento",
+      "bairro",
+      "cidade",
+      "estado",
+      "data_nascimento",
+      "observacoes",
+      "potencia_kwp",
+      "valor_projeto",
+      "data_instalacao",
+      "numero_placas",
+      "modelo_inversor",
+      "payment_composition",
+    ].join(", ");
 
     const [clienteRes, tenantRes, propostaRes, brandRes, contratoCountRes, consultorRes] = await Promise.all([
       clienteId
-        ? supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle()
+        ? supabase.from("clientes").select(clienteSelect).eq("id", clienteId).eq("tenant_id", tenantId).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase.from("tenants").select("nome, documento, telefone, email, endereco").eq("id", tenantId).maybeSingle(),
       // Get PRINCIPAL proposal for this project, then its latest version
@@ -544,6 +611,17 @@ Deno.serve(async (req) => {
     // Extract proposta metadata from the combined result
     const propostaData: Record<string, any> | null = (propostaRes as any)?.propNativa ?? null;
 
+    let clienteData = clienteRes.data;
+    if (!clienteData && propostaData?.cliente_id) {
+      const clienteFallbackRes = await supabase
+        .from("clientes")
+        .select(clienteSelect)
+        .eq("id", propostaData.cliente_id)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      clienteData = clienteFallbackRes.data ?? null;
+    }
+
     // Also fetch lead if available
     const leadId = propostaData?.lead_id || projeto?.lead_id;
     const leadRes = leadId
@@ -565,7 +643,7 @@ Deno.serve(async (req) => {
 
     const variables = flattenSnapshot(snapshot, {
       lead: leadRes.data,
-      cliente: clienteRes.data,
+      cliente: clienteData,
       projeto: projeto,
       consultor: consultor,
       tenantNome: tenantRes.data?.nome,
@@ -573,11 +651,11 @@ Deno.serve(async (req) => {
       propostaData: propostaData as Record<string, unknown>,
       brandSettings: (brandRes.data ?? {}) as Record<string, unknown>,
       projetoData: (projeto ?? {}) as Record<string, unknown>,
-      clienteData: (clienteRes.data ?? {}) as Record<string, unknown>,
+      clienteData: (clienteData ?? {}) as Record<string, unknown>,
     });
 
     // ── 4b. DOCUMENT-ONLY ENRICHMENT (isolated, does not contaminate flatten) ──
-    const docEnrichment = buildDocumentEnrichment(clienteRes.data, contratoNumero, snapshot as Record<string, any>, propostaRes.data as Record<string, any>);
+    const docEnrichment = buildDocumentEnrichment(clienteData, contratoNumero, snapshot as Record<string, any>, propostaRes.data as Record<string, any>);
     for (const [k, v] of Object.entries(docEnrichment)) {
       // Document vars override only if key not already present (preserves 0, "", false)
       if (!(k in variables)) {
@@ -600,9 +678,22 @@ Deno.serve(async (req) => {
     }
 
     // FIX 1b: cliente_cnpj_cpf — ensure it's populated from cliente data
-    if (!variables["cliente_cnpj_cpf"] && clienteRes.data?.cpf_cnpj) {
-      variables["cliente_cnpj_cpf"] = String(clienteRes.data.cpf_cnpj);
-      variables["cliente_cpf_cnpj"] = String(clienteRes.data.cpf_cnpj);
+    if (clienteData) {
+      const clienteFieldMap: Array<[string, string]> = [
+        ["cliente_cnpj_cpf", "cpf_cnpj"],
+        ["cliente_cpf_cnpj", "cpf_cnpj"],
+        ["cliente_endereco", "rua"],
+        ["cliente_numero", "numero"],
+        ["cliente_bairro", "bairro"],
+        ["cliente_cidade", "cidade"],
+        ["cliente_estado", "estado"],
+        ["cliente_cep", "cep"],
+      ];
+      for (const [variableKey, clienteKey] of clienteFieldMap) {
+        if (!variables[variableKey] && clienteData?.[clienteKey] != null) {
+          variables[variableKey] = String(clienteData[clienteKey]);
+        }
+      }
     }
 
     // FIX 1c: equipamentos_custo_total / instalacao_preco_total from snapshot
@@ -610,28 +701,71 @@ Deno.serve(async (req) => {
       const snap = snapshot as Record<string, any>;
       // Try snapshot.venda or snapshot.itens
       const venda = snap.venda ?? {};
-      let equipCusto = venda.equipamentos_custo_total ?? venda.custo_equipamentos ?? snap.equipamentos_custo_total;
+      let equipCusto = parseLocaleNumber(venda.equipamentos_custo_total)
+        ?? parseLocaleNumber(venda.custo_equipamentos)
+        ?? parseLocaleNumber(venda.equipamentos)
+        ?? parseLocaleNumber(snap.equipamentos_custo_total);
       if (!equipCusto && Array.isArray(snap.itens)) {
         equipCusto = snap.itens
           .filter((it: any) => it.categoria !== "servico" && it.categoria !== "instalacao")
-          .reduce((sum: number, it: any) => sum + ((Number(it.preco_unitario) || 0) * (Number(it.quantidade) || 1)), 0);
+          .reduce((sum: number, it: any) => {
+            const preco = parseLocaleNumber(it.preco_unitario) ?? parseLocaleNumber(it.preco_venda) ?? 0;
+            const quantidade = parseLocaleNumber(it.quantidade) ?? 1;
+            return sum + (preco * quantidade);
+          }, 0);
       }
-      if (equipCusto != null && Number(equipCusto) > 0) {
-        variables["equipamentos_custo_total"] = formatBRL(Number(equipCusto));
+      if (equipCusto != null && equipCusto > 0) {
+        variables["equipamentos_custo_total"] = formatBRL(equipCusto);
       }
     }
     if (!variables["instalacao_preco_total"] && snapshot) {
       const snap = snapshot as Record<string, any>;
       const venda = snap.venda ?? {};
-      let instCusto = venda.instalacao_preco_total ?? venda.custo_instalacao ?? snap.instalacao_preco_total ?? snap.instalacao_custo_total;
+      let instCusto = parseLocaleNumber(venda.instalacao_preco_total)
+        ?? parseLocaleNumber(venda.custo_instalacao)
+        ?? parseLocaleNumber(venda.instalacao)
+        ?? parseLocaleNumber(snap.instalacao_preco_total)
+        ?? parseLocaleNumber(snap.instalacao_custo_total);
+      if (instCusto == null && Array.isArray(snap.servicos)) {
+        const servicosTotal = snap.servicos.reduce((sum: number, servico: any) => {
+          const valor = parseLocaleNumber(servico?.valor)
+            ?? parseLocaleNumber(servico?.preco)
+            ?? parseLocaleNumber(servico?.preco_unitario)
+            ?? 0;
+          return sum + valor;
+        }, 0);
+        if (servicosTotal > 0) instCusto = servicosTotal;
+      }
       if (!instCusto && Array.isArray(snap.itens)) {
         instCusto = snap.itens
           .filter((it: any) => it.categoria === "servico" || it.categoria === "instalacao")
-          .reduce((sum: number, it: any) => sum + ((Number(it.preco_unitario) || 0) * (Number(it.quantidade) || 1)), 0);
+          .reduce((sum: number, it: any) => {
+            const preco = parseLocaleNumber(it.preco_unitario) ?? parseLocaleNumber(it.preco_venda) ?? 0;
+            const quantidade = parseLocaleNumber(it.quantidade) ?? 1;
+            return sum + (preco * quantidade);
+          }, 0);
       }
-      if (instCusto != null && Number(instCusto) > 0) {
-        variables["instalacao_preco_total"] = formatBRL(Number(instCusto));
+      if (instCusto != null && instCusto > 0) {
+        variables["instalacao_preco_total"] = formatBRL(instCusto);
       }
+    }
+
+    // FIX 1d: modulo_potencia — always suffix with Wp
+    if (variables["modulo_potencia"]) {
+      const stripped = variables["modulo_potencia"].replace(/\s*Wp\s*$/i, "").trim();
+      variables["modulo_potencia"] = stripped ? `${stripped} Wp` : "";
+    }
+
+    // FIX 1e: inversores_utilizados — contrato template expects numeric quantity only
+    const inverterCountFromItems = Array.isArray((snapshot as Record<string, any> | null)?.itens)
+      ? (snapshot as Record<string, any>).itens
+          .filter((item: Record<string, any>) => isInversorItem(item))
+          .reduce((sum: number, item: Record<string, any>) => sum + (parseLocaleNumber(item.quantidade) ?? 1), 0)
+      : 0;
+    const inversorQuantidade = variables["inversor_quantidade"]
+      ?? (inverterCountFromItems > 0 ? String(inverterCountFromItems) : "");
+    if (inversorQuantidade) {
+      variables["inversores_utilizados"] = inversorQuantidade;
     }
 
     // FIX 2: subgrupo / grupo_tarifario — ensure top-level keys exist
