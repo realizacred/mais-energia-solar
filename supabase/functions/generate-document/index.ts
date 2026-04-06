@@ -484,28 +484,46 @@ Deno.serve(async (req) => {
         ? supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase.from("tenants").select("nome, documento, telefone, email, endereco").eq("id", tenantId).maybeSingle(),
-      // Get latest generated proposal version for this deal
-      // Step: find propostas_nativas by deal_id OR projeto_id, then get its versoes
-      supabase
-        .from("propostas_nativas")
-        .select("id")
-        .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
-        .in("status", ["gerada", "aceita", "enviada", "vista"])
-        .order("is_principal", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-        .then((pRes) => {
-          if (!pRes?.data) return { data: null };
-          return supabase
-            .from("proposta_versoes")
-            .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
-            .eq("proposta_id", pRes.data.id)
-            .eq("status", "generated")
+      // Get PRINCIPAL proposal for this project, then its latest version
+      // Step 1: find propostas_nativas with is_principal=true first, fallback to any accepted/generated
+      (async () => {
+        // Try is_principal=true first with status filter
+        let { data: propNativa } = await supabase
+          .from("propostas_nativas")
+          .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id, is_principal")
+          .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
+          .eq("is_principal", true)
+          .in("status", ["gerada", "aceita"])
+          .limit(1)
+          .maybeSingle();
+
+        // Fallback: any proposal with relevant status ordered by priority
+        if (!propNativa) {
+          const { data: fallback } = await supabase
+            .from("propostas_nativas")
+            .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id, is_principal")
+            .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
+            .in("status", ["gerada", "aceita", "enviada", "vista"])
+            .order("is_principal", { ascending: false })
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
-        }),
+          propNativa = fallback;
+        }
+
+        if (!propNativa) return { data: null, propNativa: null };
+
+        const { data: versao } = await supabase
+          .from("proposta_versoes")
+          .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
+          .eq("proposta_id", propNativa.id)
+          .eq("status", "generated")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        return { data: versao, propNativa };
+      })(),
       // Brand settings (representante legal)
       supabase
         .from("brand_settings")
@@ -523,21 +541,8 @@ Deno.serve(async (req) => {
         : Promise.resolve({ data: null }),
     ]);
 
-    // Also try to get proposta metadata for propostaData context
-    let propostaData: Record<string, any> | null = null;
-    if (propostaRes.data) {
-      // Try to find the proposta_nativa linked to this deal
-      const { data: propNativa } = await supabase
-        .from("propostas_nativas")
-        .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id")
-        .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
-        .in("status", ["gerada", "aceita", "enviada", "vista"])
-        .order("is_principal", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      propostaData = propNativa;
-    }
+    // Extract proposta metadata from the combined result
+    const propostaData: Record<string, any> | null = (propostaRes as any)?.propNativa ?? null;
 
     // Also fetch lead if available
     const leadId = propostaData?.lead_id || projeto?.lead_id;
