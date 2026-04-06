@@ -363,112 +363,115 @@ function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; lates
   const installPct = totalFinal > 0 ? (installCost / totalFinal) * 100 : 0;
 
   return (
-    <div className="flex gap-5 mt-3">
-      {/* Left: Unidades */}
-      <div className="w-[280px] shrink-0">
-        <h4 className="text-sm font-bold text-foreground mb-2">Unidades</h4>
-        <div className="border rounded-lg p-3 space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 p-2 rounded-lg shrink-0 bg-success/10">
-              <SunMedium className="h-5 w-5 text-success" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-foreground">Unidade (Geradora)</p>
-              {snapshot.economia_mensal_percent != null && snapshot.economia_mensal_percent > 0 && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <p className="text-[10px] text-muted-foreground cursor-help underline decoration-dotted">
-                        Economia: {formatBRL((snapshot.tarifa_distribuidora || 0) * (snapshot.consumo_mensal || 0) * (snapshot.economia_mensal_percent / 100))} ({formatNumberBR(snapshot.economia_mensal_percent)}%)
-                      </p>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3">
-                      <p className="font-semibold">Como é calculada a economia:</p>
-                      <p>Tarifa × Consumo × (% Economia / 100)</p>
-                      <p className="text-muted-foreground">
-                        {formatBRL(snapshot.tarifa_distribuidora || 0)}/kWh × {snapshot.consumo_mensal || 0} kWh × {formatNumberBR(snapshot.economia_mensal_percent)}%
-                      </p>
-                      <p className="text-muted-foreground">A % representa quanto do consumo será compensado pela geração solar.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              <p className="text-[10px] text-muted-foreground">
-                Consumo Total: {snapshot.consumo_mensal || 0} kWh
-              </p>
-              {(snapshot.energy_generation || snapshot.geracao_mensal) && (
+    <div className="space-y-4 mt-3">
+      {/* Row 1: Unidades + Summary side by side */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Left: Unidades */}
+        <div className="w-full sm:w-72 shrink-0">
+          <h4 className="text-sm font-bold text-foreground mb-2">Unidades</h4>
+          <div className="border rounded-lg p-3 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 p-2 rounded-lg shrink-0 bg-success/10">
+                <SunMedium className="h-5 w-5 text-success" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-foreground">Unidade (Geradora)</p>
+                {snapshot.economia_mensal_percent != null && snapshot.economia_mensal_percent > 0 && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-[10px] text-muted-foreground cursor-help underline decoration-dotted">
+                          Economia: {formatBRL((snapshot.tarifa_distribuidora || 0) * (snapshot.consumo_mensal || 0) * (snapshot.economia_mensal_percent / 100))} ({formatNumberBR(snapshot.economia_mensal_percent)}%)
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1 p-3">
+                        <p className="font-semibold">Como é calculada a economia:</p>
+                        <p>Tarifa × Consumo × (% Economia / 100)</p>
+                        <p className="text-muted-foreground">
+                          {formatBRL(snapshot.tarifa_distribuidora || 0)}/kWh × {snapshot.consumo_mensal || 0} kWh × {formatNumberBR(snapshot.economia_mensal_percent)}%
+                        </p>
+                        <p className="text-muted-foreground">A % representa quanto do consumo será compensado pela geração solar.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
                 <p className="text-[10px] text-muted-foreground">
-                  Geração Mensal: {formatNumberBR(Number(snapshot.energy_generation || snapshot.geracao_mensal || 0))} kWh
+                  Consumo Total: {snapshot.consumo_mensal || 0} kWh
                 </p>
-              )}
+                {(snapshot.energy_generation || snapshot.geracao_mensal) && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Geração Mensal: {formatNumberBR(Number(snapshot.energy_generation || snapshot.geracao_mensal || 0))} kWh
+                  </p>
+                )}
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Right: Summary table */}
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-bold text-foreground mb-2">Resumo</h4>
+          <div className="border rounded-lg overflow-hidden overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-muted/30 text-muted-foreground">
+                  <th className="text-left py-2 px-3 font-semibold">ITEM</th>
+                  <th className="text-center py-2 px-3 font-semibold w-16">QTD</th>
+                  <th className="text-right py-2 px-3 font-semibold w-28">VALORES</th>
+                  <th className="text-right py-2 px-3 font-semibold w-24">% DO TOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {equipCost > 0 && (
+                  <>
+                    <tr className="border-t border-border/20">
+                      <td className="py-2 px-3 font-semibold text-foreground">Kit</td>
+                      <td className="py-2 px-3 text-center text-muted-foreground">1</td>
+                      <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(equipCost)}</td>
+                      <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(equipPct)}%</td>
+                    </tr>
+                    {snapshot.panel_model && (
+                      <tr className="border-t border-border/10">
+                        <td className="py-1.5 px-3 pl-6 text-muted-foreground text-[11px]">{snapshot.panel_model}</td>
+                        <td className="py-1.5 px-3 text-center text-muted-foreground text-[11px]">{snapshot.panel_quantity || "—"}</td>
+                        <td /><td />
+                      </tr>
+                    )}
+                    {snapshot.inverter_model && (
+                      <tr className="border-t border-border/10">
+                        <td className="py-1.5 px-3 pl-6 text-muted-foreground text-[11px]">{snapshot.inverter_model}</td>
+                        <td className="py-1.5 px-3 text-center text-muted-foreground text-[11px]">{snapshot.inverter_quantity || 1}</td>
+                        <td /><td />
+                      </tr>
+                    )}
+                  </>
+                )}
+                {installCost > 0 && (
+                  <tr className="border-t border-border/20">
+                    <td className="py-2 px-3 font-semibold text-foreground">Instalação</td>
+                    <td className="py-2 px-3 text-center text-muted-foreground">1</td>
+                    <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(installCost)}</td>
+                    <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(installPct)}%</td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-dashed border-border">
+                  <td className="py-3 px-3 font-bold text-foreground">Total</td>
+                  <td />
+                  <td className="py-3 px-3 text-right">
+                    {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice.replace('.', ',')} / Wp</span>}
+                    <span className="font-bold text-foreground text-sm">{formatBRL(totalFinal)}</span>
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
       </div>
 
-      {/* Right: Summary table */}
-      <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-bold text-foreground mb-2">Resumo</h4>
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-muted/30 text-muted-foreground">
-                <th className="text-left py-2 px-3 font-semibold">ITEM</th>
-                <th className="text-center py-2 px-3 font-semibold w-16">QTD</th>
-                <th className="text-right py-2 px-3 font-semibold w-28">VALORES</th>
-                <th className="text-right py-2 px-3 font-semibold w-24">% DO TOTAL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {equipCost > 0 && (
-                <>
-                  <tr className="border-t border-border/20">
-                    <td className="py-2 px-3 font-semibold text-foreground">Kit</td>
-                    <td className="py-2 px-3 text-center text-muted-foreground">1</td>
-                    <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(equipCost)}</td>
-                    <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(equipPct)}%</td>
-                  </tr>
-                  {snapshot.panel_model && (
-                    <tr className="border-t border-border/10">
-                      <td className="py-1.5 px-3 pl-6 text-muted-foreground text-[11px]">{snapshot.panel_model}</td>
-                      <td className="py-1.5 px-3 text-center text-muted-foreground text-[11px]">{snapshot.panel_quantity || "—"}</td>
-                      <td /><td />
-                    </tr>
-                  )}
-                  {snapshot.inverter_model && (
-                    <tr className="border-t border-border/10">
-                      <td className="py-1.5 px-3 pl-6 text-muted-foreground text-[11px]">{snapshot.inverter_model}</td>
-                      <td className="py-1.5 px-3 text-center text-muted-foreground text-[11px]">{snapshot.inverter_quantity || 1}</td>
-                      <td /><td />
-                    </tr>
-                  )}
-                </>
-              )}
-              {installCost > 0 && (
-                <tr className="border-t border-border/20">
-                  <td className="py-2 px-3 font-semibold text-foreground">Instalação</td>
-                  <td className="py-2 px-3 text-center text-muted-foreground">1</td>
-                  <td className="py-2 px-3 text-right font-semibold text-foreground">{formatBRL(installCost)}</td>
-                  <td className="py-2 px-3 text-right text-muted-foreground">{formatNumberBR(installPct)}%</td>
-                </tr>
-              )}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-dashed border-border">
-                <td className="py-3 px-3 font-bold text-foreground">Total</td>
-                <td />
-                <td className="py-3 px-3 text-right">
-                  {wpPrice && <span className="text-[10px] text-primary font-semibold block">R$ {wpPrice.replace('.', ',')} / Wp</span>}
-                  <span className="font-bold text-foreground text-sm">{formatBRL(totalFinal)}</span>
-                </td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-
-      {/* Financial KPIs */}
+      {/* Row 2: Financial KPIs full width */}
       <FinancialKPIs snapshot={snapshot} latestVersao={latestVersao} />
     </div>
   );
