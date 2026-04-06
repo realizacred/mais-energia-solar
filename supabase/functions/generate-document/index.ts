@@ -348,14 +348,12 @@ Deno.serve(async (req) => {
     const templateBytes = new Uint8Array(await fileData.arrayBuffer());
     // 3. Load data for variable resolution (parallel queries)
     //    SAME pattern as template-preview — fetch all related entities
-    console.error("[generate-document] DIAG: deal_id=", deal_id, "tenantId=", tenantId);
-    const { data: projeto, error: projetoErr } = await supabase
+    const { data: projeto } = await supabase
       .from("projetos")
       .select("*")
       .eq("id", deal_id)
       .eq("tenant_id", tenantId)
       .maybeSingle();
-    console.error("[generate-document] DIAG: projetoErr=", projetoErr?.message ?? "none", "projeto_id=", projeto?.id ?? "null");
 
     const clienteId = projeto?.cliente_id;
     const clienteSelect = [
@@ -478,13 +476,6 @@ Deno.serve(async (req) => {
     const snapshot = propostaRes.data?.snapshot as Record<string, unknown> | null;
     const consultor = consultorRes.data;
 
-    // DIAG: temporary logging to debug empty variables
-    console.error("[generate-document] DIAG: propostaRes.data exists:", !!propostaRes.data);
-    console.error("[generate-document] DIAG: snapshot exists:", !!snapshot);
-    console.error("[generate-document] DIAG: snapshot keys:", snapshot ? Object.keys(snapshot).length : 0);
-    console.error("[generate-document] DIAG: clienteData exists:", !!clienteData);
-    console.error("[generate-document] DIAG: propostaData exists:", !!propostaData);
-    console.error("[generate-document] DIAG: projeto exists:", !!projeto);
 
     const variables = flattenSnapshot(snapshot, {
       lead: leadRes.data,
@@ -499,20 +490,6 @@ Deno.serve(async (req) => {
       clienteData: (clienteData ?? {}) as Record<string, unknown>,
     });
 
-    console.error("[generate-document] DIAG: total variables after flatten:", Object.keys(variables).length);
-    console.error("[generate-document] DIAG: sample keys:", Object.keys(variables).slice(0, 15).join(", "));
-    console.error("[generate-document] DIAG: cliente_nome=", variables["cliente_nome"] ?? "(MISSING)");
-    console.error("[generate-document] DIAG: valor_total=", variables["valor_total"] ?? "(MISSING)");
-    console.error("[generate-document] DIAG: cliente_cnpj_cpf=", variables["cliente_cnpj_cpf"] ?? "(MISSING)");
-    console.error(
-      "[generate-document] DIAG: monetary vars after flatten=",
-      JSON.stringify({
-        preco: variables["preco"] ?? "(MISSING)",
-        preco_por_extenso: variables["preco_por_extenso"] ?? "(MISSING)",
-        equipamentos_custo_total: variables["equipamentos_custo_total"] ?? "(MISSING)",
-        instalacao_preco_total: variables["instalacao_preco_total"] ?? "(MISSING)",
-      }),
-    );
 
     // ── 4b. DOCUMENT-ONLY ENRICHMENT (isolated, does not contaminate flatten) ──
     const docEnrichment = buildDocumentEnrichment(clienteData, contratoNumero, snapshot as Record<string, any>, propostaRes.data as Record<string, any>);
@@ -567,25 +544,11 @@ Deno.serve(async (req) => {
       const custoKit = parseLocaleNumber(venda.custo_kit) ?? 0;
       const valorTotal = parseLocaleNumber((propostaRes.data as any)?.valor_total) ?? parseLocaleNumber(venda.valor_total) ?? 0;
       if (!variables["equipamentos_custo_total"]) {
-        const equipamentosCustoTotal = formatBRL(custoKit);
-        console.error(
-          "[generate-document] DIAG assign equipamentos_custo_total=",
-          JSON.stringify(equipamentosCustoTotal),
-          "source=custo_kit",
-          JSON.stringify(custoKit),
-        );
-        variables["equipamentos_custo_total"] = equipamentosCustoTotal;
+        variables["equipamentos_custo_total"] = formatBRL(custoKit);
       }
       if (!variables["instalacao_preco_total"]) {
         const instPreco = valorTotal - custoKit;
-        const instalacaoPrecoTotal = formatBRL(instPreco >= 0 ? instPreco : 0);
-        console.error(
-          "[generate-document] DIAG assign instalacao_preco_total=",
-          JSON.stringify(instalacaoPrecoTotal),
-          "source=valor_total-custo_kit",
-          JSON.stringify({ valorTotal, custoKit, instPreco }),
-        );
-        variables["instalacao_preco_total"] = instalacaoPrecoTotal;
+        variables["instalacao_preco_total"] = formatBRL(instPreco >= 0 ? instPreco : 0);
       }
     }
 

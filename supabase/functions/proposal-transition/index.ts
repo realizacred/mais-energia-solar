@@ -229,6 +229,7 @@ Deno.serve(async (req) => {
               const { data: plan } = await admin
                 .from("commission_plans")
                 .select("parameters")
+                .eq("tenant_id", proposta.tenant_id)
                 .eq("is_active", true)
                 .limit(1)
                 .maybeSingle();
@@ -264,7 +265,7 @@ Deno.serve(async (req) => {
             }
           }
         } else {
-          console.log("Commission already exists for projeto, skipping (idempotent)");
+          // Commission already exists for projeto — skipping (idempotent)
         }
       } catch (commErr) {
         console.error("Erro ao gerar comissão:", commErr);
