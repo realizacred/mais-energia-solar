@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     const lonR = roundCoord(lon);
     const cacheMethod = "nsrdb_api";
 
-    console.log(`[NSRDB_LOOKUP] Request for (${latR}, ${lonR}) by user=${user.id}`);
+    // console.log(`[NSRDB_LOOKUP] Request for (${latR}, ${lonR}) by user=${user.id}`);
 
     // 1. Check cache
     const { data: cached } = await admin
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (cached) {
-      console.log(`[NSRDB_LOOKUP] Cache hit for (${latR}, ${lonR})`);
+      // console.log(`[NSRDB_LOOKUP] Cache hit for (${latR}, ${lonR})`);
       return ok({
         success: true,
         source: "nsrdb",
@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
     const wkt = `POINT(${lon} ${lat})`;
     const nsrdbUrl = `${NSRDB_BASE}?api_key=${nrelApiKey}&wkt=${encodeURIComponent(wkt)}&attributes=ghi,dhi&names=${NSRDB_YEAR}&interval=60&utc=false&leap_day=false&email=api@maisenergia.solar`;
 
-    console.log(`[NSRDB_LOOKUP] Querying NSRDB API…`);
+    // console.log(`[NSRDB_LOOKUP] Querying NSRDB API…`);
     const startTime = Date.now();
 
     const nsrdbResp = await fetch(nsrdbUrl, {
@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
     });
 
     const elapsed = Date.now() - startTime;
-    console.log(`[NSRDB_LOOKUP] NSRDB response: ${nsrdbResp.status} (${elapsed}ms)`);
+    // console.log(`[NSRDB_LOOKUP] NSRDB response: ${nsrdbResp.status} (${elapsed}ms)`);
 
     if (!nsrdbResp.ok) {
       const errorText = await nsrdbResp.text();
@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
         .then(() => {});
     }
 
-    console.log(`[NSRDB_LOOKUP] SUCCESS — annual_avg=${annualAvg.toFixed(2)} kWh/m²/day`);
+    // console.log(`[NSRDB_LOOKUP] SUCCESS — annual_avg=${annualAvg.toFixed(2)} kWh/m²/day`);
 
     return ok({
       success: true,
