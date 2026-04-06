@@ -166,14 +166,15 @@ function sanitizeSnapshot(snapshot: any): Record<string, unknown> {
   if (!snapshot) return snapshot;
    
   const { mapSnapshots, ...rest } = snapshot;
+  const rootCustomFieldValues =
+    rest.customFieldValues && typeof rest.customFieldValues === "object"
+      ? rest.customFieldValues as Record<string, unknown>
+      : {};
   const result: Record<string, unknown> = {
     ...rest,
     grupo: normalizeGrupo(rest.grupo),
     schema_version: SNAPSHOT_SCHEMA_VERSION,
-    customFieldValues:
-      rest.customFieldValues && typeof rest.customFieldValues === "object"
-        ? rest.customFieldValues
-        : {},
+    customFieldValues: rootCustomFieldValues,
     descricaoProposta: rest.descricaoProposta ?? "",
     nomeProposta: rest.nomeProposta ?? "",
   };
@@ -190,8 +191,11 @@ function sanitizeSnapshot(snapshot: any): Record<string, unknown> {
       result.nomeProposta = ws.nomeProposta;
     }
     // customFieldValues — critical for pos_*, pre_*, cap_* fields in resolvers
-    if (ws.customFieldValues && typeof ws.customFieldValues === "object" && Object.keys(result.customFieldValues as Record<string, unknown>).length === 0) {
-      result.customFieldValues = ws.customFieldValues;
+    if (ws.customFieldValues && typeof ws.customFieldValues === "object") {
+      result.customFieldValues = {
+        ...(ws.customFieldValues as Record<string, unknown>),
+        ...(result.customFieldValues as Record<string, unknown>),
+      };
     }
     // templateSelecionado
     if (ws.templateSelecionado && !result.templateSelecionado) {

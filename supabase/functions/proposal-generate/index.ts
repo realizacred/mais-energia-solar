@@ -127,6 +127,7 @@ interface GenerateRequestV2 {
   venda: VendaPayload;
   pagamento_opcoes: PagamentoPayload[];
   observacoes?: string;
+  customFieldValues?: Record<string, unknown>;
   idempotency_key: string;
   variaveis_custom?: boolean;
   aceite_estimativa?: boolean;
@@ -857,6 +858,15 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       console.warn("[proposal-generate] AI justificativa error (non-blocking):", aiErr?.message);
     }
 
+    const wizardCustomFieldValues =
+      body._wizard_state?.customFieldValues && typeof body._wizard_state.customFieldValues === "object"
+        ? body._wizard_state.customFieldValues as Record<string, unknown>
+        : {};
+    const rootCustomFieldValues =
+      body.customFieldValues && typeof body.customFieldValues === "object"
+        ? body.customFieldValues
+        : {};
+
     // ── 7. SNAPSHOT IMUTÁVEL ────────────────────────────────
     const snapshot = {
       versao_schema: 3,
@@ -931,6 +941,10 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       capo_seguro: body._wizard_state?.capo_seguro ?? body.capo_seguro ?? undefined,
       area_util: calcAreaUtil(body.itens, body.ucs),
       ai_justificativa: aiJustificativa ?? undefined,
+      customFieldValues: {
+        ...wizardCustomFieldValues,
+        ...rootCustomFieldValues,
+      },
       // Wizard-specific state for edit round-trip (passthrough, not used by engine)
       _wizard_state: body._wizard_state ?? undefined,
     };

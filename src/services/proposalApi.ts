@@ -88,6 +88,7 @@ export interface GenerateProposalPayload {
     valor_parcela: number;
   }>;
   observacoes?: string;
+  customFieldValues?: Record<string, any>;
   idempotency_key: string;
   aceite_estimativa?: boolean;
   /** Wizard-specific state preserved for edit round-trip (not used by engine) */
