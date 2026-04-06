@@ -77,11 +77,27 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // 1. Load current proposta
+    // Resolve caller's tenant_id for isolation (R01)
+    const { data: callerProfile } = await admin
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", userId)
+      .single();
+
+    if (!callerProfile?.tenant_id) {
+      return new Response(
+        JSON.stringify({ error: "Perfil ou tenant não encontrado" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const callerTenantId = callerProfile.tenant_id;
+
+    // 1. Load current proposta — filtered by tenant_id (S1 fix)
     const { data: proposta, error: pErr } = await admin
       .from("propostas_nativas")
       .select("id, status, lead_id, cliente_id, projeto_id, tenant_id")
       .eq("id", proposta_id)
+      .eq("tenant_id", callerTenantId)
       .single();
 
     if (pErr || !proposta) {

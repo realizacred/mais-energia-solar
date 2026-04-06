@@ -124,24 +124,34 @@ Deno.serve(async (req) => {
     // ─── Send via channel ───
     try {
       if (canal === "whatsapp") {
-        // Delegate to send-whatsapp-message
-        const waResp = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
-          },
-          body: JSON.stringify({
-            telefone: destinatario_valor.trim().replace(/\D/g, ""),
-            mensagem: conteudo,
-            tipo: "manual",
-          }),
-        });
+        // RB-26: Use enqueue_wa_outbox_item RPC instead of legacy direct fetch
+        const { data: waInstance } = await admin
+          .from("wa_instances")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("status", "connected")
+          .limit(1)
+          .maybeSingle();
 
-        if (!waResp.ok) {
-          const waBody = await waResp.json().catch(() => ({}));
-          sendError = waBody?.error || `WhatsApp error: ${waResp.status}`;
+        if (!waInstance) {
+          sendError = "Nenhuma instância WhatsApp conectada para este tenant";
+        } else {
+          const phone = destinatario_valor.trim().replace(/\D/g, "");
+          const remoteJid = `${phone}@s.whatsapp.net`;
+          const idempKey = `proposal-msg-${logId}`;
+
+          const { error: enqueueErr } = await admin.rpc("enqueue_wa_outbox_item", {
+            p_tenant_id: tenantId,
+            p_instance_id: waInstance.id,
+            p_remote_jid: remoteJid,
+            p_message_type: "text",
+            p_content: conteudo,
+            p_idempotency_key: idempKey,
+          });
+
+          if (enqueueErr) {
+            sendError = `WhatsApp enqueue error: ${enqueueErr.message}`;
+          }
         }
       } else if (canal === "email") {
         // Use SMTP config from tenant
