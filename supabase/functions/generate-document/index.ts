@@ -459,39 +459,27 @@ Deno.serve(async (req) => {
         ? supabase.from("clientes").select("*").eq("id", clienteId).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase.from("tenants").select("nome, documento, telefone, email, endereco").eq("id", tenantId).maybeSingle(),
-      // Get latest official proposal version for this deal
+      // Get latest generated proposal version for this deal
+      // Step: find propostas_nativas by deal_id OR projeto_id, then get its versoes
       supabase
-        .from("proposta_versoes")
-        .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
-        .eq("proposta_id", deal_id)
-        .eq("status", "generated")
+        .from("propostas_nativas")
+        .select("id")
+        .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
+        .in("status", ["gerada", "aceita", "enviada", "vista"])
+        .order("is_principal", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle()
-        .then((r) => {
-          if (!r.data) {
-            return supabase
-              .from("propostas_nativas")
-              .select("id")
-              .eq("projeto_id", deal_id)
-              .in("status", ["gerada", "aceita", "enviada", "vista"])
-              .order("is_principal", { ascending: false })
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle()
-              .then((pRes) => {
-                if (!pRes.data) return { data: null };
-                return supabase
-                  .from("proposta_versoes")
-                  .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
-                  .eq("proposta_id", pRes.data.id)
-                  .eq("status", "generated")
-                  .order("created_at", { ascending: false })
-                  .limit(1)
-                  .maybeSingle();
-              });
-          }
-          return r;
+        .then((pRes) => {
+          if (!pRes?.data) return { data: null };
+          return supabase
+            .from("proposta_versoes")
+            .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
+            .eq("proposta_id", pRes.data.id)
+            .eq("status", "generated")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
         }),
       // Brand settings (representante legal)
       supabase
