@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/dateUtils";
+import { formatDateTime } from "@/lib/dateUtils";
 
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
@@ -52,7 +52,11 @@ const DOC_CATEGORY_LABELS: Record<string, string> = {
   procuracao: "Procurações",
   proposta: "Propostas",
   termo: "Termos",
+  outro: "Outros",
 };
+
+/** Fixed display order for categories */
+const CATEGORY_ORDER = ["contrato", "procuracao", "proposta", "termo", "outro"];
 
 // ─── Helpers ──────────────────────────────────────
 function formatSize(bytes: number | undefined) {
@@ -198,7 +202,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
 
   const loading = loadingFiles || loadingDocs;
 
-  // Group generated docs by category
+  // Group generated docs by category, sorted by created_at desc within each group
   const docsByCategory = useMemo(() => {
     const groups: Record<string, GeneratedDocRow[]> = {};
     for (const doc of generatedDocs) {
@@ -206,8 +210,18 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(doc);
     }
+    // Sort each group by created_at ascending so #1 is oldest within the category
+    for (const cat of Object.keys(groups)) {
+      groups[cat].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    }
     return groups;
   }, [generatedDocs]);
+
+  /** Categories in fixed display order */
+  const sortedCategories = useMemo(() => {
+    const cats = Object.keys(docsByCategory);
+    return CATEGORY_ORDER.filter(c => cats.includes(c)).concat(cats.filter(c => !CATEGORY_ORDER.includes(c)));
+  }, [docsByCategory]);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -274,12 +288,14 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
           </Card>
         ) : (
           <div className="space-y-3">
-            {Object.entries(docsByCategory).map(([cat, docs]) => (
+            {sortedCategories.map(cat => {
+              const docs = docsByCategory[cat];
+              return (
               <div key={cat} className="space-y-1">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
                   {DOC_CATEGORY_LABELS[cat] || cat}
                 </h4>
-                {docs.map(doc => {
+                {docs.map((doc, idx) => {
                   const statusCfg = DOC_STATUS_MAP[doc.status] || DOC_STATUS_MAP.draft;
                   const hasDocx = !!doc.docx_filled_path;
                   const hasPdf = !!doc.pdf_path;
