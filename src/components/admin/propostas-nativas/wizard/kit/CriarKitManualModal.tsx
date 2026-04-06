@@ -949,11 +949,11 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       value={inv.selectedId}
                       onValueChange={v => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, selectedId: v } : x))}
                       options={filteredInversores.length > 0 ? [...filteredInversores]
-                        .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || (b.potencia_nominal_kw || 0) - (a.potencia_nominal_kw || 0))
+                        .sort((a, b) => a.fabricante.localeCompare(b.fabricante) || a.modelo.localeCompare(b.modelo))
                         .map(cat => ({
                           value: cat.id,
-                          label: `${cat.fabricante} ${cat.modelo} (${(cat.potencia_nominal_kw || 0).toFixed(1)}kW)${cat.tipo ? ` • ${cat.tipo}` : ""}`,
-                          searchText: `${cat.fabricante} ${cat.modelo} ${(cat.potencia_nominal_kw || 0).toFixed(1)} ${cat.tipo || ""}`,
+                          label: `${cat.fabricante} ${cat.modelo}`,
+                          searchText: `${cat.fabricante} ${cat.modelo}`,
                         })) : []}
                       placeholder="Buscar inversor..."
                       emptyText="Nenhum inversor encontrado para esta topologia/sistema"
