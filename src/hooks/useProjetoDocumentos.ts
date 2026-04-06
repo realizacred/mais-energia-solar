@@ -95,6 +95,7 @@ export function useProjetoDocumentosGerados(dealId: string) {
         const tpl = tplMap.get(d.template_id);
         return {
           ...d,
+          pdf_path: d.pdf_path || d.pdf_filled_path || null,
           template_name: tpl?.nome || "—",
           template_categoria: tpl?.categoria || "outro",
           requires_signature: tpl?.requires_signature_default ?? false,
