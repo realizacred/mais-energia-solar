@@ -74,6 +74,7 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
     if (!existingPath && !file) { toast.error("Upload do arquivo .docx obrigatório"); return; }
 
     let storagePath = existingPath;
+    const oldPath = template?.docx_storage_path ?? null;
 
     if (file) {
       setUploading(true);
@@ -85,6 +86,12 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
         const { error } = await supabase.storage.from("document-files").upload(fileName, file);
         if (error) throw error;
         storagePath = fileName;
+
+        // RB-25: delete old file fire-and-forget — never block save
+        if (oldPath && oldPath !== storagePath) {
+          supabase.storage.from("document-files").remove([oldPath]).catch(() => {});
+        }
+
         // Prevent duplicate resubmits
         setExistingPath(storagePath);
         setFile(null);
