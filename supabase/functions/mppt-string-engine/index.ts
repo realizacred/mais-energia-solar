@@ -152,7 +152,7 @@ async function isFeatureEnabled(admin: any, tenantId: string): Promise<boolean> 
 async function processSyncHook(admin: any, tenantId: string, plantIds: string[]) {
   const enabled = await isFeatureEnabled(admin, tenantId);
   if (!enabled) {
-    console.log(`[mppt-string-engine] Feature disabled for tenant ${tenantId}, skipping`);
+    // console.log(`[mppt-string-engine] Feature disabled for tenant ${tenantId}, skipping`);
     return { processed: 0, alerts_created: 0 };
   }
 
@@ -459,7 +459,7 @@ async function autoBaseline(admin: any, tenantId: string, plantId: string) {
         })
         .eq("id", reg.id);
 
-      console.log(`[mppt-string-engine] Auto-baseline set for registry ${reg.id}: p50=${p50}W avg=${avg.toFixed(0)}W p90=${p90}W`);
+      // console.log(`[mppt-string-engine] Auto-baseline set for registry ${reg.id}: p50=${p50}W avg=${avg.toFixed(0)}W p90=${p90}W`);
     }
   }
 }
@@ -514,13 +514,13 @@ serve(async (req: Request) => {
 
       case "bootstrap_all": {
         // Process ALL plants for this tenant — used for initial setup
-        console.log(`[mppt-string-engine] bootstrap_all for tenant ${tenantId}`);
+        // console.log(`[mppt-string-engine] bootstrap_all for tenant ${tenantId}`);
         const { data: allPlants } = await supabaseAdmin
           .from("monitor_plants")
           .select("id")
           .eq("tenant_id", tenantId);
         const allIds = (allPlants || []).map((p: any) => p.id);
-        console.log(`[mppt-string-engine] Found ${allIds.length} plants to bootstrap`);
+        // console.log(`[mppt-string-engine] Found ${allIds.length} plants to bootstrap`);
         
         let totalProcessed = 0;
         let totalAlerts = 0;
@@ -535,7 +535,7 @@ serve(async (req: Request) => {
           for (const pid of batch) {
             await autoBaseline(supabaseAdmin, tenantId, pid);
           }
-          console.log(`[mppt-string-engine] Bootstrap batch ${i / BATCH + 1}: processed=${result.processed}`);
+          // console.log(`[mppt-string-engine] Bootstrap batch ${i / BATCH + 1}: processed=${result.processed}`);
         }
         return jsonResponse({ success: true, processed: totalProcessed, alerts_created: totalAlerts, plants: allIds.length });
       }

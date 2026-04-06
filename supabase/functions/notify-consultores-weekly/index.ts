@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
 
     if (cErr) throw cErr;
     if (!consultores?.length) {
-      console.log("[notify-weekly] No active consultores found");
+      // console.log("[notify-weekly] No active consultores found");
       return jsonOk({ ...stats, message: "No consultores" });
     }
 
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log("[notify-weekly] Done:", JSON.stringify(stats));
+    // console.log("[notify-weekly] Done:", JSON.stringify(stats));
     return jsonOk(stats);
   } catch (err: any) {
     console.error("[notify-weekly] Error:", err);
