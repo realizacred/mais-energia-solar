@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
 
     if (updateErr) throw updateErr;
 
-    // 4a. Sync proposta_versoes.status (latest version)
+    // 4a. Sync proposta_versoes.status (latest version only — by ID)
     try {
       const statusMap: Record<string, string> = {
         rascunho: "draft",
@@ -173,12 +173,22 @@ Deno.serve(async (req) => {
         cancelada: "cancelled",
       };
       const versaoStatus = statusMap[new_status] || new_status;
-      await admin
+
+      // Fetch the exact ID of the latest version first
+      const { data: latestVersao } = await admin
         .from("proposta_versoes")
-        .update({ status: versaoStatus })
+        .select("id")
         .eq("proposta_id", proposta_id)
         .order("versao_numero", { ascending: false })
-        .limit(1);
+        .limit(1)
+        .maybeSingle();
+
+      if (latestVersao?.id) {
+        await admin
+          .from("proposta_versoes")
+          .update({ status: versaoStatus })
+          .eq("id", latestVersao.id);
+      }
     } catch (syncErr) {
       console.error("[proposal-transition] Erro ao sincronizar proposta_versoes.status:", syncErr);
     }
