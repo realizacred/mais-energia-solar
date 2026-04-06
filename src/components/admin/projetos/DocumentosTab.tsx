@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/dateUtils";
+import { formatDateTime } from "@/lib/dateUtils";
 
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
@@ -52,7 +52,11 @@ const DOC_CATEGORY_LABELS: Record<string, string> = {
   procuracao: "Procurações",
   proposta: "Propostas",
   termo: "Termos",
+  outro: "Outros",
 };
+
+/** Fixed display order for categories */
+const CATEGORY_ORDER = ["contrato", "procuracao", "proposta", "termo", "outro"];
 
 // ─── Helpers ──────────────────────────────────────
 function formatSize(bytes: number | undefined) {
@@ -198,7 +202,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
 
   const loading = loadingFiles || loadingDocs;
 
-  // Group generated docs by category
+  // Group generated docs by category, sorted by created_at desc within each group
   const docsByCategory = useMemo(() => {
     const groups: Record<string, GeneratedDocRow[]> = {};
     for (const doc of generatedDocs) {
@@ -206,8 +210,18 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(doc);
     }
+    // Sort each group by created_at ascending so #1 is oldest within the category
+    for (const cat of Object.keys(groups)) {
+      groups[cat].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    }
     return groups;
   }, [generatedDocs]);
+
+  /** Categories in fixed display order */
+  const sortedCategories = useMemo(() => {
+    const cats = Object.keys(docsByCategory);
+    return CATEGORY_ORDER.filter(c => cats.includes(c)).concat(cats.filter(c => !CATEGORY_ORDER.includes(c)));
+  }, [docsByCategory]);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -274,12 +288,14 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
           </Card>
         ) : (
           <div className="space-y-3">
-            {Object.entries(docsByCategory).map(([cat, docs]) => (
+            {sortedCategories.map(cat => {
+              const docs = docsByCategory[cat];
+              return (
               <div key={cat} className="space-y-1">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
                   {DOC_CATEGORY_LABELS[cat] || cat}
                 </h4>
-                {docs.map(doc => {
+                {docs.map((doc, idx) => {
                   const statusCfg = DOC_STATUS_MAP[doc.status] || DOC_STATUS_MAP.draft;
                   const hasDocx = !!doc.docx_filled_path;
                   const hasPdf = !!doc.pdf_path;
@@ -292,9 +308,12 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                       <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
                         <FileText className="h-4 w-4 text-primary shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{doc.title}</p>
+                          <p className="text-sm font-medium text-foreground truncate">
+                            <span className="text-muted-foreground font-mono text-xs">#{idx + 1}</span>{" "}
+                            {doc.title}
+                          </p>
                           <p className="text-[10px] text-muted-foreground">
-                            {doc.template_name} • {formatDate(doc.created_at)}
+                            {doc.template_name} • {formatDateTime(doc.created_at, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-1 shrink-0">
@@ -424,7 +443,8 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                   );
                 })}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
@@ -461,7 +481,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    {formatSize(f.metadata?.size)} • {f.created_at ? formatDate(f.created_at) : ""}
+                    {formatSize(f.metadata?.size)} • {f.created_at ? formatDateTime(f.created_at, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
