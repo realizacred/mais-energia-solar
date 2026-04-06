@@ -76,7 +76,7 @@ export function useProjetoDocumentosGerados(dealId: string) {
     queryFn: async () => {
       const { data: docs } = await supabase
         .from("generated_documents")
-        .select("id, title, status, created_at, template_id, docx_filled_path, pdf_path, signature_status, signature_provider, envelope_id, signed_at")
+        .select("id, title, status, created_at, template_id, docx_filled_path, pdf_path, pdf_filled_path, signature_status, signature_provider, envelope_id, signed_at")
         .eq("deal_id", dealId)
         .order("created_at", { ascending: false });
 
@@ -95,6 +95,7 @@ export function useProjetoDocumentosGerados(dealId: string) {
         const tpl = tplMap.get(d.template_id);
         return {
           ...d,
+          pdf_path: d.pdf_path || d.pdf_filled_path || null,
           template_name: tpl?.nome || "—",
           template_categoria: tpl?.categoria || "outro",
           requires_signature: tpl?.requires_signature_default ?? false,
