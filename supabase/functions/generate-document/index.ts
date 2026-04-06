@@ -572,7 +572,7 @@ Deno.serve(async (req) => {
     });
 
     // ── 4b. DOCUMENT-ONLY ENRICHMENT (isolated, does not contaminate flatten) ──
-    const docEnrichment = buildDocumentEnrichment(clienteRes.data, contratoNumero);
+    const docEnrichment = buildDocumentEnrichment(clienteRes.data, contratoNumero, snapshot as Record<string, any>, propostaRes.data as Record<string, any>);
     for (const [k, v] of Object.entries(docEnrichment)) {
       // Document vars override only if key not already present (preserves 0, "", false)
       if (!(k in variables)) {
