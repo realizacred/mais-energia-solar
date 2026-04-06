@@ -204,6 +204,8 @@ interface RenderParams {
   tenantNome: string;
   logoUrl: string | null;
   primaryColor: string;
+  successColor: string;
+  destructiveColor: string;
   fontHeading: string;
   fontBody: string;
   clienteNome: string;
@@ -321,8 +323,8 @@ function renderProposalHtml(p: RenderParams): string {
       <div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #eee"><span>Equipamentos</span><strong>${fmt(fin.custo_kit ?? 0)}</strong></div>
       <div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #eee"><span>Serviços</span><strong>${fmt(fin.custo_servicos_inclusos ?? 0)}</strong></div>
       ${fin.custo_comissao > 0 ? `<div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #eee"><span>Comissão</span><strong>${fmt(fin.custo_comissao)}</strong></div>` : ""}
-      <div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #eee"><span>Margem (${fin.margem_percentual ?? 0}%)</span><strong style="color:#16a34a">${fmt(fin.margem_valor ?? 0)}</strong></div>
-      ${fin.desconto_percentual > 0 ? `<div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #eee"><span>Desconto (${fin.desconto_percentual}%)</span><strong style="color:#dc2626">-${fmt(fin.desconto_valor ?? 0)}</strong></div>` : ""}
+      <div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #eee"><span>Margem (${fin.margem_percentual ?? 0}%)</span><strong style="color:hsl(${p.successColor})">${fmt(fin.margem_valor ?? 0)}</strong></div>
+      ${fin.desconto_percentual > 0 ? `<div style="display:flex;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #eee"><span>Desconto (${fin.desconto_percentual}%)</span><strong style="color:hsl(${p.destructiveColor})">-${fmt(fin.desconto_valor ?? 0)}</strong></div>` : ""}
       <div style="display:flex;justify-content:space-between;padding:12px 16px;background:hsl(${p.primaryColor}/0.06);font-weight:700;font-size:16px"><span>Investimento Total</span><span style="color:hsl(${p.primaryColor})">${fmt(fin.valor_total ?? 0)}</span></div>
     </div>
   </div>`;
