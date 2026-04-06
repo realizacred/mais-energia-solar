@@ -42,6 +42,10 @@ function formatBRL(v: number | null | undefined): string {
   });
 }
 
+function stripCurrencyPrefix(value: string): string {
+  return value.replace(/^(?:[\s ]*R\$[\s ]*)+/i, "").trim();
+}
+
 function parseLocaleNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
@@ -500,6 +504,15 @@ Deno.serve(async (req) => {
     console.error("[generate-document] DIAG: cliente_nome=", variables["cliente_nome"] ?? "(MISSING)");
     console.error("[generate-document] DIAG: valor_total=", variables["valor_total"] ?? "(MISSING)");
     console.error("[generate-document] DIAG: cliente_cnpj_cpf=", variables["cliente_cnpj_cpf"] ?? "(MISSING)");
+    console.error(
+      "[generate-document] DIAG: monetary vars after flatten=",
+      JSON.stringify({
+        preco: variables["preco"] ?? "(MISSING)",
+        preco_por_extenso: variables["preco_por_extenso"] ?? "(MISSING)",
+        equipamentos_custo_total: variables["equipamentos_custo_total"] ?? "(MISSING)",
+        instalacao_preco_total: variables["instalacao_preco_total"] ?? "(MISSING)",
+      }),
+    );
 
     // ── 4b. DOCUMENT-ONLY ENRICHMENT (isolated, does not contaminate flatten) ──
     const docEnrichment = buildDocumentEnrichment(clienteData, contratoNumero, snapshot as Record<string, any>, propostaRes.data as Record<string, any>);
@@ -554,11 +567,25 @@ Deno.serve(async (req) => {
       const custoKit = parseLocaleNumber(venda.custo_kit) ?? 0;
       const valorTotal = parseLocaleNumber((propostaRes.data as any)?.valor_total) ?? parseLocaleNumber(venda.valor_total) ?? 0;
       if (!variables["equipamentos_custo_total"]) {
-        variables["equipamentos_custo_total"] = formatBRL(custoKit);
+        const equipamentosCustoTotal = formatBRL(custoKit);
+        console.error(
+          "[generate-document] DIAG assign equipamentos_custo_total=",
+          JSON.stringify(equipamentosCustoTotal),
+          "source=custo_kit",
+          JSON.stringify(custoKit),
+        );
+        variables["equipamentos_custo_total"] = equipamentosCustoTotal;
       }
       if (!variables["instalacao_preco_total"]) {
         const instPreco = valorTotal - custoKit;
-        variables["instalacao_preco_total"] = formatBRL(instPreco >= 0 ? instPreco : 0);
+        const instalacaoPrecoTotal = formatBRL(instPreco >= 0 ? instPreco : 0);
+        console.error(
+          "[generate-document] DIAG assign instalacao_preco_total=",
+          JSON.stringify(instalacaoPrecoTotal),
+          "source=valor_total-custo_kit",
+          JSON.stringify({ valorTotal, custoKit, instPreco }),
+        );
+        variables["instalacao_preco_total"] = instalacaoPrecoTotal;
       }
     }
 
@@ -628,9 +655,19 @@ Deno.serve(async (req) => {
     for (const mk of MONETARY_KEYS) {
       const val = variables[mk];
       if (!val) continue;
-      // Strip "R$ " or "R$" prefix — template already has "R$"
-      variables[mk] = val.replace(/^R\$\s*/i, "").trim();
+      // Strip repeated "R$" prefix variants — template already has "R$"
+      variables[mk] = stripCurrencyPrefix(val);
     }
+
+    console.error(
+      "[generate-document] DIAG: monetary vars final=",
+      JSON.stringify({
+        preco: variables["preco"] ?? "(MISSING)",
+        preco_por_extenso: variables["preco_por_extenso"] ?? "(MISSING)",
+        equipamentos_custo_total: variables["equipamentos_custo_total"] ?? "(MISSING)",
+        instalacao_preco_total: variables["instalacao_preco_total"] ?? "(MISSING)",
+      }),
+    );
 
     // Phone formatting
     function formatPhoneBR(phone: string | undefined): string {
