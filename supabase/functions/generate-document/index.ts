@@ -556,7 +556,8 @@ Deno.serve(async (req) => {
     if (!variables["instalacao_preco_total"] && snapshot) {
       const snap = snapshot as Record<string, any>;
       const venda = snap.venda ?? {};
-      let instCusto = parseLocaleNumber(venda.instalacao_preco_total)
+      let instCusto = parseLocaleNumber(venda.custo_servicos)
+        ?? parseLocaleNumber(venda.instalacao_preco_total)
         ?? parseLocaleNumber(venda.custo_instalacao)
         ?? parseLocaleNumber(venda.instalacao)
         ?? parseLocaleNumber(snap.instalacao_preco_total)
