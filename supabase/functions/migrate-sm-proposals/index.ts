@@ -121,7 +121,7 @@ function mapSmStatusToVersao(smProp: any): string {
     case "rejected": return "rejected";
     case "viewed": return "sent";
     case "sent": return "sent";
-    case "generated": return "draft";
+    case "generated": return "generated";
     default: return "draft";
   }
 }
@@ -1351,6 +1351,7 @@ Deno.serve(async (req) => {
                   enviada_at: smProp.send_at || null,
                   proposta_num: null,
                   codigo: `PROP-SM-${smProp.sm_proposal_id}`,
+                  is_principal: true,
               };
               if (smPropDate) {
                 propInsert.created_at = smPropDate;
@@ -1405,13 +1406,17 @@ Deno.serve(async (req) => {
                 }
               }
 
-              // Build venda object for snapshot
+              // Build venda object for snapshot — calculate real margin
+              const custoTotal = (smProp.equipment_cost || 0) + custoInstalacao;
+              const margemReal = custoTotal > 0
+                ? ((valorTotal / custoTotal) - 1) * 100
+                : 0;
               const vendaSnapshot = {
                 custo_kit: smProp.equipment_cost || 0,
                 custo_instalacao: custoInstalacao,
                 custo_comissao: 0,
                 custo_outros: 0,
-                margem_percentual: 20,
+                margem_percentual: Math.round(margemReal * 100) / 100,
                 desconto_percentual: smProp.discount || 0,
                 observacoes: "",
               };
@@ -1614,6 +1619,22 @@ Deno.serve(async (req) => {
                 venda: vendaSnapshot,
                 pagamentoOpcoes,
               };
+
+              // P1: Inject customFieldValues from custom_fields_raw into snapshot
+              if (smProp.custom_fields_raw?.values) {
+                const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
+                const customFieldValues: Record<string, string> = {};
+                for (const [key, entry] of Object.entries(cfVals)) {
+                  const bareKey = normalizeCfKey(key);
+                  const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
+                  if (val !== "" && val != null) {
+                    customFieldValues[bareKey] = String(val);
+                  }
+                }
+                if (Object.keys(customFieldValues).length > 0) {
+                  finalSnapshot.customFieldValues = customFieldValues;
+                }
+              }
 
               const smVerDate = smProp.generated_at || smProp.sm_created_at || null;
               const verInsert: Record<string, any> = {
