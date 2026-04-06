@@ -68,19 +68,27 @@ export function useDocumentTemplates(categoria?: DocumentCategory) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const archive = useMutation({
+  const remove = useMutation({
     mutationFn: async (id: string) => {
       const { tenantId } = await getTenantIdOrThrow();
+      // Find the template to get its storage path before deleting
+      const tpl = query.data?.find(t => t.id === id);
+
       const { error } = await supabase
         .from("document_templates")
-        .update({ status: "archived" })
+        .delete()
         .eq("id", id)
         .eq("tenant_id", tenantId);
       if (error) throw error;
+
+      // RB-25: delete storage file fire-and-forget
+      if (tpl?.docx_storage_path) {
+        supabase.storage.from("document-files").remove([tpl.docx_storage_path]).catch(() => {});
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY] });
-      toast.success("Template arquivado");
+      toast.success("Template excluído");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -115,5 +123,5 @@ export function useDocumentTemplates(categoria?: DocumentCategory) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return { ...query, upsert, archive, duplicate };
+  return { ...query, upsert, remove, duplicate };
 }
