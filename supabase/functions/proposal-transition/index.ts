@@ -160,6 +160,29 @@ Deno.serve(async (req) => {
 
     if (updateErr) throw updateErr;
 
+    // 4a. Sync proposta_versoes.status (latest version)
+    try {
+      const statusMap: Record<string, string> = {
+        rascunho: "draft",
+        gerada: "generated",
+        enviada: "sent",
+        vista: "viewed",
+        aceita: "accepted",
+        recusada: "rejected",
+        expirada: "expired",
+        cancelada: "cancelled",
+      };
+      const versaoStatus = statusMap[new_status] || new_status;
+      await admin
+        .from("proposta_versoes")
+        .update({ status: versaoStatus })
+        .eq("proposta_id", proposta_id)
+        .order("versao_numero", { ascending: false })
+        .limit(1);
+    } catch (syncErr) {
+      console.error("[proposal-transition] Erro ao sincronizar proposta_versoes.status:", syncErr);
+    }
+
     // 4b. On accept: reject sibling proposals and clear their is_principal
     if (new_status === "aceita" && proposta.projeto_id) {
       // Clear is_principal on all siblings
