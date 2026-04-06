@@ -196,10 +196,11 @@ Deno.serve(async (req) => {
     // 5. Commission on accept (with idempotency — check for existing commission)
     if (new_status === "aceita") {
       try {
-        // Check if commission already exists for this proposal
+        // Check if commission already exists for this proposal (tenant-isolated)
         const { data: existingComm } = await admin
           .from("comissoes")
           .select("id")
+          .eq("tenant_id", proposta.tenant_id)
           .eq("projeto_id", proposta.projeto_id)
           .neq("status", "cancelada")
           .maybeSingle();
@@ -249,6 +250,7 @@ Deno.serve(async (req) => {
 
               const dtNow = new Date();
               await admin.from("comissoes").insert({
+                tenant_id: proposta.tenant_id,
                 consultor_id: consultorId,
                 cliente_id: proposta.cliente_id,
                 projeto_id: proposta.projeto_id || null,
