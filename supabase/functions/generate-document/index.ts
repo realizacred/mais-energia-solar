@@ -476,13 +476,6 @@ Deno.serve(async (req) => {
     const snapshot = propostaRes.data?.snapshot as Record<string, unknown> | null;
     const consultor = consultorRes.data;
 
-    // DIAG: temporary logging to debug empty variables
-    console.error("[generate-document] DIAG: propostaRes.data exists:", !!propostaRes.data);
-    console.error("[generate-document] DIAG: snapshot exists:", !!snapshot);
-    console.error("[generate-document] DIAG: snapshot keys:", snapshot ? Object.keys(snapshot).length : 0);
-    console.error("[generate-document] DIAG: clienteData exists:", !!clienteData);
-    console.error("[generate-document] DIAG: propostaData exists:", !!propostaData);
-    console.error("[generate-document] DIAG: projeto exists:", !!projeto);
 
     const variables = flattenSnapshot(snapshot, {
       lead: leadRes.data,
