@@ -591,11 +591,47 @@ Deno.serve(async (req) => {
 
     // ── 4c. POST-PROCESSING (SAME fixes as template-preview — keep in sync!) ──
 
-    // FIX 1: potencia_sistema — strip unit suffix to avoid "6,00 kWp kWp"
+    // FIX 1: potencia_sistema — ensure "kWp" suffix is present
     if (variables["potencia_sistema"]) {
-      variables["potencia_sistema"] = variables["potencia_sistema"]
-        .replace(/\s*kWp\s*$/i, "")
-        .trim();
+      const stripped = variables["potencia_sistema"].replace(/\s*kWp\s*$/i, "").trim();
+      variables["potencia_sistema"] = stripped ? `${stripped} kWp` : "";
+    } else if (variables["potencia_kwp"]) {
+      variables["potencia_sistema"] = `${variables["potencia_kwp"]} kWp`;
+    }
+
+    // FIX 1b: cliente_cnpj_cpf — ensure it's populated from cliente data
+    if (!variables["cliente_cnpj_cpf"] && clienteRes.data?.cpf_cnpj) {
+      variables["cliente_cnpj_cpf"] = String(clienteRes.data.cpf_cnpj);
+      variables["cliente_cpf_cnpj"] = String(clienteRes.data.cpf_cnpj);
+    }
+
+    // FIX 1c: equipamentos_custo_total / instalacao_preco_total from snapshot
+    if (!variables["equipamentos_custo_total"] && snapshot) {
+      const snap = snapshot as Record<string, any>;
+      // Try snapshot.venda or snapshot.itens
+      const venda = snap.venda ?? {};
+      let equipCusto = venda.equipamentos_custo_total ?? venda.custo_equipamentos ?? snap.equipamentos_custo_total;
+      if (!equipCusto && Array.isArray(snap.itens)) {
+        equipCusto = snap.itens
+          .filter((it: any) => it.categoria !== "servico" && it.categoria !== "instalacao")
+          .reduce((sum: number, it: any) => sum + ((Number(it.preco_unitario) || 0) * (Number(it.quantidade) || 1)), 0);
+      }
+      if (equipCusto != null && Number(equipCusto) > 0) {
+        variables["equipamentos_custo_total"] = formatBRL(Number(equipCusto));
+      }
+    }
+    if (!variables["instalacao_preco_total"] && snapshot) {
+      const snap = snapshot as Record<string, any>;
+      const venda = snap.venda ?? {};
+      let instCusto = venda.instalacao_preco_total ?? venda.custo_instalacao ?? snap.instalacao_preco_total ?? snap.instalacao_custo_total;
+      if (!instCusto && Array.isArray(snap.itens)) {
+        instCusto = snap.itens
+          .filter((it: any) => it.categoria === "servico" || it.categoria === "instalacao")
+          .reduce((sum: number, it: any) => sum + ((Number(it.preco_unitario) || 0) * (Number(it.quantidade) || 1)), 0);
+      }
+      if (instCusto != null && Number(instCusto) > 0) {
+        variables["instalacao_preco_total"] = formatBRL(Number(instCusto));
+      }
     }
 
     // FIX 2: subgrupo / grupo_tarifario — ensure top-level keys exist
