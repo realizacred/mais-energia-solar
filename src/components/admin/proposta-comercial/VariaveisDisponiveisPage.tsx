@@ -930,7 +930,7 @@ export function VariaveisDisponiveisPage() {
                       <Sparkles className="h-3 w-3" /> Sugerir com IA
                     </Button>
                   </div>
-                  <Textarea id="expressao-textarea" value={form.expressao} onChange={(e) => setForm((f) => ({ ...f, expressao: e.target.value }))} placeholder="[preco]*(1+0.074)^25" className="min-h-[80px] text-sm font-mono mt-1" />
+                  <Textarea id="expressao-textarea" value={form.expressao} onChange={(e) => setForm((f) => ({ ...f, expressao: e.target.value }))} placeholder="[preco]*(1+0.074)^25" className="min-h-[80px] max-h-[300px] resize-y text-sm font-mono mt-1" />
                 </div>
                 <div className="border border-border rounded-lg overflow-hidden">
                   <button
