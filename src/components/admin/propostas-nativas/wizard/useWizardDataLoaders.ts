@@ -88,16 +88,56 @@ export function useEquipmentCatalog() {
 
   useEffect(() => {
     setLoadingEquip(true);
+
+    // Paginated fetch to bypass Supabase's 1000-row default limit
+    async function fetchAllModulos() {
+      const PAGE = 1000;
+      const rows: any[] = [];
+      let offset = 0;
+      while (true) {
+        const { data } = await supabase
+          .from("modulos_solares")
+          .select("id, fabricante, modelo, potencia_wp, tipo_celula, eficiencia_percent, garantia_produto_anos, garantia_performance_anos")
+          .eq("ativo", true)
+          .order("potencia_wp", { ascending: false })
+          .range(offset, offset + PAGE - 1);
+        if (!data || data.length === 0) break;
+        rows.push(...data);
+        if (data.length < PAGE) break;
+        offset += PAGE;
+      }
+      return rows;
+    }
+
+    async function fetchAllInversores() {
+      const PAGE = 1000;
+      const rows: any[] = [];
+      let offset = 0;
+      while (true) {
+        const { data } = await supabase
+          .from("inversores_catalogo")
+          .select("id, fabricante, modelo, potencia_nominal_kw, tipo, mppt_count, fases, garantia_anos")
+          .eq("ativo", true)
+          .order("potencia_nominal_kw", { ascending: false })
+          .range(offset, offset + PAGE - 1);
+        if (!data || data.length === 0) break;
+        rows.push(...data);
+        if (data.length < PAGE) break;
+        offset += PAGE;
+      }
+      return rows;
+    }
+
     Promise.all([
-      supabase.from("modulos_solares").select("id, fabricante, modelo, potencia_wp, tipo_celula, eficiencia_percent, garantia_produto_anos, garantia_performance_anos").eq("ativo", true).order("potencia_wp", { ascending: false }),
-      supabase.from("inversores_catalogo").select("id, fabricante, modelo, potencia_nominal_kw, tipo, mppt_count, fases, garantia_anos").eq("ativo", true).order("potencia_nominal_kw", { ascending: false }),
-      supabase.from("otimizadores_catalogo").select("id, fabricante, modelo, potencia_wp, eficiencia_percent, compatibilidade").eq("ativo", true).order("fabricante"),
-      supabase.from("baterias").select("id, fabricante, modelo, energia_kwh, tensao_nominal_v, tipo_bateria").eq("ativo", true).order("fabricante"),
-    ]).then(([modRes, invRes, otimRes, batRes]) => {
-      setModulos(modRes.data || []);
-      setInversores(invRes.data || []);
-      setOtimizadores(otimRes.data || []);
-      setBaterias(batRes.data || []);
+      fetchAllModulos(),
+      fetchAllInversores(),
+      supabase.from("otimizadores_catalogo").select("id, fabricante, modelo, potencia_wp, eficiencia_percent, compatibilidade").eq("ativo", true).order("fabricante").then(r => r.data || []),
+      supabase.from("baterias").select("id, fabricante, modelo, energia_kwh, tensao_nominal_v, tipo_bateria").eq("ativo", true).order("fabricante").then(r => r.data || []),
+    ]).then(([modData, invData, otimData, batData]) => {
+      setModulos(modData);
+      setInversores(invData);
+      setOtimizadores(otimData as any[]);
+      setBaterias(batData as any[]);
       setLoadingEquip(false);
     });
   }, []);
