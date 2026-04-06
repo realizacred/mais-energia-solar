@@ -580,9 +580,7 @@ Deno.serve(async (req) => {
             return sum + (preco * quantidade);
           }, 0);
       }
-      if (instCusto != null && instCusto > 0) {
-        variables["instalacao_preco_total"] = formatBRL(instCusto);
-      }
+      variables["instalacao_preco_total"] = formatBRL(instCusto ?? 0);
     }
 
     // FIX 1d: modulo_potencia — always suffix with Wp

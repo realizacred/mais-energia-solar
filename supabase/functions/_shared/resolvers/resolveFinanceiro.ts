@@ -228,6 +228,18 @@ export function resolveFinanceiro(
   ];
   for (const k of costFields) set(k, snap[k]);
 
+  // ── Derive instalacao_preco_total from venda.custo_servicos if not set ──
+  if (!out["instalacao_preco_total"]) {
+    const custoServicos = num(venda.custo_servicos) ?? num(fin.custo_servicos_inclusos) ?? num(fin.custo_servicos) ?? 0;
+    out["instalacao_preco_total"] = fmtVal(custoServicos);
+  }
+
+  // ── Ensure equipamentos_custo_total defaults to 0 ──
+  if (!out["equipamentos_custo_total"]) {
+    const custoKit = num(venda.custo_kit) ?? num(fin.custo_kit) ?? num(fin.custo_equipamentos) ?? 0;
+    out["equipamentos_custo_total"] = fmtVal(custoKit);
+  }
+
   // ── Indexed inverter/battery/transformer costs ──
   for (let i = 1; i <= 5; i++) {
     for (const prefix of ["inversor_custo_un_", "inversor_preco_un_", "inversor_preco_total_",
