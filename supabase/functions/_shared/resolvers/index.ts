@@ -87,70 +87,15 @@ function addCanonicalAliases(vars: Record<string, string>): void {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Custom variable formula evaluator (lightweight, no external deps)
-// Supports: +, -, *, /, ^, (), IF, SWITCH, MAX, MIN
+// Custom variable processing — uses unified expression engine
+// that supports string comparisons, IF/SWITCH with text, etc.
 // ═══════════════════════════════════════════════════════════════
-
-function evaluateFormula(
-  expression: string,
-  vars: Record<string, string>,
-): { value: number | null; missing: string[] } {
-  const missing: string[] = [];
-
-  // Replace [var_name] with resolved values
-  let expr = expression.replace(/\[([^\]]+)\]/g, (_, key: string) => {
-    const k = key.trim();
-    const val = vars[k];
-    if (val === undefined || val === null || val === "") {
-      missing.push(k);
-      return "NaN";
-    }
-    // Parse pt-BR formatted number: "6.445,86" → 6445.86
-    const cleaned = val.replace(/\./g, "").replace(",", ".");
-    const n = parseFloat(cleaned);
-    return isNaN(n) ? "NaN" : String(n);
-  });
-
-  if (missing.length > 0) return { value: null, missing };
-
-  // Handle IF(cond;then;else) or IF(cond,then,else)
-  expr = expr.replace(/IF\s*\(([^)]+)\)/gi, (_, args: string) => {
-    const parts = args.split(/[;,]/).map(p => p.trim());
-    if (parts.length < 3) return "NaN";
-    try {
-      const cond = Function(`"use strict"; return (${parts[0]});`)();
-      return cond ? parts[1] : parts[2];
-    } catch { return "NaN"; }
-  });
-
-  // Handle MAX/MIN
-  expr = expr.replace(/MAX\s*\(([^)]+)\)/gi, (_, args: string) => {
-    const nums = args.split(/[;,]/).map(p => parseFloat(p.trim())).filter(n => !isNaN(n));
-    return nums.length > 0 ? String(Math.max(...nums)) : "NaN";
-  });
-  expr = expr.replace(/MIN\s*\(([^)]+)\)/gi, (_, args: string) => {
-    const nums = args.split(/[;,]/).map(p => parseFloat(p.trim())).filter(n => !isNaN(n));
-    return nums.length > 0 ? String(Math.min(...nums)) : "NaN";
-  });
-
-  // Replace ^ with ** for exponentiation
-  expr = expr.replace(/\^/g, "**");
-
-  try {
-    const result = Function(`"use strict"; return (${expr});`)();
-    if (typeof result === "number" && isFinite(result)) {
-      return { value: result, missing: [] };
-    }
-    return { value: null, missing: [] };
-  } catch {
-    return { value: null, missing: [] };
-  }
-}
 
 /**
  * Process variaveis_custom array from snapshot.
  * Re-evaluates formulas using already-resolved variables.
  * Uses topological sort to handle inter-dependencies.
+ * Now uses the full expression engine that supports string IF/SWITCH.
  */
 function processCustomVariables(
   snapshot: AnyObj,
@@ -169,6 +114,28 @@ function processCustomVariables(
     if (!nome) continue;
     varMap.set(nome, cv);
   }
+
+  // Build expression context: convert all vars to ExpressionContext values
+  // The full engine handles string/number/boolean natively
+  const buildContext = (): ExpressionContext => {
+    const ctx: ExpressionContext = {};
+    for (const [k, v] of Object.entries(vars)) {
+      if (v === undefined || v === null || v === "") {
+        ctx[k] = null;
+        continue;
+      }
+      // Try to parse as number (pt-BR format)
+      const cleaned = v.replace(/\./g, "").replace(",", ".");
+      const n = parseFloat(cleaned);
+      if (!isNaN(n) && /^[\d.,\-]+$/.test(v.trim())) {
+        ctx[k] = n;
+      } else {
+        // Keep as string — critical for IF([pos_seguro]="Sem Seguro") comparisons
+        ctx[k] = v;
+      }
+    }
+    return ctx;
+  };
 
   // Topological sort: resolve vars with no custom dependencies first
   const resolved = new Set<string>();
@@ -193,15 +160,25 @@ function processCustomVariables(
         continue;
       }
 
-      // Try to evaluate formula
-      const { value, missing } = evaluateFormula(expressao, vars);
-
       // Check if missing deps are custom vars not yet resolved
-      const hasPendingCustomDeps = missing.some(m => varMap.has(m) && !resolved.has(m));
+      const depKeys = extractVariables(expressao);
+      const hasPendingCustomDeps = depKeys.some(m => varMap.has(m) && !resolved.has(m));
       if (hasPendingCustomDeps) continue; // Wait for next pass
 
-      if (value !== null) {
-        vars[nome] = fmtVal(value);
+      // Evaluate using the full expression engine
+      const ctx = buildContext();
+      const { value, missingKeys } = evalFormulaFull(expressao, ctx);
+
+      if (value !== null && value !== undefined) {
+        if (typeof value === "number" && isFinite(value)) {
+          vars[nome] = fmtVal(value);
+        } else if (typeof value === "string") {
+          vars[nome] = value;
+        } else if (typeof value === "boolean") {
+          vars[nome] = value ? "1" : "0";
+        } else {
+          vars[nome] = String(value);
+        }
         resolved.add(nome);
         progress = true;
       } else {
