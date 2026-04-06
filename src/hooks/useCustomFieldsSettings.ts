@@ -97,7 +97,10 @@ export function useSaveCustomField() {
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK_FIELDS }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QK_FIELDS });
+      qc.invalidateQueries({ queryKey: ["deal-custom-fields-active"] });
+    },
   });
 }
 

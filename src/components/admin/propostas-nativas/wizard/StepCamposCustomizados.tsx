@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -150,6 +151,15 @@ function CustomFieldInput({ field, value, onChange }: {
         <div className="flex items-center justify-between gap-2 py-1">
           <Label className="text-xs">{label}</Label>
           <Switch checked={!!value} onCheckedChange={onChange} />
+        </div>
+      );
+
+    case "currency":
+    case "monetary":
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{label}</Label>
+          <CurrencyInput value={value || 0} onChange={onChange} className="h-9 text-xs" />
         </div>
       );
 
