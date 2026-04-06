@@ -464,7 +464,7 @@ Deno.serve(async (req) => {
         .from("proposta_versoes")
         .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
         .eq("proposta_id", deal_id)
-        .eq("is_official", true)
+        .eq("status", "generated")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -483,7 +483,7 @@ Deno.serve(async (req) => {
                   .from("proposta_versoes")
                   .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
                   .eq("proposta_id", pRes.data.id)
-                  .eq("is_official", true)
+                  .eq("status", "generated")
                   .order("created_at", { ascending: false })
                   .limit(1)
                   .maybeSingle();
