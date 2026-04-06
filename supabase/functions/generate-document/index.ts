@@ -474,6 +474,8 @@ Deno.serve(async (req) => {
               .from("propostas_nativas")
               .select("id")
               .eq("projeto_id", deal_id)
+              .in("status", ["gerada", "aceita", "enviada", "vista"])
+              .order("is_principal", { ascending: false })
               .order("created_at", { ascending: false })
               .limit(1)
               .maybeSingle()
