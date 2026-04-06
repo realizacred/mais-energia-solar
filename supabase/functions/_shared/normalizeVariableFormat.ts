@@ -18,8 +18,18 @@ export function defragmentXml(xml: string): string {
     // Skip paragraphs with fields or graphics that shouldn't be touched
     if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) return paraXml;
     if (paraXml.includes("<w:drawing") || paraXml.includes("<mc:AlternateContent")) return paraXml;
-    // Keep tabs and explicit line breaks untouched
-    if (paraXml.includes("<w:tab") || paraXml.includes("<w:br")) return paraXml;
+
+    // ── Step 0: Strip intermediate non-text XML elements that break run adjacency ──
+    // Word inserts proofErr, bookmarkStart/End, rPrChange etc. BETWEEN runs,
+    // fragmenting placeholders. Remove them before extracting text runs.
+    let cleanedPara = paraXml;
+    // Remove proofing error markers (spell check boundaries)
+    cleanedPara = cleanedPara.replace(/<w:proofErr[^/]*\/>/g, "");
+    // Remove bookmark start/end markers (they don't contain text)
+    cleanedPara = cleanedPara.replace(/<w:bookmarkStart[^/]*\/>/g, "");
+    cleanedPara = cleanedPara.replace(/<w:bookmarkEnd[^/]*\/>/g, "");
+    // Remove revision property changes inside runs that split text
+    // (rPrChange tracks formatting history — safe to strip for text extraction)
 
     // Extract all text runs
     const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
@@ -29,16 +39,21 @@ export function defragmentXml(xml: string): string {
       end: number;
       text: string;
       hasText: boolean;
+      hasTab: boolean;
+      hasBr: boolean;
     }
 
     const allRuns: RunInfo[] = [];
     let m: RegExpExecArray | null;
-    while ((m = runPattern.exec(paraXml)) !== null) {
+    while ((m = runPattern.exec(cleanedPara)) !== null) {
       const full = m[0];
       // Skip graphic runs
       if (full.includes("<w:drawing") || full.includes("<mc:AlternateContent")) {
         continue;
       }
+
+      const hasTab = full.includes("<w:tab");
+      const hasBr = full.includes("<w:br");
 
       const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
       let tMatch: RegExpExecArray | null;
@@ -53,10 +68,13 @@ export function defragmentXml(xml: string): string {
         end: m.index + full.length,
         text: parts.join(""),
         hasText: parts.length > 0,
+        hasTab,
+        hasBr,
       });
     }
 
-    const textRuns = allRuns.filter((r) => r.hasText);
+    // Filter to text-only runs (skip tab/br runs — they stay untouched)
+    const textRuns = allRuns.filter((r) => r.hasText && !r.hasTab && !r.hasBr);
     if (textRuns.length < 2) return paraXml;
 
     // Concatenate all text to check for complete placeholders
@@ -84,11 +102,40 @@ export function defragmentXml(xml: string): string {
     if (stillFragmented.length === 0) return paraXml;
 
     // Consolidate: put all text into first run, empty all others
+    // IMPORTANT: Apply changes to the ORIGINAL paraXml (not cleanedPara)
+    // so we preserve proofErr/bookmark in output — we only cleaned for analysis
     let result = paraXml;
+
+    // Re-extract runs from ORIGINAL paraXml for offset-correct replacement
+    const origRunPattern = /<w:r[\s>][^]*?<\/w:r>/g;
+    const origRuns: { full: string; start: number; end: number; text: string; hasText: boolean; hasTab: boolean; hasBr: boolean }[] = [];
+    while ((m = origRunPattern.exec(paraXml)) !== null) {
+      const full = m[0];
+      if (full.includes("<w:drawing") || full.includes("<mc:AlternateContent")) continue;
+      const hasTab = full.includes("<w:tab");
+      const hasBr = full.includes("<w:br");
+      const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+      let tMatch: RegExpExecArray | null;
+      const parts: string[] = [];
+      while ((tMatch = tPattern.exec(full)) !== null) parts.push(tMatch[1]);
+      origRuns.push({
+        full,
+        start: m.index,
+        end: m.index + full.length,
+        text: parts.join(""),
+        hasText: parts.length > 0,
+        hasTab,
+        hasBr,
+      });
+    }
+
+    const origTextRuns = origRuns.filter((r) => r.hasText && !r.hasTab && !r.hasBr);
+    if (origTextRuns.length < 2) return paraXml;
+
     let offset = 0;
 
-    for (let i = 0; i < textRuns.length; i++) {
-      const run = textRuns[i];
+    for (let i = 0; i < origTextRuns.length; i++) {
+      const run = origTextRuns[i];
       let newRunXml: string;
 
       if (i === 0) {

@@ -354,9 +354,12 @@ export function resolveFinanceiro(
   }
 
   // ── Legados: capo_m = garantia módulos, capo_seguro = seguro ──
-  // capo_m is resolved in resolveSistemaSolar as modulo_garantia; keep passthrough fallback only
-  set("capo_m", snap.capo_m ?? snap.modulo_garantia ?? snap.capital_melhoria ?? fin.capo_m ?? "");
-  set("capo_seguro", snap.capo_seguro ?? snap.capital_seguro ?? fin.capo_seguro ?? "");
+  // capo_m: priority = modulo_garantia from resolveSistemaSolar > snapshot fallbacks
+  const cfv = safeObj(snap.customFieldValues ?? snap.custom_field_values);
+  set("capo_m", out["modulo_garantia"] ?? snap.capo_m ?? snap.modulo_garantia ?? snap.capital_melhoria ?? fin.capo_m ?? "");
+  // capo_seguro: alias from pos_seguro custom field + legacy fallbacks
+  set("capo_seguro", cfv.pos_seguro ?? snap.capo_seguro ?? snap.capital_seguro ?? fin.capo_seguro ?? "");
+  set("pos_seguro", cfv.pos_seguro ?? snap.pos_seguro ?? "");
   set("vc_calculo_seguro", snap.vc_calculo_seguro ?? fin.vc_calculo_seguro ?? "");
 
   // ── Gasto atual mensal (QW11 — derive from consumo × tarifa if not in snapshot) ──

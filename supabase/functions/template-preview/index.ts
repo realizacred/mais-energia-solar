@@ -6,6 +6,80 @@ import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { injectChartsIntoDocx } from "../_shared/chartInjector.ts";
 
 
+// ═══════════════════════════════════════════════════════════════
+// Inline formula evaluator for IF()/SWITCH() in DOCX text
+// Runs AFTER variable substitution so values are already resolved
+// ═══════════════════════════════════════════════════════════════
+
+function evaluateInlineFormulasInText(text: string): string {
+  const ifPattern = /IF\s*\(([^)]+)\)/gi;
+
+  return text.replace(ifPattern, (fullMatch, argsStr: string) => {
+    const parts = splitInlineFormulaParts(argsStr);
+    if (parts.length < 3) return fullMatch;
+
+    const condition = parts[0].trim();
+    const thenVal = unquoteInline(parts[1].trim());
+    const elseVal = unquoteInline(parts[2].trim());
+
+    const neqMatch = condition.match(/^(.+?)<>(.+)$/);
+    const eqMatch = condition.match(/^(.+?)=(.+)$/);
+
+    if (neqMatch) {
+      const left = unquoteInline(neqMatch[1].trim());
+      const right = unquoteInline(neqMatch[2].trim());
+      return left !== right ? thenVal : elseVal;
+    }
+    if (eqMatch) {
+      const left = unquoteInline(eqMatch[1].trim());
+      const right = unquoteInline(eqMatch[2].trim());
+      return left === right ? thenVal : elseVal;
+    }
+
+    const condClean = unquoteInline(condition);
+    if (condClean && condClean !== "0" && condClean.toLowerCase() !== "false") {
+      return thenVal;
+    }
+    return elseVal;
+  });
+}
+
+function splitInlineFormulaParts(s: string): string[] {
+  const parts: string[] = [];
+  let current = "";
+  let inQuote = false;
+  let quoteChar = "";
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inQuote) {
+      if (ch === quoteChar) inQuote = false;
+      current += ch;
+    } else if (ch === '"' || ch === "'") {
+      inQuote = true;
+      quoteChar = ch;
+      current += ch;
+    } else if (ch === ";" || ch === ",") {
+      parts.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  parts.push(current);
+  return parts;
+}
+
+function unquoteInline(s: string): string {
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    return s.slice(1, -1);
+  }
+  if (s.startsWith("&quot;") && s.endsWith("&quot;")) {
+    return s.slice(6, -6);
+  }
+  return s;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -230,6 +304,9 @@ async function processDocxTemplate(
         if (!emptyVars.includes(key)) emptyVars.push(key);
       }
     }
+
+    // ── STEP 2c: Evaluate inline IF()/SWITCH() formulas after substitution ──
+    content = evaluateInlineFormulasInText(content);
 
     // ── STEP 3: Final sweep — remaining placeholders are MISSING (not in vars) ──
     // KEEP them exactly as-is ([varName] or {{varName}}) to preserve layout,
