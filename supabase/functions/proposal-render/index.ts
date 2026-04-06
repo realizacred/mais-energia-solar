@@ -119,6 +119,8 @@ Deno.serve(async (req) => {
       tenantNome: tenant.nome ?? "Empresa",
       logoUrl: brand?.logo_url ?? null,
       primaryColor: brand?.color_primary ?? "220 70% 50%",
+      successColor: "142 71% 45%",
+      destructiveColor: "0 84% 60%",
       fontHeading: brand?.font_heading ?? "Inter",
       fontBody: brand?.font_body ?? "Inter",
       clienteNome,

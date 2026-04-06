@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── 8. WHATSAPP (best-effort) ───────────────────────────
+    // ── 8. WHATSAPP (best-effort, RB-26: enqueue_wa_outbox_item) ──
     let whatsappSent = false;
     if (canalFinal === "whatsapp") {
       const targetLeadId = lead_id || proposta.lead_id;
@@ -266,32 +266,54 @@ Deno.serve(async (req) => {
             .eq("id", targetLeadId).eq("tenant_id", tenantId).single();
 
           if (lead?.telefone) {
-            // Use rendered template message or fallback to hardcoded
-            const mensagem = mensagemFinal || (
-              `Olá ${lead.nome || ""}! 🌞\n\n` +
-              `Sua proposta solar está pronta!\n\n` +
-              `📄 *${proposta.titulo || proposta.codigo || "Proposta Solar"}*\n` +
-              `⚡ ${versao.potencia_kwp} kWp | 💰 Economia: R$ ${versao.economia_mensal?.toFixed(2) ?? "—"}/mês\n\n` +
-              `🔗 Veja e aceite aqui:\n${publicUrl}\n\n` +
-              `${tenant?.nome || "Empresa"} — Energia Solar ☀️`
-            );
+            // Resolve WA instance for tenant
+            const { data: waInstance } = await adminClient
+              .from("wa_instances")
+              .select("id")
+              .eq("tenant_id", tenantId)
+              .eq("status", "connected")
+              .limit(1)
+              .maybeSingle();
 
-            const { error: waErr } = await adminClient.functions.invoke("send-whatsapp-message", {
-              body: { lead_id: targetLeadId, message: mensagem, tenant_id: tenantId },
-            });
+            if (waInstance) {
+              const mensagem = mensagemFinal || (
+                `Olá ${lead.nome || ""}! 🌞\n\n` +
+                `Sua proposta solar está pronta!\n\n` +
+                `📄 *${proposta.titulo || proposta.codigo || "Proposta Solar"}*\n` +
+                `⚡ ${versao.potencia_kwp} kWp | 💰 Economia: R$ ${versao.economia_mensal?.toFixed(2) ?? "—"}/mês\n\n` +
+                `🔗 Veja e aceite aqui:\n${publicUrl}\n\n` +
+                `${tenant?.nome || "Empresa"} — Energia Solar ☀️`
+              );
 
-            whatsappSent = !waErr;
+              const cleanPhone = lead.telefone.replace(/\D/g, "");
+              const remoteJid = `${cleanPhone}@s.whatsapp.net`;
+              const idempKey = `proposal_send:${tenantId}:${proposta_id}:${aceiteToken.id}`;
 
-            if (whatsappSent) {
-              await adminClient.from("proposta_envios").update({
-                destinatario: lead.telefone,
-                detalhes: {
-                  token: aceiteToken.token,
-                  public_url: publicUrl,
-                  destinatario_nome: lead.nome,
-                  destinatario_telefone: lead.telefone,
-                },
-              }).eq("token_id", aceiteToken.id).eq("tenant_id", tenantId);
+              const { error: enqueueErr } = await adminClient.rpc("enqueue_wa_outbox_item", {
+                p_tenant_id: tenantId,
+                p_instance_id: waInstance.id,
+                p_remote_jid: remoteJid,
+                p_message_type: "text",
+                p_content: mensagem,
+                p_idempotency_key: idempKey,
+              });
+
+              whatsappSent = !enqueueErr;
+              if (enqueueErr) {
+                console.error("[proposal-send] WA enqueue failed:", enqueueErr.message);
+              }
+
+              if (whatsappSent) {
+                await adminClient.from("proposta_envios").update({
+                  destinatario: lead.telefone,
+                  detalhes: {
+                    token: aceiteToken.token,
+                    public_url: publicUrl,
+                    destinatario_nome: lead.nome,
+                    destinatario_telefone: lead.telefone,
+                  },
+                }).eq("token_id", aceiteToken.id).eq("tenant_id", tenantId);
+              }
             }
           }
         } catch (e) {
