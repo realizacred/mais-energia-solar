@@ -34,10 +34,126 @@ const corsHeaders = {
 // ── Helpers ────────────────────────────────────────
 
 /** Replace {{variable}} placeholders in text */
+function escapeXml(str: string): string {
+  return str
+    .replace(/\r\n/g, " ")
+    .replace(/\r/g, " ")
+    .replace(/\n/g, " ")
+    .replace(/\t/g, " ")
+    .replace(/ {2,}/g, " ")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 function replaceVars(text: string, ctx: Record<string, string>): string {
   return text.replace(/\{\{([^}]+)\}\}/g, (_match, key: string) => {
     const k = key.trim();
-    return ctx[k] ?? ctx[k.replace(/\./g, "_")] ?? "";
+    const value = ctx[k] ?? ctx[k.replace(/\./g, "_")] ?? ctx[k.replace(/_/g, ".")] ?? "";
+    return escapeXml(String(value));
+  });
+}
+
+function cleanupRemainingFragments(xml: string): string {
+  const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
+
+  return xml.replace(paraPattern, (paraXml) => {
+    if (!paraXml.includes("[") && !paraXml.includes("{{")) return paraXml;
+    if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) return paraXml;
+    if (paraXml.includes("<w:drawing") || paraXml.includes("<mc:AlternateContent")) return paraXml;
+
+    const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
+    interface RunInfo {
+      full: string;
+      start: number;
+      end: number;
+      text: string;
+      hasText: boolean;
+      isGraphic: boolean;
+    }
+
+    const allRuns: RunInfo[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = runPattern.exec(paraXml)) !== null) {
+      const full = m[0];
+      const isGraphic = full.includes("<w:drawing") || full.includes("<mc:AlternateContent");
+
+      const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
+      let tMatch: RegExpExecArray | null;
+      const parts: string[] = [];
+      while ((tMatch = tPattern.exec(full)) !== null) {
+        parts.push(tMatch[1]);
+      }
+
+      allRuns.push({
+        full,
+        start: m.index,
+        end: m.index + full.length,
+        text: parts.join(""),
+        hasText: parts.length > 0,
+        isGraphic,
+      });
+    }
+
+    const textRuns = allRuns.filter((r) => !r.isGraphic && r.hasText);
+    if (textRuns.length < 2) return paraXml;
+
+    const fullText = textRuns.map((r) => r.text).join("");
+    const completePh = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
+    const mustachePh = /\{\{[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\}\}/g;
+    const allComplete: string[] = [];
+    let pm: RegExpExecArray | null;
+
+    while ((pm = completePh.exec(fullText)) !== null) allComplete.push(pm[0]);
+    while ((pm = mustachePh.exec(fullText)) !== null) allComplete.push(pm[0]);
+    if (allComplete.length === 0) return paraXml;
+
+    const intactInRuns = new Set<string>();
+    for (const run of textRuns) {
+      const rPh = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
+      const rMu = /\{\{[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\}\}/g;
+      while ((pm = rPh.exec(run.text)) !== null) intactInRuns.add(pm[0]);
+      while ((pm = rMu.exec(run.text)) !== null) intactInRuns.add(pm[0]);
+    }
+
+    const stillFragmented = allComplete.filter((ph) => !intactInRuns.has(ph));
+    if (stillFragmented.length === 0) return paraXml;
+
+    let result = paraXml;
+    let offset = 0;
+
+    for (let i = 0; i < textRuns.length; i++) {
+      const run = textRuns[i];
+      let newRunXml: string;
+
+      if (i === 0) {
+        let firstReplaced = false;
+        newRunXml = run.full.replace(
+          /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,
+          () => {
+            if (!firstReplaced) {
+              firstReplaced = true;
+              return `<w:t xml:space="preserve">${fullText}</w:t>`;
+            }
+            return "<w:t></w:t>";
+          },
+        );
+      } else {
+        newRunXml = run.full.replace(
+          /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,
+          "<w:t></w:t>",
+        );
+      }
+
+      const adjStart = run.start + offset;
+      const adjEnd = run.end + offset;
+      result = result.substring(0, adjStart) + newRunXml + result.substring(adjEnd);
+      offset += newRunXml.length - run.full.length;
+    }
+
+    return result;
   });
 }
 
@@ -394,10 +510,14 @@ async function processDocx(
       // Step 1: Defragment XML runs to consolidate split text
       xmlStr = defragmentXml(xmlStr);
 
-      // Step 2: Normalize [ variable ] / [variable] → {{variable}}
+      // Step 2: Aggressive cleanup for placeholders still fragmented across runs
+      // inside paragraphs, including table cells (w:tc > w:p > w:r > w:t).
+      xmlStr = cleanupRemainingFragments(xmlStr);
+
+      // Step 3: Normalize [ variable ] / [variable] → {{variable}}
       xmlStr = normalizeVariableFormat(xmlStr);
 
-      // Step 3: Clean up any remaining XML tags trapped inside {{ and }}
+      // Step 4: Clean up any remaining XML tags trapped inside {{ and }}
       xmlStr = xmlStr.replace(
         /\{\{((?:[^}]|(?:\}[^}]))*?)\}\}/g,
         (fullMatch) => {
@@ -693,6 +813,10 @@ Deno.serve(async (req) => {
         if (!variables[variableKey] && clienteData?.[clienteKey] != null) {
           variables[variableKey] = String(clienteData[clienteKey]);
         }
+      }
+
+      if (!variables["cidade"] && clienteData?.cidade != null) {
+        variables["cidade"] = String(clienteData.cidade);
       }
     }
 
