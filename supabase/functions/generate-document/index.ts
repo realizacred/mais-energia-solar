@@ -285,6 +285,10 @@ async function processDocx(
       );
 
       xmlStr = replaceVars(xmlStr, variables);
+
+      // Step 5: Evaluate inline IF()/SWITCH() formulas after variable substitution
+      xmlStr = evaluateInlineFormulas(xmlStr);
+
       processed[path] = strToU8(xmlStr);
     } else {
       processed[path] = data;
