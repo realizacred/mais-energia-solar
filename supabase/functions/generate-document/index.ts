@@ -755,6 +755,7 @@ Deno.serve(async (req) => {
       status: "generated",
       docx_filled_path: docxPath,
       pdf_filled_path: pdfPath,
+      pdf_path: pdfPath,
       input_payload: variables,
       updated_by: userId,
     };
