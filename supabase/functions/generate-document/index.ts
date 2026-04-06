@@ -289,6 +289,10 @@ async function processDocx(
       // Step 5: Evaluate inline IF()/SWITCH() formulas after variable substitution
       xmlStr = evaluateInlineFormulas(xmlStr);
 
+      // Step 6: Final cleanup — remove any residual placeholders so they appear blank in PDF
+      xmlStr = xmlStr.replace(/\{\{[^}]+\}\}/g, "");
+      xmlStr = xmlStr.replace(/\[[a-zA-Z_][a-zA-Z0-9_.]*\]/g, "");
+
       processed[path] = strToU8(xmlStr);
     } else {
       processed[path] = data;
