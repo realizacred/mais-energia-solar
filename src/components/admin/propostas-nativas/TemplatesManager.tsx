@@ -278,8 +278,10 @@ export function TemplatesManager() {
 
       // RB-25: delete old file fire-and-forget — never block upload
       if (oldFileUrl) {
-        const oldPath = extractStoragePath(oldFileUrl, "proposta-templates");
-        if (oldPath) {
+        const marker = `/storage/v1/object/public/proposta-templates/`;
+        const idx = oldFileUrl.indexOf(marker);
+        if (idx !== -1) {
+          const oldPath = decodeURIComponent(oldFileUrl.substring(idx + marker.length));
           supabase.storage.from("proposta-templates").remove([oldPath]).catch(() => {});
         }
       }
@@ -352,8 +354,9 @@ export function TemplatesManager() {
   };
 
   const handleDelete = async (id: string) => {
+    const tpl = templates.find(t => t.id === id);
     try {
-      await deletarMutation.mutateAsync(id);
+      await deletarMutation.mutateAsync({ id, file_url: tpl?.file_url });
       toast({ title: "Template excluído com sucesso" });
     } catch (e: any) {
       console.error("[TemplatesManager] Erro ao excluir template:", e);
