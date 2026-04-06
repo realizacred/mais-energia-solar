@@ -544,25 +544,11 @@ Deno.serve(async (req) => {
       const custoKit = parseLocaleNumber(venda.custo_kit) ?? 0;
       const valorTotal = parseLocaleNumber((propostaRes.data as any)?.valor_total) ?? parseLocaleNumber(venda.valor_total) ?? 0;
       if (!variables["equipamentos_custo_total"]) {
-        const equipamentosCustoTotal = formatBRL(custoKit);
-        console.error(
-          "[generate-document] DIAG assign equipamentos_custo_total=",
-          JSON.stringify(equipamentosCustoTotal),
-          "source=custo_kit",
-          JSON.stringify(custoKit),
-        );
-        variables["equipamentos_custo_total"] = equipamentosCustoTotal;
+        variables["equipamentos_custo_total"] = formatBRL(custoKit);
       }
       if (!variables["instalacao_preco_total"]) {
         const instPreco = valorTotal - custoKit;
-        const instalacaoPrecoTotal = formatBRL(instPreco >= 0 ? instPreco : 0);
-        console.error(
-          "[generate-document] DIAG assign instalacao_preco_total=",
-          JSON.stringify(instalacaoPrecoTotal),
-          "source=valor_total-custo_kit",
-          JSON.stringify({ valorTotal, custoKit, instPreco }),
-        );
-        variables["instalacao_preco_total"] = instalacaoPrecoTotal;
+        variables["instalacao_preco_total"] = formatBRL(instPreco >= 0 ? instPreco : 0);
       }
     }
 
