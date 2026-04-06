@@ -91,6 +91,7 @@ const App = () => (
         <BrowserRouter>
           <PWAReturnRedirect />
           <PWAAutoInstallPrompt />
+          <RealtimeHeartbeatProvider />
           <WaNotificationProvider />
           <PushActivationBanner />
           <Suspense fallback={<LoadingSpinner />}>
