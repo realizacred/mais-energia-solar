@@ -943,10 +943,22 @@ export function CustomFieldsSettings() {
                   </div>
                 </div>
 
-                {/* Type (readonly) */}
+                {/* Type — editable via Select */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Tipo</Label>
-                  <Input value={FIELD_TYPE_LABELS[normalizeFieldType(fieldForm.field_type)]} readOnly className="bg-muted/30" />
+                  <Select
+                    value={normalizeFieldType(fieldForm.field_type)}
+                    onValueChange={v => setFieldForm(p => ({ ...p, field_type: v }))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(FIELD_TYPE_LABELS).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Options for select/multi_select */}
