@@ -367,7 +367,7 @@ async function downloadAndStorePDF(
       .from("datasheets")
       .getPublicUrl(storagePath);
 
-    console.log(`[enrich-equipment] PDF uploaded: ${storagePath} (${pdfBuffer.byteLength} bytes)`);
+    // console.log(`[enrich-equipment] PDF uploaded: ${storagePath} (${pdfBuffer.byteLength} bytes)`);
     return { publicUrl: publicUrlData?.publicUrl || null, storagePath };
   } catch (err: any) {
     console.warn(`[enrich-equipment] PDF download error: ${err.message}`);
@@ -424,23 +424,23 @@ serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
 
-    console.log(`[enrich-equipment] Buscando specs para ${equipment.fabricante} ${equipment.modelo} (${equipment_type}) — dual AI`);
+    // console.log(`[enrich-equipment] Buscando specs para ${equipment.fabricante} ${equipment.modelo} (${equipment_type}) — dual AI`);
 
     // Primary: Gemini Flash (fast, cheap)
     const primary = await callAIProvider("gemini", "google/gemini-2.5-flash", system, user, apiKey);
     const primaryFilled = countFilledFields(primary.parsed);
 
-    console.log(`[enrich-equipment] Primary (gemini-2.5-flash): ${primaryFilled} campos, error=${primary.error || "none"}`);
+    // console.log(`[enrich-equipment] Primary (gemini-2.5-flash): ${primaryFilled} campos, error=${primary.error || "none"}`);
 
     let secondary: AICallResult | null = null;
     let usedDual = false;
 
     // If primary failed or returned < 3 fields, try secondary
     if (primary.error || primaryFilled < 3) {
-      console.log(`[enrich-equipment] Primary insufficient (${primaryFilled} campos), trying secondary (gpt-5-mini)...`);
+      // console.log(`[enrich-equipment] Primary insufficient (${primaryFilled} campos), trying secondary (gpt-5-mini)...`);
       secondary = await callAIProvider("openai", "openai/gpt-5-mini", system, user, apiKey);
       const secondaryFilled = countFilledFields(secondary.parsed);
-      console.log(`[enrich-equipment] Secondary (gpt-5-mini): ${secondaryFilled} campos, error=${secondary.error || "none"}`);
+      // console.log(`[enrich-equipment] Secondary (gpt-5-mini): ${secondaryFilled} campos, error=${secondary.error || "none"}`);
       usedDual = true;
     }
 
@@ -451,11 +451,11 @@ serve(async (req) => {
       throw new Error("Nenhum provider retornou dados válidos");
     }
 
-    console.log(`[enrich-equipment] Merged RAW:`, JSON.stringify(rawMerged));
+    // console.log(`[enrich-equipment] Merged RAW:`, JSON.stringify(rawMerged));
 
     // 6. Validate
     const validated = validateSpecs(rawMerged, equipment_type);
-    console.log(`[enrich-equipment] VALIDADO:`, JSON.stringify(validated));
+    // console.log(`[enrich-equipment] VALIDADO:`, JSON.stringify(validated));
 
     // 7. Count filled fields
     const fieldsFilled = countFilledFields(validated);
@@ -495,7 +495,7 @@ serve(async (req) => {
     const datasheetUrl = validated.datasheet_url as string | null;
 
     if (datasheetUrl && typeof datasheetUrl === "string" && datasheetUrl.startsWith("http")) {
-      console.log(`[enrich-equipment] Validating datasheet URL: ${datasheetUrl}`);
+      // console.log(`[enrich-equipment] Validating datasheet URL: ${datasheetUrl}`);
       const headCheck = await validateDatasheetUrl(datasheetUrl);
 
       if (!headCheck.valid) {
@@ -506,7 +506,7 @@ serve(async (req) => {
           .update({ datasheet_source_url: datasheetUrl })
           .eq("id", equipment_id);
       } else {
-        console.log(`[enrich-equipment] HEAD OK, downloading PDF...`);
+        // console.log(`[enrich-equipment] HEAD OK, downloading PDF...`);
         const { publicUrl, storagePath } = await downloadAndStorePDF(
           datasheetUrl, equipment_type, equipment.fabricante, equipment.modelo, supabase
         );
@@ -581,7 +581,7 @@ serve(async (req) => {
       ? (countFilledFields(primary.parsed) >= countFilledFields(secondary?.parsed || null) ? primary.model : secondary?.model || primary.model)
       : primary.model;
 
-    console.log(`[enrich-equipment] Sucesso: ${fieldsFilled} campos preenchidos para ${equipment.fabricante} ${equipment.modelo}, dual=${usedDual}, winner=${winnerProvider}, datasheet_downloaded=${datasheet_downloaded}`);
+    // console.log(`[enrich-equipment] Sucesso: ${fieldsFilled} campos preenchidos para ${equipment.fabricante} ${equipment.modelo}, dual=${usedDual}, winner=${winnerProvider}, datasheet_downloaded=${datasheet_downloaded}`);
 
     return new Response(
       JSON.stringify({

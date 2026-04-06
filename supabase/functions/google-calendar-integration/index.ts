@@ -189,7 +189,7 @@ async function safeDecryptToken(
         .from("integration_credentials")
         .update({ [migrationCtx.field]: encrypted })
         .eq("id", migrationCtx.credId);
-      console.log("[CRYPTO] Auto-migrated legacy token to AES-GCM");
+      // console.log("[CRYPTO] Auto-migrated legacy token to AES-GCM");
     } catch (migErr) {
       console.error("[CRYPTO] Auto-migration failed (non-fatal)");
     }

@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
       externalReference: parcela_id,
     };
 
-    console.log("[asaas-create-charge] Creating charge:", JSON.stringify(chargePayload));
+    // console.log("[asaas-create-charge] Creating charge:", JSON.stringify(chargePayload));
 
     const chargeRes = await fetch(`${baseUrl}/payments`, {
       method: "POST",
@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: errMsg }, 400);
     }
 
-    console.log("[asaas-create-charge] Charge created:", chargeData.id);
+    // console.log("[asaas-create-charge] Charge created:", chargeData.id);
 
     // ── Fetch Pix QR Code ──
     let pixPayload: string | null = null;

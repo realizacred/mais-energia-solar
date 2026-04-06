@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
 
     const settings = (vendedor.settings as Record<string, unknown>) || {};
     if (settings.wa_auto_message_enabled === false) {
-      console.log(`[send-wa-welcome] Auto-message disabled for consultor=${vendedor.id}`);
+      // console.log(`[send-wa-welcome] Auto-message disabled for consultor=${vendedor.id}`);
       await supabaseAdmin
         .from("leads")
         .update({ wa_welcome_status: "skipped" } as any)
@@ -160,10 +160,10 @@ Já estamos analisando e em breve enviaremos sua proposta atualizada. Qualquer d
     let template: string;
     if (isNewOrcamento) {
       template = (settings.wa_new_orcamento_template as string) || defaultNewOrcamentoTemplate;
-      console.log(`[send-wa-welcome] Sending NEW ORCAMENTO message for lead=${lead_id}`);
+      // console.log(`[send-wa-welcome] Sending NEW ORCAMENTO message for lead=${lead_id}`);
     } else {
       template = (settings.wa_auto_message_template as string) || defaultWelcomeTemplate;
-      console.log(`[send-wa-welcome] Sending WELCOME message for lead=${lead_id}`);
+      // console.log(`[send-wa-welcome] Sending WELCOME message for lead=${lead_id}`);
     }
 
     const firstName = (lead.nome || "").split(" ")[0];
@@ -207,7 +207,7 @@ Já estamos analisando e em breve enviaremos sua proposta atualizada. Qualquer d
     });
 
     const sendResult = await sendRes.json().catch(() => null);
-    console.log(`[send-wa-welcome] send-whatsapp-message response:`, JSON.stringify(sendResult));
+    // console.log(`[send-wa-welcome] send-whatsapp-message response:`, JSON.stringify(sendResult));
 
     if (sendResult?.success) {
       // Mark as sent
@@ -221,7 +221,7 @@ Já estamos analisando e em breve enviaremos sua proposta atualizada. Qualquer d
         .eq("id", lead_id);
 
       const msgType = isNewOrcamento ? "new_orcamento" : "welcome";
-      console.log(`[send-wa-welcome] ✅ ${msgType} sent for lead=${lead_id}`);
+      // console.log(`[send-wa-welcome] ✅ ${msgType} sent for lead=${lead_id}`);
       return new Response(
         JSON.stringify({
           success: true,
