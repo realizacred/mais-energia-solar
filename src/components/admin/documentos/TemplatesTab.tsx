@@ -139,8 +139,8 @@ export function TemplatesTab() {
                           <DropdownMenuItem onClick={() => duplicate.mutate(tpl.id)} className="text-xs gap-2">
                             <Copy className="h-3.5 w-3.5" /> Duplicar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => archive.mutate(tpl.id)} className="text-xs gap-2 text-destructive">
-                            <Archive className="h-3.5 w-3.5" /> Arquivar
+                          <DropdownMenuItem onClick={() => remove.mutate(tpl.id)} className="text-xs gap-2 text-destructive">
+                            <Archive className="h-3.5 w-3.5" /> Excluir
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
