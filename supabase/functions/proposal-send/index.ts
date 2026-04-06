@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
 
     // Se não tem render, gerar automaticamente
     if (!renderRes.data) {
-      console.log("[proposal-send] No render found — triggering auto-render");
+      // No render found — triggering auto-render
       await adminClient.functions.invoke("proposal-render", {
         body: { versao_id },
         headers: { Authorization: authHeader },

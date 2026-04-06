@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
             }
           }
         } else {
-          console.log("Commission already exists for projeto, skipping (idempotent)");
+          // Commission already exists for projeto — skipping (idempotent)
         }
       } catch (commErr) {
         console.error("Erro ao gerar comissão:", commErr);
