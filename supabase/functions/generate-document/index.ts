@@ -490,20 +490,6 @@ Deno.serve(async (req) => {
       clienteData: (clienteData ?? {}) as Record<string, unknown>,
     });
 
-    console.error("[generate-document] DIAG: total variables after flatten:", Object.keys(variables).length);
-    console.error("[generate-document] DIAG: sample keys:", Object.keys(variables).slice(0, 15).join(", "));
-    console.error("[generate-document] DIAG: cliente_nome=", variables["cliente_nome"] ?? "(MISSING)");
-    console.error("[generate-document] DIAG: valor_total=", variables["valor_total"] ?? "(MISSING)");
-    console.error("[generate-document] DIAG: cliente_cnpj_cpf=", variables["cliente_cnpj_cpf"] ?? "(MISSING)");
-    console.error(
-      "[generate-document] DIAG: monetary vars after flatten=",
-      JSON.stringify({
-        preco: variables["preco"] ?? "(MISSING)",
-        preco_por_extenso: variables["preco_por_extenso"] ?? "(MISSING)",
-        equipamentos_custo_total: variables["equipamentos_custo_total"] ?? "(MISSING)",
-        instalacao_preco_total: variables["instalacao_preco_total"] ?? "(MISSING)",
-      }),
-    );
 
     // ── 4b. DOCUMENT-ONLY ENRICHMENT (isolated, does not contaminate flatten) ──
     const docEnrichment = buildDocumentEnrichment(clienteData, contratoNumero, snapshot as Record<string, any>, propostaRes.data as Record<string, any>);
