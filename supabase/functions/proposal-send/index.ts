@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
         .select("token").eq("id", existingEnvio.token_id).single();
 
       if (existingToken) {
-        const baseUrl = req.headers.get("origin") || `https://${tenant?.slug || "app"}.lovable.app`;
+        const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || `https://${tenant?.slug || "app"}.lovable.app`;
         return jsonOk({
           success: true, idempotent: true,
           token: existingToken.token,
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     if (tokenErr || !aceiteToken) return jsonError(`Erro ao criar token: ${tokenErr?.message}`, 500);
 
     // Build public URL
-    const baseUrl = req.headers.get("origin") || `https://${tenant?.slug || "app"}.lovable.app`;
+    const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || `https://${tenant?.slug || "app"}.lovable.app`;
     const publicUrl = `${baseUrl}/proposta/${aceiteToken.token}`;
 
     // ── 5b. RESOLVER MENSAGEM (template ou custom) ──────────

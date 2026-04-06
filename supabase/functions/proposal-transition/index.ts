@@ -229,6 +229,7 @@ Deno.serve(async (req) => {
               const { data: plan } = await admin
                 .from("commission_plans")
                 .select("parameters")
+                .eq("tenant_id", proposta.tenant_id)
                 .eq("is_active", true)
                 .limit(1)
                 .maybeSingle();

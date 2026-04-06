@@ -958,7 +958,8 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     if (body.projeto_id) matchFilter.projeto_id = body.projeto_id;
 
     const { data: existingProposta } = await adminClient
-      .from("propostas_nativas").select("id").match(matchFilter)
+      .from("propostas_nativas").select("id, status").match(matchFilter)
+      .not("status", "in", "(aceita,cancelada)")
       .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     if (existingProposta) {

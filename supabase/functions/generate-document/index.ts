@@ -348,14 +348,12 @@ Deno.serve(async (req) => {
     const templateBytes = new Uint8Array(await fileData.arrayBuffer());
     // 3. Load data for variable resolution (parallel queries)
     //    SAME pattern as template-preview — fetch all related entities
-    console.error("[generate-document] DIAG: deal_id=", deal_id, "tenantId=", tenantId);
-    const { data: projeto, error: projetoErr } = await supabase
+    const { data: projeto } = await supabase
       .from("projetos")
       .select("*")
       .eq("id", deal_id)
       .eq("tenant_id", tenantId)
       .maybeSingle();
-    console.error("[generate-document] DIAG: projetoErr=", projetoErr?.message ?? "none", "projeto_id=", projeto?.id ?? "null");
 
     const clienteId = projeto?.cliente_id;
     const clienteSelect = [
