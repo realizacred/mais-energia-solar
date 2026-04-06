@@ -37,6 +37,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  CustomFieldEditModal, FIELD_TYPE_LABELS, FIELD_KEY_PREFIXES, CONTEXT_LABELS,
+  normalizeFieldType, type CustomFieldData,
+} from "./CustomFieldEditModal";
 
 // ─── Types ───
 interface CustomField {
