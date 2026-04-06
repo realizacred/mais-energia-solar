@@ -472,6 +472,14 @@ Deno.serve(async (req) => {
     const snapshot = propostaRes.data?.snapshot as Record<string, unknown> | null;
     const consultor = consultorRes.data;
 
+    // DIAG: temporary logging to debug empty variables
+    console.error("[generate-document] DIAG: propostaRes.data exists:", !!propostaRes.data);
+    console.error("[generate-document] DIAG: snapshot exists:", !!snapshot);
+    console.error("[generate-document] DIAG: snapshot keys:", snapshot ? Object.keys(snapshot).length : 0);
+    console.error("[generate-document] DIAG: clienteData exists:", !!clienteData);
+    console.error("[generate-document] DIAG: propostaData exists:", !!propostaData);
+    console.error("[generate-document] DIAG: projeto exists:", !!projeto);
+
     const variables = flattenSnapshot(snapshot, {
       lead: leadRes.data,
       cliente: clienteData,
@@ -484,6 +492,12 @@ Deno.serve(async (req) => {
       projetoData: (projeto ?? {}) as Record<string, unknown>,
       clienteData: (clienteData ?? {}) as Record<string, unknown>,
     });
+
+    console.error("[generate-document] DIAG: total variables after flatten:", Object.keys(variables).length);
+    console.error("[generate-document] DIAG: sample keys:", Object.keys(variables).slice(0, 15).join(", "));
+    console.error("[generate-document] DIAG: cliente_nome=", variables["cliente_nome"] ?? "(MISSING)");
+    console.error("[generate-document] DIAG: valor_total=", variables["valor_total"] ?? "(MISSING)");
+    console.error("[generate-document] DIAG: cliente_cnpj_cpf=", variables["cliente_cnpj_cpf"] ?? "(MISSING)");
 
     // ── 4b. DOCUMENT-ONLY ENRICHMENT (isolated, does not contaminate flatten) ──
     const docEnrichment = buildDocumentEnrichment(clienteData, contratoNumero, snapshot as Record<string, any>, propostaRes.data as Record<string, any>);
