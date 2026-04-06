@@ -367,7 +367,7 @@ async function downloadAndStorePDF(
       .from("datasheets")
       .getPublicUrl(storagePath);
 
-    console.log(`[enrich-equipment] PDF uploaded: ${storagePath} (${pdfBuffer.byteLength} bytes)`);
+    // console.log(`[enrich-equipment] PDF uploaded: ${storagePath} (${pdfBuffer.byteLength} bytes)`);
     return { publicUrl: publicUrlData?.publicUrl || null, storagePath };
   } catch (err: any) {
     console.warn(`[enrich-equipment] PDF download error: ${err.message}`);
