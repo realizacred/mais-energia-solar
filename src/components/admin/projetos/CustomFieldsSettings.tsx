@@ -37,6 +37,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  CustomFieldEditModal, FIELD_TYPE_LABELS, FIELD_KEY_PREFIXES, CONTEXT_LABELS,
+  normalizeFieldType, type CustomFieldData,
+} from "./CustomFieldEditModal";
 
 // ─── Types ───
 interface CustomField {
@@ -84,33 +88,14 @@ interface MotivoPerda {
   ativo: boolean | null;
 }
 
-const FIELD_TYPE_LABELS: Record<string, string> = {
-  text: "Texto",
-  textarea: "Texto Maior",
-  number: "Numérico",
-  currency: "Monetário",
-  multi_select: "Opções Múltiplas",
-  select: "Opção Única",
-  date: "Data",
-  datetime: "Data e Hora",
-  file: "Arquivo",
-  boolean: "Sim/Não",
-};
+// FIELD_TYPE_LABELS, FIELD_KEY_PREFIXES, CONTEXT_LABELS, normalizeFieldType — imported from CustomFieldEditModal
 
 const FIELD_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  text: Type,
-  textarea: Type,
-  number: Hash,
-  currency: DollarSign,
-  multi_select: ListChecks,
-  select: CheckSquare,
-  date: Calendar,
-  datetime: CalendarClock,
-  file: FileText,
-  boolean: CheckSquare,
+  text: Type, textarea: Type, number: Hash, currency: DollarSign,
+  multi_select: ListChecks, select: CheckSquare, date: Calendar,
+  datetime: CalendarClock, file: FileText, boolean: CheckSquare,
 };
 
-/** Cores vibrantes por tipo — gradientes suaves para visual 3D */
 const FIELD_TYPE_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
   text:         { bg: "bg-info/15",        text: "text-info",        ring: "ring-info/30" },
   textarea:     { bg: "bg-info/15",        text: "text-info",        ring: "ring-info/30" },
@@ -124,24 +109,7 @@ const FIELD_TYPE_COLORS: Record<string, { bg: string; text: string; ring: string
   boolean:      { bg: "bg-success/15",     text: "text-success",     ring: "ring-success/30" },
 };
 
-// Types that show "Valores possíveis" textarea
 const OPTION_TYPES = ["select", "multi_select"];
-
-const FIELD_KEY_PREFIXES: Record<string, string> = {
-  projeto: "cap",
-  pre_dimensionamento: "pre",
-  pos_dimensionamento: "pos",
-};
-
-function normalizeFieldType(fieldType: string) {
-  return fieldType === "multiselect" ? "multi_select" : fieldType;
-}
-
-const CONTEXT_LABELS: Record<string, string> = {
-  projeto: "Projetos",
-  pre_dimensionamento: "Pré-dimensionamento",
-  pos_dimensionamento: "Pós-dimensionamento",
-};
 
 export function CustomFieldsSettings() {
   const [activeTab, setActiveTab] = useState("campos");
@@ -174,117 +142,15 @@ export function CustomFieldsSettings() {
   // ─── Premissas (SSOT via useTenantPremises) ───
   const premissasCtx = useTenantPremises();
 
-  // ─── Custom Field CRUD ───
-  const [fieldForm, setFieldForm] = useState({
-    title: "", field_key: "", field_type: "text", field_context: "projeto",
-    show_on_create: false, required_on_create: false,
-    visible_on_funnel: false, important_on_funnel: false,
-    required_on_funnel: false, required_on_proposal: false,
-    visibilityMode: "all" as "all" | "some",
-    visible_pipeline_ids: [] as string[],
-    important_stage_ids: [] as string[],
-    required_stage_ids: [] as string[],
-    icon: "" as string,
-  });
-  const [fieldWizardStep, setFieldWizardStep] = useState<"type" | "config">("type");
-  const [optionsText, setOptionsText] = useState("");
-
+  // ─── Custom Field CRUD — uses extracted modal ───
   const openFieldDialog = (field?: CustomField) => {
-    if (field) {
-      setEditingField(field);
-      const vpids = field.visible_pipeline_ids || [];
-      setFieldForm({
-        title: field.title, field_key: field.field_key, field_type: normalizeFieldType(field.field_type),
-        field_context: field.field_context,
-        show_on_create: field.show_on_create, required_on_create: field.required_on_create,
-        visible_on_funnel: field.visible_on_funnel, important_on_funnel: field.important_on_funnel,
-        required_on_funnel: field.required_on_funnel, required_on_proposal: field.required_on_proposal,
-        visibilityMode: vpids.length > 0 ? "some" : "all",
-        visible_pipeline_ids: vpids,
-        important_stage_ids: field.important_stage_ids || [],
-        required_stage_ids: field.required_stage_ids || [],
-        icon: field.icon || "",
-      });
-      const opts = field.options;
-      if (opts && Array.isArray(opts)) {
-        setOptionsText(opts.join("\n"));
-      } else {
-        setOptionsText("");
-      }
-      setFieldWizardStep("config");
-    } else {
-      setEditingField(null);
-      setFieldForm({
-        title: "", field_key: "", field_type: "text", field_context: contextFilter,
-        show_on_create: false, required_on_create: false,
-        visible_on_funnel: false, important_on_funnel: false,
-        required_on_funnel: false, required_on_proposal: false,
-        visibilityMode: "all",
-        visible_pipeline_ids: [],
-        important_stage_ids: [],
-        required_stage_ids: [],
-        icon: "",
-      });
-      setOptionsText("");
-      setFieldWizardStep("type");
-    }
-    setFieldKeyError(null);
+    setEditingField(field || null);
     setFieldDialogOpen(true);
   };
 
-  const [fieldKeyError, setFieldKeyError] = useState<string | null>(null);
-
-  const validateFieldKey = (key: string, context: string): string | null => {
-    if (!key.trim()) return "Chave é obrigatória.";
-    if (!/^[a-z0-9_]+$/.test(key)) return "Chave deve conter apenas letras minúsculas, números e underscore.";
-    const expectedPrefix = FIELD_KEY_PREFIXES[context] || "cap";
-    if (!key.startsWith(`${expectedPrefix}_`)) return `Chave deve começar com "${expectedPrefix}_".`;
-    if (key.length < 4) return "Chave muito curta.";
-    return null;
-  };
-
-  const handleSaveField = async () => {
-    if (!fieldForm.title.trim() || !fieldForm.field_key.trim()) return;
-
-    // Validate field_key format
-    const keyErr = validateFieldKey(fieldForm.field_key, fieldForm.field_context);
-    if (keyErr) {
-      setFieldKeyError(keyErr);
-      return;
-    }
-
-    // Check uniqueness (skip for edits keeping same key)
-    const isDuplicate = fields.some(
-      (f: any) => f.field_key === fieldForm.field_key && f.id !== editingField?.id
-    );
-    if (isDuplicate) {
-      setFieldKeyError("Chave já existe. Escolha outro nome.");
-      return;
-    }
-
-    setFieldKeyError(null);
-    setSaving(true);
-    try {
-      const normalizedFieldType = normalizeFieldType(fieldForm.field_type);
-      const options = OPTION_TYPES.includes(normalizedFieldType)
-        ? optionsText.split("\n").map(s => s.trim()).filter(Boolean)
-        : null;
-      const { visibilityMode, icon, ...formRest } = fieldForm;
-      const visible_on_funnel = visibilityMode === "all";
-      const visible_pipeline_ids = visibilityMode === "some" ? formRest.visible_pipeline_ids : [];
-      const payload = {
-        ...formRest, field_type: normalizedFieldType, options, visible_on_funnel, visible_pipeline_ids,
-        important_on_funnel: formRest.important_stage_ids.length > 0,
-        required_on_funnel: formRest.required_stage_ids.length > 0,
-        icon: icon || null,
-      };
-
-      await saveFieldMutation.mutateAsync({ id: editingField?.id, data: payload });
-      toast({ title: editingField ? "Campo atualizado" : "Campo criado" });
-      setFieldDialogOpen(false);
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    } finally { setSaving(false); }
+  const handleSaveFieldFromModal = async (payload: Record<string, any>, id?: string) => {
+    await saveFieldMutation.mutateAsync({ id, data: payload });
+    toast({ title: id ? "Campo atualizado" : "Campo criado" });
   };
 
   const handleDeleteField = async (id: string) => {
@@ -783,367 +649,17 @@ export function CustomFieldsSettings() {
         </TabsContent>
       </Tabs>
 
-      {/* ═══ Dialog: Campo Customizado (Wizard) ═══ */}
-      <Dialog open={fieldDialogOpen} onOpenChange={(open) => { setFieldDialogOpen(open); if (!open) setFieldWizardStep("type"); }}>
-        <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
-          <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Settings2 className="w-5 h-5 text-primary" />
-            </div>
-            <div className="flex-1">
-              <DialogTitle className="text-base font-semibold text-foreground">
-                {editingField
-                  ? "Editar Campo"
-                  : `Novo Campo Customizado (${CONTEXT_LABELS[fieldForm.field_context]})`}
-              </DialogTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {fieldWizardStep === "type"
-                  ? "Selecione o tipo de campo que deseja criar"
-                  : "Configure as propriedades do campo"}
-              </p>
-            </div>
-          </DialogHeader>
-
-          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
-          {/* ── Step 1: Type Grid ── */}
-          {fieldWizardStep === "type" && (() => {
-            const availableTypes = Object.entries(FIELD_TYPE_LABELS);
-            return (
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 py-2">
-                {availableTypes.map(([key, label]) => {
-                  const Icon = FIELD_TYPE_ICONS[key] || Type;
-                  const colors = FIELD_TYPE_COLORS[key] || FIELD_TYPE_COLORS.text;
-                  return (
-                    <Button
-                      key={key}
-                      variant="outline"
-                      type="button"
-                      onClick={() => {
-                        setFieldForm(p => ({ ...p, field_type: key }));
-                        setFieldWizardStep("config");
-                      }}
-                      className={cn(
-                        "flex flex-col items-center gap-2.5 p-4 rounded-xl h-auto",
-                        "hover:shadow-md hover:scale-[1.03]",
-                        "border-border bg-card text-foreground"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ring-1",
-                        colors.bg, colors.ring
-                      )}>
-                        <Icon className={cn("h-5 w-5", colors.text)} />
-                      </div>
-                      <span className="text-[11px] font-medium text-center leading-tight text-foreground">{label}</span>
-                    </Button>
-                  );
-                })}
-              </div>
-            );
-          })()}
-
-          {/* ── Step 2: Config Form ── */}
-          {fieldWizardStep === "config" && (
-            <>
-              {/* Back button — always visible so user can change type */}
-              <Button variant="ghost"
-                type="button"
-                onClick={() => setFieldWizardStep("type")}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                {editingField ? "Alterar tipo" : "Voltar"}
-              </Button>
-
-              {/* Selected type indicator */}
-              <div className="flex justify-center py-1">
-                {(() => {
-                  const nft = normalizeFieldType(fieldForm.field_type);
-                  const Icon = FIELD_TYPE_ICONS[nft] || Type;
-                  const colors = FIELD_TYPE_COLORS[nft] || FIELD_TYPE_COLORS.text;
-                  return (
-                    <div className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-xl border bg-card shadow-sm">
-                      <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ring-1", colors.bg, colors.ring)}>
-                        <Icon className={cn("h-6 w-6", colors.text)} />
-                      </div>
-                      <span className="text-xs font-semibold text-foreground">{FIELD_TYPE_LABELS[nft]}</span>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* ── Card: Dados do Campo ── */}
-              <div className="rounded-xl border bg-card overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
-                  <div className="w-6 h-6 rounded-md bg-info/15 flex items-center justify-center">
-                    <Type className="h-3.5 w-3.5 text-info" />
-                  </div>
-                  <h4 className="text-sm font-semibold text-foreground">Dados do Campo</h4>
-                </div>
-                <div className="p-4 space-y-4">
-
-                {/* Title + Variable */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Título do Campo</Label>
-                    <Input
-                      value={fieldForm.title}
-                      onChange={e => {
-                        const title = e.target.value;
-                        const prefix = FIELD_KEY_PREFIXES[fieldForm.field_context] || FIELD_KEY_PREFIXES.projeto;
-                        const slug = title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
-                        setFieldForm(p => ({
-                          ...p,
-                          title,
-                          ...(!editingField && slug ? { field_key: `${prefix}_${slug}` } : {}),
-                        }));
-                      }}
-                      placeholder="Exemplo: Wifi"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Label className="text-xs font-medium">Variável</Label>
-                      <Tooltip>
-                        <TooltipTrigger asChild><HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
-                        <TooltipContent className="text-xs max-w-[220px]">
-                          Identificador único usado como variável em templates e consultas. Gerado automaticamente a partir do título.
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        value={fieldForm.field_key}
-                        onChange={e => {
-                          const raw = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
-                          setFieldForm(p => ({ ...p, field_key: raw }));
-                          setFieldKeyError(null);
-                        }}
-                        placeholder={`${FIELD_KEY_PREFIXES[fieldForm.field_context] || "cap"}_nome_do_campo`}
-                        className={cn("flex-1 font-mono text-xs h-9", fieldKeyError && "border-destructive")}
-                        disabled={!!editingField}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 shrink-0"
-                        disabled={!fieldForm.field_key}
-                        onClick={() => {
-                          navigator.clipboard.writeText(`[${fieldForm.field_key}]`);
-                          toast({ title: `[${fieldForm.field_key}] copiado!` });
-                        }}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                    {fieldKeyError && (
-                      <p className="text-[11px] text-destructive mt-0.5">{fieldKeyError}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Type — editable via Select */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Tipo</Label>
-                  <Select
-                    value={normalizeFieldType(fieldForm.field_type)}
-                    onValueChange={v => setFieldForm(p => ({ ...p, field_type: v }))}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(FIELD_TYPE_LABELS).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Options for select/multi_select */}
-                {OPTION_TYPES.includes(normalizeFieldType(fieldForm.field_type)) && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Valores possíveis</Label>
-                    <Textarea
-                      value={optionsText}
-                      onChange={e => setOptionsText(e.target.value)}
-                      placeholder={"Opção 1\nOpção 2\nOpção 3"}
-                      rows={4}
-                    />
-                    <p className="text-[11px] text-muted-foreground">
-                      Insira um por linha, por exemplo:<br />
-                      <span className="text-foreground/70">Opção 1 · Opção 2 · Opção 3</span>
-                    </p>
-                  </div>
-                )}
-                </div>
-              </div>
-
-              {/* ── Card: Ícone do Campo ── */}
-              <div className="rounded-xl border bg-card overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
-                  <div className="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center">
-                    <Layers className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <h4 className="text-sm font-semibold text-foreground">Ícone do Campo</h4>
-                </div>
-                <div className="p-4 space-y-3">
-                <IconPicker selected={fieldForm.icon} onSelect={icon => setFieldForm(p => ({ ...p, icon }))} />
-                {fieldForm.icon && (
-                  <Button variant="ghost" size="sm" onClick={() => setFieldForm(p => ({ ...p, icon: "" }))} className="text-xs text-muted-foreground">
-                    Remover ícone (usar padrão do tipo)
-                  </Button>
-                )}
-                </div>
-              </div>
-
-              {/* ── Card: Comportamento (PROJETO context) ── */}
-              {fieldForm.field_context === "projeto" && (
-                <div className="rounded-xl border bg-card overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
-                    <div className="w-6 h-6 rounded-md bg-warning/15 flex items-center justify-center">
-                      <Sliders className="h-3.5 w-3.5 text-warning" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
-                  </div>
-                  <div className="p-4 space-y-4">
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Mostrar campo em novo projeto?</Label>
-                    <Select
-                      value={fieldForm.show_on_create ? "sim" : "nao"}
-                      onValueChange={v => setFieldForm(p => ({ ...p, show_on_create: v === "sim" }))}
-                    >
-                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sim">Sim</SelectItem>
-                        <SelectItem value="nao">Não</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium">Visibilidade em funis?</Label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                        <input type="radio" name="fieldVis" checked={fieldForm.visibilityMode === "all"}
-                          onChange={() => setFieldForm(p => ({ ...p, visibilityMode: "all", visible_pipeline_ids: [] }))}
-                          className="accent-primary" />
-                        Todos
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                        <input type="radio" name="fieldVis" checked={fieldForm.visibilityMode === "some"}
-                          onChange={() => setFieldForm(p => ({ ...p, visibilityMode: "some" }))}
-                          className="accent-primary" />
-                        Alguns
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Pipeline selector when "Alguns" */}
-                  {fieldForm.visibilityMode === "some" && (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Funil</Label>
-                      <Select onValueChange={v => {
-                        if (!fieldForm.visible_pipeline_ids.includes(v)) {
-                          setFieldForm(p => ({ ...p, visible_pipeline_ids: [...p.visible_pipeline_ids, v] }));
-                        }
-                      }}>
-                        <SelectTrigger className="w-full"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
-                        <SelectContent>
-                          {pipelines.filter(p => !fieldForm.visible_pipeline_ids.includes(p.id)).map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {fieldForm.visible_pipeline_ids.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-1">
-                          {fieldForm.visible_pipeline_ids.map(pid => {
-                            const p = pipelines.find(pp => pp.id === pid);
-                            return p ? (
-                              <Badge key={pid} variant="default" className="gap-1 text-xs">
-                                {p.name}
-                                <button type="button" onClick={() => setFieldForm(prev => ({
-                                  ...prev, visible_pipeline_ids: prev.visible_pipeline_ids.filter(x => x !== pid)
-                                }))} className="ml-0.5 hover:text-destructive">×</button>
-                              </Badge>
-                            ) : null;
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Stage multi-select for important/required */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <StageMultiSelect
-                      label="Campo importante em etapa do funil:"
-                      stages={stages}
-                      pipelines={pipelines}
-                      selectedIds={fieldForm.important_stage_ids}
-                      onChange={ids => setFieldForm(p => ({ ...p, important_stage_ids: ids }))}
-                    />
-                    <StageMultiSelect
-                      label="Campo obrigatório em etapa do funil:"
-                      stages={stages}
-                      pipelines={pipelines}
-                      selectedIds={fieldForm.required_stage_ids}
-                      onChange={ids => setFieldForm(p => ({ ...p, required_stage_ids: ids }))}
-                    />
-                  </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Card: Comportamento (PRE/POS DIMENSIONAMENTO context) ── */}
-              {(fieldForm.field_context === "pre_dimensionamento" || fieldForm.field_context === "pos_dimensionamento") && (
-                <div className="rounded-xl border bg-card overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
-                    <div className="w-6 h-6 rounded-md bg-warning/15 flex items-center justify-center">
-                      <Sliders className="h-3.5 w-3.5 text-warning" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
-                  </div>
-                  <div className="p-4 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Obrigatório na proposta?</Label>
-                    <Select
-                      value={fieldForm.required_on_proposal ? "sim" : "nao"}
-                      onValueChange={v => setFieldForm(p => ({ ...p, required_on_proposal: v === "sim" }))}
-                    >
-                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sim">Sim</SelectItem>
-                        <SelectItem value="nao">Não</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-              )}
-
-            </>
-          )}
-          </div>
-
-          {/* Footers outside scroll area */}
-          {fieldWizardStep === "config" && (
-              <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
-                <Button variant="ghost" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
-                <Button onClick={handleSaveField} disabled={!fieldForm.title.trim() || !fieldForm.field_key.trim() || saving}>
-                  {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                  {editingField ? "Salvar" : "Cadastrar"}
-                </Button>
-              </DialogFooter>
-          )}
-          {fieldWizardStep === "type" && (
-            <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
-              <Button variant="ghost" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* ═══ Modal: Campo Customizado (extracted component) ═══ */}
+      <CustomFieldEditModal
+        open={fieldDialogOpen}
+        onOpenChange={setFieldDialogOpen}
+        editingField={editingField as CustomFieldData | null}
+        context={contextFilter}
+        existingKeys={fields.map((f: any) => f.field_key)}
+        pipelines={pipelines}
+        stages={stages}
+        onSave={handleSaveFieldFromModal}
+      />
 
       {/* ═══ Dialog: Tipo de Atividade ═══ */}
       <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
