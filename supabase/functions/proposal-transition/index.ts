@@ -148,13 +148,48 @@ Deno.serve(async (req) => {
       updateData.recusa_motivo = null;
     }
 
-    // 4. Update status
+    // 4. Update status + set is_principal if accepting
+    if (new_status === "aceita") {
+      updateData.is_principal = true;
+    }
+
     const { error: updateErr } = await admin
       .from("propostas_nativas")
       .update(updateData)
       .eq("id", proposta_id);
 
     if (updateErr) throw updateErr;
+
+    // 4b. On accept: reject sibling proposals and clear their is_principal
+    if (new_status === "aceita" && proposta.projeto_id) {
+      // Clear is_principal on all siblings
+      await admin
+        .from("propostas_nativas")
+        .update({ is_principal: false })
+        .eq("projeto_id", proposta.projeto_id)
+        .neq("id", proposta_id);
+
+      // Reject actionable siblings
+      const rejectableStatuses = ["gerada", "enviada", "vista", "rascunho"];
+      const { data: siblings } = await admin
+        .from("propostas_nativas")
+        .select("id, status")
+        .eq("projeto_id", proposta.projeto_id)
+        .neq("id", proposta_id)
+        .in("status", rejectableStatuses);
+
+      if (siblings && siblings.length > 0) {
+        const siblingIds = siblings.map((s: any) => s.id);
+        await admin
+          .from("propostas_nativas")
+          .update({
+            status: "recusada",
+            recusada_at: now,
+            recusa_motivo: "Outra proposta do projeto foi aceita",
+          })
+          .in("id", siblingIds);
+      }
+    }
 
     let commission_pct: number | null = null;
 
