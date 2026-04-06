@@ -112,11 +112,13 @@ export async function savePricingHistory(params: {
   const { potenciaKwp, margemPercentual, custoComissao, custoOutros, custoInstalacao, propostaId } = params;
   if (potenciaKwp <= 0) return;
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) return;
   const { data: profile } = await supabase
     .from("profiles")
     .select("tenant_id, user_id")
-    .single();
-
+    .eq("user_id", user.id)
+    .maybeSingle();
   if (!profile?.tenant_id) return;
 
   const rows = [

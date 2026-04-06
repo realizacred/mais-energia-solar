@@ -85,10 +85,13 @@ export async function generateOs(params: {
   cidade: string | null;
   estado: string | null;
 }) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) throw new Error("Usuário não autenticado.");
   const { data: profile } = await supabase
     .from("profiles")
     .select("tenant_id, user_id")
-    .single();
+    .eq("user_id", user.id)
+    .maybeSingle();
   if (!profile?.tenant_id) throw new Error("Perfil não encontrado.");
 
   const { data: os, error } = await supabase
