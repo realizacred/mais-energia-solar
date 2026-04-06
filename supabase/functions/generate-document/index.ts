@@ -8,7 +8,7 @@
  * Document-only vars (contrato, assinatura) are added as isolated enrichment.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { normalizeVariableFormat, defragmentXml } from "../_shared/normalizeVariableFormat.ts";
+import { processXmlContent, shouldProcessXmlFile } from "../_shared/docxProcessor.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
 import {
@@ -32,268 +32,6 @@ const corsHeaders = {
 };
 
 // ── Helpers ────────────────────────────────────────
-
-/** Replace {{variable}} placeholders in text */
-function escapeXml(str: string): string {
-  return str
-    .replace(/\r\n/g, " ")
-    .replace(/\r/g, " ")
-    .replace(/\n/g, " ")
-    .replace(/\t/g, " ")
-    .replace(/ {2,}/g, " ")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-function replaceVars(text: string, ctx: Record<string, string>): string {
-  return text.replace(/\{\{([^}]+)\}\}/g, (_match, key: string) => {
-    const k = key.trim();
-    const value = ctx[k] ?? ctx[k.replace(/\./g, "_")] ?? ctx[k.replace(/_/g, ".")] ?? "";
-    return escapeXml(String(value));
-  });
-}
-
-function cleanupRemainingFragments(xml: string): string {
-  const paraPattern = /<w:p[\s>][^]*?<\/w:p>/g;
-
-  return xml.replace(paraPattern, (paraXml) => {
-    if (!paraXml.includes("[") && !paraXml.includes("{{")) return paraXml;
-    if (paraXml.includes("<w:fldChar") || paraXml.includes("<w:instrText")) return paraXml;
-    if (paraXml.includes("<w:drawing") || paraXml.includes("<mc:AlternateContent")) return paraXml;
-
-    const runPattern = /<w:r[\s>][^]*?<\/w:r>/g;
-    interface RunInfo {
-      full: string;
-      start: number;
-      end: number;
-      text: string;
-      hasText: boolean;
-      isGraphic: boolean;
-    }
-
-    const allRuns: RunInfo[] = [];
-    let m: RegExpExecArray | null;
-    while ((m = runPattern.exec(paraXml)) !== null) {
-      const full = m[0];
-      const isGraphic = full.includes("<w:drawing") || full.includes("<mc:AlternateContent");
-
-      const tPattern = /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g;
-      let tMatch: RegExpExecArray | null;
-      const parts: string[] = [];
-      while ((tMatch = tPattern.exec(full)) !== null) {
-        parts.push(tMatch[1]);
-      }
-
-      allRuns.push({
-        full,
-        start: m.index,
-        end: m.index + full.length,
-        text: parts.join(""),
-        hasText: parts.length > 0,
-        isGraphic,
-      });
-    }
-
-    const textRuns = allRuns.filter((r) => !r.isGraphic && r.hasText);
-    if (textRuns.length < 2) return paraXml;
-
-    const fullText = textRuns.map((r) => r.text).join("");
-    const completePh = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
-    const mustachePh = /\{\{[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\}\}/g;
-    const allComplete: string[] = [];
-    let pm: RegExpExecArray | null;
-
-    while ((pm = completePh.exec(fullText)) !== null) allComplete.push(pm[0]);
-    while ((pm = mustachePh.exec(fullText)) !== null) allComplete.push(pm[0]);
-    if (allComplete.length === 0) return paraXml;
-
-    const intactInRuns = new Set<string>();
-    for (const run of textRuns) {
-      const rPh = /\[[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\]/g;
-      const rMu = /\{\{[a-zA-Z_][a-zA-Z0-9_.\-]{0,120}\}\}/g;
-      while ((pm = rPh.exec(run.text)) !== null) intactInRuns.add(pm[0]);
-      while ((pm = rMu.exec(run.text)) !== null) intactInRuns.add(pm[0]);
-    }
-
-    const stillFragmented = allComplete.filter((ph) => !intactInRuns.has(ph));
-    if (stillFragmented.length === 0) return paraXml;
-
-    let result = paraXml;
-    let offset = 0;
-
-    for (let i = 0; i < textRuns.length; i++) {
-      const run = textRuns[i];
-      let newRunXml: string;
-
-      if (i === 0) {
-        let firstReplaced = false;
-        newRunXml = run.full.replace(
-          /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,
-          () => {
-            if (!firstReplaced) {
-              firstReplaced = true;
-              return `<w:t xml:space="preserve">${fullText}</w:t>`;
-            }
-            return "<w:t></w:t>";
-          },
-        );
-      } else {
-        newRunXml = run.full.replace(
-          /<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,
-          "<w:t></w:t>",
-        );
-      }
-
-      const adjStart = run.start + offset;
-      const adjEnd = run.end + offset;
-      result = result.substring(0, adjStart) + newRunXml + result.substring(adjEnd);
-      offset += newRunXml.length - run.full.length;
-    }
-
-    return result;
-  });
-}
-
-/**
- * Evaluate inline IF()/SWITCH() formulas in text AFTER variable substitution.
- * Handles string comparisons like: IF("Integrada"="Integrada"; "texto A"; "texto B")
- * These appear when the template uses IF([pos_incluir_string_box]="Integrada"; "A"; "B")
- * and [pos_incluir_string_box] was already substituted with its value.
- */
-function evaluateInlineFormulas(text: string): string {
-  // Use balanced parentheses matching to support nested IF()
-  const MAX_PASSES = 10;
-  let result = text;
-  for (let pass = 0; pass < MAX_PASSES; pass++) {
-    const ifIdx = findIFStart(result);
-    if (ifIdx === -1) break;
-    const openParen = result.indexOf("(", ifIdx);
-    if (openParen === -1) break;
-    const closeParen = findMatchingParen(result, openParen);
-    if (closeParen === -1) break;
-    const fullMatch = result.substring(ifIdx, closeParen + 1);
-    const argsStr = result.substring(openParen + 1, closeParen);
-    const evaluated = evaluateSingleIF(argsStr);
-    result = result.substring(0, ifIdx) + evaluated + result.substring(closeParen + 1);
-  }
-  return result;
-}
-
-/** Find next IF( ignoring case */
-function findIFStart(text: string): number {
-  const lower = text.toLowerCase();
-  let idx = 0;
-  while (idx < text.length) {
-    const pos = lower.indexOf("if", idx);
-    if (pos === -1) return -1;
-    // Check it's IF followed by optional whitespace then (
-    let j = pos + 2;
-    while (j < text.length && text[j] === " ") j++;
-    if (j < text.length && text[j] === "(") return pos;
-    idx = pos + 1;
-  }
-  return -1;
-}
-
-/** Find matching closing paren, respecting nesting and quotes */
-function findMatchingParen(text: string, openPos: number): number {
-  let depth = 0;
-  let inQuote = false;
-  let quoteChar = "";
-  for (let i = openPos; i < text.length; i++) {
-    const ch = text[i];
-    if (inQuote) {
-      if (ch === quoteChar) inQuote = false;
-      continue;
-    }
-    if (ch === '"' || ch === "'") {
-      inQuote = true;
-      quoteChar = ch;
-    } else if (ch === "(") {
-      depth++;
-    } else if (ch === ")") {
-      depth--;
-      if (depth === 0) return i;
-    }
-  }
-  return -1;
-}
-
-/** Evaluate a single IF's arguments (may contain already-resolved nested IFs) */
-function evaluateSingleIF(argsStr: string): string {
-  // Recursively evaluate any nested IF() inside args first
-  const resolved = evaluateInlineFormulas(argsStr);
-  const parts = splitFormulaParts(resolved);
-  if (parts.length < 3) return argsStr;
-
-  const condition = parts[0].trim();
-  const thenVal = unquote(parts[1].trim());
-  const elseVal = unquote(parts[2].trim());
-
-  const neqMatch = condition.match(/^(.+?)<>(.+)$/);
-  const eqMatch = condition.match(/^(.+?)=(.+)$/);
-
-  if (neqMatch) {
-    const left = unquote(neqMatch[1].trim());
-    const right = unquote(neqMatch[2].trim());
-    return left !== right ? thenVal : elseVal;
-  }
-  if (eqMatch) {
-    const left = unquote(eqMatch[1].trim());
-    const right = unquote(eqMatch[2].trim());
-    return left === right ? thenVal : elseVal;
-  }
-
-  const condClean = unquote(condition);
-  if (condClean && condClean !== "0" && condClean.toLowerCase() !== "false") {
-    return thenVal;
-  }
-  return elseVal;
-}
-
-/** Split formula arguments respecting quoted strings */
-function splitFormulaParts(s: string): string[] {
-  const parts: string[] = [];
-  let current = "";
-  let inQuote = false;
-  let quoteChar = "";
-
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-    if (inQuote) {
-      if (ch === quoteChar) {
-        inQuote = false;
-      }
-      current += ch;
-    } else if (ch === '"' || ch === "'") {
-      inQuote = true;
-      quoteChar = ch;
-      current += ch;
-    } else if (ch === ";" || ch === ",") {
-      parts.push(current);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  parts.push(current);
-  return parts;
-}
-
-/** Remove surrounding quotes from a string */
-function unquote(s: string): string {
-  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
-    return s.slice(1, -1);
-  }
-  // Also handle XML-encoded quotes
-  if (s.startsWith("&quot;") && s.endsWith("&quot;")) {
-    return s.slice(6, -6);
-  }
-  return s;
-}
 
 /** Format monetary value in pt-BR without currency symbol */
 function formatBRL(v: number | null | undefined): string {
@@ -491,9 +229,9 @@ function buildDocumentEnrichment(
   return ctx;
 }
 
-// ── ZIP manipulation (minimal DOCX processing) ────
+// ── ZIP manipulation — uses shared DOCX pipeline (RB-39, DA-21) ────
 
-/** DOCX is a ZIP file; we process XML entries to replace variables */
+/** DOCX is a ZIP file; we process XML entries using the shared pipeline */
 async function processDocx(
   templateBytes: Uint8Array,
   variables: Record<string, string>,
@@ -504,38 +242,10 @@ async function processDocx(
   const processed: Record<string, Uint8Array> = {};
 
   for (const [path, data] of Object.entries(unzipped)) {
-    if (path.startsWith("word/") && (path.endsWith(".xml") || path.endsWith(".rels"))) {
-      let xmlStr = strFromU8(data);
-
-      // Step 1: Defragment XML runs to consolidate split text
-      xmlStr = defragmentXml(xmlStr);
-
-      // Step 2: Aggressive cleanup for placeholders still fragmented across runs
-      // inside paragraphs, including table cells (w:tc > w:p > w:r > w:t).
-      xmlStr = cleanupRemainingFragments(xmlStr);
-
-      // Step 3: Normalize [ variable ] / [variable] → {{variable}}
-      xmlStr = normalizeVariableFormat(xmlStr);
-
-      // Step 4: Clean up any remaining XML tags trapped inside {{ and }}
-      xmlStr = xmlStr.replace(
-        /\{\{((?:[^}]|(?:\}[^}]))*?)\}\}/g,
-        (fullMatch) => {
-          const cleaned = fullMatch.replace(/<[^>]+>/g, "");
-          return cleaned;
-        },
-      );
-
-      xmlStr = replaceVars(xmlStr, variables);
-
-      // Step 5: Evaluate inline IF()/SWITCH() formulas after variable substitution
-      xmlStr = evaluateInlineFormulas(xmlStr);
-
-      // Step 6: Final cleanup — remove any residual placeholders so they appear blank in PDF
-      xmlStr = xmlStr.replace(/\{\{[^}]+\}\}/g, "");
-      xmlStr = xmlStr.replace(/\[[a-zA-Z_][a-zA-Z0-9_.]*\]/g, "");
-
-      processed[path] = strToU8(xmlStr);
+    if (shouldProcessXmlFile(path)) {
+      const xmlStr = strFromU8(data);
+      const result = processXmlContent(xmlStr, variables);
+      processed[path] = strToU8(result);
     } else {
       processed[path] = data;
     }
