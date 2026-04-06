@@ -644,10 +644,56 @@ Deno.serve(async (req) => {
       variables["vc_observacao"] = "";
     }
 
+    // ── 4d. DOCUMENT FORMATTING — monetary "R$ " prefix + phone mask ──
+    const MONETARY_KEYS = new Set([
+      "valor_total", "preco", "preco_total", "preco_final", "investimento",
+      "equipamentos_custo_total", "instalacao_preco_total", "kits_custo_total",
+      "economia_mensal", "economia_anual", "economia_primeiro_ano",
+      "modulo_custo_total", "modulo_preco_total", "inversor_custo_total", "inversor_preco_total",
+      "inversores_custo_total", "inversores_preco_total",
+      "estrutura_custo_total", "estrutura_preco_total",
+      "baterias_custo_total", "baterias_preco_total",
+      "margem_lucro", "desconto_valor", "comissao_valor",
+      "custo_kit", "custo_modulos", "custo_inversores", "custo_estrutura", "custo_instalacao",
+      "doc_valor_das_parcelas", "f_ativo_parcela", "f_valor_parcela",
+      "kit_fechado_custo_total", "kit_fechado_preco_total",
+      "otimizador_custo_total", "otimizador_preco_total",
+      "preco_por_extenso", // skip — already text
+    ]);
+    // Exclude preco_por_extenso (text, not number)
+    MONETARY_KEYS.delete("preco_por_extenso");
+
+    for (const mk of MONETARY_KEYS) {
+      const val = variables[mk];
+      if (!val) continue;
+      // Already has R$ prefix? skip
+      if (val.startsWith("R$")) continue;
+      // Looks like a formatted number (has comma or dot)? add prefix
+      if (/^\d/.test(val) || /^-?\d/.test(val)) {
+        variables[mk] = `R$ ${val}`;
+      }
+    }
+
+    // Phone formatting
+    function formatPhoneBR(phone: string | undefined): string {
+      if (!phone) return "";
+      const digits = phone.replace(/\D/g, "");
+      if (digits.length === 11) {
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+      }
+      if (digits.length === 10) {
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+      }
+      return phone;
+    }
+    const PHONE_KEYS = ["cliente_telefone", "cliente_celular", "consultor_telefone", "responsavel_celular", "empresa_telefone"];
+    for (const pk of PHONE_KEYS) {
+      if (variables[pk] && !/^\(/.test(variables[pk])) {
+        variables[pk] = formatPhoneBR(variables[pk]);
+      }
+    }
+
     // 5. Process DOCX — replace variables
-
-
-
     const filledDocx = await processDocx(templateBytes, variables);
 
     // 6. Save filled DOCX to storage
