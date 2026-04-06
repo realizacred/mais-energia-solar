@@ -22,7 +22,7 @@ export function TemplatesTab() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<DocumentTemplate | null>(null);
 
-  const { data: templates, isLoading, upsert, archive, duplicate } = useDocumentTemplates(
+  const { data: templates, isLoading, upsert, remove, duplicate } = useDocumentTemplates(
     catFilter === "all" ? undefined : catFilter
   );
 
