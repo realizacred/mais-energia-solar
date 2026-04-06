@@ -12,6 +12,7 @@
  */
 
 import { formatBRL, formatNumberBR } from "@/lib/formatters";
+import { getPublicUrl } from "@/lib/getPublicUrl";
 import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
 import type { BlockConfig } from "@/hooks/useProposalMessageConfig";
 

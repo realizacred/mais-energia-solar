@@ -803,7 +803,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       try {
         const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
         const token = await getOrCreateProposalToken(p.id, latestVersao.id, "public");
-        setPublicUrl(`${window.location.origin}/proposta/${token}`);
+        setPublicUrl(`${getPublicUrl()}/proposta/${token}`);
       } catch {
         // Silent — will be populated on manual copy
       }
@@ -1032,7 +1032,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
       const tipo = withTracking ? "tracked" : "public";
       const token = await getOrCreateProposalToken(p.id, latestVersao.id, tipo);
-      const url = `${window.location.origin}/proposta/${token}`;
+      const url = `${getPublicUrl()}/proposta/${token}`;
       try {
         await navigator.clipboard.writeText(url);
       } catch {

@@ -178,7 +178,7 @@ export function StepDocumento({
 
         if (cancelled) return;
 
-        const url = token ? `${window.location.origin}/proposta/${token}` : "";
+        const url = token ? `${getPublicUrl()}/proposta/${token}` : "";
         setResolvedPublicUrl(url);
 
         // Set WA default message with link
@@ -386,7 +386,7 @@ export function StepDocumento({
         token = (created as any).token;
       }
 
-      const url = `${window.location.origin}/proposta/${token}?view=simulacao`;
+      const url = `${getPublicUrl()}/proposta/${token}?view=simulacao`;
       try { await navigator.clipboard.writeText(url); } catch { window.prompt("Copie o link:", url); }
       setCopiedSimulacao(true);
       setTimeout(() => setCopiedSimulacao(false), 2000);
