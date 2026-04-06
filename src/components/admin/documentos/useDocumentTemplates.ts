@@ -19,7 +19,7 @@ export function useDocumentTemplates(categoria?: DocumentCategory) {
     queryFn: async () => {
       let q = supabase
         .from("document_templates")
-        .select("id, tenant_id, nome, categoria, tipo, conteudo_html, variaveis, ativo, created_at, updated_at")
+        .select("id, tenant_id, nome, categoria, subcategoria, descricao, docx_storage_path, version, status, requires_signature_default, default_signers, form_schema, created_at, created_by, updated_at, updated_by")
         .order("categoria")
         .order("nome");
       if (categoria) q = q.eq("categoria", categoria);
@@ -27,6 +27,7 @@ export function useDocumentTemplates(categoria?: DocumentCategory) {
       if (error) throw error;
       return (data ?? []) as unknown as DocumentTemplate[];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const upsert = useMutation({
