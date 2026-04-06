@@ -629,6 +629,24 @@ Deno.serve(async (req) => {
     }
 
     // 5. Process DOCX — replace variables
+    // TEMP DIAGNOSTIC — remove after debugging
+    const diagKeys = ["cliente_cnpj_cpf", "cliente_endereco", "cliente_numero", "cliente_bairro", "cliente_cidade", "cliente_estado", "cliente_cep", "cliente_nome"];
+    const diagValues: Record<string, string> = {};
+    for (const k of diagKeys) {
+      diagValues[k] = variables[k] ?? "(MISSING)";
+    }
+    console.error("[generate-document] DIAG clienteData:", JSON.stringify({
+      clienteId,
+      clienteDataExists: !!clienteData,
+      clienteDataCpf: clienteData?.cpf_cnpj ?? "(null)",
+      clienteDataRua: clienteData?.rua ?? "(null)",
+      projetoExists: !!projeto,
+      projetoClienteId: projeto?.cliente_id ?? "(null)",
+      snapshotExists: !!snapshot,
+    }));
+    console.error("[generate-document] DIAG variables:", JSON.stringify(diagValues));
+    console.error("[generate-document] DIAG total vars count:", Object.keys(variables).length);
+
     const filledDocx = await processDocx(templateBytes, variables);
 
     // 6. Save filled DOCX to storage
