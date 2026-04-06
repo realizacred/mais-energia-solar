@@ -1,6 +1,8 @@
 # AGENTS.md v3.3 — Mais Energia Solar CRM
+# AGENTS.md v3.4 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-05 (v3.3 — Landing page, documentos, governança variáveis)
+# Última atualização: 2026-04-06 (v3.4 — Pipeline DOCX completo, DA-21)
+# Changelog v3.4: RB-39 (pipeline DOCX completo), DA-21 (fflate nativo)
 # Changelog v3.3: RB-29..RB-38 adicionados (landing, DOCX, cards, saúde, badges)
 #                 DA-16..DA-20 adicionados (governança, aliases, ZapSign, RLS)
 #                 AP-25..AP-29 adicionados
@@ -846,6 +848,31 @@ RB-30 TEMPLATES DOCX — DESFRAGMENTAÇÃO XML OBRIGATÓRIA
     Aplicar em: generate-document, template-preview, docx-to-pdf
     Shared: supabase/functions/_shared/normalizeVariableFormat.ts
 
+RB-39 PIPELINE COMPLETO DE SUBSTITUIÇÃO EM DOCX (NOVO v3.4)
+    Variáveis em DOCX existem em TODOS os nós XML:
+    - Parágrafos normais (w:p > w:r > w:t) ✅
+    - Células de tabela (w:tbl > w:tr > w:tc > w:p > w:r > w:t) ✅
+    - Cabeçalhos (word/header*.xml) ✅
+    - Rodapés (word/footer*.xml) ✅
+    - Text boxes (w:txbxContent) ✅
+    PIPELINE OBRIGATÓRIO (nesta ordem exata):
+    1. defragmentXml() — consolida runs fragmentados pelo Word
+    2. cleanupRemainingFragments() — limpeza agressiva de parágrafos
+       com placeholders ainda fragmentados (proofErr, bookmarks, etc.)
+    3. normalizeVariableFormat() — [ var ] e [var] → {{var}}
+    4. Limpar XML tags residuais dentro de {{ e }}
+    5. replaceVars() com escapeXml() — substituir valores com escape XML
+    6. evaluateInlineFormulas() — IF()/SWITCH() pós-substituição
+    7. Limpar placeholders residuais ({{...}} e [...] → vazio)
+    ESCOPO: processar TODOS os arquivos word/*.xml (não apenas document.xml)
+    RUNTIME: Edge Functions usam Deno + fflate (não docxtemplater/PizZip)
+    IMPLEMENTADO EM:
+    - generate-document/index.ts → processDocx()
+    - template-preview/index.ts → processTemplate()
+    - _shared/normalizeVariableFormat.ts → defragmentXml(), normalizeVariableFormat()
+    NUNCA pular etapa 2 (cleanupRemainingFragments) — é o que resolve
+    variáveis em tabelas onde defragmentXml sozinho não basta.
+
 RB-31 CARD DO PROJETO — STATUS DA PROPOSTA MAIS RELEVANTE
     Card deve mostrar status da proposta mais relevante:
     1. is_principal = true → usar essa
@@ -908,6 +935,15 @@ RB-38 HISTÓRICO — FILTRAR RUÍDO DO SISTEMA
     São causados por geração de proposta, não por usuário.
 
 ## NOVAS DECISÕES ARQUITETURAIS
+
+DA-21 DOCX PROCESSING — FFLATE NATIVO, NÃO DOCXTEMPLATER (NOVO v3.4)
+    Contexto: Edge Functions rodam em Deno. docxtemplater + PizZip são
+    pacotes npm pesados com compatibilidade Deno incerta.
+    Decisão: Usar fflate (unzipSync/zipSync) + defragmentXml() +
+    cleanupRemainingFragments() customizados. Isso dá controle total
+    sobre o pipeline e funciona em Deno sem polyfills.
+    Quando quebrar: Se migrar para Node.js runtime, avaliar docxtemplater.
+    Implementado em: _shared/normalizeVariableFormat.ts
 
 DA-16 MOTOR DE GOVERNANÇA DE VARIÁVEIS
     knownKeys.ts gerado automaticamente dos resolvers BE (522 chaves).
@@ -1009,7 +1045,10 @@ AP-29 CONTRATO SEM DESFRAGMENTAÇÃO
 [ ] Aliases preco/investimento/potencia_sistema no resolver BE
 [ ] HEALTH_COLOR mapa completo para bolinha de saúde
 [ ] Badges de status em flex-col (nunca flex-row)
+[ ] Pipeline DOCX completo: defragment → cleanup → normalize → replace → formulas → cleanup residual
+[ ] Variáveis em tabelas DOCX processadas (RB-39)
 
 # =============================================================================
 # FIM DO AGENTS.md v3.3
+# FIM DO AGENTS.md v3.4
 # =============================================================================
