@@ -346,8 +346,9 @@ Deno.serve(async (req) => {
     //    SAME pattern as template-preview — fetch all related entities
     const { data: projeto } = await supabase
       .from("projetos")
-      .select("*, cliente_id")
+      .select("*")
       .eq("id", deal_id)
+      .eq("tenant_id", tenantId)
       .maybeSingle();
 
     const clienteId = projeto?.cliente_id;
@@ -388,7 +389,7 @@ Deno.serve(async (req) => {
         let { data: propNativa } = await supabase
           .from("propostas_nativas")
           .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id, is_principal")
-          .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
+          .eq("projeto_id", deal_id)
           .eq("is_principal", true)
           .in("status", ["gerada", "aceita"])
           .limit(1)
@@ -399,7 +400,7 @@ Deno.serve(async (req) => {
           const { data: fallback } = await supabase
             .from("propostas_nativas")
             .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id, is_principal")
-            .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
+            .eq("projeto_id", deal_id)
             .in("status", ["gerada", "aceita", "enviada", "vista"])
             .order("is_principal", { ascending: false })
             .order("created_at", { ascending: false })
