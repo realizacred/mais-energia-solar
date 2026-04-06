@@ -231,6 +231,9 @@ async function processDocxTemplate(
       }
     }
 
+    // ── STEP 2c: Evaluate inline IF()/SWITCH() formulas after substitution ──
+    content = evaluateInlineFormulasInText(content);
+
     // ── STEP 3: Final sweep — remaining placeholders are MISSING (not in vars) ──
     // KEEP them exactly as-is ([varName] or {{varName}}) to preserve layout,
     // enable easy identification, and avoid introducing different characters
