@@ -142,117 +142,15 @@ export function CustomFieldsSettings() {
   // ─── Premissas (SSOT via useTenantPremises) ───
   const premissasCtx = useTenantPremises();
 
-  // ─── Custom Field CRUD ───
-  const [fieldForm, setFieldForm] = useState({
-    title: "", field_key: "", field_type: "text", field_context: "projeto",
-    show_on_create: false, required_on_create: false,
-    visible_on_funnel: false, important_on_funnel: false,
-    required_on_funnel: false, required_on_proposal: false,
-    visibilityMode: "all" as "all" | "some",
-    visible_pipeline_ids: [] as string[],
-    important_stage_ids: [] as string[],
-    required_stage_ids: [] as string[],
-    icon: "" as string,
-  });
-  const [fieldWizardStep, setFieldWizardStep] = useState<"type" | "config">("type");
-  const [optionsText, setOptionsText] = useState("");
-
+  // ─── Custom Field CRUD — uses extracted modal ───
   const openFieldDialog = (field?: CustomField) => {
-    if (field) {
-      setEditingField(field);
-      const vpids = field.visible_pipeline_ids || [];
-      setFieldForm({
-        title: field.title, field_key: field.field_key, field_type: normalizeFieldType(field.field_type),
-        field_context: field.field_context,
-        show_on_create: field.show_on_create, required_on_create: field.required_on_create,
-        visible_on_funnel: field.visible_on_funnel, important_on_funnel: field.important_on_funnel,
-        required_on_funnel: field.required_on_funnel, required_on_proposal: field.required_on_proposal,
-        visibilityMode: vpids.length > 0 ? "some" : "all",
-        visible_pipeline_ids: vpids,
-        important_stage_ids: field.important_stage_ids || [],
-        required_stage_ids: field.required_stage_ids || [],
-        icon: field.icon || "",
-      });
-      const opts = field.options;
-      if (opts && Array.isArray(opts)) {
-        setOptionsText(opts.join("\n"));
-      } else {
-        setOptionsText("");
-      }
-      setFieldWizardStep("config");
-    } else {
-      setEditingField(null);
-      setFieldForm({
-        title: "", field_key: "", field_type: "text", field_context: contextFilter,
-        show_on_create: false, required_on_create: false,
-        visible_on_funnel: false, important_on_funnel: false,
-        required_on_funnel: false, required_on_proposal: false,
-        visibilityMode: "all",
-        visible_pipeline_ids: [],
-        important_stage_ids: [],
-        required_stage_ids: [],
-        icon: "",
-      });
-      setOptionsText("");
-      setFieldWizardStep("type");
-    }
-    setFieldKeyError(null);
+    setEditingField(field || null);
     setFieldDialogOpen(true);
   };
 
-  const [fieldKeyError, setFieldKeyError] = useState<string | null>(null);
-
-  const validateFieldKey = (key: string, context: string): string | null => {
-    if (!key.trim()) return "Chave é obrigatória.";
-    if (!/^[a-z0-9_]+$/.test(key)) return "Chave deve conter apenas letras minúsculas, números e underscore.";
-    const expectedPrefix = FIELD_KEY_PREFIXES[context] || "cap";
-    if (!key.startsWith(`${expectedPrefix}_`)) return `Chave deve começar com "${expectedPrefix}_".`;
-    if (key.length < 4) return "Chave muito curta.";
-    return null;
-  };
-
-  const handleSaveField = async () => {
-    if (!fieldForm.title.trim() || !fieldForm.field_key.trim()) return;
-
-    // Validate field_key format
-    const keyErr = validateFieldKey(fieldForm.field_key, fieldForm.field_context);
-    if (keyErr) {
-      setFieldKeyError(keyErr);
-      return;
-    }
-
-    // Check uniqueness (skip for edits keeping same key)
-    const isDuplicate = fields.some(
-      (f: any) => f.field_key === fieldForm.field_key && f.id !== editingField?.id
-    );
-    if (isDuplicate) {
-      setFieldKeyError("Chave já existe. Escolha outro nome.");
-      return;
-    }
-
-    setFieldKeyError(null);
-    setSaving(true);
-    try {
-      const normalizedFieldType = normalizeFieldType(fieldForm.field_type);
-      const options = OPTION_TYPES.includes(normalizedFieldType)
-        ? optionsText.split("\n").map(s => s.trim()).filter(Boolean)
-        : null;
-      const { visibilityMode, icon, ...formRest } = fieldForm;
-      const visible_on_funnel = visibilityMode === "all";
-      const visible_pipeline_ids = visibilityMode === "some" ? formRest.visible_pipeline_ids : [];
-      const payload = {
-        ...formRest, field_type: normalizedFieldType, options, visible_on_funnel, visible_pipeline_ids,
-        important_on_funnel: formRest.important_stage_ids.length > 0,
-        required_on_funnel: formRest.required_stage_ids.length > 0,
-        icon: icon || null,
-      };
-
-      await saveFieldMutation.mutateAsync({ id: editingField?.id, data: payload });
-      toast({ title: editingField ? "Campo atualizado" : "Campo criado" });
-      setFieldDialogOpen(false);
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    } finally { setSaving(false); }
+  const handleSaveFieldFromModal = async (payload: Record<string, any>, id?: string) => {
+    await saveFieldMutation.mutateAsync({ id, data: payload });
+    toast({ title: id ? "Campo atualizado" : "Campo criado" });
   };
 
   const handleDeleteField = async (id: string) => {
