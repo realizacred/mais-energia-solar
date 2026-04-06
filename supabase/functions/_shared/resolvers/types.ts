@@ -14,7 +14,8 @@ export function safeArr(val: unknown): AnyObj[] {
 }
 
 export function str(v: unknown): string | undefined {
-  if (v === null || v === undefined || v === "") return undefined;
+  if (v === null || v === undefined) return undefined;
+  if (v === "") return "";
   return String(v);
 }
 

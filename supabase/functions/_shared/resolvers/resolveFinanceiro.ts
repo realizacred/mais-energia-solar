@@ -72,7 +72,7 @@ export function resolveFinanceiro(
 
   const set = (k: string, v: unknown) => {
     const s = str(v);
-    if (s && !out[k]) out[k] = s;
+    if (s !== undefined && !out[k]) out[k] = s;
   };
   // AP-17: all monetary values return pure numbers without R$
   const setCur = (k: string, v: number | null) => {

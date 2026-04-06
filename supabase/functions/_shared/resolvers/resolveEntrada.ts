@@ -21,7 +21,7 @@ export function resolveEntrada(
 
   const set = (k: string, v: unknown) => {
     const s = str(v);
-    if (s && !out[k]) out[k] = s;
+    if (s !== undefined && !out[k]) out[k] = s;
   };
 
   // ── Tipo ──
