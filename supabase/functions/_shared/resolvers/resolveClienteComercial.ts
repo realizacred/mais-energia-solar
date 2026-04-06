@@ -349,7 +349,7 @@ export function resolveClienteComercial(
   set("vc_observacao", lead.observacoes ?? snap.vc_observacao ?? snap.observacoes);
 
   // ── Ghost Group 1 — Empresa extras (brand_settings / tenants) ──
-  set("descricao", snap.descricao ?? proposta.descricao);
+  set("descricao", snap.descricaoProposta ?? snap.descricao ?? safeObj(snap._wizard_state).descricaoProposta ?? proposta.descricao);
   set("proposta_data_envio", fmtDate(proposta.created_at ?? versao.created_at ?? proposta.sent_at));
   set("proposta_codigo", proposta.codigo ?? (proposta.id ? String(proposta.id).substring(0, 8) : undefined));
   set("titulo", snap.proposta_titulo ?? proposta.titulo);

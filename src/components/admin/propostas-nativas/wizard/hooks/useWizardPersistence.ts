@@ -168,6 +168,17 @@ function sanitizeSnapshot(snapshot: any): Record<string, unknown> {
   const { mapSnapshots, ...rest } = snapshot;
   const result: Record<string, unknown> = { ...rest, grupo: normalizeGrupo(rest.grupo), schema_version: SNAPSHOT_SCHEMA_VERSION };
 
+  // Promote _wizard_state metadata to snapshot root for resolver access
+  const ws = rest._wizard_state as Record<string, unknown> | undefined;
+  if (ws) {
+    if (ws.descricaoProposta && !result.descricaoProposta) {
+      result.descricaoProposta = ws.descricaoProposta;
+    }
+    if (ws.nomeProposta && !result.nomeProposta) {
+      result.nomeProposta = ws.nomeProposta;
+    }
+  }
+
   // ── Enrich: flatten warranty from kit items into snapshot root ──
   // Ensures modulo_garantia and inversor_garantia are persisted for resolvers
   try {
