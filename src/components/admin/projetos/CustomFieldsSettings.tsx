@@ -845,17 +845,15 @@ export function CustomFieldsSettings() {
           {/* ── Step 2: Config Form ── */}
           {fieldWizardStep === "config" && (
             <>
-              {/* Back button */}
-              {!editingField && (
-                <Button variant="ghost"
-                  type="button"
-                  onClick={() => setFieldWizardStep("type")}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Voltar
-                </Button>
-              )}
+              {/* Back button — always visible so user can change type */}
+              <Button variant="ghost"
+                type="button"
+                onClick={() => setFieldWizardStep("type")}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                {editingField ? "Alterar tipo" : "Voltar"}
+              </Button>
 
               {/* Selected type indicator */}
               <div className="flex justify-center py-1">
