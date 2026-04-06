@@ -1222,6 +1222,7 @@ export function ProposalWizard() {
     overrideVersaoId?: string | null,
   ): PersistenceParams => {
     const snapshot = collectSnapshot();
+    console.error("[DEBUG] snapshot customFieldValues:", JSON.stringify(snapshot.customFieldValues));
     const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
     return {
       effectivePropostaId: overridePropostaId ?? savedPropostaId ?? null,
