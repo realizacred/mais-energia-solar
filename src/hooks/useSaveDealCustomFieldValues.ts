@@ -5,6 +5,7 @@
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 interface SaveParams {
   dealId: string;
@@ -18,6 +19,9 @@ export function useSaveDealCustomFieldValues() {
   return useMutation({
     mutationFn: async ({ dealId, values }: SaveParams) => {
       if (!dealId || !values || Object.keys(values).length === 0) return;
+
+      // 0. Resolve tenant_id for RLS compliance
+      const { tenantId } = await getCurrentTenantId();
 
       // 1. Fetch field definitions to map field_key → field_id + field_type
       const { data: fields, error: fieldsErr } = await supabase
@@ -40,6 +44,7 @@ export function useSaveDealCustomFieldValues() {
         const row: Record<string, any> = {
           deal_id: dealId,
           field_id: field.id,
+          tenant_id: tenantId,
           value_text: null,
           value_number: null,
           value_boolean: null,
