@@ -22,29 +22,7 @@ export function flattenSnapshot(
 ): Record<string, string> {
   const result = resolveAllVariables(snapshot, ext);
 
-  const totalKeys = Object.keys(result).length;
-  console.log(`[flattenSnapshot] Total resolved keys: ${totalKeys}`);
-  console.log("[flattenSnapshot] resolved keys sample:", {
-    subgrupo: result.subgrupo,
-    tipo_telhado: result.tipo_telhado,
-    estrutura: result.estrutura,
-    dis_energia: result.dis_energia,
-    cidade: result.cidade,
-    estado: result.estado,
-    tensao_rede: result.tensao_rede,
-    fator_geracao: result.fator_geracao,
-    valor_total: result.valor_total,
-    modulo_fabricante: result.modulo_fabricante,
-    inversor_fabricante: result.inversor_fabricante,
-    proposta_identificador: result.proposta_identificador,
-    area_util: result.area_util,
-    vc_aumento: result.vc_aumento,
-    vc_a_vista: result.vc_a_vista,
-    capo_m: result.capo_m,
-    capo_seguro: result.capo_seguro,
-    vc_calculo_seguro: result.vc_calculo_seguro,
-    fluxo_caixa_acumulado_anual_10: result.fluxo_caixa_acumulado_anual_10,
-  });
+  // console.log(`[flattenSnapshot] Total resolved keys: ${totalKeys}`);
 
   return result;
 }
