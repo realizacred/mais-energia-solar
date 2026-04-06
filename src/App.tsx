@@ -15,6 +15,7 @@ import { PWAAutoInstallPrompt } from "@/components/pwa/PWAAutoInstallPrompt";
 import { TenantGuardGate } from "@/components/guards/TenantGuardGate";
 import { DevToolsProvider } from "@/contexts/DevToolsContext";
 import { DevToolsOverlay } from "@/components/dev/DevToolsOverlay";
+import { RealtimeHeartbeatProvider } from "@/components/providers/RealtimeHeartbeatProvider";
 
 // Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -90,6 +91,7 @@ const App = () => (
         <BrowserRouter>
           <PWAReturnRedirect />
           <PWAAutoInstallPrompt />
+          <RealtimeHeartbeatProvider />
           <WaNotificationProvider />
           <PushActivationBanner />
           <Suspense fallback={<LoadingSpinner />}>
