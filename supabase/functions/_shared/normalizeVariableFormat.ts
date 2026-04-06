@@ -193,3 +193,14 @@ export function normalizeDocxVariableFormat(docxBytes: Uint8Array): Uint8Array {
 
   return zipSync(processed, { level: 6 });
 }
+
+/**
+ * Final cleanup pass: remove any residual {{var}} or [var] placeholders
+ * so they appear blank in the PDF instead of showing raw placeholder text.
+ * Apply AFTER all substitution and formula evaluation is complete.
+ */
+export function cleanResidualPlaceholders(xmlStr: string): string {
+  xmlStr = xmlStr.replace(/\{\{[^}]+\}\}/g, "");
+  xmlStr = xmlStr.replace(/\[[a-zA-Z_][a-zA-Z0-9_.]*\]/g, "");
+  return xmlStr;
+}
