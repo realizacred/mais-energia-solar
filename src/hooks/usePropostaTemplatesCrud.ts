@@ -86,19 +86,27 @@ export function useSalvarPropostaTemplate() {
 export function useDeletarPropostaTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (template: { id: string; file_url?: string | null }) => {
       // Desvincular versões que referenciam este template
       const { error: versionsError } = await supabase
         .from("proposta_versoes" as any)
         .update({ template_id_used: null } as any)
-        .eq("template_id_used", id);
+        .eq("template_id_used", template.id);
       if (versionsError) console.warn("[useDeletarPropostaTemplate] Erro ao desvincular versões:", versionsError.message);
 
       const { error } = await supabase
         .from("proposta_templates")
         .delete()
-        .eq("id", id);
+        .eq("id", template.id);
       if (error) throw error;
+
+      // GAP 2: RB-25 fire-and-forget — delete storage file after DB delete
+      if (template.file_url) {
+        const path = extractStoragePathFromUrl(template.file_url, "proposta-templates");
+        if (path) {
+          supabase.storage.from("proposta-templates").remove([path]).catch(() => {});
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY] });

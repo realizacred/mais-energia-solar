@@ -251,6 +251,9 @@ export function TemplatesManager() {
       return;
     }
 
+    // GAP 1: Capture old file_url before upload to delete later
+    const oldFileUrl = form.file_url || null;
+
     setUploading(true);
     try {
       await supabase.auth.refreshSession();
@@ -272,6 +275,14 @@ export function TemplatesManager() {
         .upload(fileName, file, { contentType: file.type, upsert: true });
 
       if (uploadError) throw uploadError;
+
+      // RB-25: delete old file fire-and-forget — never block upload
+      if (oldFileUrl) {
+        const oldPath = extractStoragePath(oldFileUrl, "proposta-templates");
+        if (oldPath) {
+          supabase.storage.from("proposta-templates").remove([oldPath]).catch(() => {});
+        }
+      }
 
       const { data: urlData } = supabase.storage
         .from("proposta-templates")
