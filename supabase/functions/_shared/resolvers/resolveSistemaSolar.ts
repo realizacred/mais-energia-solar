@@ -152,7 +152,7 @@ export function resolveSistemaSolar(
     set("modulo_modelo", m0.modelo);
     if (m0.potencia_w) {
       const pw = String(m0.potencia_w);
-      out["modulo_potencia"] = pw.replace(/\s*Wp\s*/, "");
+      out["modulo_potencia"] = pw.replace(/\s*Wp\s*$/, "") + " Wp";
       out["modulo_potencia_numero"] = String(m0.potencia_w);
     }
     set("vc_modulo_potencia", m0.potencia_w);
@@ -224,7 +224,7 @@ export function resolveSistemaSolar(
   set("modulo_fabricante", snap.modulo_fabricante);
   if (snap.modulo_potencia && !out["modulo_potencia"]) {
     const mp = String(snap.modulo_potencia);
-    out["modulo_potencia"] = mp.replace(/\s*Wp\s*/, "");
+    out["modulo_potencia"] = mp.replace(/\s*Wp\s*$/, "") + " Wp";
   }
 
   // Module snapshot fallbacks for catalog fields
