@@ -346,8 +346,9 @@ Deno.serve(async (req) => {
     //    SAME pattern as template-preview — fetch all related entities
     const { data: projeto } = await supabase
       .from("projetos")
-      .select("*, cliente_id")
+      .select("*")
       .eq("id", deal_id)
+      .eq("tenant_id", tenantId)
       .maybeSingle();
 
     const clienteId = projeto?.cliente_id;
