@@ -143,9 +143,8 @@ Deno.serve(async (req) => {
 
       // Fallback: enqueue WhatsApp notification via wa_outbox
       // Only if we have enough context
-      console.log(`[proposal-email] Attempting wa_outbox fallback for ${to_email}`);
+      // Fallback: enqueue WhatsApp notification via RPC (RB-26)
       try {
-        // Look up a phone number for the lead/client connected to this proposal
         const { data: propostaFull } = await adminClient
           .from("propostas_nativas")
           .select("lead_id")
@@ -163,7 +162,6 @@ Deno.serve(async (req) => {
           if (lead?.telefone) {
             const waText = `📄 Sua proposta "${proposta.titulo || proposta.codigo}" está pronta!${public_url ? `\n🔗 ${public_url}` : ""}\n\n(E-mail não entregue — enviando por WhatsApp)`;
 
-            // Find a connected instance for this tenant
             const { data: instance } = await adminClient
               .from("wa_instances")
               .select("id")
@@ -174,21 +172,20 @@ Deno.serve(async (req) => {
 
             if (instance) {
               const phone = lead.telefone.replace(/\D/g, "");
-              await adminClient.from("wa_outbox").insert({
-                tenant_id: tenantId,
-                instance_id: instance.id,
-                remote_jid: `${phone}@s.whatsapp.net`,
-                message_type: "text",
-                content: waText,
-                status: "pending",
-                scheduled_at: new Date().toISOString(),
+              const idempKey = `proposal-email-fallback-${proposta_id}-${Date.now()}`;
+              await adminClient.rpc("enqueue_wa_outbox_item", {
+                p_tenant_id: tenantId,
+                p_instance_id: instance.id,
+                p_remote_jid: `${phone}@s.whatsapp.net`,
+                p_message_type: "text",
+                p_content: waText,
+                p_idempotency_key: idempKey,
               });
-              console.log(`[proposal-email] Fallback: WhatsApp queued for ${phone}`);
             }
           }
         }
       } catch (fallbackErr) {
-        console.warn(`[proposal-email] WhatsApp fallback also failed: ${sanitizeError(fallbackErr)}`);
+        console.warn(`[proposal-email] WhatsApp fallback failed: ${sanitizeError(fallbackErr)}`);
       }
 
       if (!smtpSent) {
