@@ -552,13 +552,18 @@ export function ProposalWizard() {
     const draft = loadLocal();
     if (!draft?.snapshot) return;
 
+    // If the draft belongs to an already-saved proposal, don't restore it
+    // for a brand new wizard — the user expects a clean slate.
+    if (draft.savedPropostaId) {
+      clearLocal();
+      return;
+    }
+
     restoreFromSnapshot(draft.snapshot);
     // For localStorage drafts (new proposals), restore the step position
     if (draft.snapshot.step != null && draft.snapshot.step > 0) {
       setStep(draft.snapshot.step);
     }
-    if (draft.savedPropostaId) setSavedPropostaId(draft.savedPropostaId);
-    if (draft.savedVersaoId) setSavedVersaoId(draft.savedVersaoId);
 
     toast({ title: "📋 Rascunho restaurado", description: "O progresso anterior foi recuperado automaticamente." });
   }, [propostaIdFromUrl, versaoIdFromUrl, dealIdFromUrl, customerIdFromUrl, restoreFromSnapshot]);
