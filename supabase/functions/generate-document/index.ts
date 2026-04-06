@@ -48,40 +48,94 @@ function replaceVars(text: string, ctx: Record<string, string>): string {
  * and [pos_incluir_string_box] was already substituted with its value.
  */
 function evaluateInlineFormulas(text: string): string {
-  // Match IF(...) patterns — must handle nested quotes and semicolons
-  const ifPattern = /IF\s*\(([^)]+)\)/gi;
+  // Use balanced parentheses matching to support nested IF()
+  const MAX_PASSES = 10;
+  let result = text;
+  for (let pass = 0; pass < MAX_PASSES; pass++) {
+    const ifIdx = findIFStart(result);
+    if (ifIdx === -1) break;
+    const openParen = result.indexOf("(", ifIdx);
+    if (openParen === -1) break;
+    const closeParen = findMatchingParen(result, openParen);
+    if (closeParen === -1) break;
+    const fullMatch = result.substring(ifIdx, closeParen + 1);
+    const argsStr = result.substring(openParen + 1, closeParen);
+    const evaluated = evaluateSingleIF(argsStr);
+    result = result.substring(0, ifIdx) + evaluated + result.substring(closeParen + 1);
+  }
+  return result;
+}
 
-  return text.replace(ifPattern, (fullMatch, argsStr: string) => {
-    // Split by ; or , (respecting quoted strings)
-    const parts = splitFormulaParts(argsStr);
-    if (parts.length < 3) return fullMatch; // malformed — leave as-is
+/** Find next IF( ignoring case */
+function findIFStart(text: string): number {
+  const lower = text.toLowerCase();
+  let idx = 0;
+  while (idx < text.length) {
+    const pos = lower.indexOf("if", idx);
+    if (pos === -1) return -1;
+    // Check it's IF followed by optional whitespace then (
+    let j = pos + 2;
+    while (j < text.length && text[j] === " ") j++;
+    if (j < text.length && text[j] === "(") return pos;
+    idx = pos + 1;
+  }
+  return -1;
+}
 
-    const condition = parts[0].trim();
-    const thenVal = unquote(parts[1].trim());
-    const elseVal = unquote(parts[2].trim());
-
-    // Evaluate condition: "A"="B" or A=B or "A"<>"B"
-    const neqMatch = condition.match(/^(.+?)<>(.+)$/);
-    const eqMatch = condition.match(/^(.+?)=(.+)$/);
-
-    if (neqMatch) {
-      const left = unquote(neqMatch[1].trim());
-      const right = unquote(neqMatch[2].trim());
-      return left !== right ? thenVal : elseVal;
+/** Find matching closing paren, respecting nesting and quotes */
+function findMatchingParen(text: string, openPos: number): number {
+  let depth = 0;
+  let inQuote = false;
+  let quoteChar = "";
+  for (let i = openPos; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuote) {
+      if (ch === quoteChar) inQuote = false;
+      continue;
     }
-    if (eqMatch) {
-      const left = unquote(eqMatch[1].trim());
-      const right = unquote(eqMatch[2].trim());
-      return left === right ? thenVal : elseVal;
+    if (ch === '"' || ch === "'") {
+      inQuote = true;
+      quoteChar = ch;
+    } else if (ch === "(") {
+      depth++;
+    } else if (ch === ")") {
+      depth--;
+      if (depth === 0) return i;
     }
+  }
+  return -1;
+}
 
-    // Numeric/truthy check
-    const condClean = unquote(condition);
-    if (condClean && condClean !== "0" && condClean.toLowerCase() !== "false") {
-      return thenVal;
-    }
-    return elseVal;
-  });
+/** Evaluate a single IF's arguments (may contain already-resolved nested IFs) */
+function evaluateSingleIF(argsStr: string): string {
+  // Recursively evaluate any nested IF() inside args first
+  const resolved = evaluateInlineFormulas(argsStr);
+  const parts = splitFormulaParts(resolved);
+  if (parts.length < 3) return argsStr;
+
+  const condition = parts[0].trim();
+  const thenVal = unquote(parts[1].trim());
+  const elseVal = unquote(parts[2].trim());
+
+  const neqMatch = condition.match(/^(.+?)<>(.+)$/);
+  const eqMatch = condition.match(/^(.+?)=(.+)$/);
+
+  if (neqMatch) {
+    const left = unquote(neqMatch[1].trim());
+    const right = unquote(neqMatch[2].trim());
+    return left !== right ? thenVal : elseVal;
+  }
+  if (eqMatch) {
+    const left = unquote(eqMatch[1].trim());
+    const right = unquote(eqMatch[2].trim());
+    return left === right ? thenVal : elseVal;
+  }
+
+  const condClean = unquote(condition);
+  if (condClean && condClean !== "0" && condClean.toLowerCase() !== "false") {
+    return thenVal;
+  }
+  return elseVal;
 }
 
 /** Split formula arguments respecting quoted strings */
