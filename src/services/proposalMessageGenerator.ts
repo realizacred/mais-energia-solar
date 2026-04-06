@@ -12,6 +12,7 @@
  */
 
 import { formatBRL, formatNumberBR } from "@/lib/formatters";
+import { getPublicUrl } from "@/lib/getPublicUrl";
 import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
 import type { BlockConfig } from "@/hooks/useProposalMessageConfig";
 
@@ -493,7 +494,7 @@ export function extractMessageContext(
 
   // Link
   const publicSlug = versao.public_slug;
-  const linkProposta = publicSlug ? `${window.location.origin}/p/${publicSlug}` : null;
+  const linkProposta = publicSlug ? `${getPublicUrl()}/p/${publicSlug}` : null;
 
   const result: ProposalMessageContext & { _snapshot?: any } = {
     clienteNome: proposta.cliente_nome || snap.clienteNome || snap.cliente_nome || null,
