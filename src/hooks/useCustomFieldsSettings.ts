@@ -77,7 +77,9 @@ export function usePipelinesList() {
 
 // ─── Helper: get tenant_id ───
 async function getTenantId(): Promise<string | null> {
-  const { data } = await supabase.from("profiles").select("tenant_id").limit(1).single();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) return null;
+  const { data } = await supabase.from("profiles").select("tenant_id").eq("user_id", user.id).maybeSingle();
   return (data as any)?.tenant_id ?? null;
 }
 
