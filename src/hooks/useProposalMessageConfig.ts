@@ -77,7 +77,7 @@ export const PLACEHOLDER_CATALOG: PlaceholderInfo[] = [
   { key: "geracao_mensal", label: "Geração mensal (kWh)", example: "1.100", category: "Energia" },
   { key: "economia_mensal", label: "Economia mensal (R$)", example: "R$ 680,00", category: "Financeiro" },
   { key: "valor_total", label: "Valor total da proposta", example: "R$ 42.500,00", category: "Financeiro" },
-  { key: "link_proposta", label: "Link público da proposta", example: "https://app.com/p/abc123", category: "Proposta" },
+  { key: "link_proposta", label: "Link público da proposta", example: "https://app.com/proposta/abc123", category: "Proposta" },
   { key: "status", label: "Status da proposta", example: "Gerada", category: "Proposta" },
   { key: "consultor_nome", label: "Nome do consultor", example: "Maria Santos", category: "Empresa" },
   { key: "empresa_nome", label: "Nome da empresa", example: "Solar Energy", category: "Empresa" },

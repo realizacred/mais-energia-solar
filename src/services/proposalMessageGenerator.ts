@@ -494,7 +494,7 @@ export function extractMessageContext(
 
   // Link
   const publicSlug = versao.public_slug;
-  const linkProposta = publicSlug ? `${getPublicUrl()}/p/${publicSlug}` : null;
+  const linkProposta = publicSlug ? `${getPublicUrl()}/proposta/${publicSlug}` : null;
 
   const result: ProposalMessageContext & { _snapshot?: any } = {
     clienteNome: proposta.cliente_nome || snap.clienteNome || snap.cliente_nome || null,
