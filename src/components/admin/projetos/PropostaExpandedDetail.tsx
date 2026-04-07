@@ -713,6 +713,51 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [reabrirDialogOpen, setReabrirDialogOpen] = useState(false);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
 
+  // Edit accepted proposal confirmation
+  const [editAceitaDialogOpen, setEditAceitaDialogOpen] = useState(false);
+  const [editAceitaMotivo, setEditAceitaMotivo] = useState("");
+  const [pendingEditAction, setPendingEditAction] = useState<(() => void) | null>(null);
+  const [cancellingDocs, setCancellingDocs] = useState(false);
+
+  const handleEditWithProtection = (editFn: () => void) => {
+    if (p.status === "aceita") {
+      setPendingEditAction(() => editFn);
+      setEditAceitaMotivo("");
+      setEditAceitaDialogOpen(true);
+    } else {
+      editFn();
+    }
+  };
+
+  const confirmEditAceita = async () => {
+    if (!editAceitaMotivo.trim()) {
+      toast({ title: "Motivo obrigatório", description: "Informe o motivo para editar a proposta aceita.", variant: "destructive" });
+      return;
+    }
+    setCancellingDocs(true);
+    try {
+      // Cancel generated (non-signed) documents for this project
+      await supabase
+        .from("generated_documents")
+        .update({
+          status: "cancelled",
+          observacao: editAceitaMotivo.trim(),
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("deal_id", dealId)
+        .eq("status", "generated")
+        .neq("signature_status", "signed");
+
+      setEditAceitaDialogOpen(false);
+      pendingEditAction?.();
+    } catch (err) {
+      console.error("[PropostaExpandedDetail] Erro ao cancelar documentos:", err);
+      toast({ title: "Erro", description: "Falha ao cancelar contratos vinculados.", variant: "destructive" });
+    } finally {
+      setCancellingDocs(false);
+    }
+  };
+
   // Restore the template used during generation from snapshot
   useEffect(() => {
     const snapTpl = (snapshot as any)?.templateSelecionado || (snapshot as any)?.template_selecionado;
