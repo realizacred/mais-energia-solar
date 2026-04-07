@@ -193,11 +193,13 @@ export function useDealPipeline() {
       results = results.filter(d => existingDealIds.has(d.deal_id));
 
       const customerMap = new Map<string, string>();
+      const projetoIdMap = new Map<string, string>(); // deal_id → projeto_id
       const notasMap = new Map<string, string | null>();
       const closeDateMap = new Map<string, string | null>();
       const docChecklistMap = new Map<string, Record<string, boolean> | null>();
       (dealsData || []).forEach((d: any) => {
         if (d.customer_id) customerMap.set(d.id, d.customer_id);
+        if (d.projeto_id) projetoIdMap.set(d.id, d.projeto_id);
         notasMap.set(d.id, d.notas || null);
         closeDateMap.set(d.id, d.expected_close_date || null);
         docChecklistMap.set(d.id, d.doc_checklist || null);
