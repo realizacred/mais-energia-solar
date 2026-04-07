@@ -1,7 +1,7 @@
-# AGENTS.md v3.9 — Mais Energia Solar CRM
+# AGENTS.md v3.10 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-07 (v3.9 — APP_URL unificado, webhook URL em SignatureTab)
-# Changelog v3.9: DA-30..DA-31 (APP_URL fallback, webhook URL display)
+# Última atualização: 2026-04-07 (v3.10 — Fluxo rápido Lead → Proposta)
+# Changelog v3.10: RB-50, DA-32 (quickConvertToProposal, usePropostaRapidaLead)
 # Changelog v3.7: RB-47..RB-49, DA-25..DA-26 (public action, auto-expire, empresa_*, CEP)
 # Changelog v3.6: RB-44..RB-46, DA-24 (proteção signed, edição aceita, [cidade])
 # Changelog v3.5: RB-40..RB-43, DA-22..DA-23 (aceite/contrato, purge jobs, hooks)
@@ -1276,5 +1276,32 @@ AP-29 CONTRATO SEM DESFRAGMENTAÇÃO
     Implementado em: src/components/admin/documentos/SignatureTab.tsx
 
 # =============================================================================
-# FIM DO AGENTS.md v3.9
+# BLOCO 21 — REGRAS v3.10 — Sessão 2026-04-07 (cont.)
+# =============================================================================
+
+### RB-50 FLUXO RÁPIDO LEAD → PROPOSTA (quickConvertToProposal)
+    Botão "Gerar Proposta Rápida" (ícone ScrollText, cor warning) nas tabelas:
+    - LeadsTable (admin)
+    - VendorLeadsTable (vendedor)
+    - VendorOrcamentosTable (vendedor)
+    Fluxo:
+    1. Buscar cliente existente por lead_id
+    2. Se não existe → criar cliente mínimo (nome, telefone, cidade, estado)
+    3. Buscar projeto existente via cliente_id
+    4. Se já existe → toast info + redirecionar ao wizard
+    5. Se não existe → criar deal (pipeline default) + projeto
+    6. Redirecionar: /admin/propostas-nativas/nova?deal_id=X&customer_id=Y&lead_id=Z
+    NUNCA criar cliente/projeto duplicado — sempre buscar antes.
+    Loading spinner no botão durante operação.
+    Implementado em: src/hooks/usePropostaRapidaLead.ts
+
+### DA-32 HOOK usePropostaRapidaLead — INTERFACE QuickLeadData
+    O hook aceita QuickLeadData (não Lead direto) para funcionar com
+    Lead, OrcamentoVendedor e qualquer entidade com dados mínimos.
+    Campos obrigatórios: id, nome, telefone.
+    Campos opcionais: cidade, estado, bairro, rua, cep, consultor_id, valor_estimado.
+    Implementado em: src/hooks/usePropostaRapidaLead.ts
+
+# =============================================================================
+# FIM DO AGENTS.md v3.10
 # =============================================================================
