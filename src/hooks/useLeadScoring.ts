@@ -305,7 +305,7 @@ export function useLeadScoring() {
         score: s.score,
         nivel: s.nivel,
         probabilidade_fechamento: s.probabilidade_fechamento,
-        fatores: JSON.stringify(s.fatores),
+        fatores: s.fatores as unknown as Json,
         recomendacao: s.recomendacao,
         score_consumo: s.score_consumo,
         score_recencia: s.score_recencia,
