@@ -217,20 +217,22 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                       </TooltipTrigger>
                       <TooltipContent>Ver detalhes</TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-warning hover:text-warning hover:bg-warning/10"
-                          onClick={() => quickConvertToProposal(lead)}
-                          disabled={quickLoading}
-                        >
-                          {quickLoading && loadingLeadId === lead.id ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Gerar Proposta Rápida</TooltipContent>
-                    </Tooltip>
+                    {!isConverted && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-warning hover:text-warning hover:bg-warning/10"
+                            onClick={(e) => { e.stopPropagation(); quickConvertToProposal(lead); }}
+                            disabled={quickLoading}
+                          >
+                            {quickLoading && loadingLeadId === lead.id ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                      </Tooltip>
+                    )}
                     {onConvert && !isConverted && (
                       <Tooltip>
                         <TooltipTrigger asChild>
