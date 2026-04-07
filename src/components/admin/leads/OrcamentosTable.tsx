@@ -65,7 +65,20 @@ export function OrcamentosTable({
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoDisplayItem | null>(null);
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
-  const { reopenLead, reopening } = useReopenLead(onRefresh);
+  const { quickConvertToProposal, loading: quickLoading } = usePropostaRapidaLead();
+
+  const handleQuickProposal = (orc: OrcamentoDisplayItem) => {
+    const leadData: QuickLeadData = {
+      id: orc.lead_id,
+      nome: orc.nome,
+      telefone: orc.telefone,
+      cidade: orc.cidade || null,
+      estado: orc.estado || null,
+      consultor_id: orc.consultor_id || null,
+      valor_estimado: orc.media_consumo || null,
+    };
+    quickConvertToProposal(leadData);
+  };
 
   const handleOpenWhatsApp = (orc: OrcamentoDisplayItem) => {
     setSelectedOrcamento(orc);
