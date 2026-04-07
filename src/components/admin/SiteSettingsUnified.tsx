@@ -344,13 +344,24 @@ export function SiteSettingsUnified() {
                   />
                 </div>
               </div>
-              <div className="max-w-sm">
-                <CpfCnpjInput
-                  value={brandDraft.representante_cpf || ""}
-                  onChange={(val) => handleBrandChange("representante_cpf", val)}
-                  label="CPF do representante"
-                  placeholder="000.000.000-00"
-                />
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <CpfCnpjInput
+                    value={brandDraft.representante_cpf || ""}
+                    onChange={(val) => handleBrandChange("representante_cpf", val)}
+                    label="CPF do representante"
+                    placeholder="000.000.000-00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>E-mail do representante (para assinatura digital)</Label>
+                  <Input
+                    type="email"
+                    value={brandDraft.representante_email || ""}
+                    onChange={(e) => handleBrandChange("representante_email", e.target.value)}
+                    placeholder="representante@empresa.com.br"
+                  />
+                </div>
               </div>
               <p className="text-xs text-muted-foreground">
                 Estes dados são usados nas variáveis <code className="text-xs bg-muted px-1 rounded">{"{{comercial.empresa_representante_*}}"}</code> em contratos e propostas. Salve clicando em <strong>"Salvar Visual"</strong>.
