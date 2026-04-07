@@ -15,6 +15,7 @@ import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
 import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
 import { usePaymentInterestConfigs, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
 import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
+import { PaymentMethodSelector, type FormaSelected } from "./PaymentMethodSelector";
 
 const FORMA_ICONS: Record<string, React.ReactNode> = {
   pix: <Smartphone className="h-4 w-4 text-primary" />,
