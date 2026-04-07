@@ -6,6 +6,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { parseInvokeError } from "@/lib/supabaseFunctionError";
 
 export interface SendProposalMessagePayload {
   canal: "whatsapp" | "email" | "copy";
@@ -67,7 +68,10 @@ export function useSendProposalMessage() {
         body: payload,
       });
 
-      if (error) throw error;
+      if (error) {
+        const parsed = await parseInvokeError(error);
+        throw new Error(parsed.message);
+      }
       if (data && !data.success) throw new Error(data.error || "Erro no envio");
       return data;
     },
