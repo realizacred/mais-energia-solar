@@ -12,6 +12,8 @@ import {
   FilePlus, FileCheck, Clock, TrendingUp, PiggyBank, Timer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -713,6 +715,51 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [reabrirDialogOpen, setReabrirDialogOpen] = useState(false);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
 
+  // Edit accepted proposal confirmation
+  const [editAceitaDialogOpen, setEditAceitaDialogOpen] = useState(false);
+  const [editAceitaMotivo, setEditAceitaMotivo] = useState("");
+  const [pendingEditAction, setPendingEditAction] = useState<(() => void) | null>(null);
+  const [cancellingDocs, setCancellingDocs] = useState(false);
+
+  const handleEditWithProtection = (editFn: () => void) => {
+    if (p.status === "aceita") {
+      setPendingEditAction(() => editFn);
+      setEditAceitaMotivo("");
+      setEditAceitaDialogOpen(true);
+    } else {
+      editFn();
+    }
+  };
+
+  const confirmEditAceita = async () => {
+    if (!editAceitaMotivo.trim()) {
+      toast({ title: "Motivo obrigatório", description: "Informe o motivo para editar a proposta aceita.", variant: "destructive" });
+      return;
+    }
+    setCancellingDocs(true);
+    try {
+      // Cancel generated (non-signed) documents for this project
+      await supabase
+        .from("generated_documents")
+        .update({
+          status: "cancelled",
+          observacao: editAceitaMotivo.trim(),
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("deal_id", dealId)
+        .eq("status", "generated")
+        .neq("signature_status", "signed");
+
+      setEditAceitaDialogOpen(false);
+      pendingEditAction?.();
+    } catch (err) {
+      console.error("[PropostaExpandedDetail] Erro ao cancelar documentos:", err);
+      toast({ title: "Erro", description: "Falha ao cancelar contratos vinculados.", variant: "destructive" });
+    } finally {
+      setCancellingDocs(false);
+    }
+  };
+
   // Restore the template used during generation from snapshot
   useEffect(() => {
     const snapTpl = (snapshot as any)?.templateSelecionado || (snapshot as any)?.template_selecionado;
@@ -1266,7 +1313,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 }}>
                   <Eye className="h-3.5 w-3.5 mr-2 text-primary" /> Visualizar detalhes
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
+                <DropdownMenuItem onClick={() => handleEditWithProtection(() => {
                   if (latestVersao) {
                     const params = new URLSearchParams({
                       proposta_id: p.id,
@@ -1280,7 +1327,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     if (customerId) params.set("customer_id", customerId);
                     navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
                   }
-                }}>
+                })}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-warning" /> Editar dimensionamento
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -1463,9 +1510,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         onGenerate={latestVersao?.link_pdf && !latestVersao?.output_pdf_path
                           ? () => window.open(latestVersao.link_pdf!, "_blank", "noopener,noreferrer")
                           : handleRender}
-                        onNewVersion={() => {
+                        onNewVersion={() => handleEditWithProtection(() => {
                           navigate(`/admin/propostas-nativas?edit=${p.id}`);
-                        }}
+                        })}
                         onViewDetail={() => {}}
                       />
                     </div>
@@ -1624,6 +1671,44 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         dealId={dealId}
         customerId={customerId}
       />
+
+      {/* Edit accepted proposal confirmation dialog */}
+      <Dialog open={editAceitaDialogOpen} onOpenChange={setEditAceitaDialogOpen}>
+        <DialogContent className="w-[90vw] max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertCircle className="h-5 w-5 text-warning" />
+              Editar proposta aceita
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Esta proposta está aceita. Editar irá cancelar os contratos vinculados (não assinados). Deseja continuar?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <label className="text-sm font-medium text-foreground">Motivo da edição *</label>
+            <Textarea
+              placeholder="Informe o motivo para editar esta proposta aceita..."
+              value={editAceitaMotivo}
+              onChange={(e) => setEditAceitaMotivo(e.target.value)}
+              className="min-h-[80px]"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setEditAceitaDialogOpen(false)} disabled={cancellingDocs}>
+              Cancelar
+            </Button>
+            <Button
+              variant="default"
+              onClick={confirmEditAceita}
+              disabled={!editAceitaMotivo.trim() || cancellingDocs}
+              className="bg-warning text-warning-foreground hover:bg-warning/90"
+            >
+              {cancellingDocs ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirmar e editar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

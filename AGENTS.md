@@ -1,6 +1,7 @@
-# AGENTS.md v3.5 — Mais Energia Solar CRM
+# AGENTS.md v3.6 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-07 (v3.5 — Fluxo aceite/contrato, purge jobs, hooks RB-04)
+# Última atualização: 2026-04-07 (v3.6 — Proteção signed, edição aceita, [cidade])
+# Changelog v3.5: RB-40..RB-43, DA-22..DA-23 (aceite/contrato, purge jobs, hooks)
 # Changelog v3.4: RB-39 (pipeline DOCX completo), DA-21 (fflate nativo)
 # Changelog v3.3: RB-29..RB-38 adicionados (landing, DOCX, cards, saúde, badges)
 #                 DA-16..DA-20 adicionados (governança, aliases, ZapSign, RLS)
@@ -1129,13 +1130,56 @@ AP-29 CONTRATO SEM DESFRAGMENTAÇÃO
 
 ### proposal-transition — aceite completo
 - Cancela generated_documents do projeto ao aceitar nova proposta
-- Respeita signature_status = 'signed' (intocável)
+- Respeita signature_status = 'signed' (intocável) — .neq("signature_status", "signed")
+- Cancela generated_documents ao cancelar proposta aceita (aceita → cancelada)
 
 ### DocumentosTab — cancelamento com motivo
 - Modal com textarea para observação
 - Exibição do motivo no card cancelado
 - Coluna observacao adicionada em generated_documents
 
+### PropostaExpandedDetail — proteção edição aceita
+- Modal de confirmação ao editar proposta com status 'aceita'
+- Motivo obrigatório → salvo em generated_documents.observacao
+- Cancela documentos gerados (não assinados) antes de redirecionar ao wizard
+
+### Resolver — variável [cidade]
+- resolveClienteComercial.ts: set("cidade", ...) com fallback cliente → lead → snapshot → ucs[0]
+- Resolve templates que usam [cidade] genérica (sem prefixo cliente_)
+
 # =============================================================================
-# FIM DO AGENTS.md v3.5
+# BLOCO 17 — REGRAS v3.6 — Sessão 2026-04-07 (cont.)
+# =============================================================================
+
+### RB-44 CONTRATO ASSINADO É INTOCÁVEL
+    Documento com signature_status = 'signed' NUNCA pode ser cancelado
+    automaticamente. Toda query de cancelamento automático DEVE incluir:
+    .neq("signature_status", "signed")
+    Aplica-se a: proposal-transition (aceite e cancelamento),
+    PropostaExpandedDetail (edição aceita), DocumentosTab (cancelamento manual).
+
+### RB-45 EDIÇÃO DE PROPOSTA ACEITA REQUER CONFIRMAÇÃO
+    Ao editar proposta com status 'aceita':
+    1. Exibir Dialog de confirmação com aviso
+    2. Campo motivo/observação obrigatório (Textarea)
+    3. Cancelar generated_documents com status='generated' e
+       signature_status != 'signed' do mesmo projeto
+    4. Salvar motivo em generated_documents.observacao
+    5. Só então redirecionar ao wizard
+    Implementado em: PropostaExpandedDetail.tsx (handleEditWithProtection)
+
+### RB-46 CANCELAR PROPOSTA ACEITA CANCELA CONTRATOS
+    Quando proposal-transition processa aceita → cancelada:
+    - Cancelar generated_documents do projeto (status='generated', signature_status != 'signed')
+    - observacao = 'Proposta cancelada'
+    Implementado em: proposal-transition/index.ts (seção 6b)
+
+### DA-24 VARIÁVEL [cidade] — FALLBACK CHAIN
+    A variável genérica [cidade] é resolvida em resolveClienteComercial.ts:
+    cliente.cidade → lead.cidade → snapCliente.cidade → snap.locCidade → snap.ucs[0].cidade
+    Diferente de [cliente_cidade] que tem a mesma chain mas prefixo diferente.
+    Quando quebrar: NUNCA — muitos templates usam [cidade] sem prefixo.
+
+# =============================================================================
+# FIM DO AGENTS.md v3.6
 # =============================================================================
