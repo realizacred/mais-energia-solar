@@ -271,11 +271,22 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     );
   };
 
-  const handleSendForSignature = async (doc: GeneratedDocRow) => {
+  const handleSendForSignature = async (signers: SignerEntry[]) => {
+    if (!signConfirmDoc) return;
     try {
       const { tenantId } = await getCurrentTenantId();
       signMutation.mutate(
-        { documentoId: doc.id, tenantId },
+        {
+          documentoId: signConfirmDoc.id,
+          tenantId,
+          signers: signers.map(s => ({
+            name: s.name,
+            email: s.email,
+            cpf: s.cpf || undefined,
+            phone: s.phone || undefined,
+            role: s.role,
+          })),
+        },
         { onSuccess: () => setSignConfirmDoc(null) }
       );
     } catch {
