@@ -268,6 +268,14 @@ export function OrcamentosTable({
                         </TooltipTrigger>
                         <TooltipContent>{(orc.vendedor_nome || orc.vendedor) ? "Alterar consultor" : "Atribuir consultor"}</TooltipContent>
                       </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-warning hover:text-warning/80" onClick={() => handleQuickProposal(orc)} disabled={quickLoading}>
+                            {quickLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScrollText className="w-4 h-4" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                      </Tooltip>
                       {onConvert && !isConverted && (
                         <Tooltip>
                           <TooltipTrigger asChild>
