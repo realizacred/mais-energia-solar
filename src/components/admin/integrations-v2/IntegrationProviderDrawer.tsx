@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getProviderIconUrl } from "@/services/integrations/iconMap";
-import { connectProvider, connectSupplierProvider, resolveSupplierProviderKey } from "@/services/integrations/integrationService";
+import { connectProvider, connectSupplierProvider, connectSignatureProvider, resolveSupplierProviderKey } from "@/services/integrations/integrationService";
 import type { IntegrationProvider, CredentialField, ConnectionStatus } from "@/services/integrations/types";
 import { supabase } from "@/integrations/supabase/client";
 import { LEGACY_ID_MAP } from "@/services/monitoring/providerRegistry";
@@ -143,9 +143,14 @@ export function IntegrationProviderDrawer({
       for (const field of fields) {
         if (formValues[field.key]) credentials[field.key] = formValues[field.key];
       }
-      const result = provider.category === "suppliers"
-        ? await connectSupplierProvider(provider.id, provider.label, credentials)
-        : await connectProvider(LEGACY_PROVIDER_MAP[provider.id] || provider.id, credentials);
+      let result: { success: boolean; error?: string };
+      if (provider.category === "suppliers") {
+        result = await connectSupplierProvider(provider.id, provider.label, credentials);
+      } else if (provider.category === "signature") {
+        result = await connectSignatureProvider(provider.id, provider.label, credentials);
+      } else {
+        result = await connectProvider(LEGACY_PROVIDER_MAP[provider.id] || provider.id, credentials);
+      }
 
       if (result.success) {
         toast.success(`${provider.label} conectado com sucesso!`);

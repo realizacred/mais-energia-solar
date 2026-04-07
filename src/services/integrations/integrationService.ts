@@ -264,7 +264,73 @@ export async function connectProvider(
   return { success: true };
 }
 
-/** Connect a supplier provider (ex.: Edeltec) via integrations_api_configs */
+/** Connect a signature provider (Autentique, ClickSign, ZapSign) via signature_settings */
+export async function connectSignatureProvider(
+  providerId: string,
+  providerLabel: string,
+  credentials: Record<string, string>
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const apiToken = credentials.api_token || credentials.apiKey || credentials.token || "";
+    if (!apiToken.trim()) {
+      return { success: false, error: "Informe o API Token para conectar" };
+    }
+
+    const sandbox = credentials.sandbox_mode === "true" || credentials.sandbox_mode === "sim";
+
+    // Use save-integration-key to persist the token securely
+    const resp = await supabase.functions.invoke("save-integration-key", {
+      body: { service_key: `signature_${providerId}_token`, api_key: apiToken.trim() },
+    });
+    if (resp.error) {
+      return { success: false, error: "Erro ao salvar token de assinatura" };
+    }
+
+    // Upsert signature_settings with the chosen provider
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) return { success: false, error: "Usuário não autenticado" };
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!profile?.tenant_id) return { success: false, error: "Tenant não encontrado" };
+
+    const { data: existing } = await (supabase as any)
+      .from("signature_settings")
+      .select("tenant_id")
+      .eq("tenant_id", profile.tenant_id)
+      .maybeSingle();
+
+    const payload: Record<string, unknown> = {
+      provider: providerId,
+      enabled: true,
+      sandbox_mode: sandbox,
+      api_token_encrypted: apiToken.trim(),
+      updated_by: user.id,
+    };
+
+    if (existing) {
+      const { error } = await (supabase as any)
+        .from("signature_settings")
+        .update(payload)
+        .eq("tenant_id", profile.tenant_id);
+      if (error) throw error;
+    } else {
+      const { error } = await (supabase as any)
+        .from("signature_settings")
+        .insert({ ...payload, tenant_id: profile.tenant_id, created_by: user.id });
+      if (error) throw error;
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Falha ao conectar provider de assinatura" };
+  }
+}
+
 export async function connectSupplierProvider(
   providerId: string,
   providerLabel: string,
