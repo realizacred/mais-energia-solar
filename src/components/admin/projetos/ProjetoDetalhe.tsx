@@ -766,7 +766,16 @@ function GerenciamentoTab({
       setInlineEditOpen(false);
       onRefreshCustomer?.();
     } catch (err: any) {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      const msg = err?.message || "";
+      if (msg.includes("idx_clientes_tenant_cpf_cnpj_unique") || msg.includes("duplicate key")) {
+        toast({
+          title: "CPF/CNPJ já cadastrado",
+          description: "Outro cliente neste tenant já possui este CPF/CNPJ. Verifique os cadastros existentes.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Erro ao salvar", description: msg, variant: "destructive" });
+      }
     } finally {
       setSavingInlineEdit(false);
     }
