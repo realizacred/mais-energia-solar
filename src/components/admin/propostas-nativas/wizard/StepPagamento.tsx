@@ -176,6 +176,25 @@ export function StepPagamento({
   const [novoPrazo, setNovoPrazo] = useState("");
   const [novoCarencia, setNovoCarencia] = useState("0");
 
+  // ─── Formas de pagamento direto selecionadas (drag & drop)
+  const [formasSelecionadas, setFormasSelecionadas] = useState<FormaSelected[]>(() => {
+    // Round-trip: reconstruct from existing opcoes with tipo="direto"
+    return opcoes
+      .filter(op => op.tipo === "direto" && op.forma_pagamento)
+      .map(op => ({
+        id: op.id,
+        config_id: op.id,
+        forma_pagamento: op.forma_pagamento as FormaPagamento,
+        nome: op.nome,
+        num_parcelas: op.num_parcelas,
+        taxa_mensal: op.taxa_mensal,
+        juros_responsavel: "cliente",
+        valor_total: op.valor_financiado,
+        entrada: op.entrada,
+        observacoes: "",
+      }));
+  });
+
   // Sync precoFinal into existing banco groups — update valor_financiado + recalc parcela
   useEffect(() => {
     if (precoFinal <= 0) return;
@@ -207,9 +226,29 @@ export function StepPagamento({
     });
   }, [precoFinal, bancos]);
 
+  // Merge banco groups + formas selecionadas into pagamentoOpcoes
   useEffect(() => {
-    onOpcoesChange(flattenBancoGroupsToOpcoes(bancoGroups, precoFinal));
-  }, [bancoGroups, precoFinal, onOpcoesChange]);
+    const bancoOpcoes = flattenBancoGroupsToOpcoes(bancoGroups, precoFinal);
+    const formasOpcoes: PagamentoOpcao[] = formasSelecionadas.map(f => {
+      const principal = (f.valor_total || precoFinal) - (f.entrada || 0);
+      const valorParcela = f.num_parcelas > 0 && principal > 0
+        ? principal / f.num_parcelas
+        : principal;
+      return {
+        id: f.id,
+        nome: f.nome,
+        tipo: "direto" as const,
+        valor_financiado: f.valor_total || precoFinal,
+        entrada: f.entrada,
+        taxa_mensal: f.taxa_mensal,
+        carencia_meses: 0,
+        num_parcelas: f.num_parcelas,
+        valor_parcela: valorParcela,
+        forma_pagamento: f.forma_pagamento,
+      };
+    });
+    onOpcoesChange([...bancoOpcoes, ...formasOpcoes]);
+  }, [bancoGroups, precoFinal, formasSelecionadas, onOpcoesChange]);
 
   // ─── Derived metrics (aligned with calc-engine.ts)
   const prem = premissas || { inflacao_energetica: 9.5, perda_eficiencia_anual: 0.5, vpl_taxa_desconto: 10, imposto: 0, inflacao_ipca: 4.5, sobredimensionamento: 0, troca_inversor_anos: 15, troca_inversor_custo: 30 };
