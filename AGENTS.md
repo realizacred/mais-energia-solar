@@ -1,6 +1,7 @@
-# AGENTS.md v3.8 — Mais Energia Solar CRM
+# AGENTS.md v3.9 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-07 (v3.8 — Adapter pattern assinatura, Clicksign)
+# Última atualização: 2026-04-07 (v3.9 — APP_URL unificado, webhook URL em SignatureTab)
+# Changelog v3.9: DA-30..DA-31 (APP_URL fallback, webhook URL display)
 # Changelog v3.7: RB-47..RB-49, DA-25..DA-26 (public action, auto-expire, empresa_*, CEP)
 # Changelog v3.6: RB-44..RB-46, DA-24 (proteção signed, edição aceita, [cidade])
 # Changelog v3.5: RB-40..RB-43, DA-22..DA-23 (aceite/contrato, purge jobs, hooks)
@@ -1255,5 +1256,25 @@ AP-29 CONTRATO SEM DESFRAGMENTAÇÃO
     | document_cancelled | cancelled | cancelled |
 
 # =============================================================================
-# FIM DO AGENTS.md v3.8
+# BLOCO 20 — REGRAS v3.9 — Sessão 2026-04-07 (cont.)
+# =============================================================================
+
+### DA-30 APP_URL UNIFICADO — FALLBACK CORRETO
+    O domínio canônico do sistema é: https://maisenergiasolar.lovable.app
+    Secret APP_URL no Supabase = https://maisenergiasolar.lovable.app
+    Env VITE_PUBLIC_URL = https://maisenergiasolar.lovable.app
+    Todo fallback hardcoded DEVE usar este domínio.
+    NUNCA usar "https://app.maisenergiasolar.com.br" como fallback.
+    Rota canônica de proposta pública: /proposta/:token (NUNCA /pl/:token).
+    Implementado em: resolveClienteComercial.ts, resolveProposalVariables.ts
+
+### DA-31 WEBHOOK DE ASSINATURA — URL EXIBIDA EM SIGNATURETAB
+    SignatureTab.tsx exibe campo read-only com URL do webhook:
+    ${VITE_SUPABASE_URL}/functions/v1/signature-webhook
+    Botão de copiar para clipboard ao lado.
+    O usuário deve configurar esta URL no painel Clicksign/ZapSign.
+    Implementado em: src/components/admin/documentos/SignatureTab.tsx
+
+# =============================================================================
+# FIM DO AGENTS.md v3.9
 # =============================================================================

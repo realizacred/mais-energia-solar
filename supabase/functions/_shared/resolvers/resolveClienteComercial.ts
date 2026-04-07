@@ -213,11 +213,11 @@ export function resolveClienteComercial(
   set("consultor_codigo", consultor.codigo ?? consultor.slug ?? (consultor.id ? String(consultor.id).substring(0, 8) : undefined));
 
   // ── Proposta links ──
-  const baseUrl = Deno.env.get("APP_URL") ?? "https://app.maisenergiasolar.com.br";
+  const baseUrl = Deno.env.get("APP_URL") ?? "https://maisenergiasolar.lovable.app";
   const tokenPublico = str(versao.token_publico) ?? str(proposta.token_publico);
   if (tokenPublico) {
-    set("proposta_link", `${baseUrl}/pl/${tokenPublico}`);
-    set("proposta_link_interativo", `${baseUrl}/pl/${tokenPublico}`);
+    set("proposta_link", `${baseUrl}/proposta/${tokenPublico}`);
+    set("proposta_link_interativo", `${baseUrl}/proposta/${tokenPublico}`);
   }
 
   // ── Projeto ──
