@@ -5,7 +5,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export async function callSuperAdminAction(body: Record<string, any>) {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error("Not authenticated");
+  if (!session?.access_token) throw new Error("Usuário não autenticado. Faça login novamente.");
 
   const res = await fetch(
     `${SUPABASE_URL}/functions/v1/super-admin-action`,

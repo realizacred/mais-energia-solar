@@ -222,7 +222,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
       console.error("[syncLead] public-create-lead failed:", errorMsg);
       return { success: false, error: errorMsg };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("[syncLead] Exception:", errorMessage);
       return { success: false, error: errorMessage };
     }
@@ -455,7 +455,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
           saveLocally({ ...lead, synced: false });
           return { success: true, offline: true };
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
           console.error("[saveLead] Offline save failed:", errorMessage);
           return { success: false, offline: true, error: errorMessage };
         }

@@ -145,7 +145,7 @@ function normalizeDPS(dps: TuyaDPS[], deviceInfo?: any): NormalizedReading {
 function normalizeDevice(raw: any) {
   return {
     external_device_id: raw.id || raw.devId || "",
-    name: raw.name || raw.devName || "Unknown Device",
+    name: raw.name || raw.devName || "Dispositivo desconhecido",
     model: raw.model || null,
     manufacturer: raw.manufacturer || "Tuya",
     product_id: raw.product_id || raw.productId || null,
