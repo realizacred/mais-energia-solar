@@ -1,0 +1,1 @@
+ALTER TABLE public.generated_documents ADD COLUMN IF NOT EXISTS observacao text;
