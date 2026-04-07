@@ -666,7 +666,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
               </div>
               <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
                 <Button variant="ghost" onClick={() => setGenerateOpen(false)}>Cancelar</Button>
-                <Button onClick={handleGenerate} disabled={!selectedTemplateId || generateMutation.isPending} className="gap-1.5">
+                <Button onClick={handleGenerate} disabled={!selectedTemplateId || generateMutation.isPending || clienteMissingFields.length > 0} className="gap-1.5">
                   {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                   {generateMutation.isPending ? "Gerando..." : "Gerar"}
                 </Button>
