@@ -1,0 +1,1 @@
+UPDATE integration_providers SET status = 'available' WHERE id = 'zapsign' AND status = 'coming_soon';
