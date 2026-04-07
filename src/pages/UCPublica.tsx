@@ -9,8 +9,9 @@ import { GdPublicDashboard } from "@/components/public/gd/GdPublicDashboard";
 import { PortalValueHeader } from "@/components/public/PortalValueHeader";
 import { PortalSavingsHighlight } from "@/components/public/PortalSavingsHighlight";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUCPublicToken, useUCPublicMonitoring, useUCPublicInvoices, useUCPublicTarifa } from "@/hooks/useUCPublicData";
+import type { SiblingUC, ResolvedUC } from "@/hooks/useUCPublicData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -102,30 +103,7 @@ function timeAgo(dateStr: string | null): string {
   return `${days}d atrás`;
 }
 
-interface SiblingUC {
-  unit_id: string;
-  unit_name: string;
-  codigo_uc: string;
-  papel_gd: string | null;
-  token: string;
-}
-
-interface ResolvedUC {
-  unit_id: string;
-  unit_name: string;
-  codigo_uc: string;
-  concessionaria_nome: string;
-  tipo_uc: string;
-  tenant_id: string;
-  brand: { logo_url?: string; color_primary?: string; company_name?: string };
-  ultima_leitura_data?: string | null;
-  ultima_leitura_kwh_03?: number | null;
-  ultima_leitura_kwh_103?: number | null;
-  potencia_kwp?: number | null;
-  categoria_gd?: string | null;
-  papel_gd?: string | null;
-  siblings?: SiblingUC[];
-}
+// SiblingUC and ResolvedUC types imported from @/hooks/useUCPublicData
 
 export default function UCPublica() {
   const { token } = useParams<{ token: string }>();
@@ -136,67 +114,16 @@ export default function UCPublica() {
 
   const { data: gdData, isLoading: loadingGd } = usePublicGdData(token ?? null);
 
-  const { data: resolved, isLoading: loadingToken, error: tokenError } = useQuery({
-    queryKey: ["uc_public_token", token],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("resolve_uc_client_token", { p_token: token! });
-      if (error) throw error;
-      const parsed = data as any;
-      if (parsed?.error) throw new Error(parsed.error);
-      return parsed as ResolvedUC;
-    },
-    enabled: !!token,
-    staleTime: 1000 * 60 * 10,
-  });
+  const { data: resolved, isLoading: loadingToken, error: tokenError } = useUCPublicToken(token);
 
-  const { data: monitoring } = useQuery({
-    queryKey: ["uc_public_monitoring", token],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("resolve_uc_monitoring", { p_token: token! });
-      if (error) throw error;
-      const parsed = data as any;
-      if (parsed?.error) return null;
-      return parsed as {
-        plants: Array<{ id: string; name: string; installed_power_kwp: number; is_active: boolean; last_seen_at: string | null; provider_id: string; allocation_percent: number }>;
-        meters: Array<{ id: string; name: string; model: string; manufacturer: string; serial_number: string; online_status: string | null; last_seen_at: string | null; last_reading_at: string | null }>;
-        daily: Array<{ date: string; energy_kwh: number; peak_power_kw: number }>;
-        today_kwh: number;
-        month_kwh: number;
-      };
-    },
-    enabled: !!token && !!resolved,
-    staleTime: 1000 * 60 * 2,
-  });
+  const { data: monitoring } = useUCPublicMonitoring(token, !!resolved);
 
-  const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
-    queryKey: ["uc_public_invoices", resolved?.unit_id, selectedYear],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("unit_invoices")
-        .select("id, reference_month, reference_year, energy_consumed_kwh, energy_injected_kwh, compensated_kwh, total_amount, bandeira_tarifaria, due_date, has_file, pdf_file_url, current_balance_kwh, previous_balance_kwh, status, estimated_savings_brl")
-        .eq("unit_id", resolved!.unit_id)
-        .eq("reference_year", Number(selectedYear))
-        .order("reference_month", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!resolved?.unit_id,
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: invoices = [], isLoading: loadingInvoices } = useUCPublicInvoices(
+    resolved?.unit_id,
+    Number(selectedYear)
+  );
 
-  const { data: tarifaConfig } = useQuery({
-    queryKey: ["public_tarifa", resolved?.tenant_id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("calculadora_config")
-        .select("tarifa_media_kwh")
-        .eq("tenant_id", resolved!.tenant_id)
-        .maybeSingle();
-      return data?.tarifa_media_kwh ?? 0.85;
-    },
-    enabled: !!resolved?.tenant_id,
-    staleTime: 1000 * 60 * 15,
-  });
+  const { data: tarifaConfig } = useUCPublicTarifa(resolved?.tenant_id);
 
   const tarifa = tarifaConfig ?? 0.85;
 

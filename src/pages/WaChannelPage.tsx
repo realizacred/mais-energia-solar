@@ -1,32 +1,13 @@
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { MessageCircle, AlertCircle } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Button } from "@/components/ui/button";
+import { useWaChannel } from "@/hooks/useWaChannel";
 
 export default function WaChannelPage() {
   const { slug } = useParams<{ slug: string }>();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["wa-channel", slug],
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("resolve-wa-channel", {
-        body: { slug },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data as {
-        consultor_nome: string;
-        slug: string;
-        phone_number: string;
-        tenant_id: string;
-      };
-    },
-    enabled: !!slug,
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-  });
+  const { data, isLoading, error } = useWaChannel(slug);
 
   const waUrl = data
     ? `https://wa.me/${data.phone_number}?text=${encodeURIComponent(

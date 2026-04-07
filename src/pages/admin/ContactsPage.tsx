@@ -1,8 +1,9 @@
 import { useState, useMemo, lazy, Suspense } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { useContactsList, type Contact } from "@/hooks/useContacts";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,16 +36,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { InternalChat } from "@/components/admin/inbox/InternalChat";
 
-interface Contact {
-  id: string;
-  name: string | null;
-  phone_e164: string;
-  tags: string[];
-  source: string | null;
-  linked_cliente_id: string | null;
-  last_interaction_at: string | null;
-  created_at: string;
-}
+// Contact type imported from @/hooks/useContacts
 
 import { formatPhoneBR } from "@/lib/formatters/index";
 function formatPhone(e164: string) {
@@ -72,18 +64,7 @@ interface ContactsListProps {
 export function ContactsList({ onSelectContact, onQuickChat, onNewContact, selectedId }: ContactsListProps) {
   const [search, setSearch] = useState("");
 
-  const { data: contacts = [], isLoading } = useQuery({
-    queryKey: ["contacts"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contacts")
-        .select("id, name, phone_e164, tags, source, linked_cliente_id, last_interaction_at, created_at")
-        .order("last_interaction_at", { ascending: false, nullsFirst: false })
-        .limit(500);
-      if (error) throw error;
-      return (data || []) as Contact[];
-    },
-  });
+  const { data: contacts = [], isLoading } = useContactsList();
 
   const filtered = useMemo(() => {
     if (!search.trim()) return contacts;

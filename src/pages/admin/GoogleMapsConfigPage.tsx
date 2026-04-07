@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
 import { motion } from "framer-motion";
+import { useGoogleMapsConfig } from "@/hooks/useGoogleMapsConfig";
 
 export default function GoogleMapsConfigPage() {
   const queryClient = useQueryClient();
@@ -27,19 +28,7 @@ export default function GoogleMapsConfigPage() {
   const [hasEdited, setHasEdited] = useState(false);
   const [showSavedKey, setShowSavedKey] = useState(false);
 
-  const { data: config, isLoading } = useQuery({
-    queryKey: ["integration-config", "google_maps"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("integration_configs")
-        .select("id, service_key, api_key, is_active, last_validated_at, updated_at")
-        .eq("service_key", "google_maps")
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: config, isLoading } = useGoogleMapsConfig();
 
   const maskedKey = config?.api_key
     ? config.api_key.slice(0, 8) + "••••••••" + config.api_key.slice(-4)
