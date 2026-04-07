@@ -1056,6 +1056,23 @@ function GerenciamentoTab({
             if (!v) return v;
             return VALUE_LABELS[v] || v;
           };
+          // Resolve consultant UUIDs to names
+          const consultantEventUuids = new Set<string>();
+          data.forEach((e: any) => {
+            if (e.event_type === "consultant_changed" || e.event_type === "consultor_changed") {
+              if (e.from_value && e.from_value.length > 30) consultantEventUuids.add(e.from_value);
+              if (e.to_value && e.to_value.length > 30) consultantEventUuids.add(e.to_value);
+            }
+          });
+          const consultantNameMap = new Map<string, string>();
+          if (consultantEventUuids.size > 0) {
+            const { data: consultores } = await supabase
+              .from("consultores")
+              .select("id, nome")
+              .in("id", [...consultantEventUuids]);
+            (consultores || []).forEach((c: any) => consultantNameMap.set(c.id, c.nome));
+          }
+
           const buildSubtitle = (e: any): string | undefined => {
             // For proposal events, show channel/metadata info
             if (PROPOSAL_EVENT_TYPES.has(e.event_type) && e.metadata) {
@@ -1066,6 +1083,23 @@ function GerenciamentoTab({
               if (canal) parts.push(canal);
               if (dest) parts.push(dest);
               return parts.length > 0 ? parts.join(" • ") : undefined;
+            }
+            // Consultant changed: resolve UUID → name
+            if (e.event_type === "consultant_changed" || e.event_type === "consultor_changed") {
+              const fromName = consultantNameMap.get(e.from_value) || null;
+              const toName = consultantNameMap.get(e.to_value) || null;
+              if (fromName && toName) return `${fromName} → ${toName}`;
+              if (toName) return toName;
+              if (fromName) return `${fromName} → (removido)`;
+            }
+            // Value changed: format as BRL
+            if (e.event_type === "value_changed" && e.from_value && e.to_value) {
+              const from = parseFloat(e.from_value);
+              const to = parseFloat(e.to_value);
+              if (!isNaN(from) && !isNaN(to)) {
+                const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                return `${fmt(from)} → ${fmt(to)}`;
+              }
             }
             if (e.from_value && e.to_value) return `${translateValue(e.from_value)} → ${translateValue(e.to_value)}`;
             return translateValue(e.to_value) || translateValue(e.from_value) || undefined;
