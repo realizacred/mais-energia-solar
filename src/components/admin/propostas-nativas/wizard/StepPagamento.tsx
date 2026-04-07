@@ -76,24 +76,26 @@ export function StepPagamento({
   const [showVariaveisModal, setShowVariaveisModal] = useState(false);
   const [fluxoFinanciamento, setFluxoFinanciamento] = useState("sem_financiamento");
 
-  // ─── Bank groups with auto-generated options
-  const buildBancoGroups = (bankList: BancoFinanciamento[], price: number): BancoGroup[] =>
-    bankList.map((b) => ({
-      banco: b,
-      opcoes: DEFAULT_PARCELAS
-        .filter((p) => p <= b.max_parcelas)
-        .map((parcelas) => ({
-          id: crypto.randomUUID(),
-          banco_id: b.id,
-          banco_nome: b.nome,
-          entrada: 0,
-          num_parcelas: parcelas,
-          taxa_mensal: b.taxa_mensal,
-          carencia_meses: 2,
-          valor_financiado: price,
-          valor_parcela: calcParcela({ valor_financiado: price, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
-        })),
-    }));
+  // ─── Bank groups with auto-generated options (only for selected banks)
+  const buildBancoGroups = (bankList: BancoFinanciamento[], price: number, selectedIds?: Set<string>): BancoGroup[] =>
+    bankList
+      .filter(b => !selectedIds || selectedIds.has(b.id))
+      .map((b) => ({
+        banco: b,
+        opcoes: DEFAULT_PARCELAS
+          .filter((p) => p <= b.max_parcelas)
+          .map((parcelas) => ({
+            id: crypto.randomUUID(),
+            banco_id: b.id,
+            banco_nome: b.nome,
+            entrada: 0,
+            num_parcelas: parcelas,
+            taxa_mensal: b.taxa_mensal,
+            carencia_meses: 2,
+            valor_financiado: price,
+            valor_parcela: calcParcela({ valor_financiado: price, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+          })),
+      }));
 
   const mapOpcoesToBancoGroups = (existingOpcoes: PagamentoOpcao[], bankList: BancoFinanciamento[], fallbackPrice: number): BancoGroup[] => {
     const financiamento = existingOpcoes.filter((o) => o.tipo === "financiamento" || o.tipo === "parcelado");
