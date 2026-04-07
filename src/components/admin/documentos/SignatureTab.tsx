@@ -9,7 +9,7 @@ import {
   useSaveSigner,
 } from "@/hooks/useSignatureData";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Mail, Phone, MessageCircle, Copy, Link } from "lucide-react";
+import { Plus, Pencil, Trash2, Mail, Phone, MessageCircle, Copy, Link, Info, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -23,9 +23,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Signer, AuthMethod } from "./types";
 
 const PROVIDERS = [
+  { value: "autentique", label: "Autentique" },
   { value: "clicksign", label: "ClickSign" },
   { value: "zapsign", label: "ZapSign" },
 ];
@@ -45,9 +47,109 @@ export function SignatureTab() {
   );
 }
 
+// ── Tutorial passo a passo por provedor ──────────────────────
+function SetupTutorial({ provider }: { provider: string }) {
+  const [open, setOpen] = useState(false);
+  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signature-webhook`;
+
+  const tutorials: Record<string, { title: string; steps: string[] }> = {
+    autentique: {
+      title: "Tutorial: Configurar Autentique",
+      steps: [
+        "Acesse o painel do Autentique em app.autentique.com.br e faça login.",
+        "Vá em Conta → Integrações → API e copie seu Token de API.",
+        "Cole o token no campo \"API Token\" acima.",
+        "No Autentique, vá em Conta → Webhooks → Criar endpoint.",
+        "No campo \"Nome do endpoint\", dê um nome (ex: \"Mais Energia Solar\").",
+        `No campo "URL", cole: ${webhookUrl}`,
+        "No campo \"Formato do webhook\", selecione JSON (obrigatório — NÃO usar URL encoded).",
+        "Em \"Tipo do evento\", selecione \"Assinatura\".",
+        "Marque os eventos: signature.created, signature.signed, signature.viewed, signature.rejected, signature.deleted, signature.delivery_failed.",
+        "Clique em \"Salvar\" no Autentique.",
+        "Volte aqui e clique em \"Salvar configuração\".",
+      ],
+    },
+    zapsign: {
+      title: "Tutorial: Configurar ZapSign",
+      steps: [
+        "Acesse o painel ZapSign em app.zapsign.com.br e faça login.",
+        "Vá em Configurações → Integrações → API.",
+        "Copie seu API Token e cole no campo \"API Token\" acima.",
+        "No ZapSign, vá em Configurações → Webhooks.",
+        "Clique em \"Adicionar webhook\".",
+        `No campo "URL", cole: ${webhookUrl}`,
+        "Marque os eventos: doc_signed, doc_refused, doc_cancelled, signer_link_opened.",
+        "Salve o webhook no ZapSign.",
+        "Volte aqui e clique em \"Salvar configuração\".",
+      ],
+    },
+    clicksign: {
+      title: "Tutorial: Configurar ClickSign",
+      steps: [
+        "Acesse o painel ClickSign em app.clicksign.com e faça login.",
+        "Vá em Configurações → API → Chave de acesso.",
+        "Copie o Access Token e cole no campo \"API Token\" acima.",
+        "No ClickSign, vá em Configurações → Webhooks.",
+        "Clique em \"Criar webhook\".",
+        `No campo "URL de destino", cole: ${webhookUrl}`,
+        "Marque os eventos: document_signed, document_refused, document_cancelled, signer_link_opened.",
+        "Salve o webhook no ClickSign.",
+        "Se quiser segurança extra, copie o \"HMAC Secret\" do ClickSign e cole no campo \"Webhook Secret\" acima.",
+        "Volte aqui e clique em \"Salvar configuração\".",
+      ],
+    },
+  };
+
+  const tutorial = tutorials[provider];
+  if (!tutorial) return null;
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <Button variant="outline" size="sm" className="w-full justify-between gap-2 text-xs h-9">
+          <span className="flex items-center gap-2">
+            <Info className="h-3.5 w-3.5 text-primary" />
+            {tutorial.title}
+          </span>
+          {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-3 rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+          <ol className="space-y-2">
+            {tutorial.steps.map((step, i) => (
+              <li key={i} className="flex gap-2 text-xs text-foreground">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold shrink-0 mt-0.5">
+                  {i + 1}
+                </span>
+                <span className="leading-relaxed">
+                  {step.includes(webhookUrl) ? (
+                    <>
+                      {step.split(webhookUrl)[0]}
+                      <code className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono break-all">
+                        {webhookUrl}
+                      </code>
+                    </>
+                  ) : step}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <div className="flex items-center gap-2 pt-2 border-t border-border">
+            <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+            <p className="text-[10px] text-muted-foreground">
+              Após configurar, o sistema receberá automaticamente as atualizações de status das assinaturas.
+            </p>
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 function SignatureConfig() {
   const [enabled, setEnabled] = useState(false);
-  const [provider, setProvider] = useState("zapsign");
+  const [provider, setProvider] = useState("autentique");
   const [apiToken, setApiToken] = useState("");
   const [sandbox, setSandbox] = useState(true);
   const [webhookSecret, setWebhookSecret] = useState("");
@@ -60,7 +162,7 @@ function SignatureConfig() {
   useEffect(() => {
     if (settings) {
       setEnabled(settings.enabled);
-      setProvider(settings.provider || "zapsign");
+      setProvider(settings.provider || "autentique");
       setSandbox(settings.sandbox_mode);
       // SECURITY: Never populate token fields with stored values
       setApiToken("");
@@ -116,12 +218,12 @@ function SignatureConfig() {
                 value={apiToken}
                 onChange={(e) => setApiToken(e.target.value)}
                 className="h-9 text-sm"
-                placeholder={hasExistingToken ? "•••••••• (salvo)" : "sk_live_..."}
+                placeholder={hasExistingToken ? "•••••••• (salvo)" : "Cole seu token aqui"}
               />
             </div>
             <div className="flex items-center gap-3">
               <Switch checked={sandbox} onCheckedChange={setSandbox} />
-              <Label className="text-xs">Modo Sandbox</Label>
+              <Label className="text-xs">Modo Sandbox (testes)</Label>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Webhook Secret (opcional)</Label>
@@ -134,11 +236,12 @@ function SignatureConfig() {
               />
             </div>
           </div>
+
           {/* Webhook URL */}
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
               <Link className="h-3 w-3" />
-              URL do Webhook (configurar no Clicksign/ZapSign)
+              URL do Webhook (configurar no painel do provedor)
             </Label>
             <div className="flex items-center gap-2">
               <Input
@@ -162,6 +265,9 @@ function SignatureConfig() {
               </Button>
             </div>
           </div>
+
+          {/* Tutorial passo a passo */}
+          <SetupTutorial provider={provider} />
 
           <div className="flex justify-end">
             <Button size="sm" onClick={handleSave} disabled={save.isPending}>
@@ -199,7 +305,7 @@ function SignersList() {
         ) : !signers || signers.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">Nenhum signatário cadastrado</p>
         ) : (
-          <div className="rounded-lg border overflow-hidden">
+          <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-muted/50 border-b">
