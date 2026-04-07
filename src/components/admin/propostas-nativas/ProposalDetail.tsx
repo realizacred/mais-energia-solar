@@ -153,7 +153,7 @@ export function ProposalDetail() {
         isFinalized={vm.isFinalized}
         cloning={false}
         lastEditDate={vm.atualizadoEm}
-        html={html || (vm.linkPdf ? "__imported__" : null)}
+        html={html || (vm.outputPdfPath ? "__pdf_ready__" : null) || (vm.linkPdf ? "__imported__" : null)}
         rendering={actions.render.isPending}
         onGenerateFile={() => setGenerateDialogOpen(true)}
         onCopyLink={(withTracking) => actions.copyLink.mutate(withTracking)}
