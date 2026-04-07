@@ -61,8 +61,10 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
       const { tenantId } = await getCurrentTenantId();
 
       // 1. Resolve Contratante (client)
-      // dealId is a deals.id — resolve projeto via deal first
+      // dealId is a deals.id — resolve customer via multiple fallback paths
       let clienteId: string | null = null;
+
+      // Path A: deals.customer_id (most direct)
       const { data: deal } = await supabase
         .from("deals")
         .select("customer_id, projeto_id")
@@ -71,13 +73,28 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
 
       if (deal?.customer_id) {
         clienteId = deal.customer_id;
-      } else if (deal?.projeto_id) {
+      }
+
+      // Path B: deals.projeto_id → projetos.cliente_id
+      if (!clienteId && deal?.projeto_id) {
         const { data: projeto } = await supabase
           .from("projetos")
           .select("cliente_id")
           .eq("id", deal.projeto_id)
           .maybeSingle();
         clienteId = projeto?.cliente_id || null;
+      }
+
+      // Path C: generated_documents.deal_id → propostas_nativas → cliente_id
+      if (!clienteId && doc?.deal_id) {
+        const { data: proposta } = await supabase
+          .from("propostas_nativas")
+          .select("cliente_id")
+          .or(`deal_id.eq.${doc.deal_id},projeto_id.eq.${doc.deal_id}`)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        clienteId = proposta?.cliente_id || null;
       }
 
       if (clienteId) {
@@ -99,6 +116,8 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
             warns.push("Cliente sem e-mail cadastrado. Preencha antes de enviar.");
           }
         }
+      } else {
+        warns.push("Cliente não encontrado para este projeto.");
       }
 
       // 2. Resolve Contratada (representative from brand_settings)
