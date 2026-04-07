@@ -82,6 +82,8 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const [signConfirmDoc, setSignConfirmDoc] = useState<GeneratedDocRow | null>(null);
   const [previewDocId, setPreviewDocId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [cancelDoc, setCancelDoc] = useState<GeneratedDocRow | null>(null);
+  const [cancelMotivo, setCancelMotivo] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // §16: Queries em hooks — AP-01 resolvido
