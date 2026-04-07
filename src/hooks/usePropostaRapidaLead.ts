@@ -32,6 +32,7 @@ export function usePropostaRapidaLead() {
   async function quickConvertToProposal(lead: QuickLeadData) {
     if (loading) return;
     setLoading(true);
+    setLoadingLeadId(lead.id);
 
     try {
       const { tenantId } = await getCurrentTenantId();
@@ -156,8 +157,9 @@ export function usePropostaRapidaLead() {
       toast.error(err.message || "Erro ao criar proposta rápida.");
     } finally {
       setLoading(false);
+      setLoadingLeadId(null);
     }
   }
 
-  return { quickConvertToProposal, loading };
+  return { quickConvertToProposal, loading, loadingLeadId };
 }
