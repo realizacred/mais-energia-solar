@@ -27134,6 +27134,7 @@ export type Database = {
         Args: { p_motivo?: string; p_new_status: string; p_proposta_id: string }
         Returns: Json
       }
+      purge_cron_job_run_details: { Args: never; Returns: number }
       purge_expired_proposal_tokens: { Args: never; Returns: number }
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
       purge_monitor_payloads_old: { Args: never; Returns: number }
