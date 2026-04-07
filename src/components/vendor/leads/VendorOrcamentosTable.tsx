@@ -79,6 +79,8 @@ export function VendorOrcamentosTable({
     bairro: orc.bairro,
     rua: orc.rua,
     cep: orc.cep,
+    consultor_id: orc.vendedor_id || null,
+    valor_estimado: null,
   });
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
@@ -160,6 +162,8 @@ export function VendorOrcamentosTable({
                       onConvert(orc);
                     }
                   } : undefined}
+                  onQuickProposal={() => quickConvertToProposal(orcToQuickLead(orc))}
+                  quickLoading={quickLoading && loadingLeadId === orc.lead_id}
                 />
               </div>
             );
@@ -385,7 +389,7 @@ export function VendorOrcamentosTable({
                                 onClick={() => quickConvertToProposal(orcToQuickLead(orc))}
                                 disabled={quickLoading}
                               >
-                                {quickLoading ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                                {quickLoading && loadingLeadId === orc.lead_id ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Gerar Proposta Rápida</TooltipContent>

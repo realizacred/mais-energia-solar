@@ -228,7 +228,7 @@ export function VendorLeadsTable({
                             })}
                             disabled={quickLoading}
                           >
-                            {quickLoading ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                            {quickLoading && loadingLeadId === lead.id ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Gerar Proposta Rápida</TooltipContent>

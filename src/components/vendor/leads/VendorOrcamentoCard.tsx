@@ -1,4 +1,4 @@
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap, ScrollText } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -19,6 +19,8 @@ interface VendorOrcamentoCardProps {
   onStatusChange: (newStatusId: string | null) => void;
   onDelete?: () => void;
   onConvert?: () => void;
+  onQuickProposal?: () => void;
+  quickLoading?: boolean;
 }
 
 export function VendorOrcamentoCard({
@@ -30,6 +32,8 @@ export function VendorOrcamentoCard({
   onStatusChange,
   onDelete,
   onConvert,
+  onQuickProposal,
+  quickLoading,
 }: VendorOrcamentoCardProps) {
   const cardBg = orcamento.visto 
     ? "bg-success/5 border-success/20" 
@@ -125,6 +129,18 @@ export function VendorOrcamentoCard({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 pt-2 border-t">
+          {onQuickProposal && !isConverted && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 text-warning border-warning/30 hover:bg-warning/10"
+              onClick={onQuickProposal}
+              disabled={quickLoading}
+            >
+              <ScrollText className="w-4 h-4 mr-2" />
+              Proposta Rápida
+            </Button>
+          )}
           {onConvert && !isConverted && (
             <Button
               variant="outline"

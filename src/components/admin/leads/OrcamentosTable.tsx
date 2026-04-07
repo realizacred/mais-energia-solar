@@ -76,7 +76,7 @@ export function OrcamentosTable({
       cidade: orc.cidade || null,
       estado: orc.estado || null,
       consultor_id: orc.vendedor_id || null,
-      valor_estimado: orc.media_consumo || null,
+      valor_estimado: null,
     };
     quickConvertToProposal(leadData);
   };
