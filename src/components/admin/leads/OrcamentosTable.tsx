@@ -335,6 +335,10 @@ export function OrcamentosTable({
                           <UserPlus className="w-4 h-4 mr-2 text-warning" />
                           {(orc.vendedor_nome || orc.vendedor) ? "Alterar consultor" : "Atribuir consultor"}
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleQuickProposal(orc)} disabled={quickLoading}>
+                          <ScrollText className="w-4 h-4 mr-2 text-warning" />
+                          Gerar Proposta Rápida
+                        </DropdownMenuItem>
                         {onConvert && !isConverted && (
                           <>
                             <DropdownMenuSeparator />
