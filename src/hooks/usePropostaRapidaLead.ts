@@ -26,6 +26,7 @@ export interface QuickLeadData {
 
 export function usePropostaRapidaLead() {
   const [loading, setLoading] = useState(false);
+  const [loadingLeadId, setLoadingLeadId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   async function quickConvertToProposal(lead: QuickLeadData) {
