@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     // 2. Parse body
     const body = await req.json();
-    const { documento_id, tenant_id } = body;
+    const { documento_id, tenant_id, signers: requestSigners } = body;
 
     if (!documento_id || !tenant_id) {
       return new Response(JSON.stringify({ error: "documento_id e tenant_id são obrigatórios" }), {
@@ -135,116 +135,83 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 7. Build signers list — auto-resolve Contratante + Contratada
+    // 7. Build signers list — prefer request signers, fallback to auto-resolve
     let signersList: Array<{ name: string; email: string; cpf?: string; phone?: string; auth_method?: string }> = [];
 
-    // 7a. Try auto-resolve: Contratante (client) + Contratada (representative)
-    const clienteId = doc.cliente_id;
-    let autoResolved = false;
+    if (requestSigners && Array.isArray(requestSigners) && requestSigners.length > 0) {
+      // Use signers provided by the frontend modal
+      signersList = requestSigners.map((s: any) => ({
+        name: s.name,
+        email: s.email,
+        cpf: s.cpf || undefined,
+        phone: s.phone || undefined,
+      }));
+    } else {
+      // 7a. Auto-resolve: Contratante (client) + Contratada (representative)
+      const clienteId = doc.cliente_id;
+      let autoResolved = false;
 
-    if (clienteId) {
-      // Fetch client data
-      const { data: cliente } = await supabase
-        .from("clientes")
-        .select("nome, email, cpf_cnpj, telefone")
-        .eq("id", clienteId)
-        .single();
+      if (clienteId) {
+        const { data: cliente } = await supabase
+          .from("clientes")
+          .select("nome, email, cpf_cnpj, telefone")
+          .eq("id", clienteId)
+          .single();
 
-      // Fetch brand_settings for representative
-      const { data: brand } = await supabase
-        .from("brand_settings")
-        .select("representante_legal, representante_email, representante_cpf, representante_cargo")
-        .eq("tenant_id", tenant_id)
-        .maybeSingle();
+        const { data: brand } = await supabase
+          .from("brand_settings")
+          .select("representante_legal, representante_email, representante_cpf, representante_cargo")
+          .eq("tenant_id", tenant_id)
+          .maybeSingle();
 
-      const hasRepresentante = brand?.representante_legal && brand?.representante_email;
-      const hasCliente = cliente?.nome && cliente?.email;
+        const hasRepresentante = brand?.representante_legal && brand?.representante_email;
+        const hasCliente = cliente?.nome && cliente?.email;
 
-      if (hasCliente && hasRepresentante) {
-        // Contratante (client)
-        signersList.push({
-          name: cliente.nome,
-          email: cliente.email!,
-          cpf: cliente.cpf_cnpj?.replace(/\D/g, "")?.length <= 11 ? cliente.cpf_cnpj : undefined,
-          phone: cliente.telefone || undefined,
-        });
-
-        // Contratada (representative)
-        signersList.push({
-          name: brand.representante_legal!,
-          email: brand.representante_email!,
-          cpf: brand.representante_cpf || undefined,
-        });
-
-        autoResolved = true;
-      } else if (hasCliente && !hasRepresentante) {
-        // Client available but no representative configured — warn
-        console.error("[signature-send] Representante legal não configurado para tenant", tenant_id);
-      }
-    }
-
-    // 7b. Fallback: use template default_signers or all signers
-    if (!autoResolved) {
-      const defaultSignerIds = template?.default_signers as string[] | null;
-      if (defaultSignerIds && defaultSignerIds.length > 0) {
-        const { data: signers } = await supabase
-          .from("signers")
-          .select("full_name, email, phone, auth_method, cpf")
-          .in("id", defaultSignerIds)
-          .eq("tenant_id", tenant_id);
-
-        if (signers && signers.length > 0) {
-          signersList = signers.map((s: any) => ({
-            name: s.full_name,
-            email: s.email,
-            cpf: s.cpf || undefined,
-            phone: s.phone || undefined,
-            auth_method: s.auth_method || undefined,
-          }));
+        if (hasCliente && hasRepresentante) {
+          signersList.push({
+            name: cliente.nome,
+            email: cliente.email!,
+            cpf: cliente.cpf_cnpj?.replace(/\D/g, "")?.length <= 11 ? cliente.cpf_cnpj : undefined,
+            phone: cliente.telefone || undefined,
+          });
+          signersList.push({
+            name: brand.representante_legal!,
+            email: brand.representante_email!,
+            cpf: brand.representante_cpf || undefined,
+          });
+          autoResolved = true;
         }
       }
 
-      if (signersList.length === 0) {
-        const { data: allSigners } = await supabase
-          .from("signers")
-          .select("full_name, email, phone, auth_method, cpf")
-          .eq("tenant_id", tenant_id)
-          .limit(5);
+      // 7b. Fallback: template default_signers or all signers
+      if (!autoResolved) {
+        const defaultSignerIds = template?.default_signers as string[] | null;
+        if (defaultSignerIds && defaultSignerIds.length > 0) {
+          const { data: signers } = await supabase
+            .from("signers")
+            .select("full_name, email, phone, auth_method, cpf")
+            .in("id", defaultSignerIds)
+            .eq("tenant_id", tenant_id);
 
-        if (!allSigners || allSigners.length === 0) {
-          // No auto-resolve and no signers — give specific error
-          if (clienteId) {
-            const { data: cliente } = await supabase
-              .from("clientes")
-              .select("email")
-              .eq("id", clienteId)
-              .single();
-
-            if (!cliente?.email) {
-              return new Response(JSON.stringify({ 
-                error: "O cliente não possui e-mail cadastrado. Cadastre o e-mail do cliente ou configure o representante legal em Configurações → Representante Legal." 
-              }), {
-                status: 400,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              });
-            }
+          if (signers && signers.length > 0) {
+            signersList = signers.map((s: any) => ({
+              name: s.full_name,
+              email: s.email,
+              cpf: s.cpf || undefined,
+              phone: s.phone || undefined,
+              auth_method: s.auth_method || undefined,
+            }));
           }
+        }
 
-          return new Response(JSON.stringify({ 
-            error: "Nenhum signatário encontrado. Configure o representante legal em Configurações → Representante Legal, ou cadastre signatários em Documentos → Assinatura." 
+        if (signersList.length === 0) {
+          return new Response(JSON.stringify({
+            error: "Nenhum signatário encontrado. Adicione signatários no modal de envio."
           }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
-        signersList = allSigners.map((s: any) => ({
-          name: s.full_name,
-          email: s.email,
-          cpf: s.cpf || undefined,
-          phone: s.phone || undefined,
-          auth_method: s.auth_method || undefined,
-        }));
       }
     }
 
