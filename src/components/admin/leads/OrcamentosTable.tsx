@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2 } from "lucide-react";
+import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
+import type { QuickLeadData } from "@/hooks/usePropostaRapidaLead";
 import { useReopenLead } from "@/hooks/useReopenLead";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -64,6 +66,20 @@ export function OrcamentosTable({
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
   const { reopenLead, reopening } = useReopenLead(onRefresh);
+  const { quickConvertToProposal, loading: quickLoading } = usePropostaRapidaLead();
+
+  const handleQuickProposal = (orc: OrcamentoDisplayItem) => {
+    const leadData: QuickLeadData = {
+      id: orc.lead_id,
+      nome: orc.nome,
+      telefone: orc.telefone,
+      cidade: orc.cidade || null,
+      estado: orc.estado || null,
+      consultor_id: orc.vendedor_id || null,
+      valor_estimado: orc.media_consumo || null,
+    };
+    quickConvertToProposal(leadData);
+  };
 
   const handleOpenWhatsApp = (orc: OrcamentoDisplayItem) => {
     setSelectedOrcamento(orc);
@@ -252,6 +268,14 @@ export function OrcamentosTable({
                         </TooltipTrigger>
                         <TooltipContent>{(orc.vendedor_nome || orc.vendedor) ? "Alterar consultor" : "Atribuir consultor"}</TooltipContent>
                       </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-warning hover:text-warning/80" onClick={() => handleQuickProposal(orc)} disabled={quickLoading}>
+                            {quickLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScrollText className="w-4 h-4" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                      </Tooltip>
                       {onConvert && !isConverted && (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -310,6 +334,10 @@ export function OrcamentosTable({
                         <DropdownMenuItem onClick={() => { setAssignOrcamento(orc); setAssignOpen(true); }}>
                           <UserPlus className="w-4 h-4 mr-2 text-warning" />
                           {(orc.vendedor_nome || orc.vendedor) ? "Alterar consultor" : "Atribuir consultor"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleQuickProposal(orc)} disabled={quickLoading}>
+                          <ScrollText className="w-4 h-4 mr-2 text-warning" />
+                          Gerar Proposta Rápida
                         </DropdownMenuItem>
                         {onConvert && !isConverted && (
                           <>
