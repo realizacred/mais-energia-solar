@@ -32,7 +32,7 @@ interface LeadsTableProps {
 
 export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDelete, onConvert }: LeadsTableProps) {
   const { reopenLead, reopening } = useReopenLead();
-  const { quickConvertToProposal, loading: quickLoading } = usePropostaRapidaLead();
+  const { quickConvertToProposal, loading: quickLoading, loadingLeadId } = usePropostaRapidaLead();
 
   if (leads.length === 0) {
     return (
