@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw } from "lucide-react";
+import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw, ScrollText } from "lucide-react";
 import { useReopenLead } from "@/hooks/useReopenLead";
+import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
+import { ButtonLoader } from "@/components/loading/ButtonLoader";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -54,6 +56,7 @@ export function VendorLeadsTable({
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [selectedLeadForWhatsapp, setSelectedLeadForWhatsapp] = useState<Lead | null>(null);
   const { reopenLead, reopening } = useReopenLead();
+  const { quickConvertToProposal, loading: quickLoading } = usePropostaRapidaLead();
 
   const handleWhatsappClick = (lead: Lead) => {
     setSelectedLeadForWhatsapp(lead);
