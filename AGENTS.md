@@ -1,7 +1,6 @@
-# AGENTS.md v3.3 — Mais Energia Solar CRM
-# AGENTS.md v3.4 — Mais Energia Solar CRM
+# AGENTS.md v3.5 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-06 (v3.4 — Pipeline DOCX completo, DA-21)
+# Última atualização: 2026-04-07 (v3.5 — Fluxo aceite/contrato, purge jobs, hooks RB-04)
 # Changelog v3.4: RB-39 (pipeline DOCX completo), DA-21 (fflate nativo)
 # Changelog v3.3: RB-29..RB-38 adicionados (landing, DOCX, cards, saúde, badges)
 #                 DA-16..DA-20 adicionados (governança, aliases, ZapSign, RLS)
