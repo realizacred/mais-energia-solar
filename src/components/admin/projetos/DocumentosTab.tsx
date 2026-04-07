@@ -137,6 +137,25 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     },
   });
 
+  const cancelDocMutation = useMutation({
+    mutationFn: async ({ docId, motivo }: { docId: string; motivo: string }) => {
+      const { error } = await supabase
+        .from("generated_documents")
+        .update({ status: "cancelled", observacao: motivo || null } as any)
+        .eq("id", docId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-documentos-generated", dealId] });
+      toast({ title: "Documento cancelado" });
+      setCancelDoc(null);
+      setCancelMotivo("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao cancelar", description: err.message, variant: "destructive" });
+    },
+  });
+
   const togglePreview = async (doc: GeneratedDocRow) => {
     if (previewDocId === doc.id) {
       setPreviewDocId(null);
