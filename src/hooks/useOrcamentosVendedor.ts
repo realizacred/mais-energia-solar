@@ -25,6 +25,7 @@ export interface OrcamentoVendedor {
   observacoes: string | null;
   arquivos_urls: string[];
   vendedor: string | null;
+  vendedor_id: string | null;
   visto: boolean;
   visto_admin: boolean;
   status_id: string | null;
@@ -120,6 +121,7 @@ export function useOrcamentosVendedor({ vendedorNome, isAdminMode = false, filte
         observacoes: orc.observacoes,
         arquivos_urls: orc.arquivos_urls || [],
         vendedor: orc.vendedor,
+        vendedor_id: orc.consultor_id || null,
         visto: orc.visto,
         visto_admin: orc.visto_admin,
         status_id: orc.status_id,
