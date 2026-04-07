@@ -30,6 +30,16 @@ function formatPhone(v: string | null | undefined): string {
   return String(v);
 }
 
+/** Format CEP: "36770038" → "36770-038" */
+function formatCep(v: string | null | undefined): string {
+  if (!v) return "";
+  const digits = String(v).replace(/\D/g, "");
+  if (digits.length === 8) {
+    return digits.replace(/(\d{5})(\d{3})/, "$1-$2");
+  }
+  return String(v);
+}
+
 // ── Data por extenso (PT-BR) ──
 const MESES_EXTENSO = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
   "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -111,7 +121,7 @@ export function resolveClienteComercial(
   set("cliente_email", cliente.email ?? snapCliente.email);
   set("cliente_cnpj_cpf", formatCpfCnpj(str(cliente.cpf_cnpj ?? snapCliente.cpf_cnpj)));
   set("cliente_empresa", cliente.empresa ?? snapCliente.empresa);
-  set("cliente_cep", cliente.cep ?? lead.cep ?? snapCliente.cep);
+  set("cliente_cep", formatCep(str(cliente.cep ?? lead.cep ?? snapCliente.cep)));
   set("cliente_endereco", cliente.rua ?? lead.rua ?? snapCliente.rua);
   set("cliente_numero", cliente.numero ?? lead.numero ?? snapCliente.numero);
   set("cliente_complemento", cliente.complemento ?? snapCliente.complemento);
