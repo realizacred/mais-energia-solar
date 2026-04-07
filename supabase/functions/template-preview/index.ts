@@ -1214,7 +1214,7 @@ Deno.serve(async (req) => {
       // OPT-4: tenant name fetched in parallel instead of sequentially
       adminClient
         .from("tenants")
-        .select("nome")
+        .select("nome, documento, inscricao_estadual, estado, cidade")
         .eq("id", tenantId)
         .maybeSingle(),
       // Brand settings for commercial variables (empresa_*, representante_*)
@@ -1245,6 +1245,7 @@ Deno.serve(async (req) => {
       brandSettings: (brandSettingsRes.data ?? {}) as Record<string, unknown>,
       projetoData: (projeto ?? {}) as Record<string, unknown>,
       clienteData: (cliente ?? {}) as Record<string, unknown>,
+      tenantData: (tenantInfo ?? {}) as Record<string, unknown>,
     });
 
     // console.log(`[template-preview] Variables resolved via domain resolvers: ${Object.keys(vars).length} keys`);

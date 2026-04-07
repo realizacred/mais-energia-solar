@@ -30,6 +30,16 @@ function formatPhone(v: string | null | undefined): string {
   return String(v);
 }
 
+/** Format CEP: "36770038" → "36770-038" */
+function formatCep(v: string | null | undefined): string {
+  if (!v) return "";
+  const digits = String(v).replace(/\D/g, "");
+  if (digits.length === 8) {
+    return digits.replace(/(\d{5})(\d{3})/, "$1-$2");
+  }
+  return String(v);
+}
+
 // ── Data por extenso (PT-BR) ──
 const MESES_EXTENSO = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
   "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -96,6 +106,7 @@ export function resolveClienteComercial(
   const projeto = ext?.projetoData ?? {};
   const clienteData = ext?.clienteData ?? {};
   const deal = ext?.dealData ?? {};
+  const tenant = ext?.tenantData ?? {};
 
   const set = (k: string, v: unknown) => {
     const s = str(v);
@@ -110,7 +121,7 @@ export function resolveClienteComercial(
   set("cliente_email", cliente.email ?? snapCliente.email);
   set("cliente_cnpj_cpf", formatCpfCnpj(str(cliente.cpf_cnpj ?? snapCliente.cpf_cnpj)));
   set("cliente_empresa", cliente.empresa ?? snapCliente.empresa);
-  set("cliente_cep", cliente.cep ?? lead.cep ?? snapCliente.cep);
+  set("cliente_cep", formatCep(str(cliente.cep ?? lead.cep ?? snapCliente.cep)));
   set("cliente_endereco", cliente.rua ?? lead.rua ?? snapCliente.rua);
   set("cliente_numero", cliente.numero ?? lead.numero ?? snapCliente.numero);
   set("cliente_complemento", cliente.complemento ?? snapCliente.complemento);
@@ -186,13 +197,13 @@ export function resolveClienteComercial(
   set("proposta_perda_eficiencia_anual", snap.perda_eficiencia_anual);
   set("proposta_sobredimensionamento", snap.sobredimensionamento);
 
-  // ── Empresa (brand_settings + tenants) ──
+  // ── Empresa (tenants → brand_settings fallback) ──
   set("empresa_razao_social", ext?.tenantNome);
   set("empresa_nome_fantasia", ext?.tenantNome);
-  set("empresa_cnpj", brand.cnpj ?? brand.cpf_cnpj);
-  set("empresa_cnpj_cpf", brand.cnpj ?? brand.cpf_cnpj);
-  set("empresa_cidade", brand.cidade);
-  set("empresa_estado", brand.estado);
+  set("empresa_cnpj", tenant.documento ?? brand.cnpj ?? brand.cpf_cnpj);
+  set("empresa_cnpj_cpf", tenant.documento ?? brand.cnpj ?? brand.cpf_cnpj);
+  set("empresa_cidade", tenant.cidade ?? brand.cidade);
+  set("empresa_estado", tenant.estado ?? brand.estado);
   set("empresa_logo_url", brand.logo_url);
   set("empresa_representante_legal", brand.representante_legal);
   set("empresa_representante_cpf", brand.representante_cpf);
@@ -357,16 +368,16 @@ export function resolveClienteComercial(
   set("proposta_data_envio", fmtDate(proposta.created_at ?? versao.created_at ?? proposta.sent_at));
   set("proposta_codigo", proposta.codigo ?? (proposta.id ? String(proposta.id).substring(0, 8) : undefined));
   set("titulo", snap.proposta_titulo ?? proposta.titulo);
-  set("empresa_cep", brand.cep);
-  set("empresa_bairro", brand.bairro);
-  set("empresa_numero", brand.numero);
-  set("empresa_complemento", brand.complemento);
-  set("empresa_inscricao_estadual", brand.inscricao_estadual ?? brand.ie);
-  set("empresa_inscricao_municipal", brand.inscricao_municipal ?? brand.im);
-  set("empresa_endereco", brand.endereco ?? brand.rua);
-  set("empresa_telefone", formatPhone(str(brand.telefone)));
-  set("empresa_email", brand.email);
-  set("empresa_documento", brand.cnpj ?? brand.cpf_cnpj);
+  set("empresa_cep", formatCep(str(tenant.cep ?? brand.cep)));
+  set("empresa_bairro", tenant.bairro ?? brand.bairro);
+  set("empresa_numero", tenant.numero ?? brand.numero);
+  set("empresa_complemento", tenant.complemento ?? brand.complemento);
+  set("empresa_inscricao_estadual", tenant.inscricao_estadual ?? brand.inscricao_estadual ?? brand.ie);
+  set("empresa_inscricao_municipal", tenant.inscricao_municipal ?? brand.inscricao_municipal ?? brand.im);
+  set("empresa_endereco", tenant.endereco ?? brand.endereco ?? brand.rua);
+  set("empresa_telefone", formatPhone(str(tenant.telefone ?? brand.telefone)));
+  set("empresa_email", tenant.email ?? brand.email);
+  set("empresa_documento", tenant.documento ?? brand.cnpj ?? brand.cpf_cnpj);
   set("empresa_ie", brand.inscricao_estadual ?? brand.ie);
 
   // ── Ghost Group 2 — Cliente extras ──

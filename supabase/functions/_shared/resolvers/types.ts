@@ -54,6 +54,7 @@ export interface ResolverExternalContext {
   projetoData?: AnyObj | null;
   clienteData?: AnyObj | null;
   dealData?: AnyObj | null;
+  tenantData?: AnyObj | null;
 }
 
 export type DomainResolver = (

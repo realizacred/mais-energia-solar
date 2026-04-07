@@ -1,8 +1,8 @@
-# AGENTS.md v3.6 — Mais Energia Solar CRM
+# AGENTS.md v3.7 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-07 (v3.6 — Proteção signed, edição aceita, [cidade])
+# Última atualização: 2026-04-07 (v3.7 — Public action, auto-expire, signed block, empresa_*, CEP)
+# Changelog v3.6: RB-44..RB-46, DA-24 (proteção signed, edição aceita, [cidade])
 # Changelog v3.5: RB-40..RB-43, DA-22..DA-23 (aceite/contrato, purge jobs, hooks)
-# Changelog v3.4: RB-39 (pipeline DOCX completo), DA-21 (fflate nativo)
 # Changelog v3.3: RB-29..RB-38 adicionados (landing, DOCX, cards, saúde, badges)
 #                 DA-16..DA-20 adicionados (governança, aliases, ZapSign, RLS)
 #                 AP-25..AP-29 adicionados
@@ -1181,5 +1181,42 @@ AP-29 CONTRATO SEM DESFRAGMENTAÇÃO
     Quando quebrar: NUNCA — muitos templates usam [cidade] sem prefixo.
 
 # =============================================================================
-# FIM DO AGENTS.md v3.6
+# BLOCO 18 — REGRAS v3.7 — Sessão 2026-04-07 (cont.)
+# =============================================================================
+
+### RB-47 ACEITE/RECUSA PÚBLICO VIA EDGE FUNCTION
+    Páginas públicas (PropostaPublica, PropostaLanding) NUNCA fazem UPDATE
+    direto em propostas_nativas. SEMPRE usar edge function proposal-public-action.
+    A função valida token, aplica state machine, rejeita irmãs, cancela
+    documentos, gera comissão — mesma lógica de proposal-transition.
+    Autenticação via token público (sem JWT).
+    Implementado em: proposal-public-action/index.ts
+
+### RB-48 EXPIRAÇÃO AUTOMÁTICA DE PROPOSTAS
+    Cron job diário às 08:00 UTC (job 64) via proposal-auto-expire.
+    Busca propostas com status IN ('enviada','vista','gerada')
+    e proposta_versoes.valido_ate < NOW() (não nulo).
+    Seta status = 'expirada', registra evento em proposal_events.
+    NUNCA expirar propostas 'aceita' ou 'rascunho'.
+    Implementado em: proposal-auto-expire/index.ts
+
+### RB-49 CONTRATO ASSINADO BLOQUEIA EDIÇÃO
+    Se existir generated_documents com signature_status = 'signed'
+    vinculado ao projeto da proposta, bloquear edição completamente.
+    Toast: "Esta proposta possui contrato assinado digitalmente e não pode ser editada."
+    Verificação feita ANTES de exibir o dialog de confirmação.
+    Implementado em: PropostaExpandedDetail.tsx (handleEditWithProtection)
+
+### DA-25 EMPRESA_* LÊ DE TENANTS COM FALLBACK BRAND_SETTINGS
+    [empresa_cnpj/cidade/estado/inscricao_estadual] → tenants (dados reais).
+    [empresa_telefone/email/endereco/bairro/cep] → tenants → brand_settings.
+    [empresa_logo_url/representante_*] → brand_settings (sem mudança).
+    ext.tenantData passado por generate-document e template-preview.
+
+### DA-26 CEP COM MÁSCARA OBRIGATÓRIA
+    [cliente_cep] e [empresa_cep] formatados: "36770-038".
+    formatCep() em resolveClienteComercial.ts.
+
+# =============================================================================
+# FIM DO AGENTS.md v3.7
 # =============================================================================
