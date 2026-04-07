@@ -1,6 +1,7 @@
-# AGENTS.md v3.7 — Mais Energia Solar CRM
+# AGENTS.md v3.8 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-07 (v3.7 — Public action, auto-expire, signed block, empresa_*, CEP)
+# Última atualização: 2026-04-07 (v3.8 — Adapter pattern assinatura, Clicksign)
+# Changelog v3.7: RB-47..RB-49, DA-25..DA-26 (public action, auto-expire, empresa_*, CEP)
 # Changelog v3.6: RB-44..RB-46, DA-24 (proteção signed, edição aceita, [cidade])
 # Changelog v3.5: RB-40..RB-43, DA-22..DA-23 (aceite/contrato, purge jobs, hooks)
 # Changelog v3.3: RB-29..RB-38 adicionados (landing, DOCX, cards, saúde, badges)
@@ -1218,5 +1219,41 @@ AP-29 CONTRATO SEM DESFRAGMENTAÇÃO
     formatCep() em resolveClienteComercial.ts.
 
 # =============================================================================
-# FIM DO AGENTS.md v3.7
+# BLOCO 19 — REGRAS v3.8 — Sessão 2026-04-07 (cont.)
+# =============================================================================
+
+### DA-27 ADAPTER PATTERN PARA ASSINATURA DIGITAL
+    Interface SignatureAdapter em _shared/signatureAdapters.ts.
+    Factory getSignatureAdapter(provider) retorna ZapSignAdapter ou ClickSignAdapter.
+    Provider escolhido por tenant via signature_settings.provider.
+    signature-send usa adapter.createEnvelope() — provider-agnostic.
+    NUNCA hardcodar lógica de provider em signature-send.
+    Para adicionar novo provider: criar class + adicionar ao switch em getSignatureAdapter.
+
+### DA-28 CLICKSIGN USA 3 CHAMADAS API
+    Diferente do ZapSign (1 chamada), Clicksign requer:
+    1. POST /api/v2/documents — upload do PDF (via URL)
+    2. POST /api/v2/signers — criar signatário
+    3. POST /api/v2/lists — vincular signatário ao documento
+    4. POST /api/v2/notifications — notificar signatário (não-fatal)
+    Sandbox: sandbox.clicksign.com | Produção: app.clicksign.com
+    Auth: ?access_token={token} como query param (não header).
+    Implementado em: ClickSignAdapter._shared/signatureAdapters.ts
+
+### DA-29 WEBHOOK DETECTA PROVIDER PELO PAYLOAD
+    detectWebhookProvider() em _shared/signatureAdapters.ts:
+    - Clicksign: { event: { name }, document: { key } }
+    - ZapSign: { doc: { token, status } } ou { token, status }
+    Cada provider tem parser + mapper de status dedicados.
+    signature-webhook/index.ts é provider-agnostic.
+    Status mapping:
+    | Clicksign event | ZapSign status | Status interno |
+    |---|---|---|
+    | document_signed | signed/completed | signed |
+    | document_refused | refused/rejected | refused |
+    | signer_link_opened | link_opened | viewed |
+    | document_cancelled | cancelled | cancelled |
+
+# =============================================================================
+# FIM DO AGENTS.md v3.8
 # =============================================================================
