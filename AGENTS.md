@@ -1,6 +1,7 @@
-# AGENTS.md v3.10 — Mais Energia Solar CRM
+# AGENTS.md v3.11 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-07 (v3.10 — Fluxo rápido Lead → Proposta)
+# Última atualização: 2026-04-07 (v3.11 — Autentique, Signatários, PDF cache, Purge jobs)
+# Changelog v3.11: DA-33..DA-35, RB-51 (Autentique adapter, signatários auto, PDF sem re-geração, purge jobs)
 # Changelog v3.10: RB-50, DA-32 (quickConvertToProposal, usePropostaRapidaLead)
 # Changelog v3.7: RB-47..RB-49, DA-25..DA-26 (public action, auto-expire, empresa_*, CEP)
 # Changelog v3.6: RB-44..RB-46, DA-24 (proteção signed, edição aceita, [cidade])
@@ -1303,5 +1304,43 @@ AP-29 CONTRATO SEM DESFRAGMENTAÇÃO
     Implementado em: src/hooks/usePropostaRapidaLead.ts
 
 # =============================================================================
-# FIM DO AGENTS.md v3.10
+# BLOCO 22 — REGRAS v3.11 — Sessão 2026-04-07 (cont.)
+# =============================================================================
+
+### DA-33 AUTENTIQUE — ADAPTER GRAPHQL
+    API GraphQL: https://api.autentique.com.br/v2/graphql
+    Auth: Authorization: Bearer {token}
+    Mutation createDocument(document, signers) retorna id + short_link por signatário.
+    Webhook payload: { event: "sign"|"reject"|"view", document: { id } }
+    detectWebhookProvider detecta por body.event sem body.document.key.
+    Implementado em: _shared/signatureAdapters.ts (AutentiqueAdapter)
+
+### DA-34 SIGNATÁRIOS AUTOMÁTICOS NO ENVIO PARA ASSINATURA
+    Modal SignatureModal.tsx preenche signatários automaticamente:
+    - Contratante: clientes.nome + email + cpf_cnpj (via projeto.cliente_id)
+    - Contratada: brand_settings.representante_legal + representante_email
+    Avisos se email faltando ou representante não configurado.
+    Usuário pode editar/adicionar/remover signatários antes de enviar.
+    NUNCA enviar sem confirmação do usuário.
+    Implementado em: src/components/admin/projetos/SignatureModal.tsx
+
+### RB-51 PDF DE PROPOSTA — SEM RE-GERAÇÃO AUTOMÁTICA
+    NUNCA re-gerar PDF automaticamente ao abrir aba "Arquivo".
+    Se proposta tem pdf_path salvo → exibir diretamente do storage.
+    PDF só é gerado ao clicar explicitamente em "Gerar Proposta".
+    Estado "Documento pronto" = pdf_path existe no banco.
+    Re-geração automática causa lentidão desnecessária.
+
+### DA-35 BANCO DE DADOS — JOBS DE PURGE ATIVOS
+    Funções SECURITY DEFINER criadas:
+    - purge_monitor_payloads_old() → job 51 diário 03:00
+    - purge_wa_webhook_events_old() → job 60 domingo 02:00
+    - purge_cron_job_run_details() → job 61 domingo 02:00
+    - purge_monitor_readings_realtime() → job 62 diário 03:00
+    - purge_monitor_string_metrics() → job 63 domingo 04:00
+    NUNCA usar VACUUM FULL em produção — bloqueia tabelas.
+    Índice: idx_monitor_provider_payloads_received_at criado.
+
+# =============================================================================
+# FIM DO AGENTS.md v3.11
 # =============================================================================
