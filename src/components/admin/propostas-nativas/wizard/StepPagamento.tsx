@@ -15,6 +15,7 @@ import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
 import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
 import { usePaymentInterestConfigs, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
 import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
+import { PaymentMethodSelector, type FormaSelected } from "./PaymentMethodSelector";
 
 const FORMA_ICONS: Record<string, React.ReactNode> = {
   pix: <Smartphone className="h-4 w-4 text-primary" />,
@@ -175,6 +176,25 @@ export function StepPagamento({
   const [novoPrazo, setNovoPrazo] = useState("");
   const [novoCarencia, setNovoCarencia] = useState("0");
 
+  // ─── Formas de pagamento direto selecionadas (drag & drop)
+  const [formasSelecionadas, setFormasSelecionadas] = useState<FormaSelected[]>(() => {
+    // Round-trip: reconstruct from existing opcoes with tipo="direto"
+    return opcoes
+      .filter(op => op.tipo === "direto" && op.forma_pagamento)
+      .map(op => ({
+        id: op.id,
+        config_id: op.id,
+        forma_pagamento: op.forma_pagamento as FormaPagamento,
+        nome: op.nome,
+        num_parcelas: op.num_parcelas,
+        taxa_mensal: op.taxa_mensal,
+        juros_responsavel: "cliente",
+        valor_total: op.valor_financiado,
+        entrada: op.entrada,
+        observacoes: "",
+      }));
+  });
+
   // Sync precoFinal into existing banco groups — update valor_financiado + recalc parcela
   useEffect(() => {
     if (precoFinal <= 0) return;
@@ -206,9 +226,29 @@ export function StepPagamento({
     });
   }, [precoFinal, bancos]);
 
+  // Merge banco groups + formas selecionadas into pagamentoOpcoes
   useEffect(() => {
-    onOpcoesChange(flattenBancoGroupsToOpcoes(bancoGroups, precoFinal));
-  }, [bancoGroups, precoFinal, onOpcoesChange]);
+    const bancoOpcoes = flattenBancoGroupsToOpcoes(bancoGroups, precoFinal);
+    const formasOpcoes: PagamentoOpcao[] = formasSelecionadas.map(f => {
+      const principal = (f.valor_total || precoFinal) - (f.entrada || 0);
+      const valorParcela = f.num_parcelas > 0 && principal > 0
+        ? principal / f.num_parcelas
+        : principal;
+      return {
+        id: f.id,
+        nome: f.nome,
+        tipo: "direto" as const,
+        valor_financiado: f.valor_total || precoFinal,
+        entrada: f.entrada,
+        taxa_mensal: f.taxa_mensal,
+        carencia_meses: 0,
+        num_parcelas: f.num_parcelas,
+        valor_parcela: valorParcela,
+        forma_pagamento: f.forma_pagamento,
+      };
+    });
+    onOpcoesChange([...bancoOpcoes, ...formasOpcoes]);
+  }, [bancoGroups, precoFinal, formasSelecionadas, onOpcoesChange]);
 
   // ─── Derived metrics (aligned with calc-engine.ts)
   const prem = premissas || { inflacao_energetica: 9.5, perda_eficiencia_anual: 0.5, vpl_taxa_desconto: 10, imposto: 0, inflacao_ipca: 4.5, sobredimensionamento: 0, troca_inversor_anos: 15, troca_inversor_custo: 30 };
@@ -482,8 +522,12 @@ export function StepPagamento({
               </div>
             </div>
 
-            {/* Formas próprias configuradas pelo admin */}
-            <FormasPagamentoPreview precoFinal={precoFinal} />
+            {/* Formas de pagamento direto — drag & drop */}
+            <PaymentMethodSelector
+              precoFinal={precoFinal}
+              selected={formasSelecionadas}
+              onSelectedChange={setFormasSelecionadas}
+            />
           </div>
 
           {/* ── COLUNA DIREITA — Financiamento Bancário ── */}
@@ -842,63 +886,7 @@ export function StepPagamento({
   );
 }
 
-// ─── FormasPagamentoPreview (read-only admin payment methods) ────
-function FormasPagamentoPreview({ precoFinal }: { precoFinal: number }) {
-  const { data: formasConfig } = usePaymentInterestConfigs();
-  const formasAtivas = useMemo(
-    () => (formasConfig ?? []).filter((f) => f.ativo),
-    [formasConfig]
-  );
 
-  return (
-    <div className="space-y-2">
-      {/* Active payment methods preview */}
-      {formasAtivas.length > 0 && formasAtivas.map((forma) => (
-        <div
-          key={forma.id}
-          className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
-              {FORMA_ICONS[forma.forma_pagamento] ?? <DollarSign className="h-4 w-4 text-primary" />}
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                {FORMA_PAGAMENTO_LABELS[forma.forma_pagamento] ?? forma.forma_pagamento}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {forma.juros_tipo === "sem_juros"
-                  ? `Até ${forma.parcelas_padrao}x sem juros`
-                  : `Até ${forma.parcelas_padrao}x · ${forma.juros_valor}% a.m.`}
-                {forma.observacoes ? ` · ${forma.observacoes}` : ""}
-              </p>
-            </div>
-          </div>
-          <Badge
-            variant="outline"
-            className="text-xs bg-success/10 text-success border-success/30"
-          >
-            Disponível
-          </Badge>
-        </div>
-      ))}
-
-      {/* Warning if no forms configured */}
-      {formasAtivas.length === 0 && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/5 border border-warning/20">
-          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
-          <p className="text-xs text-muted-foreground">
-            Nenhuma forma de pagamento direto configurada.
-            Configure em{" "}
-            <span className="font-medium text-foreground">
-              Admin → Formas de Pagamento
-            </span>.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Sub-components ─────────────────────────────────────────
 

@@ -333,13 +333,15 @@ export interface VendaData {
 export interface PagamentoOpcao {
   id: string;
   nome: string;
-  tipo: "a_vista" | "financiamento" | "parcelado" | "outro";
+  tipo: "a_vista" | "financiamento" | "parcelado" | "outro" | "direto";
   valor_financiado: number;
   entrada: number;
   taxa_mensal: number;
   carencia_meses: number;
   num_parcelas: number;
   valor_parcela: number;
+  /** Forma de pagamento (pix, cartao_credito, etc.) — usado em tipo="direto" */
+  forma_pagamento?: string;
 }
 
 export interface Concessionaria {
