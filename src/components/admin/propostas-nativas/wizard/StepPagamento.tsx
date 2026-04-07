@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { Plus, Trash2, CreditCard, Building2, ChevronRight, Calendar, TrendingUp, DollarSign, X, Search, Info, AlertTriangle, Smartphone, FileText, Banknote, Wallet } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { Plus, Trash2, CreditCard, Building2, ChevronRight, Calendar, TrendingUp, DollarSign, X, Search, Info, AlertTriangle, Smartphone, FileText, Banknote, Wallet, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL } from "./types";
 import { formatNumberBR } from "@/lib/formatters";
@@ -75,24 +76,26 @@ export function StepPagamento({
   const [showVariaveisModal, setShowVariaveisModal] = useState(false);
   const [fluxoFinanciamento, setFluxoFinanciamento] = useState("sem_financiamento");
 
-  // ─── Bank groups with auto-generated options
-  const buildBancoGroups = (bankList: BancoFinanciamento[], price: number): BancoGroup[] =>
-    bankList.map((b) => ({
-      banco: b,
-      opcoes: DEFAULT_PARCELAS
-        .filter((p) => p <= b.max_parcelas)
-        .map((parcelas) => ({
-          id: crypto.randomUUID(),
-          banco_id: b.id,
-          banco_nome: b.nome,
-          entrada: 0,
-          num_parcelas: parcelas,
-          taxa_mensal: b.taxa_mensal,
-          carencia_meses: 2,
-          valor_financiado: price,
-          valor_parcela: calcParcela({ valor_financiado: price, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
-        })),
-    }));
+  // ─── Bank groups with auto-generated options (only for selected banks)
+  const buildBancoGroups = (bankList: BancoFinanciamento[], price: number, selectedIds?: Set<string>): BancoGroup[] =>
+    bankList
+      .filter(b => !selectedIds || selectedIds.has(b.id))
+      .map((b) => ({
+        banco: b,
+        opcoes: DEFAULT_PARCELAS
+          .filter((p) => p <= b.max_parcelas)
+          .map((parcelas) => ({
+            id: crypto.randomUUID(),
+            banco_id: b.id,
+            banco_nome: b.nome,
+            entrada: 0,
+            num_parcelas: parcelas,
+            taxa_mensal: b.taxa_mensal,
+            carencia_meses: 2,
+            valor_financiado: price,
+            valor_parcela: calcParcela({ valor_financiado: price, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+          })),
+      }));
 
   const mapOpcoesToBancoGroups = (existingOpcoes: PagamentoOpcao[], bankList: BancoFinanciamento[], fallbackPrice: number): BancoGroup[] => {
     const financiamento = existingOpcoes.filter((o) => o.tipo === "financiamento" || o.tipo === "parcelado");
@@ -161,9 +164,24 @@ export function StepPagamento({
     ];
   };
 
+  // ─── Selected banks (only checked ones generate options)
+  const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(() => {
+    // If we have existing opcoes with financing, extract bank IDs from them
+    const existingBancoNames = opcoes
+      .filter(o => o.tipo === "financiamento" || o.tipo === "parcelado")
+      .map(o => o.nome);
+    if (existingBancoNames.length > 0) {
+      const ids = new Set<string>();
+      bancos.forEach(b => { if (existingBancoNames.includes(b.nome)) ids.add(b.id); });
+      return ids;
+    }
+    // Default: none selected — user chooses which banks to include
+    return new Set<string>();
+  });
+
   const [hasUserEditedBancoGroups, setHasUserEditedBancoGroups] = useState(false);
   const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>(() =>
-    opcoes.length > 0 ? mapOpcoesToBancoGroups(opcoes, bancos, precoFinal) : buildBancoGroups(bancos, precoFinal)
+    opcoes.length > 0 ? mapOpcoesToBancoGroups(opcoes, bancos, precoFinal) : buildBancoGroups(bancos, precoFinal, selectedBankIds)
   );
   const [selectedBancoIdx, setSelectedBancoIdx] = useState(0);
   const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);
@@ -544,27 +562,123 @@ export function StepPagamento({
 
             {/* Sidebar banks + options */}
             <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-3">
-              {/* Sidebar - Banks */}
+              {/* Sidebar - Banks with checkboxes */}
               <div className="space-y-1">
-                {bancoGroups.map((g, idx) => (
-                  <Button
-                    key={g.banco.id}
-                    variant="ghost"
-                    onClick={() => setSelectedBancoIdx(idx)}
-                    className={cn(
-                      "w-full justify-between px-3 py-2.5 h-auto text-sm transition-colors",
-                      selectedBancoIdx === idx
-                        ? "bg-primary/10 text-primary border border-primary/30 font-semibold"
-                        : "hover:bg-muted/50 text-muted-foreground border border-transparent"
-                    )}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Building2 className="h-3.5 w-3.5" />
-                      {g.banco.nome}
-                    </span>
-                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">{g.opcoes.length}</Badge>
-                  </Button>
-                ))}
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 px-1">Selecione os bancos</p>
+                {bancos.map((banco) => {
+                  const isChecked = selectedBankIds.has(banco.id);
+                  const groupIdx = bancoGroups.findIndex(g => g.banco.id === banco.id);
+                  const opcCount = groupIdx >= 0 ? bancoGroups[groupIdx].opcoes.length : 0;
+                  const isActive = groupIdx >= 0 && selectedBancoIdx === groupIdx;
+                  return (
+                    <div
+                      key={banco.id}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer border",
+                        isActive
+                          ? "bg-primary/10 border-primary/30"
+                          : isChecked
+                            ? "bg-card border-border hover:bg-muted/50"
+                            : "border-transparent hover:bg-muted/30"
+                      )}
+                      onClick={() => {
+                        if (isChecked && groupIdx >= 0) {
+                          setSelectedBancoIdx(groupIdx);
+                        }
+                      }}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          const next = new Set(selectedBankIds);
+                          if (checked) {
+                            next.add(banco.id);
+                            // Add bank group with default options
+                            const newGroup: BancoGroup = {
+                              banco,
+                              opcoes: DEFAULT_PARCELAS
+                                .filter(p => p <= banco.max_parcelas)
+                                .map(parcelas => ({
+                                  id: crypto.randomUUID(),
+                                  banco_id: banco.id,
+                                  banco_nome: banco.nome,
+                                  entrada: 0,
+                                  num_parcelas: parcelas,
+                                  taxa_mensal: banco.taxa_mensal,
+                                  carencia_meses: 2,
+                                  valor_financiado: precoFinal,
+                                  valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: 0, num_parcelas: parcelas, taxa_mensal: banco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+                                })),
+                            };
+                            setBancoGroups(prev => [...prev, newGroup]);
+                            setSelectedBancoIdx(bancoGroups.length); // select newly added
+                          } else {
+                            next.delete(banco.id);
+                            setBancoGroups(prev => {
+                              const filtered = prev.filter(g => g.banco.id !== banco.id);
+                              // Adjust selected index
+                              if (selectedBancoIdx >= filtered.length) {
+                                setSelectedBancoIdx(Math.max(0, filtered.length - 1));
+                              }
+                              return filtered;
+                            });
+                          }
+                          setSelectedBankIds(next);
+                        }}
+                        className="shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-sm font-medium truncate">{banco.nome}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{banco.taxa_mensal.toFixed(2)}% a.m.</span>
+                      </div>
+                      {isChecked && opcCount > 0 && (
+                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">{opcCount}</Badge>
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Custom banks not in the catalog */}
+                {bancoGroups
+                  .filter(g => !bancos.some(b => b.id === g.banco.id))
+                  .map((g) => {
+                    const groupIdx = bancoGroups.indexOf(g);
+                    const isActive = selectedBancoIdx === groupIdx;
+                    return (
+                      <div
+                        key={g.banco.id}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer border",
+                          isActive ? "bg-primary/10 border-primary/30" : "bg-card border-border hover:bg-muted/50"
+                        )}
+                        onClick={() => setSelectedBancoIdx(groupIdx)}
+                      >
+                        <Check className="h-3.5 w-3.5 text-success shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-sm font-medium truncate">{g.banco.nome}</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">{g.banco.taxa_mensal.toFixed(2)}% a.m.</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">{g.opcoes.length}</Badge>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60 shrink-0" onClick={(e) => {
+                            e.stopPropagation();
+                            setBancoGroups(prev => {
+                              const filtered = prev.filter(gr => gr.banco.id !== g.banco.id);
+                              if (selectedBancoIdx >= filtered.length) setSelectedBancoIdx(Math.max(0, filtered.length - 1));
+                              return filtered;
+                            });
+                          }}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 <Button variant="outline" size="sm" className="w-full text-sm gap-1 mt-2 h-9 border-dashed border-primary text-primary hover:bg-primary/10" onClick={() => setShowNovoFinanciamento(true)}>
                   <Plus className="h-3.5 w-3.5" /> Novo financiamento
                 </Button>
