@@ -1,7 +1,6 @@
-# AGENTS.md v3.3 — Mais Energia Solar CRM
-# AGENTS.md v3.4 — Mais Energia Solar CRM
+# AGENTS.md v3.5 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-06 (v3.4 — Pipeline DOCX completo, DA-21)
+# Última atualização: 2026-04-07 (v3.5 — Fluxo aceite/contrato, purge jobs, hooks RB-04)
 # Changelog v3.4: RB-39 (pipeline DOCX completo), DA-21 (fflate nativo)
 # Changelog v3.3: RB-29..RB-38 adicionados (landing, DOCX, cards, saúde, badges)
 #                 DA-16..DA-20 adicionados (governança, aliases, ZapSign, RLS)
@@ -1047,8 +1046,96 @@ AP-29 CONTRATO SEM DESFRAGMENTAÇÃO
 [ ] Badges de status em flex-col (nunca flex-row)
 [ ] Pipeline DOCX completo: defragment → cleanup → normalize → replace → formulas → cleanup residual
 [ ] Variáveis em tabelas DOCX processadas (RB-39)
+[ ] Aceite de proposta cancela documentos gerados do projeto
+[ ] Cancelamento de contrato exige motivo (observacao)
+[ ] Variáveis monetárias sem prefixo R$ no resolver
+[ ] generate-document usa .or() para deal_id/projeto_id
 
 # =============================================================================
-# FIM DO AGENTS.md v3.3
-# FIM DO AGENTS.md v3.4
+# BLOCO 16 — REGRAS v3.5 — Sessão 2026-04-07
+# =============================================================================
+
+## Fluxo de Proposta → Contrato
+
+### RB-40 ACEITE DE PROPOSTA — EFEITOS COLATERAIS OBRIGATÓRIOS
+    Ao aceitar uma proposta (proposal-transition → accept):
+    1. Setar is_principal = true na proposta aceita
+    2. Setar status = 'recusada' + is_principal = false nas irmãs
+       do mesmo projeto com status IN ('rascunho','gerada','enviada','vista')
+    3. Cancelar generated_documents com status = 'generated' do mesmo projeto
+       → setar status = 'cancelled', observacao = 'Nova proposta aceita'
+    4. NUNCA cancelar documento com signature_status = 'signed' — é INTOCÁVEL
+    Implementado em: supabase/functions/proposal-transition/index.ts
+
+### RB-41 CANCELAMENTO DE CONTRATO — MOTIVO OBRIGATÓRIO
+    Ao cancelar um documento gerado manualmente:
+    - Abrir modal pedindo motivo/observação
+    - Salvar em generated_documents.observacao
+    - Exibir motivo no card do documento cancelado (texto muted)
+    NUNCA cancelar sem motivo — UX e auditoria exigem rastreabilidade
+    Implementado em: DocumentosTab.tsx + useProjetoDocumentos.ts
+
+### RB-42 VARIÁVEIS MONETÁRIAS — SEM PREFIXO R$
+    Variáveis retornam APENAS o número formatado (ex: "7.718,40").
+    O template DOCX já tem "R$" escrito antes da variável.
+    Campos afetados: [preco], [equipamentos_custo_total],
+    [instalacao_preco_total], e qualquer campo monetário do snapshot.
+    Implementado em: _shared/resolvers/resolveFinanceiro.ts
+    (strip via regex: s.replace(/^[\s ]*R\$[\s ]*/i, "").trim())
+
+### RB-43 GENERATE-DOCUMENT — QUERY COM OR OBRIGATÓRIO
+    SEMPRE usar .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
+    para buscar proposta em generate-document.
+    NUNCA simplificar para .eq("projeto_id", deal_id) apenas,
+    pois deal_id e projeto_id são campos diferentes em propostas_nativas.
+
+## Banco de dados — Manutenção automática
+
+### DA-22 JOBS DE PURGE — RETENÇÃO AUTOMÁTICA
+    Funções de purge existentes (SECURITY DEFINER, batches de 5000):
+    - purge_monitor_payloads_old()        → job 51, diário 03:00 UTC
+    - purge_wa_webhook_events_old()       → job 60, domingo 02:00 UTC
+    - purge_cron_job_run_details()        → job 61, domingo 02:00 UTC
+    - purge_monitor_readings_realtime()   → job 62, diário 03:00 UTC
+    - purge_monitor_string_metrics()      → job 63, domingo 04:00 UTC
+    NUNCA usar VACUUM FULL em produção — bloqueia tabelas por horas.
+    VACUUM normal é executado automaticamente pelo autovacuum do Postgres.
+    Quando quebrar: NUNCA — incidente 2026-04-06 confirmou o risco.
+
+## Hooks existentes — Referência (RB-04)
+
+### DA-23 HOOKS DEDICADOS PARA QUERIES
+    Queries Supabase SEMPRE em hooks dedicados em src/hooks/.
+    NUNCA usar useQuery diretamente em páginas/componentes.
+    Hooks criados na sessão 2026-04-07:
+    | Hook | Uso |
+    |---|---|
+    | useWaChannel.ts | WaChannelPage |
+    | useContacts.ts | ContactsPage |
+    | useEdeltecApiConfig.ts | EdeltecIntegrationPage |
+    | useGoogleMapsConfig.ts | GoogleMapsConfigPage |
+    | useTenantId.ts | EdeltecIntegrationPage (compartilhado) |
+    | useUCPublicData.ts | UCPublica (4 queries: token, monitoring, invoices, tarifa) |
+
+## Correções aplicadas nesta sessão
+
+### Logging — solarmarket-sync
+- 9x console.error informativo → console.log (RB-23 compliance)
+- "Time budget exhausted" → console.warn
+
+### Resolver financeiro — strip R$
+- costFields: regex remove prefixo "R$" do snapshot antes de retornar
+- Evita "R$ R$ 7.718,40" nos PDFs gerados
+
+### proposal-transition — aceite completo
+- Cancela generated_documents do projeto ao aceitar nova proposta
+- Respeita signature_status = 'signed' (intocável)
+
+### DocumentosTab — cancelamento com motivo
+- Modal com textarea para observação
+- Exibição do motivo no card cancelado
+- Coluna observacao adicionada em generated_documents
+
+# =============================================================================
+# FIM DO AGENTS.md v3.5
 # =============================================================================
