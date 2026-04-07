@@ -93,6 +93,42 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
   const { data: templates = [] } = useDocTemplates();
 
+  // Buscar dados do cliente vinculado para validação pré-contrato
+  const { data: clienteData } = useQuery({
+    queryKey: ["projeto-cliente-validacao", dealId],
+    queryFn: async () => {
+      const { data: projeto } = await supabase
+        .from("projetos")
+        .select("cliente_id")
+        .eq("id", dealId)
+        .maybeSingle();
+      if (!projeto?.cliente_id) return null;
+      const { data: cliente } = await supabase
+        .from("clientes")
+        .select("nome, cpf_cnpj, email, rua, numero, bairro, cidade, estado, cep")
+        .eq("id", projeto.cliente_id)
+        .maybeSingle();
+      return cliente;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!dealId,
+  });
+
+  // Validação de campos obrigatórios do cliente para contrato
+  const clienteMissingFields = useMemo(() => {
+    if (!clienteData) return ["Cliente não vinculado ao projeto"];
+    const missing: string[] = [];
+    if (!clienteData.cpf_cnpj?.trim()) missing.push("CPF/CNPJ");
+    if (!clienteData.email?.trim()) missing.push("E-mail");
+    if (!clienteData.rua?.trim()) missing.push("Rua");
+    if (!clienteData.numero?.trim()) missing.push("Número");
+    if (!clienteData.bairro?.trim()) missing.push("Bairro");
+    if (!clienteData.cidade?.trim()) missing.push("Cidade");
+    if (!clienteData.estado?.trim()) missing.push("Estado");
+    if (!clienteData.cep?.trim()) missing.push("CEP");
+    return missing;
+  }, [clienteData]);
+
   // Fetch consultor phone if not passed as prop
   const { data: consultorData } = useQuery({
     queryKey: ["projeto-consultor-telefone", dealId],
