@@ -633,6 +633,46 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Cancel Document Dialog */}
+      <Dialog open={!!cancelDoc} onOpenChange={(open) => { if (!open) { setCancelDoc(null); setCancelMotivo(""); } }}>
+        <DialogContent className="w-[90vw] max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                <Ban className="w-5 h-5 text-warning" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-semibold text-foreground">Cancelar documento</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  O documento "{cancelDoc?.title}" será marcado como cancelado.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>Motivo do cancelamento</Label>
+            <Textarea
+              value={cancelMotivo}
+              onChange={(e) => setCancelMotivo(e.target.value)}
+              placeholder="Informe o motivo (opcional)"
+              rows={3}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => { setCancelDoc(null); setCancelMotivo(""); }}>Voltar</Button>
+            <Button
+              variant="outline"
+              className="border-destructive text-destructive"
+              disabled={cancelDocMutation.isPending}
+              onClick={() => cancelDoc && cancelDocMutation.mutate({ docId: cancelDoc.id, motivo: cancelMotivo })}
+            >
+              {cancelDocMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Ban className="h-4 w-4 mr-1.5" />}
+              Cancelar documento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
