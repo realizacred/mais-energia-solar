@@ -20,52 +20,8 @@ import {
 import { useEdeltecSyncStatus, useEdeltecSyncLogs } from "@/hooks/integrations/useEdeltecSyncStatus";
 import { useEdeltecCatalogStats } from "@/hooks/integrations/useEdeltecCatalog";
 import { useEdeltecSync } from "@/hooks/useEdeltecSync";
-import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-
-function formatDateBrasilia(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-}
-
-const statusVariantMap: Record<string, "success" | "warning" | "destructive" | "muted" | "info"> = {
-  completed: "success",
-  running: "warning",
-  error: "destructive",
-  idle: "muted",
-};
-
-function useTenantId() {
-  return useQuery({
-    queryKey: ["current-tenant-id"],
-    queryFn: async () => {
-      const { tenantId } = await getCurrentTenantId();
-      return tenantId;
-    },
-    staleTime: 1000 * 60 * 15,
-  });
-}
-
-export default function EdeltecIntegrationPage() {
-  const { data: tenantId } = useTenantId();
-
-  // Fetch api_config_id + fornecedor_id for tenant
-  const { data: apiConfig } = useQuery({
-    queryKey: ["edeltec-api-config", tenantId],
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("integrations_api_config")
-        .select("id, fornecedor_id")
-        .eq("tenant_id", tenantId)
-        .eq("provider", "edeltec")
-        .eq("ativo", true)
-        .maybeSingle();
-      return data as { id: string; fornecedor_id: string | null } | null;
-    },
-    staleTime: 1000 * 60 * 5,
-    enabled: !!tenantId,
-  });
+import { useTenantId } from "@/hooks/useTenantId";
+import { useEdeltecApiConfig } from "@/hooks/useEdeltecApiConfig";
 
   const { data: syncState, isLoading: loadingSync } = useEdeltecSyncStatus(tenantId);
   const { data: stats, isLoading: loadingStats } = useEdeltecCatalogStats(apiConfig?.fornecedor_id ?? null);
