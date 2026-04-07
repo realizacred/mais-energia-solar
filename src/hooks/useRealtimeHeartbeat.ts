@@ -12,51 +12,95 @@ import { toast } from "sonner";
 const HEARTBEAT_INTERVAL_MS = 30_000; // 30s
 const RECONNECT_DELAY_MS = 3_000;
 
-export function useRealtimeHeartbeat() {
+interface UseRealtimeHeartbeatOptions {
+  enabled?: boolean;
+}
+
+export function useRealtimeHeartbeat({ enabled = true }: UseRealtimeHeartbeatOptions = {}) {
   const queryClient = useQueryClient();
   const wasDisconnectedRef = useRef(false);
+  const hasConnectedRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      wasDisconnectedRef.current = false;
+      hasConnectedRef.current = false;
+      toast.dismiss("realtime-disconnect");
+      return;
+    }
+
     const channel = supabase.channel("heartbeat-monitor");
 
-    const checkConnection = () => {
-      const state = channel.state;
-      
-      if (state === "closed" || state === "errored") {
-        if (!wasDisconnectedRef.current) {
-          wasDisconnectedRef.current = true;
-          toast.warning("Conexão em tempo real perdida. Reconectando...", {
-            id: "realtime-disconnect",
-            duration: Infinity,
-          });
-        }
-
-        // Tentar reconectar
-        setTimeout(() => {
-          channel.subscribe();
-        }, RECONNECT_DELAY_MS);
-      } else if (state === "joined" && wasDisconnectedRef.current) {
-        wasDisconnectedRef.current = false;
-        toast.success("Conexão restabelecida!", {
-          id: "realtime-disconnect",
-          duration: 3000,
-        });
-        // Invalidar todas as queries para garantir dados frescos
-        queryClient.invalidateQueries();
+    const clearReconnectTimeout = () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
     };
 
-    channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") {
-        wasDisconnectedRef.current = false;
-      }
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+    const notifyDisconnected = () => {
+      if (!hasConnectedRef.current || !navigator.onLine) return;
+
+      if (!wasDisconnectedRef.current) {
         wasDisconnectedRef.current = true;
         toast.warning("Conexão em tempo real perdida. Reconectando...", {
           id: "realtime-disconnect",
           duration: Infinity,
         });
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (reconnectTimeoutRef.current) return;
+
+      reconnectTimeoutRef.current = setTimeout(() => {
+        reconnectTimeoutRef.current = null;
+
+        if (channel.state !== "joined" && channel.state !== "joining") {
+          channel.subscribe();
+        }
+      }, RECONNECT_DELAY_MS);
+    };
+
+    const handleDisconnected = () => {
+      notifyDisconnected();
+      scheduleReconnect();
+    };
+
+    const handleReconnected = () => {
+      clearReconnectTimeout();
+
+      if (!wasDisconnectedRef.current) return;
+
+      wasDisconnectedRef.current = false;
+      toast.success("Conexão restabelecida!", {
+        id: "realtime-disconnect",
+        duration: 3000,
+      });
+
+      queryClient.invalidateQueries();
+    };
+
+    const checkConnection = () => {
+      const state = channel.state;
+
+      if (state === "closed" || state === "errored") {
+        handleDisconnected();
+      } else if (state === "joined") {
+        handleReconnected();
+      }
+    };
+
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        hasConnectedRef.current = true;
+        handleReconnected();
+      }
+
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        handleDisconnected();
       }
     });
 
@@ -64,7 +108,9 @@ export function useRealtimeHeartbeat() {
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      clearReconnectTimeout();
+      toast.dismiss("realtime-disconnect");
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [enabled, queryClient]);
 }
