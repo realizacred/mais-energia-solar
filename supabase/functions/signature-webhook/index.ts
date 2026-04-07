@@ -1,6 +1,6 @@
 /**
  * Edge Function: signature-webhook
- * Receives webhook callbacks from signature providers (ZapSign, Clicksign).
+ * Receives webhook callbacks from signature providers (ZapSign, Clicksign, Autentique).
  * DA-29: Detects provider by payload format.
  * 
  * RB-23: No console.log — only console.error with prefix
@@ -13,8 +13,10 @@ import {
   detectWebhookProvider,
   parseZapSignWebhook,
   parseClickSignWebhook,
+  parseAutentiqueWebhook,
   mapZapSignStatus,
   mapClickSignStatus,
+  mapAutentiqueStatus,
 } from "../_shared/signatureAdapters.ts";
 
 Deno.serve(async (req) => {
