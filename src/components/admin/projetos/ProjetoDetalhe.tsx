@@ -1034,6 +1034,7 @@ function GerenciamentoTab({
             pipeline_added: "Adicionado ao funil",
             pipeline_removed: "Removido do funil",
             consultor_changed: "Consultor alterado",
+            consultant_changed: "Consultor alterado",
             proposal_message_sent: "Mensagem da proposta enviada",
             "proposal.sent": "Proposta enviada",
             "proposal.accepted": "Proposta aceita pelo cliente",
