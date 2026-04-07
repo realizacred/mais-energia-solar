@@ -1990,9 +1990,9 @@ export function ProposalWizard() {
         }
       }
 
-      const isSyntheticLead = !!(selectedLead as any)?._synthetic;
-      const realLeadId = isSyntheticLead ? undefined : selectedLead.id;
-      const clienteIdForPayload = isSyntheticLead ? (selectedLead as any)._clienteId : undefined;
+      const isSyntheticLead = !!(effectiveLead as any)?._synthetic;
+      const realLeadId = isSyntheticLead ? undefined : effectiveLead!.id;
+      const clienteIdForPayload = isSyntheticLead ? (effectiveLead as any)._clienteId : undefined;
       const idempotencyKey = generateIdempotencyKey(realLeadId || clienteIdForPayload || "no-lead");
       const payload: GenerateProposalPayload = {
         lead_id: realLeadId || undefined,
