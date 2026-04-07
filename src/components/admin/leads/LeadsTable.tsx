@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { formatBRL } from "@/lib/formatters";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock, RotateCcw } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock, RotateCcw, ScrollText } from "lucide-react";
+import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
+import { ButtonLoader } from "@/components/loading/ButtonLoader";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -30,6 +32,7 @@ interface LeadsTableProps {
 
 export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDelete, onConvert }: LeadsTableProps) {
   const { reopenLead, reopening } = useReopenLead();
+  const { quickConvertToProposal, loading: quickLoading } = usePropostaRapidaLead();
 
   if (leads.length === 0) {
     return (
@@ -214,6 +217,22 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                       </TooltipTrigger>
                       <TooltipContent>Ver detalhes</TooltipContent>
                     </Tooltip>
+                    {!isConverted && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-warning hover:text-warning hover:bg-warning/10"
+                            onClick={() => quickConvertToProposal(lead)}
+                            disabled={quickLoading}
+                          >
+                            {quickLoading ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                      </Tooltip>
+                    )}
                     {onConvert && !isConverted && (
                       <Tooltip>
                         <TooltipTrigger asChild>
