@@ -275,8 +275,8 @@ export function useDealPipeline() {
           propostasByDeal.set(resolvedDealId, arr);
         });
         propostasByDeal.forEach((dealPropostas, did) => {
-          // 1. Principal first
-          const principal = dealPropostas.find((p: any) => p.is_principal);
+          // 1. Principal first — skip excluida/cancelada (dead proposals should not win)
+          const principal = dealPropostas.find((p: any) => p.is_principal && !['excluida', 'cancelada', 'arquivada'].includes(p.status?.toLowerCase()));
           if (principal) {
             bestPropostaByDeal.set(did, { id: principal.id, status: principal.status, economia: economiaMap.get(principal.id) || null });
             return;
