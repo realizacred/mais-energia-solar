@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil, ScrollText } from "lucide-react";
+import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
+import { ButtonLoader } from "@/components/loading/ButtonLoader";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -66,6 +68,18 @@ export function VendorOrcamentosTable({
   const [editOpen, setEditOpen] = useState(false);
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoVendedor | null>(null);
   const isMobile = useIsMobile();
+  const { quickConvertToProposal, loading: quickLoading } = usePropostaRapidaLead();
+
+  const orcToQuickLead = (orc: OrcamentoVendedor) => ({
+    id: orc.lead_id,
+    nome: orc.nome,
+    telefone: orc.telefone,
+    cidade: orc.cidade,
+    estado: orc.estado,
+    bairro: orc.bairro,
+    rua: orc.rua,
+    cep: orc.cep,
+  });
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
 
@@ -361,6 +375,22 @@ export function VendorOrcamentosTable({
                           </TooltipTrigger>
                           <TooltipContent>Ver detalhes</TooltipContent>
                         </Tooltip>
+                        {!isConverted && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-warning hover:text-warning hover:bg-warning/10"
+                                onClick={() => quickConvertToProposal(orcToQuickLead(orc))}
+                                disabled={quickLoading}
+                              >
+                                {quickLoading ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                          </Tooltip>
+                        )}
                         {onConvert && !isConverted && (
                           <Tooltip>
                             <TooltipTrigger asChild>

@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw } from "lucide-react";
+import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw, ScrollText } from "lucide-react";
 import { useReopenLead } from "@/hooks/useReopenLead";
+import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
+import { ButtonLoader } from "@/components/loading/ButtonLoader";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -54,6 +56,7 @@ export function VendorLeadsTable({
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [selectedLeadForWhatsapp, setSelectedLeadForWhatsapp] = useState<Lead | null>(null);
   const { reopenLead, reopening } = useReopenLead();
+  const { quickConvertToProposal, loading: quickLoading } = usePropostaRapidaLead();
 
   const handleWhatsappClick = (lead: Lead) => {
     setSelectedLeadForWhatsapp(lead);
@@ -204,6 +207,33 @@ export function VendorLeadsTable({
                       </TooltipTrigger>
                       <TooltipContent>Ver detalhes</TooltipContent>
                     </Tooltip>
+                    {!isConverted && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-warning hover:text-warning hover:bg-warning/10"
+                            onClick={() => quickConvertToProposal({
+                              id: lead.id,
+                              nome: lead.nome,
+                              telefone: lead.telefone,
+                              cidade: lead.cidade,
+                              estado: lead.estado,
+                              bairro: lead.bairro,
+                              rua: lead.rua,
+                              cep: lead.cep,
+                              consultor_id: lead.consultor_id,
+                              valor_estimado: lead.valor_estimado,
+                            })}
+                            disabled={quickLoading}
+                          >
+                            {quickLoading ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                      </Tooltip>
+                    )}
                     {onConvert && !isConverted && (
                       <Tooltip>
                         <TooltipTrigger asChild>
