@@ -141,12 +141,29 @@ export class ClickSignAdapter implements SignatureAdapter {
     const baseUrl = clicksignBaseUrl(params.sandbox);
     const tokenParam = `access_token=${params.apiToken}`;
 
-    // Step 1: Create document via URL
+    // Step 1: Download PDF and convert to base64 (avoids expired signed URLs)
+    let pdfBase64: string;
+    try {
+      const pdfResponse = await fetchWithTimeout(params.pdfUrl, {}, 60000);
+      if (!pdfResponse.ok) {
+        throw new Error(`HTTP ${pdfResponse.status}`);
+      }
+      const pdfBuffer = new Uint8Array(await pdfResponse.arrayBuffer());
+      // Deno-compatible base64 encoding
+      let binary = "";
+      for (let i = 0; i < pdfBuffer.length; i++) {
+        binary += String.fromCharCode(pdfBuffer[i]);
+      }
+      pdfBase64 = btoa(binary);
+    } catch (err: any) {
+      console.error("[ClickSignAdapter] PDF download error:", err.message);
+      throw new Error("Falha ao baixar o PDF para envio à Clicksign.");
+    }
+
     const docBody = {
       document: {
         path: `/${params.docName.replace(/[^a-zA-Z0-9._-]/g, "_")}.pdf`,
-        content_base64: undefined as string | undefined,
-        url: params.pdfUrl,
+        content_base64: `data:application/pdf;base64,${pdfBase64}`,
       },
     };
 
