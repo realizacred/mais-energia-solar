@@ -364,7 +364,7 @@ export function SiteSettingsUnified() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Estes dados são usados nas variáveis <code className="text-xs bg-muted px-1 rounded">{"{{comercial.empresa_representante_*}}"}</code> em contratos e propostas. Salve clicando em <strong>"Salvar Visual"</strong>.
+                Estes dados são usados nas variáveis <code className="text-xs bg-muted px-1 rounded">{"{{comercial.empresa_representante_*}}"}</code> em contratos e propostas, e como <strong>signatário automático (Contratada)</strong> ao enviar documentos para assinatura digital. Salve clicando em <strong>"Salvar Visual"</strong>.
               </p>
             </CardContent>
           </Card>
