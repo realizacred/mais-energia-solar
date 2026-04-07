@@ -254,12 +254,16 @@ export function useGerarDocumento(dealId: string) {
   });
 }
 
-/** Enviar documento gerado para assinatura eletrônica via ZapSign */
+/** Enviar documento gerado para assinatura eletrônica via adapter pattern */
 export function useEnviarParaAssinatura(dealId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ documentoId, tenantId }: { documentoId: string; tenantId: string }) => {
+    mutationFn: async ({ documentoId, tenantId, signers }: {
+      documentoId: string;
+      tenantId: string;
+      signers?: Array<{ name: string; email: string; cpf?: string; phone?: string; role?: string }>;
+    }) => {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const { data: { session } } = await supabase.auth.getSession();
