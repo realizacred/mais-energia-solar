@@ -23,6 +23,10 @@ import { useEdeltecSync } from "@/hooks/useEdeltecSync";
 import { useTenantId } from "@/hooks/useTenantId";
 import { useEdeltecApiConfig } from "@/hooks/useEdeltecApiConfig";
 
+export default function EdeltecIntegrationPage() {
+  const { data: tenantId } = useTenantId();
+  const { data: apiConfig } = useEdeltecApiConfig(tenantId);
+
   const { data: syncState, isLoading: loadingSync } = useEdeltecSyncStatus(tenantId);
   const { data: stats, isLoading: loadingStats } = useEdeltecCatalogStats(apiConfig?.fornecedor_id ?? null);
   const { data: logs, isLoading: loadingLogs } = useEdeltecSyncLogs(tenantId, 30);
