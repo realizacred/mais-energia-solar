@@ -176,6 +176,21 @@ export function usePropostaRapidaLead() {
       await markLeadAsViewed(lead.id, tenantId);
       toast.success("Projeto criado! Abrindo wizard de proposta...");
 
+      // Atualizar status do lead para "Convertido" se existir
+      const { data: convertidoStatus } = await supabase
+        .from("lead_status")
+        .select("id")
+        .eq("nome", "Convertido")
+        .maybeSingle();
+
+      if (convertidoStatus) {
+        await supabase
+          .from("leads")
+          .update({ status_id: convertidoStatus.id } as any)
+          .eq("id", lead.id)
+          .eq("tenant_id", tenantId);
+      }
+
       // 8. Redirecionar ao wizard
       navigate(
         `/admin/propostas-nativas/nova?deal_id=${newDeal.id}&customer_id=${clienteId}&lead_id=${lead.id}`

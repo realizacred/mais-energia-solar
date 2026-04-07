@@ -162,6 +162,8 @@ export function VendorOrcamentosTable({
                       onConvert(orc);
                     }
                   } : undefined}
+                  onQuickProposal={() => quickConvertToProposal(orcToQuickLead(orc))}
+                  quickLoading={quickLoading && loadingLeadId === orc.lead_id}
                 />
               </div>
             );
