@@ -522,8 +522,12 @@ export function StepPagamento({
               </div>
             </div>
 
-            {/* Formas próprias configuradas pelo admin */}
-            <FormasPagamentoPreview precoFinal={precoFinal} />
+            {/* Formas de pagamento direto — drag & drop */}
+            <PaymentMethodSelector
+              precoFinal={precoFinal}
+              selected={formasSelecionadas}
+              onSelectedChange={setFormasSelecionadas}
+            />
           </div>
 
           {/* ── COLUNA DIREITA — Financiamento Bancário ── */}
