@@ -790,15 +790,30 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(false);
 
-  // Fetch signed URL when expanded and PDF path exists
+  // Cache signed URL for 50 minutes to avoid re-fetching on expand/collapse (RB-51)
+  const signedUrlCacheRef = useRef<{ url: string; path: string; fetchedAt: number } | null>(null);
+  const SIGNED_URL_CACHE_MS = 50 * 60 * 1000; // 50 minutes
+
   useEffect(() => {
     if (!isExpanded) {
-      setPdfSignedUrl(null);
       setPdfError(false);
       return;
     }
 
     if (latestVersao?.output_pdf_path) {
+      // Check cache: same path and less than 50 minutes old
+      const cache = signedUrlCacheRef.current;
+      if (
+        cache &&
+        cache.path === latestVersao.output_pdf_path &&
+        Date.now() - cache.fetchedAt < SIGNED_URL_CACHE_MS
+      ) {
+        setPdfSignedUrl(cache.url);
+        setPdfError(false);
+        setPdfLoading(false);
+        return;
+      }
+
       setPdfLoading(true);
       setPdfError(false);
       supabase.storage.from("proposta-documentos").createSignedUrl(latestVersao.output_pdf_path, 3600)
@@ -806,8 +821,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           if (error || !data?.signedUrl) {
             setPdfError(true);
             setPdfSignedUrl(null);
+            signedUrlCacheRef.current = null;
           } else {
             setPdfSignedUrl(data.signedUrl);
+            signedUrlCacheRef.current = {
+              url: data.signedUrl,
+              path: latestVersao.output_pdf_path!,
+              fetchedAt: Date.now(),
+            };
           }
         })
         .finally(() => setPdfLoading(false));
