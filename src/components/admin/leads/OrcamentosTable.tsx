@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2 } from "lucide-react";
+import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
+import type { QuickLeadData } from "@/hooks/usePropostaRapidaLead";
 import { useReopenLead } from "@/hooks/useReopenLead";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
