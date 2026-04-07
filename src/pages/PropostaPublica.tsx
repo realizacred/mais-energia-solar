@@ -335,14 +335,16 @@ export default function PropostaPublica() {
 
       if (updateErr) throw updateErr;
 
-      await supabase.from("propostas_nativas")
-        .update({ status: "aceita", aceita_at: new Date().toISOString() })
-        .eq("id", tokenData.proposta_id);
-
-      // Fire-and-forget notification to consultant/admin
-      supabase.functions.invoke("proposal-decision-notify", {
-        body: { token_id: tokenData.id, decisao: "aceita" },
-      }).catch(() => {});
+      // RB-47: Use proposal-public-action edge function instead of direct UPDATE
+      const { error: transitionErr } = await supabase.functions.invoke("proposal-public-action", {
+        body: {
+          token: tokenData.token,
+          action: "aceitar",
+          ip_address: "client",
+          user_agent: navigator.userAgent,
+        },
+      });
+      if (transitionErr) throw transitionErr;
 
       setDecision("aceita");
       toast({ title: "Proposta aceita com sucesso!" });
@@ -371,18 +373,16 @@ export default function PropostaPublica() {
 
       if (updateErr) throw updateErr;
 
-      await supabase.from("propostas_nativas")
-        .update({
-          status: "recusada",
-          recusada_at: new Date().toISOString(),
-          recusa_motivo: recusaMotivo || null,
-        })
-        .eq("id", tokenData.proposta_id);
-
-      // Fire-and-forget notification
-      supabase.functions.invoke("proposal-decision-notify", {
-        body: { token_id: tokenData.id, decisao: "recusada" },
-      }).catch(() => {});
+      // RB-47: Use proposal-public-action edge function instead of direct UPDATE
+      const { error: transitionErr } = await supabase.functions.invoke("proposal-public-action", {
+        body: {
+          token: tokenData.token,
+          action: "recusar",
+          motivo: recusaMotivo || null,
+          user_agent: navigator.userAgent,
+        },
+      });
+      if (transitionErr) throw transitionErr;
 
       setDecision("recusada");
       setShowRejectConfirm(false);
