@@ -32,7 +32,7 @@ interface LeadsTableProps {
 
 export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDelete, onConvert }: LeadsTableProps) {
   const { reopenLead, reopening } = useReopenLead();
-  const { quickConvertToProposal, loading: quickLoading } = usePropostaRapidaLead();
+  const { quickConvertToProposal, loading: quickLoading, loadingLeadId } = usePropostaRapidaLead();
 
   if (leads.length === 0) {
     return (
@@ -217,22 +217,20 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                       </TooltipTrigger>
                       <TooltipContent>Ver detalhes</TooltipContent>
                     </Tooltip>
-                    {!isConverted && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-warning hover:text-warning hover:bg-warning/10"
-                            onClick={() => quickConvertToProposal(lead)}
-                            disabled={quickLoading}
-                          >
-                            {quickLoading ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Gerar Proposta Rápida</TooltipContent>
-                      </Tooltip>
-                    )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-warning hover:text-warning hover:bg-warning/10"
+                          onClick={() => quickConvertToProposal(lead)}
+                          disabled={quickLoading}
+                        >
+                          {quickLoading && loadingLeadId === lead.id ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                    </Tooltip>
                     {onConvert && !isConverted && (
                       <Tooltip>
                         <TooltipTrigger asChild>

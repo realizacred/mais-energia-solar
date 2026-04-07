@@ -66,7 +66,7 @@ export function OrcamentosTable({
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
   const { reopenLead, reopening } = useReopenLead(onRefresh);
-  const { quickConvertToProposal, loading: quickLoading } = usePropostaRapidaLead();
+  const { quickConvertToProposal, loading: quickLoading, loadingLeadId } = usePropostaRapidaLead();
 
   const handleQuickProposal = (orc: OrcamentoDisplayItem) => {
     const leadData: QuickLeadData = {
