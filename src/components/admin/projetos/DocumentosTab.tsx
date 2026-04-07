@@ -296,6 +296,15 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
 
   const handleGenerate = () => {
     if (!selectedTemplateId) return;
+    // Bloquear se dados obrigatórios do cliente estão faltando
+    if (clienteMissingFields.length > 0) {
+      toast({
+        title: "Dados do cliente incompletos",
+        description: `Complete os campos: ${clienteMissingFields.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
     const tpl = templates.find(t => t.id === selectedTemplateId);
     generateMutation.mutate(
       { templateId: selectedTemplateId, templateNome: tpl?.nome },
