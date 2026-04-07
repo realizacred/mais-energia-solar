@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Lead } from "@/types/lead";
+import type { Json } from "@/integrations/supabase/types";
 
 // ── Types ─────────────────────────────────────────────────────
 export interface ScoringConfig {
@@ -305,7 +306,7 @@ export function useLeadScoring() {
         score: s.score,
         nivel: s.nivel,
         probabilidade_fechamento: s.probabilidade_fechamento,
-        fatores: JSON.stringify(s.fatores),
+        fatores: s.fatores as unknown as Json,
         recomendacao: s.recomendacao,
         score_consumo: s.score_consumo,
         score_recencia: s.score_recencia,
