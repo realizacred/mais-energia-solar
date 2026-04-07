@@ -458,16 +458,45 @@ export function parseAutentiqueWebhook(body: Record<string, any>): WebhookParseR
 
 export function mapAutentiqueStatus(eventType: string): { signatureStatus: string; docStatus: string; isSigned: boolean } | null {
   switch (eventType) {
+    // Assinatura concluída
     case "document.signed":
     case "signature.signed":
+    case "signature.accepted":
       return { signatureStatus: "signed", docStatus: "signed", isSigned: true };
+
+    // Recusa / rejeição
     case "document.refused":
     case "signature.refused":
+    case "signature.rejected":
       return { signatureStatus: "refused", docStatus: "cancelled", isSigned: false };
+
+    // Visualização
     case "signature.viewed":
       return { signatureStatus: "viewed", docStatus: "sent_for_signature", isSigned: false };
+
+    // Cancelamento
     case "document.cancelled":
+    case "signature.deleted":
       return { signatureStatus: "cancelled", docStatus: "cancelled", isSigned: false };
+
+    // Falha na entrega — marcar como erro mas manter documento ativo
+    case "signature.delivery_failed":
+      return { signatureStatus: "delivery_failed", docStatus: "sent_for_signature", isSigned: false };
+
+    // Biometria aprovada — tratamos como visualização avançada (não é assinatura final)
+    case "signature.biometric_approved":
+      return { signatureStatus: "viewed", docStatus: "sent_for_signature", isSigned: false };
+
+    // Biometria reprovada
+    case "signature.biometric_unapproved":
+    case "signature.biometric_rejected":
+      return { signatureStatus: "refused", docStatus: "cancelled", isSigned: false };
+
+    // Eventos informativos — ignorar (created, updated)
+    case "signature.created":
+    case "signature.updated":
+      return null;
+
     default:
       return null;
   }
