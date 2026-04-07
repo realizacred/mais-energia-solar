@@ -161,7 +161,14 @@ export function ProposalAnalysis({
               <Zap className="h-3.5 w-3.5" />
               <p className="text-xs font-medium">Gasto com Energia</p>
             </div>
-            <p className="text-sm font-bold">{formatBRL(snapshot.gastoEnergiaSem || 0)} | {formatBRL(snapshot.gastoEnergiaCom || 0)}</p>
+            <p className="text-sm font-bold">
+              {snapshot.gastoEnergiaSem > 0 || snapshot.gastoEnergiaCom > 0
+                ? `${formatBRL(snapshot.gastoEnergiaSem)} | ${formatBRL(snapshot.gastoEnergiaCom)}`
+                : "—"}
+            </p>
+            {(snapshot.gastoEnergiaSem > 0 || snapshot.gastoEnergiaCom > 0) && (
+              <p className="text-[10px] text-muted-foreground">Sem solar | Com solar</p>
+            )}
           </CardContent>
         </Card>
         <Card className="border-border/50">
@@ -170,7 +177,14 @@ export function ProposalAnalysis({
               <BarChart3 className="h-3.5 w-3.5" />
               <p className="text-xs font-medium">Gasto com Demanda</p>
             </div>
-            <p className="text-sm font-bold">{formatBRL(snapshot.gastoDemandaSem || 0)} | {formatBRL(snapshot.gastoDemandaCom || 0)}</p>
+            <p className="text-sm font-bold">
+              {snapshot.gastoDemandaSem > 0 || snapshot.gastoDemandaCom > 0
+                ? `${formatBRL(snapshot.gastoDemandaSem)} | ${formatBRL(snapshot.gastoDemandaCom)}`
+                : "—"}
+            </p>
+            {(snapshot.gastoDemandaSem > 0 || snapshot.gastoDemandaCom > 0) && (
+              <p className="text-[10px] text-muted-foreground">Sem solar | Com solar</p>
+            )}
           </CardContent>
         </Card>
         <Card className="border-border/50">
@@ -179,7 +193,14 @@ export function ProposalAnalysis({
               <DollarSign className="h-3.5 w-3.5" />
               <p className="text-xs font-medium">Outros Encargos</p>
             </div>
-            <p className="text-sm font-bold">{formatBRL(snapshot.outrosEncargosSem || 0)} | {formatBRL(snapshot.outrosEncargosCom || 0)}</p>
+            <p className="text-sm font-bold">
+              {snapshot.outrosEncargosSem > 0 || snapshot.outrosEncargosCom > 0
+                ? `${formatBRL(snapshot.outrosEncargosSem)} | ${formatBRL(snapshot.outrosEncargosCom)}`
+                : "—"}
+            </p>
+            {(snapshot.outrosEncargosSem > 0 || snapshot.outrosEncargosCom > 0) && (
+              <p className="text-[10px] text-muted-foreground">Sem solar | Com solar</p>
+            )}
           </CardContent>
         </Card>
         <Card className="border-border/50">
