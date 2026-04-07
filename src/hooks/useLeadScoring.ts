@@ -234,6 +234,26 @@ export function useLeadScoring() {
   const [isScoring, setIsScoring] = useState(false);
 
   // Fetch config
+  const DEFAULT_SCORING_CONFIG: ScoringConfig = {
+    id: "default",
+    peso_consumo: 25,
+    peso_recencia: 20,
+    peso_engajamento: 15,
+    peso_perfil_tecnico: 15,
+    peso_localizacao: 10,
+    peso_tempo_resposta: 15,
+    consumo_alto_min: 400,
+    consumo_medio_min: 200,
+    recencia_quente_max: 3,
+    recencia_morna_max: 7,
+    threshold_hot: 70,
+    threshold_warm: 40,
+    probabilidade_hot: 0.7,
+    probabilidade_warm: 0.4,
+    probabilidade_cold: 0.1,
+    ticket_medio: 25000,
+  };
+
   const configQuery = useQuery({
     queryKey: ["lead-scoring-config"],
     queryFn: async () => {
@@ -241,9 +261,9 @@ export function useLeadScoring() {
         .from("lead_scoring_config")
         .select("id, peso_consumo, peso_recencia, peso_engajamento, peso_perfil_tecnico, peso_localizacao, peso_tempo_resposta, consumo_alto_min, consumo_medio_min, recencia_quente_max, recencia_morna_max, threshold_hot, threshold_warm, probabilidade_hot, probabilidade_warm, probabilidade_cold, ticket_medio")
         .limit(1)
-        .single();
+        .maybeSingle();
       if (error) throw error;
-      return data as ScoringConfig;
+      return (data as ScoringConfig) ?? DEFAULT_SCORING_CONFIG;
     },
     staleTime: 10 * 60 * 1000,
   });
