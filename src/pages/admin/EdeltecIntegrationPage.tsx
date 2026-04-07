@@ -23,6 +23,18 @@ import { useEdeltecSync } from "@/hooks/useEdeltecSync";
 import { useTenantId } from "@/hooks/useTenantId";
 import { useEdeltecApiConfig } from "@/hooks/useEdeltecApiConfig";
 
+function formatDateBrasilia(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+}
+
+const statusVariantMap: Record<string, "success" | "warning" | "destructive" | "muted" | "info"> = {
+  completed: "success",
+  running: "warning",
+  error: "destructive",
+  idle: "muted",
+};
+
 export default function EdeltecIntegrationPage() {
   const { data: tenantId } = useTenantId();
   const { data: apiConfig } = useEdeltecApiConfig(tenantId);
