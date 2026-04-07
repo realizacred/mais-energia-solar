@@ -230,7 +230,9 @@ export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], ven
     : _round(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
 
   const custoBase = _round(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
-  const margemValor = _round(custoBase * (venda.margem_percentual / 100));
+  // Margem aplicada sobre custos SEM comissão (comissão não recebe markup)
+  const custoParaMargem = _round(custoKit + custoServicos + venda.custo_outros);
+  const margemValor = _round(custoParaMargem * (venda.margem_percentual / 100));
   const precoComMargem = _round(custoBase + margemValor);
   return _round(precoComMargem - precoComMargem * (venda.desconto_percentual / 100));
 }
