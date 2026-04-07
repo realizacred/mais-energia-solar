@@ -79,13 +79,14 @@ export interface GenerateProposalPayload {
   };
   pagamento_opcoes: Array<{
     nome: string;
-    tipo: "a_vista" | "financiamento" | "parcelado" | "outro";
+    tipo: "a_vista" | "financiamento" | "parcelado" | "outro" | "direto";
     valor_financiado: number;
     entrada: number;
     taxa_mensal: number;
     carencia_meses: number;
     num_parcelas: number;
     valor_parcela: number;
+    forma_pagamento?: string;
   }>;
   observacoes?: string;
   customFieldValues?: Record<string, any>;
