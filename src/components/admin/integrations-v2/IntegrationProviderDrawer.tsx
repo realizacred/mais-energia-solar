@@ -79,6 +79,20 @@ export function IntegrationProviderDrawer({
 
           const row = ((rows as any[]) || [])[0];
           merged = (row?.credentials as Record<string, any>) || {};
+        } else if (provider.category === "signature") {
+          // Signature providers persist in signature_settings
+          const { data } = await (supabase as any)
+            .from("signature_settings")
+            .select("provider, sandbox_mode, api_token_encrypted, webhook_secret_encrypted")
+            .maybeSingle();
+
+          if (data) {
+            merged = {
+              api_token: data.api_token_encrypted || "",
+              sandbox_mode: data.sandbox_mode ? "true" : "false",
+              webhook_secret: data.webhook_secret_encrypted || "",
+            };
+          }
         } else {
           const legacyId = LEGACY_PROVIDER_MAP[provider.id] || provider.id;
           const { data } = await (supabase
