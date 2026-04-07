@@ -10,7 +10,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   MessageCircle, Mail, Copy, RefreshCw, User, Briefcase,
-  AlignLeft, AlignJustify, CheckCircle, Loader2, Phone, AtSign
+  AlignLeft, AlignJustify, CheckCircle, Loader2, Phone, AtSign, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -380,7 +380,21 @@ export function ProposalMessageDrawer({
         </ScrollArea>
 
         {/* Footer — §22: botões alinhados */}
-        <div className="flex gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+        <div className="flex items-center gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+                <a href="/admin/whatsapp" target="_blank" rel="noopener noreferrer">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </a>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[220px] text-xs">
+              <p className="font-semibold mb-1">Configurações necessárias:</p>
+              <p>• <strong>WhatsApp:</strong> Conecte uma instância em Configurações &gt; WhatsApp</p>
+              <p>• <strong>E-mail:</strong> Configure SMTP em Configurações &gt; E-mail</p>
+            </TooltipContent>
+          </Tooltip>
           <Button
             variant={copied ? "default" : "outline"}
             className={cn(
