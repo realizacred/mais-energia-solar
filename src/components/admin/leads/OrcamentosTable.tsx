@@ -268,14 +268,16 @@ export function OrcamentosTable({
                         </TooltipTrigger>
                         <TooltipContent>{(orc.vendedor_nome || orc.vendedor) ? "Alterar consultor" : "Atribuir consultor"}</TooltipContent>
                       </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-warning hover:text-warning/80" onClick={() => handleQuickProposal(orc)} disabled={quickLoading}>
-                            {quickLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScrollText className="w-4 h-4" />}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Gerar Proposta Rápida</TooltipContent>
-                      </Tooltip>
+                      {!isConverted && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-warning hover:text-warning/80" onClick={(e) => { e.stopPropagation(); handleQuickProposal(orc); }} disabled={quickLoading}>
+                              {quickLoading && loadingLeadId === orc.lead_id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScrollText className="w-4 h-4" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                        </Tooltip>
+                      )}
                       {onConvert && !isConverted && (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -335,10 +337,12 @@ export function OrcamentosTable({
                           <UserPlus className="w-4 h-4 mr-2 text-warning" />
                           {(orc.vendedor_nome || orc.vendedor) ? "Alterar consultor" : "Atribuir consultor"}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleQuickProposal(orc)} disabled={quickLoading}>
-                          <ScrollText className="w-4 h-4 mr-2 text-warning" />
-                          Gerar Proposta Rápida
-                        </DropdownMenuItem>
+                        {!isConverted && (
+                          <DropdownMenuItem onClick={() => handleQuickProposal(orc)} disabled={quickLoading}>
+                            <ScrollText className="w-4 h-4 mr-2 text-warning" />
+                            Gerar Proposta Rápida
+                          </DropdownMenuItem>
+                        )}
                         {onConvert && !isConverted && (
                           <>
                             <DropdownMenuSeparator />
