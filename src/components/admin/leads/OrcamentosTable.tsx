@@ -65,6 +65,7 @@ export function OrcamentosTable({
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoDisplayItem | null>(null);
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
+  const { reopenLead, reopening } = useReopenLead(onRefresh);
   const { quickConvertToProposal, loading: quickLoading } = usePropostaRapidaLead();
 
   const handleQuickProposal = (orc: OrcamentoDisplayItem) => {
@@ -74,7 +75,7 @@ export function OrcamentosTable({
       telefone: orc.telefone,
       cidade: orc.cidade || null,
       estado: orc.estado || null,
-      consultor_id: orc.consultor_id || null,
+      consultor_id: orc.vendedor_id || null,
       valor_estimado: orc.media_consumo || null,
     };
     quickConvertToProposal(leadData);
