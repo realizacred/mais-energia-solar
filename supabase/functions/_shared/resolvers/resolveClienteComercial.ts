@@ -368,7 +368,7 @@ export function resolveClienteComercial(
   set("proposta_data_envio", fmtDate(proposta.created_at ?? versao.created_at ?? proposta.sent_at));
   set("proposta_codigo", proposta.codigo ?? (proposta.id ? String(proposta.id).substring(0, 8) : undefined));
   set("titulo", snap.proposta_titulo ?? proposta.titulo);
-  set("empresa_cep", tenant.cep ?? brand.cep);
+  set("empresa_cep", formatCep(str(tenant.cep ?? brand.cep)));
   set("empresa_bairro", tenant.bairro ?? brand.bairro);
   set("empresa_numero", tenant.numero ?? brand.numero);
   set("empresa_complemento", tenant.complemento ?? brand.complemento);
