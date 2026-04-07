@@ -1890,9 +1890,27 @@ export function ProposalWizard() {
 
   // ─── Generate (with enforcement gate)
   const handleGenerate = async () => {
-    if (!selectedLead) {
-      toast({ title: "Nenhum lead selecionado", description: "Selecione um lead antes de gerar a proposta.", variant: "destructive" });
-      return;
+    // Allow generation without a lead if client data is filled manually
+    let effectiveLead = selectedLead;
+    if (!effectiveLead) {
+      if (cliente.nome && cliente.celular) {
+        // Synthesize a lead-like object from manually entered client data
+        effectiveLead = {
+          id: crypto.randomUUID(),
+          nome: cliente.nome,
+          telefone: cliente.celular,
+          lead_code: "",
+          estado: cliente.estado || locEstado,
+          cidade: cliente.cidade || locCidade,
+          media_consumo: consumoTotal,
+          tipo_telhado: locTipoTelhado,
+          _synthetic: true,
+        } as any;
+        setSelectedLead(effectiveLead);
+      } else {
+        toast({ title: "Dados insuficientes", description: "Preencha pelo menos o nome e celular do cliente, ou selecione um lead.", variant: "destructive" });
+        return;
+      }
     }
 
     // ── Grupo consistency gate
