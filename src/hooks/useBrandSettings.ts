@@ -51,6 +51,7 @@ export interface BrandSettings {
   representante_legal: string | null;
   representante_cpf: string | null;
   representante_cargo: string | null;
+  representante_email: string | null;
 }
 
 // ── CSS Variable Maps ─────────────────────────────────
