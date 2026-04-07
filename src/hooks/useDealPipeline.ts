@@ -186,34 +186,42 @@ export function useDealPipeline() {
       // Fetch canonical deals to enrich cards and drop any stale/orphan projection rows
       const { data: dealsData } = await supabase
         .from("deals")
-        .select("id, customer_id, notas, expected_close_date, doc_checklist")
+        .select("id, customer_id, notas, expected_close_date, doc_checklist, projeto_id")
         .in("id", dealIds);
 
       const existingDealIds = new Set((dealsData || []).map((d: any) => d.id));
       results = results.filter(d => existingDealIds.has(d.deal_id));
 
       const customerMap = new Map<string, string>();
+      const projetoIdMap = new Map<string, string>(); // deal_id → projeto_id
       const notasMap = new Map<string, string | null>();
       const closeDateMap = new Map<string, string | null>();
       const docChecklistMap = new Map<string, Record<string, boolean> | null>();
       (dealsData || []).forEach((d: any) => {
         if (d.customer_id) customerMap.set(d.id, d.customer_id);
+        if (d.projeto_id) projetoIdMap.set(d.id, d.projeto_id);
         notasMap.set(d.id, d.notas || null);
         closeDateMap.set(d.id, d.expected_close_date || null);
         docChecklistMap.set(d.id, d.doc_checklist || null);
       });
 
-      // Fetch latest proposal per DEAL (not per customer — prevents cross-deal contamination)
+      // Fetch latest proposal per DEAL — search by deal_id AND projeto_id (RB-43 pattern)
       const customerIds = [...new Set(Array.from(customerMap.values()))];
+      const projetoIds = [...new Set(Array.from(projetoIdMap.values()))].filter(Boolean);
       const locationMap = new Map<string, { city: string | null; state: string | null }>();
 
-      if (customerIds.length > 0 || dealIds.length > 0) {
-        // Parallel: proposals by deal_id + locations by customer_id
+      if (customerIds.length > 0 || dealIds.length > 0 || projetoIds.length > 0) {
+        // Build OR filter: deal_id in dealIds OR projeto_id in projetoIds
+        const orParts: string[] = [];
+        if (dealIds.length > 0) orParts.push(`deal_id.in.(${dealIds.join(",")})`);
+        if (projetoIds.length > 0) orParts.push(`projeto_id.in.(${projetoIds.join(",")})`);
+
+        // Parallel: proposals by deal_id/projeto_id + locations by customer_id
         const [propostasRes, locationRes] = await Promise.all([
           supabase
             .from("propostas_nativas")
-            .select("id, deal_id, status, versao_atual, is_principal")
-            .in("deal_id", dealIds)
+            .select("id, deal_id, projeto_id, status, versao_atual, is_principal")
+            .or(orParts.join(","))
             .order("created_at", { ascending: false }),
           customerIds.length > 0
             ? supabase.from("clientes").select("id, cidade, estado").in("id", customerIds)
@@ -252,12 +260,19 @@ export function useDealPipeline() {
           cancelada: 6, expirada: 6, arquivada: 7,
         };
         const bestPropostaByDeal = new Map<string, { id: string; status: string; economia: number | null }>();
-        // Group proposals by deal
+        // Build reverse map: projeto_id → deal_id
+        const projetoToDeal = new Map<string, string>();
+        projetoIdMap.forEach((projId, dealId) => { projetoToDeal.set(projId, dealId); });
+
+        // Group proposals by deal — match via deal_id OR projeto_id
         const propostasByDeal = new Map<string, typeof propostas>();
         propostas.forEach((p: any) => {
-          const arr = propostasByDeal.get(p.deal_id) || [];
+          // Resolve which deal this proposal belongs to
+          const resolvedDealId = p.deal_id || (p.projeto_id ? projetoToDeal.get(p.projeto_id) : null);
+          if (!resolvedDealId) return;
+          const arr = propostasByDeal.get(resolvedDealId) || [];
           arr.push(p);
-          propostasByDeal.set(p.deal_id, arr);
+          propostasByDeal.set(resolvedDealId, arr);
         });
         propostasByDeal.forEach((dealPropostas, did) => {
           // 1. Principal first
