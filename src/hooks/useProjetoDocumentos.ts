@@ -282,6 +282,7 @@ export function useEnviarParaAssinatura(dealId: string) {
         body: JSON.stringify({
           documento_id: documentoId,
           tenant_id: tenantId,
+          ...(signers && signers.length > 0 ? { signers } : {}),
         }),
       });
 
