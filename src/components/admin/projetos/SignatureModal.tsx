@@ -61,33 +61,42 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
       const { tenantId } = await getCurrentTenantId();
 
       // 1. Resolve Contratante (client)
-      const projetoId = (doc as any)?.projeto_id || (doc as any)?.deal_id || dealId;
-      if (projetoId) {
-        // Get client from projeto
+      // dealId is a deals.id — resolve projeto via deal first
+      let clienteId: string | null = null;
+      const { data: deal } = await supabase
+        .from("deals")
+        .select("customer_id, projeto_id")
+        .eq("id", dealId)
+        .maybeSingle();
+
+      if (deal?.customer_id) {
+        clienteId = deal.customer_id;
+      } else if (deal?.projeto_id) {
         const { data: projeto } = await supabase
           .from("projetos")
           .select("cliente_id")
-          .eq("id", projetoId)
+          .eq("id", deal.projeto_id)
+          .maybeSingle();
+        clienteId = projeto?.cliente_id || null;
+      }
+
+      if (clienteId) {
+        const { data: cliente } = await supabase
+          .from("clientes")
+          .select("nome, email, cpf_cnpj, telefone")
+          .eq("id", clienteId)
           .maybeSingle();
 
-        if (projeto?.cliente_id) {
-          const { data: cliente } = await supabase
-            .from("clientes")
-            .select("nome, email, cpf_cnpj, telefone")
-            .eq("id", projeto.cliente_id)
-            .maybeSingle();
-
-          if (cliente) {
-            resolved.push({
-              name: cliente.nome || "",
-              email: cliente.email || "",
-              cpf: cliente.cpf_cnpj || "",
-              phone: cliente.telefone || "",
-              role: "contratante",
-            });
-            if (!cliente.email) {
-              warns.push("Cliente sem e-mail cadastrado. Preencha antes de enviar.");
-            }
+        if (cliente) {
+          resolved.push({
+            name: cliente.nome || "",
+            email: cliente.email || "",
+            cpf: cliente.cpf_cnpj || "",
+            phone: cliente.telefone || "",
+            role: "contratante",
+          });
+          if (!cliente.email) {
+            warns.push("Cliente sem e-mail cadastrado. Preencha antes de enviar.");
           }
         }
       }
