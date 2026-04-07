@@ -1,4 +1,5 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
+import { AlertTriangle } from "lucide-react";
 import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye, ChevronDown, Ban } from "lucide-react";
 import { SignatureModal, type SignerEntry } from "./SignatureModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -91,6 +92,42 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const { data: files = [], isLoading: loadingFiles } = useProjetoArquivos(dealId);
   const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
   const { data: templates = [] } = useDocTemplates();
+
+  // Buscar dados do cliente vinculado para validação pré-contrato
+  const { data: clienteData } = useQuery({
+    queryKey: ["projeto-cliente-validacao", dealId],
+    queryFn: async () => {
+      const { data: projeto } = await supabase
+        .from("projetos")
+        .select("cliente_id")
+        .eq("id", dealId)
+        .maybeSingle();
+      if (!projeto?.cliente_id) return null;
+      const { data: cliente } = await supabase
+        .from("clientes")
+        .select("nome, cpf_cnpj, email, rua, numero, bairro, cidade, estado, cep")
+        .eq("id", projeto.cliente_id)
+        .maybeSingle();
+      return cliente;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!dealId,
+  });
+
+  // Validação de campos obrigatórios do cliente para contrato
+  const clienteMissingFields = useMemo(() => {
+    if (!clienteData) return ["Cliente não vinculado ao projeto"];
+    const missing: string[] = [];
+    if (!clienteData.cpf_cnpj?.trim()) missing.push("CPF/CNPJ");
+    if (!clienteData.email?.trim()) missing.push("E-mail");
+    if (!clienteData.rua?.trim()) missing.push("Rua");
+    if (!clienteData.numero?.trim()) missing.push("Número");
+    if (!clienteData.bairro?.trim()) missing.push("Bairro");
+    if (!clienteData.cidade?.trim()) missing.push("Cidade");
+    if (!clienteData.estado?.trim()) missing.push("Estado");
+    if (!clienteData.cep?.trim()) missing.push("CEP");
+    return missing;
+  }, [clienteData]);
 
   // Fetch consultor phone if not passed as prop
   const { data: consultorData } = useQuery({
@@ -259,6 +296,15 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
 
   const handleGenerate = () => {
     if (!selectedTemplateId) return;
+    // Bloquear se dados obrigatórios do cliente estão faltando
+    if (clienteMissingFields.length > 0) {
+      toast({
+        title: "Dados do cliente incompletos",
+        description: `Complete os campos: ${clienteMissingFields.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
     const tpl = templates.find(t => t.id === selectedTemplateId);
     generateMutation.mutate(
       { templateId: selectedTemplateId, templateNome: tpl?.nome },
@@ -581,6 +627,17 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
           ) : (
             <>
               <div className="flex-1 min-h-0 p-5 space-y-4">
+                {clienteMissingFields.length > 0 && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-semibold text-destructive">Dados do cliente incompletos</p>
+                      <p className="text-[11px] text-destructive/80 mt-0.5">
+                        Preencha antes de gerar: <strong>{clienteMissingFields.join(", ")}</strong>
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Modelo <span className="text-destructive">*</span></Label>
                   <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
@@ -609,7 +666,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
               </div>
               <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
                 <Button variant="ghost" onClick={() => setGenerateOpen(false)}>Cancelar</Button>
-                <Button onClick={handleGenerate} disabled={!selectedTemplateId || generateMutation.isPending} className="gap-1.5">
+                <Button onClick={handleGenerate} disabled={!selectedTemplateId || generateMutation.isPending || clienteMissingFields.length > 0} className="gap-1.5">
                   {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                   {generateMutation.isPending ? "Gerando..." : "Gerar"}
                 </Button>
