@@ -240,6 +240,7 @@ Deno.serve(async (req) => {
       }
 
       // Cancel existing generated documents for this project (old contracts become invalid)
+      // RB-40: NEVER cancel documents with signature_status = 'signed' — they are INTOUCHABLE
       try {
         await admin
           .from("generated_documents")
@@ -249,7 +250,8 @@ Deno.serve(async (req) => {
             updated_at: now,
           })
           .eq("deal_id", proposta.projeto_id)
-          .eq("status", "generated");
+          .eq("status", "generated")
+          .neq("signature_status", "signed");
       } catch (docCancelErr) {
         console.error("[proposal-transition] Erro ao cancelar documentos:", docCancelErr);
         // Non-blocking — don't fail the transition
