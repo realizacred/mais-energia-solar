@@ -1,0 +1,1 @@
+ALTER TABLE public.brand_settings ADD COLUMN IF NOT EXISTS representante_email TEXT DEFAULT NULL;

@@ -51,6 +51,7 @@ export interface BrandSettings {
   representante_legal: string | null;
   representante_cpf: string | null;
   representante_cargo: string | null;
+  representante_email: string | null;
 }
 
 // ── CSS Variable Maps ─────────────────────────────────
@@ -199,7 +200,7 @@ export function useBrandSettings() {
   const { data: settings, isLoading } = useQuery({
     queryKey: ["brand-settings", user?.id],
     queryFn: async () => {
-      let query = supabase.from("brand_settings" as any).select("id, tenant_id, logo_url, logo_small_url, logo_white_url, favicon_url, login_image_url, color_primary, color_primary_foreground, color_secondary, color_secondary_foreground, color_accent, color_accent_foreground, color_background, color_foreground, color_card, color_card_foreground, color_muted, color_muted_foreground, color_border, color_destructive, color_success, color_warning, color_info, dark_color_primary, dark_color_background, dark_color_foreground, dark_color_card, dark_color_muted, dark_color_muted_foreground, dark_color_border, font_heading, font_body, font_size_base, font_weight_heading, border_radius, default_theme, allow_theme_switch, representante_legal, representante_cpf, representante_cargo, created_at, updated_at");
+      let query = supabase.from("brand_settings" as any).select("id, tenant_id, logo_url, logo_small_url, logo_white_url, favicon_url, login_image_url, color_primary, color_primary_foreground, color_secondary, color_secondary_foreground, color_accent, color_accent_foreground, color_background, color_foreground, color_card, color_card_foreground, color_muted, color_muted_foreground, color_border, color_destructive, color_success, color_warning, color_info, dark_color_primary, dark_color_background, dark_color_foreground, dark_color_card, dark_color_muted, dark_color_muted_foreground, dark_color_border, font_heading, font_body, font_size_base, font_weight_heading, border_radius, default_theme, allow_theme_switch, representante_legal, representante_cpf, representante_cargo, representante_email, created_at, updated_at");
 
       if (user) {
         const { data: profile } = await supabase
