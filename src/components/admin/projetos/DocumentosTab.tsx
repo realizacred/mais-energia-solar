@@ -338,6 +338,9 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                           <p className="text-[10px] text-muted-foreground">
                             {doc.template_name} • {formatDateTime(doc.created_at, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                           </p>
+                          {doc.status === "cancelled" && doc.observacao && (
+                            <p className="text-[10px] text-destructive mt-0.5">Motivo: {doc.observacao}</p>
+                          )}
                         </div>
                         <div className="flex flex-wrap items-center gap-1 shrink-0">
                           {/* Eye — inline PDF preview */}
