@@ -85,12 +85,12 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
         clienteId = projeto?.cliente_id || null;
       }
 
-      // Path C: generated_documents.deal_id → propostas_nativas → cliente_id
-      if (!clienteId && doc?.deal_id) {
+      // Path C: dealId → propostas_nativas → cliente_id
+      if (!clienteId && dealId) {
         const { data: proposta } = await supabase
           .from("propostas_nativas")
           .select("cliente_id")
-          .or(`deal_id.eq.${doc.deal_id},projeto_id.eq.${doc.deal_id}`)
+          .or(`deal_id.eq.${dealId},projeto_id.eq.${dealId}`)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
