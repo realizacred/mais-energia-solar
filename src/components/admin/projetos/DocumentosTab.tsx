@@ -133,16 +133,32 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const { data: consultorData } = useQuery({
     queryKey: ["projeto-consultor-telefone", dealId],
     queryFn: async () => {
-      const { data: projeto } = await supabase
-        .from("projetos")
-        .select("consultor_id")
+      // dealId is a deals.id — get owner_id (consultor) from the deal
+      const { data: deal } = await supabase
+        .from("deals")
+        .select("owner_id")
         .eq("id", dealId)
         .maybeSingle();
-      if (!projeto?.consultor_id) return null;
+      const consultorId = deal?.owner_id;
+      if (!consultorId) {
+        // Fallback: try via projeto
+        const { data: projeto } = await supabase
+          .from("projetos")
+          .select("consultor_id")
+          .eq("deal_id", dealId)
+          .maybeSingle();
+        if (!projeto?.consultor_id) return null;
+        const { data: consultor } = await supabase
+          .from("consultores")
+          .select("nome, telefone")
+          .eq("id", projeto.consultor_id)
+          .maybeSingle();
+        return consultor;
+      }
       const { data: consultor } = await supabase
         .from("consultores")
         .select("nome, telefone")
-        .eq("id", projeto.consultor_id)
+        .eq("id", consultorId)
         .maybeSingle();
       return consultor;
     },
