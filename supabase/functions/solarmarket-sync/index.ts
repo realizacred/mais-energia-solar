@@ -1344,7 +1344,7 @@ Deno.serve(async (req) => {
           offset += pageSize;
         }
       }
-      console.error(`[SM Sync] Resume check: ${alreadySyncedProjectIds.size} projects already have proposals`);
+      console.log(`[SM Sync] Resume check: ${alreadySyncedProjectIds.size} projects already have proposals`);
 
       {
         // Fetch per-project proposals, SKIPPING projects already synced (resume logic)
@@ -1367,7 +1367,7 @@ Deno.serve(async (req) => {
             offset += pageSize;
           }
           ids = allDbIds;
-          console.error(`[SM Sync] Proposals: loaded ${ids.length} project IDs from DB (projectIds was empty)`);
+          console.log(`[SM Sync] Proposals: loaded ${ids.length} project IDs from DB (projectIds was empty)`);
         }
 
         if (ids.length === 0) {
@@ -1378,7 +1378,7 @@ Deno.serve(async (req) => {
 
         // Use the alreadySyncedProjectIds computed above (shared resume set)
         const pendingIds = ids.filter((id: number) => !alreadySyncedProjectIds.has(id));
-        console.error(`[SM Sync] Proposals resume: ${alreadySyncedProjectIds.size} projects already synced, ${pendingIds.length} pending out of ${ids.length} total`);
+        console.log(`[SM Sync] Proposals resume: ${alreadySyncedProjectIds.size} projects already synced, ${pendingIds.length} pending out of ${ids.length} total`);
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
@@ -1390,7 +1390,7 @@ Deno.serve(async (req) => {
         for (let i = 0; i < pendingIds.length; i += CONCURRENCY) {
           if (Date.now() - startTime > timeBudgetMs) {
             const remaining = pendingIds.length - batchCount;
-            console.error(`[SM Sync] Time budget exhausted after ${batchCount}/${pendingIds.length} pending projects (${Math.round((Date.now() - startTime) / 1000)}s). Remaining: ${remaining}`);
+            console.warn(`[SM Sync] Time budget exhausted after ${batchCount}/${pendingIds.length} pending projects (${Math.round((Date.now() - startTime) / 1000)}s). Remaining: ${remaining}`);
             isPartialSync = true;
             partialRemaining = remaining;
             break;
@@ -1478,7 +1478,7 @@ Deno.serve(async (req) => {
 
           // Save partial results every 50 rows (smaller batches to reduce CPU per cycle)
           if (allProposalRows.length >= 50) {
-            console.error(`[SM Sync] Saving partial proposals batch: ${allProposalRows.length} rows (${batchCount}/${pendingIds.length} projects processed)`);
+            console.log(`[SM Sync] Saving partial proposals batch: ${allProposalRows.length} rows (${batchCount}/${pendingIds.length} projects processed)`);
             const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
             totalUpserted += result.upserted;
             totalErrors += result.errors.length;
@@ -1504,14 +1504,14 @@ Deno.serve(async (req) => {
 
         // Save remaining rows
         if (allProposalRows.length > 0) {
-          console.error(`[SM Sync] Saving final proposals batch: ${allProposalRows.length} rows`);
+          console.log(`[SM Sync] Saving final proposals batch: ${allProposalRows.length} rows`);
           const result = await batchUpsert(supabase, "solar_market_proposals", allProposalRows, "tenant_id,sm_project_id,sm_proposal_id");
           totalUpserted += result.upserted;
           totalErrors += result.errors.length;
           errors.push(...result.errors);
         }
 
-        console.error(`[SM Sync] Proposals complete: processed ${batchCount} pending projects, fetched=${totalFetched}, upserted=${totalUpserted}`);
+        console.log(`[SM Sync] Proposals complete: processed ${batchCount} pending projects, fetched=${totalFetched}, upserted=${totalUpserted}`);
       }
 
       // ── Enrich proposals with sm_client_id from projects ──
@@ -1560,7 +1560,7 @@ Deno.serve(async (req) => {
             .in("id", propIds);
         }
         if (enriched > 0) {
-          console.error(`[SM Sync] Enriched ${enriched} proposals with sm_client_id from projects`);
+          console.log(`[SM Sync] Enriched ${enriched} proposals with sm_client_id from projects`);
         }
       } catch (enrichErr) {
         console.warn(`[SM Sync] sm_client_id enrichment error:`, enrichErr);
@@ -1881,7 +1881,7 @@ Deno.serve(async (req) => {
         { onConflict: "tenant_id" }
       );
 
-    console.error(`[SM Sync] Done: fetched=${totalFetched} upserted=${totalUpserted} errors=${totalErrors} partial=${isPartialSync} remaining=${partialRemaining}`);
+    console.log(`[SM Sync] Done: fetched=${totalFetched} upserted=${totalUpserted} errors=${totalErrors} partial=${isPartialSync} remaining=${partialRemaining}`);
 
     return new Response(
       JSON.stringify({
