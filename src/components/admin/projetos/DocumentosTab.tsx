@@ -627,6 +627,17 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
           ) : (
             <>
               <div className="flex-1 min-h-0 p-5 space-y-4">
+                {clienteMissingFields.length > 0 && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-semibold text-destructive">Dados do cliente incompletos</p>
+                      <p className="text-[11px] text-destructive/80 mt-0.5">
+                        Preencha antes de gerar: <strong>{clienteMissingFields.join(", ")}</strong>
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Modelo <span className="text-destructive">*</span></Label>
                   <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
