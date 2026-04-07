@@ -87,17 +87,16 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
           .eq("id", clienteId)
           .maybeSingle();
 
-          if (cliente) {
-            resolved.push({
-              name: cliente.nome || "",
-              email: cliente.email || "",
-              cpf: cliente.cpf_cnpj || "",
-              phone: cliente.telefone || "",
-              role: "contratante",
-            });
-            if (!cliente.email) {
-              warns.push("Cliente sem e-mail cadastrado. Preencha antes de enviar.");
-            }
+        if (cliente) {
+          resolved.push({
+            name: cliente.nome || "",
+            email: cliente.email || "",
+            cpf: cliente.cpf_cnpj || "",
+            phone: cliente.telefone || "",
+            role: "contratante",
+          });
+          if (!cliente.email) {
+            warns.push("Cliente sem e-mail cadastrado. Preencha antes de enviar.");
           }
         }
       }
