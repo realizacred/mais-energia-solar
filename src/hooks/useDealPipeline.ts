@@ -260,12 +260,19 @@ export function useDealPipeline() {
           cancelada: 6, expirada: 6, arquivada: 7,
         };
         const bestPropostaByDeal = new Map<string, { id: string; status: string; economia: number | null }>();
-        // Group proposals by deal
+        // Build reverse map: projeto_id → deal_id
+        const projetoToDeal = new Map<string, string>();
+        projetoIdMap.forEach((projId, dealId) => { projetoToDeal.set(projId, dealId); });
+
+        // Group proposals by deal — match via deal_id OR projeto_id
         const propostasByDeal = new Map<string, typeof propostas>();
         propostas.forEach((p: any) => {
-          const arr = propostasByDeal.get(p.deal_id) || [];
+          // Resolve which deal this proposal belongs to
+          const resolvedDealId = p.deal_id || (p.projeto_id ? projetoToDeal.get(p.projeto_id) : null);
+          if (!resolvedDealId) return;
+          const arr = propostasByDeal.get(resolvedDealId) || [];
           arr.push(p);
-          propostasByDeal.set(p.deal_id, arr);
+          propostasByDeal.set(resolvedDealId, arr);
         });
         propostasByDeal.forEach((dealPropostas, did) => {
           // 1. Principal first
