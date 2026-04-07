@@ -562,27 +562,123 @@ export function StepPagamento({
 
             {/* Sidebar banks + options */}
             <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-3">
-              {/* Sidebar - Banks */}
+              {/* Sidebar - Banks with checkboxes */}
               <div className="space-y-1">
-                {bancoGroups.map((g, idx) => (
-                  <Button
-                    key={g.banco.id}
-                    variant="ghost"
-                    onClick={() => setSelectedBancoIdx(idx)}
-                    className={cn(
-                      "w-full justify-between px-3 py-2.5 h-auto text-sm transition-colors",
-                      selectedBancoIdx === idx
-                        ? "bg-primary/10 text-primary border border-primary/30 font-semibold"
-                        : "hover:bg-muted/50 text-muted-foreground border border-transparent"
-                    )}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Building2 className="h-3.5 w-3.5" />
-                      {g.banco.nome}
-                    </span>
-                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">{g.opcoes.length}</Badge>
-                  </Button>
-                ))}
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2 px-1">Selecione os bancos</p>
+                {bancos.map((banco) => {
+                  const isChecked = selectedBankIds.has(banco.id);
+                  const groupIdx = bancoGroups.findIndex(g => g.banco.id === banco.id);
+                  const opcCount = groupIdx >= 0 ? bancoGroups[groupIdx].opcoes.length : 0;
+                  const isActive = groupIdx >= 0 && selectedBancoIdx === groupIdx;
+                  return (
+                    <div
+                      key={banco.id}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer border",
+                        isActive
+                          ? "bg-primary/10 border-primary/30"
+                          : isChecked
+                            ? "bg-card border-border hover:bg-muted/50"
+                            : "border-transparent hover:bg-muted/30"
+                      )}
+                      onClick={() => {
+                        if (isChecked && groupIdx >= 0) {
+                          setSelectedBancoIdx(groupIdx);
+                        }
+                      }}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          const next = new Set(selectedBankIds);
+                          if (checked) {
+                            next.add(banco.id);
+                            // Add bank group with default options
+                            const newGroup: BancoGroup = {
+                              banco,
+                              opcoes: DEFAULT_PARCELAS
+                                .filter(p => p <= banco.max_parcelas)
+                                .map(parcelas => ({
+                                  id: crypto.randomUUID(),
+                                  banco_id: banco.id,
+                                  banco_nome: banco.nome,
+                                  entrada: 0,
+                                  num_parcelas: parcelas,
+                                  taxa_mensal: banco.taxa_mensal,
+                                  carencia_meses: 2,
+                                  valor_financiado: precoFinal,
+                                  valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: 0, num_parcelas: parcelas, taxa_mensal: banco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+                                })),
+                            };
+                            setBancoGroups(prev => [...prev, newGroup]);
+                            setSelectedBancoIdx(bancoGroups.length); // select newly added
+                          } else {
+                            next.delete(banco.id);
+                            setBancoGroups(prev => {
+                              const filtered = prev.filter(g => g.banco.id !== banco.id);
+                              // Adjust selected index
+                              if (selectedBancoIdx >= filtered.length) {
+                                setSelectedBancoIdx(Math.max(0, filtered.length - 1));
+                              }
+                              return filtered;
+                            });
+                          }
+                          setSelectedBankIds(next);
+                        }}
+                        className="shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-sm font-medium truncate">{banco.nome}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{banco.taxa_mensal.toFixed(2)}% a.m.</span>
+                      </div>
+                      {isChecked && opcCount > 0 && (
+                        <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">{opcCount}</Badge>
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Custom banks not in the catalog */}
+                {bancoGroups
+                  .filter(g => !bancos.some(b => b.id === g.banco.id))
+                  .map((g) => {
+                    const groupIdx = bancoGroups.indexOf(g);
+                    const isActive = selectedBancoIdx === groupIdx;
+                    return (
+                      <div
+                        key={g.banco.id}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer border",
+                          isActive ? "bg-primary/10 border-primary/30" : "bg-card border-border hover:bg-muted/50"
+                        )}
+                        onClick={() => setSelectedBancoIdx(groupIdx)}
+                      >
+                        <Check className="h-3.5 w-3.5 text-success shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-sm font-medium truncate">{g.banco.nome}</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">{g.banco.taxa_mensal.toFixed(2)}% a.m.</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">{g.opcoes.length}</Badge>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60 shrink-0" onClick={(e) => {
+                            e.stopPropagation();
+                            setBancoGroups(prev => {
+                              const filtered = prev.filter(gr => gr.banco.id !== g.banco.id);
+                              if (selectedBancoIdx >= filtered.length) setSelectedBancoIdx(Math.max(0, filtered.length - 1));
+                              return filtered;
+                            });
+                          }}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 <Button variant="outline" size="sm" className="w-full text-sm gap-1 mt-2 h-9 border-dashed border-primary text-primary hover:bg-primary/10" onClick={() => setShowNovoFinanciamento(true)}>
                   <Plus className="h-3.5 w-3.5" /> Novo financiamento
                 </Button>
