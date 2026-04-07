@@ -721,8 +721,26 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [pendingEditAction, setPendingEditAction] = useState<(() => void) | null>(null);
   const [cancellingDocs, setCancellingDocs] = useState(false);
 
-  const handleEditWithProtection = (editFn: () => void) => {
+  const handleEditWithProtection = async (editFn: () => void) => {
+    // RB-49: Block edit completely if signed contract exists
     if (p.status === "aceita") {
+      const { data: signedDocs } = await supabase
+        .from("generated_documents")
+        .select("id")
+        .eq("deal_id", dealId)
+        .eq("signature_status", "signed")
+        .limit(1)
+        .maybeSingle();
+
+      if (signedDocs) {
+        toast({
+          title: "Edição bloqueada",
+          description: "Esta proposta possui contrato assinado digitalmente e não pode ser editada.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setPendingEditAction(() => editFn);
       setEditAceitaMotivo("");
       setEditAceitaDialogOpen(true);
