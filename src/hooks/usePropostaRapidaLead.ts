@@ -29,6 +29,32 @@ export function usePropostaRapidaLead() {
   const [loadingLeadId, setLoadingLeadId] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  async function markLeadAsViewed(leadId: string, tenantId: string) {
+    const [leadResult, orcamentosResult] = await Promise.allSettled([
+      supabase
+        .from("leads")
+        .update({ visto: true, visto_admin: true } as any)
+        .eq("id", leadId)
+        .eq("tenant_id", tenantId),
+      supabase
+        .from("orcamentos")
+        .update({ visto: true, visto_admin: true } as any)
+        .eq("lead_id", leadId)
+        .eq("tenant_id", tenantId),
+    ]);
+
+    const leadError = leadResult.status === "fulfilled" ? leadResult.value.error : leadResult.reason;
+    const orcamentosError = orcamentosResult.status === "fulfilled" ? orcamentosResult.value.error : orcamentosResult.reason;
+
+    if (leadError || orcamentosError) {
+      console.warn("[usePropostaRapidaLead] Falha ao marcar lead como visto", {
+        leadId,
+        leadError,
+        orcamentosError,
+      });
+    }
+  }
+
   async function quickConvertToProposal(lead: QuickLeadData) {
     if (loading) return;
     setLoading(true);
@@ -81,6 +107,7 @@ export function usePropostaRapidaLead() {
 
       if (existingProjeto) {
         // Lead já tem projeto → redirecionar direto
+        await markLeadAsViewed(lead.id, tenantId);
         toast.info("Lead já possui projeto. Abrindo wizard...");
         navigate(
           `/admin/propostas-nativas/nova?deal_id=${existingProjeto.deal_id || existingProjeto.id}&customer_id=${clienteId}&lead_id=${lead.id}`
@@ -146,6 +173,7 @@ export function usePropostaRapidaLead() {
         .update({ projeto_id: newProjeto.id } as any)
         .eq("id", newDeal.id);
 
+      await markLeadAsViewed(lead.id, tenantId);
       toast.success("Projeto criado! Abrindo wizard de proposta...");
 
       // 8. Redirecionar ao wizard
