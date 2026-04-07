@@ -10,11 +10,25 @@ import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { toast } from "sonner";
 import type { Lead } from "@/types/lead";
 
+/** Dados mínimos necessários para conversão rápida */
+export interface QuickLeadData {
+  id: string;
+  nome: string;
+  telefone: string;
+  cidade?: string | null;
+  estado?: string | null;
+  bairro?: string | null;
+  rua?: string | null;
+  cep?: string | null;
+  consultor_id?: string | null;
+  valor_estimado?: number | null;
+}
+
 export function usePropostaRapidaLead() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  async function quickConvertToProposal(lead: Lead) {
+  async function quickConvertToProposal(lead: QuickLeadData) {
     if (loading) return;
     setLoading(true);
 
