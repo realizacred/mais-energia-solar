@@ -26,10 +26,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Signer, AuthMethod } from "./types";
 
 const PROVIDERS = [
-  { value: "docusign", label: "DocuSign" },
   { value: "clicksign", label: "ClickSign" },
   { value: "zapsign", label: "ZapSign" },
-  { value: "autentique", label: "Autentique" },
 ];
 
 const AUTH_ICONS: Record<AuthMethod, React.ReactNode> = {

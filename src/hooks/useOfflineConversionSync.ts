@@ -163,7 +163,7 @@ export function useOfflineConversionSync() {
       // console.log("[syncConversion] Successfully synced conversion:", cliente);
       return { success: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("[syncConversion] Error:", errorMessage);
       return { success: false, error: errorMessage };
     }

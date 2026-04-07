@@ -932,7 +932,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           }
 
           // Server-side failed — distinguish network errors from server errors
-          const errorDetail = result?.error || (response.error ? String(response.error) : "Unknown error");
+          const errorDetail = result?.error || (response.error ? String(response.error) : "Erro desconhecido");
           console.warn("[LeadFormWizard] public-create-lead failed:", errorDetail);
           
           // Only fall back to offline if it looks like a network/connectivity issue

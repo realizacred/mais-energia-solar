@@ -38,7 +38,7 @@ export function useWaConversationPreferences() {
 
   const upsertPref = useMutation({
     mutationFn: async (params: { conversationId: string; muted?: boolean; hidden?: boolean }) => {
-      if (!user?.id) throw new Error("Not authenticated");
+      if (!user?.id) throw new Error("Usuário não autenticado. Faça login novamente.");
       const existing = prefs.find((p) => p.conversation_id === params.conversationId);
 
       if (existing) {
