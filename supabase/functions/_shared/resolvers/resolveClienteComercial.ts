@@ -118,6 +118,9 @@ export function resolveClienteComercial(
   set("cliente_cidade", cliente.cidade ?? lead.cidade ?? snapCliente.cidade);
   set("cliente_estado", cliente.estado ?? lead.estado ?? snapCliente.estado);
 
+  // [cidade] — generic variable used in many templates
+  set("cidade", cliente.cidade ?? lead.cidade ?? snapCliente.cidade ?? snap.locCidade ?? safeArr(snap.ucs)?.[0]?.cidade);
+
   // ── Cliente (campos extras) ──
   set("cliente_data_nascimento", fmtDate(cliente.data_nascimento ?? clienteData.data_nascimento));
   set("cliente_observacoes", cliente.observacoes ?? clienteData.observacoes);

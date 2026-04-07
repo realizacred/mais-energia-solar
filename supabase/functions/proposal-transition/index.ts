@@ -351,6 +351,24 @@ Deno.serve(async (req) => {
         .eq("status", "pendente");
     }
 
+    // 6b. Cancel generated documents when accepted proposal is cancelled
+    if (new_status === "cancelada" && currentStatus === "aceita" && proposta.projeto_id) {
+      try {
+        await admin
+          .from("generated_documents")
+          .update({
+            status: "cancelled",
+            observacao: "Proposta cancelada",
+            updated_at: now,
+          })
+          .eq("deal_id", proposta.projeto_id)
+          .eq("status", "generated")
+          .neq("signature_status", "signed");
+      } catch (docCancelErr) {
+        console.error("[proposal-transition] Erro ao cancelar documentos (proposta cancelada):", docCancelErr);
+      }
+    }
+
     // 7. Log event in proposal_events (standardized type names)
     const eventTypeMap: Record<string, string> = {
       aceita: "proposta_aceita",
