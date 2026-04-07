@@ -322,7 +322,12 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
   const custoTotal = roundCurrency(allRows.filter(r => r.checked).reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
   const margemPercent = venda.margem_percentual;
-  const margemValor = roundCurrency(custoTotal * (margemPercent / 100));
+  // Margem aplicada apenas sobre custos SEM comissão (comissão não recebe markup)
+  const custoParaMargem = roundCurrency(
+    allRows.filter(r => r.checked && r.id !== "comissao")
+      .reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0)
+  );
+  const margemValor = roundCurrency(custoParaMargem * (margemPercent / 100));
   const precoVenda = roundCurrency(custoTotal + margemValor);
   const precoWp = potenciaKwp > 0 ? roundCurrency(precoVenda / (potenciaKwp * 1000)) : 0;
 
@@ -406,11 +411,11 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     setCustosExtras(prev => prev.filter(c => c.id !== id));
   };
 
-  // Per-row margem distribution
+  // Per-row margem distribution (comissão não recebe margem)
   const getRowMargem = (row: CustoRow) => {
-    if (!row.checked || custoTotal === 0) return 0;
+    if (!row.checked || custoParaMargem === 0 || row.id === "comissao") return 0;
     const rowTotal = row.quantidade * row.custoUnitario;
-    return (rowTotal / custoTotal) * margemValor;
+    return (rowTotal / custoParaMargem) * margemValor;
   };
 
   const getRowVenda = (row: CustoRow) => {

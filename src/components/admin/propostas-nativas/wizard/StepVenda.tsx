@@ -58,7 +58,9 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
   const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
   const custoServicos = roundCurrency(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
   const custoBase = roundCurrency(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
-  const margemValor = roundCurrency(custoBase * (venda.margem_percentual / 100));
+  // Margem aplicada sobre custos SEM comissão (comissão não recebe markup)
+  const custoParaMargem = roundCurrency(custoKit + custoServicos + venda.custo_outros);
+  const margemValor = roundCurrency(custoParaMargem * (venda.margem_percentual / 100));
   const precoComMargem = roundCurrency(custoBase + margemValor);
   const descontoValor = roundCurrency(precoComMargem * (venda.desconto_percentual / 100));
   const precoFinal = roundCurrency(precoComMargem - descontoValor);
