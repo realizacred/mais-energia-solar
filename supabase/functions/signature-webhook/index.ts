@@ -1,6 +1,7 @@
 /**
  * Edge Function: signature-webhook
- * Receives ZapSign webhook callbacks for signature status updates.
+ * Receives webhook callbacks from signature providers (ZapSign, Clicksign).
+ * DA-29: Detects provider by payload format.
  * 
  * RB-23: No console.log — only console.error with prefix
  * Public endpoint — no JWT verification
@@ -8,13 +9,20 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import {
+  detectWebhookProvider,
+  parseZapSignWebhook,
+  parseClickSignWebhook,
+  mapZapSignStatus,
+  mapClickSignStatus,
+} from "../_shared/signatureAdapters.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Always return 200 to ZapSign to prevent retries
+  // Always return 200 to prevent provider retries
   const ok = () => new Response(JSON.stringify({ received: true }), {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -27,13 +35,32 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
 
-    // ZapSign sends: { event, doc: { token, status, ... }, signer: { ... } }
-    // Or legacy format: { token, status, signers: [...] }
-    const docToken = body?.doc?.token || body?.token;
-    const eventStatus = body?.doc?.status || body?.status;
+    // DA-29: Detect provider by payload format
+    const provider = detectWebhookProvider(body);
+
+    let docToken: string | null;
+    let mappedStatus: { signatureStatus: string; docStatus: string; isSigned: boolean } | null;
+
+    if (provider === "clicksign") {
+      const parsed = parseClickSignWebhook(body);
+      docToken = parsed.docToken;
+      mappedStatus = parsed.status ? mapClickSignStatus(parsed.status) : null;
+    } else if (provider === "zapsign") {
+      const parsed = parseZapSignWebhook(body);
+      docToken = parsed.docToken;
+      mappedStatus = parsed.status ? mapZapSignStatus(parsed.status) : null;
+    } else {
+      console.error("[signature-webhook] Unknown provider format in payload");
+      return ok();
+    }
 
     if (!docToken) {
       console.error("[signature-webhook] Missing token in payload");
+      return ok();
+    }
+
+    if (!mappedStatus) {
+      console.error("[signature-webhook] Unknown status in payload for provider:", provider);
       return ok();
     }
 
@@ -54,43 +81,15 @@ Deno.serve(async (req) => {
       return ok();
     }
 
-    // Map ZapSign status to our status
-    let newSignatureStatus: string;
-    let newDocStatus: string;
     const updatePayload: Record<string, unknown> = {
+      signature_status: mappedStatus.signatureStatus,
+      status: mappedStatus.docStatus,
       updated_at: new Date().toISOString(),
     };
 
-    switch (eventStatus) {
-      case "signed":
-      case "completed":
-        newSignatureStatus = "signed";
-        newDocStatus = "signed";
-        updatePayload.signed_at = new Date().toISOString();
-        break;
-      case "refused":
-      case "rejected":
-        newSignatureStatus = "refused";
-        newDocStatus = "cancelled";
-        break;
-      case "link_opened":
-      case "opened":
-        // Signer opened the document — keep as sent
-        newSignatureStatus = "viewed";
-        newDocStatus = "sent_for_signature";
-        break;
-      case "cancelled":
-        newSignatureStatus = "cancelled";
-        newDocStatus = "cancelled";
-        break;
-      default:
-        // Unknown status — log and skip
-        console.error("[signature-webhook] Unknown status:", eventStatus, "for token:", docToken);
-        return ok();
+    if (mappedStatus.isSigned) {
+      updatePayload.signed_at = new Date().toISOString();
     }
-
-    updatePayload.signature_status = newSignatureStatus;
-    updatePayload.status = newDocStatus;
 
     const { error: updateErr } = await supabase
       .from("generated_documents")
@@ -106,7 +105,6 @@ Deno.serve(async (req) => {
 
   } catch (err: any) {
     console.error("[signature-webhook] Unexpected error:", err.message);
-    // Always return 200 to prevent ZapSign retries
     return ok();
   }
 });
