@@ -1430,6 +1430,21 @@ export function ProposalWizard() {
     });
   }, [tenantTarifas, ucsRestoreEpoch]);
 
+  // Apply tenant defaults to localization fields (new proposal only — empty fields)
+  useEffect(() => {
+    if (!tenantTarifas) return;
+    // Only fill if still empty (new proposal, not edit restore)
+    if (!locTipoTelhado && tenantTarifas.tipo_telhado_padrao) {
+      setLocTipoTelhado(tenantTarifas.tipo_telhado_padrao);
+    }
+    if (!locDistribuidoraId && tenantTarifas.concessionaria_id) {
+      setLocDistribuidoraId(tenantTarifas.concessionaria_id);
+      if (tenantTarifas.concessionaria_nome) {
+        setLocDistribuidoraNome(tenantTarifas.concessionaria_nome);
+      }
+    }
+  }, [tenantTarifas]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Wrapper: auto-apply tenant tariff defaults when UCs change (e.g. new UC added)
   const handleUcsChange = useCallback((newUcs: UCData[] | ((prev: UCData[]) => UCData[])) => {
     setUcs(prev => {
