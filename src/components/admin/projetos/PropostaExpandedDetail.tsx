@@ -1671,6 +1671,44 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         dealId={dealId}
         customerId={customerId}
       />
+
+      {/* Edit accepted proposal confirmation dialog */}
+      <Dialog open={editAceitaDialogOpen} onOpenChange={setEditAceitaDialogOpen}>
+        <DialogContent className="w-[90vw] max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertCircle className="h-5 w-5 text-warning" />
+              Editar proposta aceita
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Esta proposta está aceita. Editar irá cancelar os contratos vinculados (não assinados). Deseja continuar?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <label className="text-sm font-medium text-foreground">Motivo da edição *</label>
+            <Textarea
+              placeholder="Informe o motivo para editar esta proposta aceita..."
+              value={editAceitaMotivo}
+              onChange={(e) => setEditAceitaMotivo(e.target.value)}
+              className="min-h-[80px]"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setEditAceitaDialogOpen(false)} disabled={cancellingDocs}>
+              Cancelar
+            </Button>
+            <Button
+              variant="default"
+              onClick={confirmEditAceita}
+              disabled={!editAceitaMotivo.trim() || cancellingDocs}
+              className="bg-warning text-warning-foreground hover:bg-warning/90"
+            >
+              {cancellingDocs ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirmar e editar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
