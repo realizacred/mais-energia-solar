@@ -205,17 +205,23 @@ export function useDealPipeline() {
         docChecklistMap.set(d.id, d.doc_checklist || null);
       });
 
-      // Fetch latest proposal per DEAL (not per customer — prevents cross-deal contamination)
+      // Fetch latest proposal per DEAL — search by deal_id AND projeto_id (RB-43 pattern)
       const customerIds = [...new Set(Array.from(customerMap.values()))];
+      const projetoIds = [...new Set(Array.from(projetoIdMap.values()))].filter(Boolean);
       const locationMap = new Map<string, { city: string | null; state: string | null }>();
 
-      if (customerIds.length > 0 || dealIds.length > 0) {
-        // Parallel: proposals by deal_id + locations by customer_id
+      if (customerIds.length > 0 || dealIds.length > 0 || projetoIds.length > 0) {
+        // Build OR filter: deal_id in dealIds OR projeto_id in projetoIds
+        const orParts: string[] = [];
+        if (dealIds.length > 0) orParts.push(`deal_id.in.(${dealIds.join(",")})`);
+        if (projetoIds.length > 0) orParts.push(`projeto_id.in.(${projetoIds.join(",")})`);
+
+        // Parallel: proposals by deal_id/projeto_id + locations by customer_id
         const [propostasRes, locationRes] = await Promise.all([
           supabase
             .from("propostas_nativas")
-            .select("id, deal_id, status, versao_atual, is_principal")
-            .in("deal_id", dealIds)
+            .select("id, deal_id, projeto_id, status, versao_atual, is_principal")
+            .or(orParts.join(","))
             .order("created_at", { ascending: false }),
           customerIds.length > 0
             ? supabase.from("clientes").select("id, cidade, estado").in("id", customerIds)
