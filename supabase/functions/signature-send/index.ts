@@ -6,6 +6,8 @@
  * DA-27: Adapter pattern for signature providers
  * RB-23: No console.log — only console.error with prefix
  * RB-14: External API called only from Edge Function
+ * 
+ * Auto-signers: Contratante (client) + Contratada (representative from brand_settings)
  */
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -58,7 +60,7 @@ Deno.serve(async (req) => {
     // 3. Fetch document
     const { data: doc, error: docErr } = await supabase
       .from("generated_documents")
-      .select("id, title, pdf_path, status, signature_status, template_id, tenant_id")
+      .select("id, title, pdf_path, status, signature_status, template_id, tenant_id, cliente_id, lead_id, projeto_id, deal_id")
       .eq("id", documento_id)
       .eq("tenant_id", tenant_id)
       .single();
@@ -133,19 +135,110 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 7. Build signers list
+    // 7. Build signers list — auto-resolve Contratante + Contratada
     let signersList: Array<{ name: string; email: string; cpf?: string; phone?: string; auth_method?: string }> = [];
 
-    const defaultSignerIds = template?.default_signers as string[] | null;
-    if (defaultSignerIds && defaultSignerIds.length > 0) {
-      const { data: signers } = await supabase
-        .from("signers")
-        .select("full_name, email, phone, auth_method, cpf")
-        .in("id", defaultSignerIds)
-        .eq("tenant_id", tenant_id);
+    // 7a. Try auto-resolve: Contratante (client) + Contratada (representative)
+    const clienteId = doc.cliente_id;
+    let autoResolved = false;
 
-      if (signers && signers.length > 0) {
-        signersList = signers.map((s: any) => ({
+    if (clienteId) {
+      // Fetch client data
+      const { data: cliente } = await supabase
+        .from("clientes")
+        .select("nome, email, cpf_cnpj, telefone")
+        .eq("id", clienteId)
+        .single();
+
+      // Fetch brand_settings for representative
+      const { data: brand } = await supabase
+        .from("brand_settings")
+        .select("representante_legal, representante_email, representante_cpf, representante_cargo")
+        .eq("tenant_id", tenant_id)
+        .maybeSingle();
+
+      const hasRepresentante = brand?.representante_legal && brand?.representante_email;
+      const hasCliente = cliente?.nome && cliente?.email;
+
+      if (hasCliente && hasRepresentante) {
+        // Contratante (client)
+        signersList.push({
+          name: cliente.nome,
+          email: cliente.email!,
+          cpf: cliente.cpf_cnpj?.replace(/\D/g, "")?.length <= 11 ? cliente.cpf_cnpj : undefined,
+          phone: cliente.telefone || undefined,
+        });
+
+        // Contratada (representative)
+        signersList.push({
+          name: brand.representante_legal!,
+          email: brand.representante_email!,
+          cpf: brand.representante_cpf || undefined,
+        });
+
+        autoResolved = true;
+      } else if (hasCliente && !hasRepresentante) {
+        // Client available but no representative configured — warn
+        console.error("[signature-send] Representante legal não configurado para tenant", tenant_id);
+      }
+    }
+
+    // 7b. Fallback: use template default_signers or all signers
+    if (!autoResolved) {
+      const defaultSignerIds = template?.default_signers as string[] | null;
+      if (defaultSignerIds && defaultSignerIds.length > 0) {
+        const { data: signers } = await supabase
+          .from("signers")
+          .select("full_name, email, phone, auth_method, cpf")
+          .in("id", defaultSignerIds)
+          .eq("tenant_id", tenant_id);
+
+        if (signers && signers.length > 0) {
+          signersList = signers.map((s: any) => ({
+            name: s.full_name,
+            email: s.email,
+            cpf: s.cpf || undefined,
+            phone: s.phone || undefined,
+            auth_method: s.auth_method || undefined,
+          }));
+        }
+      }
+
+      if (signersList.length === 0) {
+        const { data: allSigners } = await supabase
+          .from("signers")
+          .select("full_name, email, phone, auth_method, cpf")
+          .eq("tenant_id", tenant_id)
+          .limit(5);
+
+        if (!allSigners || allSigners.length === 0) {
+          // No auto-resolve and no signers — give specific error
+          if (clienteId) {
+            const { data: cliente } = await supabase
+              .from("clientes")
+              .select("email")
+              .eq("id", clienteId)
+              .single();
+
+            if (!cliente?.email) {
+              return new Response(JSON.stringify({ 
+                error: "O cliente não possui e-mail cadastrado. Cadastre o e-mail do cliente ou configure o representante legal em Configurações → Representante Legal." 
+              }), {
+                status: 400,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+          }
+
+          return new Response(JSON.stringify({ 
+            error: "Nenhum signatário encontrado. Configure o representante legal em Configurações → Representante Legal, ou cadastre signatários em Documentos → Assinatura." 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        signersList = allSigners.map((s: any) => ({
           name: s.full_name,
           email: s.email,
           cpf: s.cpf || undefined,
@@ -153,29 +246,6 @@ Deno.serve(async (req) => {
           auth_method: s.auth_method || undefined,
         }));
       }
-    }
-
-    if (signersList.length === 0) {
-      const { data: allSigners } = await supabase
-        .from("signers")
-        .select("full_name, email, phone, auth_method, cpf")
-        .eq("tenant_id", tenant_id)
-        .limit(5);
-
-      if (!allSigners || allSigners.length === 0) {
-        return new Response(JSON.stringify({ error: "Nenhum signatário cadastrado. Cadastre signatários em Documentos → Assinatura." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      signersList = allSigners.map((s: any) => ({
-        name: s.full_name,
-        email: s.email,
-        cpf: s.cpf || undefined,
-        phone: s.phone || undefined,
-        auth_method: s.auth_method || undefined,
-      }));
     }
 
     const missingEmail = signersList.find(s => !s.email);
@@ -231,6 +301,7 @@ Deno.serve(async (req) => {
       envelope_id: result.envelopeId,
       sign_url: result.signUrl,
       signers_count: signersList.length,
+      auto_resolved: autoResolved,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
