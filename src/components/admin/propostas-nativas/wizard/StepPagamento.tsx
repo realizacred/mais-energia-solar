@@ -164,9 +164,24 @@ export function StepPagamento({
     ];
   };
 
+  // ─── Selected banks (only checked ones generate options)
+  const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(() => {
+    // If we have existing opcoes with financing, extract bank IDs from them
+    const existingBancoNames = opcoes
+      .filter(o => o.tipo === "financiamento" || o.tipo === "parcelado")
+      .map(o => o.nome);
+    if (existingBancoNames.length > 0) {
+      const ids = new Set<string>();
+      bancos.forEach(b => { if (existingBancoNames.includes(b.nome)) ids.add(b.id); });
+      return ids;
+    }
+    // Default: none selected — user chooses which banks to include
+    return new Set<string>();
+  });
+
   const [hasUserEditedBancoGroups, setHasUserEditedBancoGroups] = useState(false);
   const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>(() =>
-    opcoes.length > 0 ? mapOpcoesToBancoGroups(opcoes, bancos, precoFinal) : buildBancoGroups(bancos, precoFinal)
+    opcoes.length > 0 ? mapOpcoesToBancoGroups(opcoes, bancos, precoFinal) : buildBancoGroups(bancos, precoFinal, selectedBankIds)
   );
   const [selectedBancoIdx, setSelectedBancoIdx] = useState(0);
   const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);
