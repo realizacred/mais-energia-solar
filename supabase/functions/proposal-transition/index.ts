@@ -238,6 +238,22 @@ Deno.serve(async (req) => {
           })
           .in("id", siblingIds);
       }
+
+      // Cancel existing generated documents for this project (old contracts become invalid)
+      try {
+        await admin
+          .from("generated_documents")
+          .update({
+            status: "cancelled",
+            observacao: "Nova proposta aceita",
+            updated_at: now,
+          })
+          .eq("deal_id", proposta.projeto_id)
+          .eq("status", "generated");
+      } catch (docCancelErr) {
+        console.error("[proposal-transition] Erro ao cancelar documentos:", docCancelErr);
+        // Non-blocking — don't fail the transition
+      }
     }
 
     let commission_pct: number | null = null;

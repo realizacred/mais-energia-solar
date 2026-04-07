@@ -6137,6 +6137,7 @@ export type Database = {
           id: string
           input_payload: Json | null
           lead_id: string | null
+          observacao: string | null
           pdf_filled_path: string | null
           pdf_path: string | null
           projeto_id: string | null
@@ -6161,6 +6162,7 @@ export type Database = {
           id?: string
           input_payload?: Json | null
           lead_id?: string | null
+          observacao?: string | null
           pdf_filled_path?: string | null
           pdf_path?: string | null
           projeto_id?: string | null
@@ -6185,6 +6187,7 @@ export type Database = {
           id?: string
           input_payload?: Json | null
           lead_id?: string | null
+          observacao?: string | null
           pdf_filled_path?: string | null
           pdf_path?: string | null
           projeto_id?: string | null
@@ -27138,6 +27141,8 @@ export type Database = {
       purge_expired_proposal_tokens: { Args: never; Returns: number }
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
       purge_monitor_payloads_old: { Args: never; Returns: number }
+      purge_monitor_readings_realtime: { Args: never; Returns: number }
+      purge_monitor_string_metrics: { Args: never; Returns: number }
       purge_old_payloads: { Args: never; Returns: Json }
       purge_wa_webhook_events_old: { Args: never; Returns: number }
       refresh_dashboard_views: { Args: never; Returns: undefined }

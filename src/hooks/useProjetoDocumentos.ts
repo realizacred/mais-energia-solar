@@ -22,6 +22,7 @@ export interface GeneratedDocRow {
   signature_provider: string | null;
   envelope_id: string | null;
   signed_at: string | null;
+  observacao: string | null;
   template_name?: string;
   template_categoria?: string;
   requires_signature?: boolean;
@@ -76,7 +77,7 @@ export function useProjetoDocumentosGerados(dealId: string) {
     queryFn: async () => {
       const { data: docs } = await supabase
         .from("generated_documents")
-        .select("id, title, status, created_at, template_id, docx_filled_path, pdf_path, pdf_filled_path, signature_status, signature_provider, envelope_id, signed_at")
+        .select("id, title, status, created_at, template_id, docx_filled_path, pdf_path, pdf_filled_path, signature_status, signature_provider, envelope_id, signed_at, observacao")
         .eq("deal_id", dealId)
         .order("created_at", { ascending: false });
 

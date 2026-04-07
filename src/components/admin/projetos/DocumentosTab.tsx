@@ -1,10 +1,12 @@
 import { useState, useRef, useMemo } from "react";
-import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye, ChevronDown } from "lucide-react";
+import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye, ChevronDown, Ban } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -80,6 +82,8 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const [signConfirmDoc, setSignConfirmDoc] = useState<GeneratedDocRow | null>(null);
   const [previewDocId, setPreviewDocId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [cancelDoc, setCancelDoc] = useState<GeneratedDocRow | null>(null);
+  const [cancelMotivo, setCancelMotivo] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // §16: Queries em hooks — AP-01 resolvido
@@ -130,6 +134,25 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     },
     onError: (err: any) => {
       toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const cancelDocMutation = useMutation({
+    mutationFn: async ({ docId, motivo }: { docId: string; motivo: string }) => {
+      const { error } = await supabase
+        .from("generated_documents")
+        .update({ status: "cancelled", observacao: motivo || null } as any)
+        .eq("id", docId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projeto-documentos-generated", dealId] });
+      toast({ title: "Documento cancelado" });
+      setCancelDoc(null);
+      setCancelMotivo("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao cancelar", description: err.message, variant: "destructive" });
     },
   });
 
@@ -315,6 +338,9 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                           <p className="text-[10px] text-muted-foreground">
                             {doc.template_name} • {formatDateTime(doc.created_at, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                           </p>
+                          {doc.status === "cancelled" && doc.observacao && (
+                            <p className="text-[10px] text-destructive mt-0.5">Motivo: {doc.observacao}</p>
+                          )}
                         </div>
                         <div className="flex flex-wrap items-center gap-1 shrink-0">
                           {/* Eye — inline PDF preview */}
@@ -402,6 +428,18 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
+                          )}
+                          {/* Cancel document */}
+                          {doc.status === "generated" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-warning hover:text-warning"
+                              title="Cancelar documento"
+                              onClick={() => setCancelDoc(doc)}
+                            >
+                              <Ban className="h-3.5 w-3.5" />
+                            </Button>
                           )}
                           {/* Delete */}
                           <Button
@@ -595,6 +633,46 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Cancel Document Dialog */}
+      <Dialog open={!!cancelDoc} onOpenChange={(open) => { if (!open) { setCancelDoc(null); setCancelMotivo(""); } }}>
+        <DialogContent className="w-[90vw] max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+                <Ban className="w-5 h-5 text-warning" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-semibold text-foreground">Cancelar documento</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  O documento "{cancelDoc?.title}" será marcado como cancelado.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>Motivo do cancelamento</Label>
+            <Textarea
+              value={cancelMotivo}
+              onChange={(e) => setCancelMotivo(e.target.value)}
+              placeholder="Informe o motivo (opcional)"
+              rows={3}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => { setCancelDoc(null); setCancelMotivo(""); }}>Voltar</Button>
+            <Button
+              variant="outline"
+              className="border-destructive text-destructive"
+              disabled={cancelDocMutation.isPending}
+              onClick={() => cancelDoc && cancelDocMutation.mutate({ docId: cancelDoc.id, motivo: cancelMotivo })}
+            >
+              {cancelDocMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Ban className="h-4 w-4 mr-1.5" />}
+              Cancelar documento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -226,7 +226,15 @@ export function resolveFinanceiro(
     "distribuidor_categoria", "preco_por_extenso",
     "kit_fechado_preco_total",
   ];
-  for (const k of costFields) set(k, snap[k]);
+  // AP-17: costFields from snapshot may carry "R$ " prefix — strip it
+  for (const k of costFields) {
+    const raw = snap[k];
+    if (raw === null || raw === undefined || raw === "") continue;
+    const s = String(raw);
+    // Strip any "R$" prefix variants (snapshot may store formatted values)
+    const clean = s.replace(/^[\s ]*R\$[\s ]*/i, "").trim();
+    if (clean && !out[k]) out[k] = clean;
+  }
 
   // ── Derive instalacao_preco_total = valor_total - custo_kit ──
   if (!out["instalacao_preco_total"]) {
