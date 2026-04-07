@@ -238,8 +238,31 @@ export async function listConnections(): Promise<IntegrationConnection[]> {
     })
     .filter((conn) => !!conn.provider_id);
 
+  // Merge signature_settings as synthetic connections for signature providers
+  const { data: sigSettings } = await (supabase as any)
+    .from("signature_settings")
+    .select("tenant_id, provider, enabled, updated_at")
+    .maybeSingle();
+
+  const signatureConnections: IntegrationConnection[] = [];
+  if (sigSettings?.enabled && sigSettings?.provider) {
+    signatureConnections.push({
+      id: `sig_${sigSettings.provider}`,
+      tenant_id: sigSettings.tenant_id,
+      provider_id: sigSettings.provider,
+      status: "connected",
+      credentials: {},
+      tokens: {},
+      config: { source: "signature_settings" },
+      last_sync_at: null,
+      sync_error: null,
+      created_at: sigSettings.updated_at,
+      updated_at: sigSettings.updated_at,
+    } as IntegrationConnection);
+  }
+
   const mergedByProvider = new Map<string, IntegrationConnection>();
-  for (const conn of [...canonical, ...supplierConnections]) {
+  for (const conn of [...canonical, ...supplierConnections, ...signatureConnections]) {
     if (!mergedByProvider.has(conn.provider_id)) {
       mergedByProvider.set(conn.provider_id, conn);
     }
