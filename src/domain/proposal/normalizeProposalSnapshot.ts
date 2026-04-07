@@ -390,9 +390,9 @@ export function normalizeProposalSnapshot(
     tir: num(s.tir ?? fin?.tir),
     vpl: num(s.vpl ?? fin?.vpl),
 
-    // Gastos comparativos
-    gastoEnergiaSem: num(s.gastoEnergiaSem ?? s.gasto_energia_sem ?? fin?.gastoEnergiaSem ?? fin?.gasto_energia_sem),
-    gastoEnergiaCom: num(s.gastoEnergiaCom ?? s.gasto_energia_com ?? fin?.gastoEnergiaCom ?? fin?.gasto_energia_com),
+    // Gastos comparativos — fallback chain: dedicated fields → gasto_atual/novo from financial series
+    gastoEnergiaSem: num(s.gastoEnergiaSem ?? s.gasto_energia_sem ?? fin?.gastoEnergiaSem ?? fin?.gasto_energia_sem ?? s.gasto_atual_mensal ?? fin?.gasto_atual_mensal ?? s.gasto_total_mensal_atual ?? fin?.gasto_total_mensal_atual),
+    gastoEnergiaCom: num(s.gastoEnergiaCom ?? s.gasto_energia_com ?? fin?.gastoEnergiaCom ?? fin?.gasto_energia_com ?? s.gasto_total_mensal_novo ?? fin?.gasto_total_mensal_novo),
     gastoDemandaSem: num(s.gastoDemandaSem ?? s.gasto_demanda_sem ?? fin?.gastoDemandaSem ?? fin?.gasto_demanda_sem),
     gastoDemandaCom: num(s.gastoDemandaCom ?? s.gasto_demanda_com ?? fin?.gastoDemandaCom ?? fin?.gasto_demanda_com),
     outrosEncargosSem: num(s.outrosEncargosSem ?? s.outros_encargos_sem ?? fin?.outrosEncargosSem ?? fin?.outros_encargos_sem),
