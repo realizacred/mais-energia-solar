@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo } from "react";
 import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye, ChevronDown, Ban } from "lucide-react";
+import { SignatureModal, type SignerEntry } from "./SignatureModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
