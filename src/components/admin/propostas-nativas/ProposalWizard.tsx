@@ -1757,7 +1757,8 @@ export function ProposalWizard() {
         if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
 
         // Pre-fill UC data from ORC
-        const consumo = orc.consumo_previsto || orc.media_consumo || 0;
+        // consumo_previsto = geração estimada, não consumo médio
+        const consumo = orc.media_consumo || orc.consumo_previsto || 0;
         const faseData = redeAtendimentoToFaseTensao(orc.rede_atendimento);
 
         setUcs(prev => {
