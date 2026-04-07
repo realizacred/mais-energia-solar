@@ -47,6 +47,10 @@ Deno.serve(async (req) => {
       const parsed = parseClickSignWebhook(body);
       docToken = parsed.docToken;
       mappedStatus = parsed.status ? mapClickSignStatus(parsed.status) : null;
+    } else if (provider === "autentique") {
+      const parsed = parseAutentiqueWebhook(body);
+      docToken = parsed.docToken;
+      mappedStatus = parsed.status ? mapAutentiqueStatus(parsed.status) : null;
     } else if (provider === "zapsign") {
       const parsed = parseZapSignWebhook(body);
       docToken = parsed.docToken;
