@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     // 2. Parse body
     const body = await req.json();
-    const { documento_id, tenant_id } = body;
+    const { documento_id, tenant_id, signers: requestSigners } = body;
 
     if (!documento_id || !tenant_id) {
       return new Response(JSON.stringify({ error: "documento_id e tenant_id são obrigatórios" }), {
