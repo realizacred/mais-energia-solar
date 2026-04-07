@@ -426,6 +426,18 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
+                          {/* Cancel document */}
+                          {doc.status === "generated" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-warning hover:text-warning"
+                              title="Cancelar documento"
+                              onClick={() => setCancelDoc(doc)}
+                            >
+                              <Ban className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                           {/* Delete */}
                           <Button
                             variant="ghost"
