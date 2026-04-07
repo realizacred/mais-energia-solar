@@ -77,6 +77,7 @@ export interface TenantTarifas {
   outros_encargos_atual: number; outros_encargos_novo: number;
   fase_tensao_rede: string; grupo_tarifario: string;
   concessionaria_nome?: string; concessionaria_id?: string;
+  tipo_telhado_padrao?: string;
 }
 
 export function useEquipmentCatalog() {
@@ -227,7 +228,7 @@ export function useTenantTarifas() {
           "tarifacao_compensada_bt, tarifacao_compensada_ponta, tarifacao_compensada_fora_ponta, " +
           "imposto_energia, fator_simultaneidade, fase_tensao_rede, grupo_tarifario, " +
           "preco_demanda, preco_demanda_geracao, outros_encargos_atual, outros_encargos_novo, " +
-          "concessionaria_id"
+          "concessionaria_id, tipo_telhado_padrao"
         )
         .limit(1)
         .maybeSingle();
