@@ -1,15 +1,16 @@
 /**
  * Edge Function: signature-send
- * Sends a generated document to ZapSign for electronic signature.
+ * Sends a generated document for electronic signature via adapter pattern.
+ * Supports ZapSign and Clicksign — provider chosen per tenant.
  * 
+ * DA-27: Adapter pattern for signature providers
  * RB-23: No console.log — only console.error with prefix
  * RB-14: External API called only from Edge Function
  */
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-
-const ZAPSIGN_API_URL = "https://api.zapsign.com.br/api/v1";
+import { getSignatureAdapter } from "../_shared/signatureAdapters.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -30,7 +31,6 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Auth client to get user
     const authClient = createClient(supabaseUrl, supabaseAnon, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -42,7 +42,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Service client for data ops
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 2. Parse body
@@ -115,7 +114,7 @@ Deno.serve(async (req) => {
 
     const apiToken = sigSettings.api_token_encrypted;
     if (!apiToken) {
-      return new Response(JSON.stringify({ error: "Token ZapSign não configurado. Configure em Documentos → Assinatura." }), {
+      return new Response(JSON.stringify({ error: "Token de assinatura não configurado. Configure em Documentos → Assinatura." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -135,14 +134,13 @@ Deno.serve(async (req) => {
     }
 
     // 7. Build signers list
-    let signersList: Array<{ name: string; email: string; phone_country?: string; phone_number?: string; auth_mode: string; send_automatic_email: boolean }> = [];
+    let signersList: Array<{ name: string; email: string; cpf?: string; phone?: string; auth_method?: string }> = [];
 
-    // Try default_signers from template first
     const defaultSignerIds = template?.default_signers as string[] | null;
     if (defaultSignerIds && defaultSignerIds.length > 0) {
       const { data: signers } = await supabase
         .from("signers")
-        .select("full_name, email, phone, auth_method")
+        .select("full_name, email, phone, auth_method, cpf")
         .in("id", defaultSignerIds)
         .eq("tenant_id", tenant_id);
 
@@ -150,19 +148,17 @@ Deno.serve(async (req) => {
         signersList = signers.map((s: any) => ({
           name: s.full_name,
           email: s.email,
-          phone_country: "55",
-          phone_number: s.phone?.replace(/\D/g, "") || undefined,
-          auth_mode: s.auth_method || "assinaturaTela",
-          send_automatic_email: true,
+          cpf: s.cpf || undefined,
+          phone: s.phone || undefined,
+          auth_method: s.auth_method || undefined,
         }));
       }
     }
 
-    // Fallback: get all tenant signers if no default signers
     if (signersList.length === 0) {
       const { data: allSigners } = await supabase
         .from("signers")
-        .select("full_name, email, phone, auth_method")
+        .select("full_name, email, phone, auth_method, cpf")
         .eq("tenant_id", tenant_id)
         .limit(5);
 
@@ -176,14 +172,12 @@ Deno.serve(async (req) => {
       signersList = allSigners.map((s: any) => ({
         name: s.full_name,
         email: s.email,
-        phone_country: "55",
-        phone_number: s.phone?.replace(/\D/g, "") || undefined,
-        auth_mode: s.auth_method || "assinaturaTela",
-        send_automatic_email: true,
+        cpf: s.cpf || undefined,
+        phone: s.phone || undefined,
+        auth_method: s.auth_method || undefined,
       }));
     }
 
-    // Validate all signers have email
     const missingEmail = signersList.find(s => !s.email);
     if (missingEmail) {
       return new Response(JSON.stringify({ error: `Signatário "${missingEmail.name}" não possui e-mail cadastrado.` }), {
@@ -192,69 +186,33 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 8. Call ZapSign API
-    const zapSignBody = {
-      sandbox: sigSettings.sandbox_mode ?? false,
-      name: doc.title,
-      url_pdf: signedUrl.signedUrl,
-      signers: signersList.map(s => ({
-        name: s.name,
-        email: s.email,
-        phone_country: s.phone_country,
-        phone_number: s.phone_number,
-        auth_mode: s.auth_mode,
-        send_automatic_email: s.send_automatic_email,
-      })),
-    };
+    // 8. Use adapter pattern — DA-27
+    const provider = sigSettings.provider || "zapsign";
+    const adapter = getSignatureAdapter(provider);
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
-
-    let zapResponse: Response;
+    let result;
     try {
-      zapResponse = await fetch(`${ZAPSIGN_API_URL}/docs/`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(zapSignBody),
-        signal: controller.signal,
+      result = await adapter.createEnvelope({
+        pdfUrl: signedUrl.signedUrl,
+        docName: doc.title,
+        signers: signersList,
+        sandbox: sigSettings.sandbox_mode ?? false,
+        apiToken,
       });
-    } catch (fetchErr: any) {
-      console.error("[signature-send] ZapSign API fetch error:", fetchErr.message);
-      return new Response(JSON.stringify({ error: "Falha na comunicação com ZapSign. Tente novamente." }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    const zapData = await zapResponse.json();
-
-    if (!zapResponse.ok) {
-      console.error("[signature-send] ZapSign API error:", zapResponse.status, JSON.stringify(zapData));
-
-      const errorMsg = zapResponse.status === 401 || zapResponse.status === 403
-        ? "Token ZapSign inválido ou expirado. Verifique nas configurações."
-        : `Erro ZapSign (${zapResponse.status}): ${zapData?.detail || zapData?.message || JSON.stringify(zapData)}`;
-
-      return new Response(JSON.stringify({ error: errorMsg }), {
+    } catch (adapterErr: any) {
+      console.error(`[signature-send] ${provider} adapter error:`, adapterErr.message);
+      return new Response(JSON.stringify({ error: adapterErr.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 9. Update document with ZapSign data
-    const envelopeId = zapData.token || zapData.open_id;
-    const signUrl = zapData.signers?.[0]?.sign_url || null;
-
+    // 9. Update document with provider data
     const { error: updateErr } = await supabase
       .from("generated_documents")
       .update({
-        signature_provider: "zapsign",
-        envelope_id: envelopeId,
+        signature_provider: provider,
+        envelope_id: result.envelopeId,
         signature_status: "sent",
         status: "sent_for_signature",
         updated_at: new Date().toISOString(),
@@ -269,8 +227,9 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      envelope_id: envelopeId,
-      sign_url: signUrl,
+      provider,
+      envelope_id: result.envelopeId,
+      sign_url: result.signUrl,
       signers_count: signersList.length,
     }), {
       status: 200,
