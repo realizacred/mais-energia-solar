@@ -385,7 +385,7 @@ Deno.serve(async (req) => {
       clienteId
         ? supabase.from("clientes").select(clienteSelect).eq("id", clienteId).eq("tenant_id", tenantId).maybeSingle()
         : Promise.resolve({ data: null }),
-      supabase.from("tenants").select("nome, documento, telefone, email, endereco").eq("id", tenantId).maybeSingle(),
+      supabase.from("tenants").select("nome, documento, inscricao_estadual, estado, cidade, tenant_config").eq("id", tenantId).maybeSingle(),
       // Get PRINCIPAL proposal for this project, then its latest version
       // Step 1: find propostas_nativas with is_principal=true first, fallback to any accepted/generated
       (async () => {
@@ -488,6 +488,7 @@ Deno.serve(async (req) => {
       brandSettings: (brandRes.data ?? {}) as Record<string, unknown>,
       projetoData: (projeto ?? {}) as Record<string, unknown>,
       clienteData: (clienteData ?? {}) as Record<string, unknown>,
+      tenantData: (tenantRes.data ?? {}) as Record<string, unknown>,
     });
 
 
