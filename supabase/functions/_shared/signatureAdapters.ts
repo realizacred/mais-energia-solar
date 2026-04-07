@@ -1,6 +1,6 @@
 /**
  * Signature Adapters — Multi-provider pattern for electronic signatures.
- * DA-27: Adapter pattern — ZapSign + Clicksign
+ * DA-27: Adapter pattern — ZapSign + Clicksign + Autentique
  * DA-28: Clicksign requires 3 API calls (upload, signer, list+notify)
  * RB-23: No console.log — only console.error with prefix
  */
@@ -24,6 +24,8 @@ export interface SignatureEnvelopeParams {
 export interface SignatureEnvelopeResult {
   envelopeId: string;
   signUrl?: string;
+  /** Per-signer short links (Autentique returns these) */
+  signerLinks?: Array<{ name: string; shortLink: string }>;
 }
 
 export interface WebhookParseResult {
@@ -322,12 +324,163 @@ export function mapClickSignStatus(eventName: string): { signatureStatus: string
   }
 }
 
+// ─── Autentique Adapter ───────────────────────────────
+
+const AUTENTIQUE_API_URL = "https://api.autentique.com.br/v2/graphql";
+
+export class AutentiqueAdapter implements SignatureAdapter {
+  readonly providerId = "autentique";
+
+  async createEnvelope(params: SignatureEnvelopeParams): Promise<SignatureEnvelopeResult> {
+    // Step 1: Download PDF
+    let pdfBlob: Blob;
+    try {
+      const pdfResponse = await fetchWithTimeout(params.pdfUrl, {}, 60000);
+      if (!pdfResponse.ok) throw new Error(`HTTP ${pdfResponse.status}`);
+      pdfBlob = await pdfResponse.blob();
+    } catch (err: any) {
+      console.error("[AutentiqueAdapter] PDF download error:", err.message);
+      throw new Error("Falha ao baixar o PDF para envio à Autentique.");
+    }
+
+    // Step 2: Create document with signers via GraphQL multipart
+    const query = `mutation CreateDocumentMutation(
+      $document: DocumentInput!,
+      $signers: [SignerInput!]!,
+      $file: Upload!
+    ) {
+      createDocument(
+        document: $document,
+        signers: $signers,
+        file: $file,
+        sandbox: ${params.sandbox ? "true" : "false"}
+      ) {
+        id
+        name
+        signatures {
+          public_id
+          name
+          email
+          action { name }
+          link { short_link }
+        }
+      }
+    }`;
+
+    const variables = {
+      document: {
+        name: params.docName,
+      },
+      signers: params.signers.map(s => ({
+        email: s.email,
+        action: "SIGN",
+        name: s.name,
+        ...(s.phone ? { phone: s.phone.replace(/\D/g, "") } : {}),
+      })),
+      file: null,
+    };
+
+    const operations = JSON.stringify({ query, variables });
+    const map = JSON.stringify({ "0": ["variables.file"] });
+
+    const formData = new FormData();
+    formData.append("operations", operations);
+    formData.append("map", map);
+    formData.append("0", pdfBlob, `${params.docName.replace(/[^a-zA-Z0-9._-]/g, "_")}.pdf`);
+
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(AUTENTIQUE_API_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${params.apiToken}`,
+        },
+        body: formData,
+      }, 60000);
+    } catch (err: any) {
+      console.error("[AutentiqueAdapter] API fetch error:", err.message);
+      throw new Error("Falha na comunicação com Autentique. Tente novamente.");
+    }
+
+    const data = await response.json();
+
+    if (!response.ok || data?.errors?.length) {
+      console.error("[AutentiqueAdapter] API error:", response.status, JSON.stringify(data));
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Token Autentique inválido ou expirado. Verifique nas configurações.");
+      }
+      const errMsg = data?.errors?.[0]?.message || JSON.stringify(data);
+      throw new Error(`Erro Autentique (${response.status}): ${errMsg}`);
+    }
+
+    const doc = data?.data?.createDocument;
+    if (!doc?.id) {
+      console.error("[AutentiqueAdapter] No document id in response:", JSON.stringify(data));
+      throw new Error("Autentique não retornou o ID do documento.");
+    }
+
+    // Collect signer links
+    const signerLinks: Array<{ name: string; shortLink: string }> = [];
+    let firstSignUrl: string | undefined;
+
+    if (doc.signatures && Array.isArray(doc.signatures)) {
+      for (const sig of doc.signatures) {
+        const shortLink = sig?.link?.short_link;
+        if (shortLink) {
+          if (!firstSignUrl) firstSignUrl = shortLink;
+          signerLinks.push({
+            name: sig.name || sig.email || "Signatário",
+            shortLink,
+          });
+        }
+      }
+    }
+
+    return {
+      envelopeId: doc.id,
+      signUrl: firstSignUrl,
+      signerLinks,
+    };
+  }
+}
+
+// ─── Autentique Webhook Parser ────────────────────────
+
+/**
+ * Autentique webhook payload:
+ * { id, object: "webhook", name, event: { type: "signature.signed", ... }, data: { document: { id }, signature: { public_id } } }
+ */
+export function parseAutentiqueWebhook(body: Record<string, any>): WebhookParseResult {
+  const docId = body?.data?.document?.id || null;
+  const eventType = body?.event?.type || null;
+  return { docToken: docId, status: eventType };
+}
+
+export function mapAutentiqueStatus(eventType: string): { signatureStatus: string; docStatus: string; isSigned: boolean } | null {
+  switch (eventType) {
+    case "document.signed":
+    case "signature.signed":
+      return { signatureStatus: "signed", docStatus: "signed", isSigned: true };
+    case "document.refused":
+    case "signature.refused":
+      return { signatureStatus: "refused", docStatus: "cancelled", isSigned: false };
+    case "signature.viewed":
+      return { signatureStatus: "viewed", docStatus: "sent_for_signature", isSigned: false };
+    case "document.cancelled":
+      return { signatureStatus: "cancelled", docStatus: "cancelled", isSigned: false };
+    default:
+      return null;
+  }
+}
+
 // ─── Factory ──────────────────────────────────────────
 
 export function getSignatureAdapter(provider: string): SignatureAdapter {
   switch (provider) {
     case "clicksign":
       return new ClickSignAdapter();
+    case "autentique":
+      return new AutentiqueAdapter();
     case "zapsign":
     default:
       return new ZapSignAdapter();
@@ -336,14 +489,16 @@ export function getSignatureAdapter(provider: string): SignatureAdapter {
 
 // ─── Webhook Detection ────────────────────────────────
 
-export type WebhookProvider = "zapsign" | "clicksign" | "unknown";
+export type WebhookProvider = "zapsign" | "clicksign" | "autentique" | "unknown";
 
 /**
  * DA-29: Detect provider by webhook payload format.
- * Clicksign uses { event: { name }, document: { key } }
- * ZapSign uses { doc: { token, status } } or { token, status }
+ * Clicksign: { event: { name }, document: { key } }
+ * ZapSign: { doc: { token, status } } or { token, status }
+ * Autentique: { object: "webhook", event: { type }, data: { document: { id } } }
  */
 export function detectWebhookProvider(body: Record<string, any>): WebhookProvider {
+  if (body?.object === "webhook" && body?.event?.type) return "autentique";
   if (body?.event?.name && body?.document?.key) return "clicksign";
   if (body?.doc?.token || body?.doc?.status || body?.token) return "zapsign";
   return "unknown";
