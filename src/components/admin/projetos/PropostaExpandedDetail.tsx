@@ -1313,7 +1313,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 }}>
                   <Eye className="h-3.5 w-3.5 mr-2 text-primary" /> Visualizar detalhes
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
+                <DropdownMenuItem onClick={() => handleEditWithProtection(() => {
                   if (latestVersao) {
                     const params = new URLSearchParams({
                       proposta_id: p.id,
@@ -1327,7 +1327,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     if (customerId) params.set("customer_id", customerId);
                     navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
                   }
-                }}>
+                })}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-warning" /> Editar dimensionamento
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -1510,9 +1510,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         onGenerate={latestVersao?.link_pdf && !latestVersao?.output_pdf_path
                           ? () => window.open(latestVersao.link_pdf!, "_blank", "noopener,noreferrer")
                           : handleRender}
-                        onNewVersion={() => {
+                        onNewVersion={() => handleEditWithProtection(() => {
                           navigate(`/admin/propostas-nativas?edit=${p.id}`);
-                        }}
+                        })}
                         onViewDetail={() => {}}
                       />
                     </div>
