@@ -9,7 +9,7 @@ import {
   useSaveSigner,
 } from "@/hooks/useSignatureData";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Mail, Phone, MessageCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Mail, Phone, MessageCircle, Copy, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -136,6 +136,35 @@ function SignatureConfig() {
               />
             </div>
           </div>
+          {/* Webhook URL */}
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1">
+              <Link className="h-3 w-3" />
+              URL do Webhook (configurar no Clicksign/ZapSign)
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signature-webhook`}
+                className="h-9 text-sm font-mono text-muted-foreground bg-muted/50"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signature-webhook`
+                  );
+                  toast.success("URL copiada!");
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
           <div className="flex justify-end">
             <Button size="sm" onClick={handleSave} disabled={save.isPending}>
               {save.isPending ? "Salvando…" : "Salvar configuração"}

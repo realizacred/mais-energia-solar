@@ -267,8 +267,8 @@ function resolveFromContext(
   if (key === "comercial.proposta_link" || key === "comercial.proposta_link_interativo") {
     const token = s((ctx.finalSnapshot as any)?.token_publico);
     if (token) {
-      const base = (import.meta as any).env?.VITE_APP_URL ?? "https://app.maisenergiasolar.com.br";
-      return `${base}/pl/${token}`;
+      const base = (import.meta as any).env?.VITE_APP_URL ?? "https://maisenergiasolar.lovable.app";
+      return `${base}/proposta/${token}`;
     }
     return null;
   }
