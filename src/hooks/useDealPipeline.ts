@@ -186,7 +186,7 @@ export function useDealPipeline() {
       // Fetch canonical deals to enrich cards and drop any stale/orphan projection rows
       const { data: dealsData } = await supabase
         .from("deals")
-        .select("id, customer_id, notas, expected_close_date, doc_checklist")
+        .select("id, customer_id, notas, expected_close_date, doc_checklist, projeto_id")
         .in("id", dealIds);
 
       const existingDealIds = new Set((dealsData || []).map((d: any) => d.id));
