@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { IntegrationTutorialSection } from "./IntegrationTutorialSection";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSolarPlantsCount } from "@/hooks/useSolarPlantsCount";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
