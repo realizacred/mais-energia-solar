@@ -158,7 +158,20 @@ export function useAppointments(filters?: {
         .single();
 
       if (error) throw error;
-      return data as unknown as Appointment;
+      const updated = data as unknown as Appointment;
+
+      // RB-25: fire-and-forget WA re-notification when instalacao date changes
+      if (
+        updated.appointment_type === "instalacao" &&
+        (updated as any).notificar_wa !== false &&
+        updates.starts_at
+      ) {
+        supabase.functions.invoke("notificar-agendamento-wa", {
+          body: { appointment_id: updated.id },
+        }).catch(() => {});
+      }
+
+      return updated;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
