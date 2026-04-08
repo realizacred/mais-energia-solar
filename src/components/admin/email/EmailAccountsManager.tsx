@@ -192,8 +192,8 @@ export function EmailAccountsManager() {
         const timer = setInterval(() => {
           if (popup?.closed) {
             clearInterval(timer);
-            // refresh accounts list
-            window.location.reload();
+            // refresh accounts list via query invalidation instead of full reload
+            qc.invalidateQueries({ queryKey: ["email-accounts"] });
           }
         }, 1000);
       } else {

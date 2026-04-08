@@ -49,7 +49,7 @@ export function useResetMigratedData() {
           : "Dados canônicos removidos. Dados SM preservados.",
         duration: 8000,
       });
-      setTimeout(() => window.location.reload(), 2000);
+      // RB-03-exception: no reload — user needs to see results on screen
     },
     onError: (err: Error) => {
       toast.error("Erro ao limpar migrados", { description: err.message });
