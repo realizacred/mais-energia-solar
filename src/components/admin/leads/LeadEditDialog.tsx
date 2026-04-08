@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Send, MessageSquare, UserPen } from "lucide-react";
+import { Send, MessageSquare, UserPen, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/FormModalTemplate";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
@@ -44,6 +45,7 @@ interface LeadEditInitialData {
   media_consumo?: number;
   consumo_previsto?: number;
   observacoes?: string | null;
+  email?: string | null;
   lead_origem_id?: string | null;
   origem?: string | null;
 }
@@ -100,6 +102,7 @@ export function LeadEditDialog({
   const [mediaConsumo, setMediaConsumo] = useState(String(initialData.media_consumo ?? ""));
   const [consumoPrevisto, setConsumoPrevisto] = useState(String(initialData.consumo_previsto ?? ""));
   const [observacoes, setObservacoes] = useState(initialData.observacoes || "");
+  const [email, setEmail] = useState(initialData.email || "");
   const [leadOrigemId, setLeadOrigemId] = useState(initialData.lead_origem_id || "");
   const [saving, setSaving] = useState(false);
   const [sendingWa, setSendingWa] = useState(false);
@@ -126,6 +129,7 @@ export function LeadEditDialog({
       setMediaConsumo(String(initialData.media_consumo ?? ""));
       setConsumoPrevisto(String(initialData.consumo_previsto ?? ""));
       setObservacoes(initialData.observacoes || "");
+      setEmail(initialData.email || "");
       setLeadOrigemId(initialData.lead_origem_id || "");
       setPhoneChanged(false);
     }
@@ -166,6 +170,7 @@ export function LeadEditDialog({
         media_consumo: mediaConsumo ? Number(mediaConsumo) : 0,
         consumo_previsto: consumoPrevisto ? Number(consumoPrevisto) : 0,
         observacoes: observacoes.trim() || null,
+        email: email.trim() || null,
         lead_origem_id: leadOrigemId || null,
         updated_at: new Date().toISOString(),
       };
@@ -313,6 +318,18 @@ export function LeadEditDialog({
             {phoneChanged && (
               <p className="text-xs text-warning">Telefone alterado — reenvie a mensagem de boas-vindas abaixo</p>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lead-email">E-mail</Label>
+            <EmailInput
+              id="lead-email"
+              value={email}
+              onChange={setEmail}
+              required={false}
+              normalize
+              disabled={saving}
+              placeholder="email@exemplo.com"
+            />
           </div>
         </FormGrid>
       </FormSection>
