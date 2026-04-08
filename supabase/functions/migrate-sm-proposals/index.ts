@@ -715,13 +715,21 @@ Deno.serve(async (req) => {
             .eq("tenant_id", tId)
             .ilike("name", canonicalName)
             .maybeSingle();
-          if (!pipeline) continue;
-          pipelineId = pipeline.id;
+          if (!pipeline) {
+            // Auto-create pipeline if it doesn't exist
+            if (dry_run) {
+              pipelineId = `AUTO_CREATE_PIPELINE:${canonicalName}`;
+            } else {
+              pipelineId = await resolveOrCreatePipeline(canonicalName);
+            }
+          } else {
+            pipelineId = pipeline.id;
+          }
           pipelineCache.set(canonicalName, pipelineId);
         }
 
         let stageId: string | null = null;
-        if (funnel.stageName) {
+        if (funnel.stageName && !pipelineId.startsWith("AUTO_CREATE")) {
           const normalizedStageName = normalizeComparableName(funnel.stageName);
           const cacheKey = `${pipelineId}::${normalizedStageName}`;
           stageId = stageCache.get(cacheKey) || null;
@@ -732,8 +740,13 @@ Deno.serve(async (req) => {
               .eq("tenant_id", tId)
               .eq("pipeline_id", pipelineId);
             const matchedStage = (stages || []).find((stage: any) => normalizeComparableName(stage.name) === normalizedStageName);
-            stageId = matchedStage?.id || null;
-            if (stageId) stageCache.set(cacheKey, stageId);
+            if (matchedStage?.id) {
+              stageId = matchedStage.id;
+              stageCache.set(cacheKey, stageId);
+            } else if (!dry_run) {
+              // Auto-create stage
+              stageId = await resolveOrCreateStage(pipelineId, funnel.stageName, 0);
+            }
           }
         }
 
