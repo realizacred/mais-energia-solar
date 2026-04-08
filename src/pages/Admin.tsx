@@ -110,6 +110,7 @@ const WaQuickRepliesManager = lazy(() => import("@/components/admin/inbox/WaQuic
 const DistributionConfig = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.DistributionConfig })));
 const SlaBreachDashboard = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.SlaBreachDashboard })));
 const MotivoPerdaManager = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.MotivoPerdaManager })));
+const LeadOrigensManager = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.LeadOrigensManager })));
 const WaFollowupRulesManager = lazy(() => import("@/components/admin/WaFollowupRulesManager").then(m => ({ default: m.WaFollowupRulesManager })));
 const WaFollowupQueuePage = lazy(() => import("@/components/admin/WaFollowupQueuePage").then(m => ({ default: m.WaFollowupQueuePage })));
 const WaAtendimentoMetrics = lazy(() => import("@/components/admin/WaAtendimentoMetrics").then(m => ({ default: m.WaAtendimentoMetrics })));
