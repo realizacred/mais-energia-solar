@@ -10065,6 +10065,7 @@ export type Database = {
           consultor_id: string
           consumo_previsto: number
           created_at: string
+          data_conversao: string | null
           data_proxima_acao: string | null
           deleted_at: string | null
           deleted_by: string | null
@@ -10120,6 +10121,7 @@ export type Database = {
           consultor_id?: string
           consumo_previsto: number
           created_at?: string
+          data_conversao?: string | null
           data_proxima_acao?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -10175,6 +10177,7 @@ export type Database = {
           consultor_id?: string
           consumo_previsto?: number
           created_at?: string
+          data_conversao?: string | null
           data_proxima_acao?: string | null
           deleted_at?: string | null
           deleted_by?: string | null

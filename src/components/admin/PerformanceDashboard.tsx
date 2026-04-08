@@ -184,20 +184,10 @@ export default function PerformanceDashboard() {
 
     const wonValue = wonDeals.reduce((s, d) => s + d.deal_value, 0);
 
-    // Avg cycle time: for closed leads, use the time from creation to now
-    // (ideally we'd use actual close date from deal_stage_history, but using
-    // last_stage_change from won deals as a proxy)
-    const cycleTimes = wonDeals
-      .filter(d => d.created_at)
-      .map(d => differenceInDays(new Date(d.created_at), new Date(d.created_at)))
-      .filter(d => d > 0 && d < 365);
-
-    // Better: use closed leads with created_at as approximation
-    // Since we don't have close date, measure won deals' last_stage_change - deal creation
-    // For now, use lead-based estimation from closed leads
+    // Avg cycle time: use data_conversao when available
     const leadCycleTimes = closedLeads
-      .filter(l => l.created_at)
-      .map(l => differenceInDays(now, new Date(l.created_at)))
+      .filter(l => l.created_at && l.data_conversao)
+      .map(l => differenceInDays(new Date(l.data_conversao!), new Date(l.created_at)))
       .filter(d => d > 0 && d < 365);
     const avgCycle = leadCycleTimes.length > 0
       ? Math.round(leadCycleTimes.reduce((s, d) => s + d, 0) / leadCycleTimes.length)
