@@ -17,7 +17,7 @@
  *  - business_critical → NÃO pode ser ocultado, pode ser reorganizado
  *  - normal → pode ser ocultado e reorganizado
  *
- * SEÇÕES (15):
+ * SEÇÕES (14):
  *  1. Painel
  *  2. Comercial
  *  3. Atendimento
@@ -25,14 +25,13 @@
  *  5. Pós-Venda
  *  6. Operações
  *  7. Financeiro
- *  8. Equipe
- *  9. IA
- * 10. Energia
- * 11. Integrações
- * 12. Site
- * 13. Cadastros
- * 14. Configurações
- * 15. Administração
+ *  8. Equipe & IA
+ *  9. Energia
+ * 10. Integrações
+ * 11. Site
+ * 12. Cadastros
+ * 13. Configurações
+ * 14. Administração
  */
 
 export type NavCriticality = "system_critical" | "business_critical" | "normal";
@@ -81,8 +80,8 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "followup-queue", label_default: "Fila de Follow-ups", group_default: "Atendimento", order_default: 1, icon: "CalendarClock", description: "Clientes aguardando retorno automático", keywords: ["pendente", "fila", "aguardando", "retorno"], criticality: "normal", permission: "all" },
   { nav_key: "followup-wa", label_default: "Regras de Follow-up", group_default: "Atendimento", order_default: 2, icon: "Bell", description: "Automação de acompanhamento via WhatsApp", keywords: ["automação", "regra", "configurar", "agendamento"], criticality: "normal", permission: "admin_only" },
   { nav_key: "metricas-atendimento", label_default: "Métricas de Atendimento", group_default: "Atendimento", order_default: 3, icon: "BarChart3", description: "Performance de atendimento por consultor", keywords: ["métricas", "performance", "tempo", "resposta", "SLA", "consultor"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "regras-retorno", label_default: "Regras de Retorno", group_default: "Atendimento", order_default: 4, icon: "RotateCcw", description: "Regras de retorno automático", keywords: ["retorno", "regra", "automático"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "followup-wa-queue", label_default: "Fila de Retorno", group_default: "Atendimento", order_default: 5, icon: "CalendarClock", description: "Fila de retornos pendentes", keywords: ["retorno", "fila", "pendente"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "regras-retorno", label_default: "Regras de Retorno", group_default: "_hidden", order_default: 38, icon: "RotateCcw", description: "Regras de retorno automático", keywords: ["retorno", "regra", "automático"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "followup-wa-queue", label_default: "Fila de Retorno", group_default: "_hidden", order_default: 39, icon: "CalendarClock", description: "Fila de retornos pendentes", keywords: ["retorno", "fila", "pendente"], criticality: "normal", permission: "admin_only" },
   { nav_key: "wa-instances", label_default: "Instâncias WhatsApp", group_default: "_hidden", order_default: 30, icon: "Smartphone", description: "Conexões Evolution API (QR Code)", keywords: ["instância", "evolution", "API", "número", "QR"], criticality: "normal", permission: "admin_only" },
   { nav_key: "whatsapp", label_default: "Automação WhatsApp", group_default: "_hidden", order_default: 31, icon: "Bot", description: "Respostas automáticas, boas-vindas e horário comercial", keywords: ["API", "automação", "webhook", "bot", "auto-resposta"], criticality: "normal", permission: "admin_only" },
   { nav_key: "wa-etiquetas", label_default: "Etiquetas WhatsApp", group_default: "Atendimento", order_default: 6, icon: "Tag", description: "Tags para organizar conversas", keywords: ["tag", "etiqueta", "classificação", "organizar", "whatsapp"], criticality: "normal", permission: "admin_only" },
@@ -126,15 +125,14 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "planos", label_default: "Planos", group_default: "Financeiro", order_default: 9, icon: "Sparkles", description: "Visualize e compare planos disponíveis", keywords: ["plano", "upgrade", "preço", "assinatura", "billing"], criticality: "normal", permission: "all" },
   { nav_key: "planos-servico", label_default: "Planos de Serviço", group_default: "Financeiro", order_default: 10, icon: "CreditCard", description: "Configure planos de serviço para cobrança de clientes", keywords: ["plano", "serviço", "cobrança", "mensalidade", "monitoramento", "manutenção"], criticality: "normal", permission: "admin_only" },
 
-  // ── 8. Equipe ──
-  { nav_key: "vendedores", label_default: "Consultores", group_default: "Equipe", order_default: 0, icon: "Users", description: "Cadastro e gestão de consultores", keywords: ["consultor", "consultora", "consultores", "equipe", "cadastro"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "gamificacao", label_default: "Gamificação", group_default: "Equipe", order_default: 1, icon: "Trophy", description: "Metas, pontuação e ranking da equipe", keywords: ["meta", "ranking", "conquista", "pontuação", "competição", "gamificação"], criticality: "normal", permission: "admin_only" },
+  // ── 8. Equipe & IA (merged) ──
+  { nav_key: "vendedores", label_default: "Consultores", group_default: "Equipe & IA", order_default: 0, icon: "Users", description: "Cadastro e gestão de consultores", keywords: ["consultor", "consultora", "consultores", "equipe", "cadastro"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "gamificacao", label_default: "Gamificação", group_default: "Equipe & IA", order_default: 1, icon: "Trophy", description: "Metas, pontuação e ranking da equipe", keywords: ["meta", "ranking", "conquista", "pontuação", "competição", "gamificação"], criticality: "normal", permission: "admin_only" },
 
-  // ── 9. IA ──
-  { nav_key: "diretor", label_default: "Copilot IA", group_default: "IA", order_default: 0, icon: "Sparkles", description: "Análises inteligentes e sugestões automáticas", keywords: ["IA", "copilot", "sugestão", "automático", "inteligência", "assistente"], criticality: "normal", permission: "all" },
-  { nav_key: "ai-config", label_default: "Configuração de IA", group_default: "IA", order_default: 1, icon: "Brain", description: "Modelo, temperatura e regras de IA", keywords: ["ia", "ai", "openai", "gpt", "modelo", "inteligência", "artificial", "configuração"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "openai-config", label_default: "Config OpenAI", group_default: "IA", order_default: 5, icon: "Brain", description: "Chave de API e configurações OpenAI", keywords: ["openai", "gpt", "api", "chave", "token"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "gemini-config", label_default: "Config Gemini", group_default: "IA", order_default: 6, icon: "Sparkles", description: "Chave de API e configurações Google Gemini", keywords: ["gemini", "google", "api", "chave", "modelo"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "diretor", label_default: "Copilot IA", group_default: "Equipe & IA", order_default: 3, icon: "Sparkles", description: "Análises inteligentes e sugestões automáticas", keywords: ["IA", "copilot", "sugestão", "automático", "inteligência", "assistente"], criticality: "normal", permission: "all", separator: true },
+  { nav_key: "ai-config", label_default: "Configuração de IA", group_default: "Equipe & IA", order_default: 4, icon: "Brain", description: "Modelo, temperatura e regras de IA", keywords: ["ia", "ai", "openai", "gpt", "modelo", "inteligência", "artificial", "configuração"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "openai-config", label_default: "Config OpenAI", group_default: "Equipe & IA", order_default: 5, icon: "Brain", description: "Chave de API e configurações OpenAI", keywords: ["openai", "gpt", "api", "chave", "token"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "gemini-config", label_default: "Config Gemini", group_default: "Equipe & IA", order_default: 6, icon: "Sparkles", description: "Chave de API e configurações Google Gemini", keywords: ["gemini", "google", "api", "chave", "modelo"], criticality: "normal", permission: "admin_only" },
 
   { nav_key: "energia-dashboard", label_default: "Dashboard Energia", group_default: "Energia", order_default: -1, icon: "Zap", description: "Visão consolidada de todas as UCs, geração, consumo e alertas", keywords: ["dashboard", "energia", "UC", "geração", "consumo", "consolidado"], criticality: "business_critical", permission: "admin_only" },
   { nav_key: "ucs", label_default: "Unidades Consumidoras", group_default: "Energia", order_default: 0, icon: "Building2", description: "Gestão de UCs", keywords: ["UC", "unidade", "consumidora", "energia", "concessionária"], criticality: "normal", permission: "admin_only" },
@@ -183,7 +181,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "meteorologia", label_default: "Base Meteorológica", group_default: "Cadastros", order_default: 11, icon: "Database", description: "Dados de irradiância solar e importação", keywords: ["irradiância", "solar", "dataset", "INPE", "NASA", "importação", "GHI", "meteorológica"], criticality: "normal", permission: "admin_only" },
 
   // ── 14. Configurações ──
-  { nav_key: "config", label_default: "Calculadora Solar", group_default: "Site", order_default: 5, icon: "Calculator", description: "Parâmetros de cálculo de geração e payback", keywords: ["calculadora", "cálculo", "geração", "payback", "simulação"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "config", label_default: "Calculadora Solar", group_default: "Configurações", order_default: 7, icon: "Calculator", description: "Parâmetros de cálculo de geração e payback", keywords: ["calculadora", "cálculo", "geração", "payback", "simulação"], criticality: "normal", permission: "admin_only" },
   { nav_key: "lead-status", label_default: "Status de Leads", group_default: "Configurações", order_default: 1, icon: "Kanban", description: "Personalizar etapas do funil", keywords: ["etapa", "funil", "personalizar", "status"], criticality: "normal", permission: "admin_only" },
   { nav_key: "motivos-perda", label_default: "Motivos de Perda", group_default: "Configurações", order_default: 2, icon: "XCircle", description: "Razões de perda de negócios", keywords: ["perda", "motivo", "relatório", "análise"], criticality: "normal", permission: "admin_only" },
   { nav_key: "loading-config", label_default: "Loading & Mensagens", group_default: "Configurações", order_default: 3, icon: "Sun", description: "Animação e mensagens de carregamento", keywords: ["loading", "carregamento", "mensagem", "animação", "sol", "loader"], criticality: "normal", permission: "admin_only" },
@@ -206,8 +204,8 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   // ── Campos Customizados (Configurações) ──
   { nav_key: "custom-fields", label_default: "Campos Customizados", group_default: "Configurações", order_default: 4, icon: "Settings2", description: "Campos personalizados para leads e projetos", keywords: ["campo", "customizado", "personalizado", "opção"], criticality: "normal", permission: "admin_only" },
 
-  // ── Proposta Comercial (Comercial - legacy) ──
-  { nav_key: "proposta-comercial", label_default: "Editor de Proposta", group_default: "Comercial", order_default: 13, icon: "PenTool", description: "Editor visual de templates de proposta", keywords: ["proposta", "comercial", "editor", "visual", "template"], criticality: "normal", permission: "admin_only" },
+  // ── Proposta Comercial → moved to Configurações ──
+  { nav_key: "proposta-comercial", label_default: "Proposta & Templates", group_default: "Configurações", order_default: 6, icon: "PenTool", description: "Editor visual de templates de proposta, variáveis e modelos", keywords: ["proposta", "comercial", "editor", "visual", "template", "variável", "modelo"], criticality: "normal", permission: "admin_only" },
 
   // ── Items kept for routing but hidden from sidebar ──
   { nav_key: "meta-leads", label_default: "Leads", group_default: "_hidden", order_default: 0, icon: "UserPlus", description: "Leads via Facebook Lead Ads", keywords: ["meta", "facebook", "lead"], criticality: "normal", permission: "admin_only" },
@@ -266,8 +264,7 @@ export const NAV_SECTION_DEFAULTS: NavSectionMeta[] = [
   { label: "Pós-Venda",        icon: "Wrench",         order: 4,   indicatorBg: "bg-sidebar-operations",    indicatorClass: "bg-warning/10 text-warning",               iconColor: "text-warning",              activeClass: ACTIVE("operations"),    hoverClass: HOVER("operations"),    labelClass: LABEL("operations"),    defaultOpen: false },
   { label: "Operações",        icon: "Wrench",         order: 5,   indicatorBg: "bg-sidebar-operations",    indicatorClass: "bg-warning/10 text-warning",               iconColor: "text-warning",              activeClass: ACTIVE("operations"),    hoverClass: HOVER("operations"),    labelClass: LABEL("operations"),    defaultOpen: false },
   { label: "Financeiro",       icon: "Wallet",         order: 6,   indicatorBg: "bg-sidebar-finance",       indicatorClass: "bg-success/10 text-success",               iconColor: "text-success",              activeClass: ACTIVE("finance"),       hoverClass: HOVER("finance"),       labelClass: LABEL("finance"),       defaultOpen: false },
-  { label: "Equipe",           icon: "Users",          order: 7,   indicatorBg: "bg-sidebar-team",          indicatorClass: "bg-primary/10 text-primary",               iconColor: "text-primary",              activeClass: ACTIVE("team"),          hoverClass: HOVER("team"),          labelClass: LABEL("team"),          defaultOpen: false },
-  { label: "IA",               icon: "Bot",            order: 8,   indicatorBg: "bg-sidebar-ai",            indicatorClass: "bg-info/10 text-info",                     iconColor: "text-info",                 activeClass: ACTIVE("ai"),            hoverClass: HOVER("ai"),            labelClass: LABEL("ai"),            defaultOpen: false },
+  { label: "Equipe & IA",      icon: "Users",          order: 7,   indicatorBg: "bg-sidebar-team",          indicatorClass: "bg-primary/10 text-primary",               iconColor: "text-primary",              activeClass: ACTIVE("team"),          hoverClass: HOVER("team"),          labelClass: LABEL("team"),          defaultOpen: false },
   { label: "Energia",          icon: "Zap",            order: 9,   indicatorBg: "bg-sidebar-energy",        indicatorClass: "bg-warning/10 text-warning",               iconColor: "text-warning",              activeClass: ACTIVE("energy"),        hoverClass: HOVER("energy"),        labelClass: LABEL("energy"),        defaultOpen: false },
   { label: "Integrações",      icon: "Plug",           order: 10,  indicatorBg: "bg-sidebar-settings",      indicatorClass: "bg-info/10 text-info",                     iconColor: "text-info",                 activeClass: ACTIVE("settings"),      hoverClass: HOVER("settings"),      labelClass: LABEL("settings"),      defaultOpen: false },
   { label: "Site",             icon: "Globe",          order: 11,  indicatorBg: "bg-sidebar-marketing",     indicatorClass: "bg-primary/10 text-primary",               iconColor: "text-primary",              activeClass: ACTIVE("marketing"),     hoverClass: HOVER("marketing"),     labelClass: LABEL("marketing"),     defaultOpen: false },
