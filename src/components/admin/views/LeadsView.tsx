@@ -373,6 +373,12 @@ export function LeadsView() {
         onOpenChange={setIsConvertOpen}
         onSuccess={fetchOrcamentos}
       />
+
+      <ImportarLeadsModal
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onSuccess={fetchOrcamentos}
+      />
     </motion.div>
   );
 }
