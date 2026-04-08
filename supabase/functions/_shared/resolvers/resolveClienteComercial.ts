@@ -159,7 +159,12 @@ export function resolveClienteComercial(
   const now = new Date();
   set("proposta_data", now.toLocaleDateString("pt-BR"));
   set("proposta_titulo", proposta.titulo ?? nomeCliente);
-  set("proposta_identificador", proposta.codigo);
+  // Fallback chain: propostaData.codigo → build from proposta_num → snapshot
+  const propostaIdentificador = str(proposta.codigo)
+    ?? (proposta.proposta_num ? `PROP-${String(proposta.proposta_num).padStart(4, "0")}` : undefined)
+    ?? str(snap.proposta_identificador)
+    ?? str(snap.codigo);
+  set("proposta_identificador", propostaIdentificador);
   const validadeDias = num(versao.validade_dias) ?? 15;
   const validade = new Date(now.getTime() + validadeDias * 86400000);
   set("proposta_validade", validade.toLocaleDateString("pt-BR"));
