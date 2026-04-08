@@ -715,13 +715,13 @@ Deno.serve(async (req) => {
           updateHealthCache(supabase, "gotenberg", "down", {
             error_message: sanitizeError(err),
             metadata: { circuit_state: circuitState },
-          });
+          }, tenantId);
           throw err;
         });
 
         if (circuitState.failures > 0) {
           circuitState = resetCircuit();
-          updateHealthCache(supabase, "gotenberg", "up", {});
+          updateHealthCache(supabase, "gotenberg", "up", {}, tenantId);
         }
 
         const pdfBuffer = await response.arrayBuffer();

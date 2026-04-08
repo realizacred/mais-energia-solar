@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
     // Update health cache on success
     await updateHealthCache(supabase, "meta_ads", "up", {
       metadata: { campaigns: campaignsData.length, insights: insightsData.length, upserted },
-    });
+    }, tenantId);
 
     console.log(`[meta-ads-sync] Done: ${upserted} upserted, ${errors} errors`);
 
@@ -249,11 +249,11 @@ Deno.serve(async (req) => {
       await updateHealthCache(supabase, "meta_ads", "down", {
         error_message: "Token expirado. Reconecte a integração Meta Ads.",
         metadata: { reason: "token_expired" },
-      });
+      }, tenantId);
     } else {
       await updateHealthCache(supabase, "meta_ads", "degraded", {
         error_message: sanitizeError(err),
-      });
+      }, tenantId);
     }
 
     return new Response(
