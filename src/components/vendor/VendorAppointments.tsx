@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Calendar,
   CalendarCheck,
+  CalendarClock,
   Phone,
   Users,
   FileText,
