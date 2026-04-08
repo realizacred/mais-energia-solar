@@ -1260,7 +1260,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     <>
       <div className={cn(
         "rounded-xl border transition-all",
-        isPrincipal ? "bg-card border-primary/20 shadow-sm" : "bg-card border-border/40 hover:border-border/70"
+        isMigrated
+          ? "border-2 border-warning/60 bg-warning/5"
+          : isPrincipal ? "bg-card border-primary/20 shadow-sm" : "bg-card border-border/40 hover:border-border/70"
       )}>
         {/* ── Header row ──────────────────────── */}
         <div
