@@ -21,7 +21,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   gerada: ["enviada", "aceita", "recusada", "cancelada"],
   enviada: ["vista", "aceita", "recusada", "cancelada"],
   vista: ["aceita", "recusada", "cancelada"],
-  aceita: ["cancelada"],
+  aceita: ["gerada", "cancelada"],
   recusada: ["gerada", "enviada"],
   expirada: ["gerada"],
   cancelada: [],
@@ -167,6 +167,11 @@ Deno.serve(async (req) => {
     // 4. Update status + set is_principal if accepting
     if (new_status === "aceita") {
       updateData.is_principal = true;
+    }
+
+    // 4x. Revert accept: clear is_principal when leaving aceita
+    if (currentStatus === "aceita" && new_status !== "aceita") {
+      updateData.is_principal = false;
     }
 
     const { error: updateErr } = await admin
@@ -342,17 +347,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 6. Cancel commissions on reject/cancel
-    if ((new_status === "recusada" || new_status === "cancelada") && proposta.projeto_id) {
+    // 6. Cancel commissions on reject/cancel/revert-accept
+    if ((new_status === "recusada" || new_status === "cancelada" || (currentStatus === "aceita" && new_status === "gerada")) && proposta.projeto_id) {
       await admin
         .from("comissoes")
-        .update({ status: "cancelada", observacoes: `Proposta ${new_status}` })
+        .update({ status: "cancelada", observacoes: motivo || `Proposta ${new_status} (aceite revertido)` })
         .eq("projeto_id", proposta.projeto_id)
         .eq("status", "pendente");
     }
 
-    // 6b. Cancel generated documents when accepted proposal is cancelled
-    if (new_status === "cancelada" && currentStatus === "aceita" && proposta.projeto_id) {
+    // 6b. Cancel generated documents when accepted proposal is cancelled or reverted
+    if ((new_status === "cancelada" || new_status === "gerada") && currentStatus === "aceita" && proposta.projeto_id) {
       try {
         await admin
           .from("generated_documents")
@@ -375,6 +380,7 @@ Deno.serve(async (req) => {
       recusada: "proposta_recusada",
       enviada: "proposta_enviada",
       vista: "proposta_visualizada",
+      gerada: currentStatus === "aceita" ? "aceite_revertido" : currentStatus === "recusada" ? "recusa_revertida" : "proposta_gerada",
     };
     const eventType = eventTypeMap[new_status] || new_status;
 
