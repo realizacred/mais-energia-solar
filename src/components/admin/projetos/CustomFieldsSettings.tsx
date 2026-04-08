@@ -141,8 +141,6 @@ export function CustomFieldsSettings() {
   // ─── Use canonical hook for motivos_perda (SSOT) ───
   const { motivos, loading: motivosLoading, upsert: upsertMotivo, remove: removeMotivo } = useMotivosPerda();
 
-  // ─── Premissas (SSOT via useTenantPremises) ───
-  const premissasCtx = useTenantPremises();
 
   // ─── Custom Field CRUD — uses extracted modal ───
   const openFieldDialog = (field?: CustomField) => {
@@ -277,7 +275,7 @@ export function CustomFieldsSettings() {
     }
   }, [filteredFields, queryClient]);
 
-  if (loading || motivosLoading || premissasCtx.loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  if (loading || motivosLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
   return (
     <div className="space-y-6">
