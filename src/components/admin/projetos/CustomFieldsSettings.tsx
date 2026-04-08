@@ -780,62 +780,6 @@ export function CustomFieldsSettings() {
   );
 }
 
-// ─── Premissas Tab (embedded from PremissasPage) ───
-import { TabFinanceiras } from "@/components/admin/premissas/tabs/TabFinanceiras";
-import { TabSistemaSolar } from "@/components/admin/premissas/tabs/TabSistemaSolar";
-import { TabAreaTelhado } from "@/components/admin/premissas/tabs/TabAreaTelhado";
-import { TabValoresPadroes } from "@/components/admin/premissas/tabs/TabValoresPadroes";
-import { TabTributacao } from "@/components/admin/premissas/tabs/TabTributacao";
-import { PremissasFooter } from "@/components/admin/premissas/PremissasFooter";
-
-function PremissasTabContent({ ctx }: { ctx: ReturnType<typeof useTenantPremises> }) {
-  const [subTab, setSubTab] = useState("financeiras");
-
-  const PREMISSA_TABS = [
-    { value: "financeiras", label: "Financeiras", icon: DollarSign },
-    { value: "sistema-solar", label: "Sistema solar", icon: Calendar },
-    { value: "area-telhado", label: "Área útil por tipo de telhado", icon: LayoutGrid },
-    { value: "valores-padroes", label: "Valores padrões", icon: Sliders },
-    { value: "tributacao", label: "Tributação", icon: Landmark },
-  ] as const;
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Parâmetros financeiros, técnicos e valores padrões para dimensionamento e propostas.
-      </p>
-
-      <div className="flex items-center gap-2 flex-wrap">
-        {PREMISSA_TABS.map((t) => {
-          const Icon = t.icon;
-          return (
-             <Button
-                key={t.value}
-                variant={subTab === t.value ? "secondary" : "outline"}
-                size="sm"
-                onClick={() => setSubTab(t.value)}
-                className="shrink-0 gap-1.5"
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{t.label}</span>
-              </Button>
-          );
-        })}
-      </div>
-
-      {subTab === "financeiras" && <TabFinanceiras premises={ctx.premises} onChange={ctx.setPremises} />}
-      {subTab === "sistema-solar" && <TabSistemaSolar premises={ctx.premises} onChange={ctx.setPremises} />}
-      {subTab === "area-telhado" && (
-        <TabAreaTelhado roofFactors={ctx.roofFactors} onSave={ctx.saveRoofFactors} saving={ctx.saving} />
-      )}
-      {subTab === "valores-padroes" && <TabValoresPadroes premises={ctx.premises} onChange={ctx.setPremises} />}
-      {subTab === "tributacao" && <TabTributacao />}
-
-      {subTab !== "area-telhado" && subTab !== "tributacao" && (
-        <PremissasFooter isDirty={ctx.isDirty} saving={ctx.saving} onSave={ctx.save} onCancel={ctx.reset} />
-      )}
-    </div>
-  );
 }
 
 // ─── Stage Multi-Select ───
