@@ -241,10 +241,11 @@ function TeamMemberList({
   return (
     <div className="divide-y divide-border/30">
       {filtered.map((member) => (
-        <button
+        <Button
           key={member.user_id}
+          variant="ghost"
           onClick={() => onSelect(member)}
-          className={`w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-accent/50 active:bg-accent/70 ${
+          className={`w-full flex items-center gap-3 h-auto p-3 text-left justify-start rounded-none ${
             selectedUserId === member.user_id ? "bg-accent/60" : ""
           }`}
         >
