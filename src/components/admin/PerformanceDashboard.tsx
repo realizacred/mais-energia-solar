@@ -148,16 +148,18 @@ export default function PerformanceDashboard() {
   // ── Derived Data ──────────────────────────────────────────
 
   const closedStatusIds = useMemo(() =>
-    statuses.filter(s =>
-      s.nome.toLowerCase().includes("fechado") || s.nome.toLowerCase().includes("conclu") || s.nome.toLowerCase().includes("ganho")
-    ).map(s => s.id),
+    statuses.filter(s => {
+      const n = s.nome.toLowerCase();
+      return n.includes("fechado") || n.includes("conclu") || n.includes("ganho") || n.includes("convertido");
+    }).map(s => s.id),
     [statuses]
   );
 
   const lostStatusIds = useMemo(() =>
-    statuses.filter(s =>
-      s.nome.toLowerCase().includes("perdido") || s.nome.toLowerCase().includes("perda")
-    ).map(s => s.id),
+    statuses.filter(s => {
+      const n = s.nome.toLowerCase();
+      return n.includes("perdido") || n.includes("perda");
+    }).map(s => s.id),
     [statuses]
   );
 
