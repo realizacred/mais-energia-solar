@@ -42,6 +42,7 @@ export function LeadsView() {
   const [isConvertOpen, setIsConvertOpen] = useState(false);
   const [leadToConvert, setLeadToConvert] = useState<Lead | null>(null);
   const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   // Reset page when filters change
   useEffect(() => {
@@ -231,10 +232,16 @@ export function LeadsView() {
         title="Leads"
         description="Gerencie os orçamentos e leads recebidos"
         actions={
-          <Button variant="outline" size="sm" onClick={handleExportFiltered}>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar Filtrados
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsImportOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Importar
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportFiltered}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar Filtrados
+            </Button>
+          </div>
         }
       />
 
