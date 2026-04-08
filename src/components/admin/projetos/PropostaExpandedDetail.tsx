@@ -626,6 +626,7 @@ interface Props {
 export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
   const navigate = useNavigate();
   const { data: tenantCtx } = useQuery({ queryKey: ["current-tenant-id"], queryFn: getCurrentTenantId, staleTime: 1000 * 60 * 15 });
+  const isMigrated = p.origem === "imported" && !!p.sm_id;
   const latestVersao = p.versoes[0];
   const wpPrice = latestVersao?.valor_total && latestVersao?.potencia_kwp
     ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
