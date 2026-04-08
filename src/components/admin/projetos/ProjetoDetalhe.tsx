@@ -1225,7 +1225,7 @@ function GerenciamentoTab({
     entries.push(...docEntries);
     entries.push(...projectEventEntries);
     entries.push(...propostaEntries);
-    entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", date: formatDate(deal.created_at), isFirst: true });
+    entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", subtitle: ownerName ? `por ${ownerName}` : undefined, date: formatDate(deal.created_at), isFirst: true });
     return entries;
   }, [history, currentStage, deal, docEntries, projectEventEntries, propostaEntries, notes, activities, formatDate, getStageNameById, userNamesMap]);
 
