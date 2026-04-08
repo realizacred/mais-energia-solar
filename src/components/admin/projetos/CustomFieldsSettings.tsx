@@ -6,7 +6,7 @@ import {
   useSaveCustomField, useDeleteCustomField, useToggleCustomField,
   useSaveActivityType, useDeleteActivityType,
 } from "@/hooks/useCustomFieldsSettings";
-import { useTenantPremises } from "@/hooks/useTenantPremises";
+
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui-kit";
