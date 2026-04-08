@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -302,6 +303,15 @@ function PosCustomFieldInput({ field, value, onChange }: {
         <div className="flex items-center justify-between gap-2 py-1">
           <Label className="text-xs text-muted-foreground">{label}</Label>
           <Switch checked={!!value} onCheckedChange={onChange} />
+        </div>
+      );
+
+    case "currency":
+    case "monetary":
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">{label}</Label>
+          <CurrencyInput value={value || 0} onChange={onChange} className="h-9 text-xs" />
         </div>
       );
 
