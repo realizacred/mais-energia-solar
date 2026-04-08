@@ -820,7 +820,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                           variant="ghost"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(cliente.id);
+                            setDeleteTarget(cliente);
                           }}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
