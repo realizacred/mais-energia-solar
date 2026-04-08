@@ -4,7 +4,7 @@ import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
-import { Users, Download, UserPlus, TrendingUp, ShoppingCart } from "lucide-react";
+import { Users, Download, UserPlus, TrendingUp, ShoppingCart, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
