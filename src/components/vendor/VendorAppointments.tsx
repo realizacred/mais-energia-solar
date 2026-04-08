@@ -248,6 +248,16 @@ export function VendorAppointments() {
           </div>
         ))
       )}
+
+      {/* Modal de reagendamento */}
+      {rescheduleAppt && (
+        <RescheduleModal
+          open={!!rescheduleAppt}
+          onOpenChange={(open) => !open && setRescheduleAppt(null)}
+          appointmentId={rescheduleAppt.id}
+          currentStartsAt={rescheduleAppt.starts_at}
+        />
+      )}
     </div>
   );
 }
