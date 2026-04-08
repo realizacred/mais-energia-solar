@@ -1399,11 +1399,21 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     <Download className="h-3.5 w-3.5 mr-2 text-info" /> Baixar DOCX
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={copyPublicLink} disabled={!latestVersao}>
+                <DropdownMenuItem
+                  onClick={isMigrated ? undefined : copyPublicLink}
+                  disabled={!latestVersao || isMigrated}
+                  title={isMigrated ? "Proposta migrada não possui link público" : undefined}
+                >
                   <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
+                  {isMigrated && <span className="ml-auto text-[9px] text-muted-foreground/60">Migrada</span>}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={copyTrackedLink} disabled={!latestVersao}>
+                <DropdownMenuItem
+                  onClick={isMigrated ? undefined : copyTrackedLink}
+                  disabled={!latestVersao || isMigrated}
+                  title={isMigrated ? "Proposta migrada não possui link rastreável" : undefined}
+                >
                   <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Copiar link rastreável
+                  {isMigrated && <span className="ml-auto text-[9px] text-muted-foreground/60">Migrada</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)} disabled={!latestVersao}>
                   <MessageSquareText className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar mensagem

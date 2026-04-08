@@ -157,10 +157,18 @@ export default function PropostaPublica() {
 
   const trackView = async (td: TokenData) => {
     try {
+      // Detect device type from screen width
+      const sw = window.screen?.width || window.innerWidth;
+      let deviceType = "Desktop";
+      if (sw < 768) deviceType = "Mobile";
+      else if (sw < 1024) deviceType = "Tablet";
+
       await supabase.rpc("registrar_view_proposta" as any, {
         p_token: td.token ?? token,
         p_user_agent: navigator.userAgent,
         p_referrer: document.referrer || null,
+        p_device_type: deviceType,
+        p_screen_width: sw,
       });
     } catch {
       // Silent — view tracking is best-effort
