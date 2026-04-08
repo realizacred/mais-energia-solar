@@ -447,13 +447,14 @@ export function WaChatPanel({
                   {participantCount > 0 && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button
+                        <Button
+                          variant="ghost"
                           onClick={() => setShowParticipants(true)}
-                          className="flex items-center gap-0.5 shrink-0 text-info hover:text-info/80 transition-colors"
+                          className="flex items-center gap-0.5 shrink-0 text-info hover:text-info/80 transition-colors h-auto p-0"
                         >
                           <Users className="h-3 w-3" />
                           <span className="text-[10px] font-medium">+{participantCount}</span>
-                        </button>
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent>{participantCount} participante{participantCount > 1 ? "s" : ""} no co-atendimento</TooltipContent>
                     </Tooltip>
