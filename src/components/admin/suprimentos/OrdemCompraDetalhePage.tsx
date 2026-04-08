@@ -28,6 +28,7 @@ import {
   useReceberItensOrdem,
   useSalvarTransporte,
   OrdemCompraStatus,
+  OrdemCompraItem,
 } from "@/hooks/useOrdensCompra";
 
 const STATUS_LABELS: Record<OrdemCompraStatus, string> = {
