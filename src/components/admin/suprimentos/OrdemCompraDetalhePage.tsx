@@ -154,7 +154,7 @@ export function OrdemCompraDetalhePage() {
 
       {/* Tab Content */}
       {activeTab === "geral" && <TabGeral ordem={ordem} />}
-      {activeTab === "itens" && <TabItens ordemId={ordem.id} status={ordem.status} />}
+      {activeTab === "itens" && <TabItens ordemId={ordem.id} status={ordem.status} numeroPedido={ordem.numero_pedido} />}
       {activeTab === "transporte" && <TabTransporte ordemId={ordem.id} />}
     </div>
   );
