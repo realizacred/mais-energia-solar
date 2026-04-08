@@ -187,8 +187,15 @@ export default function PerformanceDashboard() {
       return isWithinInterval(d, { start: lastMonthStart, end: lastMonthEnd });
     }).length;
 
-    const leadsGrowth = lastMonthLeads > 0
-      ? Math.round(((thisMonthLeads - lastMonthLeads) / lastMonthLeads) * 100)
+    // Proportional comparison: scale last month to same number of days elapsed
+    const dayOfMonth = now.getDate();
+    const daysInLastMonth = lastMonthEnd.getDate();
+    const proportionalLastMonthLeads = lastMonthLeads > 0
+      ? (lastMonthLeads / daysInLastMonth) * dayOfMonth
+      : 0;
+
+    const leadsGrowth = proportionalLastMonthLeads > 0
+      ? Math.round(((thisMonthLeads - proportionalLastMonthLeads) / proportionalLastMonthLeads) * 100)
       : thisMonthLeads > 0 ? 100 : 0;
 
     const thisMonthWon = wonDeals.filter(d => new Date(d.created_at) >= thisMonthStart);
@@ -198,8 +205,11 @@ export default function PerformanceDashboard() {
     });
     const thisMonthWonValue = thisMonthWon.reduce((s, d) => s + d.deal_value, 0);
     const lastMonthWonValue = lastMonthWon.reduce((s, d) => s + d.deal_value, 0);
-    const revenueGrowth = lastMonthWonValue > 0
-      ? Math.round(((thisMonthWonValue - lastMonthWonValue) / lastMonthWonValue) * 100)
+    const proportionalLastMonthRevenue = lastMonthWonValue > 0
+      ? (lastMonthWonValue / daysInLastMonth) * dayOfMonth
+      : 0;
+    const revenueGrowth = proportionalLastMonthRevenue > 0
+      ? Math.round(((thisMonthWonValue - proportionalLastMonthRevenue) / proportionalLastMonthRevenue) * 100)
       : thisMonthWonValue > 0 ? 100 : 0;
 
     const conversionRate = leads.length > 0 ? Math.round((closedLeads.length / leads.length) * 100) : 0;
