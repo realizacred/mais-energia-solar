@@ -86,7 +86,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
       const { data } = await supabase
         .from("propostas_nativas")
         .select("id, is_principal, status")
-        .eq("deal_id", dealId)
+        .or(`deal_id.eq.${dealId},projeto_id.eq.${dealId}`)
         .in("status", ["aceita", "accepted", "aprovada", "ganha"])
         .limit(1);
       if (data && data.length > 0) return true;
@@ -94,7 +94,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
       const { data: principal } = await supabase
         .from("propostas_nativas")
         .select("id")
-        .eq("deal_id", dealId)
+        .or(`deal_id.eq.${dealId},projeto_id.eq.${dealId}`)
         .eq("is_principal", true)
         .limit(1);
       return (principal && principal.length > 0) || false;
