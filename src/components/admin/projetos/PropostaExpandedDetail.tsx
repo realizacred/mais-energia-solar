@@ -748,6 +748,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       setEditAceitaMotivo("");
       setEditAceitaDialogOpen(true);
     } else {
+      // Clear migration origin when editing — proposal becomes native
+      if (isMigrated) {
+        await supabase
+          .from("propostas_nativas")
+          .update({ origem: "nativo", sm_id: null } as any)
+          .eq("id", p.id);
+      }
       editFn();
     }
   };
