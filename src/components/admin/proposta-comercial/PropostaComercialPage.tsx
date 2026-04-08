@@ -59,6 +59,9 @@ export function PropostaComercialPage() {
         <TabsContent value="modelos-proposta">
           <TemplatesManager />
         </TabsContent>
+        <TabsContent value="modelos-documento">
+          <DocumentTemplatesTab />
+        </TabsContent>
         <TabsContent value="modelos-email">
           <EmailTemplatesPage />
         </TabsContent>
