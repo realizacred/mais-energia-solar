@@ -625,14 +625,24 @@ export function ProposalWizard() {
         cnpj_cpf: clienteData.cpf_cnpj || "",
         empresa: clienteData.empresa || "",
       } : undefined,
-      ucs: [{
-        nome: "UC Principal",
-        consumo_kwh: raw.consumo_mensal || 0,
-        tipo_fase: "trifasico",
-        grupo: versao.grupo || "B",
-        subgrupo: "B3",
-        tarifa_kwh: raw.tarifa_distribuidora || 0,
-      }],
+      ucs: Array.isArray(raw.ucs) && raw.ucs.length > 0
+        ? raw.ucs.map((u: any, i: number) => {
+            const defaults = createEmptyUC(i + 1);
+            return {
+              ...defaults,
+              ...u,
+              // Map legacy field names to wizard field names
+              consumo_mensal: u.consumo_mensal ?? u.consumo_kwh ?? raw.consumo_mensal ?? 0,
+              tarifa_distribuidora: u.tarifa_distribuidora ?? u.tarifa_energia ?? u.tarifa_kwh ?? raw.tarifa_distribuidora ?? 0,
+              tarifa_fio_b: u.tarifa_fio_b ?? 0,
+            };
+          })
+        : [{
+            ...createEmptyUC(1),
+            consumo_mensal: Number(raw.consumo_mensal ?? 0),
+            tarifa_distribuidora: Number(raw.tarifa_distribuidora ?? 0),
+            distribuidora: raw.dis_energia ?? "",
+          }],
       grupo: versao.grupo || "B",
       potenciaKwp: versao.potencia_kwp || 0,
       itens: [
