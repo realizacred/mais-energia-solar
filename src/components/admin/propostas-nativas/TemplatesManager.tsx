@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useCallback } from "react";
-import { Plus, Trash2, Edit2, Save, X, FileText, Eye, Upload, Download, Loader2, Globe, FileDown, Paintbrush } from "lucide-react";
+import { Plus, Trash2, Edit2, Save, X, FileText, Eye, Upload, Download, Loader2, FileDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,20 +13,16 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
-import { usePropostaTemplatesCrud, useSalvarPropostaTemplate, useDeletarPropostaTemplate, useAtualizarTemplateHtml, usePropostaTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
+import { usePropostaTemplatesCrud, useSalvarPropostaTemplate, useDeletarPropostaTemplate, usePropostaTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
 import type { PropostaTemplateFull } from "@/hooks/usePropostaTemplatesCrud";
-import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
-import type { TemplateBlock } from "@/components/admin/proposal-builder";
 
 /** Extract storage path from a public/signed URL for the proposta-templates bucket */
 function extractStoragePath(fileUrl: string): string | null {
-  // Handle both /object/public/ and /object/sign/ URL formats
   const markers = ["/proposta-templates/"];
   for (const marker of markers) {
     const idx = fileUrl.indexOf(marker);
     if (idx === -1) continue;
     let path = fileUrl.substring(idx + marker.length);
-    // Remove query params
     const qIdx = path.indexOf("?");
     if (qIdx !== -1) path = path.substring(0, qIdx);
     return decodeURIComponent(path);
@@ -36,7 +32,6 @@ function extractStoragePath(fileUrl: string): string | null {
 
 async function downloadDocx(fileUrl: string) {
   const extracted = extractStoragePath(fileUrl);
-  // console.log("[downloadDocx] fileUrl:", fileUrl, "| extractedPath:", extracted);
   if (!extracted) {
     console.warn("[downloadDocx] Could not extract path, trying fetch-to-blob fallback");
     try {
@@ -52,19 +47,17 @@ async function downloadDocx(fileUrl: string) {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      toast({ title: "Erro ao baixar arquivo", description: err.message, variant: "destructive" });
+      toast({ title: "Erro ao baixar", description: err.message, variant: "destructive" });
     }
     return;
   }
-  // Normalize path — decode first to avoid double-encoding,
-  // then keep as plain string for SDK (SDK handles encoding internally)
-  const normalizedPath = decodeURIComponent(extracted).replace(/\+/g, " ");
-  // console.log("[downloadDocx] normalized path:", normalizedPath);
 
-  // Step 1: create signed URL (avoids SDK .download() encoding issues with special chars)
+  // Normalize path — remove leading slashes
+  const normalizedPath = extracted.replace(/^\/+/, "");
+
   const { data: signedData, error: signedError } = await supabase.storage
     .from("proposta-templates")
-    .createSignedUrl(normalizedPath, 300);
+    .createSignedUrl(normalizedPath, 120);
 
   if (signedError || !signedData?.signedUrl) {
     console.error("[downloadDocx] Signed URL error:", signedError?.message, "| path:", normalizedPath);
@@ -72,7 +65,6 @@ async function downloadDocx(fileUrl: string) {
     return;
   }
 
-  // Step 2: fetch the file using the signed URL
   const fetchResponse = await fetch(signedData.signedUrl);
   if (!fetchResponse.ok) {
     console.error("[downloadDocx] Fetch error: HTTP", fetchResponse.status, "| path:", normalizedPath);
@@ -105,123 +97,22 @@ export function TemplatesManager() {
   const { data: templates = [], isLoading: loading, refetch: loadTemplates } = usePropostaTemplatesCrud();
   const salvarMutation = useSalvarPropostaTemplate();
   const deletarMutation = useDeletarPropostaTemplate();
-  const atualizarHtmlMutation = useAtualizarTemplateHtml();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<PropostaTemplateFull>>({});
   const [uploading, setUploading] = useState(false);
-  const [tipoTab, setTipoTab] = useState<"html" | "docx">("html");
   const [previewTemplateId, setPreviewTemplateId] = useState<PropostaTemplateFull | null>(null);
-  const [builderTemplateId, setBuilderTemplateId] = useState<PropostaTemplateFull | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // On-demand fetch of template_html for preview/builder
-  const activeHtmlId = previewTemplateId?.id ?? builderTemplateId?.id ?? null;
-  const { data: loadedTemplateHtml } = usePropostaTemplateHtml(activeHtmlId);
-
-  const filteredTemplates = useMemo(
-    () => templates.filter(t => t.tipo === tipoTab),
-    [templates, tipoTab]
+  // Only DOCX templates — filter out any legacy HTML templates
+  const docxTemplates = useMemo(
+    () => templates.filter(t => t.tipo === "docx"),
+    [templates]
   );
-  const htmlCount = useMemo(() => templates.filter(t => t.tipo === "html").length, [templates]);
-  const docxCount = useMemo(() => templates.filter(t => t.tipo === "docx").length, [templates]);
-
-  const seedDefaultTemplates = async () => {
-    if (!confirm("Isso vai EXCLUIR todos os templates WEB existentes e criar 4 novos (Landing Page, Grid, Híbrido, Dual). Continuar?")) return;
-    
-    // loading is managed by react-query now
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", user.id)
-        .single();
-      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
-
-      // 1. Delete ALL existing HTML templates for this tenant
-      const { error: delErr } = await supabase
-        .from("proposta_templates")
-        .delete()
-        .eq("tipo", "html")
-        .eq("tenant_id", profile.tenant_id);
-      
-      if (delErr) {
-        console.error("Seed: delete error", delErr);
-        throw new Error("Erro ao deletar templates: " + delErr.message);
-      }
-
-      // 2. Insert 3 new templates one by one
-      const defaults = [
-        { nome: "Landing Page Alta Conversão", file: "template-landing.json", ordem: 0 },
-        { nome: "Template Grid (On-Grid)", file: "template-grid.json", ordem: 1 },
-        { nome: "Template Híbrido", file: "template-hybrid.json", ordem: 2 },
-        { nome: "Template Dual (Grid + Híbrido)", file: "template-dual.json", ordem: 3 },
-      ];
-
-      const errors: string[] = [];
-      let successCount = 0;
-
-      for (const def of defaults) {
-        try {
-          const res = await fetch(`/default-templates/${def.file}`);
-          if (!res.ok) {
-            errors.push(`${def.nome}: fetch falhou (${res.status})`);
-            continue;
-          }
-          const jsonContent = await res.text();
-          if (!jsonContent || jsonContent.length < 100) {
-            errors.push(`${def.nome}: conteúdo vazio ou inválido`);
-            continue;
-          }
-
-          const { error: insErr } = await supabase.from("proposta_templates").insert({
-            nome: def.nome,
-            descricao: "Template padrão",
-            grupo: "B",
-            categoria: "geral",
-            tipo: "html",
-            template_html: jsonContent,
-            ativo: true,
-            ordem: def.ordem,
-            tenant_id: profile.tenant_id,
-            variaveis_disponiveis: {},
-          } as any);
-
-          if (insErr) {
-            errors.push(`${def.nome}: ${insErr.message}`);
-          } else {
-            successCount++;
-          }
-        } catch (fetchErr: any) {
-          errors.push(`${def.nome}: ${fetchErr.message}`);
-        }
-      }
-
-      const total = defaults.length;
-      if (errors.length > 0) {
-        console.error("Seed errors:", errors);
-        toast({ 
-          title: `${successCount}/${total} templates criados`, 
-          description: errors.join("; "), 
-          variant: successCount === 0 ? "destructive" : "default" 
-        });
-      } else {
-        toast({ title: `${total} templates importados com sucesso!` });
-      }
-
-      loadTemplates();
-    } catch (err: any) {
-      toast({ title: "Erro ao importar", description: err.message, variant: "destructive" });
-    } finally {
-      // loading managed by react-query
-    }
-  };
 
   const startNew = () => {
     setEditingId("new");
-    setForm({ nome: "", descricao: "", grupo: "B", categoria: "geral", tipo: tipoTab, template_html: "", file_url: null, ativo: true, ordem: templates.length });
+    setForm({ nome: "", descricao: "", grupo: "B", categoria: "geral", tipo: "docx", template_html: "", file_url: null, ativo: true, ordem: templates.length });
   };
 
   const startEdit = (t: PropostaTemplateFull) => {
@@ -230,11 +121,6 @@ export function TemplatesManager() {
   };
 
   const cancelEdit = () => { setEditingId(null); setForm({}); };
-
-  const handleTabChange = (tab: "html" | "docx") => {
-    cancelEdit();
-    setTipoTab(tab);
-  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -251,7 +137,6 @@ export function TemplatesManager() {
       return;
     }
 
-    // GAP 1: Capture old file_url before upload to delete later
     const oldFileUrl = form.file_url || null;
 
     setUploading(true);
@@ -276,7 +161,7 @@ export function TemplatesManager() {
 
       if (uploadError) throw uploadError;
 
-      // RB-25: delete old file fire-and-forget — never block upload
+      // RB-25: delete old file fire-and-forget
       if (oldFileUrl) {
         const marker = `/storage/v1/object/public/proposta-templates/`;
         const idx = oldFileUrl.indexOf(marker);
@@ -306,13 +191,12 @@ export function TemplatesManager() {
       return;
     }
 
-    if (form.tipo === "docx" && !form.file_url) {
+    if (!form.file_url) {
       toast({ title: "Faça upload do arquivo DOCX", variant: "destructive" });
       return;
     }
 
     try {
-      // Get tenant_id for insert
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
@@ -329,9 +213,9 @@ export function TemplatesManager() {
         descricao: form.descricao || null,
         grupo: form.grupo,
         categoria: form.categoria || "geral",
-        tipo: form.tipo || "html",
-        template_html: form.tipo === "html" ? (form.template_html || null) : null,
-        file_url: form.tipo === "docx" ? (form.file_url || null) : null,
+        tipo: "docx",
+        template_html: null,
+        file_url: form.file_url || null,
         thumbnail_url: form.thumbnail_url || null,
         ativo: form.ativo ?? true,
         ordem: form.ordem ?? 0,
@@ -372,12 +256,6 @@ export function TemplatesManager() {
     }
   };
 
-  const handleBuilderSave = useCallback(async (jsonData: string) => {
-    if (!builderTemplateId) return;
-    await atualizarHtmlMutation.mutateAsync({ id: builderTemplateId.id, template_html: jsonData });
-  }, [builderTemplateId, atualizarHtmlMutation]);
-
-  const isDocx = form.tipo === "docx";
   const dialogOpen = editingId !== null;
 
   return (
@@ -390,48 +268,15 @@ export function TemplatesManager() {
           <div>
             <h2 className="text-xl font-bold text-foreground">Templates de Proposta</h2>
             <p className="text-sm text-muted-foreground">
-              Gerencie modelos WEB e DOCX usados na geração de propostas
+              Gerencie modelos DOCX usados na geração de propostas
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={seedDefaultTemplates} className="gap-1.5 text-xs" disabled={loading}>
-            <Download className="h-3 w-3" /> Importar Padrões
-          </Button>
           <Button onClick={startNew} className="gap-1.5" disabled={dialogOpen}>
             <Plus className="h-4 w-4" /> Novo template
           </Button>
         </div>
-      </div>
-
-      {/* Tipo Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-muted/30 border border-border/40 w-fit">
-        <Button
-          variant={tipoTab === "html" ? "default" : "outline"}
-          size="sm"
-          onClick={() => handleTabChange("html")}
-          className={tipoTab === "html"
-            ? "gap-2 bg-primary/10 text-primary border-primary hover:bg-primary/15 shadow-sm"
-            : "gap-2 text-muted-foreground border-transparent"
-          }
-        >
-          <Globe className="h-4 w-4" />
-          WEB
-          <Badge className={`text-[9px] border-0 ${tipoTab === "html" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{htmlCount}</Badge>
-        </Button>
-        <Button
-          variant={tipoTab === "docx" ? "default" : "outline"}
-          size="sm"
-          onClick={() => handleTabChange("docx")}
-          className={tipoTab === "docx"
-            ? "gap-2 bg-primary/10 text-primary border-primary hover:bg-primary/15 shadow-sm"
-            : "gap-2 text-muted-foreground border-transparent"
-          }
-        >
-          <FileDown className="h-4 w-4" />
-          DOCX
-          <Badge className={`text-[9px] border-0 ${tipoTab === "docx" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{docxCount}</Badge>
-        </Button>
       </div>
 
       {/* Dialog Form */}
@@ -439,7 +284,7 @@ export function TemplatesManager() {
         <DialogContent className="w-[90vw] max-w-[620px] p-6 gap-5">
           <DialogHeader>
             <DialogTitle className="text-base font-bold">
-              {editingId === "new" ? "Novo template" : "Editar template"}
+              {editingId === "new" ? "Novo template DOCX" : "Editar template"}
             </DialogTitle>
           </DialogHeader>
 
@@ -461,19 +306,13 @@ export function TemplatesManager() {
                     placeholder="Template com layout moderno" className="h-9 text-sm bg-background" />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs font-medium">Grupo</Label>
                   <Select value={form.grupo || "B"} onValueChange={v => setForm(f => ({ ...f, grupo: v }))}>
                     <SelectTrigger className="h-9 text-sm bg-background"><SelectValue /></SelectTrigger>
                     <SelectContent>{GRUPOS.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}</SelectContent>
                   </Select>
-                </div>
-                <div>
-                  <Label className="text-xs font-medium">Tipo</Label>
-                  <div className="h-9 flex items-center px-3 rounded-md border border-border/40 bg-muted/30 text-sm font-medium text-muted-foreground">
-                    {form.tipo === "docx" ? "📄 DOCX (Word)" : "🎨 WEB (Editor Visual)"}
-                  </div>
                 </div>
                 <div>
                   <Label className="text-xs font-medium">Ordem</Label>
@@ -483,70 +322,57 @@ export function TemplatesManager() {
               </div>
             </div>
 
-            {/* Conteúdo — only for DOCX */}
-            {isDocx && (
-              <div className="rounded-xl border border-border bg-card p-4 space-y-3" style={{ boxShadow: "var(--shadow-xs)" }}>
-                <p className="text-sm font-semibold flex items-center gap-2">
-                  <Upload className="h-4 w-4 text-secondary" />
-                  Arquivo DOCX
-                </p>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".docx"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-xs bg-background"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                    >
-                      {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-                      {uploading ? "Enviando..." : "Upload DOCX"}
-                    </Button>
-                    {form.file_url && (
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px] gap-1 text-success border-success/30 bg-success/5">
-                          <FileText className="h-3 w-3" /> {form.file_url.split("/").pop()?.replace(/^\d+_/, "") || "Arquivo anexado"}
-                        </Badge>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Baixar" onClick={() => downloadDocx(form.file_url!)}>
-                          <Download className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-destructive"
-                          title="Remover arquivo"
-                          onClick={() => setForm(f => ({ ...f, file_url: null }))}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Limite de 50MB. Use variáveis no formato <code className="text-secondary bg-secondary/10 px-1 rounded">[campo]</code> ou{" "}
-                    <code className="text-secondary bg-secondary/10 px-1 rounded">{"{{grupo.campo}}"}</code> dentro do DOCX
-                  </p>
+            {/* Conteúdo DOCX */}
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3" style={{ boxShadow: "var(--shadow-xs)" }}>
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <Upload className="h-4 w-4 text-secondary" />
+                Arquivo DOCX
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".docx"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs bg-background"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                    {uploading ? "Enviando..." : "Upload DOCX"}
+                  </Button>
+                  {form.file_url && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px] gap-1 text-success border-success/30 bg-success/5">
+                        <FileText className="h-3 w-3" /> {form.file_url.split("/").pop()?.replace(/^\d+_/, "") || "Arquivo anexado"}
+                      </Badge>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" title="Baixar" onClick={() => downloadDocx(form.file_url!)}>
+                        <Download className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive"
+                        title="Remover arquivo"
+                        onClick={() => setForm(f => ({ ...f, file_url: null }))}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-
-            {/* For WEB templates: hint to use Visual Builder */}
-            {!isDocx && (
-              <div className="rounded-xl border border-border bg-muted/30 p-4 text-center space-y-2">
-                <Paintbrush className="h-6 w-6 text-secondary mx-auto" />
-                <p className="text-sm font-medium text-foreground">Conteúdo editado via Editor Visual</p>
-                <p className="text-xs text-muted-foreground">
-                  Após salvar os dados básicos, use o botão <strong>"Editar Visual"</strong> na lista para abrir o editor drag & drop.
+                <p className="text-[10px] text-muted-foreground">
+                  Limite de 50MB. Use variáveis no formato <code className="text-secondary bg-secondary/10 px-1 rounded">[campo]</code> ou{" "}
+                  <code className="text-secondary bg-secondary/10 px-1 rounded">{"{{grupo.campo}}"}</code> dentro do DOCX
                 </p>
               </div>
-            )}
+            </div>
 
             {/* Opções */}
             <div className="flex items-center gap-4">
@@ -570,17 +396,17 @@ export function TemplatesManager() {
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : filteredTemplates.length === 0 ? (
+      ) : docxTemplates.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <FileText className="h-10 w-10 mx-auto opacity-20 mb-3" />
-          <p className="text-sm">Nenhum template {tipoTab === "html" ? "WEB" : "DOCX"} criado.</p>
+          <p className="text-sm">Nenhum template DOCX criado.</p>
           <Button variant="default" onClick={startNew} className="mt-2">
-            Criar primeiro template {tipoTab.toUpperCase()}
+            Criar primeiro template
           </Button>
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredTemplates.map(t => (
+          {docxTemplates.map(t => (
             <div
               key={t.id}
               className={`flex items-center justify-between p-4 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors ${!t.ativo ? "opacity-50" : ""}`}
@@ -597,45 +423,34 @@ export function TemplatesManager() {
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-foreground">{t.nome}</p>
                     <Badge variant="outline" className="text-[9px] border-primary/30 text-primary bg-primary/5">Grupo {t.grupo}</Badge>
-                    <Badge variant="outline" className="text-[9px] border-primary/30 text-primary bg-primary/5">{t.tipo.toUpperCase()}</Badge>
-                    {t.file_url && <Badge variant="outline" className="text-[9px] text-success border-success/30 bg-success/5">📎 DOCX</Badge>}
+                    <Badge variant="outline" className="text-[9px] border-primary/30 text-primary bg-primary/5">DOCX</Badge>
+                    {t.file_url && <Badge variant="outline" className="text-[9px] text-success border-success/30 bg-success/5">📎 Arquivo</Badge>}
                     {!t.ativo && <Badge variant="outline" className="text-[9px] text-destructive border-destructive/30 bg-destructive/5">Inativo</Badge>}
                   </div>
                   {t.descricao && <p className="text-xs text-muted-foreground mt-0.5">{t.descricao}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {t.tipo === "html" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1.5 text-[10px] font-semibold border-primary/30 text-primary hover:bg-primary/10"
-                    onClick={() => setBuilderTemplateId(t)}
-                  >
-                    <Paintbrush className="h-3 w-3" />
-                    Editar Visual
-                  </Button>
-                )}
                 <TooltipProvider delayDuration={600}>
-                  {((t.tipo === "html") || (t.tipo === "docx" && t.file_url)) && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => setPreviewTemplateId(t)}>
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">Preview</TooltipContent>
-                    </Tooltip>
-                  )}
                   {t.file_url && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => downloadDocx(t.file_url!)}>
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">Baixar DOCX</TooltipContent>
-                    </Tooltip>
+                    <>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => setPreviewTemplateId(t)}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Preview</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => downloadDocx(t.file_url!)}>
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">Baixar DOCX</TooltipContent>
+                      </Tooltip>
+                    </>
                   )}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -661,34 +476,18 @@ export function TemplatesManager() {
       )}
 
       {/* Preview Dialog */}
-      {previewTemplateId && (loadedTemplateHtml || previewTemplateId.file_url) && (
+      {previewTemplateId && previewTemplateId.file_url && (
         <TemplatePreviewDialog
           open={!!previewTemplateId}
           onOpenChange={(open) => { if (!open) setPreviewTemplateId(null); }}
-          templateHtml={loadedTemplateHtml ?? null}
+          templateHtml={null}
           templateNome={previewTemplateId.nome}
           templateId={previewTemplateId.id}
-          templateTipo={previewTemplateId.tipo as "html" | "docx"}
+          templateTipo="docx"
           fileUrl={previewTemplateId.file_url}
         />
       )}
 
-      {/* Visual Builder Overlay */}
-      {builderTemplateId && (
-        <ProposalBuilderEditor
-          initialData={(() => {
-            try {
-              const parsed = JSON.parse(loadedTemplateHtml || "[]");
-              return Array.isArray(parsed) ? parsed as TemplateBlock[] : [];
-            } catch {
-              return [];
-            }
-          })()}
-          templateName={builderTemplateId.nome}
-          onSave={handleBuilderSave}
-          onClose={() => setBuilderTemplateId(null)}
-        />
-      )}
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
         <AlertDialogContent>
