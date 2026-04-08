@@ -287,6 +287,7 @@ const TAB_TITLES: Record<string, string> = {
   distribuicao: "Distribuição de leads",
   "sla-breaches": "Alertas de prazo",
   "motivos-perda": "Motivos de perda",
+  "origens-lead": "Origens de lead",
   inbox: "Atendimento",
   "respostas-rapidas": "Respostas rápidas",
   followup: "Acompanhamentos",
