@@ -28,6 +28,11 @@ export function PropostaComercialPage() {
             <span className="hidden sm:inline">Modelos de Proposta</span>
             <span className="sm:hidden">Propostas</span>
           </TabsTrigger>
+          <TabsTrigger value="modelos-documento" className="gap-1.5 text-xs sm:text-sm shrink-0 whitespace-nowrap">
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">Modelos de Documento</span>
+            <span className="sm:hidden">Documentos</span>
+          </TabsTrigger>
           <TabsTrigger value="modelos-email" className="gap-1.5 text-xs sm:text-sm shrink-0 whitespace-nowrap">
             <Mail className="h-4 w-4" />
             <span className="hidden sm:inline">Modelos de E-mail</span>
