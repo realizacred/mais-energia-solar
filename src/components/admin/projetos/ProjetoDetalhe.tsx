@@ -19,7 +19,7 @@ import {
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check,
   AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity,
-  ChevronDown, SunMedium, Bell, Users, Tag, Link2, ShoppingCart
+  ChevronDown, SunMedium, Bell, Users, Tag, Link2, ShoppingCart, Landmark
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 import { DocumentosTab } from "./DocumentosTab";
 import { ProjetoInstalacaoTab } from "./ProjetoInstalacaoTab";
 import { SuprimentosListPage as SuprimentosListPageInline } from "@/components/admin/suprimentos/SuprimentosListPage";
+import { ProjetoConcessionariaTab } from "./ProjetoConcessionariaTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoOutrosCampos } from "./ProjetoOutrosCampos";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
@@ -117,6 +118,7 @@ const TABS = [
   { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning" },
   { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success" },
   { id: "suprimentos" as TabId, label: "Suprimentos", icon: ShoppingCart, color: "text-info" },
+  { id: "concessionaria" as TabId, label: "Concessionária", icon: Landmark, color: "text-primary" },
 ] as const;
 
 // ─── Recebimento CTA (won deals) ────────────
@@ -461,6 +463,9 @@ function ProjetoDetalheContent() {
           )}
           {activeTab === "suprimentos" && (
             <SuprimentosListPageInline projetoId={deal.id} />
+          )}
+          {activeTab === "concessionaria" && (
+            <ProjetoConcessionariaTab dealId={deal.id} />
           )}
         </motion.div>
       </AnimatePresence>
