@@ -79,6 +79,7 @@ export function LeadEditDialog({
 }: LeadEditDialogProps) {
   const { toast } = useToast();
   const { data: consultores = [], isLoading: loadingConsultores } = useConsultoresAtivos();
+  const { data: origens = [] } = useLeadOrigensAtivas();
 
   const [nome, setNome] = useState(initialData.nome);
   const [telefone, setTelefone] = useState(initialData.telefone);
