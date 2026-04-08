@@ -305,6 +305,15 @@ function PosCustomFieldInput({ field, value, onChange }: {
         </div>
       );
 
+    case "currency":
+    case "monetary":
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">{label}</Label>
+          <CurrencyInput value={value || 0} onChange={onChange} className="h-9 text-xs" />
+        </div>
+      );
+
     case "number":
       return (
         <div className="space-y-1.5">

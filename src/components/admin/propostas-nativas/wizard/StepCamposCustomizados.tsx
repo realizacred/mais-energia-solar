@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { useCustomFieldsList } from "@/hooks/useCustomFieldsSettings";
 import type { Json } from "@/integrations/supabase/types";
 
 interface CustomField {
@@ -30,23 +30,20 @@ interface Props {
   onValuesChange: (values: Record<string, any>) => void;
 }
 
+/**
+ * StepCamposCustomizados — usa useCustomFieldsList (hook centralizado)
+ * para reagir em tempo real a mudanças de tipo/configuração feitas em admin/custom-fields.
+ * §16: Queries só em hooks — NUNCA em componentes (RB-04)
+ */
 export function StepCamposCustomizados({ values, onValuesChange }: Props) {
-  const [fields, setFields] = useState<CustomField[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: allFields, isLoading: loading } = useCustomFieldsList();
 
-  useEffect(() => {
-    setLoading(true);
-    supabase
-      .from("deal_custom_fields")
-      .select("id, title, field_key, field_type, field_context, options, required_on_create, required_on_proposal, show_on_create, is_active, ordem")
-      .eq("is_active", true)
-      .eq("field_context", "pre_dimensionamento")
-      .order("ordem")
-      .then(({ data }) => {
-        setFields((data || []) as CustomField[]);
-        setLoading(false);
-      });
-  }, []);
+  const fields = useMemo(() =>
+    (allFields ?? [])
+      .filter((f: any) => f.is_active && f.field_context === "pre_dimensionamento")
+      .sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0)) as CustomField[],
+    [allFields]
+  );
 
   const updateValue = (key: string, value: any) => {
     onValuesChange({ ...values, [key]: value });
