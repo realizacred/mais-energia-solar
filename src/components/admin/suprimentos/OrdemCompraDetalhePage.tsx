@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<OrdemCompraStatus, string> = {
   enviada: "Enviada",
   confirmada: "Confirmada",
   em_transito: "Em trânsito",
+  recebida_parcial: "Recebida parcial",
   recebida: "Recebida",
   cancelada: "Cancelada",
 };
@@ -44,6 +45,7 @@ const STATUS_COLORS: Record<OrdemCompraStatus, string> = {
   enviada: "bg-info/10 text-info border-info/20",
   confirmada: "bg-secondary/10 text-secondary border-secondary/20",
   em_transito: "bg-warning/10 text-warning border-warning/20",
+  recebida_parcial: "bg-warning/10 text-warning border-warning/20",
   recebida: "bg-success/10 text-success border-success/20",
   cancelada: "bg-destructive/10 text-destructive border-destructive/20",
 };
@@ -52,7 +54,7 @@ const NEXT_STATUS: Partial<Record<OrdemCompraStatus, { status: OrdemCompraStatus
   rascunho: { status: "enviada", label: "Marcar como enviada" },
   enviada: { status: "confirmada", label: "Confirmar pedido" },
   confirmada: { status: "em_transito", label: "Marcar em trânsito" },
-  em_transito: { status: "recebida", label: "Registrar recebimento" },
+  recebida_parcial: { status: "recebida", label: "Marcar como recebida" },
 };
 
 type TabId = "geral" | "itens" | "transporte";
