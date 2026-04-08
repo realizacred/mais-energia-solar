@@ -42,6 +42,7 @@ export interface OrdemCompraItem {
   valor_unitario: number;
   valor_total: number;
   quantidade_recebida: number;
+  observacao_recebimento: string | null;
 }
 
 export interface OrdemCompraTransporte {
