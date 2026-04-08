@@ -15064,6 +15064,50 @@ export type Database = {
           },
         ]
       }
+      projeto_ativacao: {
+        Row: {
+          confirmado_por: string | null
+          created_at: string
+          data_ativacao: string | null
+          id: string
+          numero_uc: string | null
+          observacoes: string | null
+          projeto_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          confirmado_por?: string | null
+          created_at?: string
+          data_ativacao?: string | null
+          id?: string
+          numero_uc?: string | null
+          observacoes?: string | null
+          projeto_id: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          confirmado_por?: string | null
+          created_at?: string
+          data_ativacao?: string | null
+          id?: string
+          numero_uc?: string | null
+          observacoes?: string | null
+          projeto_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_ativacao_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_etapas: {
         Row: {
           categoria: Database["public"]["Enums"]["projeto_etapa_categoria"]
@@ -15318,6 +15362,53 @@ export type Database = {
           },
         ]
       }
+      projeto_medidor: {
+        Row: {
+          created_at: string
+          data_troca: string | null
+          id: string
+          numero_medidor_antigo: string | null
+          numero_medidor_novo: string | null
+          observacoes: string | null
+          projeto_id: string
+          tenant_id: string
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_troca?: string | null
+          id?: string
+          numero_medidor_antigo?: string | null
+          numero_medidor_novo?: string | null
+          observacoes?: string | null
+          projeto_id: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_troca?: string | null
+          id?: string
+          numero_medidor_antigo?: string | null
+          numero_medidor_novo?: string | null
+          observacoes?: string | null
+          projeto_id?: string
+          tenant_id?: string
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_medidor_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_proposta_counters: {
         Row: {
           next_value: number
@@ -15335,6 +15426,65 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: []
+      }
+      projeto_vistoria: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data_agendada: string | null
+          data_realizada: string | null
+          data_solicitacao: string | null
+          id: string
+          motivo_reprovacao: string | null
+          observacoes: string | null
+          projeto_id: string
+          protocolo: string | null
+          resultado: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data_agendada?: string | null
+          data_realizada?: string | null
+          data_solicitacao?: string | null
+          id?: string
+          motivo_reprovacao?: string | null
+          observacoes?: string | null
+          projeto_id: string
+          protocolo?: string | null
+          resultado?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data_agendada?: string | null
+          data_realizada?: string | null
+          data_solicitacao?: string | null
+          id?: string
+          motivo_reprovacao?: string | null
+          observacoes?: string | null
+          projeto_id?: string
+          protocolo?: string | null
+          resultado?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_vistoria_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projetos: {
         Row: {
