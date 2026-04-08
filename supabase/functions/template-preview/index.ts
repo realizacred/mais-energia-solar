@@ -1052,7 +1052,7 @@ Deno.serve(async (req) => {
       // Fetch proposal + latest version snapshot
       const { data: prop, error: propErr } = await adminClient
         .from("propostas_nativas")
-        .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id")
+        .select("id, titulo, codigo, proposta_num, status, lead_id, cliente_id, consultor_id, projeto_id")
         .eq("id", proposta_id)
         .eq("tenant_id", tenantId)
         .single();
@@ -1142,7 +1142,7 @@ Deno.serve(async (req) => {
       proposta_id
         ? adminClient
             .from("propostas_nativas")
-            .select("id, titulo, codigo, status, lead_id, cliente_id, consultor_id, projeto_id")
+            .select("id, titulo, codigo, proposta_num, status, lead_id, cliente_id, consultor_id, projeto_id")
             .eq("id", proposta_id)
             .eq("tenant_id", tenantId)
             .single()
