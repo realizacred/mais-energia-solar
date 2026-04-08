@@ -98,6 +98,7 @@ export function WaAppointmentModal({
     setTime("09:00");
     setDuration("60");
     setReminderMinutes(15);
+    setNotificarWa(true);
   };
 
   
