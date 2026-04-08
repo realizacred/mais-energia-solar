@@ -1,7 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Variable, FileText, Mail, Settings, BarChart3, FlaskConical } from "lucide-react";
+import { Variable, FileText, Mail, Settings, BarChart3, FlaskConical, FolderOpen } from "lucide-react";
 import { VariaveisDisponiveisPage } from "./VariaveisDisponiveisPage";
 import { TemplatesManager } from "@/components/admin/propostas-nativas/TemplatesManager";
+import { TemplatesTab as DocumentTemplatesTab } from "@/components/admin/documentos/TemplatesTab";
 import { EmailTemplatesPage } from "./EmailTemplatesPage";
 import { PropostaConfigPage } from "./PropostaConfigPage";
 import { ProposalChartsManager } from "./ProposalChartsManager";
@@ -26,6 +27,11 @@ export function PropostaComercialPage() {
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Modelos de Proposta</span>
             <span className="sm:hidden">Propostas</span>
+          </TabsTrigger>
+          <TabsTrigger value="modelos-documento" className="gap-1.5 text-xs sm:text-sm shrink-0 whitespace-nowrap">
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">Modelos de Documento</span>
+            <span className="sm:hidden">Documentos</span>
           </TabsTrigger>
           <TabsTrigger value="modelos-email" className="gap-1.5 text-xs sm:text-sm shrink-0 whitespace-nowrap">
             <Mail className="h-4 w-4" />
@@ -52,6 +58,9 @@ export function PropostaComercialPage() {
         </TabsContent>
         <TabsContent value="modelos-proposta">
           <TemplatesManager />
+        </TabsContent>
+        <TabsContent value="modelos-documento">
+          <DocumentTemplatesTab />
         </TabsContent>
         <TabsContent value="modelos-email">
           <EmailTemplatesPage />
