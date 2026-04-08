@@ -141,7 +141,7 @@ export default function WebhookManager() {
             action={{ label: "Novo Webhook", onClick: () => setIsDialogOpen(true), icon: Plus }}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="rounded-lg border border-border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
