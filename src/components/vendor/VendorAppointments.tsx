@@ -49,6 +49,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secon
 export function VendorAppointments() {
   const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<"upcoming" | "past">("upcoming");
+  const [rescheduleAppt, setRescheduleAppt] = useState<Appointment | null>(null);
 
   const now = new Date();
   const filters = statusFilter === "upcoming"
