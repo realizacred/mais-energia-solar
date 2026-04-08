@@ -58,6 +58,7 @@ export function WaAppointmentModal({
   const [time, setTime] = useState("09:00");
   const [duration, setDuration] = useState("60");
   const [reminderMinutes, setReminderMinutes] = useState(15);
+  const [notificarWa, setNotificarWa] = useState(true);
 
   const handleSubmit = () => {
     if (!title.trim() || !date) return;
