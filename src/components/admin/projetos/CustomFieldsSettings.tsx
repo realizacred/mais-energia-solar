@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMotivosPerda } from "@/hooks/useDistribution";
 import {
   useCustomFieldsList, useActivityTypesList, usePipelineStages, usePipelinesList,
@@ -23,7 +24,7 @@ import {
   Plus, Trash2, GripVertical, Pencil, Settings2, Layers, Zap, AlertTriangle,
   Save, Loader2, LayoutGrid, ListOrdered, Type, Hash, DollarSign, Calendar,
   CalendarClock, ListChecks, CheckSquare, FileText, ChevronLeft, ChevronDown, HelpCircle,
-  Sliders, Copy, Landmark
+  Sliders, Copy, Landmark, ArrowRight
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
