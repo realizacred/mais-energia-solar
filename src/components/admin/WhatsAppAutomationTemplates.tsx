@@ -51,10 +51,10 @@ import {
 } from "@/hooks/useWhatsAppTemplates";
 
 const TIPO_OPTIONS = [
-  { value: "boas_vindas", label: "Boas-vindas", icon: UserPlus, color: "bg-success" },
-  { value: "mudanca_status", label: "Mudança de Status", icon: ArrowRightLeft, color: "bg-info" },
-  { value: "inatividade", label: "Lembrete de Inatividade", icon: Clock, color: "bg-warning" },
-  { value: "agendamento", label: "Confirmação de Agendamento", icon: Calendar, color: "bg-secondary" },
+  { value: "boas_vindas", label: "Boas-vindas", icon: UserPlus, iconBg: "bg-success/10", iconText: "text-success", badgeClass: "bg-success/10 text-success border-success/20" },
+  { value: "mudanca_status", label: "Mudança de Status", icon: ArrowRightLeft, iconBg: "bg-info/10", iconText: "text-info", badgeClass: "bg-info/10 text-info border-info/20" },
+  { value: "inatividade", label: "Lembrete de Inatividade", icon: Clock, iconBg: "bg-warning/10", iconText: "text-warning", badgeClass: "bg-warning/10 text-warning border-warning/20" },
+  { value: "agendamento", label: "Confirmação de Agendamento", icon: Calendar, iconBg: "bg-primary/10", iconText: "text-primary", badgeClass: "bg-primary/10 text-primary border-primary/20" },
 ];
 
 export function WhatsAppAutomationTemplates() {
@@ -334,13 +334,13 @@ export function WhatsAppAutomationTemplates() {
               >
                 <div className="flex items-center gap-4">
                   <Switch checked={template.ativo} onCheckedChange={() => handleToggleTemplate(template)} />
-                  <div className={`p-2 rounded-lg ${tipoInfo.color} text-primary-foreground`}>
-                    <TipoIcon className="h-4 w-4" />
+                  <div className={`p-2 rounded-lg ${tipoInfo.iconBg}`}>
+                    <TipoIcon className={`h-4 w-4 ${tipoInfo.iconText}`} />
                   </div>
                   <div>
                     <p className="font-medium">{template.nome}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="outline" className={`text-xs ${tipoInfo.badgeClass}`}>
                         {tipoInfo.label}
                       </Badge>
                       {template.tipo === "inatividade" && (
