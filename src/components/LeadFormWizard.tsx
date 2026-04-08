@@ -850,6 +850,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         const payload: Record<string, unknown> = {
           nome: (data.nome || "").trim(),
           telefone: (data.telefone || "").trim(),
+          email: data.email?.trim() || null,
           vendedor_codigo: vendedorCodigo || undefined,
           vendedor_id: vendedorId || undefined,
           cep: data.cep?.trim() || null,
