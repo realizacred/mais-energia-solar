@@ -3,6 +3,7 @@
  * §26: PageHeader. §25: Modal. §27: KPI cards. §12: Skeleton. RB-01..RB-10.
  */
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Mail, Plus, Server, RefreshCw, Trash2, Pencil, Shield, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,6 +54,7 @@ const EMPTY_FORM = {
 };
 
 export function EmailAccountsManager() {
+  const qc = useQueryClient();
   const { data: accounts = [], isLoading } = useEmailAccounts();
   const salvar = useSaveEmailAccount();
   const deletar = useDeleteEmailAccount();
@@ -192,8 +194,8 @@ export function EmailAccountsManager() {
         const timer = setInterval(() => {
           if (popup?.closed) {
             clearInterval(timer);
-            // refresh accounts list
-            window.location.reload();
+            // refresh accounts list via query invalidation instead of full reload
+            qc.invalidateQueries({ queryKey: ["email-accounts"] });
           }
         }, 1000);
       } else {
