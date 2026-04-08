@@ -380,6 +380,7 @@ Deno.serve(async (req) => {
       recusada: "proposta_recusada",
       enviada: "proposta_enviada",
       vista: "proposta_visualizada",
+      gerada: currentStatus === "aceita" ? "aceite_revertido" : currentStatus === "recusada" ? "recusa_revertida" : "proposta_gerada",
     };
     const eventType = eventTypeMap[new_status] || new_status;
 
