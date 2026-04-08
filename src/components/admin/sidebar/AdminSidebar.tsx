@@ -557,8 +557,8 @@ export function AdminSidebar({
       </SidebarHeader>
 
       <SidebarContent className="scrollbar-thin py-2 space-y-0.5">
-        <SidebarSearch />
-        {accessibleFavorites.length > 0 && (
+        <SidebarSearch onQueryChange={setSearchQuery} />
+        {!isSearching && accessibleFavorites.length > 0 && (
           <>
             <FavoritesSection
               favoriteIds={accessibleFavorites}
@@ -571,7 +571,7 @@ export function AdminSidebar({
           </>
         )}
 
-        {filteredSections.map((section) => (
+        {searchFilteredSections.map((section) => (
           <SidebarSectionGroup
             key={section.label}
             section={section}
@@ -579,7 +579,7 @@ export function AdminSidebar({
             badgeCounts={badgeCounts}
             isFavorite={isFavorite}
             onToggleFav={toggleFavorite}
-            orderedItems={getOrderedItems(section)}
+            orderedItems={isSearching ? section.items : getOrderedItems(section)}
             onReorder={setSectionOrder}
           />
         ))}
