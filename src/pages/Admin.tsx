@@ -577,6 +577,7 @@ export default function Admin() {
                 <Route path="distribuicao" element={<DistributionConfig />} />
                 <Route path="sla-breaches" element={<SlaBreachDashboard />} />
                 <Route path="motivos-perda" element={<MotivoPerdaManager />} />
+                <Route path="origens-lead" element={<LeadOrigensManager />} />
                 
                 {/* Atendimento */}
                 <Route path="inbox" element={<WaInboxWithParams />} />
