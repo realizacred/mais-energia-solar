@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Truck, ClipboardList, History, ExternalLink, ChevronRight } from "lucide-react";
+import { ArrowLeft, Package, Truck, ClipboardList, History, ExternalLink, ChevronRight, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
