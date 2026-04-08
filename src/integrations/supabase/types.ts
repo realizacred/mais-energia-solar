@@ -27139,6 +27139,7 @@ export type Database = {
         Returns: boolean
       }
       limpar_mensagens_failed: { Args: never; Returns: number }
+      limpar_projetos_teste: { Args: never; Returns: undefined }
       link_meter_to_unit: {
         Args: {
           p_link_type?: string
@@ -27288,6 +27289,7 @@ export type Database = {
         Returns: Json
       }
       reset_migrated_data: { Args: { p_tenant_id: string }; Returns: Json }
+      reset_project_area: { Args: { p_tenant_id: string }; Returns: Json }
       reset_solar_data_layer: { Args: { _confirm: string }; Returns: Json }
       reset_tenant_data: { Args: { p_tenant_id: string }; Returns: Json }
       resolve_consultor_public: {
