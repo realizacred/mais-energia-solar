@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
-import { FileText, Image, ExternalLink, User, History } from "lucide-react";
+import { FileText, Image, ExternalLink, User, History, Mail } from "lucide-react";
 import { LeadAuditHistory } from "./LeadAuditHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -87,6 +87,15 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InfoField label="Nome" value={lead.nome} />
                     <InfoField label="Telefone" value={formatPhoneBR(lead.telefone)} />
+                    {lead.email && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">E-mail</p>
+                        <a href={`mailto:${lead.email}`} className="text-sm font-medium text-primary hover:underline mt-0.5 flex items-center gap-1">
+                          <Mail className="w-3.5 h-3.5" />
+                          {lead.email}
+                        </a>
+                      </div>
+                    )}
                     <InfoField label="Consultor" value={lead.consultor_nome || lead.consultor} />
                     <InfoField label="Origem" value={lead.area} />
                   </div>

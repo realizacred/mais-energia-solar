@@ -20,7 +20,7 @@ function useGlobalSearchData() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leads")
-        .select("id, nome, telefone, cidade, status_id")
+        .select("id, nome, telefone, email, cidade, status_id")
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -122,7 +122,7 @@ export function GlobalSearch() {
             {leadsData.slice(0, 8).map((lead) => (
               <CommandItem
                 key={lead.id}
-                value={`lead-${lead.nome}-${lead.telefone}-${lead.cidade ?? ""}`}
+                value={`lead-${lead.nome}-${lead.telefone}-${lead.email ?? ""}-${lead.cidade ?? ""}`}
                 onSelect={() => handleSelectLead(lead.id)}
                 className="flex items-center gap-2 cursor-pointer"
               >
