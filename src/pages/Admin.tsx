@@ -65,6 +65,8 @@ const InstaladorManager = lazy(() => import("@/components/admin/InstaladorManage
 const EstoquePage = lazy(() => import("@/components/admin/estoque/EstoquePage"));
 const DepositosPage = lazy(() => import("@/components/admin/estoque/DepositosPage").then(m => ({ default: m.DepositosPage })));
 const CategoriasEstoquePage = lazy(() => import("@/components/admin/estoque/CategoriasPage"));
+const SuprimentosListPage = lazy(() => import("@/components/admin/suprimentos/SuprimentosListPage"));
+const OrdemCompraDetalhePage = lazy(() => import("@/components/admin/suprimentos/OrdemCompraDetalhePage"));
 const UCsListPage = lazy(() => import("@/components/admin/ucs/UCsListPage"));
 const UCDetailPage = lazy(() => import("@/components/admin/ucs/UCDetailPage"));
 const MetersListPage = lazy(() => import("@/components/admin/meters/MetersListPage"));
@@ -612,6 +614,8 @@ export default function Admin() {
                 <Route path="estoque" element={<EstoquePage />} />
                 <Route path="depositos" element={<DepositosPage />} />
                 <Route path="categorias-estoque" element={<CategoriasEstoquePage />} />
+                <Route path="suprimentos" element={<SuprimentosListPage />} />
+                <Route path="suprimentos/:id" element={<OrdemCompraDetalhePage />} />
                 
                 {/* Medidores */}
                 <Route path="medidores" element={<MetersListPage />} />
