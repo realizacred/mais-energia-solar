@@ -85,6 +85,7 @@ const InadimplenciaDashboard = lazy(() => import("@/components/admin/Inadimplenc
 const FechamentoCaixaPage = lazy(() => import("@/components/admin/FechamentoCaixaPage").then(m => ({ default: m.FechamentoCaixaPage })));
 const LancamentosPage = lazy(() => import("@/components/admin/financeiro/LancamentosPage"));
 const DREPage = lazy(() => import("@/components/admin/financeiro/DREPage"));
+const AutomacoesPage = lazy(() => import("@/pages/AutomacoesPage"));
 const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
 const AuditLogsViewer = lazy(() => import("@/components/admin/AuditLogsViewer").then(m => ({ default: m.AuditLogsViewer })));
@@ -326,6 +327,7 @@ const TAB_TITLES: Record<string, string> = {
   instagram: "Instagram",
   webhooks: "Webhooks",
   n8n: "Automações",
+  automacoes: "Central de Automações",
   
   "wa-instances": "Instâncias WhatsApp",
   release: "Checklist de versão",
@@ -695,6 +697,7 @@ export default function Admin() {
                 
                 <Route path="webhooks" element={<Navigate to="/admin/catalogo-integracoes?tab=webhooks" replace />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
+                <Route path="automacoes" element={<AutomacoesPage />} />
                 <Route path="integracoes" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
                 <Route path="aneel" element={<Navigate to="/admin/concessionarias" replace />} />
                 <Route path="saude-integracoes" element={<Navigate to="/admin/catalogo-integracoes?tab=saude" replace />} />
