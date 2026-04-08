@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useUsuarios";
 import { useConsultorDashboard } from "@/hooks/useConsultorDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,8 @@ import { formatDate } from "@/lib/formatters/index";
 export default function ConsultorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data, isLoading } = useConsultorDashboard(user?.id);
+  const { data: isAdmin } = useIsAdmin(user?.id);
+  const { data, isLoading } = useConsultorDashboard(user?.id, !!isAdmin);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportMes, setExportMes] = useState(String(new Date().getMonth() + 1));
   const [exportAno, setExportAno] = useState(String(new Date().getFullYear()));
