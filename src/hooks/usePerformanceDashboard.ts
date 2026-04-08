@@ -19,6 +19,7 @@ interface Lead {
   status_id: string | null;
   motivo_perda_id: string | null;
   valor_estimado: number | null;
+  data_conversao: string | null;
 }
 
 interface LeadStatus {
@@ -54,7 +55,7 @@ export function usePerformanceLeads() {
     queryFn: async (): Promise<Lead[]> => {
       const { data, error } = await supabase
         .from("leads")
-        .select("id, nome, estado, cidade, media_consumo, consultor, consultor_id, created_at, status_id, motivo_perda_id, valor_estimado")
+        .select("id, nome, estado, cidade, media_consumo, consultor, consultor_id, created_at, status_id, motivo_perda_id, valor_estimado, data_conversao")
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(2000);
