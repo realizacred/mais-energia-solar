@@ -164,17 +164,7 @@ export default function IntegrationsCatalogPage() {
     queryFn: listLegacyIntegrations,
   });
 
-  const { data: plantCounts = {} } = useQuery({
-    queryKey: ["integration-plant-counts"],
-    queryFn: async () => {
-      const { data } = await supabase.from("solar_plants" as any).select("integration_id");
-      const counts: Record<string, number> = {};
-      ((data as any[]) || []).forEach((p) => {
-        if (p.integration_id) counts[p.integration_id] = (counts[p.integration_id] || 0) + 1;
-      });
-      return counts;
-    },
-  });
+  const { data: plantCounts = {} } = useSolarPlantsCount();
 
   const getPlantCount = (providerId: string): number => {
     const legacyId = CANONICAL_TO_LEGACY[providerId] || providerId;
