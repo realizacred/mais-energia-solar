@@ -1082,6 +1082,17 @@ function GerenciamentoTab({
             (consultores || []).forEach((c: any) => consultantNameMap.set(c.id, c.nome));
           }
 
+          // Resolve actor_user_id to names for attribution
+          const actorIds = [...new Set(data.map((e: any) => e.actor_user_id).filter(Boolean))] as string[];
+          const actorNameMap = new Map<string, string>();
+          if (actorIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from("profiles")
+              .select("user_id, nome")
+              .in("user_id", actorIds);
+            (profiles || []).forEach((p: any) => actorNameMap.set(p.user_id, p.nome));
+          }
+
           const buildSubtitle = (e: any): string | undefined => {
             // For proposal events, show channel/metadata info
             if (PROPOSAL_EVENT_TYPES.has(e.event_type) && e.metadata) {
@@ -1122,13 +1133,24 @@ function GerenciamentoTab({
             }
             return true;
           });
-          setProjectEventEntries(filtered.map((e: any) => ({
-            id: `pe-${e.id}`,
-            type: PROPOSAL_EVENT_TYPES.has(e.event_type) ? "proposta" as const : "projeto" as const,
-            title: EVENT_LABELS[e.event_type] || e.event_type,
-            subtitle: buildSubtitle(e),
-            date: formatDate(e.created_at),
-          })));
+          setProjectEventEntries(filtered.map((e: any) => {
+            const actorName = e.actor_user_id ? actorNameMap.get(e.actor_user_id) : null;
+            const baseSubtitle = buildSubtitle(e);
+            const actorSuffix = actorName ? `por ${actorName}` : null;
+            let subtitle: string | undefined;
+            if (baseSubtitle && actorSuffix) {
+              subtitle = `${baseSubtitle} • ${actorSuffix}`;
+            } else {
+              subtitle = actorSuffix || baseSubtitle || undefined;
+            }
+            return {
+              id: `pe-${e.id}`,
+              type: PROPOSAL_EVENT_TYPES.has(e.event_type) ? "proposta" as const : "projeto" as const,
+              title: EVENT_LABELS[e.event_type] || e.event_type,
+              subtitle,
+              date: formatDate(e.created_at),
+            };
+          }));
         }
       } catch { /* ignore */ }
     }
@@ -1203,7 +1225,7 @@ function GerenciamentoTab({
     entries.push(...docEntries);
     entries.push(...projectEventEntries);
     entries.push(...propostaEntries);
-    entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", date: formatDate(deal.created_at), isFirst: true });
+    entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", subtitle: ownerName ? `por ${ownerName}` : undefined, date: formatDate(deal.created_at), isFirst: true });
     return entries;
   }, [history, currentStage, deal, docEntries, projectEventEntries, propostaEntries, notes, activities, formatDate, getStageNameById, userNamesMap]);
 
