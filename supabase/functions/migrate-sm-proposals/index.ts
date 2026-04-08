@@ -1123,18 +1123,25 @@ Deno.serve(async (req) => {
             }
           }
 
-          // If still no owner, abort
+          // If still no owner, fallback to "Não Definido" consultor
           if (!resolvedOwnerId) {
-            report.aborted = true;
-            report.steps.deal = { status: "ERROR", reason: "Nenhum vendedor no funil Vendedores e nenhum responsável de fallback selecionado" };
-            summary.ERROR++;
-            reports.push(report);
-            await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
-            continue;
+            const naoDefinidoId = consultoresMap.get(normalizeComparableName("Não Definido"));
+            if (naoDefinidoId) {
+              resolvedOwnerId = naoDefinidoId;
+              ownerSource = "fallback_nao_definido";
+              (report as any).owner_resolved = { name: "Não Definido", id: naoDefinidoId, created: false, source: "fallback_nao_definido" };
+            } else {
+              report.aborted = true;
+              report.steps.deal = { status: "ERROR", reason: "Nenhum vendedor encontrado e consultor 'Não Definido' não existe" };
+              summary.ERROR++;
+              reports.push(report);
+              await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
+              continue;
+            }
           }
 
           // ── C. Deal (idempotent via legacy_key) ──
-          const legacyKey = `sm:${smProp.sm_proposal_id}`;
+          const legacyKey = `sm:${smProp.sm_project_id || 0}:${smProp.sm_proposal_id}`;
           let dealId: string | null = existingDeals.get(legacyKey) || null;
 
           // Resolve pipeline from SM funnels (auto) or fallback to UI selection
@@ -1293,7 +1300,7 @@ Deno.serve(async (req) => {
                   valor_mao_obra: smProp.installation_cost || null,
                   geracao_mensal_media_kwh: smProp.geracao_anual ? Math.round(smProp.geracao_anual / 12) : null,
                   status: mapSmStatusToDeal(smProp) === "won" ? "concluido" : "criado",
-                  codigo: `PROJ-SM-${smProp.sm_proposal_id}`,
+                  codigo: `PROJ-SM-${smProp.sm_project_id || smProp.sm_proposal_id}`,
                   projeto_num: null,
               };
               if (smProjDate) {
@@ -1328,7 +1335,7 @@ Deno.serve(async (req) => {
           }
 
           // ── E. Proposta Nativa ──
-          const smIdKey = String(smProp.sm_proposal_id);
+          const smIdKey = `${smProp.sm_project_id || 0}:${smProp.sm_proposal_id}`;
           let propostaId: string | null = existingPropostas.get(smIdKey) || null;
 
           if (propostaId) {
@@ -1363,7 +1370,7 @@ Deno.serve(async (req) => {
                   recusada_at: smProp.rejection_date || null,
                   enviada_at: smProp.send_at || null,
                   proposta_num: null,
-                  codigo: `PROP-SM-${smProp.sm_proposal_id}`,
+                  codigo: `PROP-SM-${smProp.sm_project_id || 0}-${smProp.sm_proposal_id}`,
                   is_principal: true,
               };
               if (smPropDate) {
