@@ -340,9 +340,20 @@ export function WaMessageBubble({
           {/* Failed message error + retry */}
           {msg.status === "failed" && (
             <div className="flex items-center gap-1.5 mt-0.5">
-              {msg.error_message && (
-                <p className="text-[10px] text-destructive truncate flex-1" title={msg.error_message}>
-                  ⚠ {msg.error_message.substring(0, 60)}
+              {msg.error_message ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p className="text-[10px] text-destructive cursor-help truncate flex-1">
+                      ⚠ Falha no envio
+                    </p>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-[10px] break-all">
+                    {msg.error_message}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <p className="text-[10px] text-destructive truncate flex-1">
+                  ⚠ Falha no envio
                 </p>
               )}
               {onRetry && msg.direction === "out" && (
