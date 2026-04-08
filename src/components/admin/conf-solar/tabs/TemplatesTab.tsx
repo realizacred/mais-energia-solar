@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, Pencil } from "lucide-react";
 import { usePropostaTemplates, useRefreshPropostaTemplates } from "@/hooks/useConfSolar";
+import { useAtualizarTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
+import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
+import type { TemplateBlock } from "@/components/admin/proposal-builder/types";
 
 interface TemplateRow {
   id: string;
@@ -30,10 +33,12 @@ interface TemplateRow {
 export function TemplatesTab() {
   const { data: serverData, isLoading: loading } = usePropostaTemplates();
   const refreshTemplates = useRefreshPropostaTemplates();
+  const atualizarHtml = useAtualizarTemplateHtml();
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<TemplateRow | null>(null);
 
   useEffect(() => {
     if (serverData && !initialized) {
@@ -82,8 +87,40 @@ export function TemplatesTab() {
     setSaving(false);
   }
 
+  const handleBuilderSave = useCallback(async (jsonData: string) => {
+    if (!editingTemplate) return;
+    await atualizarHtml.mutateAsync({ id: editingTemplate.id, template_html: jsonData });
+    // Update local state too
+    setTemplates(prev => prev.map(t =>
+      t.id === editingTemplate.id ? { ...t, template_html: jsonData } : t
+    ));
+  }, [editingTemplate, atualizarHtml]);
+
+  const parseInitialData = useCallback((): TemplateBlock[] | undefined => {
+    if (!editingTemplate?.template_html) return undefined;
+    try {
+      const parsed = JSON.parse(editingTemplate.template_html);
+      if (Array.isArray(parsed)) return parsed as TemplateBlock[];
+    } catch {
+      // not valid JSON — might be raw HTML, ignore
+    }
+    return undefined;
+  }, [editingTemplate]);
+
   if (loading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  // Show builder fullscreen when editing
+  if (editingTemplate) {
+    return (
+      <ProposalBuilderEditor
+        initialData={parseInitialData()}
+        templateName={editingTemplate.nome || "Template sem nome"}
+        onSave={handleBuilderSave}
+        onClose={() => setEditingTemplate(null)}
+      />
+    );
   }
 
   return (
@@ -114,7 +151,18 @@ export function TemplatesTab() {
                     </Badge>
                     <span className="text-xs font-semibold">{t.nome || `Template ${i + 1}`}</span>
                   </div>
-                   <div className="flex items-center gap-3">
+                   <div className="flex items-center gap-2">
+                     {t.tipo === "html" && !t.isNew && (
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         className="h-7 text-xs gap-1.5"
+                         onClick={() => setEditingTemplate(t)}
+                       >
+                         <Pencil className="h-3.5 w-3.5" />
+                         Editar Visual
+                       </Button>
+                     )}
                      {t.template_html && (
                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPreviewHtml(t.template_html)}>
                          <Eye className="h-3.5 w-3.5" />
