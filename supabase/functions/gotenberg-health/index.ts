@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
       await updateHealthCache(supabase, "gotenberg", isOpen ? "down" : "degraded", {
         error_message: isTimeout ? "Timeout (15s)" : fetchErr.message,
         metadata: { circuit_failures: circuitState.failures, circuit_open: isOpen },
-      });
+      }, tenantId);
 
       return new Response(JSON.stringify({
         success: false,
