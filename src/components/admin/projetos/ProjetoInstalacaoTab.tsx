@@ -80,24 +80,18 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
   const criarChecklist = useCriarChecklist();
 
   // Gate: verificar se existe proposta aceita/principal
+  // Gate RB-22: só permite instalação com proposta ACEITA (status aceita/ganha)
+  // is_principal sozinho NÃO é suficiente — propostas migradas podem ser principal sem aceite
   const { data: temPropostaAceita = false } = useQuery({
     queryKey: ["proposta-aceita-gate", dealId],
     queryFn: async () => {
       const { data } = await supabase
         .from("propostas_nativas")
-        .select("id, is_principal, status")
+        .select("id")
         .or(`deal_id.eq.${dealId},projeto_id.eq.${dealId}`)
         .in("status", ["aceita", "accepted", "aprovada", "ganha"])
         .limit(1);
-      if (data && data.length > 0) return true;
-      // Fallback: check is_principal
-      const { data: principal } = await supabase
-        .from("propostas_nativas")
-        .select("id")
-        .or(`deal_id.eq.${dealId},projeto_id.eq.${dealId}`)
-        .eq("is_principal", true)
-        .limit(1);
-      return (principal && principal.length > 0) || false;
+      return (data && data.length > 0) || false;
     },
     enabled: !!dealId,
     staleTime: 1000 * 60 * 5,
