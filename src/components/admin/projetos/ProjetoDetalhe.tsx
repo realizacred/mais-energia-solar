@@ -809,7 +809,7 @@ function GerenciamentoTab({
       } as any).select("id, content, created_at, created_by").single();
       if (error) throw error;
       if (data) {
-        setNotes(prev => [{ ...(data as any), created_by_name: "Você" }, ...prev]);
+        queryClient.invalidateQueries({ queryKey: ["deal-notes", deal.id] });
         setNoteText("");
         setNoteDialogOpen(false);
         toast({ title: "Nota adicionada", description: "A nota foi salva com sucesso." });
@@ -860,7 +860,7 @@ function GerenciamentoTab({
         } as any).eq("id", editingActivityId).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
         if (error) throw error;
         if (data) {
-          setActivities(prev => prev.map(a => a.id === editingActivityId ? (data as any) : a));
+          queryClient.invalidateQueries({ queryKey: ["deal-activities", deal.id] });
           toast({ title: "Atividade atualizada", description: "A atividade foi salva com sucesso." });
         }
       } else {
@@ -877,7 +877,7 @@ function GerenciamentoTab({
         } as any).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
         if (error) throw error;
         if (data) {
-          setActivities(prev => [data as any, ...prev]);
+          queryClient.invalidateQueries({ queryKey: ["deal-activities", deal.id] });
           toast({ title: "Atividade criada", description: "A atividade foi salva com sucesso." });
         }
       }
@@ -903,7 +903,7 @@ function GerenciamentoTab({
     const updates: Record<string, unknown> = { status: "done", completed_at: new Date().toISOString() };
     try {
       await supabase.from("deal_activities").update(updates as any).eq("id", activityId);
-      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: "done", completed_at: new Date().toISOString() } : a));
+      queryClient.invalidateQueries({ queryKey: ["deal-activities", deal.id] });
       toast({ title: "Atividade concluída ✓" });
     } catch { /* ignore */ }
   };
@@ -925,7 +925,7 @@ function GerenciamentoTab({
     try {
       const { error } = await supabase.from("deal_activities").delete().eq("id", activityToDelete);
       if (error) throw error;
-      setActivities(prev => prev.filter(a => a.id !== activityToDelete));
+      queryClient.invalidateQueries({ queryKey: ["deal-activities", deal.id] });
       toast({ title: "Atividade excluída", description: "A atividade foi removida com sucesso." });
     } catch (err: any) {
       toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
