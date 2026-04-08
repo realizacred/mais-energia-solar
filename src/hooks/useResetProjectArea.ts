@@ -41,7 +41,7 @@ export function useResetProjectArea() {
       }
     },
     onSuccess: (data) => {
-      qc.clear();
+      qc.invalidateQueries();
       const c = data?.counts ?? ({} as Partial<ProjectAreaCounts>);
       const parts = [
         c.clientes && `${c.clientes} clientes`,
