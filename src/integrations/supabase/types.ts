@@ -13402,7 +13402,7 @@ export type Database = {
           pipeline_id: string
           stage_id: string
           tempo_horas?: number
-          tenant_id: string
+          tenant_id?: string
           tipo_acao?: string
           tipo_gatilho?: string
           ultima_execucao?: string | null
