@@ -84,6 +84,7 @@ export const leadFormSchema = z.object({
     .string()
     .trim()
     .regex(phoneRegex, "Telefone inválido. Use o formato (11) 99999-9999"),
+  email: emailFieldSchema.optional().default(""),
   
   // Step 2: Endereço
   cep: z
@@ -127,6 +128,7 @@ export type LeadFormData = z.infer<typeof leadFormSchema>;
 export const step1Schema = leadFormSchema.pick({
   nome: true,
   telefone: true,
+  email: true,
 });
 
 export const step2Schema = leadFormSchema.pick({
