@@ -173,6 +173,7 @@ function ConversationItem({
     : conv.last_message_preview || "Sem mensagens";
 
   return (
+    // RB-03-exception: chat micro-interaction — conversation card with onContextMenu and complex layout
     <button
       onClick={() => onSelect(conv)}
       onContextMenu={(e) => e.preventDefault()}

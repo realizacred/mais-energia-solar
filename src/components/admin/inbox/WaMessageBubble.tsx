@@ -115,6 +115,7 @@ export function WaMessageBubble({
         {/* Hover actions */}
         {!isNote && (
           <div className={`absolute ${isOut ? "left-1" : "right-1"} top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-opacity z-10 flex items-center gap-0.5`}>
+            {/* RB-03-exception: chat micro-interaction — hover reply/react buttons */}
             <button
               onClick={() => onReply(msg)}
               className="p-1 rounded-full hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
@@ -138,6 +139,7 @@ export function WaMessageBubble({
             className={`absolute ${isOut ? "right-0" : "left-0"} -top-10 z-20 flex items-center gap-0.5 bg-card border border-border rounded-full px-2 py-1 shadow-lg`}
           >
             {QUICK_REACTIONS.map((emoji) => (
+              // RB-03-exception: chat micro-interaction — emoji reaction picker
               <button
                 key={emoji}
                 onClick={() => {
@@ -357,6 +359,7 @@ export function WaMessageBubble({
                 </p>
               )}
               {onRetry && msg.direction === "out" && (
+                // RB-03-exception: chat micro-interaction — retry with stopPropagation
                 <button
                   onClick={(e) => { e.stopPropagation(); onRetry(msg); }}
                   className="flex items-center gap-0.5 text-[10px] text-primary hover:text-primary/80 font-medium shrink-0 transition-colors"

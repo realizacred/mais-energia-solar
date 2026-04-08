@@ -456,6 +456,7 @@ export function WaChatComposer({
 
             {/* Category Pills */}
             <div className="px-2 pt-2 pb-1 flex flex-wrap gap-1">
+              {/* RB-03-exception: chat micro-interaction — tiny category pill */}
               <button
                 onClick={() => setSelectedCategory(null)}
                 className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
@@ -470,6 +471,7 @@ export function WaChatComposer({
                 const meta = CATEGORY_META[cat] || { label: cat, color: "bg-muted text-muted-foreground" };
                 const count = quickReplies.filter(qr => (qr.categoria || "geral") === cat).length;
                 return (
+                  // RB-03-exception: chat micro-interaction — tiny category pill
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
@@ -493,7 +495,8 @@ export function WaChatComposer({
                 filteredReplies.map((qr) => {
                   const MediaIcon = qr.media_type ? MEDIA_ICONS[qr.media_type] : null;
                   const catMeta = CATEGORY_META[qr.categoria || "geral"] || { label: qr.categoria, color: "bg-muted text-muted-foreground" };
-                  return (
+                    return (
+                    // RB-03-exception: chat micro-interaction — quick reply list item
                     <button
                       key={qr.id}
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors group border border-transparent hover:border-border/30"
@@ -570,6 +573,7 @@ export function WaChatComposer({
                   <p className="text-[10px] text-muted-foreground font-medium mb-1 px-1">{cat}</p>
                   <div className="flex flex-wrap gap-0.5">
                     {emojis.map((e) => (
+                      // RB-03-exception: chat micro-interaction — emoji grid item
                       <button
                         key={e}
                         className="w-7 h-7 flex items-center justify-center text-base hover:bg-muted rounded transition-colors"
@@ -678,6 +682,7 @@ export function WaChatComposer({
             {slashFilteredReplies.map((qr, idx) => {
               const catMeta = CATEGORY_META[qr.categoria || "geral"] || { label: qr.categoria, color: "bg-muted text-muted-foreground" };
               return (
+                // RB-03-exception: chat micro-interaction — slash command item with onMouseDown/onMouseEnter
                 <button
                   key={qr.id}
                   className={`w-full text-left px-3 py-2 transition-colors flex items-start gap-2 ${
