@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 const STALE_TIME = 1000 * 60 * 5;
 const QK = ["ordens-compra"] as const;
 
-export type OrdemCompraStatus = "rascunho" | "enviada" | "confirmada" | "em_transito" | "recebida" | "cancelada";
+export type OrdemCompraStatus = "rascunho" | "enviada" | "confirmada" | "em_transito" | "recebida_parcial" | "recebida" | "cancelada";
 
 export interface OrdemCompra {
   id: string;
