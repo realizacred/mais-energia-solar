@@ -200,6 +200,8 @@ export const PREMISES_DEFAULTS: TenantPremises = {
   wa_notif_pagamento: true,
   wa_notif_quitado: true,
   wa_notif_numero: "",
+  concessionaria_motivos_reprovacao: ["Projeto em desacordo", "Documentação incompleta", "Equipamento incompatível", "Problemas no aterramento", "Inversor não homologado", "Estrutura inadequada"],
+  concessionaria_prazo_vistoria_dias: 30,
 };
 
 export interface RoofAreaFactor {
