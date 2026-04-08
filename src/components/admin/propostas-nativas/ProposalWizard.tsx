@@ -762,7 +762,7 @@ export function ProposalWizard() {
       premissas: raw.premissas && typeof raw.premissas === "object" ? raw.premissas : null,
       preDimensionamento: raw.preDimensionamento && typeof raw.preDimensionamento === "object" ? raw.preDimensionamento : null,
       customFieldValues: raw.customFieldValues || {},
-      geracaoMensalEstimada: Number(raw.geracaoMensalEstimada ?? raw.tecnico?.geracao_mensal_media_kwh ?? ((raw.tecnico?.geracao_estimada_kwh ?? raw.geracao_anual ?? 0) / 12) ?? 0),
+      geracaoMensalEstimada: Number(raw.geracaoMensalEstimada ?? raw.tecnico?.geracao_mensal_media_kwh ?? ((raw.tecnico?.geracao_estimada_kwh ?? raw.geracao_anual ?? 0) / 12)),
     };
 
     return normalized;
@@ -993,7 +993,7 @@ export function ProposalWizard() {
             descricaoProposta: ws.descricaoProposta ?? "",
             templateSelecionado: ws.templateSelecionado ?? rawSnapshot.inputs?.template_id ?? "",
             step: 0,
-            geracaoMensalEstimada: Number(ws.geracaoMensalEstimada ?? tecnico.geracao_mensal_media_kwh ?? ((tecnico.geracao_estimada_kwh ?? 0) / 12) ?? 0),
+            geracaoMensalEstimada: Number(ws.geracaoMensalEstimada ?? tecnico.geracao_mensal_media_kwh ?? ((tecnico.geracao_estimada_kwh ?? 0) / 12)),
           } as any;
           // console.log("[ProposalWizard] Normalized engine snapshot to wizard format", { hasWizardState: !!rawSnapshot._wizard_state });
         } else {
