@@ -164,7 +164,7 @@ export default function ConsultorDashboard() {
             ) : !data?.hotLeads.length ? (
               <p className="text-sm text-muted-foreground text-center py-6">Nenhum lead quente no momento</p>
             ) : (
-              <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">                <Table>
+              <div className="rounded-lg border border-border overflow-x-auto">                <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead className="font-semibold text-foreground">Nome</TableHead>
@@ -323,7 +323,7 @@ function FunnelBars({ stages }: { stages: { nome: string; cor: string | null; co
               }}
             >
               {stage.count > 0 && (
-                <span className="text-xs font-bold text-white drop-shadow-sm">{stage.count}</span>
+                <span className="text-xs font-bold text-primary-foreground drop-shadow-sm">{stage.count}</span>
               )}
             </div>
           </div>
