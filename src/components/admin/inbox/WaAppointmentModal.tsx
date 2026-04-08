@@ -79,6 +79,7 @@ export function WaAppointmentModal({
       conversation_id: conversationId,
       lead_id: leadId,
       cliente_id: clienteId,
+      notificar_wa: notificarWa,
     };
 
     createAppointment(input, {
