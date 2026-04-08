@@ -11,6 +11,7 @@ import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/Fo
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
+import { useLeadOrigensAtivas } from "@/hooks/useLeadOrigens";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,8 @@ interface LeadEditInitialData {
   media_consumo?: number;
   consumo_previsto?: number;
   observacoes?: string | null;
+  lead_origem_id?: string | null;
+  origem?: string | null;
 }
 
 interface LeadEditDialogProps {
