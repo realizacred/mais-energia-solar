@@ -84,9 +84,11 @@ interface Props {
 type TabType = "customizado" | "fechado" | "catalogo" | "solaryum";
 
 function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverride?: number | null): KitCardData | null {
-  const modItems = itens.filter(i => i.categoria === "modulo");
-  const invItems = itens.filter(i => i.categoria === "inversor");
-  if (modItems.length === 0 && invItems.length === 0) return null;
+  // Filter only items with meaningful data (non-empty description or potencia > 0)
+  const meaningfulItems = itens.filter(i => (i.descricao && i.descricao.trim() !== "") || i.potencia_w > 0 || i.preco_unitario > 0);
+  if (meaningfulItems.length === 0) return null;
+  const modItems = meaningfulItems.filter(i => i.categoria === "modulo");
+  const invItems = meaningfulItems.filter(i => i.categoria === "inversor");
 
   const totalModQtd = modItems.reduce((s, m) => s + m.quantidade, 0);
   const totalModKwp = modItems.reduce((s, m) => s + (m.potencia_w * m.quantidade) / 1000, 0);
