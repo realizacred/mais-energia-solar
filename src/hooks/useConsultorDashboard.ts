@@ -54,6 +54,15 @@ async function resolveConsultorName(userId: string): Promise<{ nome: string; ten
   return consultor ? { nome: consultor.nome, tenantId: consultor.tenant_id } : null;
 }
 
+async function resolveTenantId(userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("tenant_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data?.tenant_id ?? null;
+}
+
 function getTodayBrasiliaRange() {
   const now = new Date();
   const brStr = now.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
@@ -67,24 +76,40 @@ function getMonthStartBrasilia() {
   return `${year}-${month}-01T00:00:00`;
 }
 
-async function fetchDashboardData(userId: string): Promise<ConsultorDashboardData> {
+async function fetchDashboardData(userId: string, isAdmin: boolean): Promise<ConsultorDashboardData> {
   const consultor = await resolveConsultorName(userId);
-  if (!consultor) {
+  
+  // Admin without consultant record: use tenant from profiles
+  let tenantId: string;
+  let consultorNome: string | null = null;
+  
+  if (consultor) {
+    tenantId = consultor.tenantId;
+    consultorNome = consultor.nome;
+  } else if (isAdmin) {
+    const tid = await resolveTenantId(userId);
+    if (!tid) return { kpis: { totalLeads: 0, hotLeads: 0, followUpsHoje: 0, propostasEnviadasMes: 0 }, hotLeads: [], overdueFollowUps: [], funnelStages: [] };
+    tenantId = tid;
+  } else {
     return { kpis: { totalLeads: 0, hotLeads: 0, followUpsHoje: 0, propostasEnviadasMes: 0 }, hotLeads: [], overdueFollowUps: [], funnelStages: [] };
   }
 
-  const { nome, tenantId } = consultor;
   const today = getTodayBrasiliaRange();
   const monthStart = getMonthStartBrasilia();
 
+  // Build leads query — admin sees all, consultant sees own
+  let leadsQuery = supabase
+    .from("leads")
+    .select("id, nome, telefone, status_id, updated_at")
+    .is("deleted_at", null);
+  if (!isAdmin && consultorNome) {
+    leadsQuery = leadsQuery.eq("consultor", consultorNome);
+  }
+
   // Parallel queries
   const [leadsRes, hotScoresRes, followUpsRes, propostasRes, statusesRes] = await Promise.all([
-    // 1. All leads for this consultant
-    supabase
-      .from("leads")
-      .select("id, nome, telefone, status_id, updated_at")
-      .eq("consultor", nome)
-      .is("deleted_at", null),
+    // 1. Leads (filtered or all)
+    leadsQuery,
 
     // 2. Hot lead scores (last 30 days)
     supabase
@@ -184,10 +209,10 @@ async function fetchDashboardData(userId: string): Promise<ConsultorDashboardDat
   return { kpis, hotLeads: hotLeadsList, overdueFollowUps, funnelStages };
 }
 
-export function useConsultorDashboard(userId: string | undefined) {
+export function useConsultorDashboard(userId: string | undefined, isAdmin = false) {
   return useQuery({
-    queryKey: ["consultor-dashboard", userId],
-    queryFn: () => fetchDashboardData(userId!),
+    queryKey: ["consultor-dashboard", userId, isAdmin],
+    queryFn: () => fetchDashboardData(userId!, isAdmin),
     enabled: !!userId,
     staleTime: STALE_TIME,
   });

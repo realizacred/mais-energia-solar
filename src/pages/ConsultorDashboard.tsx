@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useUsuarios";
 import { useConsultorDashboard } from "@/hooks/useConsultorDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,8 @@ import { formatDate } from "@/lib/formatters/index";
 export default function ConsultorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data, isLoading } = useConsultorDashboard(user?.id);
+  const { data: isAdmin } = useIsAdmin(user?.id);
+  const { data, isLoading } = useConsultorDashboard(user?.id, !!isAdmin);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportMes, setExportMes] = useState(String(new Date().getMonth() + 1));
   const [exportAno, setExportAno] = useState(String(new Date().getFullYear()));
@@ -79,7 +81,7 @@ export default function ConsultorDashboard() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground">Meu Painel</h1>
-            <p className="text-sm text-muted-foreground">Seus leads e metas</p>
+            <p className="text-sm text-muted-foreground">{isAdmin ? "Visão geral de todos os leads" : "Seus leads e metas"}</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
