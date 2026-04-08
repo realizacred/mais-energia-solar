@@ -19,7 +19,7 @@ import {
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check,
   AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity,
-  ChevronDown, SunMedium, Bell, Users, Tag
+  ChevronDown, SunMedium, Bell, Users, Tag, Link2
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ import { AddressFields, type AddressData } from "@/components/shared/AddressFiel
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
+import { GrupoKitsModal } from "./GrupoKitsModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProjetoCustomFieldValues } from "@/hooks/useProjetoCustomFields";
 import { useProjetoNotes } from "@/hooks/useProjetoNotes";
@@ -1951,6 +1952,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const setPrincipalMutation = useSetPropostaPrincipal();
   const arquivarMutation = useArquivarProposta();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showGrupoKits, setShowGrupoKits] = useState(false);
 
   // Reset expandedId if the expanded proposta no longer exists in the list (e.g. after deletion)
   useEffect(() => {
@@ -2073,6 +2075,32 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
           </Badge>
         </div>
       )}
+
+      {/* Gerar Link de Kits */}
+      {propostas.length >= 2 && !isClosed && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => setShowGrupoKits(true)}>
+            <Link2 className="w-4 h-4 mr-1.5" />
+            Gerar Link de Kits
+          </Button>
+        </div>
+      )}
+
+      <GrupoKitsModal
+        open={showGrupoKits}
+        onOpenChange={setShowGrupoKits}
+        projetoId={dealId}
+        propostas={propostas.map((p: any) => ({
+          id: p.id,
+          titulo: p.titulo,
+          nome_kit: p.nome_kit,
+          status: p.status,
+          versoes: p.versoes?.map((v: any) => ({
+            valor_total: v.valor_total,
+            potencia_kwp: v.potencia_kwp,
+          })),
+        }))}
+      />
 
       {linkedOrcs.length > 0 && (
         <div className="space-y-1.5">

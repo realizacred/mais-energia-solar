@@ -16207,6 +16207,77 @@ export type Database = {
           },
         ]
       }
+      proposta_grupo_tokens: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          kit_aceito_id: string | null
+          projeto_id: string
+          proposta_ids: string[]
+          tenant_id: string
+          titulo: string | null
+          token: string
+          view_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kit_aceito_id?: string | null
+          projeto_id: string
+          proposta_ids: string[]
+          tenant_id: string
+          titulo?: string | null
+          token?: string
+          view_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kit_aceito_id?: string | null
+          projeto_id?: string
+          proposta_ids?: string[]
+          tenant_id?: string
+          titulo?: string | null
+          token?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_grupo_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "proposta_grupo_tokens_kit_aceito_id_fkey"
+            columns: ["kit_aceito_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_grupo_tokens_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_grupo_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_historico: {
         Row: {
           acao: string
@@ -17857,6 +17928,7 @@ export type Database = {
           lead_id: string | null
           metadata: Json | null
           missing_variables: string[] | null
+          nome_kit: string | null
           origem: string
           origem_tarifa: string | null
           precisao_calculo: string | null
@@ -17913,6 +17985,7 @@ export type Database = {
           lead_id?: string | null
           metadata?: Json | null
           missing_variables?: string[] | null
+          nome_kit?: string | null
           origem?: string
           origem_tarifa?: string | null
           precisao_calculo?: string | null
@@ -17969,6 +18042,7 @@ export type Database = {
           lead_id?: string | null
           metadata?: Json | null
           missing_variables?: string[] | null
+          nome_kit?: string | null
           origem?: string
           origem_tarifa?: string | null
           precisao_calculo?: string | null
