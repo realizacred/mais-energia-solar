@@ -1082,6 +1082,17 @@ function GerenciamentoTab({
             (consultores || []).forEach((c: any) => consultantNameMap.set(c.id, c.nome));
           }
 
+          // Resolve actor_user_id to names for attribution
+          const actorIds = [...new Set(data.map((e: any) => e.actor_user_id).filter(Boolean))] as string[];
+          const actorNameMap = new Map<string, string>();
+          if (actorIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from("profiles")
+              .select("user_id, nome")
+              .in("user_id", actorIds);
+            (profiles || []).forEach((p: any) => actorNameMap.set(p.user_id, p.nome));
+          }
+
           const buildSubtitle = (e: any): string | undefined => {
             // For proposal events, show channel/metadata info
             if (PROPOSAL_EVENT_TYPES.has(e.event_type) && e.metadata) {
