@@ -21,7 +21,7 @@ import { ptBR } from "date-fns/locale";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { formatDate } from "@/lib/formatters";
+import { formatDate } from "@/lib/formatters/index";
 
 export default function ConsultorDashboard() {
   const { user } = useAuth();
