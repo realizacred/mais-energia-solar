@@ -595,6 +595,45 @@ export function ProposalWizard() {
       clienteData = data;
     }
 
+    // Pre-compute itens before building normalized object (needed for manualKits)
+    const computedItens = Array.isArray(raw.itens) && raw.itens.length > 0
+      ? raw.itens.map((it: any) => ({
+          id: it.id || crypto.randomUUID(),
+          descricao: it.descricao || "",
+          fabricante: it.fabricante || "",
+          modelo: it.modelo || "",
+          potencia_w: Number(it.potencia_w) || 0,
+          quantidade: Number(it.quantidade) || 0,
+          preco_unitario: Number(it.preco_unitario) || 0,
+          categoria: it.categoria || it.tipo || "outros",
+          avulso: it.avulso ?? false,
+          produto_ref: it.produto_ref || null,
+        }))
+      : [
+          ...(raw.panel_model ? [{
+            id: crypto.randomUUID(),
+            descricao: raw.panel_model,
+            fabricante: "",
+            modelo: raw.panel_model,
+            potencia_w: 0,
+            quantidade: raw.panel_quantity || 0,
+            preco_unitario: 0,
+            categoria: "modulo" as const,
+            avulso: false,
+          }] : []),
+          ...(raw.inverter_model ? [{
+            id: crypto.randomUUID(),
+            descricao: raw.inverter_model,
+            fabricante: "",
+            modelo: raw.inverter_model,
+            potencia_w: 0,
+            quantidade: raw.inverter_quantity || 1,
+            preco_unitario: 0,
+            categoria: "inversor" as const,
+            avulso: false,
+          }] : []),
+        ];
+
     // Map legacy fields to wizard format
     const normalized: Partial<WizardSnapshot> = {
       locEstado: clienteData?.estado || "",
