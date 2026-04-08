@@ -26268,6 +26268,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_remaining_tenant_issues: {
+        Args: never
+        Returns: {
+          tabela: string
+          total: number
+        }[]
+      }
       check_tenant_limit: {
         Args: { _delta?: number; _metric_key: string }
         Returns: {
@@ -26543,6 +26550,44 @@ export type Database = {
           updated_at: string
         }[]
       }
+      fix_all_remaining: {
+        Args: never
+        Returns: {
+          migrados: number
+          tabela: string
+        }[]
+      }
+      fix_duplicates_final: { Args: never; Returns: undefined }
+      fix_integration_health_cache: { Args: never; Returns: undefined }
+      fix_remaining_tenants: {
+        Args: never
+        Returns: {
+          migrados: number
+          tabela: string
+        }[]
+      }
+      fix_remaining_tenants_2: {
+        Args: never
+        Returns: {
+          migrados: number
+          tabela: string
+        }[]
+      }
+      fix_remaining_tenants_3: {
+        Args: never
+        Returns: {
+          migrados: number
+          tabela: string
+        }[]
+      }
+      fix_tenant_ids: { Args: never; Returns: undefined }
+      fix_tenant_ids_2: { Args: never; Returns: undefined }
+      fix_tenant_ids_3: { Args: never; Returns: undefined }
+      fix_tenant_ids_4: { Args: never; Returns: undefined }
+      fix_tenant_ids_5: { Args: never; Returns: undefined }
+      fix_tenant_ids_6: { Args: never; Returns: undefined }
+      fix_tenant_ids_7: { Args: never; Returns: undefined }
+      fix_tenant_ids_8: { Args: never; Returns: undefined }
       fn_monitor_open_alert_counts: {
         Args: { _tenant_id: string }
         Returns: {
