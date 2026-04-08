@@ -787,80 +787,10 @@ function GerenciamentoTab({
     }
   };
 
-  // Load important custom fields + values
-  // Filter by current stage: only show fields whose important_stage_ids includes the current stage
-  const loadImportantFields = async () => {
-    try {
-      const { data: fields } = await supabase
-        .from("deal_custom_fields")
-        .select("id, title, field_key, field_type, options, important_stage_ids, icon")
-        .eq("is_active", true)
-        .eq("field_context", "projeto")
-        .eq("important_on_funnel", true)
-        .order("ordem");
-      if (!fields || fields.length === 0) { setImportantFields([]); return; }
-
-      // Client-side filter: only fields whose important_stage_ids includes current stage
-      const currentStageId = deal.stage_id;
-      const filtered = fields.filter((f: any) => {
-        const stageIds: string[] = f.important_stage_ids || [];
-        // If no specific stages configured, show in ALL stages
-        if (stageIds.length === 0) return true;
-        return stageIds.includes(currentStageId);
-      });
-
-      setImportantFields(filtered as any);
-
-      if (filtered.length === 0) { setCustomFieldValues({}); return; }
-      const fieldIds = filtered.map((f: any) => f.id);
-      const { data: values } = await supabase
-        .from("deal_custom_field_values")
-        .select("field_id, value_text, value_number, value_boolean, value_date")
-        .eq("deal_id", deal.id)
-        .in("field_id", fieldIds);
-      if (values) {
-        const map: Record<string, any> = {};
-        values.forEach((v: any) => { map[v.field_id] = v; });
-        setCustomFieldValues(map);
-      }
-    } catch { /* ignore */ }
+  // Custom fields refresh helper (for ImportantFieldRow saves)
+  const loadImportantFields = () => {
+    queryClient.invalidateQueries({ queryKey: ["deal-custom-fields-important", deal.id, deal.stage_id] });
   };
-  useEffect(() => { loadImportantFields(); }, [deal.id, deal.stage_id]);
-  useEffect(() => {
-    async function loadNotes() {
-      try {
-        const { data } = await supabase
-          .from("deal_notes")
-          .select("id, content, created_at, created_by")
-          .eq("deal_id", deal.id)
-          .order("created_at", { ascending: false })
-          .limit(50);
-        if (data) {
-          setNotes(data.map((n: any) => ({
-            ...n,
-            created_by_name: n.created_by ? (userNamesMap.get(n.created_by) || "Usuário") : "Sistema",
-          })));
-        }
-      } catch { /* ignore */ }
-    }
-    loadNotes();
-  }, [deal.id, userNamesMap]);
-
-  // Load activities
-  useEffect(() => {
-    async function loadActivities() {
-      try {
-        const { data } = await supabase
-          .from("deal_activities")
-          .select("id, title, description, activity_type, due_date, status, created_at, assigned_to, completed_at")
-          .eq("deal_id", deal.id)
-          .order("due_date", { ascending: true, nullsFirst: false })
-          .limit(50);
-        if (data) setActivities(data as any);
-      } catch { /* ignore */ }
-    }
-    loadActivities();
-  }, [deal.id]);
 
   // Save note
   const handleSaveNote = async () => {
