@@ -2,13 +2,13 @@
  * MeterLinkDialog — Link a meter to a UC (or switch linkage).
  */
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { meterService, type MeterDevice } from "@/services/meterService";
-import { supabase } from "@/integrations/supabase/client";
+import { useUnitsConsumidorasForLink, useActiveUnitMeterLinks } from "@/hooks/useUnitsConsumidoras";
 import { Search, Zap } from "lucide-react";
 
 interface Props {
@@ -24,30 +24,8 @@ export function MeterLinkDialog({ open, onOpenChange, meter }: Props) {
   const [selectedUC, setSelectedUC] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // CORREÇÃO 1 — staleTime obrigatório (§23)
-  const { data: ucs = [] } = useQuery({
-    queryKey: ["ucs_for_link", search],
-    queryFn: async () => {
-      let q = supabase.from("units_consumidoras").select("id, nome, codigo_uc").eq("is_archived", false).order("nome").limit(20);
-      if (search) q = q.or(`nome.ilike.%${search}%,codigo_uc.ilike.%${search}%`);
-      const { data } = await q;
-      return data || [];
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-
-  // CORREÇÃO 6 — UCs já vinculadas a medidores
-  const { data: linkedMeterIds = [] } = useQuery({
-    queryKey: ["unit_meter_links_active_for_dialog"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("unit_meter_links")
-        .select("unit_id")
-        .eq("is_active", true);
-      return (data || []).map(l => l.unit_id);
-    },
-    staleTime: 1000 * 60 * 2,
-  });
+  const { data: ucs = [] } = useUnitsConsumidorasForLink(search);
+  const { data: linkedMeterIds = [] } = useActiveUnitMeterLinks();
 
   const linkedUCSet = new Set(linkedMeterIds);
 
@@ -91,25 +69,25 @@ export function MeterLinkDialog({ open, onOpenChange, meter }: Props) {
               ucs.map(uc => {
                 const hasLinkedMeter = linkedUCSet.has(uc.id);
                 return (
-                  <button
+                  <Button
                     key={uc.id}
                     type="button"
+                    variant="ghost"
                     onClick={() => setSelectedUC(uc.id)}
-                    className={`w-full text-left px-3 py-2.5 text-sm border-b last:border-b-0 transition-colors ${
-                      selectedUC === uc.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50"
+                    className={`w-full justify-start text-left h-auto px-3 py-2.5 text-sm rounded-none border-b last:border-b-0 ${
+                      selectedUC === uc.id ? "bg-primary/10 text-primary font-medium" : ""
                     }`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full">
                       <span className="font-medium">{uc.nome}</span>
                       <span className="text-xs text-muted-foreground font-mono">{uc.codigo_uc}</span>
-                      {/* CORREÇÃO 6 — Badge UC já vinculada */}
                       {hasLinkedMeter && (
                         <span className="text-xs bg-warning/10 text-warning border border-warning/20 px-1.5 py-0.5 rounded ml-auto shrink-0">
                           Já tem medidor
                         </span>
                       )}
                     </div>
-                  </button>
+                  </Button>
                 );
               })
             )}
