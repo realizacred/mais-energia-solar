@@ -203,6 +203,57 @@ export type Database = {
           },
         ]
       }
+      appointment_reagendamentos: {
+        Row: {
+          alterado_por: string | null
+          appointment_id: string
+          created_at: string
+          data_anterior: string
+          id: string
+          motivo: string
+          notificou_wa: boolean | null
+          nova_data: string
+          tenant_id: string
+        }
+        Insert: {
+          alterado_por?: string | null
+          appointment_id: string
+          created_at?: string
+          data_anterior: string
+          id?: string
+          motivo: string
+          notificou_wa?: boolean | null
+          nova_data: string
+          tenant_id?: string
+        }
+        Update: {
+          alterado_por?: string | null
+          appointment_id?: string
+          created_at?: string
+          data_anterior?: string
+          id?: string
+          motivo?: string
+          notificou_wa?: boolean | null
+          nova_data?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_reagendamentos_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_reagendamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           all_day: boolean | null
@@ -22153,6 +22204,7 @@ export type Database = {
           wa_notif_pagamento: boolean | null
           wa_notif_quitado: boolean | null
           wa_template_agendamento_instalacao: string | null
+          wa_template_reagendamento_instalacao: string | null
         }
         Insert: {
           asaas_sandbox?: boolean | null
@@ -22242,6 +22294,7 @@ export type Database = {
           wa_notif_pagamento?: boolean | null
           wa_notif_quitado?: boolean | null
           wa_template_agendamento_instalacao?: string | null
+          wa_template_reagendamento_instalacao?: string | null
         }
         Update: {
           asaas_sandbox?: boolean | null
@@ -22331,6 +22384,7 @@ export type Database = {
           wa_notif_pagamento?: boolean | null
           wa_notif_quitado?: boolean | null
           wa_template_agendamento_instalacao?: string | null
+          wa_template_reagendamento_instalacao?: string | null
         }
         Relationships: [
           {
