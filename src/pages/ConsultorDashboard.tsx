@@ -21,10 +21,7 @@ import { ptBR } from "date-fns/locale";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-function formatDateBR(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
-}
+import { formatDate } from "@/lib/formatters/index";
 
 export default function ConsultorDashboard() {
   const { user } = useAuth();
@@ -244,11 +241,20 @@ export default function ConsultorDashboard() {
   );
 }
 
+const KPI_COLOR_MAP: Record<string, { border: string; iconBg: string; iconText: string }> = {
+  primary:     { border: "border-l-primary",     iconBg: "bg-primary/10",     iconText: "text-primary" },
+  destructive: { border: "border-l-destructive", iconBg: "bg-destructive/10", iconText: "text-destructive" },
+  warning:     { border: "border-l-warning",     iconBg: "bg-warning/10",     iconText: "text-warning" },
+  success:     { border: "border-l-success",     iconBg: "bg-success/10",     iconText: "text-success" },
+  info:        { border: "border-l-info",        iconBg: "bg-info/10",        iconText: "text-info" },
+};
+
 function KPICard({ icon, value, label, color }: { icon: React.ReactNode; value: number; label: string; color: string }) {
+  const c = KPI_COLOR_MAP[color] ?? KPI_COLOR_MAP.primary;
   return (
-    <Card className={`border-l-[3px] border-l-${color} bg-card shadow-sm hover:shadow-md transition-shadow`}>
+    <Card className={`border-l-[3px] ${c.border} bg-card shadow-sm hover:shadow-md transition-shadow`}>
       <CardContent className="flex items-center gap-4 p-5">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${color}/10 text-${color} shrink-0`}>
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${c.iconBg} ${c.iconText} shrink-0`}>
           {icon}
         </div>
         <div>
@@ -282,7 +288,7 @@ function FollowUpRow({ followUp, userId }: { followUp: { id: string; lead_id: st
         <p className="text-sm font-medium text-foreground truncate">{followUp.lead_nome}</p>
         <p className="text-xs text-muted-foreground truncate">{followUp.descricao || "Sem descrição"}</p>
         <p className="text-xs text-destructive mt-0.5">
-          Vencido em {formatDateBR(followUp.data_agendada)}
+          Vencido em {formatDate(followUp.data_agendada)}
         </p>
       </div>
       <Button
