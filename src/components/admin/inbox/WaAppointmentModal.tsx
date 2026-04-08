@@ -222,6 +222,23 @@ export function WaAppointmentModal({
             </div>
           </div>
 
+          {/* WA Notification Toggle — only for instalacao */}
+          {appointmentType === "instalacao" && (
+            <div className="flex items-center justify-between rounded-lg border border-border p-3 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4 text-success" />
+                <div>
+                  <p className="text-xs font-medium text-foreground">Notificar cliente via WhatsApp</p>
+                  <p className="text-xs text-muted-foreground">Envia mensagem automática com data e hora</p>
+                </div>
+              </div>
+              <Switch
+                checked={notificarWa}
+                onCheckedChange={setNotificarWa}
+              />
+            </div>
+          )}
+
           {/* Notes */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Notas</Label>
@@ -233,7 +250,6 @@ export function WaAppointmentModal({
               className="text-sm resize-none"
             />
           </div>
-
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-1">
