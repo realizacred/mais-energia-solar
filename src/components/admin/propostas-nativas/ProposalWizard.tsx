@@ -701,18 +701,21 @@ export function ProposalWizard() {
       ucs: Array.isArray(raw.ucs) && raw.ucs.length > 0
         ? raw.ucs.map((u: any, i: number) => {
             const defaults = createEmptyUC(i + 1);
+            // Tarifa fallback chain: tarifa_distribuidora → tarifa_energia → tarifa_te → raw-level → 0
+            const tarifa = Number(u.tarifa_distribuidora || u.tarifa_energia || u.tarifa_te || raw.tarifa_distribuidora || 0);
             return {
               ...defaults,
               ...u,
-              consumo_mensal: u.consumo_mensal ?? u.consumo_kwh ?? raw.consumo_mensal ?? 0,
-              tarifa_distribuidora: u.tarifa_distribuidora ?? u.tarifa_energia ?? u.tarifa_kwh ?? raw.tarifa_distribuidora ?? 0,
-              tarifa_fio_b: u.tarifa_fio_b ?? 0,
+              consumo_mensal: Number(u.consumo_mensal ?? u.consumo_kwh ?? raw.consumo_mensal ?? 0),
+              tarifa_distribuidora: tarifa,
+              tarifa_fio_b: Number(u.tarifa_fio_b || 0),
+              distribuidora: u.distribuidora || raw.dis_energia || "",
             };
           })
         : [{
             ...createEmptyUC(1),
             consumo_mensal: Number(raw.consumo_mensal ?? 0),
-            tarifa_distribuidora: Number(raw.tarifa_distribuidora ?? 0),
+            tarifa_distribuidora: Number(raw.tarifa_distribuidora || raw.tarifa_energia || 0),
             distribuidora: raw.dis_energia ?? "",
           }],
       grupo: versao.grupo || "B",
