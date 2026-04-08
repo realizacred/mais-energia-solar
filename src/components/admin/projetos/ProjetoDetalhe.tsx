@@ -41,6 +41,7 @@ import { VariableMapperPanel } from "./VariableMapperPanel";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 import { DocumentosTab } from "./DocumentosTab";
 import { ProjetoInstalacaoTab } from "./ProjetoInstalacaoTab";
+import { SuprimentosListPage as SuprimentosListPageInline } from "@/components/admin/suprimentos/SuprimentosListPage";
 import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoOutrosCampos } from "./ProjetoOutrosCampos";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
