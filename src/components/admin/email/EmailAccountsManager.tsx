@@ -3,6 +3,7 @@
  * §26: PageHeader. §25: Modal. §27: KPI cards. §12: Skeleton. RB-01..RB-10.
  */
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Mail, Plus, Server, RefreshCw, Trash2, Pencil, Shield, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
