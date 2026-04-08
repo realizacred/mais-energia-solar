@@ -1289,6 +1289,11 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   Desatualizada
                 </span>
               )}
+              {isMigrated && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/15 text-warning border border-warning/30">
+                  Migrada SM
+                </span>
+              )}
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">
               {getStatusDateLabel(p.status, p.aceita_at, p.enviada_at, p.recusada_at, p.created_at)}
