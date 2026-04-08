@@ -134,6 +134,72 @@ function parsePaybackMonths(payback: string | null): number | null {
   const totalMonths = (anos ? parseInt(anos[1]) * 12 : 0) + (meses ? parseInt(meses[1]) : 0);
   return totalMonths > 0 ? totalMonths : null;
 }
+/**
+ * Map SM fase string to wizard-compatible fase/fase_tensao.
+ * SM values: "Monofásico", "Bifásico", "Trifásico"
+ * Wizard values: "monofasico", "bifasico", "trifasico" + fase_tensao enum
+ */
+function mapFaseToWizard(smFase: string | null): { fase: string; fase_tensao: string; tensao_rede: string } {
+  const f = (smFase || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (f.includes("monofas")) return { fase: "monofasico", fase_tensao: "monofasico_127_220", tensao_rede: "127/220V" };
+  if (f.includes("trifas")) return { fase: "trifasico", fase_tensao: "trifasico_127_220", tensao_rede: "127/220V" };
+  return { fase: "bifasico", fase_tensao: "bifasico_127_220", tensao_rede: "127/220V" };
+}
+
+/**
+ * Build a UC object fully compatible with the wizard's UCData interface.
+ * Maps SM field names to wizard field names so that editing a migrated proposal works.
+ */
+function buildWizardUC(smProp: Record<string, any>): Record<string, any> {
+  const { fase, fase_tensao, tensao_rede } = mapFaseToWizard(smProp.fase);
+  const consumo = Number(smProp.consumo_mensal ?? 0);
+  const tarifaEnergia = Number(smProp.tarifa_distribuidora ?? 0);
+
+  // Determine subgrupo — SM may provide or default to B3
+  let subgrupo = smProp.subgrupo_tarifario || "";
+  if (!subgrupo) {
+    subgrupo = "B3";
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    uc_index: 1,
+    nome: "UC Principal",
+    is_geradora: true,
+    regra: "GD2",
+    grupo_tarifario: "B",
+    tipo_dimensionamento: "consumo",
+    distribuidora: smProp.dis_energia ?? "",
+    distribuidora_id: null,
+    subgrupo,
+    estado: "",
+    cidade: "",
+    fase,
+    fase_tensao,
+    tensao_rede,
+    consumo_mensal: consumo,
+    consumo_meses: { jan: 0, fev: 0, mar: 0, abr: 0, mai: 0, jun: 0, jul: 0, ago: 0, set: 0, out: 0, nov: 0, dez: 0 },
+    consumo_mensal_p: 0,
+    consumo_mensal_fp: 0,
+    consumo_meses_p: { jan: 0, fev: 0, mar: 0, abr: 0, mai: 0, jun: 0, jul: 0, ago: 0, set: 0, out: 0, nov: 0, dez: 0 },
+    consumo_meses_fp: { jan: 0, fev: 0, mar: 0, abr: 0, mai: 0, jun: 0, jul: 0, ago: 0, set: 0, out: 0, nov: 0, dez: 0 },
+    tarifa_distribuidora: tarifaEnergia,
+    tarifa_fio_b: 0,
+    tarifa_te_p: 0, tarifa_tusd_p: 0, tarifa_fio_b_p: 0, tarifa_tarifacao_p: 0,
+    tarifa_te_fp: 0, tarifa_tusd_fp: 0, tarifa_fio_b_fp: 0, tarifa_tarifacao_fp: 0,
+    demanda_consumo_kw: 0, demanda_geracao_kw: 0,
+    demanda_consumo_rs: 0, demanda_geracao_rs: 0,
+    demanda_preco: 0, demanda_contratada: 0, demanda_adicional: 0,
+    custo_disponibilidade_kwh: 50, custo_disponibilidade_valor: 0,
+    outros_encargos_atual: 0, outros_encargos_novo: 0,
+    distancia: 0, tipo_telhado: smProp.roof_type ?? "",
+    inclinacao: smProp.inclinacao ?? 0, desvio_azimutal: smProp.desvio_azimutal ?? 0,
+    taxa_desempenho: 80,
+    regra_compensacao: 0, rateio_sugerido_creditos: 100,
+    rateio_creditos: 100, imposto_energia: 0, fator_simultaneidade: 0,
+    percentual_compensacao: 100,
+  };
+}
 
 // ─── Main Handler ───────────────────────────────────────
 
