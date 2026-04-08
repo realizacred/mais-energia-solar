@@ -1276,7 +1276,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       <div className={cn(
         "rounded-xl border transition-all",
         isMigrated
-          ? "border-2 border-warning/60 bg-warning/5"
+          ? "border-2 border-[hsl(30,90%,50%)]/60 bg-[hsl(30,90%,50%)]/5"
           : isPrincipal ? "bg-card border-primary/20 shadow-sm" : "bg-card border-border/40 hover:border-border/70"
       )}>
         {/* ── Header row ──────────────────────── */}
@@ -1294,6 +1294,11 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 {p.cliente_nome || p.titulo || p.codigo || `Proposta #${p.proposta_num}`}
               </p>
               <StatusBadge status={p.status} aceita_at={p.aceita_at} enviada_at={p.enviada_at} recusada_at={p.recusada_at} created_at={p.created_at} />
+              {isMigrated && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-[hsl(30,90%,50%)]/15 text-[hsl(30,90%,40%)] border border-[hsl(30,90%,50%)]/30">
+                  Migrada SM
+                </span>
+              )}
               {isPrincipal && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/10 text-warning">
                   <Star className="h-2.5 w-2.5 inline mr-0.5 -mt-0.5" />Principal
@@ -1302,11 +1307,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               {isOutdated && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/10 text-warning border border-warning/20">
                   Desatualizada
-                </span>
-              )}
-              {isMigrated && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/15 text-warning border border-warning/30">
-                  Migrada SM
                 </span>
               )}
             </div>
