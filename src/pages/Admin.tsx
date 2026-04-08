@@ -715,7 +715,7 @@ export default function Admin() {
                 
                 <Route path="webhooks" element={<Navigate to="/admin/catalogo-integracoes?tab=webhooks" replace />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
-                <Route path="integracoes" element={<IntegrationsPage />} />
+                <Route path="integracoes" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
                 <Route path="aneel" element={<Navigate to="/admin/concessionarias" replace />} />
                 <Route path="saude-integracoes" element={<Navigate to="/admin/catalogo-integracoes?tab=saude" replace />} />
                 <Route path="monitoramento-solar" element={<Navigate to="/admin/monitoramento/integracoes" replace />} />
