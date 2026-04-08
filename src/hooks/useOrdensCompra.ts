@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 const STALE_TIME = 1000 * 60 * 5;
 const QK = ["ordens-compra"] as const;
 
-export type OrdemCompraStatus = "rascunho" | "enviada" | "confirmada" | "em_transito" | "recebida" | "cancelada";
+export type OrdemCompraStatus = "rascunho" | "enviada" | "confirmada" | "em_transito" | "recebida_parcial" | "recebida" | "cancelada";
 
 export interface OrdemCompra {
   id: string;
@@ -42,6 +42,7 @@ export interface OrdemCompraItem {
   valor_unitario: number;
   valor_total: number;
   quantidade_recebida: number;
+  observacao_recebimento: string | null;
 }
 
 export interface OrdemCompraTransporte {
@@ -348,15 +349,23 @@ export function useReceberItensOrdem() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ ordemId, itens }: {
+    mutationFn: async ({ ordemId, numeroPedido, itens }: {
       ordemId: string;
-      itens: Array<{ id: string; quantidade_recebida: number; estoque_item_id: string | null }>;
+      numeroPedido?: string | null;
+      itens: Array<{ id: string; quantidade_recebida: number; estoque_item_id: string | null; quantidade: number; observacao_recebimento?: string }>;
     }) => {
-      // Update each item's quantidade_recebida
+      let completos = 0;
+      let parciais = 0;
+      let naoRecebidos = 0;
+
+      // Update each item
       for (const item of itens) {
         const { error } = await (supabase as any)
           .from("ordens_compra_itens")
-          .update({ quantidade_recebida: item.quantidade_recebida })
+          .update({
+            quantidade_recebida: item.quantidade_recebida,
+            observacao_recebimento: item.observacao_recebimento || null,
+          })
           .eq("id", item.id);
         if (error) throw error;
 
@@ -366,25 +375,47 @@ export function useReceberItensOrdem() {
             item_id: item.estoque_item_id,
             tipo: "entrada",
             quantidade: item.quantidade_recebida,
-            referencia: `OC-${ordemId}`,
-            observacao: "Recebimento via ordem de compra",
+            referencia: `OC-${numeroPedido || ordemId}`,
+            observacao: `Recebimento via ordem de compra${numeroPedido ? ` #${numeroPedido}` : ""}`,
           });
+        }
+
+        // Classify item
+        if (item.quantidade_recebida >= item.quantidade) {
+          completos++;
+        } else if (item.quantidade_recebida > 0) {
+          parciais++;
+        } else {
+          naoRecebidos++;
         }
       }
 
-      // Mark order as received
+      // Determine order status
+      const novoStatus: OrdemCompraStatus = (completos === itens.length)
+        ? "recebida"
+        : (parciais > 0 || completos > 0)
+          ? "recebida_parcial"
+          : "em_transito";
+
       await (supabase as any).from("ordens_compra").update({
-        status: "recebida",
-        data_entrega_real: new Date().toISOString().split("T")[0],
+        status: novoStatus,
+        ...(novoStatus === "recebida" ? { data_entrega_real: new Date().toISOString().split("T")[0] } : {}),
       }).eq("id", ordemId);
 
-      // Register event
+      // Register detailed event
+      const descParts = [];
+      if (completos > 0) descParts.push(`${completos} completo(s)`);
+      if (parciais > 0) descParts.push(`${parciais} parcial(is)`);
+      if (naoRecebidos > 0) descParts.push(`${naoRecebidos} não recebido(s)`);
+
       await (supabase as any).from("ordens_compra_eventos").insert({
         ordem_compra_id: ordemId,
         tipo: "item_recebido",
-        descricao: "Recebimento confirmado e estoque atualizado",
+        descricao: `Recebimento confirmado — ${descParts.join(", ")}`,
         criado_por: user?.id,
       });
+
+      return { completos, parciais, naoRecebidos, novoStatus };
     },
     onSuccess: () => {
       invalidate();

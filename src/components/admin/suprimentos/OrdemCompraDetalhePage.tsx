@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Truck, ClipboardList, History, ExternalLink, ChevronRight } from "lucide-react";
+import { ArrowLeft, Package, Truck, ClipboardList, History, ExternalLink, ChevronRight, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ import {
   useReceberItensOrdem,
   useSalvarTransporte,
   OrdemCompraStatus,
+  OrdemCompraItem,
 } from "@/hooks/useOrdensCompra";
 
 const STATUS_LABELS: Record<OrdemCompraStatus, string> = {
@@ -35,6 +36,7 @@ const STATUS_LABELS: Record<OrdemCompraStatus, string> = {
   enviada: "Enviada",
   confirmada: "Confirmada",
   em_transito: "Em trânsito",
+  recebida_parcial: "Recebida parcial",
   recebida: "Recebida",
   cancelada: "Cancelada",
 };
@@ -44,6 +46,7 @@ const STATUS_COLORS: Record<OrdemCompraStatus, string> = {
   enviada: "bg-info/10 text-info border-info/20",
   confirmada: "bg-secondary/10 text-secondary border-secondary/20",
   em_transito: "bg-warning/10 text-warning border-warning/20",
+  recebida_parcial: "bg-warning/10 text-warning border-warning/20",
   recebida: "bg-success/10 text-success border-success/20",
   cancelada: "bg-destructive/10 text-destructive border-destructive/20",
 };
@@ -52,7 +55,7 @@ const NEXT_STATUS: Partial<Record<OrdemCompraStatus, { status: OrdemCompraStatus
   rascunho: { status: "enviada", label: "Marcar como enviada" },
   enviada: { status: "confirmada", label: "Confirmar pedido" },
   confirmada: { status: "em_transito", label: "Marcar em trânsito" },
-  em_transito: { status: "recebida", label: "Registrar recebimento" },
+  recebida_parcial: { status: "recebida", label: "Marcar como recebida" },
 };
 
 type TabId = "geral" | "itens" | "transporte";
@@ -151,7 +154,7 @@ export function OrdemCompraDetalhePage() {
 
       {/* Tab Content */}
       {activeTab === "geral" && <TabGeral ordem={ordem} />}
-      {activeTab === "itens" && <TabItens ordemId={ordem.id} status={ordem.status} />}
+      {activeTab === "itens" && <TabItens ordemId={ordem.id} status={ordem.status} numeroPedido={ordem.numero_pedido} />}
       {activeTab === "transporte" && <TabTransporte ordemId={ordem.id} />}
     </div>
   );
@@ -237,11 +240,13 @@ function TabGeral({ ordem }: { ordem: any }) {
 
 // ─── Tab Itens ──────────────────────────────────────
 
-function TabItens({ ordemId, status }: { ordemId: string; status: OrdemCompraStatus }) {
+function TabItens({ ordemId, status, numeroPedido }: { ordemId: string; status: OrdemCompraStatus; numeroPedido?: string | null }) {
   const { data: itens = [], isLoading } = useOrdemCompraItens(ordemId);
   const [addOpen, setAddOpen] = useState(false);
   const [recebendo, setRecebendo] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [qtdRecebidas, setQtdRecebidas] = useState<Record<string, number>>({});
+  const [obsRecebimento, setObsRecebimento] = useState<Record<string, string>>({});
   const adicionarItem = useAdicionarItemOrdem();
   const removerItem = useRemoverItemOrdem();
   const receberItens = useReceberItensOrdem();
@@ -272,24 +277,68 @@ function TabItens({ ordemId, status }: { ordemId: string; status: OrdemCompraSta
     }
   };
 
-  const handleReceber = async () => {
+  const canReceive = status === "em_transito" || status === "recebida_parcial";
+
+  const startRecebimento = () => {
+    const qtds: Record<string, number> = {};
+    const obs: Record<string, string> = {};
+    itens.forEach(i => {
+      qtds[i.id] = i.quantidade_recebida > 0 ? i.quantidade_recebida : i.quantidade;
+      obs[i.id] = "";
+    });
+    setQtdRecebidas(qtds);
+    setObsRecebimento(obs);
+    setRecebendo(true);
+  };
+
+  const hasRecebimento = Object.values(qtdRecebidas).some(v => v > 0);
+
+  // Classification for summary modal
+  const getClassificacao = () => {
+    const completos: typeof itens = [];
+    const parciais: typeof itens = [];
+    const naoRecebidos: typeof itens = [];
+    itens.forEach(item => {
+      const qr = qtdRecebidas[item.id] ?? 0;
+      if (qr >= item.quantidade) completos.push(item);
+      else if (qr > 0) parciais.push(item);
+      else naoRecebidos.push(item);
+    });
+    return { completos, parciais, naoRecebidos };
+  };
+
+  const handleConfirmar = async () => {
     try {
-      await receberItens.mutateAsync({
+      const result = await receberItens.mutateAsync({
         ordemId,
+        numeroPedido,
         itens: itens.map(i => ({
           id: i.id,
-          quantidade_recebida: qtdRecebidas[i.id] ?? i.quantidade_recebida,
+          quantidade_recebida: qtdRecebidas[i.id] ?? 0,
           estoque_item_id: i.estoque_item_id,
+          quantidade: i.quantidade,
+          observacao_recebimento: obsRecebimento[i.id] || undefined,
         })),
       });
-      toast({ title: "Recebimento confirmado e estoque atualizado" });
+      toast({
+        title: "Recebimento confirmado",
+        description: `${result.completos} completo(s), ${result.parciais} parcial(is), ${result.naoRecebidos} não recebido(s)`,
+      });
       setRecebendo(false);
+      setConfirmOpen(false);
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
 
+  const getItemStatus = (item: OrdemCompraItem) => {
+    if (item.quantidade_recebida >= item.quantidade) return { label: "Completo", color: "bg-success/10 text-success border-success/20" };
+    if (item.quantidade_recebida > 0) return { label: "Parcial", color: "bg-warning/10 text-warning border-warning/20" };
+    return { label: "Pendente", color: "bg-muted text-muted-foreground border-border" };
+  };
+
   const total = itens.reduce((s, i) => s + (i.valor_total || 0), 0);
+  const classificacao = recebendo ? getClassificacao() : null;
 
   return (
     <Card>
@@ -297,14 +346,10 @@ function TabItens({ ordemId, status }: { ordemId: string; status: OrdemCompraSta
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-foreground">Itens da ordem</h3>
           <div className="flex gap-2">
-            {status === "em_transito" && !recebendo && (
-              <Button variant="outline" size="sm" onClick={() => {
-                const qtds: Record<string, number> = {};
-                itens.forEach(i => { qtds[i.id] = i.quantidade; });
-                setQtdRecebidas(qtds);
-                setRecebendo(true);
-              }} className="gap-1.5 border-success/30 text-success">
-                Registrar recebimento
+            {canReceive && !recebendo && (
+              <Button variant="outline" size="sm" onClick={startRecebimento} className="gap-1.5 border-success/30 text-success">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Conferir recebimento
               </Button>
             )}
             {(status === "rascunho" || status === "enviada") && (
@@ -327,51 +372,77 @@ function TabItens({ ordemId, status }: { ordemId: string; status: OrdemCompraSta
                   <TableHead className="font-semibold text-foreground">Descrição</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Qtd pedida</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Qtd recebida</TableHead>
-                  <TableHead className="font-semibold text-foreground text-right">Vlr unit.</TableHead>
+                  <TableHead className="font-semibold text-foreground text-center">Status</TableHead>
                   <TableHead className="font-semibold text-foreground text-right">Total</TableHead>
+                  {recebendo && <TableHead className="font-semibold text-foreground">Observação</TableHead>}
                   {(status === "rascunho" || status === "enviada") && <TableHead className="w-10" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {itens.map(item => (
-                  <TableRow key={item.id} className="hover:bg-muted/30">
-                    <TableCell className="text-foreground">{item.descricao || "—"}</TableCell>
-                    <TableCell className="text-center text-muted-foreground">{item.quantidade} {item.unidade}</TableCell>
-                    <TableCell className="text-center">
-                      {recebendo ? (
-                        <Input
-                          type="number"
-                          min={0}
-                          max={item.quantidade}
-                          className="w-20 mx-auto text-center h-8"
-                          value={qtdRecebidas[item.id] ?? 0}
-                          onChange={e => setQtdRecebidas(prev => ({ ...prev, [item.id]: Number(e.target.value) }))}
-                        />
-                      ) : (
-                        <span className={cn(
-                          item.quantidade_recebida >= item.quantidade ? "text-success" : "text-muted-foreground"
-                        )}>
-                          {item.quantidade_recebida}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-foreground">{formatBRL(item.valor_unitario)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm text-foreground">{formatBRL(item.valor_total)}</TableCell>
-                    {(status === "rascunho" || status === "enviada") && (
-                      <TableCell>
-                        <Button
-                          variant="ghost" size="icon" className="h-7 w-7 text-destructive"
-                          onClick={() => removerItem.mutate({ id: item.id, ordem_compra_id: ordemId })}
-                        >
-                          <ClipboardList className="h-3.5 w-3.5" />
-                        </Button>
+                {itens.map(item => {
+                  const itemStatus = getItemStatus(item);
+                  return (
+                    <TableRow key={item.id} className="hover:bg-muted/30">
+                      <TableCell className="text-foreground">
+                        <div>
+                          {item.descricao || "—"}
+                          {!recebendo && item.observacao_recebimento && (
+                            <p className="text-xs text-muted-foreground italic mt-0.5">{item.observacao_recebimento}</p>
+                          )}
+                        </div>
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))}
+                      <TableCell className="text-center text-muted-foreground">{item.quantidade} {item.unidade}</TableCell>
+                      <TableCell className="text-center">
+                        {recebendo ? (
+                          <Input
+                            type="number"
+                            min={0}
+                            max={item.quantidade}
+                            className="w-20 mx-auto text-center h-8"
+                            value={qtdRecebidas[item.id] ?? 0}
+                            onChange={e => setQtdRecebidas(prev => ({ ...prev, [item.id]: Number(e.target.value) }))}
+                          />
+                        ) : (
+                          <span className={cn(
+                            item.quantidade_recebida >= item.quantidade ? "text-success font-medium" : "text-muted-foreground"
+                          )}>
+                            {item.quantidade_recebida}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className={`text-[10px] ${itemStatus.color}`}>
+                          {itemStatus.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm text-foreground">{formatBRL(item.valor_total)}</TableCell>
+                      {recebendo && (
+                        <TableCell>
+                          <Input
+                            placeholder="Avarias, divergências..."
+                            className="h-8 text-xs min-w-[140px]"
+                            value={obsRecebimento[item.id] ?? ""}
+                            onChange={e => setObsRecebimento(prev => ({ ...prev, [item.id]: e.target.value }))}
+                          />
+                        </TableCell>
+                      )}
+                      {(status === "rascunho" || status === "enviada") && (
+                        <TableCell>
+                          <Button
+                            variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                            onClick={() => removerItem.mutate({ id: item.id, ordem_compra_id: ordemId })}
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })}
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableCell colSpan={4} className="text-right font-semibold text-foreground">Total:</TableCell>
+                  <TableCell colSpan={recebendo ? 5 : 4} className="text-right font-semibold text-foreground">Total:</TableCell>
                   <TableCell className="text-right font-mono font-bold text-foreground">{formatBRL(total)}</TableCell>
+                  {recebendo && <TableCell />}
                   {(status === "rascunho" || status === "enviada") && <TableCell />}
                 </TableRow>
               </TableBody>
@@ -382,11 +453,76 @@ function TabItens({ ordemId, status }: { ordemId: string; status: OrdemCompraSta
         {recebendo && (
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setRecebendo(false)}>Cancelar</Button>
-            <Button onClick={handleReceber} disabled={receberItens.isPending}>
-              {receberItens.isPending ? "Processando..." : "Confirmar recebimento"}
+            <Button onClick={() => setConfirmOpen(true)} disabled={!hasRecebimento}>
+              Confirmar recebimento
             </Button>
           </div>
         )}
+
+        {/* Confirmation Modal */}
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent className="w-[90vw] max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <CheckCircle2 className="h-5 w-5 text-success" />
+                Confirmar recebimento
+              </DialogTitle>
+            </DialogHeader>
+            {classificacao && (
+              <div className="space-y-4 mt-2">
+                <p className="text-sm text-muted-foreground">Revise o resumo antes de confirmar:</p>
+
+                {classificacao.completos.length > 0 && (
+                  <div className="rounded-lg border border-success/20 bg-success/5 p-3">
+                    <p className="text-xs font-semibold text-success flex items-center gap-1 mb-1.5">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Completos ({classificacao.completos.length})
+                    </p>
+                    {classificacao.completos.map(i => (
+                      <p key={i.id} className="text-xs text-foreground">
+                        {i.descricao} — {qtdRecebidas[i.id]}/{i.quantidade} {i.unidade}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {classificacao.parciais.length > 0 && (
+                  <div className="rounded-lg border border-warning/20 bg-warning/5 p-3">
+                    <p className="text-xs font-semibold text-warning flex items-center gap-1 mb-1.5">
+                      <AlertTriangle className="h-3 w-3" />
+                      Parciais ({classificacao.parciais.length})
+                    </p>
+                    {classificacao.parciais.map(i => (
+                      <p key={i.id} className="text-xs text-foreground">
+                        {i.descricao} — {qtdRecebidas[i.id]}/{i.quantidade} {i.unidade}
+                        {obsRecebimento[i.id] && <span className="text-muted-foreground italic"> ({obsRecebimento[i.id]})</span>}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {classificacao.naoRecebidos.length > 0 && (
+                  <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                    <p className="text-xs font-semibold text-destructive flex items-center gap-1 mb-1.5">
+                      <XCircle className="h-3 w-3" />
+                      Não recebidos ({classificacao.naoRecebidos.length})
+                    </p>
+                    {classificacao.naoRecebidos.map(i => (
+                      <p key={i.id} className="text-xs text-foreground">{i.descricao} — 0/{i.quantidade} {i.unidade}</p>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Voltar</Button>
+                  <Button onClick={handleConfirmar} disabled={receberItens.isPending} className="gap-1.5">
+                    {receberItens.isPending ? "Processando..." : "Confirmar e atualizar estoque"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Add Item Dialog */}
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
