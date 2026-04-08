@@ -209,10 +209,10 @@ async function fetchDashboardData(userId: string, isAdmin: boolean): Promise<Con
   return { kpis, hotLeads: hotLeadsList, overdueFollowUps, funnelStages };
 }
 
-export function useConsultorDashboard(userId: string | undefined) {
+export function useConsultorDashboard(userId: string | undefined, isAdmin = false) {
   return useQuery({
-    queryKey: ["consultor-dashboard", userId],
-    queryFn: () => fetchDashboardData(userId!),
+    queryKey: ["consultor-dashboard", userId, isAdmin],
+    queryFn: () => fetchDashboardData(userId!, isAdmin),
     enabled: !!userId,
     staleTime: STALE_TIME,
   });
