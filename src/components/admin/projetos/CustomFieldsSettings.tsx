@@ -780,7 +780,6 @@ export function CustomFieldsSettings() {
   );
 }
 
-}
 
 // ─── Stage Multi-Select ───
 function StageMultiSelect({ label, stages, pipelines, selectedIds, onChange }: {
