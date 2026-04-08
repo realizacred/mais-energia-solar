@@ -70,6 +70,8 @@ interface PropostaData {
   aceita_at: string | null;
   enviada_at: string | null;
   recusada_at: string | null;
+  origem: string | null;
+  sm_id: string | null;
   versoes: VersaoData[];
 }
 
@@ -624,6 +626,7 @@ interface Props {
 export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
   const navigate = useNavigate();
   const { data: tenantCtx } = useQuery({ queryKey: ["current-tenant-id"], queryFn: getCurrentTenantId, staleTime: 1000 * 60 * 15 });
+  const isMigrated = p.origem === "imported" && !!p.sm_id;
   const latestVersao = p.versoes[0];
   const wpPrice = latestVersao?.valor_total && latestVersao?.potencia_kwp
     ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
@@ -745,6 +748,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       setEditAceitaMotivo("");
       setEditAceitaDialogOpen(true);
     } else {
+      // Clear migration origin when editing — proposal becomes native
+      if (isMigrated) {
+        await supabase
+          .from("propostas_nativas")
+          .update({ origem: "nativo", sm_id: null } as any)
+          .eq("id", p.id);
+      }
       editFn();
     }
   };
@@ -767,6 +777,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         .eq("deal_id", dealId)
         .eq("status", "generated")
         .neq("signature_status", "signed");
+
+      // Clear migration origin when editing — proposal becomes native
+      if (isMigrated) {
+        await supabase
+          .from("propostas_nativas")
+          .update({ origem: "nativo", sm_id: null } as any)
+          .eq("id", p.id);
+      }
 
       setEditAceitaDialogOpen(false);
       pendingEditAction?.();
@@ -1257,7 +1275,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     <>
       <div className={cn(
         "rounded-xl border transition-all",
-        isPrincipal ? "bg-card border-primary/20 shadow-sm" : "bg-card border-border/40 hover:border-border/70"
+        isMigrated
+          ? "border-2 border-warning/60 bg-warning/5"
+          : isPrincipal ? "bg-card border-primary/20 shadow-sm" : "bg-card border-border/40 hover:border-border/70"
       )}>
         {/* ── Header row ──────────────────────── */}
         <div
@@ -1282,6 +1302,11 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               {isOutdated && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/10 text-warning border border-warning/20">
                   Desatualizada
+                </span>
+              )}
+              {isMigrated && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/15 text-warning border border-warning/30">
+                  Migrada SM
                 </span>
               )}
             </div>
