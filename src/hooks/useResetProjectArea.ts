@@ -60,7 +60,7 @@ export function useResetProjectArea() {
           : "Todos os dados de projeto foram removidos. Leads preservados.",
         duration: 8000,
       });
-      setTimeout(() => window.location.reload(), 2000);
+      // RB-03-exception: no auto-reload — user needs to see results
     },
     onError: (err: Error) => {
       toast.error("Erro ao resetar área de projetos", { description: err.message });
