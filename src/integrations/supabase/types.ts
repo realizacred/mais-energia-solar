@@ -10154,6 +10154,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           distribuido_em: string | null
+          email: string | null
           estado: string
           facebook_lead_id: string | null
           form_id: string | null
@@ -10211,6 +10212,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           distribuido_em?: string | null
+          email?: string | null
           estado: string
           facebook_lead_id?: string | null
           form_id?: string | null
@@ -10268,6 +10270,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           distribuido_em?: string | null
+          email?: string | null
           estado?: string
           facebook_lead_id?: string | null
           form_id?: string | null
