@@ -168,16 +168,40 @@ export default function PerformanceDashboard() {
   const kpis = useMemo(() => {
     const now = new Date();
     const closedLeads = leads.filter(l => closedStatusIds.includes(l.status_id || ""));
-    const totalValue = deals.reduce((s, d) => s + d.deal_value, 0);
-    const wonDeals = deals.filter(d => d.deal_status === "ganho" || d.deal_status === "won");
+
+    // Won deals = deals in stage "Ganho" (case-insensitive)
+    const wonDeals = deals.filter(d => {
+      const sn = d.stage_name?.toLowerCase() || "";
+      return sn === "ganho" || sn === "won" || sn === "fechado";
+    });
+
+    // Active pipeline = deals NOT in "Perdido"/"Ganho" stages
+    const activeDeals = deals.filter(d => {
+      const sn = d.stage_name?.toLowerCase() || "";
+      return sn !== "perdido" && sn !== "ganho" && sn !== "won";
+    });
+    const activePipelineValue = activeDeals.reduce((s, d) => s + d.deal_value, 0);
+
     const wonValue = wonDeals.reduce((s, d) => s + d.deal_value, 0);
 
-    // Avg cycle time (days from created to closed)
-    const cycleTimes = closedLeads
+    // Avg cycle time: for closed leads, use the time from creation to now
+    // (ideally we'd use actual close date from deal_stage_history, but using
+    // last_stage_change from won deals as a proxy)
+    const cycleTimes = wonDeals
+      .filter(d => d.created_at)
+      .map(d => differenceInDays(new Date(d.created_at), new Date(d.created_at)))
+      .filter(d => d > 0 && d < 365);
+
+    // Better: use closed leads with created_at as approximation
+    // Since we don't have close date, measure won deals' last_stage_change - deal creation
+    // For now, use lead-based estimation from closed leads
+    const leadCycleTimes = closedLeads
       .filter(l => l.created_at)
       .map(l => differenceInDays(now, new Date(l.created_at)))
       .filter(d => d > 0 && d < 365);
-    const avgCycle = cycleTimes.length > 0 ? Math.round(cycleTimes.reduce((s, d) => s + d, 0) / cycleTimes.length) : 0;
+    const avgCycle = leadCycleTimes.length > 0
+      ? Math.round(leadCycleTimes.reduce((s, d) => s + d, 0) / leadCycleTimes.length)
+      : 0;
 
     // This month vs last month for growth indicators
     const thisMonthStart = startOfMonth(now);
@@ -220,11 +244,13 @@ export default function PerformanceDashboard() {
 
     return {
       totalLeads: leads.length,
+      totalDeals: deals.length,
+      activeDeals: activeDeals.length,
       closedLeads: closedLeads.length,
       conversionRate,
       avgCycle,
       ticketMedio,
-      totalPipeline: totalValue,
+      totalPipeline: activePipelineValue,
       wonValue,
       thisMonthLeads,
       leadsGrowth,
