@@ -30,7 +30,7 @@ export function useResetTenantData() {
       }
     },
     onSuccess: (data) => {
-      qc.clear();
+      qc.invalidateQueries();
       const c = data?.counts ?? data?.results ?? {};
       const parts = [
         c.clientes && `${c.clientes} clientes`,
