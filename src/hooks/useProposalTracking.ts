@@ -38,6 +38,9 @@ export interface ViewData {
   user_agent: string | null;
   ip_address: string | null;
   referrer: string | null;
+  device_type: string | null;
+  screen_width: number | null;
+  duration_seconds: number | null;
   created_at: string;
 }
 
@@ -60,7 +63,7 @@ export function useProposalTracking(propostaId: string | null, versaoId?: string
 
       const viewsPromise = (supabase as any)
         .from("proposta_views")
-        .select("id, ip_address, user_agent, referrer, created_at", { count: "exact" })
+        .select("id, ip_address, user_agent, referrer, device_type, screen_width, duration_seconds, created_at", { count: "exact" })
         .eq("proposta_id", propostaId)
         .order("created_at", { ascending: false })
         .limit(200);
