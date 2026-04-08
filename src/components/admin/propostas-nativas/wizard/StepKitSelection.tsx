@@ -134,7 +134,18 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const [manualMode, setManualMode] = useState<"equipamentos" | "zero" | null>(null);
   // Use lifted state if provided, fallback to local
   const [localManualKits, setLocalManualKits] = useState<{ card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[]>([]);
-  const manualKits = onManualKitsChange ? manualKitsProp : localManualKits;
+  const persistedManualKits = onManualKitsChange ? manualKitsProp : localManualKits;
+  const manualKits = useMemo(() => {
+    if (persistedManualKits.length > 0) return persistedManualKits;
+    if (itens.length === 0) return [];
+    const restoredCard = kitItemsToCardData(itens, pd?.topologias?.[0], custoKitOverride ?? null);
+    if (!restoredCard) return [];
+    return [{
+      card: { ...restoredCard, distribuidorNome: restoredCard.distribuidorNome || "Importado SM" },
+      itens,
+      meta: { distribuidorNome: "Importado SM", nomeKit: "Kit restaurado" },
+    }];
+  }, [persistedManualKits, itens, pd?.topologias, custoKitOverride]);
   const setManualKits = onManualKitsChange || setLocalManualKits;
   const [editingKitIndex, setEditingKitIndex] = useState<number | null>(null);
   const [selectedManualIdx, setSelectedManualIdx] = useState<number | null>(() => {

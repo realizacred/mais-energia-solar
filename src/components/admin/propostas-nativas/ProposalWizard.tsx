@@ -596,6 +596,8 @@ export function ProposalWizard() {
     }
 
     // Pre-compute itens before building normalized object (needed for manualKits)
+    const legacyKitCost = Number(raw.venda?.custo_kit ?? raw.venda?.custo_equipamentos ?? raw.equipment_cost ?? 0);
+    const fallbackPanelQty = Number(raw.panel_quantity || 0);
     const computedItens = Array.isArray(raw.itens) && raw.itens.length > 0
       ? raw.itens.map((it: any) => ({
           id: it.id || crypto.randomUUID(),
@@ -616,8 +618,8 @@ export function ProposalWizard() {
             fabricante: "",
             modelo: raw.panel_model,
             potencia_w: 0,
-            quantidade: raw.panel_quantity || 0,
-            preco_unitario: 0,
+            quantidade: fallbackPanelQty,
+            preco_unitario: fallbackPanelQty > 0 && legacyKitCost > 0 ? legacyKitCost / fallbackPanelQty : 0,
             categoria: "modulo" as const,
             avulso: false,
           }] : []),
@@ -670,7 +672,6 @@ export function ProposalWizard() {
             return {
               ...defaults,
               ...u,
-              // Map legacy field names to wizard field names
               consumo_mensal: u.consumo_mensal ?? u.consumo_kwh ?? raw.consumo_mensal ?? 0,
               tarifa_distribuidora: u.tarifa_distribuidora ?? u.tarifa_energia ?? u.tarifa_kwh ?? raw.tarifa_distribuidora ?? 0,
               tarifa_fio_b: u.tarifa_fio_b ?? 0,
@@ -683,7 +684,7 @@ export function ProposalWizard() {
             distribuidora: raw.dis_energia ?? "",
           }],
       grupo: versao.grupo || "B",
-      potenciaKwp: versao.potencia_kwp || 0,
+      potenciaKwp: Number(versao.potencia_kwp ?? raw.potenciaKwp ?? raw.tecnico?.potencia_kwp ?? 0),
       itens: computedItens,
       layouts: raw.layouts || [],
       manualKits: (() => {
@@ -696,7 +697,8 @@ export function ProposalWizard() {
         const totalModKwp = modItems.reduce((s: number, m: any) => s + (m.potencia_w * m.quantidade) / 1000, 0);
         const totalInvQtd = invItems.reduce((s: number, i: any) => s + i.quantidade, 0);
         const totalInvKw = invItems.reduce((s: number, i: any) => s + (i.potencia_w * i.quantidade) / 1000, 0);
-        const precoTotal = computedItens.reduce((s: number, i: any) => s + i.quantidade * i.preco_unitario, 0);
+        const precoTotalFromItems = computedItens.reduce((s: number, i: any) => s + i.quantidade * i.preco_unitario, 0);
+        const precoTotal = precoTotalFromItems > 0 ? precoTotalFromItems : legacyKitCost;
         const precoWp = totalModKwp > 0 ? precoTotal / (totalModKwp * 1000) : 0;
         const modDesc = modItems.map((m: any) => `${m.fabricante} ${m.modelo}`.trim()).filter(Boolean).join(" + ") || "—";
         const invDesc = invItems.map((i: any) => `${i.fabricante} ${i.modelo}`.trim()).filter(Boolean).join(" + ") || "—";
@@ -712,7 +714,7 @@ export function ProposalWizard() {
           topologia: "Tradicional",
           precoTotal,
           precoWp,
-          updatedAt: new Date().toLocaleDateString("pt-BR"),
+          updatedAt: new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }),
         };
         return [{ card, itens: computedItens, meta: { distribuidorNome: "Importado SM", nomeKit: "Kit Importado SM" } }];
       })(),
@@ -733,7 +735,7 @@ export function ProposalWizard() {
             incluso_no_preco: true,
           }] : [],
       venda: raw.venda && typeof raw.venda === "object" ? {
-        custo_kit: Number(raw.venda.custo_kit ?? raw.venda.custo_equipamentos ?? 0),
+        custo_kit: Number(raw.venda.custo_kit ?? raw.venda.custo_equipamentos ?? legacyKitCost),
         custo_instalacao: Number(raw.venda.custo_instalacao ?? raw.venda.custo_servicos ?? 0),
         custo_comissao: Number(raw.venda.custo_comissao ?? 0),
         custo_outros: Number(raw.venda.custo_outros ?? 0),
@@ -741,7 +743,7 @@ export function ProposalWizard() {
         desconto_percentual: Number(raw.venda.desconto_percentual ?? 0),
         observacoes: raw.venda.observacoes || "",
       } : {
-        custo_kit: Number(raw.equipment_cost ?? 0),
+        custo_kit: legacyKitCost,
         custo_instalacao: Number(raw.installation_cost ?? 0),
         custo_comissao: 0,
         custo_outros: 0,
@@ -760,7 +762,7 @@ export function ProposalWizard() {
       premissas: raw.premissas && typeof raw.premissas === "object" ? raw.premissas : null,
       preDimensionamento: raw.preDimensionamento && typeof raw.preDimensionamento === "object" ? raw.preDimensionamento : null,
       customFieldValues: raw.customFieldValues || {},
-      geracaoMensalEstimada: raw.geracaoMensalEstimada ?? raw.financeiro?.economia_mensal ?? 0,
+      geracaoMensalEstimada: Number(raw.geracaoMensalEstimada ?? raw.tecnico?.geracao_mensal_media_kwh ?? ((raw.tecnico?.geracao_estimada_kwh ?? raw.geracao_anual ?? 0) / 12)),
     };
 
     return normalized;
@@ -991,7 +993,7 @@ export function ProposalWizard() {
             descricaoProposta: ws.descricaoProposta ?? "",
             templateSelecionado: ws.templateSelecionado ?? rawSnapshot.inputs?.template_id ?? "",
             step: 0,
-            geracaoMensalEstimada: ws.geracaoMensalEstimada ?? (tecnico.geracao_estimada_kwh || fin.economia_mensal ? Math.round(tecnico.geracao_estimada_kwh || 0) : 0),
+            geracaoMensalEstimada: Number(ws.geracaoMensalEstimada ?? tecnico.geracao_mensal_media_kwh ?? ((tecnico.geracao_estimada_kwh ?? 0) / 12)),
           } as any;
           // console.log("[ProposalWizard] Normalized engine snapshot to wizard format", { hasWizardState: !!rawSnapshot._wizard_state });
         } else {
