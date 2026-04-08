@@ -1123,14 +1123,21 @@ Deno.serve(async (req) => {
             }
           }
 
-          // If still no owner, abort
+          // If still no owner, fallback to "Não Definido" consultor
           if (!resolvedOwnerId) {
-            report.aborted = true;
-            report.steps.deal = { status: "ERROR", reason: "Nenhum vendedor no funil Vendedores e nenhum responsável de fallback selecionado" };
-            summary.ERROR++;
-            reports.push(report);
-            await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
-            continue;
+            const naoDefinidoId = consultoresMap.get(normalizeComparableName("Não Definido"));
+            if (naoDefinidoId) {
+              resolvedOwnerId = naoDefinidoId;
+              ownerSource = "fallback_nao_definido";
+              (report as any).owner_resolved = { name: "Não Definido", id: naoDefinidoId, created: false, source: "fallback_nao_definido" };
+            } else {
+              report.aborted = true;
+              report.steps.deal = { status: "ERROR", reason: "Nenhum vendedor encontrado e consultor 'Não Definido' não existe" };
+              summary.ERROR++;
+              reports.push(report);
+              await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
+              continue;
+            }
           }
 
           // ── C. Deal (idempotent via legacy_key) ──
