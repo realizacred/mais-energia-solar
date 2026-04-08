@@ -223,6 +223,7 @@ export type Database = {
           idempotency_key: string | null
           last_synced_at: string | null
           lead_id: string | null
+          notificar_wa: boolean
           reminder_minutes: number | null
           reminder_sent: boolean | null
           starts_at: string
@@ -232,6 +233,7 @@ export type Database = {
           tenant_id: string
           title: string
           updated_at: string
+          wa_notificado_em: string | null
         }
         Insert: {
           all_day?: boolean | null
@@ -252,6 +254,7 @@ export type Database = {
           idempotency_key?: string | null
           last_synced_at?: string | null
           lead_id?: string | null
+          notificar_wa?: boolean
           reminder_minutes?: number | null
           reminder_sent?: boolean | null
           starts_at: string
@@ -261,6 +264,7 @@ export type Database = {
           tenant_id?: string
           title: string
           updated_at?: string
+          wa_notificado_em?: string | null
         }
         Update: {
           all_day?: boolean | null
@@ -281,6 +285,7 @@ export type Database = {
           idempotency_key?: string | null
           last_synced_at?: string | null
           lead_id?: string | null
+          notificar_wa?: boolean
           reminder_minutes?: number | null
           reminder_sent?: boolean | null
           starts_at?: string
@@ -290,6 +295,7 @@ export type Database = {
           tenant_id?: string
           title?: string
           updated_at?: string
+          wa_notificado_em?: string | null
         }
         Relationships: [
           {
@@ -22146,6 +22152,7 @@ export type Database = {
           wa_notif_numero: string | null
           wa_notif_pagamento: boolean | null
           wa_notif_quitado: boolean | null
+          wa_template_agendamento_instalacao: string | null
         }
         Insert: {
           asaas_sandbox?: boolean | null
@@ -22234,6 +22241,7 @@ export type Database = {
           wa_notif_numero?: string | null
           wa_notif_pagamento?: boolean | null
           wa_notif_quitado?: boolean | null
+          wa_template_agendamento_instalacao?: string | null
         }
         Update: {
           asaas_sandbox?: boolean | null
@@ -22322,6 +22330,7 @@ export type Database = {
           wa_notif_numero?: string | null
           wa_notif_pagamento?: boolean | null
           wa_notif_quitado?: boolean | null
+          wa_template_agendamento_instalacao?: string | null
         }
         Relationships: [
           {
@@ -27910,7 +27919,13 @@ export type Database = {
         | "financeiro"
         | "super_admin"
       appointment_status: "scheduled" | "completed" | "cancelled" | "missed"
-      appointment_type: "call" | "meeting" | "followup" | "visit" | "other"
+      appointment_type:
+        | "call"
+        | "meeting"
+        | "followup"
+        | "visit"
+        | "other"
+        | "instalacao"
       atividade_tipo:
         | "ligacao"
         | "whatsapp"
@@ -28203,7 +28218,14 @@ export const Constants = {
         "super_admin",
       ],
       appointment_status: ["scheduled", "completed", "cancelled", "missed"],
-      appointment_type: ["call", "meeting", "followup", "visit", "other"],
+      appointment_type: [
+        "call",
+        "meeting",
+        "followup",
+        "visit",
+        "other",
+        "instalacao",
+      ],
       atividade_tipo: [
         "ligacao",
         "whatsapp",

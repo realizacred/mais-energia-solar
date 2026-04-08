@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
-export type AppointmentType = "call" | "meeting" | "followup" | "visit" | "other";
+export type AppointmentType = "call" | "meeting" | "followup" | "visit" | "instalacao" | "other";
 export type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "missed";
 
 export interface Appointment {
@@ -40,6 +40,7 @@ export interface CreateAppointmentInput {
   conversation_id?: string;
   lead_id?: string;
   cliente_id?: string;
+  notificar_wa?: boolean;
 }
 
 /**
@@ -110,10 +111,12 @@ export function useAppointments(filters?: {
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateAppointmentInput) => {
+      const { notificar_wa = true, ...rest } = input;
       const { data, error } = await supabase
         .from("appointments" as any)
         .insert({
-          ...input,
+          ...rest,
+          notificar_wa,
           created_by: user?.id,
           assigned_to: input.assigned_to || user?.id,
         })
@@ -121,7 +124,16 @@ export function useAppointments(filters?: {
         .single();
 
       if (error) throw error;
-      return data as unknown as Appointment;
+      const created = data as unknown as Appointment;
+
+      // RB-25: fire-and-forget WA notification for instalacao
+      if (created.appointment_type === "instalacao" && notificar_wa) {
+        supabase.functions.invoke("notificar-agendamento-wa", {
+          body: { appointment_id: created.id },
+        }).catch(() => {});
+      }
+
+      return created;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
@@ -146,7 +158,20 @@ export function useAppointments(filters?: {
         .single();
 
       if (error) throw error;
-      return data as unknown as Appointment;
+      const updated = data as unknown as Appointment;
+
+      // RB-25: fire-and-forget WA re-notification when instalacao date changes
+      if (
+        updated.appointment_type === "instalacao" &&
+        (updated as any).notificar_wa !== false &&
+        updates.starts_at
+      ) {
+        supabase.functions.invoke("notificar-agendamento-wa", {
+          body: { appointment_id: updated.id },
+        }).catch(() => {});
+      }
+
+      return updated;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });

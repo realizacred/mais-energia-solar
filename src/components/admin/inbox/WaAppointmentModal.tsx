@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, Phone, Users, FileText, Bell, CalendarCheck } from "lucide-react";
+import { Calendar, Clock, Phone, Users, FileText, Bell, CalendarCheck, Wrench, MessageCircle } from "lucide-react";
 import { useAppointments, type AppointmentType, type CreateAppointmentInput } from "@/hooks/useAppointments";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ const TYPE_OPTIONS: { value: AppointmentType; label: string; icon: typeof Phone 
   { value: "meeting", label: "Reunião", icon: Users },
   { value: "followup", label: "Follow-up", icon: CalendarCheck },
   { value: "visit", label: "Visita", icon: Calendar },
+  { value: "instalacao", label: "Instalação", icon: Wrench },
   { value: "other", label: "Outro", icon: FileText },
 ];
 
@@ -56,6 +58,7 @@ export function WaAppointmentModal({
   const [time, setTime] = useState("09:00");
   const [duration, setDuration] = useState("60");
   const [reminderMinutes, setReminderMinutes] = useState(15);
+  const [notificarWa, setNotificarWa] = useState(true);
 
   const handleSubmit = () => {
     if (!title.trim() || !date) return;
@@ -76,6 +79,7 @@ export function WaAppointmentModal({
       conversation_id: conversationId,
       lead_id: leadId,
       cliente_id: clienteId,
+      notificar_wa: notificarWa,
     };
 
     createAppointment(input, {
@@ -94,6 +98,7 @@ export function WaAppointmentModal({
     setTime("09:00");
     setDuration("60");
     setReminderMinutes(15);
+    setNotificarWa(true);
   };
 
   
@@ -217,6 +222,23 @@ export function WaAppointmentModal({
             </div>
           </div>
 
+          {/* WA Notification Toggle — only for instalacao */}
+          {appointmentType === "instalacao" && (
+            <div className="flex items-center justify-between rounded-lg border border-border p-3 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4 text-success" />
+                <div>
+                  <p className="text-xs font-medium text-foreground">Notificar cliente via WhatsApp</p>
+                  <p className="text-xs text-muted-foreground">Envia mensagem automática com data e hora</p>
+                </div>
+              </div>
+              <Switch
+                checked={notificarWa}
+                onCheckedChange={setNotificarWa}
+              />
+            </div>
+          )}
+
           {/* Notes */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Notas</Label>
@@ -228,7 +250,6 @@ export function WaAppointmentModal({
               className="text-sm resize-none"
             />
           </div>
-
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-1">
