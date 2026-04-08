@@ -29,11 +29,12 @@ const WebhookManager = lazy(() =>
 function usePipelineComercialId() {
   return useQuery({
     queryKey: ["pipeline_comercial_id"],
-    queryFn: async () => {
-      const { data, error } = await (supabase
+    queryFn: async (): Promise<string | null> => {
+      const query = supabase
         .from("pipelines")
         .select("id")
-        .eq("tipo", "comercial") as any).maybeSingle();
+        .eq("tipo", "comercial");
+      const { data, error } = await (query as any).maybeSingle();
       if (error) throw error;
       return (data?.id as string) ?? null;
     },
