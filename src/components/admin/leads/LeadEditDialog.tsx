@@ -3,6 +3,7 @@ import { Send, MessageSquare, UserPen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +12,7 @@ import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/Fo
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
+import { useLeadOrigensAtivas } from "@/hooks/useLeadOrigens";
 import {
   Select,
   SelectContent,
@@ -42,6 +44,8 @@ interface LeadEditInitialData {
   media_consumo?: number;
   consumo_previsto?: number;
   observacoes?: string | null;
+  lead_origem_id?: string | null;
+  origem?: string | null;
 }
 
 interface LeadEditDialogProps {
@@ -76,6 +80,7 @@ export function LeadEditDialog({
 }: LeadEditDialogProps) {
   const { toast } = useToast();
   const { data: consultores = [], isLoading: loadingConsultores } = useConsultoresAtivos();
+  const { data: origens = [] } = useLeadOrigensAtivas();
 
   const [nome, setNome] = useState(initialData.nome);
   const [telefone, setTelefone] = useState(initialData.telefone);
@@ -95,6 +100,7 @@ export function LeadEditDialog({
   const [mediaConsumo, setMediaConsumo] = useState(String(initialData.media_consumo ?? ""));
   const [consumoPrevisto, setConsumoPrevisto] = useState(String(initialData.consumo_previsto ?? ""));
   const [observacoes, setObservacoes] = useState(initialData.observacoes || "");
+  const [leadOrigemId, setLeadOrigemId] = useState(initialData.lead_origem_id || "");
   const [saving, setSaving] = useState(false);
   const [sendingWa, setSendingWa] = useState(false);
   const [phoneChanged, setPhoneChanged] = useState(false);
@@ -120,6 +126,7 @@ export function LeadEditDialog({
       setMediaConsumo(String(initialData.media_consumo ?? ""));
       setConsumoPrevisto(String(initialData.consumo_previsto ?? ""));
       setObservacoes(initialData.observacoes || "");
+      setLeadOrigemId(initialData.lead_origem_id || "");
       setPhoneChanged(false);
     }
   }, [open, initialData]);
@@ -159,6 +166,7 @@ export function LeadEditDialog({
         media_consumo: mediaConsumo ? Number(mediaConsumo) : 0,
         consumo_previsto: consumoPrevisto ? Number(consumoPrevisto) : 0,
         observacoes: observacoes.trim() || null,
+        lead_origem_id: leadOrigemId || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -382,6 +390,26 @@ export function LeadEditDialog({
             />
           </div>
         </FormGrid>
+      </FormSection>
+
+      {/* Origem do Lead */}
+      <FormSection title="Origem">
+        <Select value={leadOrigemId} onValueChange={setLeadOrigemId}>
+          <SelectTrigger className="w-full bg-background">
+            <SelectValue placeholder="Selecione a origem..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Nenhuma</SelectItem>
+            {origens.map((o) => (
+              <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!leadOrigemId && initialData.origem && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Origem legado: <Badge variant="secondary" className="text-[10px] ml-1">{initialData.origem}</Badge>
+          </p>
+        )}
       </FormSection>
 
       {/* Consultor — §16: usa useConsultoresAtivos */}

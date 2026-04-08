@@ -9920,6 +9920,33 @@ export type Database = {
           },
         ]
       }
+      lead_origens: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number | null
+          tenant_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number | null
+          tenant_id?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       lead_scores: {
         Row: {
           calculado_em: string
@@ -10132,6 +10159,7 @@ export type Database = {
           form_id: string | null
           id: string
           lead_code: string | null
+          lead_origem_id: string | null
           media_consumo: number
           motivo_perda_id: string | null
           motivo_perda_obs: string | null
@@ -10188,6 +10216,7 @@ export type Database = {
           form_id?: string | null
           id?: string
           lead_code?: string | null
+          lead_origem_id?: string | null
           media_consumo: number
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
@@ -10244,6 +10273,7 @@ export type Database = {
           form_id?: string | null
           id?: string
           lead_code?: string | null
+          lead_origem_id?: string | null
           media_consumo?: number
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
@@ -10274,6 +10304,13 @@ export type Database = {
           wa_welcome_status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_lead_origem_id_fkey"
+            columns: ["lead_origem_id"]
+            isOneToOne: false
+            referencedRelation: "lead_origens"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_motivo_perda_id_fkey"
             columns: ["motivo_perda_id"]

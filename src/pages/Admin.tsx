@@ -110,6 +110,7 @@ const WaQuickRepliesManager = lazy(() => import("@/components/admin/inbox/WaQuic
 const DistributionConfig = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.DistributionConfig })));
 const SlaBreachDashboard = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.SlaBreachDashboard })));
 const MotivoPerdaManager = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.MotivoPerdaManager })));
+const LeadOrigensManager = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.LeadOrigensManager })));
 const WaFollowupRulesManager = lazy(() => import("@/components/admin/WaFollowupRulesManager").then(m => ({ default: m.WaFollowupRulesManager })));
 const WaFollowupQueuePage = lazy(() => import("@/components/admin/WaFollowupQueuePage").then(m => ({ default: m.WaFollowupQueuePage })));
 const WaAtendimentoMetrics = lazy(() => import("@/components/admin/WaAtendimentoMetrics").then(m => ({ default: m.WaAtendimentoMetrics })));
@@ -286,6 +287,7 @@ const TAB_TITLES: Record<string, string> = {
   distribuicao: "Distribuição de leads",
   "sla-breaches": "Alertas de prazo",
   "motivos-perda": "Motivos de perda",
+  "origens-lead": "Origens de lead",
   inbox: "Atendimento",
   "respostas-rapidas": "Respostas rápidas",
   followup: "Acompanhamentos",
@@ -576,6 +578,7 @@ export default function Admin() {
                 <Route path="distribuicao" element={<DistributionConfig />} />
                 <Route path="sla-breaches" element={<SlaBreachDashboard />} />
                 <Route path="motivos-perda" element={<MotivoPerdaManager />} />
+                <Route path="origens-lead" element={<LeadOrigensManager />} />
                 
                 {/* Atendimento */}
                 <Route path="inbox" element={<WaInboxWithParams />} />
