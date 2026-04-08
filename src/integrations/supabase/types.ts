@@ -15616,6 +15616,57 @@ export type Database = {
           },
         ]
       }
+      proposal_notifications: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          lida: boolean
+          proposta_id: string
+          tenant_id: string
+          tipo: string
+          titulo: string
+          view_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lida?: boolean
+          proposta_id: string
+          tenant_id: string
+          tipo?: string
+          titulo: string
+          view_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lida?: boolean
+          proposta_id?: string
+          tenant_id?: string
+          tipo?: string
+          titulo?: string
+          view_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_notifications_view_id_fkey"
+            columns: ["view_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_views"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_variables: {
         Row: {
           created_at: string
@@ -17849,10 +17900,14 @@ export type Database = {
       proposta_views: {
         Row: {
           created_at: string
+          device_type: string | null
+          duration_seconds: number | null
           id: string
           ip_address: string | null
           proposta_id: string
           referrer: string | null
+          screen_width: number | null
+          session_id: string | null
           tenant_id: string
           token_id: string
           user_agent: string | null
@@ -17860,10 +17915,14 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          device_type?: string | null
+          duration_seconds?: number | null
           id?: string
           ip_address?: string | null
           proposta_id: string
           referrer?: string | null
+          screen_width?: number | null
+          session_id?: string | null
           tenant_id: string
           token_id: string
           user_agent?: string | null
@@ -17871,10 +17930,14 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          device_type?: string | null
+          duration_seconds?: number | null
           id?: string
           ip_address?: string | null
           proposta_id?: string
           referrer?: string | null
+          screen_width?: number | null
+          session_id?: string | null
           tenant_id?: string
           token_id?: string
           user_agent?: string | null
