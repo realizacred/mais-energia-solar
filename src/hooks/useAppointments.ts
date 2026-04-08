@@ -111,10 +111,12 @@ export function useAppointments(filters?: {
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateAppointmentInput) => {
+      const { notificar_wa = true, ...rest } = input;
       const { data, error } = await supabase
         .from("appointments" as any)
         .insert({
-          ...input,
+          ...rest,
+          notificar_wa,
           created_by: user?.id,
           assigned_to: input.assigned_to || user?.id,
         })
@@ -122,7 +124,16 @@ export function useAppointments(filters?: {
         .single();
 
       if (error) throw error;
-      return data as unknown as Appointment;
+      const created = data as unknown as Appointment;
+
+      // RB-25: fire-and-forget WA notification for instalacao
+      if (created.appointment_type === "instalacao" && notificar_wa) {
+        supabase.functions.invoke("notificar-agendamento-wa", {
+          body: { appointment_id: created.id },
+        }).catch(() => {});
+      }
+
+      return created;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
