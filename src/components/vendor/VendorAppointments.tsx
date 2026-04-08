@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Calendar,
   CalendarCheck,
+  CalendarClock,
   Phone,
   Users,
   FileText,
@@ -19,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useAppointments, type Appointment, type AppointmentStatus } from "@/hooks/useAppointments";
 import { useAuth } from "@/hooks/useAuth";
+import { RescheduleModal } from "@/components/shared/RescheduleModal";
+import { ReagendamentoTimeline } from "@/components/shared/ReagendamentoTimeline";
 
 const TYPE_ICONS: Record<string, typeof Phone> = {
   call: Phone,
@@ -46,6 +49,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secon
 export function VendorAppointments() {
   const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<"upcoming" | "past">("upcoming");
+  const [rescheduleAppt, setRescheduleAppt] = useState<Appointment | null>(null);
 
   const now = new Date();
   const filters = statusFilter === "upcoming"
@@ -199,6 +203,17 @@ export function VendorAppointments() {
                         {/* Actions */}
                         {appt.status === "scheduled" && (
                           <div className="flex flex-col gap-1 shrink-0">
+                            {appt.appointment_type === "instalacao" && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                title="Reagendar"
+                                onClick={() => setRescheduleAppt(appt)}
+                              >
+                                <CalendarClock className="h-4 w-4 text-warning" />
+                              </Button>
+                            )}
                             <Button
                               size="icon"
                               variant="ghost"
@@ -220,6 +235,11 @@ export function VendorAppointments() {
                           </div>
                         )}
                       </div>
+
+                      {/* Timeline de reagendamentos */}
+                      {appt.appointment_type === "instalacao" && (
+                        <ReagendamentoTimeline appointmentId={appt.id} />
+                      )}
                     </CardContent>
                   </Card>
                 );
@@ -227,6 +247,16 @@ export function VendorAppointments() {
             </div>
           </div>
         ))
+      )}
+
+      {/* Modal de reagendamento */}
+      {rescheduleAppt && (
+        <RescheduleModal
+          open={!!rescheduleAppt}
+          onOpenChange={(open) => !open && setRescheduleAppt(null)}
+          appointmentId={rescheduleAppt.id}
+          currentStartsAt={rescheduleAppt.starts_at}
+        />
       )}
     </div>
   );
