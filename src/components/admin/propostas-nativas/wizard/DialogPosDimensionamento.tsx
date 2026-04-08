@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
