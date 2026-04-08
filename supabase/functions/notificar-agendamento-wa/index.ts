@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { appointment_id } = await req.json();
+    const { appointment_id, is_reagendamento, motivo } = await req.json();
 
     if (!appointment_id) {
       return new Response(
@@ -110,12 +110,17 @@ Deno.serve(async (req) => {
     // 3. Buscar template do tenant
     const { data: premises } = await supabase
       .from("tenant_premises")
-      .select("wa_template_agendamento_instalacao")
+      .select("wa_template_agendamento_instalacao, wa_template_reagendamento_instalacao")
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
-    const template = premises?.wa_template_agendamento_instalacao
-      || "Olá {{nome_cliente}}! Sua instalação solar está agendada para {{data}} às {{hora}}. Qualquer dúvida, fale com {{consultor}}.";
+    const defaultTemplate = is_reagendamento
+      ? "Olá {{nome_cliente}}! Sua instalação foi reagendada para {{data}} às {{hora}}. Motivo: {{motivo}}."
+      : "Olá {{nome_cliente}}! Sua instalação solar está agendada para {{data}} às {{hora}}. Qualquer dúvida, fale com {{consultor}}.";
+
+    const template = is_reagendamento
+      ? (premises?.wa_template_reagendamento_instalacao || defaultTemplate)
+      : (premises?.wa_template_agendamento_instalacao || defaultTemplate);
 
     // 4. Buscar nome do consultor
     let consultorNome = "nosso time";
@@ -142,7 +147,8 @@ Deno.serve(async (req) => {
       .replace(/\{\{nome_cliente\}\}/g, nomeCliente)
       .replace(/\{\{data\}\}/g, dataFormatada)
       .replace(/\{\{hora\}\}/g, horaFormatada)
-      .replace(/\{\{consultor\}\}/g, consultorNome);
+      .replace(/\{\{consultor\}\}/g, consultorNome)
+      .replace(/\{\{motivo\}\}/g, motivo || "");
 
     // 7. Buscar instância WA conectada
     const { data: waInstance } = await adminClient
