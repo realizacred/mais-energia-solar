@@ -1263,62 +1263,106 @@ Deno.serve(async (req) => {
 
           // ── D. Projeto ──
           let projetoId: string | null = null;
+          const projetoCodigo = `PROJ-SM-${smProp.sm_project_id || smProp.sm_proposal_id}`;
 
           if (dealId && !dry_run) {
-            // Check if projeto already exists for this deal
-            const { data: existingProjeto } = await adminClient
+            // Priority 1: Check if projeto already exists by codigo (same SM project)
+            const { data: existingByCodigo } = await adminClient
               .from("projetos")
               .select("id")
               .eq("tenant_id", tenantId)
-              .eq("deal_id", dealId)
+              .eq("codigo", projetoCodigo)
               .limit(1);
 
-            if ((existingProjeto || []).length > 0) {
-              projetoId = existingProjeto![0].id;
-              report.steps.projeto = { status: "WOULD_LINK", id: projetoId };
+            if ((existingByCodigo || []).length > 0) {
+              projetoId = existingByCodigo![0].id;
+              report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "matched by codigo" };
             } else {
-              const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
-              const projInsert: Record<string, any> = {
-                  origem: "imported",
-                  tenant_id: tenantId,
-                  cliente_id: clienteId!,
-                  deal_id: dealId,
-                  consultor_id: resolvedOwnerId || null,
-                  potencia_kwp: smProp.potencia_kwp || null,
-                  valor_total: smProp.preco_total || smProp.valor_total || null,
-                  cidade_instalacao: smProp.cidade || smClient.city || null,
-                  uf_instalacao: smProp.estado || smClient.state || null,
-                  bairro_instalacao: smClient.neighborhood || null,
-                  rua_instalacao: smClient.address || null,
-                  cep_instalacao: smClient.zip_code_formatted || smClient.zip_code || null,
-                  tipo_instalacao: smProp.roof_type || null,
-                  modelo_inversor: smProp.inverter_model || null,
-                  numero_inversores: smProp.inverter_quantity || null,
-                  modelo_modulos: smProp.panel_model || null,
-                  numero_modulos: smProp.panel_quantity || null,
-                  valor_equipamentos: smProp.equipment_cost || null,
-                  valor_mao_obra: smProp.installation_cost || null,
-                  geracao_mensal_media_kwh: smProp.geracao_anual ? Math.round(smProp.geracao_anual / 12) : null,
-                  status: mapSmStatusToDeal(smProp) === "won" ? "concluido" : "criado",
-                  codigo: `PROJ-SM-${smProp.sm_project_id || smProp.sm_proposal_id}`,
-                  projeto_num: null,
-              };
-              if (smProjDate) {
-                projInsert.created_at = smProjDate;
-                projInsert.updated_at = smProp.sm_updated_at || smProp.acceptance_date || smProjDate;
-              }
-              const { data: newProj, error: projErr } = await adminClient
+              // Priority 2: Check by deal_id
+              const { data: existingByDeal } = await adminClient
                 .from("projetos")
-                .insert(projInsert)
                 .select("id")
-                .single();
+                .eq("tenant_id", tenantId)
+                .eq("deal_id", dealId)
+                .limit(1);
 
-              if (projErr) {
-                report.steps.projeto = { status: "ERROR", reason: projErr.message };
-                // Non-fatal: continue without projeto
+              if ((existingByDeal || []).length > 0) {
+                projetoId = existingByDeal![0].id;
+                report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "matched by deal_id" };
               } else {
-                projetoId = newProj!.id;
-                report.steps.projeto = { status: "WOULD_CREATE", id: projetoId };
+                const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
+                const projInsert: Record<string, any> = {
+                    origem: "imported",
+                    tenant_id: tenantId,
+                    cliente_id: clienteId!,
+                    deal_id: dealId,
+                    consultor_id: resolvedOwnerId || null,
+                    potencia_kwp: smProp.potencia_kwp || null,
+                    valor_total: smProp.preco_total || smProp.valor_total || null,
+                    cidade_instalacao: smProp.cidade || smClient.city || null,
+                    uf_instalacao: smProp.estado || smClient.state || null,
+                    bairro_instalacao: smClient.neighborhood || null,
+                    rua_instalacao: smClient.address || null,
+                    cep_instalacao: smClient.zip_code_formatted || smClient.zip_code || null,
+                    tipo_instalacao: smProp.roof_type || null,
+                    modelo_inversor: smProp.inverter_model || null,
+                    numero_inversores: smProp.inverter_quantity || null,
+                    modelo_modulos: smProp.panel_model || null,
+                    numero_modulos: smProp.panel_quantity || null,
+                    valor_equipamentos: smProp.equipment_cost || null,
+                    valor_mao_obra: smProp.installation_cost || null,
+                    geracao_mensal_media_kwh: smProp.geracao_anual ? Math.round(smProp.geracao_anual / 12) : null,
+                    status: mapSmStatusToDeal(smProp) === "won" ? "concluido" : "criado",
+                    codigo: projetoCodigo,
+                    projeto_num: null,
+                    is_principal: false, // avoid unique constraint on is_principal per cliente
+                };
+                if (smProjDate) {
+                  projInsert.created_at = smProjDate;
+                  projInsert.updated_at = smProp.sm_updated_at || smProp.acceptance_date || smProjDate;
+                }
+                const { data: newProj, error: projErr } = await adminClient
+                  .from("projetos")
+                  .insert(projInsert)
+                  .select("id")
+                  .single();
+
+                if (projErr) {
+                  // If unique constraint on codigo, fetch existing
+                  if (projErr.message.includes("uq_projetos_tenant_codigo")) {
+                    const { data: existingByCode } = await adminClient
+                      .from("projetos")
+                      .select("id")
+                      .eq("tenant_id", tenantId)
+                      .eq("codigo", projetoCodigo)
+                      .maybeSingle();
+                    if (existingByCode) {
+                      projetoId = existingByCode.id;
+                      report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "codigo conflict resolved" };
+                    } else {
+                      report.steps.projeto = { status: "ERROR", reason: projErr.message };
+                    }
+                  } else if (projErr.message.includes("idx_projetos_unique_principal_per_cliente")) {
+                    // Retry with is_principal = false
+                    projInsert.is_principal = false;
+                    const { data: retryProj, error: retryErr } = await adminClient
+                      .from("projetos")
+                      .insert(projInsert)
+                      .select("id")
+                      .single();
+                    if (retryErr) {
+                      report.steps.projeto = { status: "ERROR", reason: retryErr.message };
+                    } else {
+                      projetoId = retryProj!.id;
+                      report.steps.projeto = { status: "WOULD_CREATE", id: projetoId };
+                    }
+                  } else {
+                    report.steps.projeto = { status: "ERROR", reason: projErr.message };
+                  }
+                } else {
+                  projetoId = newProj!.id;
+                  report.steps.projeto = { status: "WOULD_CREATE", id: projetoId };
+                }
               }
             }
 
@@ -1371,7 +1415,7 @@ Deno.serve(async (req) => {
                   enviada_at: smProp.send_at || null,
                   proposta_num: null,
                   codigo: `PROP-SM-${smProp.sm_project_id || 0}-${smProp.sm_proposal_id}`,
-                  is_principal: true,
+                  is_principal: report.steps.projeto?.status === "WOULD_CREATE", // only first proposal of a project is principal
               };
               if (smPropDate) {
                 propInsert.created_at = smPropDate;
