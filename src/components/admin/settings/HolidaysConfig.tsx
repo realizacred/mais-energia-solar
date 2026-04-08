@@ -55,7 +55,7 @@ export function HolidaysConfig({ tenantId }: { tenantId: string }) {
   };
 
   useEffect(() => {
-    if (loading || feriados.length > 0 || autoSeededRef.current || tenantId === "00000000-0000-0000-0000-000000000001") return;
+    if (loading || feriados.length > 0 || autoSeededRef.current || !tenantId) return;
     autoSeededRef.current = true;
     seedMut.mutate(buildNationalRows(), {
       onError: () => {

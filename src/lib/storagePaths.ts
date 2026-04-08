@@ -53,7 +53,7 @@ export function clearTenantCache() {
  *
  * @example
  *   await buildStoragePath("contas-luz", `uploads/${Date.now()}.jpg`)
- *   // => "00000000-0000-0000-0000-000000000001/uploads/1234567890.jpg"
+ *   // => "{tenant-uuid}/uploads/1234567890.jpg"
  */
 export async function buildStoragePath(...segments: string[]): Promise<string> {
   const tenantId = await getCurrentTenantId();

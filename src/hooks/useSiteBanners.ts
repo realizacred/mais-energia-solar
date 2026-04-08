@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import type { Database } from "@/integrations/supabase/types";
 
 export type SiteBanner = Database["public"]["Tables"]["site_banners"]["Row"];
@@ -65,7 +66,15 @@ export function useSiteBannersAdmin() {
 
   const addBanner = useCallback(
     async (banner: Omit<Database["public"]["Tables"]["site_banners"]["Insert"], "tenant_id">) => {
-      const tenantId = banners[0]?.tenant_id || "00000000-0000-0000-0000-000000000001";
+      let tenantId = banners[0]?.tenant_id;
+      if (!tenantId) {
+        try {
+          const ctx = await getCurrentTenantId();
+          tenantId = ctx.tenantId;
+        } catch {
+          return { error: "Não foi possível identificar o tenant." };
+        }
+      }
       const { error } = await supabase
         .from("site_banners")
         .insert({ ...banner, tenant_id: tenantId } as any);
