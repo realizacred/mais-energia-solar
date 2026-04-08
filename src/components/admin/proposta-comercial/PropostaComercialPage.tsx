@@ -1,7 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Variable, FileText, Mail, Settings, BarChart3, FlaskConical } from "lucide-react";
+import { Variable, FileText, Mail, Settings, BarChart3, FlaskConical, FolderOpen } from "lucide-react";
 import { VariaveisDisponiveisPage } from "./VariaveisDisponiveisPage";
 import { TemplatesManager } from "@/components/admin/propostas-nativas/TemplatesManager";
+import { TemplatesTab as DocumentTemplatesTab } from "@/components/admin/documentos/TemplatesTab";
 import { EmailTemplatesPage } from "./EmailTemplatesPage";
 import { PropostaConfigPage } from "./PropostaConfigPage";
 import { ProposalChartsManager } from "./ProposalChartsManager";
