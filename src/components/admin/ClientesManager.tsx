@@ -861,6 +861,34 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         open={viewOpen}
         onOpenChange={setViewOpen}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="w-[90vw] max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-destructive" />
+              </div>
+              <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <span className="font-semibold text-foreground">{deleteTarget?.nome}</span>?
+              {" "}O sistema verificará se existem registros vinculados antes de permitir a exclusão.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <><Spinner className="mr-1.5" /> Verificando...</> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
