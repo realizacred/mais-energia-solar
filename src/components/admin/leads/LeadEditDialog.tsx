@@ -99,6 +99,7 @@ export function LeadEditDialog({
   const [mediaConsumo, setMediaConsumo] = useState(String(initialData.media_consumo ?? ""));
   const [consumoPrevisto, setConsumoPrevisto] = useState(String(initialData.consumo_previsto ?? ""));
   const [observacoes, setObservacoes] = useState(initialData.observacoes || "");
+  const [leadOrigemId, setLeadOrigemId] = useState(initialData.lead_origem_id || "");
   const [saving, setSaving] = useState(false);
   const [sendingWa, setSendingWa] = useState(false);
   const [phoneChanged, setPhoneChanged] = useState(false);
