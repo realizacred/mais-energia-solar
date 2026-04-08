@@ -2076,6 +2076,32 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
         </div>
       )}
 
+      {/* Gerar Link de Kits */}
+      {propostas.length >= 2 && !isClosed && (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => setShowGrupoKits(true)}>
+            <Link2 className="w-4 h-4 mr-1.5" />
+            Gerar Link de Kits
+          </Button>
+        </div>
+      )}
+
+      <GrupoKitsModal
+        open={showGrupoKits}
+        onOpenChange={setShowGrupoKits}
+        projetoId={dealId}
+        propostas={propostas.map((p: any) => ({
+          id: p.id,
+          titulo: p.titulo,
+          nome_kit: p.nome_kit,
+          status: p.status,
+          versoes: p.versoes?.map((v: any) => ({
+            valor_total: v.valor_total,
+            potencia_kwp: v.potencia_kwp,
+          })),
+        }))}
+      />
+
       {linkedOrcs.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
