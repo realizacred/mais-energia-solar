@@ -1280,6 +1280,21 @@ Deno.serve(async (req) => {
               dealId = newDeal!.id;
               existingDeals.set(legacyKey, dealId);
               report.steps.deal = { status: "WOULD_CREATE", id: dealId, reason: `pipeline: ${resolved.source}` };
+
+              // Insert primary pipeline into deal_pipeline_stages so UI shows it
+              if (resolved.pipeline_id && resolved.stage_id) {
+                const { error: dpsPrimaryErr } = await adminClient
+                  .from("deal_pipeline_stages")
+                  .upsert({
+                    deal_id: dealId,
+                    pipeline_id: resolved.pipeline_id,
+                    stage_id: resolved.stage_id,
+                    tenant_id: tenantId,
+                  }, { onConflict: "deal_id,pipeline_id" });
+                if (dpsPrimaryErr) {
+                  console.warn(`[SM Migration] Primary deal_pipeline_stages error: ${dpsPrimaryErr.message}`);
+                }
+              }
             }
           }
 
