@@ -48,7 +48,10 @@ import { AddressFields, type AddressData } from "@/components/shared/AddressFiel
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useProjetoCustomFieldValues } from "@/hooks/useProjetoCustomFields";
+import { useProjetoNotes } from "@/hooks/useProjetoNotes";
+import { useProjetoActivities } from "@/hooks/useProjetoActivities";
 import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import { usePropostasProjetoTab, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
 import {
@@ -622,6 +625,7 @@ function GerenciamentoTab({
   onEditCliente?: (clienteId: string) => void;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
   const [projectEventEntries, setProjectEventEntries] = useState<UnifiedTimelineItem[]>([]);
@@ -645,12 +649,14 @@ function GerenciamentoTab({
   const [waDialogOpen, setWaDialogOpen] = useState(false);
   const [fichaDialogOpen, setFichaDialogOpen] = useState(false);
   const [fichaClienteData, setFichaClienteData] = useState<any>(null);
-  const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; created_by_name?: string }>>([]);
-  const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string; assigned_to?: string | null }>>([]);
 
-  // Custom fields marked as important
-  const [importantFields, setImportantFields] = useState<Array<{ id: string; title: string; field_key: string; field_type: string; options: any; icon?: string | null }>>([]);
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_date?: string | null }>>({});
+  // §16/RB-04: Queries via hooks dedicados
+  const { data: notesData = [] } = useProjetoNotes(deal.id, userNamesMap);
+  const notes = notesData;
+  const { data: activities = [] } = useProjetoActivities(deal.id);
+  const { data: customFieldsData } = useProjetoCustomFieldValues(deal.id, deal.stage_id);
+  const importantFields = customFieldsData?.fields ?? [];
+  const customFieldValues = customFieldsData?.values ?? {};
 
   // ── Inline edit popup for client fields ──
   const [inlineEditOpen, setInlineEditOpen] = useState(false);
