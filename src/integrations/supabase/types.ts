@@ -12402,6 +12402,227 @@ export type Database = {
           },
         ]
       }
+      ordens_compra: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data_entrega_real: string | null
+          data_pedido: string | null
+          data_previsao_entrega: string | null
+          fornecedor_id: string | null
+          id: string
+          numero_pedido: string | null
+          observacoes: string | null
+          projeto_id: string | null
+          status: Database["public"]["Enums"]["ordem_compra_status"]
+          tenant_id: string
+          updated_at: string
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data_entrega_real?: string | null
+          data_pedido?: string | null
+          data_previsao_entrega?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          numero_pedido?: string | null
+          observacoes?: string | null
+          projeto_id?: string | null
+          status?: Database["public"]["Enums"]["ordem_compra_status"]
+          tenant_id?: string
+          updated_at?: string
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data_entrega_real?: string | null
+          data_pedido?: string | null
+          data_previsao_entrega?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          numero_pedido?: string | null
+          observacoes?: string | null
+          projeto_id?: string | null
+          status?: Database["public"]["Enums"]["ordem_compra_status"]
+          tenant_id?: string
+          updated_at?: string
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_compra_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_compra_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordens_compra_eventos: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          ordem_compra_id: string
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          ordem_compra_id: string
+          tenant_id?: string
+          tipo?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          ordem_compra_id?: string
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_compra_eventos_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordens_compra_itens: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          estoque_item_id: string | null
+          id: string
+          ordem_compra_id: string
+          quantidade: number
+          quantidade_recebida: number | null
+          tenant_id: string
+          unidade: string | null
+          updated_at: string
+          valor_total: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          estoque_item_id?: string | null
+          id?: string
+          ordem_compra_id: string
+          quantidade?: number
+          quantidade_recebida?: number | null
+          tenant_id?: string
+          unidade?: string | null
+          updated_at?: string
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          estoque_item_id?: string | null
+          id?: string
+          ordem_compra_id?: string
+          quantidade?: number
+          quantidade_recebida?: number | null
+          tenant_id?: string
+          unidade?: string | null
+          updated_at?: string
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_compra_itens_estoque_item_id_fkey"
+            columns: ["estoque_item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_compra_itens_estoque_item_id_fkey"
+            columns: ["estoque_item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_saldos"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "ordens_compra_itens_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordens_compra_transporte: {
+        Row: {
+          codigo_rastreio: string | null
+          created_at: string
+          data_despacho: string | null
+          id: string
+          observacoes: string | null
+          ordem_compra_id: string
+          previsao_chegada: string | null
+          tenant_id: string
+          transportadora: string | null
+          updated_at: string
+          url_rastreio: string | null
+        }
+        Insert: {
+          codigo_rastreio?: string | null
+          created_at?: string
+          data_despacho?: string | null
+          id?: string
+          observacoes?: string | null
+          ordem_compra_id: string
+          previsao_chegada?: string | null
+          tenant_id?: string
+          transportadora?: string | null
+          updated_at?: string
+          url_rastreio?: string | null
+        }
+        Update: {
+          codigo_rastreio?: string | null
+          created_at?: string
+          data_despacho?: string | null
+          id?: string
+          observacoes?: string | null
+          ordem_compra_id?: string
+          previsao_chegada?: string | null
+          tenant_id?: string
+          transportadora?: string | null
+          updated_at?: string
+          url_rastreio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_compra_transporte_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       os_instalacao: {
         Row: {
           assinatura_cliente_url: string | null
@@ -27623,6 +27844,13 @@ export type Database = {
       juros_responsavel_enum: "empresa" | "cliente" | "nao_aplica"
       juros_tipo_enum: "percentual" | "valor_fixo" | "sem_juros"
       meter_link_type: "principal" | "auxiliar" | "backup"
+      ordem_compra_status:
+        | "rascunho"
+        | "enviada"
+        | "confirmada"
+        | "em_transito"
+        | "recebida"
+        | "cancelada"
       pagamento_validacao_enum: "valido" | "divergente" | "pendente"
       parcela_status_enum: "pendente" | "pago" | "atrasado" | "cancelado"
       pipeline_kind: "process" | "owner_board"
@@ -27918,6 +28146,14 @@ export const Constants = {
       juros_responsavel_enum: ["empresa", "cliente", "nao_aplica"],
       juros_tipo_enum: ["percentual", "valor_fixo", "sem_juros"],
       meter_link_type: ["principal", "auxiliar", "backup"],
+      ordem_compra_status: [
+        "rascunho",
+        "enviada",
+        "confirmada",
+        "em_transito",
+        "recebida",
+        "cancelada",
+      ],
       pagamento_validacao_enum: ["valido", "divergente", "pendente"],
       parcela_status_enum: ["pendente", "pago", "atrasado", "cancelado"],
       pipeline_kind: ["process", "owner_board"],
