@@ -48,7 +48,10 @@ import { AddressFields, type AddressData } from "@/components/shared/AddressFiel
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useProjetoCustomFieldValues } from "@/hooks/useProjetoCustomFields";
+import { useProjetoNotes } from "@/hooks/useProjetoNotes";
+import { useProjetoActivities } from "@/hooks/useProjetoActivities";
 import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import { usePropostasProjetoTab, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
 import {
@@ -622,6 +625,7 @@ function GerenciamentoTab({
   onEditCliente?: (clienteId: string) => void;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
   const [projectEventEntries, setProjectEventEntries] = useState<UnifiedTimelineItem[]>([]);
@@ -645,12 +649,14 @@ function GerenciamentoTab({
   const [waDialogOpen, setWaDialogOpen] = useState(false);
   const [fichaDialogOpen, setFichaDialogOpen] = useState(false);
   const [fichaClienteData, setFichaClienteData] = useState<any>(null);
-  const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; created_by_name?: string }>>([]);
-  const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string; assigned_to?: string | null }>>([]);
 
-  // Custom fields marked as important
-  const [importantFields, setImportantFields] = useState<Array<{ id: string; title: string; field_key: string; field_type: string; options: any; icon?: string | null }>>([]);
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_date?: string | null }>>({});
+  // §16/RB-04: Queries via hooks dedicados
+  const { data: notesData = [] } = useProjetoNotes(deal.id, userNamesMap);
+  const notes = notesData;
+  const { data: activities = [] } = useProjetoActivities(deal.id);
+  const { data: customFieldsData } = useProjetoCustomFieldValues(deal.id, deal.stage_id);
+  const importantFields = customFieldsData?.fields ?? [];
+  const customFieldValues = customFieldsData?.values ?? {};
 
   // ── Inline edit popup for client fields ──
   const [inlineEditOpen, setInlineEditOpen] = useState(false);
@@ -781,80 +787,10 @@ function GerenciamentoTab({
     }
   };
 
-  // Load important custom fields + values
-  // Filter by current stage: only show fields whose important_stage_ids includes the current stage
-  const loadImportantFields = async () => {
-    try {
-      const { data: fields } = await supabase
-        .from("deal_custom_fields")
-        .select("id, title, field_key, field_type, options, important_stage_ids, icon")
-        .eq("is_active", true)
-        .eq("field_context", "projeto")
-        .eq("important_on_funnel", true)
-        .order("ordem");
-      if (!fields || fields.length === 0) { setImportantFields([]); return; }
-
-      // Client-side filter: only fields whose important_stage_ids includes current stage
-      const currentStageId = deal.stage_id;
-      const filtered = fields.filter((f: any) => {
-        const stageIds: string[] = f.important_stage_ids || [];
-        // If no specific stages configured, show in ALL stages
-        if (stageIds.length === 0) return true;
-        return stageIds.includes(currentStageId);
-      });
-
-      setImportantFields(filtered as any);
-
-      if (filtered.length === 0) { setCustomFieldValues({}); return; }
-      const fieldIds = filtered.map((f: any) => f.id);
-      const { data: values } = await supabase
-        .from("deal_custom_field_values")
-        .select("field_id, value_text, value_number, value_boolean, value_date")
-        .eq("deal_id", deal.id)
-        .in("field_id", fieldIds);
-      if (values) {
-        const map: Record<string, any> = {};
-        values.forEach((v: any) => { map[v.field_id] = v; });
-        setCustomFieldValues(map);
-      }
-    } catch { /* ignore */ }
+  // Custom fields refresh helper (for ImportantFieldRow saves)
+  const loadImportantFields = () => {
+    queryClient.invalidateQueries({ queryKey: ["deal-custom-fields-important", deal.id, deal.stage_id] });
   };
-  useEffect(() => { loadImportantFields(); }, [deal.id, deal.stage_id]);
-  useEffect(() => {
-    async function loadNotes() {
-      try {
-        const { data } = await supabase
-          .from("deal_notes")
-          .select("id, content, created_at, created_by")
-          .eq("deal_id", deal.id)
-          .order("created_at", { ascending: false })
-          .limit(50);
-        if (data) {
-          setNotes(data.map((n: any) => ({
-            ...n,
-            created_by_name: n.created_by ? (userNamesMap.get(n.created_by) || "Usuário") : "Sistema",
-          })));
-        }
-      } catch { /* ignore */ }
-    }
-    loadNotes();
-  }, [deal.id, userNamesMap]);
-
-  // Load activities
-  useEffect(() => {
-    async function loadActivities() {
-      try {
-        const { data } = await supabase
-          .from("deal_activities")
-          .select("id, title, description, activity_type, due_date, status, created_at, assigned_to, completed_at")
-          .eq("deal_id", deal.id)
-          .order("due_date", { ascending: true, nullsFirst: false })
-          .limit(50);
-        if (data) setActivities(data as any);
-      } catch { /* ignore */ }
-    }
-    loadActivities();
-  }, [deal.id]);
 
   // Save note
   const handleSaveNote = async () => {
@@ -873,7 +809,7 @@ function GerenciamentoTab({
       } as any).select("id, content, created_at, created_by").single();
       if (error) throw error;
       if (data) {
-        setNotes(prev => [{ ...(data as any), created_by_name: "Você" }, ...prev]);
+        queryClient.invalidateQueries({ queryKey: ["deal-notes", deal.id] });
         setNoteText("");
         setNoteDialogOpen(false);
         toast({ title: "Nota adicionada", description: "A nota foi salva com sucesso." });
@@ -924,7 +860,7 @@ function GerenciamentoTab({
         } as any).eq("id", editingActivityId).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
         if (error) throw error;
         if (data) {
-          setActivities(prev => prev.map(a => a.id === editingActivityId ? (data as any) : a));
+          queryClient.invalidateQueries({ queryKey: ["deal-activities", deal.id] });
           toast({ title: "Atividade atualizada", description: "A atividade foi salva com sucesso." });
         }
       } else {
@@ -941,7 +877,7 @@ function GerenciamentoTab({
         } as any).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
         if (error) throw error;
         if (data) {
-          setActivities(prev => [data as any, ...prev]);
+          queryClient.invalidateQueries({ queryKey: ["deal-activities", deal.id] });
           toast({ title: "Atividade criada", description: "A atividade foi salva com sucesso." });
         }
       }
@@ -967,7 +903,7 @@ function GerenciamentoTab({
     const updates: Record<string, unknown> = { status: "done", completed_at: new Date().toISOString() };
     try {
       await supabase.from("deal_activities").update(updates as any).eq("id", activityId);
-      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: "done", completed_at: new Date().toISOString() } : a));
+      queryClient.invalidateQueries({ queryKey: ["deal-activities", deal.id] });
       toast({ title: "Atividade concluída ✓" });
     } catch { /* ignore */ }
   };
@@ -989,7 +925,7 @@ function GerenciamentoTab({
     try {
       const { error } = await supabase.from("deal_activities").delete().eq("id", activityToDelete);
       if (error) throw error;
-      setActivities(prev => prev.filter(a => a.id !== activityToDelete));
+      queryClient.invalidateQueries({ queryKey: ["deal-activities", deal.id] });
       toast({ title: "Atividade excluída", description: "A atividade foi removida com sucesso." });
     } catch (err: any) {
       toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
