@@ -94,6 +94,9 @@ export interface TenantPremises {
   wa_notif_pagamento: boolean;
   wa_notif_quitado: boolean;
   wa_notif_numero: string;
+  // Concessionária config
+  concessionaria_motivos_reprovacao: string[];
+  concessionaria_prazo_vistoria_dias: number;
 }
 
 export interface SombreamentoLevel {
