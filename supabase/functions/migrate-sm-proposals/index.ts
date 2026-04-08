@@ -1611,21 +1611,8 @@ Deno.serve(async (req) => {
                 },
                 itens: itensCanonicos,
                 servicos: servicosCanonicos,
-                // FIX 5: UCs enriched with subgrupo, regra_compensacao, tensao
-                ucs: [{
-                  consumo_mensal: Number(smProp.consumo_mensal ?? 0),
-                  tarifa_energia: Number(smProp.tarifa_distribuidora ?? 0),
-                  tarifa_te: Number(smProp.tarifa_distribuidora ?? 0),
-                  tarifa_tusd: 0,
-                  fase: smProp.fase ?? "",
-                  tensao: smProp.tensao_rede ?? "",
-                  distribuidora: smProp.dis_energia ?? "",
-                  distribuidora_id: null,
-                  tipo_dimensionamento: "consumo",
-                  percentual_compensacao: 100,
-                  subgrupo: smProp.subgrupo_tarifario ?? "",
-                  regra_compensacao: smProp.regra_compensacao ?? "",
-                }],
+                // FIX 5+6: UCs fully compatible with wizard field names
+                ucs: [buildWizardUC(smProp)],
                 // Pre-dimensioning data from SM
                 preDimensionamento: {
                   inclinacao: smProp.inclinacao ?? 20,
