@@ -137,6 +137,7 @@ export function LeadsView() {
       nome: orc.nome,
       telefone: orc.telefone,
       telefone_normalized: null,
+      email: null,
       cep: orc.cep,
       estado: orc.estado,
       cidade: orc.cidade,

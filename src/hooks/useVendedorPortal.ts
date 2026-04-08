@@ -37,6 +37,7 @@ const ADMIN_PROFILE: VendedorProfile = {
    nome: orc.nome,
    telefone: orc.telefone,
    telefone_normalized: orc.telefone.replace(/\D/g, ""),
+   email: null,
    cep: orc.cep,
    estado: orc.estado,
    cidade: orc.cidade,
