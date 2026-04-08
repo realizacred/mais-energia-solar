@@ -4,7 +4,7 @@ import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
-import { Users, Download, UserPlus, TrendingUp, ShoppingCart } from "lucide-react";
+import { Users, Download, UserPlus, TrendingUp, ShoppingCart, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -15,6 +15,7 @@ import {
   OrcamentoViewDialog, 
   OrcamentoDeleteDialog 
 } from "@/components/admin/leads";
+import { ImportarLeadsModal } from "@/components/admin/leads/ImportarLeadsModal";
 import { ConvertLeadToClientDialog } from "@/components/leads/ConvertLeadToClientDialog";
 import { PendingDocumentationWidget, FollowUpNotifications } from "@/components/admin/widgets";
 import { OrcamentoSortSelector } from "@/components/ui/orcamento-sort-selector";
@@ -41,6 +42,7 @@ export function LeadsView() {
   const [isConvertOpen, setIsConvertOpen] = useState(false);
   const [leadToConvert, setLeadToConvert] = useState<Lead | null>(null);
   const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   // Reset page when filters change
   useEffect(() => {
@@ -230,10 +232,16 @@ export function LeadsView() {
         title="Leads"
         description="Gerencie os orçamentos e leads recebidos"
         actions={
-          <Button variant="outline" size="sm" onClick={handleExportFiltered}>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar Filtrados
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsImportOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Importar
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportFiltered}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar Filtrados
+            </Button>
+          </div>
         }
       />
 
@@ -363,6 +371,12 @@ export function LeadsView() {
         lead={leadToConvert}
         open={isConvertOpen}
         onOpenChange={setIsConvertOpen}
+        onSuccess={fetchOrcamentos}
+      />
+
+      <ImportarLeadsModal
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
         onSuccess={fetchOrcamentos}
       />
     </motion.div>
