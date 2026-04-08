@@ -81,7 +81,7 @@ export default function ConsultorDashboard() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground">Meu Painel</h1>
-            <p className="text-sm text-muted-foreground">Seus leads e metas</p>
+            <p className="text-sm text-muted-foreground">{isAdmin ? "Visão geral de todos os leads" : "Seus leads e metas"}</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
