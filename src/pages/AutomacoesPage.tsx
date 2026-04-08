@@ -1,11 +1,9 @@
 /**
  * AutomacoesPage — Central de automações do CRM.
  * Abas: Pipeline | WhatsApp | Webhooks
- * §DS-01: text-xl font-bold. RB-04: queries em hooks. RB-05: staleTime.
+ * §DS-01: text-xl font-bold. RB-06: LoadingState. RB-19: TabsList overflow.
  */
 import { lazy, Suspense } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Zap, Kanban, MessageCircle, Webhook } from "lucide-react";
@@ -26,25 +24,7 @@ const WebhookManager = lazy(() =>
   import("@/components/admin/WebhookManager")
 );
 
-function usePipelineComercialId() {
-  return useQuery({
-    queryKey: ["pipeline_comercial_id"],
-    queryFn: async (): Promise<string | null> => {
-      const query = supabase
-        .from("pipelines")
-        .select("id")
-        .eq("tipo", "comercial");
-      const { data, error } = await (query as any).maybeSingle();
-      if (error) throw error;
-      return (data?.id as string) ?? null;
-    },
-    staleTime: 1000 * 60 * 15,
-  });
-}
-
 export default function AutomacoesPage() {
-  const { data: pipelineId, isLoading: loadingPipeline } = usePipelineComercialId();
-
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header — §DS-03 */}
@@ -78,13 +58,9 @@ export default function AutomacoesPage() {
         </TabsList>
 
         <TabsContent value="pipeline" className="mt-0">
-          {loadingPipeline ? (
-            <LoadingState message="Carregando pipeline..." />
-          ) : (
-            <Suspense fallback={<LoadingState message="Carregando automações..." />}>
-              <PipelineAutomations />
-            </Suspense>
-          )}
+          <Suspense fallback={<LoadingState message="Carregando automações de pipeline..." />}>
+            <PipelineAutomations />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="whatsapp" className="mt-0">
