@@ -86,7 +86,7 @@ export function ReagendarDialog({ servico, isOpen, onClose, onSuccess }: Reagend
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="w-[90vw] max-w-md">
         <DialogHeader>
           <DialogTitle>Reagendar Serviço</DialogTitle>
         </DialogHeader>

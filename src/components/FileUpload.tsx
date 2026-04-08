@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
 import { Upload, X, FileText, Image, Camera } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -223,31 +224,30 @@ export default function FileUpload({
             
             <div className="flex gap-2 justify-center flex-wrap">
               {isMobile && (
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     handleCameraCapture();
                   }}
-                  className="px-4 py-2.5 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/90 transition-colors flex items-center justify-center gap-2"
                 >
                   <Camera className="w-4 h-4" />
                   Tirar Foto
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   fileInputRef.current?.click();
                 }}
-                className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
               >
                 <Upload className="w-4 h-4" />
                 Selecionar Arquivos
-              </button>
+              </Button>
             </div>
             
             <p className="text-xs text-muted-foreground mt-3">
@@ -298,17 +298,19 @@ export default function FileUpload({
                     </p>
                   </div>
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     removeFile(index);
                   }}
-                  className="p-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  className="bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                   title="Remover arquivo"
                 >
                   <X className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
             ))}
           </div>

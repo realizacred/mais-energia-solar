@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -117,10 +118,11 @@ export default function FinancingSimulator({ investimento, economia }: Financing
           <Label className="text-sm font-medium">Banco</Label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {bancos.map((bank, index) => (
-              <button
+              <Button
                 key={`${bank.nome}-${index}`}
+                variant="outline"
                 onClick={() => setSelectedBank(index)}
-                className={`p-2 rounded-lg border text-left transition-all ${
+                className={`h-auto p-2 text-left justify-start flex-col items-start ${
                   selectedBank === index
                     ? "border-secondary bg-secondary/10"
                     : "border-border hover:border-secondary/50"
@@ -128,7 +130,7 @@ export default function FinancingSimulator({ investimento, economia }: Financing
               >
                 <p className="font-medium text-sm">{bank.nome}</p>
                 <p className="text-xs text-muted-foreground">{bank.taxa_mensal}% a.m.</p>
-              </button>
+              </Button>
             ))}
           </div>
         </div>

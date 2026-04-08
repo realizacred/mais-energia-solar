@@ -714,30 +714,24 @@ function InstanceFormDialog({
             <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
               {/* Mode Toggle */}
               <div className="flex rounded-lg border border-border overflow-hidden">
-                <button
+                <Button
                   type="button"
-                  className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-                    mode === "create"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                  }`}
+                  variant={mode === "create" ? "default" : "ghost"}
+                  className="flex-1 rounded-none"
                   onClick={() => setMode("create")}
                 >
-                  <Plus className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
                   Criar Nova
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-                    mode === "register"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                  }`}
+                  variant={mode === "register" ? "default" : "ghost"}
+                  className="flex-1 rounded-none"
                   onClick={() => setMode("register")}
                 >
-                  <ServerCog className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
+                  <ServerCog className="w-3.5 h-3.5 mr-1.5" />
                   Registrar Existente
-                </button>
+                </Button>
               </div>
 
               <div>

@@ -143,10 +143,11 @@ export function AiProviderPanel() {
             }
 
             return (
-              <button
+              <Button
                 key={key}
                 type="button"
-                className={`relative rounded-lg border p-4 text-left transition-all cursor-pointer ${
+                variant="outline"
+                className={`relative h-auto rounded-lg p-4 text-left justify-start flex-col items-stretch ${
                   isActive
                     ? "border-primary bg-primary/5 shadow-sm"
                     : "border-border bg-card hover:border-primary/40"
@@ -170,24 +171,28 @@ export function AiProviderPanel() {
                 </div>
                 <p className="text-xs text-muted-foreground">{info.description}</p>
                 {key === "gemini" && (
-                  <button
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs text-primary gap-1 mt-2 justify-start"
                     onClick={(e) => { e.stopPropagation(); navigate("/admin/gemini-config"); }}
-                    className="text-xs text-primary flex items-center gap-1 hover:underline mt-2"
                   >
                     <ExternalLink className="w-3 h-3" />
                     Configurar chave de API
-                  </button>
+                  </Button>
                 )}
                 {key === "openai" && (
-                  <button
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs text-primary gap-1 mt-2 justify-start"
                     onClick={(e) => { e.stopPropagation(); navigate("/admin/openai-config"); }}
-                    className="text-xs text-primary flex items-center gap-1 hover:underline mt-2"
                   >
                     <ExternalLink className="w-3 h-3" />
                     Configurar chave de API
-                  </button>
+                  </Button>
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>

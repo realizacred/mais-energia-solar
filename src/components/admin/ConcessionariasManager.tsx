@@ -654,13 +654,15 @@ export function ConcessionariasManager() {
             <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
             <div className="text-xs text-muted-foreground">
               <strong className="text-foreground">{syncAlert} concessionária(s)</strong> sem sincronização de tarifas nos últimos 12 meses.{" "}
-              <button
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-primary font-medium"
                 onClick={handleSyncTarifas}
                 disabled={syncing}
-                className="text-primary underline hover:no-underline font-medium"
               >
                 Sincronizar agora
-              </button>
+              </Button>
             </div>
           </div>
         )}

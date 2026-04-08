@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { IntegrationTutorialSection } from "./IntegrationTutorialSection";
-import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSolarPlantsCount } from "@/hooks/useSolarPlantsCount";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
@@ -164,17 +164,7 @@ export default function IntegrationsCatalogPage() {
     queryFn: listLegacyIntegrations,
   });
 
-  const { data: plantCounts = {} } = useQuery({
-    queryKey: ["integration-plant-counts"],
-    queryFn: async () => {
-      const { data } = await supabase.from("solar_plants" as any).select("integration_id");
-      const counts: Record<string, number> = {};
-      ((data as any[]) || []).forEach((p) => {
-        if (p.integration_id) counts[p.integration_id] = (counts[p.integration_id] || 0) + 1;
-      });
-      return counts;
-    },
-  });
+  const { data: plantCounts = {} } = useSolarPlantsCount();
 
   const getPlantCount = (providerId: string): number => {
     const legacyId = CANONICAL_TO_LEGACY[providerId] || providerId;
