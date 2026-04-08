@@ -169,6 +169,11 @@ Deno.serve(async (req) => {
       updateData.is_principal = true;
     }
 
+    // 4x. Revert accept: clear is_principal when leaving aceita
+    if (currentStatus === "aceita" && new_status !== "aceita") {
+      updateData.is_principal = false;
+    }
+
     const { error: updateErr } = await admin
       .from("propostas_nativas")
       .update(updateData)
