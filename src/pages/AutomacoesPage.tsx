@@ -27,16 +27,15 @@ const WebhookManager = lazy(() =>
 );
 
 function usePipelineComercialId() {
-  return useQuery<string | null>({
+  return useQuery({
     queryKey: ["pipeline_comercial_id"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("pipelines")
         .select("id")
-        .eq("tipo", "comercial")
-        .maybeSingle();
+        .eq("tipo", "comercial") as any).maybeSingle();
       if (error) throw error;
-      return data?.id ?? null;
+      return (data?.id as string) ?? null;
     },
     staleTime: 1000 * 60 * 15,
   });
