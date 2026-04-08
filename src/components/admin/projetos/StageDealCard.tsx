@@ -184,55 +184,56 @@ export function StageDealCard({
       {/* Top gradient bar */}
       <div className="kanban-card__top-bar" style={topBarStyle} />
 
-      <div className="relative px-2 pt-1.5 pb-2 space-y-1">
+      <div className="relative px-3 pt-2.5 pb-2.5 space-y-2">
         {/* Accepted check icon */}
         {isPropostaAceita && (
-          <div className="absolute top-1.5 right-2">
-            <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+          <div className="absolute top-2.5 right-3">
+            <CheckCircle2 className="h-4 w-4 text-success" />
           </div>
         )}
+
         {/* HEADER: Avatar + Name + kWp badge */}
-        <div className="flex items-center gap-2">
-          <Avatar className="h-6 w-6 border border-border/40 shrink-0">
-            <AvatarFallback className="text-[8px] font-bold bg-muted text-muted-foreground">
+        <div className="flex items-center gap-2.5">
+          <Avatar className="h-8 w-8 border border-border/40 shrink-0">
+            <AvatarFallback className={cn("text-[10px] font-bold", getAvatarColor(deal.customer_name || deal.deal_title || "?"))}>
               {getInitials(deal.customer_name || deal.deal_title || "?")}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <p className={cn(
-                "text-xs font-medium leading-tight line-clamp-1",
+                "text-sm font-semibold leading-tight line-clamp-1",
                 isInactive ? "text-muted-foreground" : "text-foreground"
               )}>
                 {deal.customer_name || deal.deal_title || "Sem nome"}
               </p>
               {deal.deal_num != null && (
-                <span className="text-[10px] font-mono text-muted-foreground shrink-0">
+                <span className="text-[10px] font-mono text-muted-foreground/70 shrink-0">
                   #{deal.deal_num}
                 </span>
               )}
             </div>
             {visibleFields.has("cidade") && (deal.customer_city || deal.customer_state) && (
-              <p className="text-[10px] text-muted-foreground truncate leading-none">
+              <p className="text-[11px] text-muted-foreground truncate leading-snug mt-0.5">
                 {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
               </p>
             )}
           </div>
           {visibleFields.has("potencia_kwp") && hasActiveProposal && deal.deal_kwp > 0 && (
-            <Badge variant="outline" className="shrink-0 text-[9px] h-[16px] px-1 font-semibold bg-success/10 text-success border-success/20 gap-0.5">
-              <Zap className="h-2.5 w-2.5" />
+            <Badge variant="outline" className="shrink-0 text-[10px] h-[20px] px-1.5 font-semibold bg-success/10 text-success border-success/20 gap-0.5">
+              <Zap className="h-3 w-3" />
               {deal.deal_kwp.toFixed(1).replace(".", ",")}
             </Badge>
           )}
         </div>
 
-        {/* METRICS — single compact line: Valor · Tempo · Status */}
+        {/* METRICS — value + time + status */}
         {visibleFields.has("valor_projeto") && (
-          <div className="flex items-center gap-1.5 text-xs px-0.5">
-            <span className="font-bold tabular-nums text-foreground">
+          <div className="flex items-center gap-2 text-xs px-0.5">
+            <span className="font-bold tabular-nums text-foreground text-sm">
               {hasActiveProposal && deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
             </span>
-            <span className="text-muted-foreground/40">·</span>
+            <span className="text-muted-foreground/30">·</span>
             <span className={cn(
               "tabular-nums font-medium",
               !hasActiveProposal ? "text-muted-foreground" :
@@ -244,8 +245,8 @@ export function StageDealCard({
             </span>
             {propostaInfo && (
               <>
-                <span className="text-muted-foreground/40">·</span>
-                <Badge variant="outline" className={cn("text-[8px] h-4 px-1 py-0 font-medium border", propostaInfo.className)}>
+                <span className="text-muted-foreground/30">·</span>
+                <Badge variant="outline" className={cn("text-[9px] h-[18px] px-1.5 py-0 font-medium border", propostaInfo.className)}>
                   {propostaInfo.label}
                 </Badge>
               </>
@@ -261,10 +262,10 @@ export function StageDealCard({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span
-                      className="inline-flex items-center gap-0.5 px-1.5 py-px rounded text-[8px] font-bold text-white"
+                      className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[9px] font-bold text-white shadow-sm"
                       style={{ backgroundColor: et.cor }}
                     >
-                      {et.icon && <span className="text-[9px]">{et.icon}</span>}
+                      {et.icon && <span className="text-[10px]">{et.icon}</span>}
                       {et.short || et.label}
                     </span>
                   </TooltipTrigger>
@@ -277,8 +278,8 @@ export function StageDealCard({
 
         {/* DOC PROGRESS */}
         {docTotal > 0 && docDone > 0 && (
-          <div className="flex items-center gap-1.5">
-            <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
               <div
                 className={cn(
                   "h-full rounded-full transition-all duration-300",
@@ -287,15 +288,15 @@ export function StageDealCard({
                 style={{ width: `${(docDone / docTotal) * 100}%` }}
               />
             </div>
-            <span className={cn("text-[9px] tabular-nums font-medium shrink-0", docDone === docTotal ? "text-success" : "text-muted-foreground")}>
+            <span className={cn("text-[10px] tabular-nums font-medium shrink-0", docDone === docTotal ? "text-success" : "text-muted-foreground")}>
               {docDone}/{docTotal}
             </span>
           </div>
         )}
 
         {/* FOOTER: Actions + Owner */}
-        <div className="flex items-center justify-between pt-0.5 border-t border-border/30">
-          <div className="flex items-center gap-0">
+        <div className="flex items-center justify-between pt-1.5 border-t border-border/30">
+          <div className="flex items-center gap-0.5">
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -304,7 +305,7 @@ export function StageDealCard({
                     onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
                     disabled={!deal.customer_phone}
                   >
-                    <MessageSquare className="h-2.5 w-2.5" />
+                    <MessageSquare className="h-3.5 w-3.5 md:h-3 md:w-3" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="text-xs">WhatsApp</TooltipContent>
@@ -316,7 +317,7 @@ export function StageDealCard({
                     onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
                     disabled={!deal.customer_phone}
                   >
-                    <Phone className="h-2.5 w-2.5" />
+                    <Phone className="h-3.5 w-3.5 md:h-3 md:w-3" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="text-xs">Ligar</TooltipContent>
@@ -327,7 +328,7 @@ export function StageDealCard({
                     className="action-icon-btn action-icon-btn--proposal"
                     onClick={(e) => { e.stopPropagation(); onProposalClick ? onProposalClick() : onClick(); }}
                   >
-                    <FileText className="h-2.5 w-2.5" />
+                    <FileText className="h-3.5 w-3.5 md:h-3 md:w-3" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="text-xs">Propostas</TooltipContent>
@@ -336,7 +337,7 @@ export function StageDealCard({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="action-icon-btn action-icon-btn--note">
-                      <StickyNote className="h-2.5 w-2.5" />
+                      <StickyNote className="h-3.5 w-3.5 md:h-3 md:w-3" />
                     </span>
                   </TooltipTrigger>
                   <TooltipContent className="text-xs max-w-[250px]">
@@ -348,18 +349,18 @@ export function StageDealCard({
           </div>
 
           {/* Owner + expected close */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {deal.expected_close_date && (
               <span className={cn(
-                "flex items-center gap-0.5 text-[9px]",
+                "flex items-center gap-0.5 text-[10px]",
                 isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"
               )}>
-                <Clock className="h-2.5 w-2.5" />
+                <Clock className="h-3 w-3" />
                 {formatDate(deal.expected_close_date)}
               </span>
             )}
-            <Avatar className="h-4 w-4 border border-border/40">
-              <AvatarFallback className={cn("text-[6px] font-bold", getAvatarColor(deal.owner_name))}>
+            <Avatar className="h-5 w-5 border border-border/40">
+              <AvatarFallback className={cn("text-[7px] font-bold", getAvatarColor(deal.owner_name))}>
                 {getInitials(deal.owner_name)}
               </AvatarFallback>
             </Avatar>

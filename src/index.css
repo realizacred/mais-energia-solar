@@ -616,8 +616,17 @@
 
   /* Action icon buttons with colored defaults + hover enhancement */
   .action-icon-btn {
-    @apply h-7 w-7 rounded-lg flex items-center justify-center transition-all duration-150;
-    @apply hover:scale-105;
+    @apply h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-150;
+    @apply hover:scale-105 active:scale-95;
+    min-height: 44px;
+    min-width: 44px;
+  }
+  @media (min-width: 768px) {
+    .action-icon-btn {
+      @apply h-7 w-7;
+      min-height: 28px;
+      min-width: 28px;
+    }
   }
   .action-icon-btn:disabled { @apply opacity-40 hover:scale-100; }
 
@@ -636,13 +645,19 @@
   /* ===== KANBAN CARD STATUS BORDERS ===== */
   .kanban-card {
     @apply bg-card cursor-grab active:cursor-grabbing;
-    @apply border border-border/40 transition-all duration-150 ease-out relative overflow-hidden;
-    border-radius: 16px;
+    @apply border border-border/40 transition-all duration-200 ease-out relative overflow-hidden;
+    border-radius: 14px;
     box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.04), 0 0 0 0.5px hsl(var(--border) / 0.5);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   .kanban-card:hover {
-    @apply border-border/60;
-    box-shadow: 0 4px 12px -2px hsl(var(--foreground) / 0.08), 0 0 0 0.5px hsl(var(--border) / 0.6);
+    @apply border-border/70;
+    box-shadow: 0 6px 16px -3px hsl(var(--foreground) / 0.1), 0 0 0 0.5px hsl(var(--border) / 0.7);
+    transform: translateY(-1px);
+  }
+  .kanban-card:active {
+    transform: translateY(0);
   }
   .kanban-card__top-bar {
     height: 3px;
