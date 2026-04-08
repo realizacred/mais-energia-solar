@@ -27061,6 +27061,7 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: boolean
       }
+      limpar_mensagens_failed: { Args: never; Returns: number }
       link_meter_to_unit: {
         Args: {
           p_link_type?: string
