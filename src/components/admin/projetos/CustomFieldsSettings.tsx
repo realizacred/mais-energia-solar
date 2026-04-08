@@ -290,9 +290,6 @@ export function CustomFieldsSettings() {
           <TabsTrigger value="campos" className="gap-1.5">
             <LayoutGrid className="h-4 w-4" />Campos Customizados
           </TabsTrigger>
-          <TabsTrigger value="premissas" className="gap-1.5">
-            <Sliders className="h-4 w-4" />Premissas
-          </TabsTrigger>
           <TabsTrigger value="atividades" className="gap-1.5">
             <Zap className="h-4 w-4" />Tipos de Atividades
           </TabsTrigger>
