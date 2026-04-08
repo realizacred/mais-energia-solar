@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
         await updateHealthCache(supabase, "gotenberg", "degraded", {
           error_message: `Status ${resp.status}: ${text}`,
           metadata: { circuit_failures: circuitState.failures },
-        });
+        }, tenantId);
 
         return new Response(JSON.stringify({
           success: false,
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
           .eq("tenant_id", tenantId);
       }
 
-      await updateHealthCache(supabase, "gotenberg", "up", {});
+      await updateHealthCache(supabase, "gotenberg", "up", {}, tenantId);
 
       return new Response(JSON.stringify({
         success: true,
