@@ -43,6 +43,7 @@ interface Deal {
   owner_id: string;
   deal_value: number;
   deal_status: string;
+  stage_name: string;
   created_at: string;
   kwp: number;
 }
@@ -116,7 +117,7 @@ export function usePerformanceDeals() {
     queryFn: async (): Promise<Deal[]> => {
       const { data, error } = await supabase
         .from("deal_kanban_projection")
-        .select("deal_id, owner_id, deal_value, deal_status, last_stage_change, deal_kwp")
+        .select("deal_id, owner_id, deal_value, deal_status, stage_name, last_stage_change, deal_kwp")
         .limit(1000);
       if (error) throw error;
       return (data ?? []).map((d: any) => ({
@@ -124,6 +125,7 @@ export function usePerformanceDeals() {
         owner_id: d.owner_id,
         deal_value: d.deal_value || 0,
         deal_status: d.deal_status,
+        stage_name: d.stage_name || "",
         created_at: d.last_stage_change,
         kwp: d.deal_kwp || 0,
       }));
