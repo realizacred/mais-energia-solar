@@ -512,7 +512,6 @@ export default function Admin() {
           userEmail={user?.email}
           onSignOut={handleSignOut}
           badgeCounts={badgeCounts}
-          data-tour="sidebar"
         />
         
         <SidebarInset className={`${isInboxLayout ? "h-[100dvh] overflow-hidden" : ""} flex-1 min-w-0 bg-background`}>
