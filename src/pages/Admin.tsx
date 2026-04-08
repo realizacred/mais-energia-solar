@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { GlobalSearch } from "@/components/admin/GlobalSearch";
 import { TrialBanner, UpsellBanner } from "@/components/plan";
-import { TourProvider } from "@/components/tour";
 import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
 import { HelpCenterDrawer } from "@/components/help/HelpCenterDrawer";
 import { HeaderSearch } from "@/components/admin/HeaderSearch";
@@ -24,8 +23,7 @@ import { AgendaSheet } from "@/components/admin/AgendaSheet";
 import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
 import { HelpDropdown } from "@/components/admin/HelpDropdown";
 import { useNewLeadAlert } from "@/hooks/useNewLeadAlert";
-import { useOnboardingStatus } from "@/hooks/useOnboarding";
-import { OnboardingWizard } from "@/components/admin/OnboardingWizard";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 // Lazy load admin sub-pages for better code splitting
