@@ -12569,6 +12569,7 @@ export type Database = {
           descricao: string | null
           estoque_item_id: string | null
           id: string
+          observacao_recebimento: string | null
           ordem_compra_id: string
           quantidade: number
           quantidade_recebida: number | null
@@ -12583,6 +12584,7 @@ export type Database = {
           descricao?: string | null
           estoque_item_id?: string | null
           id?: string
+          observacao_recebimento?: string | null
           ordem_compra_id: string
           quantidade?: number
           quantidade_recebida?: number | null
@@ -12597,6 +12599,7 @@ export type Database = {
           descricao?: string | null
           estoque_item_id?: string | null
           id?: string
+          observacao_recebimento?: string | null
           ordem_compra_id?: string
           quantidade?: number
           quantidade_recebida?: number | null
@@ -28074,6 +28077,7 @@ export type Database = {
         | "enviada"
         | "confirmada"
         | "em_transito"
+        | "recebida_parcial"
         | "recebida"
         | "cancelada"
       pagamento_validacao_enum: "valido" | "divergente" | "pendente"
@@ -28383,6 +28387,7 @@ export const Constants = {
         "enviada",
         "confirmada",
         "em_transito",
+        "recebida_parcial",
         "recebida",
         "cancelada",
       ],
