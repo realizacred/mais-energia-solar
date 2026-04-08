@@ -15,6 +15,7 @@ import {
   OrcamentoViewDialog, 
   OrcamentoDeleteDialog 
 } from "@/components/admin/leads";
+import { ImportarLeadsModal } from "@/components/admin/leads/ImportarLeadsModal";
 import { ConvertLeadToClientDialog } from "@/components/leads/ConvertLeadToClientDialog";
 import { PendingDocumentationWidget, FollowUpNotifications } from "@/components/admin/widgets";
 import { OrcamentoSortSelector } from "@/components/ui/orcamento-sort-selector";
