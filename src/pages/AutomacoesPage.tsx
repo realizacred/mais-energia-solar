@@ -7,7 +7,7 @@ import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LoadingState } from "@/components/shared/LoadingState";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Zap, Kanban, MessageCircle, Webhook } from "lucide-react";
 
 const PipelineAutomations = lazy(() =>
