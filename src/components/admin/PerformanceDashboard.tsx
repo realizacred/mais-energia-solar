@@ -97,6 +97,7 @@ interface Deal {
   owner_id: string;
   deal_value: number;
   deal_status: string;
+  stage_name: string;
   created_at: string;
   kwp: number;
 }
