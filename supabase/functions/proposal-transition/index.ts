@@ -21,7 +21,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   gerada: ["enviada", "aceita", "recusada", "cancelada"],
   enviada: ["vista", "aceita", "recusada", "cancelada"],
   vista: ["aceita", "recusada", "cancelada"],
-  aceita: ["cancelada"],
+  aceita: ["gerada", "cancelada"],
   recusada: ["gerada", "enviada"],
   expirada: ["gerada"],
   cancelada: [],
