@@ -15,7 +15,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ icon: Icon, title, description, actions, className, helpText }: PageHeaderProps) {
   return (
-    <div data-tour="page-header" className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2", className)}>
+    <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2", className)}>
       <div className="space-y-1.5">
         <h1 className="text-2xl font-display font-bold tracking-tight flex items-center gap-2.5 text-foreground">
           {Icon && (
