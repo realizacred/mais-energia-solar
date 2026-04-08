@@ -1,8 +1,9 @@
 import { ReactNode } from "react";
 import { motion } from "framer-motion";
-import { User, Phone } from "lucide-react";
+import { User, Phone, Mail } from "lucide-react";
 import { FloatingInput } from "@/components/ui/floating-input";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { EmailInput } from "@/components/ui/EmailInput";
 import { formatName } from "@/lib/validations";
 import type { UseFormReturn } from "react-hook-form";
 import type { LeadFormData } from "@/lib/validations";
@@ -62,6 +63,22 @@ export function StepPersonalData({
               <p className="text-xs text-destructive">{errors.telefone.message}</p>
             )}
           </div>
+        </div>
+      </motion.div>
+
+      <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium flex items-center gap-2">
+            <Mail className="w-4 h-4" /> E-mail
+          </label>
+          <EmailInput
+            id="lead-email"
+            value={values.email || ""}
+            onChange={(val) => setValue("email", val, { shouldValidate: touchedFields.has("email") })}
+            required={false}
+            normalize
+            placeholder="email@exemplo.com"
+          />
         </div>
       </motion.div>
     </div>

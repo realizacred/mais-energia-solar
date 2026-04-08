@@ -4,6 +4,7 @@ export interface Lead {
   nome: string;
   telefone: string;
   telefone_normalized: string | null;
+  email: string | null;
   cep: string | null;
   estado: string;
   cidade: string;
