@@ -1952,6 +1952,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const setPrincipalMutation = useSetPropostaPrincipal();
   const arquivarMutation = useArquivarProposta();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showGrupoKits, setShowGrupoKits] = useState(false);
 
   // Reset expandedId if the expanded proposta no longer exists in the list (e.g. after deletion)
   useEffect(() => {
