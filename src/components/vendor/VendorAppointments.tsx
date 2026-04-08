@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useAppointments, type Appointment, type AppointmentStatus } from "@/hooks/useAppointments";
 import { useAuth } from "@/hooks/useAuth";
+import { RescheduleModal } from "@/components/shared/RescheduleModal";
+import { ReagendamentoTimeline } from "@/components/shared/ReagendamentoTimeline";
 
 const TYPE_ICONS: Record<string, typeof Phone> = {
   call: Phone,
