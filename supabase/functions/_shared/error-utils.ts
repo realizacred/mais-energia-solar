@@ -115,21 +115,23 @@ export async function updateHealthCache(
   integrationName: string,
   status: "up" | "degraded" | "down",
   extra: Record<string, unknown> = {},
+  tenantId?: string,
 ) {
   try {
+    const row: Record<string, unknown> = {
+      integration_name: integrationName,
+      status,
+      last_check_at: new Date().toISOString(),
+      response_time_ms: extra.response_time_ms ?? null,
+      error_message: extra.error_message ?? null,
+      metadata: extra.metadata ?? null,
+    };
+    if (tenantId) {
+      row.tenant_id = tenantId;
+    }
     await supabase
       .from("integration_health_cache")
-      .upsert(
-        {
-          integration_name: integrationName,
-          status,
-          last_check_at: new Date().toISOString(),
-          response_time_ms: extra.response_time_ms ?? null,
-          error_message: extra.error_message ?? null,
-          metadata: extra.metadata ?? null,
-        },
-        { onConflict: "integration_name" },
-      );
+      .upsert(row, { onConflict: "tenant_id,integration_name" });
   } catch (e) {
     console.warn(`[error-utils] Failed to update health cache for ${integrationName}:`, e);
   }
