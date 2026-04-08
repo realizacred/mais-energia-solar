@@ -24,7 +24,6 @@ import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
 import { HelpDropdown } from "@/components/admin/HelpDropdown";
 import { useNewLeadAlert } from "@/hooks/useNewLeadAlert";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
-import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 
 // Lazy load admin sub-pages for better code splitting
 const LeadsView = lazy(() => import("@/components/admin/views/LeadsView").then(m => ({ default: m.LeadsView })));
