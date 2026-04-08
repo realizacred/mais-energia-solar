@@ -665,6 +665,13 @@ export function ProposalWizard() {
         email: clienteData.email || "",
         cnpj_cpf: clienteData.cpf_cnpj || "",
         empresa: clienteData.empresa || "",
+        cep: clienteData.cep || "",
+        endereco: clienteData.rua || "",
+        numero: clienteData.numero || "",
+        complemento: clienteData.complemento || "",
+        bairro: clienteData.bairro || "",
+        cidade: clienteData.cidade || "",
+        estado: clienteData.estado || "",
       } : undefined,
       ucs: Array.isArray(raw.ucs) && raw.ucs.length > 0
         ? raw.ucs.map((u: any, i: number) => {
