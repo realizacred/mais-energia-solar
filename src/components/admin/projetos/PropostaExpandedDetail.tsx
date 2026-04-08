@@ -70,6 +70,8 @@ interface PropostaData {
   aceita_at: string | null;
   enviada_at: string | null;
   recusada_at: string | null;
+  origem: string | null;
+  sm_id: string | null;
   versoes: VersaoData[];
 }
 
