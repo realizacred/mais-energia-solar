@@ -14,6 +14,10 @@ import {
 import {
   Tooltip, TooltipContent, TooltipTrigger, TooltipProvider,
 } from "@/components/ui/tooltip";
+
+function normalizeSearch(str: string): string {
+  return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
@@ -440,6 +444,7 @@ export function AdminSidebar({
   const logo = useLogo({ variant: "small" });
   const { user } = useAuth();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!user) return;
