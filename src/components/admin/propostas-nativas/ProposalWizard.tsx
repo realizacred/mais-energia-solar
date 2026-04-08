@@ -683,7 +683,38 @@ export function ProposalWizard() {
             }] : []),
           ],
       layouts: raw.layouts || [],
-      manualKits: raw.manualKits || [],
+      manualKits: (() => {
+        if (Array.isArray(raw.manualKits) && raw.manualKits.length > 0) return raw.manualKits;
+        // Build a manualKits entry from legacy itens so they show in Customizado tab
+        const legacyItens = normalized.itens as any[];
+        if (!legacyItens || legacyItens.length === 0) return [];
+        const modItems = legacyItens.filter((i: any) => i.categoria === "modulo");
+        const invItems = legacyItens.filter((i: any) => i.categoria === "inversor");
+        if (modItems.length === 0 && invItems.length === 0) return [];
+        const totalModQtd = modItems.reduce((s: number, m: any) => s + m.quantidade, 0);
+        const totalModKwp = modItems.reduce((s: number, m: any) => s + (m.potencia_w * m.quantidade) / 1000, 0);
+        const totalInvQtd = invItems.reduce((s: number, i: any) => s + i.quantidade, 0);
+        const totalInvKw = invItems.reduce((s: number, i: any) => s + (i.potencia_w * i.quantidade) / 1000, 0);
+        const precoTotal = legacyItens.reduce((s: number, i: any) => s + i.quantidade * i.preco_unitario, 0);
+        const precoWp = totalModKwp > 0 ? precoTotal / (totalModKwp * 1000) : 0;
+        const modDesc = modItems.map((m: any) => `${m.fabricante} ${m.modelo}`.trim()).filter(Boolean).join(" + ") || "—";
+        const invDesc = invItems.map((i: any) => `${i.fabricante} ${i.modelo}`.trim()).filter(Boolean).join(" + ") || "—";
+        const card = {
+          id: `manual-sm-${Date.now()}`,
+          distribuidorNome: "Importado SM",
+          moduloDescricao: modDesc,
+          moduloQtd: totalModQtd,
+          moduloPotenciaKwp: totalModKwp,
+          inversorDescricao: invDesc,
+          inversorQtd: totalInvQtd,
+          inversorPotenciaKw: totalInvKw,
+          topologia: "Tradicional",
+          precoTotal,
+          precoWp,
+          updatedAt: new Date().toLocaleDateString("pt-BR"),
+        };
+        return [{ card, itens: legacyItens, meta: { distribuidorNome: "Importado SM", nomeKit: "Kit Importado SM" } }];
+      })(),
       adicionais: raw.adicionais || [],
       servicos: Array.isArray(raw.servicos) && raw.servicos.length > 0
         ? raw.servicos.map((sv: any) => ({
