@@ -27139,6 +27139,7 @@ export type Database = {
         Returns: boolean
       }
       limpar_mensagens_failed: { Args: never; Returns: number }
+      limpar_projetos_teste: { Args: never; Returns: undefined }
       link_meter_to_unit: {
         Args: {
           p_link_type?: string
