@@ -614,6 +614,8 @@ export default function Admin() {
                 <Route path="estoque" element={<EstoquePage />} />
                 <Route path="depositos" element={<DepositosPage />} />
                 <Route path="categorias-estoque" element={<CategoriasEstoquePage />} />
+                <Route path="suprimentos" element={<SuprimentosListPage />} />
+                <Route path="suprimentos/:id" element={<OrdemCompraDetalhePage />} />
                 
                 {/* Medidores */}
                 <Route path="medidores" element={<MetersListPage />} />

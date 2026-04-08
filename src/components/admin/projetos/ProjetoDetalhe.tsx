@@ -115,6 +115,7 @@ const TABS = [
   { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary" },
   { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning" },
   { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success" },
+  { id: "suprimentos" as TabId, label: "Suprimentos", icon: ShoppingCart, color: "text-info" },
 ] as const;
 
 // ─── Recebimento CTA (won deals) ────────────
