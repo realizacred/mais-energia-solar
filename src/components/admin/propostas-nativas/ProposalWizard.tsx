@@ -595,6 +595,45 @@ export function ProposalWizard() {
       clienteData = data;
     }
 
+    // Pre-compute itens before building normalized object (needed for manualKits)
+    const computedItens = Array.isArray(raw.itens) && raw.itens.length > 0
+      ? raw.itens.map((it: any) => ({
+          id: it.id || crypto.randomUUID(),
+          descricao: it.descricao || "",
+          fabricante: it.fabricante || "",
+          modelo: it.modelo || "",
+          potencia_w: Number(it.potencia_w) || 0,
+          quantidade: Number(it.quantidade) || 0,
+          preco_unitario: Number(it.preco_unitario) || 0,
+          categoria: it.categoria || it.tipo || "outros",
+          avulso: it.avulso ?? false,
+          produto_ref: it.produto_ref || null,
+        }))
+      : [
+          ...(raw.panel_model ? [{
+            id: crypto.randomUUID(),
+            descricao: raw.panel_model,
+            fabricante: "",
+            modelo: raw.panel_model,
+            potencia_w: 0,
+            quantidade: raw.panel_quantity || 0,
+            preco_unitario: 0,
+            categoria: "modulo" as const,
+            avulso: false,
+          }] : []),
+          ...(raw.inverter_model ? [{
+            id: crypto.randomUUID(),
+            descricao: raw.inverter_model,
+            fabricante: "",
+            modelo: raw.inverter_model,
+            potencia_w: 0,
+            quantidade: raw.inverter_quantity || 1,
+            preco_unitario: 0,
+            categoria: "inversor" as const,
+            avulso: false,
+          }] : []),
+        ];
+
     // Map legacy fields to wizard format
     const normalized: Partial<WizardSnapshot> = {
       locEstado: clienteData?.estado || "",
@@ -645,45 +684,38 @@ export function ProposalWizard() {
           }],
       grupo: versao.grupo || "B",
       potenciaKwp: versao.potencia_kwp || 0,
-      itens: Array.isArray(raw.itens) && raw.itens.length > 0
-        ? raw.itens.map((it: any) => ({
-            id: it.id || crypto.randomUUID(),
-            descricao: it.descricao || "",
-            fabricante: it.fabricante || "",
-            modelo: it.modelo || "",
-            potencia_w: Number(it.potencia_w) || 0,
-            quantidade: Number(it.quantidade) || 0,
-            preco_unitario: Number(it.preco_unitario) || 0,
-            categoria: it.categoria || it.tipo || "outros",
-            avulso: it.avulso ?? false,
-            produto_ref: it.produto_ref || null,
-          }))
-        : [
-            ...(raw.panel_model ? [{
-              id: crypto.randomUUID(),
-              descricao: raw.panel_model,
-              fabricante: "",
-              modelo: raw.panel_model,
-              potencia_w: 0,
-              quantidade: raw.panel_quantity || 0,
-              preco_unitario: 0,
-              categoria: "modulo",
-              avulso: false,
-            }] : []),
-            ...(raw.inverter_model ? [{
-              id: crypto.randomUUID(),
-              descricao: raw.inverter_model,
-              fabricante: "",
-              modelo: raw.inverter_model,
-              potencia_w: 0,
-              quantidade: raw.inverter_quantity || 1,
-              preco_unitario: 0,
-              categoria: "inversor",
-              avulso: false,
-            }] : []),
-          ],
+      itens: computedItens,
       layouts: raw.layouts || [],
-      manualKits: raw.manualKits || [],
+      manualKits: (() => {
+        if (Array.isArray(raw.manualKits) && raw.manualKits.length > 0) return raw.manualKits;
+        if (computedItens.length === 0) return [];
+        const modItems = computedItens.filter((i: any) => i.categoria === "modulo");
+        const invItems = computedItens.filter((i: any) => i.categoria === "inversor");
+        if (modItems.length === 0 && invItems.length === 0) return [];
+        const totalModQtd = modItems.reduce((s: number, m: any) => s + m.quantidade, 0);
+        const totalModKwp = modItems.reduce((s: number, m: any) => s + (m.potencia_w * m.quantidade) / 1000, 0);
+        const totalInvQtd = invItems.reduce((s: number, i: any) => s + i.quantidade, 0);
+        const totalInvKw = invItems.reduce((s: number, i: any) => s + (i.potencia_w * i.quantidade) / 1000, 0);
+        const precoTotal = computedItens.reduce((s: number, i: any) => s + i.quantidade * i.preco_unitario, 0);
+        const precoWp = totalModKwp > 0 ? precoTotal / (totalModKwp * 1000) : 0;
+        const modDesc = modItems.map((m: any) => `${m.fabricante} ${m.modelo}`.trim()).filter(Boolean).join(" + ") || "—";
+        const invDesc = invItems.map((i: any) => `${i.fabricante} ${i.modelo}`.trim()).filter(Boolean).join(" + ") || "—";
+        const card = {
+          id: `manual-sm-${Date.now()}`,
+          distribuidorNome: "Importado SM",
+          moduloDescricao: modDesc,
+          moduloQtd: totalModQtd,
+          moduloPotenciaKwp: totalModKwp,
+          inversorDescricao: invDesc,
+          inversorQtd: totalInvQtd,
+          inversorPotenciaKw: totalInvKw,
+          topologia: "Tradicional",
+          precoTotal,
+          precoWp,
+          updatedAt: new Date().toLocaleDateString("pt-BR"),
+        };
+        return [{ card, itens: computedItens, meta: { distribuidorNome: "Importado SM", nomeKit: "Kit Importado SM" } }];
+      })(),
       adicionais: raw.adicionais || [],
       servicos: Array.isArray(raw.servicos) && raw.servicos.length > 0
         ? raw.servicos.map((sv: any) => ({
