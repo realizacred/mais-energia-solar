@@ -48,6 +48,7 @@ import { AddressFields, type AddressData } from "@/components/shared/AddressFiel
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
+import { GrupoKitsModal } from "./GrupoKitsModal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProjetoCustomFieldValues } from "@/hooks/useProjetoCustomFields";
 import { useProjetoNotes } from "@/hooks/useProjetoNotes";
