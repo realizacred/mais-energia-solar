@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, CheckCircle, ClipboardList, Gauge, Zap, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConcessionaria, type VistoriaData } from "@/hooks/useConcessionaria";
-import { formatDateBR } from "@/lib/formatters";
+import { formatDate as formatDateBR } from "@/lib/dateUtils";
 
 interface Props {
   dealId: string;
