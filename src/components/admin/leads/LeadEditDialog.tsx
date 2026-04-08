@@ -391,6 +391,26 @@ export function LeadEditDialog({
         </FormGrid>
       </FormSection>
 
+      {/* Origem do Lead */}
+      <FormSection title="Origem">
+        <Select value={leadOrigemId} onValueChange={setLeadOrigemId}>
+          <SelectTrigger className="w-full bg-background">
+            <SelectValue placeholder="Selecione a origem..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Nenhuma</SelectItem>
+            {origens.map((o) => (
+              <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!leadOrigemId && initialData.origem && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Origem legado: <Badge variant="secondary" className="text-[10px] ml-1">{initialData.origem}</Badge>
+          </p>
+        )}
+      </FormSection>
+
       {/* Consultor — §16: usa useConsultoresAtivos */}
       <FormSection title="Consultor">
         {loadingConsultores ? (
