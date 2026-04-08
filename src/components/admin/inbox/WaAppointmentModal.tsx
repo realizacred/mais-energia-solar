@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, Phone, Users, FileText, Bell, CalendarCheck } from "lucide-react";
+import { Calendar, Clock, Phone, Users, FileText, Bell, CalendarCheck, Wrench, MessageCircle } from "lucide-react";
 import { useAppointments, type AppointmentType, type CreateAppointmentInput } from "@/hooks/useAppointments";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ const TYPE_OPTIONS: { value: AppointmentType; label: string; icon: typeof Phone 
   { value: "meeting", label: "Reunião", icon: Users },
   { value: "followup", label: "Follow-up", icon: CalendarCheck },
   { value: "visit", label: "Visita", icon: Calendar },
+  { value: "instalacao", label: "Instalação", icon: Wrench },
   { value: "other", label: "Outro", icon: FileText },
 ];
 
