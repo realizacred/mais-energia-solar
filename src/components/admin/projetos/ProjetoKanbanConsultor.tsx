@@ -1,8 +1,8 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Plus, DollarSign, User, ChevronDown, Zap } from "lucide-react";
+import { Plus, DollarSign, User, ChevronDown, Zap, GripVertical } from "lucide-react";
 import type { DealKanbanCard, OwnerColumn } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,24 +41,100 @@ const formatKwp = (v: number) => {
   return _formatKwp(v, 1);
 };
 
+const COLUMN_ORDER_KEY = "kanban_consultor_order";
+
+function loadColumnOrder(): string[] {
+  try {
+    const stored = localStorage.getItem(COLUMN_ORDER_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveColumnOrder(order: string[]) {
+  try {
+    localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(order));
+  } catch { /* ignore */ }
+}
+
+function sortColumnsByOrder(columns: OwnerColumn[], order: string[]): OwnerColumn[] {
+  if (order.length === 0) return columns;
+  const orderMap = new Map(order.map((id, idx) => [id, idx]));
+  return [...columns].sort((a, b) => {
+    const aIdx = orderMap.get(a.id) ?? 9999;
+    const bIdx = orderMap.get(b.id) ?? 9999;
+    return aIdx - bIdx;
+  });
+}
+
 export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, onViewProjetoTab, onNewProject, onMoveDealToOwner, dynamicEtiquetas = [] }: Props) {
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
+  // Column reorder state
+  const [draggedColId, setDraggedColId] = useState<string | null>(null);
+  const [dragOverColReorder, setDragOverColReorder] = useState<string | null>(null);
+  const [columnOrder, setColumnOrder] = useState<string[]>(loadColumnOrder);
+
+  // Apply stored order to columns
+  const sortedColumns = sortColumnsByOrder(ownerColumns, columnOrder);
+
+  // Persist order when columns change (new consultores added)
+  useEffect(() => {
+    const currentIds = ownerColumns.map(c => c.id);
+    const storedOrder = loadColumnOrder();
+    const newIds = currentIds.filter(id => !storedOrder.includes(id));
+    if (newIds.length > 0) {
+      const merged = [...storedOrder.filter(id => currentIds.includes(id)), ...newIds];
+      setColumnOrder(merged);
+      saveColumnOrder(merged);
+    }
+  }, [ownerColumns]);
+
+  // Deal drag (move deal between consultors)
   const handleDragStart = (e: React.DragEvent, dealId: string) => {
     setDraggedId(dealId);
     e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("type", "deal");
   };
 
   const handleDrop = (e: React.DragEvent, ownerId: string) => {
     e.preventDefault();
-    if (draggedId) {
+    const type = e.dataTransfer.getData("type");
+    if (type === "column" && draggedColId) {
+      // Column reorder
+      handleColumnDrop(ownerId);
+    } else if (draggedId) {
       onMoveDealToOwner?.(draggedId, ownerId);
-      setDraggedId(null);
-      setDragOverCol(null);
     }
+    setDraggedId(null);
+    setDragOverCol(null);
+    setDraggedColId(null);
+    setDragOverColReorder(null);
   };
+
+  // Column drag (reorder columns)
+  const handleColumnDragStart = (e: React.DragEvent, colId: string) => {
+    e.stopPropagation();
+    setDraggedColId(colId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("type", "column");
+  };
+
+  const handleColumnDrop = useCallback((targetColId: string) => {
+    if (!draggedColId || draggedColId === targetColId) return;
+    const currentOrder = sortedColumns.map(c => c.id);
+    const fromIdx = currentOrder.indexOf(draggedColId);
+    const toIdx = currentOrder.indexOf(targetColId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const newOrder = [...currentOrder];
+    newOrder.splice(fromIdx, 1);
+    newOrder.splice(toIdx, 0, draggedColId);
+    setColumnOrder(newOrder);
+    saveColumnOrder(newOrder);
+  }, [draggedColId, sortedColumns]);
 
   if (ownerColumns.length === 0) {
     return (
@@ -76,7 +152,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
   if (isMobile) {
     return (
       <div className="space-y-2 px-1">
-        {ownerColumns.map(col => {
+        {sortedColumns.map(col => {
           const totalKwp = col.deals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
           return (
             <Collapsible key={col.id} defaultOpen={col.count > 0}>
@@ -140,12 +216,14 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
       <div
         className="grid gap-3 pb-4 px-1"
         style={{
-          gridTemplateColumns: `repeat(${ownerColumns.length}, minmax(220px, 1fr))`,
-          minWidth: ownerColumns.length > 4 ? `${ownerColumns.length * 230}px` : undefined,
+          gridTemplateColumns: `repeat(${sortedColumns.length}, minmax(220px, 1fr))`,
+          minWidth: sortedColumns.length > 4 ? `${sortedColumns.length * 230}px` : undefined,
         }}
       >
-        {ownerColumns.map(col => {
+        {sortedColumns.map(col => {
           const isOver = dragOverCol === col.id;
+          const isColDragging = draggedColId === col.id;
+          const isColOver = dragOverColReorder === col.id && draggedColId !== col.id;
           const totalKwp = col.deals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
           const kwpStr = formatKwp(totalKwp);
 
@@ -155,15 +233,36 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
               className={cn(
                 "rounded-xl border border-border/50 transition-all flex flex-col min-w-0",
                 "bg-card/60",
-                isOver && "ring-2 ring-primary/30 bg-primary/5"
+                isOver && "ring-2 ring-primary/30 bg-primary/5",
+                isColDragging && "opacity-50 scale-95",
+                isColOver && "ring-2 ring-warning/50 border-warning/40"
               )}
-              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(col.id); }}
-              onDragLeave={() => setDragOverCol(null)}
+              onDragOver={e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (draggedColId) {
+                  setDragOverColReorder(col.id);
+                } else {
+                  setDragOverCol(col.id);
+                }
+              }}
+              onDragLeave={() => { setDragOverCol(null); setDragOverColReorder(null); }}
               onDrop={e => handleDrop(e, col.id)}
             >
               {/* Header */}
-              <div className={cn("px-3 pt-3 pb-2 border-b-2", isOrphanColumn(col.id) ? "border-warning/40" : "border-primary/20")}>
+              <div
+                className={cn(
+                  "px-3 pt-3 pb-2 border-b-2 cursor-grab active:cursor-grabbing",
+                  isOrphanColumn(col.id) ? "border-warning/40" : "border-primary/20"
+                )}
+                draggable={!isOrphanColumn(col.id)}
+                onDragStart={e => handleColumnDragStart(e, col.id)}
+                onDragEnd={() => { setDraggedColId(null); setDragOverColReorder(null); }}
+              >
                 <div className="flex items-center gap-2 mb-1.5">
+                  {!isOrphanColumn(col.id) && (
+                    <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                  )}
                   <Avatar className={cn("h-6 w-6 border", isOrphanColumn(col.id) ? "border-warning/30" : "border-primary/30")}>
                     <AvatarFallback className={cn("text-[9px] font-bold", isOrphanColumn(col.id) ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary")}>
                       {isOrphanColumn(col.id) ? "?" : getInitials(col.nome)}
