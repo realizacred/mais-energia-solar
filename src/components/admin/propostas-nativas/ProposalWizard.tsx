@@ -598,13 +598,38 @@ export function ProposalWizard() {
     // Pre-compute itens before building normalized object (needed for manualKits)
     const legacyKitCost = Number(raw.venda?.custo_kit ?? raw.venda?.custo_equipamentos ?? raw.equipment_cost ?? 0);
     const fallbackPanelQty = Number(raw.panel_quantity || 0);
+
+    // ── Helper: extract wattage from model name (same logic as migrate-sm-proposals) ──
+    const extractPotenciaFromModel = (model: string | null): number => {
+      if (!model) return 0;
+      const norm = model.toUpperCase();
+      const explicitW = norm.match(/(\d{3,4})\s*W\b/);
+      if (explicitW) return parseInt(explicitW[1], 10);
+      const explicitKw = norm.match(/(\d{1,2}(?:[.,]\d+)?)\s*KW\b/);
+      if (explicitKw) return Math.round(parseFloat(explicitKw[1].replace(",", ".")) * 1000);
+      const compactKw = norm.match(/(?:^|[^\d])(\d{1,2}(?:[.,]\d+)?)K(?:[^A-Z\d]|$)/);
+      if (compactKw) return Math.round(parseFloat(compactKw[1].replace(",", ".")) * 1000);
+      return 0;
+    };
+
+    // ── Helper: validate potencia_w — if it looks like cell count (< 200 for modules), re-extract from model ──
+    const fixPotenciaW = (item: any): number => {
+      const raw = Number(item.potencia_w) || 0;
+      const cat = item.categoria || "";
+      if (cat === "modulo" && raw > 0 && raw < 200 && item.modelo) {
+        const extracted = extractPotenciaFromModel(item.modelo);
+        if (extracted >= 200) return extracted;
+      }
+      return raw;
+    };
+
     const computedItens = Array.isArray(raw.itens) && raw.itens.length > 0
       ? raw.itens.map((it: any) => ({
           id: it.id || crypto.randomUUID(),
           descricao: it.descricao || "",
           fabricante: it.fabricante || "",
           modelo: it.modelo || "",
-          potencia_w: Number(it.potencia_w) || 0,
+          potencia_w: fixPotenciaW(it),
           quantidade: Number(it.quantidade) || 0,
           preco_unitario: Number(it.preco_unitario) || 0,
           categoria: it.categoria || it.tipo || "outros",
@@ -615,9 +640,9 @@ export function ProposalWizard() {
           ...(raw.panel_model ? [{
             id: crypto.randomUUID(),
             descricao: raw.panel_model,
-            fabricante: "",
+            fabricante: extractPotenciaFromModel(raw.panel_model) > 0 ? raw.panel_model.trim().split(/\s+/)[0] : "",
             modelo: raw.panel_model,
-            potencia_w: 0,
+            potencia_w: extractPotenciaFromModel(raw.panel_model),
             quantidade: fallbackPanelQty,
             preco_unitario: fallbackPanelQty > 0 && legacyKitCost > 0 ? legacyKitCost / fallbackPanelQty : 0,
             categoria: "modulo" as const,
@@ -626,9 +651,9 @@ export function ProposalWizard() {
           ...(raw.inverter_model ? [{
             id: crypto.randomUUID(),
             descricao: raw.inverter_model,
-            fabricante: "",
+            fabricante: raw.inverter_model.trim().split(/\s+/)[0] || "",
             modelo: raw.inverter_model,
-            potencia_w: 0,
+            potencia_w: extractPotenciaFromModel(raw.inverter_model),
             quantidade: raw.inverter_quantity || 1,
             preco_unitario: 0,
             categoria: "inversor" as const,
@@ -676,18 +701,21 @@ export function ProposalWizard() {
       ucs: Array.isArray(raw.ucs) && raw.ucs.length > 0
         ? raw.ucs.map((u: any, i: number) => {
             const defaults = createEmptyUC(i + 1);
+            // Tarifa fallback chain: tarifa_distribuidora → tarifa_energia → tarifa_te → raw-level → 0
+            const tarifa = Number(u.tarifa_distribuidora || u.tarifa_energia || u.tarifa_te || raw.tarifa_distribuidora || 0);
             return {
               ...defaults,
               ...u,
-              consumo_mensal: u.consumo_mensal ?? u.consumo_kwh ?? raw.consumo_mensal ?? 0,
-              tarifa_distribuidora: u.tarifa_distribuidora ?? u.tarifa_energia ?? u.tarifa_kwh ?? raw.tarifa_distribuidora ?? 0,
-              tarifa_fio_b: u.tarifa_fio_b ?? 0,
+              consumo_mensal: Number(u.consumo_mensal ?? u.consumo_kwh ?? raw.consumo_mensal ?? 0),
+              tarifa_distribuidora: tarifa,
+              tarifa_fio_b: Number(u.tarifa_fio_b || 0),
+              distribuidora: u.distribuidora || raw.dis_energia || "",
             };
           })
         : [{
             ...createEmptyUC(1),
             consumo_mensal: Number(raw.consumo_mensal ?? 0),
-            tarifa_distribuidora: Number(raw.tarifa_distribuidora ?? 0),
+            tarifa_distribuidora: Number(raw.tarifa_distribuidora || raw.tarifa_energia || 0),
             distribuidora: raw.dis_energia ?? "",
           }],
       grupo: versao.grupo || "B",
