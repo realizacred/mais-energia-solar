@@ -478,6 +478,25 @@ export function AdminSidebar({
     [favorites, canAccessItem]
   );
 
+  const isSearching = searchQuery.trim().length > 0;
+  const normalizedQuery = normalizeSearch(searchQuery.trim());
+
+  // Filter sections by search query — hide sections with no matching items
+  const searchFilteredSections = useMemo(() => {
+    if (!isSearching) return filteredSections;
+    return filteredSections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => {
+          const haystack = normalizeSearch(
+            [item.title, item.description || "", section.label, ...(item.keywords || [])].join(" ")
+          );
+          return haystack.includes(normalizedQuery);
+        }),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [filteredSections, isSearching, normalizedQuery]);
+
   const getOrderedItems = useCallback(
     (section: SidebarSection): MenuItem[] => {
       const customOrder = getSectionOrder(section.label);
