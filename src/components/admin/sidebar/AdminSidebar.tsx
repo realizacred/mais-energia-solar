@@ -14,6 +14,10 @@ import {
 import {
   Tooltip, TooltipContent, TooltipTrigger, TooltipProvider,
 } from "@/components/ui/tooltip";
+
+function normalizeSearch(str: string): string {
+  return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
@@ -440,6 +444,7 @@ export function AdminSidebar({
   const logo = useLogo({ variant: "small" });
   const { user } = useAuth();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -472,6 +477,25 @@ export function AdminSidebar({
     () => favorites.filter((id) => canAccessItem(id)),
     [favorites, canAccessItem]
   );
+
+  const isSearching = searchQuery.trim().length > 0;
+  const normalizedQuery = normalizeSearch(searchQuery.trim());
+
+  // Filter sections by search query — hide sections with no matching items
+  const searchFilteredSections = useMemo(() => {
+    if (!isSearching) return filteredSections;
+    return filteredSections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => {
+          const haystack = normalizeSearch(
+            [item.title, item.description || "", section.label, ...(item.keywords || [])].join(" ")
+          );
+          return haystack.includes(normalizedQuery);
+        }),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [filteredSections, isSearching, normalizedQuery]);
 
   const getOrderedItems = useCallback(
     (section: SidebarSection): MenuItem[] => {
@@ -533,8 +557,8 @@ export function AdminSidebar({
       </SidebarHeader>
 
       <SidebarContent className="scrollbar-thin py-2 space-y-0.5">
-        <SidebarSearch />
-        {accessibleFavorites.length > 0 && (
+        <SidebarSearch onQueryChange={setSearchQuery} />
+        {!isSearching && accessibleFavorites.length > 0 && (
           <>
             <FavoritesSection
               favoriteIds={accessibleFavorites}
@@ -547,7 +571,7 @@ export function AdminSidebar({
           </>
         )}
 
-        {filteredSections.map((section) => (
+        {searchFilteredSections.map((section) => (
           <SidebarSectionGroup
             key={section.label}
             section={section}
@@ -555,7 +579,7 @@ export function AdminSidebar({
             badgeCounts={badgeCounts}
             isFavorite={isFavorite}
             onToggleFav={toggleFavorite}
-            orderedItems={getOrderedItems(section)}
+            orderedItems={isSearching ? section.items : getOrderedItems(section)}
             onReorder={setSectionOrder}
           />
         ))}

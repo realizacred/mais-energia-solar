@@ -19,7 +19,11 @@ function normalize(str: string): string {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-export function SidebarSearch() {
+interface SidebarSearchProps {
+  onQueryChange?: (query: string) => void;
+}
+
+export function SidebarSearch({ onQueryChange }: SidebarSearchProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
@@ -50,6 +54,11 @@ export function SidebarSearch() {
     return matches.slice(0, 8);
   }, [query, filteredSections]);
 
+  // Propagate query to parent for inline filtering
+  useEffect(() => {
+    onQueryChange?.(query);
+  }, [query, onQueryChange]);
+
   // Close on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -60,6 +69,19 @@ export function SidebarSearch() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  const handleClear = () => {
+    setQuery("");
+    setOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      handleClear();
+      inputRef.current?.blur();
+    }
+  };
 
   if (collapsed) return null;
 
@@ -76,6 +98,7 @@ export function SidebarSearch() {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
+          onKeyDown={handleKeyDown}
           placeholder="Buscar no menu..."
           aria-label="Buscar no menu"
           className="w-full h-8 pl-8 pr-7 text-[12px] rounded-lg border border-border/20 bg-muted/20 
@@ -87,7 +110,7 @@ export function SidebarSearch() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => { setQuery(""); setOpen(false); }}
+            onClick={handleClear}
             className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground/40 hover:text-muted-foreground"
             aria-label="Limpar busca"
           >

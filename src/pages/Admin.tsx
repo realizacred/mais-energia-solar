@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { GlobalSearch } from "@/components/admin/GlobalSearch";
 import { TrialBanner, UpsellBanner } from "@/components/plan";
-import { TourProvider } from "@/components/tour";
 import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
 import { HelpCenterDrawer } from "@/components/help/HelpCenterDrawer";
 import { HeaderSearch } from "@/components/admin/HeaderSearch";
@@ -24,9 +23,7 @@ import { AgendaSheet } from "@/components/admin/AgendaSheet";
 import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
 import { HelpDropdown } from "@/components/admin/HelpDropdown";
 import { useNewLeadAlert } from "@/hooks/useNewLeadAlert";
-import { useOnboardingStatus } from "@/hooks/useOnboarding";
-import { OnboardingWizard } from "@/components/admin/OnboardingWizard";
-import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+
 
 // Lazy load admin sub-pages for better code splitting
 const LeadsView = lazy(() => import("@/components/admin/views/LeadsView").then(m => ({ default: m.LeadsView })));
@@ -408,23 +405,7 @@ export default function Admin() {
   const location = useLocation();
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
-  const [tenantId, setTenantId] = useState<string | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-
-  // Resolve tenant for onboarding check
-  useEffect(() => {
-    if (!user?.id) return;
-    getCurrentTenantId().then(({ tenantId: tid }) => setTenantId(tid)).catch(() => {});
-  }, [user?.id]);
-
-  const { data: onboardingStatus } = useOnboardingStatus(tenantId);
-
-  useEffect(() => {
-    if (onboardingStatus && !onboardingStatus.onboarding_completed && hasAccess) {
-      setShowOnboarding(true);
-    }
-  }, [onboardingStatus, hasAccess]);
 
   // Derive active tab from URL path
   const activeTab = useMemo(() => {
@@ -524,7 +505,6 @@ export default function Admin() {
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "18rem" } as React.CSSProperties}>
-      <TourProvider>
       <div className={`${isInboxLayout ? "h-[100dvh] overflow-hidden" : "min-h-screen"} flex w-full bg-background`}>
         <GlobalSearch />
         <AdminSidebar
@@ -532,7 +512,6 @@ export default function Admin() {
           userEmail={user?.email}
           onSignOut={handleSignOut}
           badgeCounts={badgeCounts}
-          data-tour="sidebar"
         />
         
         <SidebarInset className={`${isInboxLayout ? "h-[100dvh] overflow-hidden" : ""} flex-1 min-w-0 bg-background`}>
@@ -560,14 +539,6 @@ export default function Admin() {
           <TrialBanner />
           <UpsellBanner />
           <FeatureDiscoveryLayer />
-          {tenantId && (
-            <OnboardingWizard
-              open={showOnboarding}
-              onOpenChange={setShowOnboarding}
-              tenantId={tenantId}
-              userName={user?.email?.split("@")[0]}
-            />
-          )}
           <main className={`flex-1 admin-content overflow-x-hidden animate-fade-in ${isInboxLayout ? "min-h-0 overflow-y-hidden" : ""}`}>
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
@@ -778,7 +749,6 @@ export default function Admin() {
         </SidebarInset>
         <HelpCenterDrawer open={helpOpen} onOpenChange={setHelpOpen} />
       </div>
-      </TourProvider>
     </SidebarProvider>
   );
 }
