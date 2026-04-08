@@ -203,6 +203,17 @@ export function VendorAppointments() {
                         {/* Actions */}
                         {appt.status === "scheduled" && (
                           <div className="flex flex-col gap-1 shrink-0">
+                            {appt.appointment_type === "instalacao" && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                title="Reagendar"
+                                onClick={() => setRescheduleAppt(appt)}
+                              >
+                                <CalendarClock className="h-4 w-4 text-warning" />
+                              </Button>
+                            )}
                             <Button
                               size="icon"
                               variant="ghost"
@@ -224,6 +235,11 @@ export function VendorAppointments() {
                           </div>
                         )}
                       </div>
+
+                      {/* Timeline de reagendamentos */}
+                      {appt.appointment_type === "instalacao" && (
+                        <ReagendamentoTimeline appointmentId={appt.id} />
+                      )}
                     </CardContent>
                   </Card>
                 );
