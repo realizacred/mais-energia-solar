@@ -125,6 +125,7 @@ export function LeadEditDialog({
       setMediaConsumo(String(initialData.media_consumo ?? ""));
       setConsumoPrevisto(String(initialData.consumo_previsto ?? ""));
       setObservacoes(initialData.observacoes || "");
+      setLeadOrigemId(initialData.lead_origem_id || "");
       setPhoneChanged(false);
     }
   }, [open, initialData]);
@@ -164,6 +165,7 @@ export function LeadEditDialog({
         media_consumo: mediaConsumo ? Number(mediaConsumo) : 0,
         consumo_previsto: consumoPrevisto ? Number(consumoPrevisto) : 0,
         observacoes: observacoes.trim() || null,
+        lead_origem_id: leadOrigemId || null,
         updated_at: new Date().toISOString(),
       };
 
