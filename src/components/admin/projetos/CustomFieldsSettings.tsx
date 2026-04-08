@@ -640,10 +640,28 @@ export function CustomFieldsSettings() {
           </Card>
         </TabsContent>
 
-        {/* ═══ TAB: Premissas ═══ */}
-        <TabsContent value="premissas" className="space-y-4 mt-4">
-          <PremissasTabContent ctx={premissasCtx} />
+        {/* Link para Premissas consolidadas em Config Solar */}
+        <TabsContent value="campos" className="mt-0">
+          {/* empty — handled above */}
         </TabsContent>
+      </Tabs>
+
+      {/* Link para premissas */}
+      <Card className="border-border/60 bg-muted/30">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <p className="text-xs text-muted-foreground flex-1">
+            As premissas financeiras e técnicas foram consolidadas em Configurações Solar.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs shrink-0"
+            onClick={() => navigate("/admin/conf-solar")}
+          >
+            Ver Premissas <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </CardContent>
+      </Card>
       </Tabs>
 
       {/* ═══ Modal: Campo Customizado (extracted component) ═══ */}
