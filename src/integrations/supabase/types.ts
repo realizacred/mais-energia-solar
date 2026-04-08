@@ -22067,6 +22067,8 @@ export type Database = {
           cobranca_juros_percentual: number | null
           cobranca_multa_percentual: number | null
           concessionaria_id: string | null
+          concessionaria_motivos_reprovacao: string[] | null
+          concessionaria_prazo_vistoria_dias: number | null
           considerar_custo_disponibilidade: boolean
           considerar_custo_disponibilidade_solar: boolean
           considerar_kits_transformador: boolean
@@ -22153,6 +22155,8 @@ export type Database = {
           cobranca_juros_percentual?: number | null
           cobranca_multa_percentual?: number | null
           concessionaria_id?: string | null
+          concessionaria_motivos_reprovacao?: string[] | null
+          concessionaria_prazo_vistoria_dias?: number | null
           considerar_custo_disponibilidade?: boolean
           considerar_custo_disponibilidade_solar?: boolean
           considerar_kits_transformador?: boolean
@@ -22239,6 +22243,8 @@ export type Database = {
           cobranca_juros_percentual?: number | null
           cobranca_multa_percentual?: number | null
           concessionaria_id?: string | null
+          concessionaria_motivos_reprovacao?: string[] | null
+          concessionaria_prazo_vistoria_dias?: number | null
           considerar_custo_disponibilidade?: boolean
           considerar_custo_disponibilidade_solar?: boolean
           considerar_kits_transformador?: boolean

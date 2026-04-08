@@ -55,7 +55,7 @@ export interface PipelineInfo {
   name: string;
 }
 
-export type TabId = "gerenciamento" | "comunicacao" | "propostas" | "documentos" | "instalacao" | "suprimentos";
+export type TabId = "gerenciamento" | "comunicacao" | "propostas" | "documentos" | "instalacao" | "suprimentos" | "concessionaria";
 
 export interface EtiquetaItem {
   id: string;
@@ -201,7 +201,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab") as TabId | null;
 
-  const validTabs: TabId[] = ["gerenciamento", "comunicacao", "propostas", "documentos", "instalacao"];
+  const validTabs: TabId[] = ["gerenciamento", "comunicacao", "propostas", "documentos", "instalacao", "concessionaria"];
 
   const [activeTab, setActiveTabState] = useState<TabId>(
     (tabFromUrl && validTabs.includes(tabFromUrl))
