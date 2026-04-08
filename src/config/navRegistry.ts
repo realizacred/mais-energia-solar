@@ -17,7 +17,7 @@
  *  - business_critical → NÃO pode ser ocultado, pode ser reorganizado
  *  - normal → pode ser ocultado e reorganizado
  *
- * SEÇÕES (15):
+ * SEÇÕES (14):
  *  1. Painel
  *  2. Comercial
  *  3. Atendimento
@@ -25,14 +25,13 @@
  *  5. Pós-Venda
  *  6. Operações
  *  7. Financeiro
- *  8. Equipe
- *  9. IA
- * 10. Energia
- * 11. Integrações
- * 12. Site
- * 13. Cadastros
- * 14. Configurações
- * 15. Administração
+ *  8. Equipe & IA
+ *  9. Energia
+ * 10. Integrações
+ * 11. Site
+ * 12. Cadastros
+ * 13. Configurações
+ * 14. Administração
  */
 
 export type NavCriticality = "system_critical" | "business_critical" | "normal";
