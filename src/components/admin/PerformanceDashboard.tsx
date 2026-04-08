@@ -410,7 +410,7 @@ export default function PerformanceDashboard() {
             icon={<TrendingUp className="h-5 w-5 text-warning" />}
             label="Pipeline total"
             value={formatCompact(kpis.totalPipeline)}
-            sub={`${kpis.wonValue > 0 ? formatCompact(kpis.wonValue) + " ganho" : ""}`}
+            sub={`${kpis.activeDeals} deals ativos${kpis.wonValue > 0 ? " · " + formatCompact(kpis.wonValue) + " ganho" : ""}`}
             colorBorder="border-warning/40"
             colorBg="bg-warning/5"
             growth={kpis.revenueGrowth}
@@ -768,8 +768,8 @@ export default function PerformanceDashboard() {
                     <p className="text-xs text-muted-foreground mt-1">Ticket Médio</p>
                   </div>
                   <div className="text-center p-4 rounded-xl bg-muted/30 border border-border/40">
-                    <p className="text-3xl font-bold font-mono text-foreground">{kpis.totalLeads}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Total no pipeline</p>
+                    <p className="text-3xl font-bold font-mono text-foreground">{kpis.activeDeals}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Deals ativos no pipeline</p>
                   </div>
                 </div>
 
