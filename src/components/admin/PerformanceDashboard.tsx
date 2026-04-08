@@ -390,7 +390,7 @@ export default function PerformanceDashboard() {
 
       {/* ── Main Content ── */}
       <Tabs defaultValue="ranking" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
           <TabsTrigger value="ranking" className="gap-1.5 text-xs sm:text-sm">
             <Trophy className="h-4 w-4 text-warning" /> Ranking
           </TabsTrigger>
@@ -417,7 +417,7 @@ export default function PerformanceDashboard() {
             </CardHeader>
             <CardContent>
               <ScrollArea className="w-full">
-                <div className="overflow-x-auto">
+                <div className="rounded-lg border border-border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
