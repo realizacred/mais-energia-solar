@@ -113,6 +113,7 @@ const FIELD_TYPE_COLORS: Record<string, { bg: string; text: string; ring: string
 const OPTION_TYPES = ["select", "multi_select"];
 
 export function CustomFieldsSettings() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("campos");
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
