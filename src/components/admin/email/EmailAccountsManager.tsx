@@ -54,6 +54,7 @@ const EMPTY_FORM = {
 };
 
 export function EmailAccountsManager() {
+  const qc = useQueryClient();
   const { data: accounts = [], isLoading } = useEmailAccounts();
   const salvar = useSaveEmailAccount();
   const deletar = useDeleteEmailAccount();
