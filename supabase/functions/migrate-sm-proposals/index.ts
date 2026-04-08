@@ -1415,7 +1415,7 @@ Deno.serve(async (req) => {
                   enviada_at: smProp.send_at || null,
                   proposta_num: null,
                   codigo: `PROP-SM-${smProp.sm_project_id || 0}-${smProp.sm_proposal_id}`,
-                  is_principal: true,
+                  is_principal: report.steps.projeto?.status === "WOULD_CREATE", // only first proposal of a project is principal
               };
               if (smPropDate) {
                 propInsert.created_at = smPropDate;
