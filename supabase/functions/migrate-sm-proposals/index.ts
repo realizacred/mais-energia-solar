@@ -1553,6 +1553,19 @@ Deno.serve(async (req) => {
               // FIX 6: payback as number
               const paybackNumerico = typeof paybackMeses === "number" ? paybackMeses : 0;
 
+              // Build projectAddress for wizard location step
+              const projectAddress = {
+                cep: (smClient?.zip_code_formatted || smClient?.zip_code) ?? "",
+                rua: smClient?.address ?? "",
+                numero: smClient?.number ?? "",
+                bairro: smClient?.neighborhood ?? "",
+                cidade: smClient?.city ?? smProp.cidade ?? "",
+                uf: smClient?.state ?? smProp.estado ?? "",
+                complemento: smClient?.complement ?? "",
+                lat: null as number | null,
+                lon: null as number | null,
+              };
+
               const finalSnapshot: Record<string, any> = {
                 source: "legacy_import",
                 // Canonical WizardState nodes
@@ -1562,6 +1575,8 @@ Deno.serve(async (req) => {
                 locEstado: smProp.estado || smClient?.state || "",
                 locTipoTelhado: smProp.roof_type || "",
                 locDistribuidoraNome: smProp.dis_energia || "",
+                // Project address for wizard editing
+                projectAddress,
                 cliente: {
                   nome: smClient?.name ?? "",
                   documento: smClient?.document ?? "",
