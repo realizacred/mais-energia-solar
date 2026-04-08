@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
-export type AppointmentType = "call" | "meeting" | "followup" | "visit" | "other";
+export type AppointmentType = "call" | "meeting" | "followup" | "visit" | "instalacao" | "other";
 export type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "missed";
 
 export interface Appointment {
@@ -40,6 +40,7 @@ export interface CreateAppointmentInput {
   conversation_id?: string;
   lead_id?: string;
   cliente_id?: string;
+  notificar_wa?: boolean;
 }
 
 /**
