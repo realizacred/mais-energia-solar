@@ -1250,14 +1250,15 @@ Deno.serve(async (req) => {
 
           // If still no owner, fallback to "Não Definido" consultor
           if (!resolvedOwnerId) {
-            const naoDefinidoId = consultoresMap.get(normalizeComparableName("Não Definido"));
-            if (naoDefinidoId) {
-              resolvedOwnerId = naoDefinidoId;
+            try {
+              const { id, created } = await resolveOrCreateConsultor("Não Definido");
+              resolvedOwnerId = id;
+              ownerAutoCreated = ownerAutoCreated || created;
               ownerSource = "fallback_nao_definido";
-              (report as any).owner_resolved = { name: "Não Definido", id: naoDefinidoId, created: false, source: "fallback_nao_definido" };
-            } else {
+              (report as any).owner_resolved = { name: "Não Definido", id, created, source: "fallback_nao_definido" };
+            } catch (e) {
               report.aborted = true;
-              report.steps.deal = { status: "ERROR", reason: "Nenhum vendedor encontrado e consultor 'Não Definido' não existe" };
+              report.steps.deal = { status: "ERROR", reason: (e as Error).message || "Falha ao resolver consultor 'Não Definido'" };
               summary.ERROR++;
               reports.push(report);
               await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
