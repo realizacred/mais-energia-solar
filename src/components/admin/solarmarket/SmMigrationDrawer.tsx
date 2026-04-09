@@ -324,8 +324,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         basePayload.owner_id = ownerId;
       }
 
-      // ── Batch processing: split into batches of 5 (smaller to avoid EF timeout) ──
-      const BATCH_SIZE = 5;
+      // ── Batch processing: use slightly larger chunks in bulk migrations,
+      // while avoiding excessive EF duration per request.
+      const BATCH_SIZE = internalIds.length >= 100 ? 10 : 5;
+      const INVALIDATE_EVERY_BATCHES = 5;
       const batches: string[][] = [];
       for (let i = 0; i < internalIds.length; i += BATCH_SIZE) {
         batches.push(internalIds.slice(i, i + BATCH_SIZE));
@@ -389,8 +391,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           const successCount = allResults.reduce((acc, r) => acc + (r.total_processed || 0), 0);
           addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)} — Total migrado até agora: ${successCount}`);
 
-          // Invalidate sm-proposals to update the live counter on the page
-          if (!dryRun) {
+          // Avoid refetching the full 1k+ proposals list on every single batch,
+          // which makes the UI feel frozen during large migrations.
+          if (!dryRun && ((b + 1) % INVALIDATE_EVERY_BATCHES === 0 || b === batches.length - 1)) {
             qc.invalidateQueries({ queryKey: ["sm-proposals"] });
           }
 
@@ -428,9 +431,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           // Continue with remaining batches
         }
 
-        // Small pause between batches to avoid rate limiting
+        // Small pause between batches to avoid rate limiting without making bulk
+        // migrations unnecessarily slow.
         if (b < batches.length - 1) {
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, 100));
         }
       }
 
