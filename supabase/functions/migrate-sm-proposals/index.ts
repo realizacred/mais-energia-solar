@@ -1675,7 +1675,7 @@ Deno.serve(async (req) => {
                 projectAddress,
                 cliente: {
                   nome: smClient?.name ?? "",
-                  documento: smClient?.document ?? "",
+                  cpf_cnpj: smClient?.document ? smClient.document.replace(/\D/g, "") : "",
                   email: smClient?.email ?? "",
                   telefone: (smClient?.phone_formatted || smClient?.phone) ?? "",
                   empresa: smClient?.company ?? "",
@@ -1760,6 +1760,9 @@ Deno.serve(async (req) => {
                 geracao_anual: smProp.geracao_anual,
                 payback_original: smProp.payback,
                 payback_meses: paybackNumerico,
+                valor_total: smProp.preco_total || smProp.valor_total || 0,
+                geracao_mensal: smProp.geracao_anual ? Math.round(Number(smProp.geracao_anual) / 12) : 0,
+                economia_mensal: smProp.economia_mensal || 0,
                 payment_conditions: smProp.payment_conditions,
                 panel_model: smProp.panel_model,
                 panel_quantity: smProp.panel_quantity,
