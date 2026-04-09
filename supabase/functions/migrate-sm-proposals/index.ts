@@ -655,7 +655,8 @@ Deno.serve(async (req) => {
     const stageCache = new Map<string, string>(); // "pipelineId::stageName" → stage_id
 
     async function resolveOrCreatePipeline(funnelName: string, smStages?: string[]): Promise<string> {
-      const key = funnelName.trim();
+      // LEAD → Comercial mapping (DA-32 governance)
+      const key = funnelName.trim() === "LEAD" ? "Comercial" : funnelName.trim();
       if (pipelineCache.has(key)) return pipelineCache.get(key)!;
 
       // Look up existing pipeline by name (ilike to avoid duplicates)
