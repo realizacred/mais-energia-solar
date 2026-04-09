@@ -592,7 +592,6 @@ Deno.serve(async (req) => {
 
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
       const key = normalizeComparableName(stageName);
-      const naoDefinidoKey = normalizeComparableName("Não Definido");
       if (!key) {
         throw new Error("Nome do consultor vazio na resolução automática");
       }
@@ -616,22 +615,24 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Priority 4: fallback to "Não Definido"
-      const existingNaoDefinido = consultoresMap.get(naoDefinidoKey);
-      if (existingNaoDefinido) return { id: existingNaoDefinido, created: false };
+      // Priority 4: Create consultor with the REAL vendor name from SM
+      const realName = stageName.trim() || "Não Definido";
+      const normalizedRealName = normalizeComparableName(realName);
 
       if (dry_run) {
-        return { id: `AUTO_CREATE:nao-definido`, created: true };
+        return { id: `AUTO_CREATE:${normalizedRealName}`, created: true };
       }
 
-      // Create fallback consultor without user access (user_id = null)
+      // Generate a unique code from the name
+      const codigo = `SM-${normalizedRealName.replace(/\s+/g, "-").substring(0, 30).toUpperCase()}`;
+
       const { data: newConsultor, error: consErr } = await adminClient
         .from("consultores")
         .insert({
           tenant_id: tenantId,
-          nome: "Não Definido",
+          nome: realName,
           telefone: "N/A",
-          codigo: "SM-NAO-DEFINIDO",
+          codigo,
           ativo: true,
           user_id: null,
         })
@@ -639,12 +640,12 @@ Deno.serve(async (req) => {
         .single();
 
       if (consErr) {
-        console.error(`[SM Migration] Failed to create fallback consultor "Não Definido":`, consErr.message);
-        throw new Error(`Falha ao criar consultor "Não Definido": ${consErr.message}`);
+        console.error(`[SM Migration] Failed to create consultor "${realName}":`, consErr.message);
+        throw new Error(`Falha ao criar consultor "${realName}": ${consErr.message}`);
       }
 
       const id = newConsultor!.id;
-      consultoresMap.set(naoDefinidoKey, id);
+      consultoresMap.set(normalizedRealName, id);
       return { id, created: true };
     }
 
@@ -652,16 +653,16 @@ Deno.serve(async (req) => {
     const pipelineCache = new Map<string, string>(); // funnelName → pipeline_id
     const stageCache = new Map<string, string>(); // "pipelineId::stageName" → stage_id
 
-    async function resolveOrCreatePipeline(funnelName: string): Promise<string> {
+    async function resolveOrCreatePipeline(funnelName: string, smStages?: string[]): Promise<string> {
       const key = funnelName.trim();
       if (pipelineCache.has(key)) return pipelineCache.get(key)!;
 
-      // Look up existing pipeline by name
+      // Look up existing pipeline by name (ilike to avoid duplicates)
       const { data: existing } = await adminClient
         .from("pipelines")
         .select("id")
         .eq("tenant_id", tenantId)
-        .eq("name", key)
+        .ilike("name", key)
         .limit(1);
 
       if (existing && existing.length > 0) {
@@ -689,9 +690,18 @@ Deno.serve(async (req) => {
         .single();
 
       if (pipeErr) throw new Error(`Falha ao criar pipeline "${key}": ${pipeErr.message}`);
-      pipelineCache.set(key, newPipe!.id);
-      console.log(`[SM Migration] Created pipeline "${key}" → ${newPipe!.id}`);
-      return newPipe!.id;
+      const pipeId = newPipe!.id;
+      pipelineCache.set(key, pipeId);
+
+      // Create SM stages for this pipeline if provided
+      if (smStages && smStages.length > 0) {
+        const uniqueStages = [...new Set(smStages.map(s => s.trim()).filter(Boolean))];
+        for (let i = 0; i < uniqueStages.length; i++) {
+          await resolveOrCreateStage(pipeId, uniqueStages[i], i);
+        }
+      }
+
+      return pipeId;
     }
 
     async function resolveOrCreateStage(pipelineId: string, stageName: string, position: number): Promise<string> {
@@ -754,13 +764,8 @@ Deno.serve(async (req) => {
 
 
     // ─── Helper: resolve principal pipeline from SM funnels ──
+    // Use real SM funnel names as pipeline names (no canonical mapping)
     const FUNNEL_PRIORITY = ['LEAD', 'Engenharia', 'Equipamento', 'Compesação', 'Compensação', 'Pagamento'];
-    const FUNNEL_TO_CANONICAL: Record<string, string> = {
-      'LEAD': 'Comercial',
-      'Compesação': 'Engenharia',
-      'Compensação': 'Engenharia',
-      'Pagamento': 'Engenharia',
-    };
 
     async function resolvePipelinePrincipalDoFunil(
       allFunnels: any[] | null,
@@ -772,32 +777,41 @@ Deno.serve(async (req) => {
         return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
       }
 
+      // First pass: create/resolve ALL pipelines and their stages from SM funnels
+      // (except "Vendedores" which is handled separately as consultor)
+      for (const funnel of allFunnels) {
+        const fName = funnel.funnelName || "";
+        if (fName === "Vendedores" || !fName) continue;
+
+        // Collect all known stage names for this funnel from allFunnels entries with same funnelName
+        const stagesForFunnel = allFunnels
+          .filter((f: any) => f.funnelName === fName && f.stageName)
+          .map((f: any) => f.stageName as string);
+
+        await resolveOrCreatePipeline(fName, stagesForFunnel);
+      }
+
+      // Second pass: find the principal pipeline by priority
       for (const funnelName of FUNNEL_PRIORITY) {
         const funnel = allFunnels.find((f: any) => f.funnelName === funnelName);
         if (!funnel) continue;
 
-        const canonicalName = FUNNEL_TO_CANONICAL[funnelName] || funnelName;
-
-        let pipelineId = pipelineCache.get(canonicalName);
+        const pipelineName = funnelName;
+        let pipelineId = pipelineCache.get(pipelineName);
         if (!pipelineId) {
+          // Should have been created in first pass, but try ilike lookup
           const { data: pipeline } = await adminClient
             .from("pipelines")
             .select("id")
             .eq("tenant_id", tId)
-            .ilike("name", canonicalName)
+            .ilike("name", pipelineName)
             .maybeSingle();
-          if (!pipeline) {
-            // Auto-create pipeline if it doesn't exist
-            if (dry_run) {
-              pipelineId = `AUTO_CREATE_PIPELINE:${canonicalName}`;
-            } else {
-              pipelineId = await resolveOrCreatePipeline(canonicalName);
-            }
-          } else {
+          if (pipeline) {
             pipelineId = pipeline.id;
+            pipelineCache.set(pipelineName, pipelineId);
           }
-          pipelineCache.set(canonicalName, pipelineId);
         }
+        if (!pipelineId) continue;
 
         let stageId: string | null = null;
         if (funnel.stageName && !pipelineId.startsWith("AUTO_CREATE")) {
@@ -815,13 +829,12 @@ Deno.serve(async (req) => {
               stageId = matchedStage.id;
               stageCache.set(cacheKey, stageId);
             } else if (!dry_run) {
-              // Auto-create stage
               stageId = await resolveOrCreateStage(pipelineId, funnel.stageName, 0);
             }
           }
         }
 
-        return { pipeline_id: pipelineId, stage_id: stageId, source: `funil:${funnelName}→${canonicalName}` };
+        return { pipeline_id: pipelineId, stage_id: stageId, source: `funil:${funnelName}` };
       }
 
       return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
