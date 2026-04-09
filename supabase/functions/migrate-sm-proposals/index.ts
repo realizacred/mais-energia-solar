@@ -882,16 +882,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── 4b. Pre-create ALL pipelines + stages from SM funnels ──
-    // This ensures every SM funnel, including "Vendedores", exists before proposals are processed.
+    // ─── 4b. Pre-create only REAL pipelines + stages from SM funnels ──
+    // "Vendedores" is a consultor-resolution funnel and must not be materialized as pipeline.
     if (!dry_run) {
       const allFunnelStages = new Map<string, Set<string>>(); // funnelName → Set<stageName>
       for (const [, proj] of smProjectMap) {
         const funnels: any[] = proj.all_funnels || [];
         for (const f of funnels) {
-          const fName = (f.funnelName || "").trim();
-          const sName = (f.stageName || "").trim();
-          if (!fName) continue;
+          const fName = String(f.funnelName || "").trim();
+          const sName = String(f.stageName || "").trim();
+          if (!fName || normalizeComparableName(fName) === "vendedores") continue;
           if (!allFunnelStages.has(fName)) allFunnelStages.set(fName, new Set());
           if (sName) allFunnelStages.get(fName)!.add(sName);
         }
@@ -1448,11 +1448,14 @@ Deno.serve(async (req) => {
             }
           }
 
-          // ── C2. Assign Deal to every SM pipeline membership, including Vendedores ──
+          // ── C2. Assign Deal to every REAL SM pipeline membership ──
           if (dealId && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
             const funnels: any[] = smProj?.all_funnels || [];
-            const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName);
+            const validFunnels = funnels.filter((f: any) => {
+              const funnelName = String(f.funnelName || "").trim();
+              return funnelName && normalizeComparableName(funnelName) !== "vendedores" && f.stageName;
+            });
 
             if (validFunnels.length > 0) {
               const funnelStageGroups = new Map<string, string[]>();
@@ -1500,7 +1503,7 @@ Deno.serve(async (req) => {
                 details: pipelineDetails,
               };
             } else {
-              report.steps.pipelines = { status: "WOULD_SKIP", reason: "Nenhum funil com etapa encontrado" };
+              report.steps.pipelines = { status: "WOULD_SKIP", reason: "Nenhum funil real com etapa encontrado" };
             }
           }
 
