@@ -1237,6 +1237,13 @@ Deno.serve(async (req) => {
                 }
               } else {
                 clienteId = newClient!.id;
+                // Update local maps for future iterations
+                if (phoneNorm) clienteByPhone.set(phoneNorm, { id: clienteId, count: 1 });
+                if (smClient.email) clienteByEmail.set(smClient.email.trim().toLowerCase(), clienteId);
+                const docNorm2 = smClient.document ? smClient.document.replace(/\D/g, "") : "";
+                if (docNorm2.length >= 11) clienteByDoc.set(docNorm2, clienteId);
+                clienteByCode.set(clienteCode, clienteId);
+                clienteAddressMap.set(clienteId, { rua: smClient.address || null, cidade: smClient.city || smProp.cidade || null });
                 report.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
               }
             }
