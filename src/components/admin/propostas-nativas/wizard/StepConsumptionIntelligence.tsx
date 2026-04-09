@@ -424,7 +424,7 @@ export function StepConsumptionIntelligence({
           <div className="flex items-center gap-3">
             {allTopos.map(t => (
               <div key={t} className="flex items-center gap-1.5">
-                <Checkbox id={`topo-${t}`} checked={pd.topologias.includes(t)} onCheckedChange={() => toggleTopologia(t)} />
+                <Checkbox id={`topo-${t}`} checked={(pd.topologias || []).includes(t)} onCheckedChange={() => toggleTopologia(t)} />
                 <Label htmlFor={`topo-${t}`} className="text-xs cursor-pointer">{TOPOLOGIA_LABELS[t]}</Label>
               </div>
             ))}
@@ -701,7 +701,7 @@ function PremissasContent({
         {allTopos.map(topo => {
           const cfg = getTopoConfig(topo);
           const potIdeal = potenciaIdealByTopo[topo] || 0;
-          const isActive = pd.topologias.includes(topo);
+          const isActive = (pd.topologias || []).includes(topo);
 
           return (
             <div key={topo} className={`rounded-lg border border-border bg-card p-3 space-y-3 ${!isActive ? "opacity-40 pointer-events-none" : ""}`}>
@@ -791,7 +791,7 @@ function EquipamentosPreFilter({ pd, consumoTotal, potenciaIdealByTopo }: {
   consumoTotal: number;
   potenciaIdealByTopo: Record<string, number>;
 }) {
-  const activeTopos = pd.topologias;
+  const activeTopos = pd.topologias || ["tradicional"];
   const primaryPotIdeal = potenciaIdealByTopo[activeTopos[0] || "tradicional"] || 0;
   const potMin = Math.round(primaryPotIdeal * (1 - (pd.margem_pot_ideal || 0) / 100) * 100) / 100;
   const potMax = Math.round(primaryPotIdeal * (1 + (pd.sobredimensionamento || 0) / 100) * 100) / 100;
