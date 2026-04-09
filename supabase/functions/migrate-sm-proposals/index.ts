@@ -1365,11 +1365,11 @@ Deno.serve(async (req) => {
             }
           }
 
-          // ── C2. Assign Deal to Pipelines from SM funnels (exceto Vendedores) ──
+          // ── C2. Assign Deal to Pipelines from ALL SM funnels (including Vendedores) ──
           if (dealId && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
             const funnels: any[] = smProj?.all_funnels || [];
-            const nonVendedores = funnels.filter((f: any) => f.funnelName && f.funnelName !== "Vendedores" && f.stageName);
+            const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName);
 
             if (nonVendedores.length > 0) {
               const pipelineDetails: Array<{ funnel: string; stage: string; pipeline_id?: string; stage_id?: string }> = [];
