@@ -1650,16 +1650,9 @@ Deno.serve(async (req) => {
 
           // ── F. Proposta Versão ──
           if (propostaId && !dry_run) {
-            // Check if version already exists
-            const { data: existingVer } = await adminClient
-              .from("proposta_versoes")
-              .select("id")
-              .eq("proposta_id", propostaId)
-              .eq("versao_numero", 1)
-              .limit(1);
-
-            if ((existingVer || []).length > 0) {
-              report.steps.proposta_versao = { status: "WOULD_SKIP", id: existingVer![0].id };
+            // Check if version already exists (using pre-fetched Set)
+            if (existingVersoes.has(propostaId)) {
+              report.steps.proposta_versao = { status: "WOULD_SKIP" };
             } else {
               const paybackMeses = parsePaybackMonths(smProp.payback);
               const valorTotal = smProp.preco_total || smProp.valor_total || 0;
