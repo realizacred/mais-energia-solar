@@ -87,6 +87,72 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── ACTION: LOGOUT ──
+    if (action === "logout" && instanceId && instances.length === 1) {
+      const inst = instances[0];
+      const apiUrl = inst.evolution_api_url?.replace(/\/$/, "");
+      const instanceKey = inst.evolution_instance_key;
+      const apiKey = inst.api_key;
+
+      if (!apiUrl || !instanceKey || !apiKey) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Configuração incompleta da instância (URL, key ou API key ausente)" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      try {
+        const encodedKey = encodeURIComponent(instanceKey);
+        const logoutUrl = `${apiUrl}/instance/logout/${encodedKey}`;
+
+        const logoutRes = await fetch(logoutUrl, {
+          method: "DELETE",
+          headers: { apikey: apiKey, "Content-Type": "application/json" },
+        });
+
+        const logoutText = await logoutRes.text();
+
+        // Update status to disconnected regardless (Evolution may return 404 if already disconnected)
+        await supabaseAdmin
+          .from("wa_instances")
+          .update({ status: "disconnected", updated_at: new Date().toISOString() })
+          .eq("id", inst.id);
+
+        if (!logoutRes.ok && logoutRes.status !== 404) {
+          console.error(`[check-wa-instance-status] Logout error for ${instanceKey}:`, logoutRes.status, logoutText);
+          return new Response(
+            JSON.stringify({
+              success: true,
+              status: "disconnected",
+              warning: `API retornou ${logoutRes.status} mas instância foi marcada como desconectada`,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, status: "disconnected", message: `Instância "${inst.nome}" desconectada com sucesso` }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (err: any) {
+        console.error(`[check-wa-instance-status] Logout exception for ${inst.nome}:`, err);
+        // Still mark as disconnected locally
+        await supabaseAdmin
+          .from("wa_instances")
+          .update({ status: "disconnected", updated_at: new Date().toISOString() })
+          .eq("id", inst.id);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            status: "disconnected",
+            warning: `Erro ao comunicar com Evolution API, mas instância marcada como desconectada: ${err.message}`,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     console.log(`[check-wa-instance-status] Checking ${instances.length} instance(s) for tenant ${profile.tenant_id}`);
 
     const results = [];
