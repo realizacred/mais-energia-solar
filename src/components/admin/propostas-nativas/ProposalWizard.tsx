@@ -30,6 +30,7 @@ import {
 import { validateGrupoConsistency, resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
 import { enrichKitWarranties } from "@/services/enrichKitWarranties";
 import type { ProposalResolverContext, TariffVersionContext } from "@/lib/resolveProposalVariables";
+import { enrichLegacySnapshot } from "@/lib/enrichLegacySnapshot";
 
 // ── Step Components
 import { StepLocalizacao } from "./wizard/StepLocalizacao";
