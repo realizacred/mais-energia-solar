@@ -593,7 +593,8 @@ Deno.serve(async (req) => {
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
       const key = normalizeComparableName(stageName);
       if (!key) {
-        throw new Error("Nome do consultor vazio na resolução automática");
+        // Empty name → use "Escritório"
+        return resolveOrCreateEscritorio();
       }
 
       // Priority 1: exact match in consultoresMap
@@ -615,25 +616,20 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Priority 4: Fallback to "Escritório" — NEVER create new consultors for unknown vendors
-      const escritorioKey = normalizeComparableName("escritório");
-      const escritorioId = consultoresMap.get(escritorioKey);
-      if (escritorioId) {
-        return { id: escritorioId, created: false };
-      }
-
-      // If Escritório doesn't exist yet, create it as the single fallback
+      // Priority 4: Create new consultor with real SM name
       if (dry_run) {
-        return { id: `AUTO_FALLBACK:escritorio`, created: true };
+        return { id: `AUTO_CREATE_CONSULTOR:${stageName.trim()}`, created: true };
       }
 
+      const realName = stageName.trim();
+      const codigo = realName.toLowerCase().replace(/\s+/g, "_").slice(0, 50);
       const { data: newConsultor, error: consErr } = await adminClient
         .from("consultores")
         .insert({
           tenant_id: tenantId,
-          nome: "Escritório",
+          nome: realName,
           telefone: "N/A",
-          codigo: "escritorio",
+          codigo,
           ativo: true,
           user_id: null,
         })
@@ -641,12 +637,12 @@ Deno.serve(async (req) => {
         .single();
 
       if (consErr) {
-        console.error(`[SM Migration] Failed to create consultor "Escritório":`, consErr.message);
-        throw new Error(`Falha ao criar consultor "Escritório": ${consErr.message}`);
+        console.error(`[SM Migration] Failed to create consultor "${realName}":`, consErr.message);
+        throw new Error(`Falha ao criar consultor "${realName}": ${consErr.message}`);
       }
 
       const id = newConsultor!.id;
-      consultoresMap.set(escritorioKey, id);
+      consultoresMap.set(key, id);
       return { id, created: true };
     }
 
