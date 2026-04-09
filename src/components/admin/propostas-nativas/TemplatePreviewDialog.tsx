@@ -300,7 +300,7 @@ export function TemplatePreviewDialog({
                   srcDoc={renderedHtml}
                   title="Template Preview"
                   className="w-full flex-1 border-0"
-                  style={{ height: "calc(85vh - 140px)", pointerEvents: "none" }}
+                  style={{ height: "calc(85vh - 140px)" }}
                 />
               </div>
             ) : (
