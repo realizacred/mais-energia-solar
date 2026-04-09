@@ -391,6 +391,46 @@ export function useDealPipeline() {
           }, 800);
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'deal_kanban_projection' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(async () => {
+            try {
+              const enriched = await fetchDeals(filters);
+              setDeals(enriched);
+            } catch (e) { console.error("Realtime projection refresh:", e); }
+          }, 700);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projetos' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(async () => {
+            try {
+              const enriched = await fetchDeals(filters);
+              setDeals(enriched);
+            } catch (e) { console.error("Realtime projetos refresh:", e); }
+          }, 1000);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pipeline_stages' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(async () => {
+            try {
+              await fetchMetadata();
+              const enriched = await fetchDeals(filters);
+              setDeals(enriched);
+            } catch (e) { console.error("Realtime stages refresh:", e); }
+          }, 700);
+        }
+      )
       .subscribe();
 
     return () => {
