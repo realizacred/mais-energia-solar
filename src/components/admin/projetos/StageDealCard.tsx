@@ -158,7 +158,7 @@ export function StageDealCard({
                 : "kanban-card--no-proposal";
 
   const topBarStyle = hasEtiquetaColor && !isWonLost && !isPropostaRecusada && !isPropostaAceita && !stagnation
-    ? { background: `linear-gradient(90deg, ${etiquetaCfg.cor}, ${etiquetaCfg.cor}80)` }
+    ? { background: `linear-gradient(180deg, ${etiquetaCfg.cor}, ${etiquetaCfg.cor}80)` }
     : undefined;
 
   // Format time as Xh XXmin
