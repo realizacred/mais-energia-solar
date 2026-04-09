@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import {
   Smartphone,
@@ -128,6 +129,42 @@ export function WaInstancesManager() {
           </div>
         }
       />
+
+      {/* Alert banner for disconnected instances */}
+      {!loading && instances.length > 0 && (() => {
+        const disconnected = instances.filter(i => i.status !== "connected");
+        if (disconnected.length === 0) return null;
+        const allDisconnected = disconnected.length === instances.length;
+        return (
+          <div className={`flex items-start gap-3 p-4 rounded-lg border ${allDisconnected ? "bg-destructive/10 border-destructive/20" : "bg-warning/10 border-warning/20"}`}>
+            <AlertTriangle className={`h-5 w-5 shrink-0 mt-0.5 ${allDisconnected ? "text-destructive" : "text-warning"}`} />
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold ${allDisconnected ? "text-destructive" : "text-warning"}`}>
+                {allDisconnected
+                  ? "Todas as instâncias estão desconectadas"
+                  : `${disconnected.length} instância${disconnected.length > 1 ? "s" : ""} desconectada${disconnected.length > 1 ? "s" : ""}`}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {allDisconnected
+                  ? "Nenhuma mensagem será recebida ou enviada. Reconecte via QR Code no menu da instância."
+                  : `As instâncias ${disconnected.map(i => `"${i.nome}"`).join(", ")} não estão recebendo mensagens. Reconecte via QR Code.`}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                const first = disconnected[0];
+                if (first) setQrInstance(first);
+              }}
+            >
+              <QrCode className="h-4 w-4 mr-2" />
+              Reconectar
+            </Button>
+          </div>
+        );
+      })()}
 
       {/* Instances Grid */}
       {loading ? (
