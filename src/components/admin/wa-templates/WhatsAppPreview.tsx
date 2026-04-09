@@ -1,17 +1,13 @@
 import { cn } from "@/lib/utils";
+import { WA_SAMPLE_VARS } from "@/lib/variablesCatalog";
 
 interface WhatsAppPreviewProps {
   message: string;
   className?: string;
 }
 
-const SAMPLE_VARS: Record<string, string> = {
-  "{{nome}}": "João Silva",
-  "{{cidade}}": "Belo Horizonte",
-  "{{estado}}": "MG",
-  "{{consumo}}": "450",
-  "{{vendedor}}": "Maria Souza",
-};
+// Re-export for backward compat (consumers that imported SAMPLE_VARS from here)
+const SAMPLE_VARS = WA_SAMPLE_VARS;
 
 function renderPreviewMessage(msg: string): string {
   let result = msg;
