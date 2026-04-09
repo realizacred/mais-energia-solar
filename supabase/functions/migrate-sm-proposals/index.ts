@@ -615,24 +615,25 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Priority 4: Create consultor with the REAL vendor name from SM
-      const realName = stageName.trim() || "Não Definido";
-      const normalizedRealName = normalizeComparableName(realName);
-
-      if (dry_run) {
-        return { id: `AUTO_CREATE:${normalizedRealName}`, created: true };
+      // Priority 4: Fallback to "Escritório" — NEVER create new consultors for unknown vendors
+      const escritorioKey = normalizeComparableName("escritório");
+      const escritorioId = consultoresMap.get(escritorioKey);
+      if (escritorioId) {
+        return { id: escritorioId, created: false };
       }
 
-      // Generate a unique code from the name
-      const codigo = `SM-${normalizedRealName.replace(/\s+/g, "-").substring(0, 30).toUpperCase()}`;
+      // If Escritório doesn't exist yet, create it as the single fallback
+      if (dry_run) {
+        return { id: `AUTO_FALLBACK:escritorio`, created: true };
+      }
 
       const { data: newConsultor, error: consErr } = await adminClient
         .from("consultores")
         .insert({
           tenant_id: tenantId,
-          nome: realName,
+          nome: "Escritório",
           telefone: "N/A",
-          codigo,
+          codigo: "escritorio",
           ativo: true,
           user_id: null,
         })
@@ -640,12 +641,12 @@ Deno.serve(async (req) => {
         .single();
 
       if (consErr) {
-        console.error(`[SM Migration] Failed to create consultor "${realName}":`, consErr.message);
-        throw new Error(`Falha ao criar consultor "${realName}": ${consErr.message}`);
+        console.error(`[SM Migration] Failed to create consultor "Escritório":`, consErr.message);
+        throw new Error(`Falha ao criar consultor "Escritório": ${consErr.message}`);
       }
 
       const id = newConsultor!.id;
-      consultoresMap.set(normalizedRealName, id);
+      consultoresMap.set(escritorioKey, id);
       return { id, created: true };
     }
 
@@ -1336,14 +1337,14 @@ Deno.serve(async (req) => {
             }
           }
 
-          // If still no owner, fallback to "Não Definido" consultor
+          // If still no owner, fallback to "Escritório" consultor
           if (!resolvedOwnerId) {
             try {
-              const { id, created } = await resolveOrCreateConsultor("Não Definido");
+              const { id, created } = await resolveOrCreateConsultor("Escritório");
               resolvedOwnerId = id;
               ownerAutoCreated = ownerAutoCreated || created;
-              ownerSource = "fallback_nao_definido";
-              (report as any).owner_resolved = { name: "Não Definido", id, created, source: "fallback_nao_definido" };
+              ownerSource = "fallback_escritorio";
+              (report as any).owner_resolved = { name: "Escritório", id, created, source: "fallback_escritorio" };
             } catch (e) {
               report.aborted = true;
               report.steps.deal = { status: "ERROR", reason: (e as Error).message || "Falha ao resolver consultor 'Não Definido'" };
