@@ -1410,6 +1410,8 @@ Deno.serve(async (req) => {
             tenantId,
             params.pipeline_id!,
             params.stage_id || null,
+            smProjForPipeline?.sm_funnel_name || null,
+            smProjForPipeline?.sm_stage_name || null,
           );
 
           // Fallback: if stage_id is null, use pre-fetched first stage of the pipeline
