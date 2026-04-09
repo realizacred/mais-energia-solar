@@ -533,7 +533,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
   return (
     <>
-      <Drawer open={open} onOpenChange={(v) => { if (!running) { onOpenChange(v); if (!v) resetState(); } }}>
+      <Drawer open={open} onOpenChange={(v) => { onOpenChange(v); if (!v && !running) resetState(); }}>
         <DrawerContent className="max-h-[calc(100dvh-2rem)]">
           <DrawerHeader>
             <DrawerTitle className="flex items-center gap-2">
