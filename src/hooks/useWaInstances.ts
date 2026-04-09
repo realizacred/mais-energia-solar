@@ -86,6 +86,28 @@ export function useWaInstances() {
     },
   });
 
+  // Disconnect instance (logout from Evolution API, keep record)
+  const disconnectInstance = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke("check-wa-instance-status", {
+        body: { instance_id: id, action: "logout" },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao desconectar instância");
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
+      toast({ title: data.message || "Instância desconectada" });
+      if (data.warning) {
+        toast({ title: "Aviso", description: data.warning, variant: "destructive" });
+      }
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao desconectar", description: err.message, variant: "destructive" });
+    },
+  });
+
   // Check status of a single instance or all instances
   const checkInstanceStatus = async (instanceId?: string): Promise<CheckStatusResult[]> => {
     const { data, error } = await supabase.functions.invoke("check-wa-instance-status", {
@@ -225,6 +247,8 @@ export function useWaInstances() {
     loading: instancesQuery.isLoading,
     updateInstance: updateInstance.mutate,
     deleteInstance: deleteInstance.mutate,
+    disconnectInstance: disconnectInstance.mutate,
+    disconnecting: disconnectInstance.isPending,
     checkStatus: checkStatusMutation.mutate,
     checkingStatus: checkStatusMutation.isPending,
     syncHistory: triggerHistorySync,
