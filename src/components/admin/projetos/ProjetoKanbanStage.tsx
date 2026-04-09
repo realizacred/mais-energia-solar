@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useKanbanAutomations, useKanbanStagePermissions } from "@/hooks/useProjetoKanbanStage";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, Settings2, Clock, Eye, Lock, Palette, ChevronDown, DollarSign, Filter, Search, Check } from "lucide-react";
+import { Zap, Plus, Settings2, Clock, Eye, Lock, Palette, ChevronDown, DollarSign, Filter, Search, Check, MoreVertical, ArrowUpDown, Type, Calendar } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
@@ -64,6 +64,32 @@ interface Props {
 const formatKwp = (v: number) => {
   if (!v) return "0 kWp";
   return `${v.toFixed(1).replace(".", ",")} kWp`;
+};
+
+type StageSortOption = "default" | "nome_asc" | "nome_desc" | "valor_desc" | "valor_asc" | "data_desc" | "data_asc";
+
+function sortStageDeals(deals: DealKanbanCard[], sort: StageSortOption): DealKanbanCard[] {
+  if (sort === "default") return deals;
+  const sorted = [...deals];
+  switch (sort) {
+    case "nome_asc": return sorted.sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || ""));
+    case "nome_desc": return sorted.sort((a, b) => (b.customer_name || "").localeCompare(a.customer_name || ""));
+    case "valor_desc": return sorted.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
+    case "valor_asc": return sorted.sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
+    case "data_desc": return sorted.sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
+    case "data_asc": return sorted.sort((a, b) => new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime());
+    default: return sorted;
+  }
+}
+
+const STAGE_SORT_LABELS: Record<StageSortOption, string> = {
+  default: "Padrão",
+  nome_asc: "Nome A→Z",
+  nome_desc: "Nome Z→A",
+  valor_desc: "Maior valor",
+  valor_asc: "Menor valor",
+  data_desc: "Mais recente",
+  data_asc: "Mais antigo",
 };
 
 // ─── Resizable column hook ─────────────────────
