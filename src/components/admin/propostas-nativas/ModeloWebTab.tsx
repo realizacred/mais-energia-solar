@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,10 +16,8 @@ import { usePropostaTemplates, useRefreshPropostaTemplates } from "@/hooks/useCo
 import { useAtualizarTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
 import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
 import type { TemplateBlock } from "@/components/admin/proposal-builder/types";
-import { BlockRenderer } from "@/components/admin/proposal-builder/BlockRenderer";
-import { buildTree } from "@/components/admin/proposal-builder/treeUtils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TemplateHtmlRenderer } from "@/components/proposal-landing/TemplateHtmlRenderer";
+import { TemplateFinalPreview } from "@/components/proposal-landing/TemplateFinalPreview";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
 
 interface TemplateRow {
@@ -70,6 +69,7 @@ const TEMPLATE_PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.red
 });
 
 function PreviewRenderer({ jsonData }: { jsonData: string | null }) {
+  const { settings: brandSettings } = useBrandSettings();
   const blocks = useMemo(() => {
     if (!jsonData) return [];
     try {
@@ -88,9 +88,13 @@ function PreviewRenderer({ jsonData }: { jsonData: string | null }) {
   }
 
   return (
-    <div className="bg-card min-h-[400px]">
-      <TemplateHtmlRenderer blocks={blocks} variables={TEMPLATE_PREVIEW_VARIABLES} />
-    </div>
+    <TemplateFinalPreview
+      blocks={blocks}
+      variables={TEMPLATE_PREVIEW_VARIABLES}
+      theme={2}
+      logoUrl={brandSettings?.logo_url || brandSettings?.logo_white_url}
+      companyName="Mais Energia Solar"
+    />
   );
 }
 
