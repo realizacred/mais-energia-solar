@@ -1566,6 +1566,14 @@ Deno.serve(async (req) => {
                 }
               }
 
+              // FIX 2: Build canonical itens with potencia_w + fabricante extracted from model name
+              // Use raw_payload pricingTable for real costs (KIT item has the actual cost when Módulo/Inversor = 0)
+              const rawPricingTable = Array.isArray(smProp.raw_payload?.pricingTable) ? smProp.raw_payload.pricingTable : [];
+              const kitPricingItem = rawPricingTable.find((i: any) => i.category === "KIT" || i.category === "Kit");
+              const custoKitReal = kitPricingItem && Number(kitPricingItem.totalCost || kitPricingItem.salesValue) > 0
+                ? Number(kitPricingItem.totalCost || kitPricingItem.salesValue)
+                : Number(smProp.equipment_cost ?? 0);
+
               // Build venda object for snapshot — calculate real margin
               const custoTotal = (smProp.equipment_cost || 0) + custoInstalacao;
               const margemReal = custoTotal > 0
@@ -1596,14 +1604,6 @@ Deno.serve(async (req) => {
                 valor_parcela: valorTotal,
                 is_default: true,
               }];
-
-              // FIX 2: Build canonical itens with potencia_w + fabricante extracted from model name
-              // Use raw_payload pricingTable for real costs (KIT item has the actual cost when Módulo/Inversor = 0)
-              const rawPricingTable = Array.isArray(smProp.raw_payload?.pricingTable) ? smProp.raw_payload.pricingTable : [];
-              const kitPricingItem = rawPricingTable.find((i: any) => i.category === "KIT" || i.category === "Kit");
-              const custoKitReal = kitPricingItem && Number(kitPricingItem.totalCost || kitPricingItem.salesValue) > 0
-                ? Number(kitPricingItem.totalCost || kitPricingItem.salesValue)
-                : Number(smProp.equipment_cost ?? 0);
 
               const panelPotencia = extractPotenciaFromModel(smProp.panel_model);
               const inverterPotencia = extractPotenciaFromModel(smProp.inverter_model);
