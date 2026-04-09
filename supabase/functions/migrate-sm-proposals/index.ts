@@ -1483,28 +1483,16 @@ Deno.serve(async (req) => {
           const projetoCodigo = `PROJ-SM-${smProp.sm_project_id || smProp.sm_proposal_id}`;
 
           if (dealId && !dry_run) {
-            // Priority 1: Check if projeto already exists by codigo (same SM project)
-            const { data: existingByCodigo } = await adminClient
-              .from("projetos")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .eq("codigo", projetoCodigo)
-              .limit(1);
-
-            if ((existingByCodigo || []).length > 0) {
-              projetoId = existingByCodigo![0].id;
+            // Priority 1: Check if projeto already exists by codigo (using pre-fetched map)
+            const existingByCodigoId = projetoByCodigo.get(projetoCodigo);
+            if (existingByCodigoId) {
+              projetoId = existingByCodigoId;
               report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "matched by codigo" };
             } else {
-              // Priority 2: Check by deal_id
-              const { data: existingByDeal } = await adminClient
-                .from("projetos")
-                .select("id")
-                .eq("tenant_id", tenantId)
-                .eq("deal_id", dealId)
-                .limit(1);
-
-              if ((existingByDeal || []).length > 0) {
-                projetoId = existingByDeal![0].id;
+              // Priority 2: Check by deal_id (using pre-fetched map)
+              const existingByDealId = projetoByDeal.get(dealId);
+              if (existingByDealId) {
+                projetoId = existingByDealId;
                 report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "matched by deal_id" };
               } else {
                 const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
