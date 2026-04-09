@@ -569,6 +569,41 @@ export function ProjetosManager() {
                 }))}
               />
             )}
+              </div>
+
+              {/* Lateral Legend Panel */}
+              {legendOpen && (
+                <div className="w-48 shrink-0 border-l border-border bg-card/80 rounded-r-xl p-3 hidden sm:block animate-in slide-in-from-right-2 duration-200">
+                  <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-3">Bordas dos cards</p>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-success" />
+                      <span className="text-[11px] text-foreground font-medium">Projeto ganho</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-destructive" />
+                      <span className="text-[11px] text-foreground font-medium leading-tight">Perdido / estagnado +7d / Recusada</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-warning" />
+                      <span className="text-[11px] text-foreground font-medium">Estagnado +3 dias</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-muted-foreground/60" />
+                      <span className="text-[11px] text-foreground font-medium">Sem proposta</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full bg-primary shrink-0" />
+                      <span className="text-[11px] text-foreground font-medium">Com proposta</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full bg-accent shrink-0" />
+                      <span className="text-[11px] text-foreground font-medium">Etiqueta do projeto</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </TabsContent>
 
