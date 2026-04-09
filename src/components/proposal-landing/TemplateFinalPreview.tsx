@@ -1,3 +1,10 @@
+/**
+ * TemplateFinalPreview.tsx — Preview fiel do template de proposta web
+ * 
+ * Renderiza os blocos do editor visual com tema, nav e footer.
+ * Página pública — exceção RB-02 documentada.
+ */
+
 import { useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { TemplateHtmlRenderer } from "@/components/proposal-landing/TemplateHtmlRenderer";
@@ -12,12 +19,14 @@ interface TemplateFinalPreviewProps {
   companyName?: string | null;
 }
 
-const SECTION_LABELS: Record<number, string> = {
-  0: "O Projeto",
-  1: "Tecnologia",
-  2: "Investimento",
-  3: "Aceitar",
-};
+/**
+ * Labels dinâmicas baseadas no número de seções visíveis.
+ * Adapta automaticamente ao template (4 ou 5 seções).
+ */
+function getSectionLabels(count: number): string[] {
+  if (count <= 4) return ["O Projeto", "Tecnologia", "Investimento", "Aceitar"];
+  return ["O Projeto", "Benefícios", "Tecnologia", "Investimento", "Aceitar"];
+}
 
 export function TemplateFinalPreview({
   blocks,
@@ -34,6 +43,7 @@ export function TemplateFinalPreview({
   );
 
   const themeCss = useMemo(() => getLandingThemeCSS(theme), [theme]);
+  const sectionLabels = useMemo(() => getSectionLabels(visibleSections.length), [visibleSections.length]);
 
   const extraCss = `
     .pl-landing-preview { font-family: var(--font-body, 'Inter', sans-serif); }
@@ -105,7 +115,7 @@ export function TemplateFinalPreview({
                 fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
               }}
             >
-              {companyName || "Mais Energia Solar"}
+              {companyName || variables.empresa_nome || "Mais Energia Solar"}
             </span>
           </div>
 
@@ -129,7 +139,7 @@ export function TemplateFinalPreview({
                     document.getElementById(`${anchorPrefixRef.current}${section.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
                 >
-                  {SECTION_LABELS[index] ?? `Seção ${index + 1}`}
+                  {sectionLabels[index] ?? `Seção ${index + 1}`}
                 </Button>
               ))}
             </nav>
@@ -157,7 +167,7 @@ export function TemplateFinalPreview({
         }}
       >
         <p style={{ margin: "0 0 4px", fontWeight: 600, color: "var(--nav-text, rgba(255,255,255,0.6))" }}>
-          {companyName || "Mais Energia Solar"}
+          {companyName || variables.empresa_nome || "Mais Energia Solar"}
         </p>
         <p style={{ margin: 0 }}>
           Proposta comercial personalizada · Visualização do template
