@@ -123,8 +123,10 @@ export function StageDealCard({
 
   const isInactive = deal.deal_status === "perdido" || deal.deal_status === "cancelado";
   const hasActiveProposal = Boolean(deal.proposta_id && deal.proposta_status && deal.proposta_status !== "excluida");
+  const hasValue = typeof deal.deal_value === "number" && deal.deal_value > 0;
+  const hasKwp = typeof deal.deal_kwp === "number" && deal.deal_kwp > 0;
   const propostaInfo = hasActiveProposal && deal.proposta_status ? PROPOSTA_STATUS_MAP[deal.proposta_status] : null;
-  const stagnation = hasActiveProposal ? getStagnationLevel(deal.last_stage_change) : null;
+  const stagnation = getStagnationLevel(deal.last_stage_change);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const visibleFields = new Set(cardVisibleFields || ["valor_projeto", "potencia_kwp", "cidade"]);
 
@@ -135,8 +137,9 @@ export function StageDealCard({
 
   const isWonLost = deal.deal_status === "won" || deal.deal_status === "lost";
   const normalizedProposalStatus = deal.proposta_status?.toLowerCase() ?? "";
-  const isPropostaRecusada = hasActiveProposal && ["recusada", "rejeitada", "perdida", "rejected"].includes(normalizedProposalStatus);
-  const isPropostaAceita = hasActiveProposal && ["aceita", "accepted", "aprovada", "ganha"].includes(normalizedProposalStatus);
+  const hasTrackedProposalStatus = normalizedProposalStatus.length > 0 && normalizedProposalStatus !== "excluida";
+  const isPropostaRecusada = hasTrackedProposalStatus && ["recusada", "rejeitada", "perdida", "rejected"].includes(normalizedProposalStatus);
+  const isPropostaAceita = hasTrackedProposalStatus && ["aceita", "accepted", "aprovada", "ganha"].includes(normalizedProposalStatus);
   const hasEtiquetaColor = !!etiquetaCfg?.cor;
   const borderClass = isWonLost
     ? (deal.deal_status === "won" ? "kanban-card--won" : "kanban-card--lost")
@@ -219,7 +222,7 @@ export function StageDealCard({
               </p>
             )}
           </div>
-          {visibleFields.has("potencia_kwp") && hasActiveProposal && deal.deal_kwp > 0 && (
+          {visibleFields.has("potencia_kwp") && hasKwp && (
             <Badge variant="outline" className="shrink-0 text-[10px] h-[20px] px-1.5 font-semibold bg-success/10 text-success border-success/20 gap-0.5">
               <Zap className="h-3 w-3" />
               {deal.deal_kwp.toFixed(1).replace(".", ",")}
@@ -231,17 +234,16 @@ export function StageDealCard({
         {visibleFields.has("valor_projeto") && (
           <div className="flex items-center gap-2 text-xs px-0.5">
             <span className="font-bold tabular-nums text-foreground text-sm">
-              {hasActiveProposal && deal.deal_value > 0 ? formatBRL(deal.deal_value) : "R$ —"}
+              {hasValue ? formatBRL(deal.deal_value) : "R$ —"}
             </span>
             <span className="text-muted-foreground/30">·</span>
             <span className={cn(
               "tabular-nums font-medium",
-              !hasActiveProposal ? "text-muted-foreground" :
               stagnation === "critical" ? "text-destructive" :
               stagnation === "warning" ? "text-warning" :
               "text-muted-foreground"
             )}>
-              {hasActiveProposal ? formatTimeInStage(deal.last_stage_change) : "0h"}
+              {formatTimeInStage(deal.last_stage_change)}
             </span>
             {propostaInfo && (
               <>
