@@ -851,6 +851,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── 5b. Pre-fetch concessionárias for distribuidora matching ─
+    const concMap = new Map<string, { id: string; nome: string }>();
+    {
+      const { data: concs } = await adminClient
+        .from("concessionarias")
+        .select("id, nome, sigla")
+        .eq("tenant_id", tenantId);
+      for (const c of concs || []) {
+        const nomeNorm = (c.nome || "").toLowerCase().trim();
+        const siglaNorm = (c.sigla || "").toLowerCase().trim();
+        concMap.set(nomeNorm, { id: c.id, nome: c.nome });
+        if (siglaNorm) concMap.set(siglaNorm, { id: c.id, nome: c.nome });
+      }
+    }
+
     // ─── 5. Process proposals ────────────────────────────
 
     const reports: ProposalReport[] = [];
