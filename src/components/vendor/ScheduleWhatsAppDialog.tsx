@@ -50,24 +50,24 @@ const getTemplates = (hasOrcamento: boolean) => [
   {
     id: "followup",
     label: "Follow-up Padrão",
-    message: "Olá {nome}! Tudo bem? Passando para saber se ainda tem interesse em energia solar. Posso te enviar uma proposta personalizada?",
+    message: "Olá {{nome}}! Tudo bem? Passando para saber se ainda tem interesse em energia solar. Posso te enviar uma proposta personalizada?",
   },
   {
     id: "proposta",
     label: "Envio de Proposta",
     message: hasOrcamento
-      ? "Olá {nome}! Sua proposta {orc_code} para {cidade}/{estado} com consumo de {consumo} kWh está pronta. Posso te enviar os detalhes?"
-      : "Olá {nome}! Preparei uma proposta especial para você economizar na conta de luz. Posso te enviar agora?",
+      ? "Olá {{nome}}! Sua proposta {{orc_code}} para {{cidade}}/{{estado}} com consumo de {{consumo}} kWh está pronta. Posso te enviar os detalhes?"
+      : "Olá {{nome}}! Preparei uma proposta especial para você economizar na conta de luz. Posso te enviar agora?",
   },
   {
     id: "urgente",
     label: "Oferta Urgente",
-    message: "Olá {nome}! Estamos com uma condição especial por tempo limitado. Gostaria de saber mais sobre energia solar?",
+    message: "Olá {{nome}}! Estamos com uma condição especial por tempo limitado. Gostaria de saber mais sobre energia solar?",
   },
   ...(hasOrcamento ? [{
     id: "referencia",
     label: "Referência à Proposta",
-    message: "Olá {nome}! Vi que você solicitou um orçamento ({orc_code}) para {cidade}/{estado}. Posso te ajudar com mais informações?",
+    message: "Olá {{nome}}! Vi que você solicitou um orçamento ({{orc_code}}) para {{cidade}}/{{estado}}. Posso te ajudar com mais informações?",
   }] : []),
 ];
 
@@ -88,20 +88,23 @@ export function ScheduleWhatsAppDialog({
   const hasOrcamento = !!orcamentoContext;
   const TEMPLATES = getTemplates(hasOrcamento);
 
-  // Replace placeholders in template
+  // Replace placeholders in template — supports {{var}} canonical and {var} legacy
   const processTemplate = (template: string) => {
-    let result = template
-      .replace("{nome}", lead?.nome.split(" ")[0] || "")
-      .replace("{vendedor}", vendedorNome || "");
-    
+    const vars: Record<string, string> = {
+      nome: lead?.nome.split(" ")[0] || "",
+      vendedor: vendedorNome || "",
+    };
     if (orcamentoContext) {
-      result = result
-        .replace("{orc_code}", orcamentoContext.orc_code || "s/n")
-        .replace("{cidade}", orcamentoContext.cidade)
-        .replace("{estado}", orcamentoContext.estado)
-        .replace("{consumo}", String(orcamentoContext.media_consumo));
+      vars.orc_code = orcamentoContext.orc_code || "s/n";
+      vars.cidade = orcamentoContext.cidade;
+      vars.estado = orcamentoContext.estado;
+      vars.consumo = String(orcamentoContext.media_consumo);
     }
-    
+    let result = template;
+    for (const [key, value] of Object.entries(vars)) {
+      result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
+      result = result.replace(new RegExp(`\\{${key}\\}`, "g"), value);
+    }
     return result;
   };
 

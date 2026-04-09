@@ -6,11 +6,11 @@ interface VariablesHelperProps {
 }
 
 const VARIABLES = [
-  { key: "{nome}", desc: "Nome do lead/cliente" },
-  { key: "{cidade}", desc: "Cidade do lead" },
-  { key: "{estado}", desc: "Estado (UF) do lead" },
-  { key: "{consumo}", desc: "Consumo mensal (kWh)" },
-  { key: "{vendedor}", desc: "Nome do consultor" },
+  { key: "{{nome}}", desc: "Nome do lead/cliente" },
+  { key: "{{cidade}}", desc: "Cidade do lead" },
+  { key: "{{estado}}", desc: "Estado (UF) do lead" },
+  { key: "{{consumo}}", desc: "Consumo mensal (kWh)" },
+  { key: "{{vendedor}}", desc: "Nome do consultor" },
 ];
 
 export function VariablesHelper({ onInsert }: VariablesHelperProps) {

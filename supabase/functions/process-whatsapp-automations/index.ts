@@ -417,6 +417,8 @@ function checkTriggerConditions(
 function substituirVariaveis(mensagem: string, dados: Record<string, string>): string {
   let resultado = mensagem;
   for (const [chave, valor] of Object.entries(dados)) {
+    // Support both {{var}} (canonical) and {var} (legacy) for backward compat
+    resultado = resultado.replace(new RegExp(`\\{\\{${chave}\\}\\}`, "g"), valor || "");
     resultado = resultado.replace(new RegExp(`\\{${chave}\\}`, "g"), valor || "");
   }
   return resultado;

@@ -446,7 +446,9 @@ async function jobAutoReply(supabase: any, instanceId: string, tenantId: string,
   if (!autoReplyConfig?.auto_reply_enabled || !autoReplyConfig?.auto_reply_message) return;
 
   const replyMsg = autoReplyConfig.auto_reply_message
+    .replace(/\{\{nome\}\}/g, p.contact_name || "")
     .replace(/\{nome\}/g, p.contact_name || "")
+    .replace(/\{\{telefone\}\}/g, p.phone || "")
     .replace(/\{telefone\}/g, p.phone || "");
 
   const correlationId = crypto.randomUUID();
