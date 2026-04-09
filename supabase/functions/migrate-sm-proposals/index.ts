@@ -884,6 +884,8 @@ Deno.serve(async (req) => {
       let pipelinesCreated = 0;
       let stagesCreated = 0;
       for (const [funnelName, stages] of allFunnelStages) {
+        // "Vendedores" is NOT a real pipeline — it maps to consultor/owner via resolveOrCreateConsultor
+        if (funnelName.toLowerCase() === "vendedores") continue;
         try {
           const canonicalName = FUNNEL_TO_CANONICAL[funnelName] || funnelName;
           const pipeId = await resolveOrCreatePipeline(canonicalName);
