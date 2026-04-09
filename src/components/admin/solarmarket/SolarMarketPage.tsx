@@ -502,7 +502,7 @@ export default function SolarMarketPage() {
   const [filterProjectId, setFilterProjectId] = useState<number | null>(null);
   const [filterProposalStatus, setFilterProposalStatus] = useState("");
   const [filterProposalConsultor, setFilterProposalConsultor] = useState("");
-  const [filterMigrationStatus, setFilterMigrationStatus] = useState<"all" | "pending" | "migrated">("pending");
+  const [filterMigrationStatus, setFilterMigrationStatus] = useState<"all" | "pending" | "migrated">("all");
 
   // Reset state
   const [resetOpen, setResetOpen] = useState(false);
