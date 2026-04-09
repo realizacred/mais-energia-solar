@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, Pencil } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, Pencil, Sparkles } from "lucide-react";
 import { usePropostaTemplates, useRefreshPropostaTemplates } from "@/hooks/useConfSolar";
 import { useAtualizarTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
 import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
@@ -19,6 +19,7 @@ import type { TemplateBlock } from "@/components/admin/proposal-builder/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TemplateFinalPreview } from "@/components/proposal-landing/TemplateFinalPreview";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
+import { createDefaultTemplateBlocks, type TemplateStyle } from "@/components/admin/proposal-builder/defaultTemplateBlocks";
 
 interface TemplateRow {
   id: string;
@@ -107,6 +108,7 @@ export function TemplatesTab() {
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TemplateRow | null>(null);
+  const [seedingDefaults, setSeedingDefaults] = useState(false);
 
   useEffect(() => {
     if (serverData && !initialized) {
@@ -155,6 +157,53 @@ export function TemplatesTab() {
     setSaving(false);
   }
 
+  const DEFAULT_TEMPLATES_CONFIG: { style: TemplateStyle; nome: string; descricao: string }[] = [
+    { style: "consultivo", nome: "Consultivo — Venda Assistida", descricao: "Template detalhado com comparações antes/depois, ideal para projetos maiores e vendedor presencial." },
+    { style: "fechamento", nome: "Fechamento Rápido — WhatsApp", descricao: "Template de alto impacto visual para envio direto ao cliente, foco em decisão rápida." },
+    { style: "escala", nome: "Escala Automática — Leads", descricao: "Template educativo para leads frios ou tráfego, construção de valor antes do preço." },
+  ];
+
+  async function handleSeedDefaults() {
+    setSeedingDefaults(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .single();
+      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+
+      let created = 0;
+      for (let i = 0; i < DEFAULT_TEMPLATES_CONFIG.length; i++) {
+        const cfg = DEFAULT_TEMPLATES_CONFIG[i];
+        const blocks = createDefaultTemplateBlocks("grid", cfg.style);
+        const templateHtml = JSON.stringify(blocks);
+        const { error } = await supabase.from("proposta_templates").insert({
+          nome: cfg.nome,
+          descricao: cfg.descricao,
+          grupo: "B",
+          categoria: "padrao",
+          tipo: "html",
+          template_html: templateHtml,
+          ativo: true,
+          ordem: templates.length + i,
+          tenant_id: profile.tenant_id,
+        } as any);
+        if (error) throw error;
+        created++;
+      }
+      toast({ title: `${created} templates criados com sucesso!` });
+      setInitialized(false);
+      refreshTemplates();
+    } catch (e: any) {
+      toast({ title: "Erro ao criar templates", description: e.message, variant: "destructive" });
+    } finally {
+      setSeedingDefaults(false);
+    }
+  }
+
   const handleBuilderSave = useCallback(async (jsonData: string) => {
     if (!editingTemplate) return;
     await atualizarHtml.mutateAsync({ id: editingTemplate.id, template_html: jsonData });
@@ -198,9 +247,21 @@ export function TemplatesTab() {
           <FileText className="h-4 w-4 text-primary" />
           Templates de Proposta
         </CardTitle>
-        <Button variant="default" size="sm" onClick={addTemplate} className="gap-1.5 text-xs">
-          <Plus className="h-3.5 w-3.5" /> Novo Template
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSeedDefaults}
+            disabled={seedingDefaults}
+            className="gap-1.5 text-xs"
+          >
+            {seedingDefaults ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Criar templates padrão
+          </Button>
+          <Button variant="default" size="sm" onClick={addTemplate} className="gap-1.5 text-xs">
+            <Plus className="h-3.5 w-3.5" /> Novo Template
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {templates.length === 0 ? (
