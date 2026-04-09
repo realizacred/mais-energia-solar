@@ -655,7 +655,8 @@ Deno.serve(async (req) => {
     const stageCache = new Map<string, string>(); // "pipelineId::stageName" → stage_id
 
     async function resolveOrCreatePipeline(funnelName: string, smStages?: string[]): Promise<string> {
-      const key = funnelName.trim();
+      // LEAD → Comercial mapping (DA-32 governance)
+      const key = funnelName.trim() === "LEAD" ? "Comercial" : funnelName.trim();
       if (pipelineCache.has(key)) return pipelineCache.get(key)!;
 
       // Look up existing pipeline by name (ilike to avoid duplicates)
@@ -894,6 +895,14 @@ Deno.serve(async (req) => {
           if (!fName || normalizeComparableName(fName) === "vendedores") continue;
           if (!allFunnelStages.has(fName)) allFunnelStages.set(fName, new Set());
           if (sName) allFunnelStages.get(fName)!.add(sName);
+        }
+        // Fallback: use sm_funnel_name/sm_stage_name when all_funnels is empty
+        if (funnels.length === 0 && proj.sm_funnel_name) {
+          const fName = proj.sm_funnel_name.trim();
+          if (fName && normalizeComparableName(fName) !== "vendedores") {
+            if (!allFunnelStages.has(fName)) allFunnelStages.set(fName, new Set());
+            if (proj.sm_stage_name?.trim()) allFunnelStages.get(fName)!.add(proj.sm_stage_name.trim());
+          }
         }
       }
 
