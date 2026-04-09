@@ -1371,7 +1371,7 @@ Deno.serve(async (req) => {
             const funnels: any[] = smProj?.all_funnels || [];
             const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName);
 
-            if (nonVendedores.length > 0) {
+            if (validFunnels.length > 0) {
               const pipelineDetails: Array<{ funnel: string; stage: string; pipeline_id?: string; stage_id?: string }> = [];
 
               for (let idx = 0; idx < nonVendedores.length; idx++) {
