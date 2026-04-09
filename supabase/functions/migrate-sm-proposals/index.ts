@@ -778,11 +778,11 @@ Deno.serve(async (req) => {
         return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
       }
 
-      // First pass: create/resolve ALL pipelines and their stages from SM funnels
-      // (except "Vendedores" which is handled separately as consultor)
+      // First pass: create/resolve ALL pipelines and their stages from SM funnels.
+      // "Vendedores" also remains a real pipeline membership, while still driving owner resolution.
       for (const funnel of allFunnels) {
         const fName = funnel.funnelName || "";
-        if (fName === "Vendedores" || !fName) continue;
+        if (!fName) continue;
 
         // Collect all known stage names for this funnel from allFunnels entries with same funnelName
         const stagesForFunnel = allFunnels
@@ -882,8 +882,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── 4b. Pre-create ALL pipelines + stages from SM funnels (INCLUDING Vendedores) ──
-    // This ensures all funnels exist in the system before proposals are processed.
+    // ─── 4b. Pre-create ALL pipelines + stages from SM funnels ──
+    // This ensures every SM funnel, including "Vendedores", exists before proposals are processed.
     if (!dry_run) {
       const allFunnelStages = new Map<string, Set<string>>(); // funnelName → Set<stageName>
       for (const [, proj] of smProjectMap) {
@@ -900,8 +900,6 @@ Deno.serve(async (req) => {
       let pipelinesCreated = 0;
       let stagesCreated = 0;
       for (const [funnelName, stages] of allFunnelStages) {
-        // "Vendedores" is NOT a real pipeline — it maps to consultor/owner via resolveOrCreateConsultor
-        if (funnelName.toLowerCase() === "vendedores") continue;
         try {
           const pipeId = await resolveOrCreatePipeline(funnelName);
           if (!pipeId.startsWith("AUTO_CREATE")) {
@@ -1450,11 +1448,11 @@ Deno.serve(async (req) => {
             }
           }
 
-          // ── C2. Assign Deal to Pipelines from SM funnels (excluding Vendedores — resolved as consultor) ──
+          // ── C2. Assign Deal to every SM pipeline membership, including Vendedores ──
           if (dealId && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
             const funnels: any[] = smProj?.all_funnels || [];
-            const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName && (f.funnelName || "").toLowerCase() !== "vendedores");
+            const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName);
 
             if (validFunnels.length > 0) {
               const funnelStageGroups = new Map<string, string[]>();
