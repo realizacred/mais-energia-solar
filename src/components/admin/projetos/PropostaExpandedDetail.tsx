@@ -1276,7 +1276,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       <div className={cn(
         "rounded-xl border transition-all",
         isMigrated
-          ? "border-2 border-info/40 bg-info/5"
+          ? "border-2 border-warning/40 bg-warning/5"
           : isPrincipal ? "bg-card border-primary/20 shadow-sm" : "bg-card border-border/40 hover:border-border/70"
       )}>
         {/* ── Header row ──────────────────────── */}
@@ -1295,7 +1295,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               </p>
               <StatusBadge status={p.status} aceita_at={p.aceita_at} enviada_at={p.enviada_at} recusada_at={p.recusada_at} created_at={p.created_at} />
               {isMigrated && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-info/10 text-info border border-info/30">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/10 text-warning border border-warning/30">
                   Migrada SM
                 </span>
               )}
