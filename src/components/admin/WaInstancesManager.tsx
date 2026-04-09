@@ -393,6 +393,69 @@ export function WaInstancesManager() {
         instanceId={qrInstance?.id || ""}
         instanceName={qrInstance?.nome}
       />
+
+      {/* Confirm Disconnect Dialog */}
+      <AlertDialog open={!!confirmDisconnect} onOpenChange={(v) => !v && setConfirmDisconnect(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desconectar instância "{confirmDisconnect?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A sessão do WhatsApp será encerrada na Evolution API. A instância continuará cadastrada no sistema e poderá ser reconectada via QR Code a qualquer momento.
+              {confirmDisconnect?.phone_number && (
+                <span className="block mt-2 font-medium">Número: {confirmDisconnect.phone_number}</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmDisconnect) {
+                  disconnectInstance(confirmDisconnect.id);
+                  setConfirmDisconnect(null);
+                }
+              }}
+              className="bg-warning text-warning-foreground hover:bg-warning/90"
+              disabled={disconnecting}
+            >
+              {disconnecting ? <Spinner size="sm" className="mr-2" /> : <Power className="h-4 w-4 mr-2" />}
+              Desconectar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm Delete Dialog */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover instância "{confirmDelete?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é irreversível. A instância será removida do sistema permanentemente, incluindo todas as configurações e vínculos com consultores.
+              {confirmDelete?.status === "connected" && (
+                <span className="block mt-2 text-warning font-medium">
+                  ⚠️ A instância ainda está conectada. Considere desconectar antes de remover.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmDelete) {
+                  deleteInstance(confirmDelete.id);
+                  setConfirmDelete(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remover Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
