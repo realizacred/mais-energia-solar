@@ -149,10 +149,8 @@ export function ProjetosManager() {
     if (key === "pipelineId") {
       const pipelineValue = value === "todos" ? null : value;
       setSelectedPipelineId(pipelineValue);
-      
       applyFilters({ pipelineId: pipelineValue });
-      // Auto-switch view based on pipeline kind (only when specific pipeline selected)
-      // DON'T auto-switch when selecting "todos" — keep current view mode
+      savePrefs({ pipelineId: pipelineValue });
       if (pipelineValue) {
         const pipeline = pipelines.find(p => p.id === pipelineValue);
         if (pipeline?.kind === "owner_board") {
@@ -163,10 +161,10 @@ export function ProjetosManager() {
       }
     } else if (key === "ownerId") {
       applyFilters({ ownerId: value });
+      savePrefs({ ownerId: value });
     } else if (key === "status") {
       applyFilters({ status: value });
-      // Persist status filter
-      try { sessionStorage.setItem(STORED_STATUS_KEY, value); } catch { /* ignore */ }
+      savePrefs({ status: value });
     } else if (key === "search") {
       applyFilters({ search: value });
     }
@@ -199,7 +197,7 @@ export function ProjetosManager() {
   const clearFilters = () => {
     applyFilters({ pipelineId: null, ownerId: "todos", status: "todos", search: "" });
     setSelectedPipelineId(null);
-    try { sessionStorage.removeItem(STORED_STATUS_KEY); } catch { /* ignore */ }
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   };
 
   const totalValue = useMemo(() => {
