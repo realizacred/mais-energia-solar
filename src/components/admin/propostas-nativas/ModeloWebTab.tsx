@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, Pencil } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, Pencil, Sparkles } from "lucide-react";
 import { usePropostaTemplates, useRefreshPropostaTemplates } from "@/hooks/useConfSolar";
 import { useAtualizarTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
 import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
@@ -19,6 +19,7 @@ import type { TemplateBlock } from "@/components/admin/proposal-builder/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TemplateFinalPreview } from "@/components/proposal-landing/TemplateFinalPreview";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
+import { createDefaultTemplateBlocks, type TemplateStyle } from "@/components/admin/proposal-builder/defaultTemplateBlocks";
 
 interface TemplateRow {
   id: string;
