@@ -15,6 +15,7 @@ import { buildTree } from "@/components/admin/proposal-builder/treeUtils";
 interface TemplateHtmlRendererProps {
   blocks: TemplateBlock[];
   variables: Record<string, string>;
+  sectionAnchorPrefix?: string;
 }
 
 /** Substitui {{grupo.campo}} e {{campo}} pelos valores reais */
@@ -66,7 +67,7 @@ function computeBlockStyle(style: BlockStyle): React.CSSProperties {
   return css;
 }
 
-function RenderNode({ node, variables }: { node: TreeNode; variables: Record<string, string> }) {
+function RenderNode({ node, variables, sectionAnchorPrefix }: { node: TreeNode; variables: Record<string, string>; sectionAnchorPrefix?: string }) {
   const { block, children } = node;
 
   if (!block.isVisible) return null;
@@ -77,13 +78,13 @@ function RenderNode({ node, variables }: { node: TreeNode; variables: Record<str
 
   const renderChildren = () =>
     children.map((child) => (
-      <RenderNode key={child.block.id} node={child} variables={variables} />
+      <RenderNode key={child.block.id} node={child} variables={variables} sectionAnchorPrefix={sectionAnchorPrefix} />
     ));
 
   switch (block.type) {
     case "section":
       return (
-        <div style={style}>
+        <div id={`${sectionAnchorPrefix || "section-"}${block.id}`} style={style}>
           <div style={{ maxWidth: block.style.contentWidth === "boxed" ? "1200px" : "100%", margin: "0 auto", display: "flex", flexWrap: "wrap", justifyContent: style.justifyContent as string }}>
             {renderChildren()}
           </div>
@@ -160,13 +161,13 @@ function RenderNode({ node, variables }: { node: TreeNode; variables: Record<str
   }
 }
 
-export function TemplateHtmlRenderer({ blocks, variables }: TemplateHtmlRendererProps) {
+export function TemplateHtmlRenderer({ blocks, variables, sectionAnchorPrefix }: TemplateHtmlRendererProps) {
   const tree = useMemo(() => buildTree(blocks.filter((b) => b.isVisible !== false)), [blocks]);
 
   return (
     <div style={{ minHeight: "100vh" }}>
       {tree.map((node) => (
-        <RenderNode key={node.block.id} node={node} variables={variables} />
+        <RenderNode key={node.block.id} node={node} variables={variables} sectionAnchorPrefix={sectionAnchorPrefix} />
       ))}
     </div>
   );

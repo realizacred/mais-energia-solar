@@ -9,7 +9,8 @@ import { BlockActionBar } from "./BlockActionBar";
 import { buildTree } from "./treeUtils";
 import type { BuilderState, TemplateBlock } from "./types";
 import { cn } from "@/lib/utils";
-import { TemplateHtmlRenderer } from "@/components/proposal-landing/TemplateHtmlRenderer";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { TemplateFinalPreview } from "@/components/proposal-landing/TemplateFinalPreview";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
 
 interface BuilderCanvasProps {
@@ -64,6 +65,7 @@ const PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Recor
 });
 
 export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteBlock, onDuplicateBlock, onSwapOrder, onUpdateBlock }: BuilderCanvasProps) {
+  const { settings: brandSettings } = useBrandSettings();
   const tree = useMemo(
     () => buildTree(state.blocks.filter(b => b._proposalType === state.proposalType)),
     [state.blocks, state.proposalType]
@@ -125,9 +127,12 @@ export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteB
             onDrop={handleCanvasDrop}
           >
             {state.mode === "preview" ? (
-              <TemplateHtmlRenderer
+              <TemplateFinalPreview
                 blocks={state.blocks.filter((b) => b._proposalType === state.proposalType && b.isVisible !== false)}
                 variables={PREVIEW_VARIABLES}
+                theme={2}
+                logoUrl={brandSettings?.logo_url || brandSettings?.logo_white_url}
+                companyName="Mais Energia Solar"
               />
             ) : tree.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground gap-3">
