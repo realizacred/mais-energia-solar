@@ -473,44 +473,16 @@ export function ProjetosManager() {
                   )}
                 </div>
 
-                {/* Color Legend — click to toggle */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-[10px] text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3" />
-                      Legenda
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-64 p-3">
-                    <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2.5">Bordas dos cards</p>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full shrink-0 bg-success" />
-                        <span className="text-[11px] text-foreground font-medium">Projeto ganho</span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full shrink-0 bg-destructive" />
-                        <span className="text-[11px] text-foreground font-medium">Projeto perdido / estagnado +7d / Proposta recusada</span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full shrink-0 bg-warning" />
-                        <span className="text-[11px] text-foreground font-medium">Estagnado +3 dias</span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full shrink-0 bg-muted-foreground/60" />
-                        <span className="text-[11px] text-foreground font-medium">Sem proposta vinculada</span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full bg-primary shrink-0" />
-                        <span className="text-[11px] text-foreground font-medium">Com proposta</span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full bg-accent shrink-0" />
-                        <span className="text-[11px] text-foreground font-medium">Cor da etiqueta do projeto</span>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                {/* Color Legend — lateral toggle */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                  onClick={() => setLegendOpen(prev => !prev)}
+                >
+                  <Info className="h-3 w-3" />
+                  Legenda
+                </Button>
               </div>
             </div>
 
