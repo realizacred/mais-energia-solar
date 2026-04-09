@@ -801,19 +801,27 @@ Deno.serve(async (req) => {
       tId: string,
       fallbackPipelineId: string,
       fallbackStageId: string | null,
+      smFunnelName?: string | null,
+      smStageName?: string | null,
     ): Promise<{ pipeline_id: string; stage_id: string | null; source: string }> {
-      if (!allFunnels || allFunnels.length === 0) {
+      // Build effective funnels list: all_funnels + fallback from sm_funnel_name/sm_stage_name
+      let effectiveFunnels = allFunnels || [];
+      if (effectiveFunnels.length === 0 && smFunnelName) {
+        effectiveFunnels = [{ funnelName: smFunnelName, stageName: smStageName || null }];
+      }
+
+      if (effectiveFunnels.length === 0) {
         return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
       }
 
       // First pass: create/resolve only REAL pipelines from SM funnels.
       // "Vendedores" is used exclusively for owner resolution and must never become a real pipeline.
-      for (const funnel of allFunnels) {
+      for (const funnel of effectiveFunnels) {
         const fName = String(funnel.funnelName || "").trim();
         if (!fName || normalizeComparableName(fName) === "vendedores") continue;
 
-        // Collect all known stage names for this funnel from allFunnels entries with same funnelName
-        const stagesForFunnel = allFunnels
+        // Collect all known stage names for this funnel from effectiveFunnels entries with same funnelName
+        const stagesForFunnel = effectiveFunnels
           .filter((f: any) => String(f.funnelName || "").trim() === fName && f.stageName)
           .map((f: any) => f.stageName as string);
 
@@ -821,23 +829,25 @@ Deno.serve(async (req) => {
       }
 
       // Second pass: find the principal pipeline by priority
+      // Apply LEAD→Comercial mapping for cache lookup
       for (const funnelName of FUNNEL_PRIORITY) {
-        const funnel = allFunnels.find((f: any) => f.funnelName === funnelName);
+        const funnel = effectiveFunnels.find((f: any) => f.funnelName === funnelName);
         if (!funnel) continue;
 
-        const pipelineName = funnelName;
-        let pipelineId = pipelineCache.get(pipelineName);
+        // Apply same LEAD→Comercial mapping used in resolveOrCreatePipeline
+        const mappedName = funnelName === "LEAD" ? "Comercial" : funnelName;
+        let pipelineId = pipelineCache.get(mappedName);
         if (!pipelineId) {
           // Should have been created in first pass, but try ilike lookup
           const { data: pipeline } = await adminClient
             .from("pipelines")
             .select("id")
             .eq("tenant_id", tId)
-            .ilike("name", pipelineName)
+            .ilike("name", mappedName)
             .maybeSingle();
           if (pipeline) {
             pipelineId = pipeline.id;
-            pipelineCache.set(pipelineName, pipelineId);
+            pipelineCache.set(mappedName, pipelineId);
           }
         }
         if (!pipelineId) continue;
