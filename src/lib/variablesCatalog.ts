@@ -1690,9 +1690,9 @@ export const EMAIL_PROPOSAL_VARIABLES: ChannelVariable[] = [
   { key: "{{empresa_nome}}", label: "Nome da empresa", example: "Mais Energia Solar", category: "Empresa" },
 ];
 
-/** Exemplos de valores para preview no editor de e-mail */
+/** Exemplos de valores para preview no editor de e-mail (plain keys for renderTemplate) */
 export const EMAIL_SAMPLE_VARS: Record<string, string> = Object.fromEntries(
-  EMAIL_PROPOSAL_VARIABLES.map((v) => [v.key, v.example])
+  EMAIL_PROPOSAL_VARIABLES.map((v) => [v.key.replace(/^\{\{/, "").replace(/\}\}$/, ""), v.example])
 );
 
 /**
