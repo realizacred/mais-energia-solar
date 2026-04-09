@@ -170,9 +170,12 @@ export type BuilderAction =
   | { type: "SELECT_BLOCK"; id: string | null }
   | { type: "HOVER_BLOCK"; id: string | null }
   | { type: "ADD_BLOCK"; block: TemplateBlock; parentId: string | null; index?: number }
+  | { type: "ADD_BLOCKS"; blocks: TemplateBlock[] }
   | { type: "REMOVE_BLOCK"; id: string }
   | { type: "UPDATE_BLOCK"; id: string; updates: Partial<TemplateBlock> }
   | { type: "MOVE_BLOCK"; id: string; newParentId: string | null; newIndex: number }
+  | { type: "DUPLICATE_BLOCK"; id: string }
+  | { type: "SWAP_ORDER"; id: string; direction: -1 | 1 }
   | { type: "SET_DEVICE"; device: DevicePreview }
   | { type: "SET_MODE"; mode: EditorMode }
   | { type: "SET_PROPOSAL_TYPE"; proposalType: ProposalType }
