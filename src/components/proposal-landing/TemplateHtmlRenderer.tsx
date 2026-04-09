@@ -16,7 +16,12 @@ interface TemplateHtmlRendererProps {
   blocks: TemplateBlock[];
   variables: Record<string, string>;
   sectionAnchorPrefix?: string;
+  adaptToTheme?: boolean;
 }
+
+const DARK_SURFACE_REGEX = /#000(?:000)?|#111(?:111)?|#0a0a0f|#121212|#171717|rgb\(\s*(?:0|10|17|18|23)\s*,\s*(?:0|10|17|18|23)\s*,\s*(?:0|10|15|17|18|23)\s*\)/i;
+const LIGHT_TEXT_REGEX = /#fff(?:fff)?|white|rgb\(\s*255\s*,\s*255\s*,\s*255\s*\)|rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*(?:0?\.\d+|1(?:\.0+)?)\s*\)/i;
+const LIGHT_BORDER_RGBA_REGEX = /rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*0?\.\d+\s*\)/i;
 
 /** Substitui {{grupo.campo}} e {{campo}} pelos valores reais */
 function replaceVariables(content: string, vars: Record<string, string>): string {
@@ -35,7 +40,61 @@ function replaceVariables(content: string, vars: Record<string, string>): string
   });
 }
 
-function computeBlockStyle(style: BlockStyle): React.CSSProperties {
+function isDarkSurfaceColor(value?: string): boolean {
+  if (!value) return false;
+  return DARK_SURFACE_REGEX.test(value.trim().toLowerCase());
+}
+
+function isLightTextColor(value?: string): boolean {
+  if (!value) return false;
+  return LIGHT_TEXT_REGEX.test(value.trim().toLowerCase());
+}
+
+function isLightBorderColor(value?: string): boolean {
+  if (!value) return false;
+  return LIGHT_BORDER_RGBA_REGEX.test(value.trim().toLowerCase()) || isLightTextColor(value);
+}
+
+function normalizePreviewHtml(content: string): string {
+  if (!content) return content;
+
+  const hasDarkSurface =
+    /background(?:-color)?\s*:\s*[^;]*(#000(?:000)?|#111(?:111)?|#0a0a0f|#121212|#171717)/i.test(content) ||
+    /linear-gradient\([^)]*(#000(?:000)?|#111(?:111)?|#0a0a0f|#121212|#171717)[^)]*\)/i.test(content);
+
+  if (!hasDarkSurface) return content;
+
+  return content
+    .replace(
+      /linear-gradient\([^)]*(#000(?:000)?|#111(?:111)?|#0a0a0f|#121212|#171717)[^)]*\)/gi,
+      "linear-gradient(135deg, var(--card-bg, #ffffff), var(--fundo, #F8FAFC))"
+    )
+    .replace(
+      /background(?:-color)?\s*:\s*(#000(?:000)?|#111(?:111)?|#0a0a0f|#121212|#171717|rgb\(\s*(?:0|10|17|18|23)\s*,\s*(?:0|10|17|18|23)\s*,\s*(?:0|10|15|17|18|23)\s*\))/gi,
+      "background:var(--card-bg, #ffffff)"
+    )
+    .replace(
+      /border\s*:\s*1px\s+solid\s+rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*0?\.\d+\s*\)/gi,
+      "border:1px solid var(--card-border, #e2e8f0)"
+    )
+    .replace(
+      /border-color\s*:\s*rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*0?\.\d+\s*\)/gi,
+      "border-color:var(--card-border, #e2e8f0)"
+    )
+    .replace(
+      /color\s*:\s*rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*(0?\.\d+)\s*\)/gi,
+      (_match, opacity: string) =>
+        Number(opacity) >= 0.75
+          ? "color:var(--body-text, #1e293b)"
+          : "color:var(--nav-text, #64748B)"
+    )
+    .replace(
+      /color\s*:\s*(#fff(?:fff)?|white|rgb\(\s*255\s*,\s*255\s*,\s*255\s*\))/gi,
+      "color:var(--body-text, #1e293b)"
+    );
+}
+
+function computeBlockStyle(style: BlockStyle, adaptToTheme = false): React.CSSProperties {
   const css: React.CSSProperties = {
     marginTop: style.marginTop ? `${style.marginTop}px` : undefined,
     marginRight: style.marginRight ? `${style.marginRight}px` : undefined,
@@ -59,26 +118,55 @@ function computeBlockStyle(style: BlockStyle): React.CSSProperties {
 
   if (style.useGradient && style.gradientStart && style.gradientEnd) {
     const angle = style.staticGradientAngle ?? style.gradientAngle ?? 180;
-    css.background = `linear-gradient(${angle}deg, ${style.gradientStart}, ${style.gradientEnd})`;
+    css.background = adaptToTheme && isDarkSurfaceColor(style.gradientStart) && isDarkSurfaceColor(style.gradientEnd)
+      ? "linear-gradient(135deg, var(--card-bg, #ffffff), var(--fundo, #F8FAFC))"
+      : `linear-gradient(${angle}deg, ${style.gradientStart}, ${style.gradientEnd})`;
   } else if (style.backgroundColor && style.backgroundColor !== "transparent") {
-    css.backgroundColor = style.backgroundColor;
+    css.backgroundColor = adaptToTheme && isDarkSurfaceColor(style.backgroundColor)
+      ? "var(--card-bg, #ffffff)"
+      : style.backgroundColor;
+  }
+
+  if (adaptToTheme && isLightTextColor(style.color)) {
+    css.color = "var(--body-text, #1e293b)";
+  }
+
+  if (adaptToTheme && isLightBorderColor(style.borderColor)) {
+    css.borderColor = "var(--card-border, #e2e8f0)";
   }
 
   return css;
 }
 
-function RenderNode({ node, variables, sectionAnchorPrefix }: { node: TreeNode; variables: Record<string, string>; sectionAnchorPrefix?: string }) {
+function RenderNode({
+  node,
+  variables,
+  sectionAnchorPrefix,
+  adaptToTheme,
+}: {
+  node: TreeNode;
+  variables: Record<string, string>;
+  sectionAnchorPrefix?: string;
+  adaptToTheme?: boolean;
+}) {
   const { block, children } = node;
 
   if (!block.isVisible) return null;
 
-  const style = computeBlockStyle(block.style);
+  const style = computeBlockStyle(block.style, adaptToTheme);
   const content = replaceVariables(block.content, variables);
+  const renderedContent = adaptToTheme && block.type === "editor" ? normalizePreviewHtml(content) : content;
   const isContainer = ["section", "column", "inner_section"].includes(block.type);
 
   const renderChildren = () =>
     children.map((child) => (
-      <RenderNode key={child.block.id} node={child} variables={variables} sectionAnchorPrefix={sectionAnchorPrefix} />
+      <RenderNode
+        key={child.block.id}
+        node={child}
+        variables={variables}
+        sectionAnchorPrefix={sectionAnchorPrefix}
+        adaptToTheme={adaptToTheme}
+      />
     ));
 
   switch (block.type) {
@@ -106,7 +194,7 @@ function RenderNode({ node, variables, sectionAnchorPrefix }: { node: TreeNode; 
       );
 
     case "editor":
-      return <div style={style} dangerouslySetInnerHTML={{ __html: content }} />;
+      return <div style={style} dangerouslySetInnerHTML={{ __html: renderedContent }} />;
 
     case "image":
       if (!content) return null;
@@ -128,8 +216,12 @@ function RenderNode({ node, variables, sectionAnchorPrefix }: { node: TreeNode; 
             style={{
               padding: "10px 24px",
               borderRadius: block.style.borderRadius ? `${block.style.borderRadius}px` : "8px",
-              backgroundColor: block.style.backgroundColor || "#F07B24",
-              color: block.style.color || "#fff",
+              backgroundColor: adaptToTheme && isDarkSurfaceColor(block.style.backgroundColor)
+                ? "var(--accent-box-bg, linear-gradient(135deg, #F07B24, #E06010))"
+                : block.style.backgroundColor || "#F07B24",
+              color: adaptToTheme && isLightTextColor(block.style.color)
+                ? "#fff"
+                : block.style.color || "#fff",
               border: "none",
               fontWeight: 700,
               cursor: "pointer",
@@ -161,13 +253,19 @@ function RenderNode({ node, variables, sectionAnchorPrefix }: { node: TreeNode; 
   }
 }
 
-export function TemplateHtmlRenderer({ blocks, variables, sectionAnchorPrefix }: TemplateHtmlRendererProps) {
+export function TemplateHtmlRenderer({ blocks, variables, sectionAnchorPrefix, adaptToTheme = false }: TemplateHtmlRendererProps) {
   const tree = useMemo(() => buildTree(blocks.filter((b) => b.isVisible !== false)), [blocks]);
 
   return (
     <div style={{ minHeight: "100vh" }}>
       {tree.map((node) => (
-        <RenderNode key={node.block.id} node={node} variables={variables} sectionAnchorPrefix={sectionAnchorPrefix} />
+        <RenderNode
+          key={node.block.id}
+          node={node}
+          variables={variables}
+          sectionAnchorPrefix={sectionAnchorPrefix}
+          adaptToTheme={adaptToTheme}
+        />
       ))}
     </div>
   );
