@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { TemplateFinalPreview } from "@/components/proposal-landing/TemplateFinalPreview";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
+import { createDefaultTemplateBlocks } from "./defaultTemplateBlocks";
 
 interface BuilderCanvasProps {
   state: BuilderState;
@@ -128,7 +129,10 @@ export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteB
           >
             {state.mode === "preview" ? (
               <TemplateFinalPreview
-                blocks={state.blocks.filter((b) => b._proposalType === state.proposalType && b.isVisible !== false)}
+                blocks={(() => {
+                  const filtered = state.blocks.filter((b) => b._proposalType === state.proposalType && b.isVisible !== false);
+                  return filtered.length > 0 ? filtered : createDefaultTemplateBlocks(state.proposalType);
+                })()}
                 variables={PREVIEW_VARIABLES}
                 theme={2}
                 logoUrl={brandSettings?.logo_url || brandSettings?.logo_white_url}

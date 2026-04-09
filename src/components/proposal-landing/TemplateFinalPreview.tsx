@@ -12,6 +12,13 @@ interface TemplateFinalPreviewProps {
   companyName?: string | null;
 }
 
+const SECTION_LABELS: Record<number, string> = {
+  0: "O Projeto",
+  1: "Tecnologia",
+  2: "Investimento",
+  3: "Aceitar",
+};
+
 export function TemplateFinalPreview({
   blocks,
   variables,
@@ -28,10 +35,20 @@ export function TemplateFinalPreview({
 
   const themeCss = useMemo(() => getLandingThemeCSS(theme), [theme]);
 
-  return (
-    <div className="pl-landing" style={{ minHeight: "100%", background: "var(--fundo, #F8FAFC)" }}>
-      <style>{themeCss}</style>
+  const extraCss = `
+    .pl-landing-preview { font-family: var(--font-body, 'Inter', sans-serif); }
+    .pl-landing-preview * { box-sizing: border-box; }
+    .pl-nav-pill { transition: all 0.2s ease; }
+    .pl-nav-pill:hover { background: var(--nav-active-bg, #F07B24) !important; color: var(--nav-active-text, #fff) !important; transform: translateY(-1px); }
+    @keyframes pl-fade-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .pl-landing-preview > div:not(:first-child) { animation: pl-fade-in 0.5s ease both; }
+  `;
 
+  return (
+    <div className="pl-landing pl-landing-preview" style={{ minHeight: "100%", background: "var(--fundo, #F8FAFC)" }}>
+      <style>{themeCss}{extraCss}</style>
+
+      {/* ── Sticky Nav ── */}
       <div
         style={{
           position: "sticky",
@@ -39,14 +56,15 @@ export function TemplateFinalPreview({
           zIndex: 20,
           background: "var(--nav-bg, #fff)",
           borderBottom: "1px solid var(--card-border, #e2e8f0)",
-          boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
+          boxShadow: "0 4px 20px rgba(15, 23, 42, 0.06)",
+          backdropFilter: "blur(12px)",
         }}
       >
         <div
           style={{
             maxWidth: 1200,
             margin: "0 auto",
-            padding: "14px 20px",
+            padding: "12px 24px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -56,77 +74,93 @@ export function TemplateFinalPreview({
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
             {logoUrl ? (
-              <img src={logoUrl} alt={companyName || "Logo da empresa"} style={{ height: 36, maxWidth: 180, objectFit: "contain" }} />
+              <img
+                src={logoUrl}
+                alt={companyName || "Logo da empresa"}
+                style={{ height: 34, maxWidth: 160, objectFit: "contain" }}
+              />
             ) : (
               <div
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   background: "var(--icon-circle-bg, #F07B24)",
                   color: "var(--icon-circle-text, #fff)",
-                  fontSize: 20,
+                  fontSize: 18,
+                  fontWeight: 800,
                 }}
               >
                 ☀️
               </div>
             )}
-
-            <div style={{ minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--nav-text, #64748B)", fontWeight: 700 }}>
-                Preview Final
-              </p>
-              <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--body-text, #1e293b)" }}>
-                {companyName || "Mais Energia Solar"}
-              </p>
-            </div>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: "var(--body-text, #1e293b)",
+                fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
+              }}
+            >
+              {companyName || "Mais Energia Solar"}
+            </span>
           </div>
 
           {visibleSections.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <nav style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               {visibleSections.map((section, index) => (
                 <Button
                   key={section.id}
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="h-8 rounded-full text-xs"
+                  className="pl-nav-pill h-7 rounded-full text-xs font-semibold px-3"
                   style={{
-                    background: "var(--hero-overlay, rgba(240,123,36,0.04))",
-                    borderColor: "var(--hero-overlay-border, rgba(240,123,36,0.15))",
-                    color: "var(--body-text, #1e293b)",
+                    background: "transparent",
+                    color: "var(--nav-text, #64748B)",
+                    border: "1px solid var(--card-border, #e2e8f0)",
+                    fontSize: 11,
+                    fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
                   }}
                   onClick={() => {
                     document.getElementById(`${anchorPrefixRef.current}${section.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
                 >
-                  {index === 0 ? "Início" : `Seção ${index + 1}`}
+                  {SECTION_LABELS[index] ?? `Seção ${index + 1}`}
                 </Button>
               ))}
-            </div>
+            </nav>
           )}
         </div>
       </div>
 
+      {/* ── Content ── */}
       <TemplateHtmlRenderer
         blocks={blocks}
         variables={variables}
         sectionAnchorPrefix={anchorPrefixRef.current}
       />
 
+      {/* ── Footer ── */}
       <footer
         style={{
-          padding: "24px 20px 32px",
+          padding: "32px 24px 40px",
           textAlign: "center",
-          color: "var(--nav-text, #64748B)",
+          background: "var(--footer-bg, #1e293b)",
+          color: "var(--footer-text, rgba(255,255,255,0.5))",
           fontSize: 12,
-          background: "var(--fundo, #F8FAFC)",
+          fontFamily: "var(--font-body, 'Inter', sans-serif)",
         }}
       >
-        <p style={{ margin: 0 }}>Visualização do template como página final da proposta web.</p>
+        <p style={{ margin: "0 0 4px", fontWeight: 600, color: "var(--nav-text, rgba(255,255,255,0.6))" }}>
+          {companyName || "Mais Energia Solar"}
+        </p>
+        <p style={{ margin: 0 }}>
+          Proposta comercial personalizada · Visualização do template
+        </p>
       </footer>
     </div>
   );
