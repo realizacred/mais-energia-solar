@@ -884,6 +884,8 @@ Deno.serve(async (req) => {
       let pipelinesCreated = 0;
       let stagesCreated = 0;
       for (const [funnelName, stages] of allFunnelStages) {
+        // "Vendedores" is NOT a real pipeline — it maps to consultor/owner via resolveOrCreateConsultor
+        if (funnelName.toLowerCase() === "vendedores") continue;
         try {
           const canonicalName = FUNNEL_TO_CANONICAL[funnelName] || funnelName;
           const pipeId = await resolveOrCreatePipeline(canonicalName);
@@ -1365,11 +1367,12 @@ Deno.serve(async (req) => {
             }
           }
 
-          // ── C2. Assign Deal to Pipelines from ALL SM funnels (including Vendedores) ──
+          // ── C2. Assign Deal to Pipelines from SM funnels (excluding Vendedores — resolved as consultor) ──
           if (dealId && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
             const funnels: any[] = smProj?.all_funnels || [];
-            const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName);
+              // Exclude "Vendedores" — it's resolved as consultor/owner, not a pipeline
+              const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName && (f.funnelName || "").toLowerCase() !== "vendedores");
 
             if (validFunnels.length > 0) {
               const pipelineDetails: Array<{ funnel: string; stage: string; pipeline_id?: string; stage_id?: string }> = [];
