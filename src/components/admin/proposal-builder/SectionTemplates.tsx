@@ -567,6 +567,28 @@ const SECTION_TEMPLATES: SectionTemplate[] = [
   },
 ];
 
+/**
+ * Generate a complete default template with all premium sections.
+ * Used by "Restaurar Padrão" and when editor opens empty.
+ */
+export function generateDefaultTemplate(proposalType: ProposalType): TemplateBlock[] {
+  const allBlocks: TemplateBlock[] = [];
+  let sectionOrder = 0;
+
+  for (const tpl of SECTION_TEMPLATES) {
+    const blocks = tpl.blocks(proposalType);
+    // Update root section order
+    for (const block of blocks) {
+      if (block.parentId === null) {
+        block.order = sectionOrder++;
+      }
+    }
+    allBlocks.push(...blocks);
+  }
+
+  return allBlocks;
+}
+
 /* ═══════════════════════════════════════════════════════════ */
 
 interface SectionTemplatesProps {
