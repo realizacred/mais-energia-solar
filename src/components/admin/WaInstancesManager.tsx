@@ -204,8 +204,17 @@ export function WaInstancesManager() {
                           Sincronizar Histórico
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        {inst.status === "connected" && (
+                          <DropdownMenuItem
+                            onClick={() => setConfirmDisconnect(inst)}
+                            className="text-warning focus:text-warning"
+                          >
+                            <Power className="h-4 w-4 mr-2" />
+                            Desconectar
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
-                          onClick={() => deleteInstance(inst.id)}
+                          onClick={() => setConfirmDelete(inst)}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
