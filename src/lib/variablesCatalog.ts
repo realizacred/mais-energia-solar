@@ -591,6 +591,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("sistema_solar", "sistema_solar.potencia_sistema", "potencia_sistema", "Potência do Sistema", "Potência real do sistema configurado", "kWp", "8,2"),
   v("sistema_solar", "sistema_solar.potencia_sistema_numero", "potencia_sistema_numero", "Potência do Sistema (número)", "Potência sem unidade — para templates com kWp hardcoded", "-", "8,20"),
   v("sistema_solar", "sistema_solar.potencia_kwp", "potencia_kwp", "Potência kWp", "Potência do sistema em kWp (alias snapshot)", "kWp", "8.20"),
+  v("sistema_solar", "sistema_solar.potencia", "potencia", "Potência (alias legado)", "Alias legado de potencia_kwp — usar potencia_kwp preferencialmente", "kWp", "8.20"),
   v("sistema_solar", "sistema_solar.geracao_mensal", "geracao_mensal", "Geração Mensal", "Geração média mensal estimada", "kWh", "556"),
   v("sistema_solar", "sistema_solar.geracao_mensal_numero", "geracao_mensal_numero", "Geração Mensal (número)", "Geração sem unidade — para templates com kWh hardcoded", "-", "556"),
   v("sistema_solar", "sistema_solar.geracao_anual_numero", "geracao_anual_numero", "Geração Anual (número)", "Geração anual total sem unidade", "-", "6672"),
