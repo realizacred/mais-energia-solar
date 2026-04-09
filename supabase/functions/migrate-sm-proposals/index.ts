@@ -1367,7 +1367,7 @@ Deno.serve(async (req) => {
             }
           }
 
-          // ── C2. Assign Deal to Pipelines from ALL SM funnels (including Vendedores) ──
+          // ── C2. Assign Deal to Pipelines from SM funnels (excluding Vendedores — resolved as consultor) ──
           if (dealId && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
             const funnels: any[] = smProj?.all_funnels || [];
