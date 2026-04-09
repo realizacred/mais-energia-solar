@@ -1241,14 +1241,10 @@ Deno.serve(async (req) => {
               }
             }
 
-            // FIX 7: Update existing linked client if missing address
+            // FIX 7: Update existing linked client if missing address (using pre-fetched map)
             if (clienteId && !dry_run && report.steps.cliente?.status === "WOULD_LINK") {
-              const { data: clienteAtual } = await adminClient
-                .from("clientes")
-                .select("rua, cidade")
-                .eq("id", clienteId)
-                .single();
-              if (clienteAtual && !clienteAtual.rua && !clienteAtual.cidade) {
+              const cachedAddr = clienteAddressMap.get(clienteId);
+              if (cachedAddr && !cachedAddr.rua && !cachedAddr.cidade) {
                 const updateAddr: Record<string, any> = {};
                 if (smClient.address) updateAddr.rua = smClient.address;
                 if (smClient.number) updateAddr.numero = smClient.number;
@@ -1258,6 +1254,8 @@ Deno.serve(async (req) => {
                 if (smClient.zip_code_formatted || smClient.zip_code) updateAddr.cep = smClient.zip_code_formatted || smClient.zip_code;
                 if (Object.keys(updateAddr).length > 0) {
                   await adminClient.from("clientes").update(updateAddr).eq("id", clienteId);
+                  // Update the local cache too
+                  clienteAddressMap.set(clienteId, { rua: updateAddr.rua || cachedAddr.rua, cidade: updateAddr.cidade || cachedAddr.cidade });
                 }
               }
             }
