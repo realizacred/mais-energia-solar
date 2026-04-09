@@ -1027,8 +1027,8 @@ Deno.serve(async (req) => {
     let proposalsToProcess = allProposals.slice(0, batch_size);
     console.error(`[SM Migration] Processing ${proposalsToProcess.length} of ${allProposals.length} proposals (batch_size=${batch_size})`);
 
-    // Time budget: stop processing before edge function timeout
-    const MIGRATION_TIMEOUT_MS = 270_000;
+    // Time budget: stop processing before edge function timeout (wall-clock ~60s)
+    const MIGRATION_TIMEOUT_MS = 50_000;
     const migrationStartTime = Date.now();
 
     // ─── Filter by vendedor if specified ─────
