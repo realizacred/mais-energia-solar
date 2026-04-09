@@ -24,7 +24,7 @@ export function WaAutoReplyConfig() {
   const [isDirty, setIsDirty] = useState(false);
   const [localConfig, setLocalConfig] = useState<AutoReplyConfig>({
     auto_reply_enabled: false,
-    auto_reply_message: "Olá {nome}! 👋 Recebemos sua mensagem e em breve um de nossos consultores entrará em contato. Obrigado!",
+    auto_reply_message: "Olá {{nome}}! 👋 Recebemos sua mensagem e em breve um de nossos consultores entrará em contato. Obrigado!",
     auto_reply_cooldown_minutes: 60,
   });
 
@@ -117,7 +117,7 @@ export function WaAutoReplyConfig() {
                   <Info className="h-3 w-3 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs text-xs">
-                  Use <code>{"{nome}"}</code> para o nome do contato e <code>{"{telefone}"}</code> para o número.
+                  Use <code>{`{{nome}}`}</code> para o nome do contato e <code>{`{{telefone}}`}</code> para o número.
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -125,10 +125,10 @@ export function WaAutoReplyConfig() {
               value={localConfig.auto_reply_message}
               onChange={(e) => updateField("auto_reply_message", e.target.value)}
               className="min-h-[80px] text-sm resize-y"
-              placeholder="Olá {nome}! 👋 Recebemos sua mensagem..."
+              placeholder="Olá {{nome}}! 👋 Recebemos sua mensagem..."
             />
             <div className="flex gap-1.5 flex-wrap">
-              {["{nome}", "{telefone}"].map((v) => (
+              {["{{nome}}", "{{telefone}}"].map((v) => (
                 <Badge
                   key={v}
                   variant="outline"
