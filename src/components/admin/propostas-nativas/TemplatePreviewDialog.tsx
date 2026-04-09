@@ -309,7 +309,8 @@ export function TemplatePreviewDialog({
                   srcDoc={renderedHtml}
                   title="Template Preview"
                   className="w-full flex-1 border-0"
-                  style={{ height: "calc(85vh - 140px)" }}
+                  sandbox="allow-same-origin allow-scripts"
+                  style={{ minHeight: 0 }}
                 />
               </div>
             ) : (
