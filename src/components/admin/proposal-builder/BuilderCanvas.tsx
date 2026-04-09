@@ -129,7 +129,10 @@ export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteB
           >
             {state.mode === "preview" ? (
               <TemplateFinalPreview
-                blocks={state.blocks.filter((b) => b._proposalType === state.proposalType && b.isVisible !== false)}
+                blocks={(() => {
+                  const filtered = state.blocks.filter((b) => b._proposalType === state.proposalType && b.isVisible !== false);
+                  return filtered.length > 0 ? filtered : createDefaultTemplateBlocks(state.proposalType);
+                })()}
                 variables={PREVIEW_VARIABLES}
                 theme={2}
                 logoUrl={brandSettings?.logo_url || brandSettings?.logo_white_url}
