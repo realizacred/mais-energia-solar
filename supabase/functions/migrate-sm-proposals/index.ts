@@ -1371,7 +1371,8 @@ Deno.serve(async (req) => {
           if (dealId && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
             const funnels: any[] = smProj?.all_funnels || [];
-            const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName);
+              // Exclude "Vendedores" — it's resolved as consultor/owner, not a pipeline
+              const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName && (f.funnelName || "").toLowerCase() !== "vendedores");
 
             if (validFunnels.length > 0) {
               const pipelineDetails: Array<{ funnel: string; stage: string; pipeline_id?: string; stage_id?: string }> = [];
