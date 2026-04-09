@@ -764,13 +764,8 @@ Deno.serve(async (req) => {
 
 
     // ─── Helper: resolve principal pipeline from SM funnels ──
+    // Use real SM funnel names as pipeline names (no canonical mapping)
     const FUNNEL_PRIORITY = ['LEAD', 'Engenharia', 'Equipamento', 'Compesação', 'Compensação', 'Pagamento'];
-    const FUNNEL_TO_CANONICAL: Record<string, string> = {
-      'LEAD': 'Comercial',
-      'Compesação': 'Engenharia',
-      'Compensação': 'Engenharia',
-      'Pagamento': 'Engenharia',
-    };
 
     async function resolvePipelinePrincipalDoFunil(
       allFunnels: any[] | null,
@@ -782,32 +777,41 @@ Deno.serve(async (req) => {
         return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
       }
 
+      // First pass: create/resolve ALL pipelines and their stages from SM funnels
+      // (except "Vendedores" which is handled separately as consultor)
+      for (const funnel of allFunnels) {
+        const fName = funnel.funnelName || "";
+        if (fName === "Vendedores" || !fName) continue;
+
+        // Collect all known stage names for this funnel from allFunnels entries with same funnelName
+        const stagesForFunnel = allFunnels
+          .filter((f: any) => f.funnelName === fName && f.stageName)
+          .map((f: any) => f.stageName as string);
+
+        await resolveOrCreatePipeline(fName, stagesForFunnel);
+      }
+
+      // Second pass: find the principal pipeline by priority
       for (const funnelName of FUNNEL_PRIORITY) {
         const funnel = allFunnels.find((f: any) => f.funnelName === funnelName);
         if (!funnel) continue;
 
-        const canonicalName = FUNNEL_TO_CANONICAL[funnelName] || funnelName;
-
-        let pipelineId = pipelineCache.get(canonicalName);
+        const pipelineName = funnelName;
+        let pipelineId = pipelineCache.get(pipelineName);
         if (!pipelineId) {
+          // Should have been created in first pass, but try ilike lookup
           const { data: pipeline } = await adminClient
             .from("pipelines")
             .select("id")
             .eq("tenant_id", tId)
-            .ilike("name", canonicalName)
+            .ilike("name", pipelineName)
             .maybeSingle();
-          if (!pipeline) {
-            // Auto-create pipeline if it doesn't exist
-            if (dry_run) {
-              pipelineId = `AUTO_CREATE_PIPELINE:${canonicalName}`;
-            } else {
-              pipelineId = await resolveOrCreatePipeline(canonicalName);
-            }
-          } else {
+          if (pipeline) {
             pipelineId = pipeline.id;
+            pipelineCache.set(pipelineName, pipelineId);
           }
-          pipelineCache.set(canonicalName, pipelineId);
         }
+        if (!pipelineId) continue;
 
         let stageId: string | null = null;
         if (funnel.stageName && !pipelineId.startsWith("AUTO_CREATE")) {
@@ -825,13 +829,12 @@ Deno.serve(async (req) => {
               stageId = matchedStage.id;
               stageCache.set(cacheKey, stageId);
             } else if (!dry_run) {
-              // Auto-create stage
               stageId = await resolveOrCreateStage(pipelineId, funnel.stageName, 0);
             }
           }
         }
 
-        return { pipeline_id: pipelineId, stage_id: stageId, source: `funil:${funnelName}→${canonicalName}` };
+        return { pipeline_id: pipelineId, stage_id: stageId, source: `funil:${funnelName}` };
       }
 
       return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
