@@ -1566,6 +1566,8 @@ Deno.serve(async (req) => {
                   }
                 } else {
                   projetoId = newProj!.id;
+                  projetoByCodigo.set(projetoCodigo, projetoId);
+                  projetoByDeal.set(dealId, projetoId);
                   report.steps.projeto = { status: "WOULD_CREATE", id: projetoId };
                 }
               }
