@@ -633,24 +633,25 @@ function ResizableKanbanColumn({
       </div>
 
       {/* ── Cards ── */}
-      <div className="px-2 pb-2 min-h-[60px] space-y-1.5 flex-1 min-h-0 overflow-y-auto">
+      <div className="px-2 pb-2 min-h-[60px] space-y-0 flex-1 min-h-0 overflow-y-auto divide-y divide-border/40">
         {deals.length === 0 && (
           <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/40 italic">
             Arraste projetos aqui
           </div>
         )}
-        {deals.map(deal => (
-          <StageDealCard
-            key={deal.deal_id}
-            deal={deal}
-            isDragging={draggedId === deal.deal_id}
-            onDragStart={onDragStart}
-            onClick={() => onViewProjeto?.(deal)}
-            onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
-            hasAutomation={hasActiveAutomation}
-            dynamicEtiquetas={dynamicEtiquetas}
-            cardVisibleFields={visibleFields}
-          />
+        {sortStageDeals(deals, stageSort).map(deal => (
+          <div key={deal.deal_id} className="py-1.5">
+            <StageDealCard
+              deal={deal}
+              isDragging={draggedId === deal.deal_id}
+              onDragStart={onDragStart}
+              onClick={() => onViewProjeto?.(deal)}
+              onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
+              hasAutomation={hasActiveAutomation}
+              dynamicEtiquetas={dynamicEtiquetas}
+              cardVisibleFields={visibleFields}
+            />
+          </div>
         ))}
       </div>
 
