@@ -1,16 +1,46 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Plus, DollarSign, User, ChevronDown, Zap, GripVertical } from "lucide-react";
+import { Plus, DollarSign, User, ChevronDown, Zap, GripVertical, MoreVertical, ArrowUpDown, SortAsc, SortDesc, Calendar, Type } from "lucide-react";
 import type { DealKanbanCard, OwnerColumn } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StageDealCard } from "./StageDealCard";
+
+type SortOption = "default" | "nome_asc" | "nome_desc" | "valor_desc" | "valor_asc" | "data_desc" | "data_asc";
+
+function sortDeals(deals: DealKanbanCard[], sort: SortOption): DealKanbanCard[] {
+  if (sort === "default") return deals;
+  const sorted = [...deals];
+  switch (sort) {
+    case "nome_asc": return sorted.sort((a, b) => (a.deal_name || "").localeCompare(b.deal_name || ""));
+    case "nome_desc": return sorted.sort((a, b) => (b.deal_name || "").localeCompare(a.deal_name || ""));
+    case "valor_desc": return sorted.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
+    case "valor_asc": return sorted.sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
+    case "data_desc": return sorted.sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
+    case "data_asc": return sorted.sort((a, b) => new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime());
+    default: return sorted;
+  }
+}
+
+const SORT_LABELS: Record<SortOption, string> = {
+  default: "Padrão",
+  nome_asc: "Nome A→Z",
+  nome_desc: "Nome Z→A",
+  valor_desc: "Maior valor",
+  valor_asc: "Menor valor",
+  data_desc: "Mais recente",
+  data_asc: "Mais antigo",
+};
 
 interface DynamicEtiqueta {
   id: string;
@@ -72,6 +102,11 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [columnSorts, setColumnSorts] = useState<Record<string, SortOption>>({});
+
+  const setColumnSort = (colId: string, sort: SortOption) => {
+    setColumnSorts(prev => ({ ...prev, [colId]: sort }));
+  };
 
   // Column reorder state
   const [draggedColId, setDraggedColId] = useState<string | null>(null);
