@@ -527,7 +527,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
   // Progress calculation
   const completedSteps = steps.filter(s => s.state === "done" || s.state === "error" || s.state === "skipped").length;
-  const progressPercent = running ? smoothProgress : (result ? 100 : 0);
+  const progressPercent = running
+    ? (batchProgress && isBulk ? Math.min(95, Math.round((batchProgress.current / batchProgress.total) * 100)) : smoothProgress)
+    : (result ? 100 : 0);
 
   if (!proposal) return null;
 
@@ -691,6 +693,19 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
                   <span className="text-xs text-muted-foreground font-mono">{progressPercent}%</span>
                 </div>
                 <Progress value={progressPercent} className="h-2" />
+
+                {/* Batch counter */}
+                {running && batchProgress && isBulk && (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      Lote <span className="font-semibold text-foreground">{batchProgress.current}</span> de{" "}
+                      <span className="font-semibold text-foreground">{batchProgress.total}</span>
+                    </span>
+                    <span>
+                      <span className="font-semibold text-foreground">{Math.min(batchProgress.current * 10, internalIds.length)}</span>/{internalIds.length} propostas
+                    </span>
+                  </div>
+                )}
 
                 {/* Step list */}
                 <div className="space-y-1">
