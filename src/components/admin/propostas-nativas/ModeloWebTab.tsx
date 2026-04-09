@@ -247,9 +247,21 @@ export function TemplatesTab() {
           <FileText className="h-4 w-4 text-primary" />
           Templates de Proposta
         </CardTitle>
-        <Button variant="default" size="sm" onClick={addTemplate} className="gap-1.5 text-xs">
-          <Plus className="h-3.5 w-3.5" /> Novo Template
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSeedDefaults}
+            disabled={seedingDefaults}
+            className="gap-1.5 text-xs"
+          >
+            {seedingDefaults ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Criar templates padrão
+          </Button>
+          <Button variant="default" size="sm" onClick={addTemplate} className="gap-1.5 text-xs">
+            <Plus className="h-3.5 w-3.5" /> Novo Template
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {templates.length === 0 ? (
