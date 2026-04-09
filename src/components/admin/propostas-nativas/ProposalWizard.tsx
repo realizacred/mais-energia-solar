@@ -30,6 +30,7 @@ import {
 import { validateGrupoConsistency, resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
 import { enrichKitWarranties } from "@/services/enrichKitWarranties";
 import type { ProposalResolverContext, TariffVersionContext } from "@/lib/resolveProposalVariables";
+import { enrichLegacySnapshot } from "@/lib/enrichLegacySnapshot";
 
 // ── Step Components
 import { StepLocalizacao } from "./wizard/StepLocalizacao";
@@ -810,105 +811,41 @@ export function ProposalWizard() {
     // ── CORREÇÃO 2: topologia e tipo telhado default ──
     if (!normalized.locTipoTelhado) normalized.locTipoTelhado = "ceramico";
 
-    // ── CORREÇÃO 3: premissas nativas do tenant ──
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("tenant_id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        const tenantId = profile?.tenant_id;
+    // ── CORREÇÕES 3-5: enriquecer com dados nativos do tenant (queries em service §16) ──
+    const nomeDis = (normalized.ucs as any)?.[0]?.distribuidora || normalized.locDistribuidoraNome || raw.dis_energia || "";
+    const enrichResult = await enrichLegacySnapshot({
+      existingPremissas: normalized.premissas && typeof normalized.premissas === "object"
+        ? normalized.premissas as Record<string, any> : null,
+      distribuidoraNome: nomeDis,
+      locIrradiacao: Number(normalized.locIrradiacao) || 0,
+      geracaoMensal: Number(normalized.geracaoMensalEstimada) || 0,
+      potenciaKwp: Number(normalized.potenciaKwp) || 0,
+      cidade: normalized.locCidade || clienteData?.cidade || "",
+      estado: normalized.locEstado || clienteData?.estado || "",
+      hasLatitude: !!normalized.locLatitude,
+    });
 
-        if (tenantId) {
-          // Buscar premissas nativas
-          const { data: premissasNativas } = await (supabase as any)
-            .from("premissas_tecnicas")
-            .select("degradacao_anual_percent, reajuste_tarifa_anual_percent, performance_ratio, vida_util_anos, horas_sol_pico, irradiacao_media_kwh_m2, fator_perdas_percent")
-            .eq("tenant_id", tenantId)
-            .maybeSingle();
-
-          if (premissasNativas) {
-            const existingPrem = normalized.premissas && typeof normalized.premissas === "object"
-              ? normalized.premissas as Record<string, any>
-              : {};
-            normalized.premissas = {
-              ...existingPrem,
-              perda_eficiencia_anual: premissasNativas.degradacao_anual_percent ?? existingPrem.perda_eficiencia_anual ?? 0.5,
-              inflacao_energetica: premissasNativas.reajuste_tarifa_anual_percent ?? existingPrem.inflacao_energetica ?? 6,
-              performance_ratio: premissasNativas.performance_ratio ?? existingPrem.performance_ratio,
-              vida_util: premissasNativas.vida_util_anos ?? existingPrem.vida_util,
-              horas_sol_pico: premissasNativas.horas_sol_pico ?? existingPrem.horas_sol_pico,
-            };
-          }
-
-          // ── CORREÇÃO 4: distribuidora vinculada ao cadastro nativo ──
-          const nomeDis = (normalized.ucs as any)?.[0]?.distribuidora || normalized.locDistribuidoraNome || raw.dis_energia || "";
-          if (nomeDis && !normalized.locDistribuidoraId) {
-            const { data: concessionaria } = await supabase
-              .from("concessionarias")
-              .select("id, nome, tarifa_energia")
-              .ilike("nome", `%${nomeDis}%`)
-              .eq("tenant_id", tenantId)
-              .eq("ativo", true)
-              .limit(1)
-              .maybeSingle();
-
-            if (concessionaria) {
-              normalized.locDistribuidoraId = concessionaria.id;
-              normalized.locDistribuidoraNome = concessionaria.nome;
-              if (concessionaria.tarifa_energia && Array.isArray(normalized.ucs) && normalized.ucs.length > 0) {
-                (normalized.ucs as any[])[0].tarifa_distribuidora = Number(concessionaria.tarifa_energia);
-              }
-            }
-          }
-
-          // ── CORREÇÃO 5A: irradiação estimada a partir da geração SM ──
-          const geracao = Number(normalized.geracaoMensalEstimada) || 0;
-          const potencia = Number(normalized.potenciaKwp) || 0;
-          const pr = Number((normalized.premissas as any)?.performance_ratio) || 0.78;
-          if (!normalized.locIrradiacao && geracao > 0 && potencia > 0) {
-            const irradiacaoEstimada = geracao / (potencia * pr * 30);
-            if (irradiacaoEstimada > 0 && irradiacaoEstimada < 10) {
-              normalized.locIrradiacao = Math.round(irradiacaoEstimada * 100) / 100;
-            }
-          }
-          // Fallback: use tenant irradiação média
-          if (!normalized.locIrradiacao && premissasNativas?.irradiacao_media_kwh_m2) {
-            normalized.locIrradiacao = Number(premissasNativas.irradiacao_media_kwh_m2);
-          }
-
-          // ── CORREÇÃO 5B: geocoding pela cidade para lat/lng via Nominatim ──
-          const cidade = normalized.locCidade || clienteData?.cidade || "";
-          const estado = normalized.locEstado || clienteData?.estado || "";
-          if (cidade && !normalized.locLatitude) {
-            try {
-              const query = encodeURIComponent(`${cidade}, ${estado}, Brasil`);
-              const resp = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
-                { headers: { "User-Agent": "MaisEnergiaSolar/1.0" } }
-              );
-              const results = await resp.json();
-              if (results?.[0]) {
-                const lat = parseFloat(results[0].lat);
-                const lon = parseFloat(results[0].lon);
-                if (!isNaN(lat) && !isNaN(lon)) {
-                  normalized.locLatitude = lat;
-                  if (normalized.projectAddress) {
-                    (normalized.projectAddress as any).lat = lat;
-                    (normalized.projectAddress as any).lon = lon;
-                  }
-                }
-              }
-            } catch {
-              // Geocoding is best-effort — do not block wizard loading
-            }
-          }
-        }
+    if (enrichResult.premissas) {
+      normalized.premissas = enrichResult.premissas;
+    }
+    if (enrichResult.distribuidoraId) {
+      normalized.locDistribuidoraId = enrichResult.distribuidoraId;
+      normalized.locDistribuidoraNome = enrichResult.distribuidoraNome || normalized.locDistribuidoraNome;
+      if (enrichResult.tarifaEnergia && Array.isArray(normalized.ucs) && normalized.ucs.length > 0) {
+        (normalized.ucs as any[])[0].tarifa_distribuidora = enrichResult.tarifaEnergia;
       }
-    } catch {
-      // Enrichment is best-effort — legacy snapshot still usable without it
+    }
+    if (enrichResult.irradiacaoEstimada) {
+      normalized.locIrradiacao = enrichResult.irradiacaoEstimada;
+    } else if (enrichResult.irradiacaoTenant) {
+      normalized.locIrradiacao = enrichResult.irradiacaoTenant;
+    }
+    if (enrichResult.lat !== null && enrichResult.lon !== null) {
+      normalized.locLatitude = enrichResult.lat;
+      if (normalized.projectAddress) {
+        (normalized.projectAddress as any).lat = enrichResult.lat;
+        (normalized.projectAddress as any).lon = enrichResult.lon;
+      }
     }
 
     return normalized;
