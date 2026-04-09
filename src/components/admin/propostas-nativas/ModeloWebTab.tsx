@@ -18,6 +18,8 @@ import type { TemplateBlock } from "@/components/admin/proposal-builder/types";
 import { BlockRenderer } from "@/components/admin/proposal-builder/BlockRenderer";
 import { buildTree } from "@/components/admin/proposal-builder/treeUtils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { TemplateHtmlRenderer } from "@/components/proposal-landing/TemplateHtmlRenderer";
+import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
 
 interface TemplateRow {
   id: string;
@@ -33,19 +35,51 @@ interface TemplateRow {
   isNew?: boolean;
 }
 /** Renders block JSON as a visual preview (read-only) */
+const TEMPLATE_PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Record<string, string>>((acc, variable) => {
+  acc[variable.legacyKey] = variable.example;
+  acc[variable.canonicalKey] = variable.example;
+
+  const canonicalWithoutBraces = variable.canonicalKey.replace(/^\{\{/, "").replace(/\}\}$/, "");
+  acc[canonicalWithoutBraces] = variable.example;
+
+  return acc;
+}, {
+  cliente_nome: "João Silva",
+  cliente_cidade: "Belo Horizonte",
+  cliente_estado: "MG",
+  empresa_nome: "Mais Energia Solar",
+  potencia_kwp: "8,20",
+  economia_percentual: "93",
+  geracao_media_mensal: "1.120",
+  geracao_mensal: "1.120",
+  modulo_quantidade: "16",
+  modulo_fabricante: "Canadian Solar",
+  modulo_modelo: "HiKu 550W",
+  modulo_potencia: "550 Wp",
+  modulo_eficiencia: "21,3",
+  inversor_fabricante: "Growatt",
+  inversor_modelo: "MID 10KTL3-X",
+  inversor_garantia: "10 anos",
+  valor_total: "42.500,00",
+  economia_anual: "6.960,00",
+  economia_25_anos: "174.000,00",
+  co2_evitado_ton_ano: "1,8",
+  payback: "4,8",
+  payback_meses: "58",
+  economia_mensal: "580,00",
+});
+
 function PreviewRenderer({ jsonData }: { jsonData: string | null }) {
-  const tree = useMemo(() => {
+  const blocks = useMemo(() => {
     if (!jsonData) return [];
     try {
       const parsed = JSON.parse(jsonData);
-      if (Array.isArray(parsed)) return buildTree(parsed as TemplateBlock[]);
+      if (Array.isArray(parsed)) return parsed as TemplateBlock[];
     } catch { /* ignore */ }
     return [];
   }, [jsonData]);
 
-  const noopSelect = useCallback(() => {}, []);
-
-  if (tree.length === 0) {
+  if (blocks.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
         Nenhum bloco encontrado neste template
@@ -55,19 +89,7 @@ function PreviewRenderer({ jsonData }: { jsonData: string | null }) {
 
   return (
     <div className="bg-card min-h-[400px]">
-      {tree.map(node => (
-        <BlockRenderer
-          key={node.block.id}
-          node={node}
-          device="desktop"
-          mode="preview"
-          selectedId={null}
-          hoveredId={null}
-          onSelect={noopSelect}
-          onHover={noopSelect}
-          onDrop={noopSelect as any}
-        />
-      ))}
+      <TemplateHtmlRenderer blocks={blocks} variables={TEMPLATE_PREVIEW_VARIABLES} />
     </div>
   );
 }
