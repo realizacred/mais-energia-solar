@@ -896,6 +896,14 @@ Deno.serve(async (req) => {
           if (!allFunnelStages.has(fName)) allFunnelStages.set(fName, new Set());
           if (sName) allFunnelStages.get(fName)!.add(sName);
         }
+        // Fallback: use sm_funnel_name/sm_stage_name when all_funnels is empty
+        if (funnels.length === 0 && proj.sm_funnel_name) {
+          const fName = proj.sm_funnel_name.trim();
+          if (fName && normalizeComparableName(fName) !== "vendedores") {
+            if (!allFunnelStages.has(fName)) allFunnelStages.set(fName, new Set());
+            if (proj.sm_stage_name?.trim()) allFunnelStages.get(fName)!.add(proj.sm_stage_name.trim());
+          }
+        }
       }
 
       let pipelinesCreated = 0;
