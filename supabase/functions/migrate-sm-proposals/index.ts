@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
 
     const tenantId = profile.tenant_id;
     const params: MigrationParams = await req.json();
-    const { dry_run = true, filters = {}, batch_size = 50 } = params;
+    const { dry_run = true, filters = {}, batch_size = 10 } = params;
 
     const autoResolveOwner = params.auto_resolve_owner !== false; // default true
 
@@ -754,9 +754,12 @@ Deno.serve(async (req) => {
 
 
     // ─── Helper: resolve principal pipeline from SM funnels ──
-    const FUNNEL_PRIORITY = ['LEAD', 'Engenharia', 'Equipamento', 'Compesação', 'Pagamento'];
+    const FUNNEL_PRIORITY = ['LEAD', 'Engenharia', 'Equipamento', 'Compesação', 'Compensação', 'Pagamento'];
     const FUNNEL_TO_CANONICAL: Record<string, string> = {
       'LEAD': 'Comercial',
+      'Compesação': 'Engenharia',
+      'Compensação': 'Engenharia',
+      'Pagamento': 'Engenharia',
     };
 
     async function resolvePipelinePrincipalDoFunil(
@@ -907,6 +910,96 @@ Deno.serve(async (req) => {
       console.error(`[SM Migration] Pre-created ${pipelinesCreated} pipelines, ${stagesCreated} stages from SM funnels`);
     }
 
+    // ─── 5a. Batch pre-fetch canonical entities for O(1) lookup ──
+    // Pre-fetch ALL clientes for this tenant to avoid N+1 phone/email/doc lookups
+    const allClientes: Array<{ id: string; telefone_normalized: string | null; email: string | null; cpf_cnpj: string | null; cliente_code: string; rua: string | null; cidade: string | null }> = [];
+    {
+      let cOffset = 0;
+      while (true) {
+        const { data: cPage } = await adminClient
+          .from("clientes")
+          .select("id, telefone_normalized, email, cpf_cnpj, cliente_code, rua, cidade")
+          .eq("tenant_id", tenantId)
+          .range(cOffset, cOffset + 999);
+        allClientes.push(...(cPage || []));
+        if ((cPage || []).length < 1000) break;
+        cOffset += 1000;
+      }
+    }
+    const clienteByPhone = new Map<string, { id: string; count: number }>();
+    const clienteByEmail = new Map<string, string>();
+    const clienteByDoc = new Map<string, string>();
+    const clienteByCode = new Map<string, string>();
+    const clienteAddressMap = new Map<string, { rua: string | null; cidade: string | null }>();
+    for (const c of allClientes) {
+      if (c.telefone_normalized) {
+        const existing = clienteByPhone.get(c.telefone_normalized);
+        if (existing) {
+          existing.count++;
+        } else {
+          clienteByPhone.set(c.telefone_normalized, { id: c.id, count: 1 });
+        }
+      }
+      if (c.email) clienteByEmail.set(c.email.trim().toLowerCase(), c.id);
+      if (c.cpf_cnpj) clienteByDoc.set(c.cpf_cnpj, c.id);
+      if (c.cliente_code) clienteByCode.set(c.cliente_code, c.id);
+      clienteAddressMap.set(c.id, { rua: c.rua, cidade: c.cidade });
+    }
+
+    // Pre-fetch ALL projetos for lookup by codigo and deal_id
+    const allProjetos: Array<{ id: string; codigo: string | null; deal_id: string | null }> = [];
+    {
+      let pOffset = 0;
+      while (true) {
+        const { data: pPage } = await adminClient
+          .from("projetos")
+          .select("id, codigo, deal_id")
+          .eq("tenant_id", tenantId)
+          .range(pOffset, pOffset + 999);
+        allProjetos.push(...(pPage || []));
+        if ((pPage || []).length < 1000) break;
+        pOffset += 1000;
+      }
+    }
+    const projetoByCodigo = new Map<string, string>();
+    const projetoByDeal = new Map<string, string>();
+    for (const p of allProjetos) {
+      if (p.codigo) projetoByCodigo.set(p.codigo, p.id);
+      if (p.deal_id) projetoByDeal.set(p.deal_id, p.id);
+    }
+
+    // Pre-fetch first stages of all pipelines for fallback
+    const pipelineFirstStage = new Map<string, string>();
+    {
+      const { data: allStages } = await adminClient
+        .from("pipeline_stages")
+        .select("id, pipeline_id, position")
+        .eq("tenant_id", tenantId)
+        .order("position", { ascending: true });
+      for (const s of allStages || []) {
+        if (!pipelineFirstStage.has(s.pipeline_id)) {
+          pipelineFirstStage.set(s.pipeline_id, s.id);
+        }
+      }
+    }
+
+    // Pre-fetch existing proposta_versoes for dedup
+    const existingVersoes = new Set<string>();
+    {
+      let vOffset = 0;
+      while (true) {
+        const { data: vPage } = await adminClient
+          .from("proposta_versoes")
+          .select("proposta_id")
+          .eq("tenant_id", tenantId)
+          .eq("versao_numero", 1)
+          .range(vOffset, vOffset + 999);
+        for (const v of vPage || []) existingVersoes.add(v.proposta_id);
+        if ((vPage || []).length < 1000) break;
+        vOffset += 1000;
+      }
+    }
+
     // ─── 5. Process proposals ────────────────────────────
 
     const reports: ProposalReport[] = [];
@@ -924,7 +1017,7 @@ Deno.serve(async (req) => {
     console.error(`[SM Migration] Processing ${proposalsToProcess.length} of ${allProposals.length} proposals (batch_size=${batch_size})`);
 
     // Time budget: stop processing before edge function timeout
-    const MIGRATION_TIMEOUT_MS = 50_000;
+    const MIGRATION_TIMEOUT_MS = 270_000;
     const migrationStartTime = Date.now();
 
     // ─── Filter by vendedor if specified ─────
@@ -1003,87 +1096,65 @@ Deno.serve(async (req) => {
           report.sm_client_name = smClient.name;
 
           // ── B. Dedupe client by phone_normalized, email, or sm_id (multi-fallback) ──
+          // Uses pre-fetched Maps for O(1) lookup instead of N+1 queries
           const phoneNorm = smClient.phone_normalized || normalizePhone(smClient.phone);
           let clienteId: string | null = null;
 
-          // 1) Match by phone
+          // 1) Match by phone (using pre-fetched map)
           if (phoneNorm) {
-            const { data: matches } = await adminClient
-              .from("clientes")
-              .select("id, nome")
-              .eq("tenant_id", tenantId)
-              .eq("telefone_normalized", phoneNorm);
-
-            const matchCount = (matches || []).length;
-
-            if (matchCount > 1) {
-              report.aborted = true;
-              report.steps.cliente = {
-                status: "CONFLICT",
-                reason: `${matchCount} clients match phone ${phoneNorm}`,
-                matches: matchCount,
-              };
-              summary.CONFLICT++;
-              reports.push(report);
-              await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "CONFLICT", report, dry_run);
-              continue;
-            }
-
-            if (matchCount === 1) {
-              clienteId = matches![0].id;
+            const phoneMatch = clienteByPhone.get(phoneNorm);
+            if (phoneMatch) {
+              if (phoneMatch.count > 1) {
+                report.aborted = true;
+                report.steps.cliente = {
+                  status: "CONFLICT",
+                  reason: `${phoneMatch.count} clients match phone ${phoneNorm}`,
+                  matches: phoneMatch.count,
+                };
+                summary.CONFLICT++;
+                reports.push(report);
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "CONFLICT", report, dry_run);
+                continue;
+              }
+              clienteId = phoneMatch.id;
               report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by phone" };
             }
           }
 
-          // 2) Fallback: email exact match
+          // 2) Fallback: email exact match (using pre-fetched map)
           if (!clienteId && smClient.email) {
             const emailNorm = smClient.email.trim().toLowerCase();
             if (emailNorm) {
-              const { data: emailMatches } = await adminClient
-                .from("clientes")
-                .select("id")
-                .eq("tenant_id", tenantId)
-                .eq("email", emailNorm)
-                .limit(1);
-
-              if ((emailMatches || []).length === 1) {
-                clienteId = emailMatches![0].id;
+              const emailMatch = clienteByEmail.get(emailNorm);
+              if (emailMatch) {
+                clienteId = emailMatch;
                 report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by email" };
               }
             }
           }
 
-          // 3) Fallback: cpf_cnpj exact match
+          // 3) Fallback: cpf_cnpj exact match (using pre-fetched map)
           if (!clienteId && smClient.document) {
             const docNorm = smClient.document.replace(/\D/g, "");
             if (docNorm.length >= 11) {
-              const { data: docMatches } = await adminClient
-                .from("clientes")
-                .select("id")
-                .eq("tenant_id", tenantId)
-                .eq("cpf_cnpj", docNorm);
-
-              if ((docMatches || []).length === 1) {
-                clienteId = docMatches![0].id;
+              const docMatch = clienteByDoc.get(docNorm);
+              if (docMatch) {
+                clienteId = docMatch;
                 report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by cpf_cnpj" };
               }
             }
           }
 
-          // 4) Fallback: sm_client_id in existing cliente_code pattern
+          // 4) Fallback: sm_client_id in existing cliente_code pattern (using pre-fetched map)
           if (!clienteId) {
             const resolvedSmClientId = smClient.sm_client_id || smProp.sm_client_id;
             const codePattern = `SM-${resolvedSmClientId}-`;
-            const { data: codeMatches } = await adminClient
-              .from("clientes")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .like("cliente_code", `${codePattern}%`)
-              .limit(1);
-
-            if ((codeMatches || []).length === 1) {
-              clienteId = codeMatches![0].id;
-              report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by sm_client_code" };
+            for (const [code, cId] of clienteByCode) {
+              if (code.startsWith(codePattern)) {
+                clienteId = cId;
+                report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by sm_client_code" };
+                break;
+              }
             }
           }
 
@@ -1166,18 +1237,21 @@ Deno.serve(async (req) => {
                 }
               } else {
                 clienteId = newClient!.id;
+                // Update local maps for future iterations
+                if (phoneNorm) clienteByPhone.set(phoneNorm, { id: clienteId, count: 1 });
+                if (smClient.email) clienteByEmail.set(smClient.email.trim().toLowerCase(), clienteId);
+                const docNorm2 = smClient.document ? smClient.document.replace(/\D/g, "") : "";
+                if (docNorm2.length >= 11) clienteByDoc.set(docNorm2, clienteId);
+                clienteByCode.set(clienteCode, clienteId);
+                clienteAddressMap.set(clienteId, { rua: smClient.address || null, cidade: smClient.city || smProp.cidade || null });
                 report.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
               }
             }
 
-            // FIX 7: Update existing linked client if missing address
+            // FIX 7: Update existing linked client if missing address (using pre-fetched map)
             if (clienteId && !dry_run && report.steps.cliente?.status === "WOULD_LINK") {
-              const { data: clienteAtual } = await adminClient
-                .from("clientes")
-                .select("rua, cidade")
-                .eq("id", clienteId)
-                .single();
-              if (clienteAtual && !clienteAtual.rua && !clienteAtual.cidade) {
+              const cachedAddr = clienteAddressMap.get(clienteId);
+              if (cachedAddr && !cachedAddr.rua && !cachedAddr.cidade) {
                 const updateAddr: Record<string, any> = {};
                 if (smClient.address) updateAddr.rua = smClient.address;
                 if (smClient.number) updateAddr.numero = smClient.number;
@@ -1187,6 +1261,8 @@ Deno.serve(async (req) => {
                 if (smClient.zip_code_formatted || smClient.zip_code) updateAddr.cep = smClient.zip_code_formatted || smClient.zip_code;
                 if (Object.keys(updateAddr).length > 0) {
                   await adminClient.from("clientes").update(updateAddr).eq("id", clienteId);
+                  // Update the local cache too
+                  clienteAddressMap.set(clienteId, { rua: updateAddr.rua || cachedAddr.rua, cidade: updateAddr.cidade || cachedAddr.cidade });
                 }
               }
             }
@@ -1279,17 +1355,11 @@ Deno.serve(async (req) => {
             params.stage_id || null,
           );
 
-          // Fallback: if stage_id is null, fetch first stage of the pipeline
+          // Fallback: if stage_id is null, use pre-fetched first stage of the pipeline
           if (!resolved.stage_id) {
-            const { data: firstStage } = await adminClient
-              .from("pipeline_stages")
-              .select("id")
-              .eq("pipeline_id", resolved.pipeline_id)
-              .order("position", { ascending: true })
-              .limit(1)
-              .maybeSingle();
-            if (firstStage?.id) {
-              resolved.stage_id = firstStage.id;
+            const firstStage = pipelineFirstStage.get(resolved.pipeline_id);
+            if (firstStage) {
+              resolved.stage_id = firstStage;
             }
           }
           if (dealId) {
@@ -1420,28 +1490,16 @@ Deno.serve(async (req) => {
           const projetoCodigo = `PROJ-SM-${smProp.sm_project_id || smProp.sm_proposal_id}`;
 
           if (dealId && !dry_run) {
-            // Priority 1: Check if projeto already exists by codigo (same SM project)
-            const { data: existingByCodigo } = await adminClient
-              .from("projetos")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .eq("codigo", projetoCodigo)
-              .limit(1);
-
-            if ((existingByCodigo || []).length > 0) {
-              projetoId = existingByCodigo![0].id;
+            // Priority 1: Check if projeto already exists by codigo (using pre-fetched map)
+            const existingByCodigoId = projetoByCodigo.get(projetoCodigo);
+            if (existingByCodigoId) {
+              projetoId = existingByCodigoId;
               report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "matched by codigo" };
             } else {
-              // Priority 2: Check by deal_id
-              const { data: existingByDeal } = await adminClient
-                .from("projetos")
-                .select("id")
-                .eq("tenant_id", tenantId)
-                .eq("deal_id", dealId)
-                .limit(1);
-
-              if ((existingByDeal || []).length > 0) {
-                projetoId = existingByDeal![0].id;
+              // Priority 2: Check by deal_id (using pre-fetched map)
+              const existingByDealId = projetoByDeal.get(dealId);
+              if (existingByDealId) {
+                projetoId = existingByDealId;
                 report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "matched by deal_id" };
               } else {
                 const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
@@ -1515,6 +1573,8 @@ Deno.serve(async (req) => {
                   }
                 } else {
                   projetoId = newProj!.id;
+                  projetoByCodigo.set(projetoCodigo, projetoId);
+                  projetoByDeal.set(dealId, projetoId);
                   report.steps.projeto = { status: "WOULD_CREATE", id: projetoId };
                 }
               }
@@ -1597,16 +1657,9 @@ Deno.serve(async (req) => {
 
           // ── F. Proposta Versão ──
           if (propostaId && !dry_run) {
-            // Check if version already exists
-            const { data: existingVer } = await adminClient
-              .from("proposta_versoes")
-              .select("id")
-              .eq("proposta_id", propostaId)
-              .eq("versao_numero", 1)
-              .limit(1);
-
-            if ((existingVer || []).length > 0) {
-              report.steps.proposta_versao = { status: "WOULD_SKIP", id: existingVer![0].id };
+            // Check if version already exists (using pre-fetched Set)
+            if (existingVersoes.has(propostaId)) {
+              report.steps.proposta_versao = { status: "WOULD_SKIP" };
             } else {
               const paybackMeses = parsePaybackMonths(smProp.payback);
               const valorTotal = smProp.preco_total || smProp.valor_total || 0;

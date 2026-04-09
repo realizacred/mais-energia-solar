@@ -765,7 +765,7 @@ export default function SolarMarketPage() {
                   <Button
                     onClick={() => {
                       setMigrateAllOpen(false);
-                      openMigrationDrawer(pendingProposals.slice(0, 50));
+                      openMigrationDrawer(pendingProposals);
                     }}
                   >
                     Confirmar Migração
@@ -915,6 +915,19 @@ export default function SolarMarketPage() {
 
       {/* Sync Progress */}
       <SyncProgressBar progress={progress} />
+
+      {/* Migration Progress Counter */}
+      {proposals.length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-sm">
+          <CheckCircle className="h-4 w-4 text-success shrink-0" />
+          <span className="text-foreground font-medium">
+            {migratedProposalsCount} de {proposals.length} migrados
+          </span>
+          <span className="text-muted-foreground">
+            ({pendingProposals.length} pendentes)
+          </span>
+        </div>
+      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
