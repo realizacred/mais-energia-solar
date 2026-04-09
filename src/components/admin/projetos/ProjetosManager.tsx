@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info, Users, FileCheck, Download, Clock } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 import { motion } from "framer-motion";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -32,83 +33,414 @@ interface DynamicEtiqueta {
   id: string;
   nome: string;
   cor: string;
+  grupo: string;
+  short: string | null;
+  icon: string | null;
 }
 
 export function ProjetosManager() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
-  const [viewMode, setViewMode] = useState<"kanban-etapa" | "kanban-consultor" | "lista">("kanban-etapa");
-  const [legendOpen, setLegendOpen] = useState(false);
-  const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
-  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
-  const [selectedProjetoId, setSelectedProjetoId] = useState<string | null>(null);
-  const [isNovoProjetoOpen, setIsNovoProjetoOpen] = useState(false);
-  const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
-
   const {
-    deals,
-    pipelines,
-    stages,
-    consultores,
-    loading,
-    filters,
-    handleFilterChange,
-    clearFilters,
-    createPipeline,
-    createStage,
-    renameStage,
-    reorderStages,
-    deleteStage,
-    deletePipeline,
-    updateDealStage,
+    pipelines, stages, deals, consultores, loading,
+    selectedPipelineId, setSelectedPipelineId,
+    filters, applyFilters,
+    selectedPipelineStages, ownerColumns,
+    consultoresFilter,
+    createPipeline, renamePipeline, togglePipelineActive, deletePipeline, reorderPipelines,
+    createStage, renameStage, updateStageProbability, reorderStages, deleteStage,
+    moveDealToOwner, moveDealToStage,
+    createDeal, fetchAll,
   } = useDealPipeline();
 
-  const selectedPipelineId = searchParams.get("pipelineId") || pipelines[0]?.id;
+  // ── Persistent filter storage ──
+  const STORAGE_KEY = "projetos_kanban_prefs";
+  
+  const getStoredPrefs = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw) as {
+        viewMode?: string;
+        pipelineId?: string | null;
+        ownerId?: string;
+        status?: string;
+      };
+    } catch { return null; }
+  }, []);
 
-  const activePipelines = pipelines.filter(p => p.is_active);
+  const savePrefs = useCallback((prefs: Record<string, any>) => {
+    try {
+      const current = getStoredPrefs() || {};
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...prefs }));
+    } catch { /* ignore */ }
+  }, [getStoredPrefs]);
 
-  const totalValue = deals.reduce((acc, d) => acc + (d.valor_projeto || 0), 0);
-  const totalKwp = deals.reduce((acc, d) => acc + (d.potencia_kwp || 0), 0);
-  const propostasAceitas = deals.filter(d => d.status_proposta === "aceita");
-  const totalPropostasAceitas = propostasAceitas.reduce((acc, d) => acc + (d.valor_projeto || 0), 0);
-  const qtdPropostasAceitas = propostasAceitas.length;
+  // Initialize from localStorage
+  const storedPrefs = useMemo(() => getStoredPrefs(), []);
+  
+  const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">(
+    (storedPrefs?.viewMode as any) || "kanban-consultor"
+  );
 
-  const ownerColumns = useMemo(() => {
-    const owners = new Set(deals.map(d => d.consultor_id).filter(Boolean));
-    return Array.from(owners);
+  // When switching to "Consultores" view, auto-select all funnels
+  const setViewMode = (mode: "kanban-etapa" | "kanban-consultor" | "lista") => {
+    setViewModeRaw(mode);
+    savePrefs({ viewMode: mode });
+    if (mode === "kanban-consultor") {
+      setSelectedPipelineId(null);
+      applyFilters({ pipelineId: null });
+      savePrefs({ viewMode: mode, pipelineId: null });
+    }
+  };
+
+  // Apply stored filters on mount
+  useEffect(() => {
+    if (!storedPrefs) return;
+    const updates: Record<string, any> = {};
+    if (storedPrefs.status && storedPrefs.status !== "todos" && filters.status !== storedPrefs.status) {
+      updates.status = storedPrefs.status;
+    }
+    if (storedPrefs.ownerId && storedPrefs.ownerId !== "todos" && filters.ownerId !== storedPrefs.ownerId) {
+      updates.ownerId = storedPrefs.ownerId;
+    }
+    if (storedPrefs.pipelineId && filters.pipelineId !== storedPrefs.pipelineId) {
+      updates.pipelineId = storedPrefs.pipelineId;
+      setSelectedPipelineId(storedPrefs.pipelineId);
+    }
+    if (Object.keys(updates).length > 0) {
+      applyFilters(updates);
+    }
+  }, []);
+
+  const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
+  const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [defaultStageId, setDefaultStageId] = useState<string | undefined>();
+  const [defaultModalPipelineId, setDefaultModalPipelineId] = useState<string | undefined>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedDealId = searchParams.get("projeto") || null;
+  const setSelectedDealId = useCallback((id: string | null) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) {
+        next.set("projeto", id);
+      } else {
+        next.delete("projeto");
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+  const [activeTab, setActiveTab] = useState<string>("kanban");
+  const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
+  const [defaultPipelineApplied, setDefaultPipelineApplied] = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from("projeto_etiquetas")
+      .select("id, nome, cor, grupo, short, icon")
+      .eq("ativo", true)
+      .order("grupo")
+      .order("ordem")
+      .then(({ data }) => { if (data) setDynamicEtiquetas(data as DynamicEtiqueta[]); });
+  }, [activeTab]); // refetch when switching back from etiquetas tab
+
+  const handleFilterChange = (key: string, value: any) => {
+    if (key === "pipelineId") {
+      const pipelineValue = value === "todos" ? null : value;
+      setSelectedPipelineId(pipelineValue);
+      applyFilters({ pipelineId: pipelineValue });
+      savePrefs({ pipelineId: pipelineValue });
+      if (pipelineValue) {
+        const pipeline = pipelines.find(p => p.id === pipelineValue);
+        if (pipeline?.kind === "owner_board") {
+          setViewMode("kanban-consultor");
+        } else if (viewMode === "kanban-consultor" && pipeline?.kind === "process") {
+          setViewMode("kanban-etapa");
+        }
+      }
+    } else if (key === "ownerId") {
+      applyFilters({ ownerId: value });
+      savePrefs({ ownerId: value });
+    } else if (key === "status") {
+      applyFilters({ status: value });
+      savePrefs({ status: value });
+    } else if (key === "search") {
+      applyFilters({ search: value });
+    }
+  };
+
+  // Active pipelines only (inactive ones are filtered by the hook)
+  const activePipelines = useMemo(
+    () => pipelines.filter(p => p.is_active),
+    [pipelines]
+  );
+
+
+  useEffect(() => {
+    if (!defaultPipelineApplied && activePipelines.length > 0) {
+      // Default: "Todos" os funis (sem filtro de pipeline)
+      if (!selectedPipelineId) {
+        applyFilters({ pipelineId: null });
+      }
+      setDefaultPipelineApplied(true);
+    }
+    if (selectedPipelineId) {
+      const current = pipelines.find(p => p.id === selectedPipelineId);
+      if (current && !current.is_active) {
+        setSelectedPipelineId(null);
+        applyFilters({ pipelineId: null });
+      }
+    }
+  }, [pipelines, selectedPipelineId, activePipelines, defaultPipelineApplied]);
+
+  const clearFilters = () => {
+    applyFilters({ pipelineId: null, ownerId: "todos", status: "todos", search: "" });
+    setSelectedPipelineId(null);
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  };
+
+  const totalValue = useMemo(() => {
+    return deals.reduce((sum, d) => sum + (d.deal_value || 0), 0);
   }, [deals]);
 
-  const consultoresFilter = useMemo(() => {
-    return consultores.map(c => ({ id: c.id, nome: c.nome }));
-  }, [consultores]);
+  const totalKwp = useMemo(() => {
+    return deals.reduce((sum, d) => sum + (d.deal_kwp || 0), 0);
+  }, [deals]);
 
-  if (loading) return <ProjetoKanbanSkeleton />;
+  const totalPropostasAceitas = useMemo(() => {
+    return deals
+      .filter(d => d.proposta_status === "aceita" || d.proposta_status === "Gerada")
+      .reduce((sum, d) => sum + (d.deal_value || 0), 0);
+  }, [deals]);
+
+  const qtdPropostasAceitas = useMemo(() => {
+    return deals.filter(d => d.proposta_status === "aceita" || d.proposta_status === "Gerada").length;
+  }, [deals]);
+
+  // KPI stats
+  const kpiStats = useMemo(() => {
+    const now = new Date();
+    const emAndamento = deals.filter(d => d.deal_status === "open").length;
+    const concluidos = deals.filter(d => d.deal_status === "won").length;
+    const atrasados = deals.filter(d => {
+      if (d.deal_status === "won" || d.deal_status === "lost") return false;
+      const lastChange = new Date(d.last_stage_change);
+      const diffDays = (now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24);
+      return diffDays > 7;
+    }).length;
+    return { total: deals.length, emAndamento, concluidos, atrasados };
+  }, [deals]);
+
+  // CSV export
+  const handleExportCSV = useCallback(() => {
+    if (deals.length === 0) return;
+    const now = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }).replace(/[/:\s]/g, "-");
+    const header = ["Projeto", "Cliente", "Consultor", "Status", "Valor", "kWp", "Última Movimentação"];
+    const rows = deals.map(d => [
+      d.deal_title || "",
+      d.customer_name || "",
+      d.owner_name || "",
+      d.deal_status || "",
+      String(d.deal_value || 0),
+      String(d.deal_kwp || 0),
+      d.last_stage_change ? new Date(d.last_stage_change).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "",
+    ]);
+    const csv = [header, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `projetos_${now}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    sonnerToast.success(`${deals.length} projetos exportados`);
+  }, [deals]);
+
+  // ── Detail View ──
+   if (selectedDealId) {
+    return (
+      <ProjetoDetalhe
+        dealId={selectedDealId}
+        onBack={() => { setSelectedDealId(null); fetchAll(); }}
+        initialPipelineId={selectedPipelineId || undefined}
+      />
+    );
+  }
 
   return (
-    <div className="h-full flex flex-col space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Projetos</h2>
-          <p className="text-muted-foreground">Gerencie o pipeline de vendas e execução</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setIsNovoProjetoOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Projeto
-          </Button>
-        </div>
-      </div>
+    <motion.div className="space-y-4 max-w-full overflow-x-hidden" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+      <PageHeader
+        icon={FolderKanban}
+        title="Projetos"
+        description="Acompanhe cada projeto da documentação à vistoria"
+        actions={
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={deals.length === 0}>
+                  <Download className="h-4 w-4 mr-1.5" />
+                  Exportar
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exportar projetos filtrados em CSV</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => { setDefaultConsultorId(undefined); setDefaultStageId(undefined); setDefaultModalPipelineId(undefined); setNovoProjetoOpen(true); }}
+                  className="gap-1.5 font-semibold"
+                >
+                  <Plus className="h-4 w-4" />
+                  Novo Projeto
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Criar novo projeto de instalação</TooltipContent>
+            </Tooltip>
+          </div>
+        }
+      />
 
-      <Tabs defaultValue="kanban" className="flex-1 flex flex-col">
-        <TabsList>
-          <TabsTrigger value="kanban">Kanban</TabsTrigger>
-          <TabsTrigger value="lista">Lista</TabsTrigger>
-          <TabsTrigger value="dashboard">Performance</TabsTrigger>
-        </TabsList>
+      {/* KPI mini-chips — rendered inline with TabsList below */}
+
+      {/* ── Novo Projeto Modal ── */}
+      <NovoProjetoModal
+        open={novoProjetoOpen}
+        onOpenChange={setNovoProjetoOpen}
+        consultores={consultoresFilter}
+        defaultConsultorId={defaultConsultorId}
+        defaultPipelineId={defaultModalPipelineId || selectedPipelineId || pipelines[0]?.id}
+        defaultStageId={defaultStageId}
+        pipelines={activePipelines.map(p => ({ id: p.id, name: p.name }))}
+        stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position, is_closed: s.is_closed }))}
+        dynamicEtiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor }))}
+        onSubmit={async (data) => {
+          const customerId = data.clienteId;
+          if (!customerId) {
+            toast({ title: "Erro", description: "Selecione um cliente.", variant: "destructive" });
+            return;
+          }
+
+          const result = await createDeal({
+            title: data.nome,
+            ownerId: data.consultorId || undefined,
+            pipelineId: data.pipelineId,
+            stageId: data.stageId,
+            customerId,
+            value: data.valor,
+          });
+
+          if (result?.id) {
+            setSelectedDealId(result.id);
+          }
+        }}
+      />
+
+      {/* ── Main Tabs: Funil + Performance ── */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <TabsList className="bg-muted/50 border border-border/40">
+            <TabsTrigger value="kanban" className="gap-1.5 text-xs">
+              <Layers className="h-4 w-4" />
+              <span className="hidden sm:inline">Funil</span>
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="gap-1.5 text-xs">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Performance</span>
+            </TabsTrigger>
+            <TabsTrigger value="etiquetas" className="gap-1.5 text-xs">
+              <Tag className="h-4 w-4" />
+              <span className="hidden sm:inline">Etiquetas</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Mini KPI chips */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
+              <FolderKanban className="h-3.5 w-3.5 text-primary" />
+              <span className="font-bold text-foreground">{kpiStats.total}</span>
+              <span className="text-muted-foreground hidden sm:inline">projetos</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
+              <Zap className="h-3.5 w-3.5 text-info" />
+              <span className="font-bold text-foreground">{kpiStats.emAndamento}</span>
+              <span className="text-muted-foreground hidden sm:inline">andamento</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
+              <FileCheck className="h-3.5 w-3.5 text-success" />
+              <span className="font-bold text-foreground">{kpiStats.concluidos}</span>
+              <span className="text-muted-foreground hidden sm:inline">ganhos</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs">
+              <Clock className="h-3.5 w-3.5 text-warning" />
+              <span className="font-bold text-foreground">{kpiStats.atrasados}</span>
+              <span className="text-muted-foreground hidden sm:inline">estagnados</span>
+            </div>
+          </div>
+        </div>
 
         <TabsContent value="kanban" className="space-y-4 mt-0">
           <div className="flex-1 min-w-0 space-y-4">
             <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
-              <div className="px-4 py-2.5 flex items-center justify-between border-b border-border/40">
+              {/* Filters row */}
+              <div className="px-4 py-3">
+                <ProjetoFilters
+                  searchTerm={filters.search}
+                  onSearchChange={(v) => handleFilterChange("search", v)}
+                  funis={activePipelines.map(p => ({
+                    id: p.id,
+                    nome: p.name,
+                    ordem: 0,
+                    ativo: p.is_active,
+                    tenant_id: p.tenant_id,
+                  }))}
+                  filterFunil={filters.pipelineId || selectedPipelineId || (viewMode === "kanban-consultor" ? "todos" : "")}
+                  onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
+                  filterConsultor={filters.ownerId}
+                  onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
+                  consultores={consultoresFilter}
+                  filterStatus={filters.status}
+                  onFilterStatusChange={(v) => handleFilterChange("status", v)}
+                  etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
+                  filterEtiquetas={[]}
+                  onFilterEtiquetasChange={() => {}}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  onClearFilters={clearFilters}
+                  onEditEtapas={(funilId) => setEditingEtapasFunilId(funilId)}
+                  onCreateFunil={() => setTemplateDialogOpen(true)}
+                  allowAllFunis={viewMode === "kanban-consultor"}
+                />
+              </div>
+
+              {/* Template dialog for creating new pipelines */}
+              <ProjetoPipelineTemplates
+                open={templateDialogOpen}
+                onOpenChange={setTemplateDialogOpen}
+                onCreateFromTemplate={(name, stgs) => createPipeline(name, stgs)}
+                onCreateBlank={(name) => createPipeline(name)}
+              />
+
+              <Separator className="opacity-60" />
+
+              {/* Etapa Manager Dialog */}
+              {editingEtapasFunilId && (
+                <ProjetoEtapaManagerDialog
+                  pipeline={pipelines.find(p => p.id === editingEtapasFunilId) || null}
+                  stages={stages}
+                  allPipelines={pipelines.filter(p => p.is_active && p.id !== editingEtapasFunilId)}
+                  onClose={() => setEditingEtapasFunilId(null)}
+                  onCreateStage={createStage}
+                  onRenameStage={renameStage}
+                  onReorderStages={reorderStages}
+                  onDeleteStage={deleteStage}
+                  onDeletePipeline={deletePipeline}
+                />
+              )}
+
+              {/* Summary bar */}
+              <div className="px-4 py-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-1.5">
                     <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
@@ -142,6 +474,7 @@ export function ProjetosManager() {
                   )}
                 </div>
 
+                {/* Color Legend — lateral toggle */}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -152,105 +485,136 @@ export function ProjetosManager() {
                   Legenda
                 </Button>
               </div>
-
-              <div className="px-4 py-3">
-                <ProjetoFilters
-                  searchTerm={filters.search}
-                  onSearchChange={(v) => handleFilterChange("search", v)}
-                  funis={activePipelines.map(p => ({
-                    id: p.id,
-                    nome: p.name,
-                    ordem: 0,
-                    ativo: p.is_active,
-                    tenant_id: p.tenant_id,
-                  }))}
-                  filterFunil={filters.pipelineId || selectedPipelineId || (viewMode === "kanban-consultor" ? "todos" : "")}
-                  onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
-                  filterConsultor={filters.ownerId}
-                  onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
-                  consultores={consultoresFilter}
-                  filterStatus={filters.status}
-                  onFilterStatusChange={(v) => handleFilterChange("status", v)}
-                  etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
-                  filterEtiquetas={[]}
-                  onFilterEtiquetasChange={() => {}}
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                  onClearFilters={clearFilters}
-                  onEditEtapas={(funilId) => setEditingEtapasFunilId(funilId)}
-                  onCreateFunil={() => setTemplateDialogOpen(true)}
-                  allowAllFunis={viewMode === "kanban-consultor"}
-                />
-              </div>
-
-              <ProjetoPipelineTemplates
-                open={templateDialogOpen}
-                onOpenChange={setTemplateDialogOpen}
-                onCreateFromTemplate={(name, stgs) => createPipeline(name, stgs)}
-                onCreateBlank={(name) => createPipeline(name)}
-              />
-
-              {editingEtapasFunilId && (
-                <ProjetoEtapaManagerDialog
-                  pipeline={pipelines.find(p => p.id === editingEtapasFunilId) || null}
-                  stages={stages}
-                  allPipelines={pipelines.filter(p => p.is_active && p.id !== editingEtapasFunilId)}
-                  onClose={() => setEditingEtapasFunilId(null)}
-                  onCreateStage={createStage}
-                  onRenameStage={renameStage}
-                  onReorderStages={reorderStages}
-                  onDeleteStage={deleteStage}
-                  onDeletePipeline={deletePipeline}
-                />
-              )}
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-4 min-h-[600px]">
-              {viewMode === "kanban-etapa" ? (
-                stages
-                  .filter(s => s.pipeline_id === (filters.pipelineId || selectedPipelineId))
-                  .map(stage => (
-                    <ProjetoKanbanStage
-                      key={stage.id}
-                      stage={stage}
-                      deals={deals.filter(d => d.stage_id === stage.id)}
-                      onDealClick={setSelectedProjetoId}
-                    />
-                  ))
-              ) : (
-                ownerColumns.map(ownerId => (
-                  <ProjetoKanbanConsultor
-                    key={ownerId}
-                    consultorId={ownerId}
-                    deals={deals.filter(d => d.consultor_id === ownerId)}
-                    onDealClick={setSelectedProjetoId}
-                  />
-                ))
+            {/* Kanban / List + Legend lateral */}
+            <div className="flex gap-0">
+              <div className="flex-1 min-w-0">
+            {loading ? (
+              <ProjetoKanbanSkeleton />
+            ) : viewMode === "kanban-etapa" ? (
+              <ProjetoKanbanStage
+                stages={selectedPipelineStages}
+                deals={deals}
+                onMoveToStage={moveDealToStage}
+                onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
+                onViewProjetoTab={(deal, tab) => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set("projeto", deal.deal_id);
+                    next.set("tab", tab);
+                    return next;
+                  }, { replace: true });
+                }}
+                pipelineName={pipelines.find(p => p.id === selectedPipelineId)?.name}
+                onNewProject={(ctx) => {
+                  setDefaultConsultorId(ctx?.consultorId || (filters.ownerId !== "todos" ? filters.ownerId : undefined));
+                  setDefaultModalPipelineId(ctx?.pipelineId);
+                  setDefaultStageId(ctx?.stageId);
+                  setNovoProjetoOpen(true);
+                }}
+                dynamicEtiquetas={dynamicEtiquetas}
+              />
+            ) : viewMode === "kanban-consultor" ? (
+              <ProjetoKanbanConsultor
+                ownerColumns={ownerColumns}
+                allDeals={deals}
+                onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
+                onViewProjetoTab={(deal, tab) => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set("projeto", deal.deal_id);
+                    next.set("tab", tab);
+                    return next;
+                  }, { replace: true });
+                }}
+                onMoveDealToOwner={moveDealToOwner}
+                onNewProject={(consultorId) => {
+                  setDefaultConsultorId(consultorId);
+                  setDefaultModalPipelineId(undefined);
+                  setDefaultStageId(undefined);
+                  setNovoProjetoOpen(true);
+                }}
+                dynamicEtiquetas={dynamicEtiquetas}
+              />
+            ) : (
+              <ProjetoListView
+                projetos={deals.map(d => ({
+                  id: d.deal_id,
+                  codigo: null,
+                  projeto_num: d.deal_num ?? null,
+                  lead_id: null,
+                  cliente_id: null,
+                  consultor_id: d.owner_id,
+                  funil_id: d.pipeline_id,
+                  etapa_id: d.stage_id,
+                  proposta_id: null,
+                  potencia_kwp: null,
+                  valor_total: d.deal_value,
+                  status: d.deal_status,
+                  observacoes: null,
+                  created_at: d.last_stage_change,
+                  updated_at: d.last_stage_change,
+                  cliente: { nome: d.customer_name, telefone: d.customer_phone || "" },
+                  consultor: { nome: d.owner_name },
+                }))}
+                etapas={selectedPipelineStages.map(s => ({
+                  id: s.id,
+                  funil_id: s.pipeline_id,
+                  nome: s.name,
+                  cor: s.is_won ? "hsl(var(--success))" : s.is_closed ? "hsl(var(--destructive))" : "hsl(var(--info))",
+                  ordem: s.position,
+                  categoria: (s.is_won ? "ganho" : s.is_closed ? "perdido" : "aberto") as any,
+                  tenant_id: s.tenant_id,
+                }))}
+              />
+            )}
+              </div>
+
+              {/* Lateral Legend Panel */}
+              {legendOpen && (
+                <div className="w-48 shrink-0 border-l border-border bg-card/80 rounded-r-xl p-3 hidden sm:block animate-in slide-in-from-right-2 duration-200">
+                  <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-3">Bordas dos cards</p>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-success" />
+                      <span className="text-[11px] text-foreground font-medium">Projeto ganho</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-destructive" />
+                      <span className="text-[11px] text-foreground font-medium leading-tight">Perdido / estagnado +7d / Recusada</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-warning" />
+                      <span className="text-[11px] text-foreground font-medium">Estagnado +3 dias</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-muted-foreground/60" />
+                      <span className="text-[11px] text-foreground font-medium">Sem proposta</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full bg-primary shrink-0" />
+                      <span className="text-[11px] text-foreground font-medium">Com proposta</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full bg-accent shrink-0" />
+                      <span className="text-[11px] text-foreground font-medium">Etiqueta do projeto</span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="lista">
-          <ProjetoListView deals={deals} onDealClick={setSelectedProjetoId} />
+        <TabsContent value="performance" className="mt-0">
+          <ProjetoPerformanceDashboard />
         </TabsContent>
 
-        <TabsContent value="dashboard">
-          <ProjetoPerformanceDashboard deals={deals} />
+        <TabsContent value="etiquetas" className="mt-0">
+          <EtiquetasManager />
         </TabsContent>
       </Tabs>
-
-      {selectedProjetoId && (
-        <ProjetoDetalhe
-          projetoId={selectedProjetoId}
-          onClose={() => setSelectedProjetoId(null)}
-        />
-      )}
-
-      <NovoProjetoModal
-        open={isNovoProjetoOpen}
-        onOpenChange={setIsNovoProjetoOpen}
-      />
-    </div>
+    </motion.div>
   );
 }
