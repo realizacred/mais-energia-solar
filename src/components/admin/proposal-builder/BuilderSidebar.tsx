@@ -6,8 +6,9 @@ import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, Search, LayoutTemplate, Columns3, LayoutGrid, AlignLeft, ImageIcon, Play, RectangleHorizontal, Minus, GalleryHorizontal, ListCollapse, PanelTop, User, FileText, MapPin, Zap, Sun, Cable, Battery, Building, BarChart3, DollarSign, TrendingUp, Clock, Phone, Calendar, PiggyBank, Table2 } from "lucide-react";
+import { ChevronDown, Search, LayoutTemplate, Columns3, LayoutGrid, AlignLeft, ImageIcon, Play, RectangleHorizontal, Minus, GalleryHorizontal, ListCollapse, PanelTop, User, FileText, MapPin, Zap, Sun, Cable, Battery, Building, BarChart3, DollarSign, TrendingUp, Clock, Phone, Calendar, PiggyBank, Table2, Sparkles } from "lucide-react";
 import { WIDGET_CATEGORIES, WIDGET_REGISTRY } from "./widgetRegistry";
+import { SectionTemplates } from "./SectionTemplates";
 import type { WidgetRegistryEntry, BlockType, ProposalType, TemplateBlock } from "./types";
 import { generateBlockId } from "./treeUtils";
 import { cn } from "@/lib/utils";
@@ -51,9 +52,10 @@ const SYSTEM_WIDGETS: WidgetRegistryEntry[] = [
 interface BuilderSidebarProps {
   proposalType: ProposalType;
   onAddBlock: (block: TemplateBlock, parentId: string | null) => void;
+  onInsertBlocks?: (blocks: TemplateBlock[]) => void;
 }
 
-export function BuilderSidebar({ proposalType, onAddBlock }: BuilderSidebarProps) {
+export function BuilderSidebar({ proposalType, onAddBlock, onInsertBlocks }: BuilderSidebarProps) {
   const [search, setSearch] = useState("");
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
     layout: true,
