@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Variable, FileText, Mail, Settings, BarChart3, FlaskConical, FolderOpen } from "lucide-react";
 import { VariaveisDisponiveisPage } from "./VariaveisDisponiveisPage";
-import { TemplatesManager } from "@/components/admin/propostas-nativas/TemplatesManager";
+import { ModelosPropostaUnified } from "@/components/admin/propostas-nativas/ModelosPropostaUnified";
 import { TemplatesTab as DocumentTemplatesTab } from "@/components/admin/documentos/TemplatesTab";
 import { EmailTemplatesPage } from "./EmailTemplatesPage";
 import { PropostaConfigPage } from "./PropostaConfigPage";
@@ -57,7 +57,7 @@ export function PropostaComercialPage() {
           <VariableTester />
         </TabsContent>
         <TabsContent value="modelos-proposta">
-          <TemplatesManager />
+          <ModelosPropostaUnified />
         </TabsContent>
         <TabsContent value="modelos-documento">
           <DocumentTemplatesTab />
