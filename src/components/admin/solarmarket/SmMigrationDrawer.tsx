@@ -692,6 +692,19 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
                 </div>
                 <Progress value={progressPercent} className="h-2" />
 
+                {/* Batch counter */}
+                {running && batchProgress && isBulk && (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      Lote <span className="font-semibold text-foreground">{batchProgress.current}</span> de{" "}
+                      <span className="font-semibold text-foreground">{batchProgress.total}</span>
+                    </span>
+                    <span>
+                      <span className="font-semibold text-foreground">{Math.min(batchProgress.current * 10, internalIds.length)}</span>/{internalIds.length} propostas
+                    </span>
+                  </div>
+                )}
+
                 {/* Step list */}
                 <div className="space-y-1">
                   {steps.map(step => (
