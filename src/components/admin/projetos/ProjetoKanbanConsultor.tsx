@@ -98,7 +98,55 @@ function sortColumnsByOrder(columns: OwnerColumn[], order: string[]): OwnerColum
   });
 }
 
-export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, onViewProjetoTab, onNewProject, onMoveDealToOwner, dynamicEtiquetas = [] }: Props) {
+const INITIAL_CARDS = 8;
+
+function ProgressiveCardList({
+  deals, draggedId, onDragStart, onViewProjeto, onViewProjetoTab, dynamicEtiquetas,
+}: {
+  deals: DealKanbanCard[];
+  draggedId: string | null;
+  onDragStart: (e: React.DragEvent, dealId: string) => void;
+  onViewProjeto?: (deal: DealKanbanCard) => void;
+  onViewProjetoTab?: (deal: DealKanbanCard, tab: string) => void;
+  dynamicEtiquetas: DynamicEtiqueta[];
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? deals : deals.slice(0, INITIAL_CARDS);
+  const remaining = deals.length - INITIAL_CARDS;
+
+  return (
+    <div className="flex-1 min-h-0 px-2 pb-2 space-y-0 overflow-y-auto divide-y divide-border/40" style={{ maxHeight: "calc(100vh - 340px)" }}>
+      {deals.length === 0 ? (
+        <p className="text-[10px] text-muted-foreground/40 italic text-center py-6">Nenhum projeto</p>
+      ) : (
+        <>
+          {visible.map(deal => (
+            <div key={deal.deal_id} className="py-1.5">
+              <StageDealCard
+                deal={deal}
+                isDragging={draggedId === deal.deal_id}
+                onDragStart={e => onDragStart(e, deal.deal_id)}
+                onClick={() => onViewProjeto?.(deal)}
+                onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
+                dynamicEtiquetas={dynamicEtiquetas}
+              />
+            </div>
+          ))}
+          {!showAll && remaining > 0 && (
+            <button
+              onClick={() => setShowAll(true)}
+              className="w-full py-2 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
+            >
+              Mostrar mais {remaining} projetos
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
