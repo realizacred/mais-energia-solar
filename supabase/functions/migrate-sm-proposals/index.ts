@@ -1408,7 +1408,7 @@ Deno.serve(async (req) => {
                 details: pipelineDetails,
               };
             } else {
-              report.steps.pipelines = { status: "WOULD_SKIP", reason: "Nenhum funil não-Vendedores encontrado" };
+              report.steps.pipelines = { status: "WOULD_SKIP", reason: "Nenhum funil com etapa encontrado" };
             }
           }
 
