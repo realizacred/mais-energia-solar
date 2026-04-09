@@ -153,7 +153,7 @@ function mapFaseToWizard(smFase: string | null): { fase: string; fase_tensao: st
  * Build a UC object fully compatible with the wizard's UCData interface.
  * Maps SM field names to wizard field names so that editing a migrated proposal works.
  */
-function buildWizardUC(smProp: Record<string, any>): Record<string, any> {
+function buildWizardUC(smProp: Record<string, any>, resolvedConcId?: string | null): Record<string, any> {
   const { fase, fase_tensao, tensao_rede } = mapFaseToWizard(smProp.fase);
   const consumo = Number(smProp.consumo_mensal ?? 0);
   const tarifaEnergia = Number(smProp.tarifa_distribuidora ?? 0);
@@ -173,7 +173,7 @@ function buildWizardUC(smProp: Record<string, any>): Record<string, any> {
     grupo_tarifario: "B",
     tipo_dimensionamento: "consumo",
     distribuidora: smProp.dis_energia ?? "",
-    distribuidora_id: null,
+    distribuidora_id: resolvedConcId || null,
     subgrupo,
     estado: "",
     cidade: "",
@@ -848,6 +848,21 @@ Deno.serve(async (req) => {
         .not("sm_id", "is", null);
       for (const p of props || []) {
         if (p.sm_id) existingPropostas.set(p.sm_id, p.id);
+      }
+    }
+
+    // ─── 5b. Pre-fetch concessionárias for distribuidora matching ─
+    const concMap = new Map<string, { id: string; nome: string }>();
+    {
+      const { data: concs } = await adminClient
+        .from("concessionarias")
+        .select("id, nome, sigla")
+        .eq("tenant_id", tenantId);
+      for (const c of concs || []) {
+        const nomeNorm = (c.nome || "").toLowerCase().trim();
+        const siglaNorm = (c.sigla || "").toLowerCase().trim();
+        concMap.set(nomeNorm, { id: c.id, nome: c.nome });
+        if (siglaNorm) concMap.set(siglaNorm, { id: c.id, nome: c.nome });
       }
     }
 
@@ -1662,6 +1677,27 @@ Deno.serve(async (req) => {
                 lon: null as number | null,
               };
 
+              // Resolve concessionária ID from SM dis_energia name
+              let resolvedConcId: string | null = null;
+              let resolvedConcNome = smProp.dis_energia || "";
+              if (resolvedConcNome) {
+                const disNorm = resolvedConcNome.toLowerCase().trim();
+                const exact = concMap.get(disNorm);
+                if (exact) {
+                  resolvedConcId = exact.id;
+                  resolvedConcNome = exact.nome;
+                } else {
+                  // Fuzzy: check if any concessionária name contains the SM name or vice-versa
+                  for (const [key, val] of concMap) {
+                    if (key.includes(disNorm) || disNorm.includes(key)) {
+                      resolvedConcId = val.id;
+                      resolvedConcNome = val.nome;
+                      break;
+                    }
+                  }
+                }
+              }
+
               const finalSnapshot: Record<string, any> = {
                 source: "legacy_import",
                 // Canonical WizardState nodes
@@ -1670,7 +1706,8 @@ Deno.serve(async (req) => {
                 locCidade: smProp.cidade || smClient?.city || "",
                 locEstado: smProp.estado || smClient?.state || "",
                 locTipoTelhado: smProp.roof_type || "",
-                locDistribuidoraNome: smProp.dis_energia || "",
+                locDistribuidoraNome: resolvedConcNome,
+                locDistribuidoraId: resolvedConcId,
                 // Project address for wizard editing
                 projectAddress,
                 cliente: {
@@ -1708,7 +1745,7 @@ Deno.serve(async (req) => {
                 itens: itensCanonicos,
                 servicos: servicosCanonicos,
                 // FIX 5+6: UCs fully compatible with wizard field names
-                ucs: [buildWizardUC(smProp)],
+                ucs: [buildWizardUC(smProp, resolvedConcId)],
                 // Pre-dimensioning data from SM
                 preDimensionamento: {
                   inclinacao: smProp.inclinacao ?? 20,
