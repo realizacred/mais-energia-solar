@@ -142,6 +142,7 @@ export function TemplateFinalPreview({
         blocks={blocks}
         variables={variables}
         sectionAnchorPrefix={anchorPrefixRef.current}
+        adaptToTheme
       />
 
       {/* ── Footer ── */}
