@@ -653,16 +653,16 @@ Deno.serve(async (req) => {
     const pipelineCache = new Map<string, string>(); // funnelName → pipeline_id
     const stageCache = new Map<string, string>(); // "pipelineId::stageName" → stage_id
 
-    async function resolveOrCreatePipeline(funnelName: string): Promise<string> {
+    async function resolveOrCreatePipeline(funnelName: string, smStages?: string[]): Promise<string> {
       const key = funnelName.trim();
       if (pipelineCache.has(key)) return pipelineCache.get(key)!;
 
-      // Look up existing pipeline by name
+      // Look up existing pipeline by name (ilike to avoid duplicates)
       const { data: existing } = await adminClient
         .from("pipelines")
         .select("id")
         .eq("tenant_id", tenantId)
-        .eq("name", key)
+        .ilike("name", key)
         .limit(1);
 
       if (existing && existing.length > 0) {
@@ -690,9 +690,18 @@ Deno.serve(async (req) => {
         .single();
 
       if (pipeErr) throw new Error(`Falha ao criar pipeline "${key}": ${pipeErr.message}`);
-      pipelineCache.set(key, newPipe!.id);
-      console.log(`[SM Migration] Created pipeline "${key}" → ${newPipe!.id}`);
-      return newPipe!.id;
+      const pipeId = newPipe!.id;
+      pipelineCache.set(key, pipeId);
+
+      // Create SM stages for this pipeline if provided
+      if (smStages && smStages.length > 0) {
+        const uniqueStages = [...new Set(smStages.map(s => s.trim()).filter(Boolean))];
+        for (let i = 0; i < uniqueStages.length; i++) {
+          await resolveOrCreateStage(pipeId, uniqueStages[i], i);
+        }
+      }
+
+      return pipeId;
     }
 
     async function resolveOrCreateStage(pipelineId: string, stageName: string, position: number): Promise<string> {
