@@ -15,6 +15,7 @@ interface BlockRendererProps {
   onSelect: (id: string | null) => void;
   onHover: (id: string | null) => void;
   onDrop: (e: React.DragEvent, parentId: string) => void;
+  renderActionBar?: React.ReactNode;
 }
 
 function computeStyle(style: BlockStyle, mobileStyle?: Partial<BlockStyle>, device?: DevicePreview): React.CSSProperties {
@@ -70,7 +71,7 @@ function BlockTypeLabel({ type }: { type: string }) {
   return <span className="text-[9px] uppercase font-bold tracking-wider opacity-60">{labels[type] || type}</span>;
 }
 
-export function BlockRenderer({ node, device, mode, selectedId, hoveredId, onSelect, onHover, onDrop }: BlockRendererProps) {
+export function BlockRenderer({ node, device, mode, selectedId, hoveredId, onSelect, onHover, onDrop, renderActionBar }: BlockRendererProps) {
   const { block, children } = node;
   const style = useMemo(() => computeStyle(block.style, block.mobileStyle, device), [block.style, block.mobileStyle, device]);
   
@@ -179,6 +180,9 @@ export function BlockRenderer({ node, device, mode, selectedId, hoveredId, onSel
           {block.type}
         </div>
       )}
+
+      {/* Action bar for selected blocks */}
+      {mode === "edit" && isSelected && renderActionBar}
 
       {isContainer ? (
         <div style={style}>

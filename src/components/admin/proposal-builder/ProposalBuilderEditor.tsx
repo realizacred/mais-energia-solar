@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { BuilderSidebar } from "./BuilderSidebar";
 import { BuilderTopbar } from "./BuilderTopbar";
 import { BuilderCanvas } from "./BuilderCanvas";
+import { PropertiesPanel } from "./PropertiesPanel";
 import { builderReducer, initialBuilderState } from "./builderReducer";
 import type { TemplateBlock, ProposalType, DevicePreview, EditorMode } from "./types";
 
@@ -84,6 +85,27 @@ export function ProposalBuilderEditor({
     dispatch({ type: "HOVER_BLOCK", id });
   }, []);
 
+  const handleUpdateBlock = useCallback((id: string, updates: Partial<TemplateBlock>) => {
+    dispatch({ type: "UPDATE_BLOCK", id, updates });
+  }, []);
+
+  const handleDeleteBlock = useCallback((id: string) => {
+    dispatch({ type: "REMOVE_BLOCK", id });
+  }, []);
+
+  const handleDuplicateBlock = useCallback((id: string) => {
+    dispatch({ type: "DUPLICATE_BLOCK", id });
+  }, []);
+
+  const handleSwapOrder = useCallback((id: string, direction: -1 | 1) => {
+    dispatch({ type: "SWAP_ORDER", id, direction });
+  }, []);
+
+  const handleInsertBlocks = useCallback((blocks: TemplateBlock[]) => {
+    dispatch({ type: "ADD_BLOCKS", blocks });
+    toast({ title: "Seção inserida!", description: `${blocks.length} blocos adicionados` });
+  }, []);
+
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
@@ -145,6 +167,17 @@ export function ProposalBuilderEditor({
     }
   }, [state.proposalType]);
 
+  // Find selected block for properties panel
+  const selectedBlock = state.selectedBlockId
+    ? state.blocks.find(b => b.id === state.selectedBlockId) ?? null
+    : null;
+
+  // Compute sibling info for move up/down
+  const selectedSiblings = selectedBlock
+    ? state.blocks.filter(b => b.parentId === selectedBlock.parentId).sort((a, b) => a.order - b.order)
+    : [];
+  const selectedIdx = selectedBlock ? selectedSiblings.findIndex(b => b.id === selectedBlock.id) : -1;
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -184,6 +217,7 @@ export function ProposalBuilderEditor({
             <BuilderSidebar
               proposalType={state.proposalType}
               onAddBlock={handleAddBlock}
+              onInsertBlocks={handleInsertBlocks}
             />
           )}
           <BuilderCanvas
@@ -191,7 +225,17 @@ export function ProposalBuilderEditor({
             onSelect={handleSelect}
             onHover={handleHover}
             onDropBlock={handleDropBlock}
+            onDeleteBlock={handleDeleteBlock}
+            onDuplicateBlock={handleDuplicateBlock}
+            onSwapOrder={handleSwapOrder}
+            onUpdateBlock={handleUpdateBlock}
           />
+          {state.mode === "edit" && selectedBlock && (
+            <PropertiesPanel
+              block={selectedBlock}
+              onUpdate={(updates) => handleUpdateBlock(selectedBlock.id, updates)}
+            />
+          )}
         </div>
 
         {/* Hidden file input for import */}
