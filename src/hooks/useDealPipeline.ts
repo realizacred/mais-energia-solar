@@ -132,7 +132,7 @@ export function useDealPipeline() {
       .from("deal_kanban_projection")
       .select("deal_id, tenant_id, pipeline_id, stage_id, stage_name, stage_position, owner_id, owner_name, customer_name, customer_phone, deal_title, deal_value, deal_kwp, deal_status, stage_probability, last_stage_change, etiqueta, cliente_code, deal_num")
       .order("last_stage_change", { ascending: false })
-      .limit(2000);
+      .limit(500);
 
     if (f.pipelineId) {
       query = query.eq("pipeline_id", f.pipelineId);
@@ -161,165 +161,163 @@ export function useDealPipeline() {
       );
     }
 
-    // Fetch relational etiquetas
-    if (results.length > 0) {
-      const dealIds = results.map(d => d.deal_id);
-      const { data: etiquetaRels } = await supabase
+    if (results.length === 0) return results;
+
+    const dealIds = results.map(d => d.deal_id);
+
+    // ── PARALLEL batch: etiquetas + deals + canonical check ──
+    const [etiquetaRelsRes, dealsDataRes] = await Promise.all([
+      supabase
         .from("projeto_etiqueta_rel")
         .select("projeto_id, etiqueta_id")
-        .in("projeto_id", dealIds);
-      const etiquetaRelMap = new Map<string, string[]>();
-      (etiquetaRels || []).forEach((r: any) => {
-        const arr = etiquetaRelMap.get(r.projeto_id) || [];
-        arr.push(r.etiqueta_id);
-        etiquetaRelMap.set(r.projeto_id, arr);
-      });
-      results = results.map(d => ({
-        ...d,
-        etiqueta_ids: etiquetaRelMap.get(d.deal_id) || [],
-      }));
-    }
-
-    // Enrich with proposal data
-    if (results.length > 0) {
-      const dealIds = results.map(d => d.deal_id);
-      // Fetch canonical deals to enrich cards and drop any stale/orphan projection rows
-      const { data: dealsData } = await supabase
+        .in("projeto_id", dealIds),
+      supabase
         .from("deals")
         .select("id, customer_id, notas, expected_close_date, doc_checklist, projeto_id")
-        .in("id", dealIds);
+        .in("id", dealIds),
+    ]);
 
-      const existingDealIds = new Set((dealsData || []).map((d: any) => d.id));
-      results = results.filter(d => existingDealIds.has(d.deal_id));
+    // Apply etiquetas
+    const etiquetaRelMap = new Map<string, string[]>();
+    (etiquetaRelsRes.data || []).forEach((r: any) => {
+      const arr = etiquetaRelMap.get(r.projeto_id) || [];
+      arr.push(r.etiqueta_id);
+      etiquetaRelMap.set(r.projeto_id, arr);
+    });
+    results = results.map(d => ({
+      ...d,
+      etiqueta_ids: etiquetaRelMap.get(d.deal_id) || [],
+    }));
 
-      const customerMap = new Map<string, string>();
-      const projetoIdMap = new Map<string, string>(); // deal_id → projeto_id
-      const notasMap = new Map<string, string | null>();
-      const closeDateMap = new Map<string, string | null>();
-      const docChecklistMap = new Map<string, Record<string, boolean> | null>();
-      (dealsData || []).forEach((d: any) => {
-        if (d.customer_id) customerMap.set(d.id, d.customer_id);
-        if (d.projeto_id) projetoIdMap.set(d.id, d.projeto_id);
-        notasMap.set(d.id, d.notas || null);
-        closeDateMap.set(d.id, d.expected_close_date || null);
-        docChecklistMap.set(d.id, d.doc_checklist || null);
+    // Filter to existing deals only
+    const dealsData = dealsDataRes.data || [];
+    const existingDealIds = new Set(dealsData.map((d: any) => d.id));
+    results = results.filter(d => existingDealIds.has(d.deal_id));
+
+    const customerMap = new Map<string, string>();
+    const projetoIdMap = new Map<string, string>();
+    const notasMap = new Map<string, string | null>();
+    const closeDateMap = new Map<string, string | null>();
+    const docChecklistMap = new Map<string, Record<string, boolean> | null>();
+    dealsData.forEach((d: any) => {
+      if (d.customer_id) customerMap.set(d.id, d.customer_id);
+      if (d.projeto_id) projetoIdMap.set(d.id, d.projeto_id);
+      notasMap.set(d.id, d.notas || null);
+      closeDateMap.set(d.id, d.expected_close_date || null);
+      docChecklistMap.set(d.id, d.doc_checklist || null);
+    });
+
+    // ── PARALLEL batch: propostas + locations ──
+    const customerIds = [...new Set(Array.from(customerMap.values()))];
+    const projetoIds = [...new Set(Array.from(projetoIdMap.values()))].filter(Boolean);
+
+    if (customerIds.length > 0 || dealIds.length > 0 || projetoIds.length > 0) {
+      const orParts: string[] = [];
+      if (dealIds.length > 0) orParts.push(`deal_id.in.(${dealIds.join(",")})`);
+      if (projetoIds.length > 0) orParts.push(`projeto_id.in.(${projetoIds.join(",")})`);
+
+      const [propostasRes, locationRes] = await Promise.all([
+        supabase
+          .from("propostas_nativas")
+          .select("id, deal_id, projeto_id, status, is_principal")
+          .or(orParts.join(","))
+          .order("created_at", { ascending: false }),
+        customerIds.length > 0
+          ? supabase.from("clientes").select("id, cidade, estado").in("id", customerIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const locationMap = new Map<string, { city: string | null; state: string | null }>();
+      (locationRes.data || []).forEach((c: any) => {
+        locationMap.set(c.id, { city: c.cidade, state: c.estado });
       });
 
-      // Fetch latest proposal per DEAL — search by deal_id AND projeto_id (RB-43 pattern)
-      const customerIds = [...new Set(Array.from(customerMap.values()))];
-      const projetoIds = [...new Set(Array.from(projetoIdMap.values()))].filter(Boolean);
-      const locationMap = new Map<string, { city: string | null; state: string | null }>();
+      const propostas = propostasRes.data || [];
 
-      if (customerIds.length > 0 || dealIds.length > 0 || projetoIds.length > 0) {
-        // Build OR filter: deal_id in dealIds OR projeto_id in projetoIds
-        const orParts: string[] = [];
-        if (dealIds.length > 0) orParts.push(`deal_id.in.(${dealIds.join(",")})`);
-        if (projetoIds.length > 0) orParts.push(`projeto_id.in.(${projetoIds.join(",")})`);
+      // Fetch economia only for proposals that need it (best per deal)
+      // First determine best proposal per deal, THEN fetch only those versoes
+      const STATUS_PRIORITY: Record<string, number> = {
+        aceita: 1, accepted: 1, aprovada: 1, ganha: 1,
+        enviada: 2, sent: 2, vista: 2, visualizada: 2,
+        gerada: 3, generated: 3,
+        rascunho: 4, draft: 4,
+        recusada: 5, rejected: 5, rejeitada: 5, perdida: 5,
+        cancelada: 6, expirada: 6, arquivada: 7,
+      };
 
-        // Parallel: proposals by deal_id/projeto_id + locations by customer_id
-        const [propostasRes, locationRes] = await Promise.all([
-          supabase
-            .from("propostas_nativas")
-            .select("id, deal_id, projeto_id, status, versao_atual, is_principal")
-            .or(orParts.join(","))
-            .order("created_at", { ascending: false }),
-          customerIds.length > 0
-            ? supabase.from("clientes").select("id, cidade, estado").in("id", customerIds)
-            : Promise.resolve({ data: [] }),
-        ]);
+      const projetoToDeal = new Map<string, string>();
+      projetoIdMap.forEach((projId, dealId) => { projetoToDeal.set(projId, dealId); });
 
-        // Location map
-        (locationRes.data || []).forEach((c: any) => {
-          locationMap.set(c.id, { city: c.cidade, state: c.estado });
-        });
+      const propostasByDeal = new Map<string, typeof propostas>();
+      propostas.forEach((p: any) => {
+        const resolvedDealId = p.deal_id || (p.projeto_id ? projetoToDeal.get(p.projeto_id) : null);
+        if (!resolvedDealId) return;
+        const arr = propostasByDeal.get(resolvedDealId) || [];
+        arr.push(p);
+        propostasByDeal.set(resolvedDealId, arr);
+      });
 
-        // Get economia from latest version
-        const propostas = propostasRes.data || [];
-        const propostaIds = propostas.map((p: any) => p.id);
-        const economiaMap = new Map<string, number>();
-        if (propostaIds.length > 0) {
-          const { data: versoes } = await supabase
-            .from("proposta_versoes")
-            .select("proposta_id, economia_mensal")
-            .in("proposta_id", propostaIds)
-            .order("versao_numero", { ascending: false });
-          (versoes || []).forEach((v: any) => {
-            if (v.economia_mensal && !economiaMap.has(v.proposta_id)) {
-              economiaMap.set(v.proposta_id, v.economia_mensal);
-            }
-          });
+      // Select best proposal per deal (without economia yet)
+      const bestPropostaByDeal = new Map<string, { id: string; status: string }>();
+      propostasByDeal.forEach((dealPropostas, did) => {
+        const principal = dealPropostas.find((p: any) => p.is_principal && !['excluida', 'cancelada', 'arquivada'].includes(p.status?.toLowerCase()));
+        if (principal) {
+          bestPropostaByDeal.set(did, { id: principal.id, status: principal.status });
+          return;
         }
-
-        // Map best proposal per deal — priority: is_principal > accepted > sent > latest
-        const STATUS_PRIORITY: Record<string, number> = {
-          aceita: 1, accepted: 1, aprovada: 1, ganha: 1,
-          enviada: 2, sent: 2, vista: 2, visualizada: 2,
-          gerada: 3, generated: 3,
-          rascunho: 4, draft: 4,
-          recusada: 5, rejected: 5, rejeitada: 5, perdida: 5,
-          cancelada: 6, expirada: 6, arquivada: 7,
-        };
-        const bestPropostaByDeal = new Map<string, { id: string; status: string; economia: number | null }>();
-        // Build reverse map: projeto_id → deal_id
-        const projetoToDeal = new Map<string, string>();
-        projetoIdMap.forEach((projId, dealId) => { projetoToDeal.set(projId, dealId); });
-
-        // Group proposals by deal — match via deal_id OR projeto_id
-        const propostasByDeal = new Map<string, typeof propostas>();
-        propostas.forEach((p: any) => {
-          // Resolve which deal this proposal belongs to
-          const resolvedDealId = p.deal_id || (p.projeto_id ? projetoToDeal.get(p.projeto_id) : null);
-          if (!resolvedDealId) return;
-          const arr = propostasByDeal.get(resolvedDealId) || [];
-          arr.push(p);
-          propostasByDeal.set(resolvedDealId, arr);
+        const sorted = [...dealPropostas].sort((a: any, b: any) => {
+          const pa = STATUS_PRIORITY[a.status?.toLowerCase()] ?? 99;
+          const pb = STATUS_PRIORITY[b.status?.toLowerCase()] ?? 99;
+          return pa - pb;
         });
-        propostasByDeal.forEach((dealPropostas, did) => {
-          // 1. Principal first — skip excluida/cancelada (dead proposals should not win)
-          const principal = dealPropostas.find((p: any) => p.is_principal && !['excluida', 'cancelada', 'arquivada'].includes(p.status?.toLowerCase()));
-          if (principal) {
-            bestPropostaByDeal.set(did, { id: principal.id, status: principal.status, economia: economiaMap.get(principal.id) || null });
-            return;
-          }
-          // 2. Sort by status priority (lower = better), then by created_at (already desc)
-          const sorted = [...dealPropostas].sort((a: any, b: any) => {
-            const pa = STATUS_PRIORITY[a.status?.toLowerCase()] ?? 99;
-            const pb = STATUS_PRIORITY[b.status?.toLowerCase()] ?? 99;
-            return pa - pb;
-          });
-          const best = sorted[0];
-          if (best) {
-            bestPropostaByDeal.set(did, { id: best.id, status: best.status, economia: economiaMap.get(best.id) || null });
+        const best = sorted[0];
+        if (best) {
+          bestPropostaByDeal.set(did, { id: best.id, status: best.status });
+        }
+      });
+
+      // Fetch economia ONLY for best proposals (much smaller set)
+      const bestPropostaIds = [...new Set(Array.from(bestPropostaByDeal.values()).map(p => p.id))];
+      const economiaMap = new Map<string, number>();
+      if (bestPropostaIds.length > 0) {
+        const { data: versoes } = await supabase
+          .from("proposta_versoes")
+          .select("proposta_id, economia_mensal")
+          .in("proposta_id", bestPropostaIds)
+          .order("versao_numero", { ascending: false });
+        (versoes || []).forEach((v: any) => {
+          if (v.economia_mensal && !economiaMap.has(v.proposta_id)) {
+            economiaMap.set(v.proposta_id, v.economia_mensal);
           }
         });
+      }
 
-        // Enrich results
-        results = results.map(d => {
-          const custId = customerMap.get(d.deal_id);
-          const proposta = bestPropostaByDeal.get(d.deal_id) || null;
-          const loc = custId ? locationMap.get(custId) : null;
-          return {
-            ...d,
-            notas: notasMap.get(d.deal_id) || d.notas || null,
-            customer_id: custId || null,
-            proposta_id: proposta?.id || null,
-            proposta_status: proposta?.status || null,
-            proposta_economia_mensal: proposta?.economia || null,
-            customer_city: loc?.city || null,
-            customer_state: loc?.state || null,
-            expected_close_date: closeDateMap.get(d.deal_id) || null,
-            doc_checklist: docChecklistMap.get(d.deal_id) || null,
-          };
-        });
-      } else {
-        results = results.map(d => ({
+      // Enrich results
+      results = results.map(d => {
+        const custId = customerMap.get(d.deal_id);
+        const proposta = bestPropostaByDeal.get(d.deal_id) || null;
+        const loc = custId ? locationMap.get(custId) : null;
+        return {
           ...d,
           notas: notasMap.get(d.deal_id) || d.notas || null,
-          customer_id: customerMap.get(d.deal_id) || null,
+          customer_id: custId || null,
+          proposta_id: proposta?.id || null,
+          proposta_status: proposta?.status || null,
+          proposta_economia_mensal: proposta ? (economiaMap.get(proposta.id) || null) : null,
+          customer_city: loc?.city || null,
+          customer_state: loc?.state || null,
           expected_close_date: closeDateMap.get(d.deal_id) || null,
           doc_checklist: docChecklistMap.get(d.deal_id) || null,
-        }));
-      }
+        };
+      });
+    } else {
+      results = results.map(d => ({
+        ...d,
+        notas: notasMap.get(d.deal_id) || d.notas || null,
+        customer_id: customerMap.get(d.deal_id) || null,
+        expected_close_date: closeDateMap.get(d.deal_id) || null,
+        doc_checklist: docChecklistMap.get(d.deal_id) || null,
+      }));
     }
 
     return results;
@@ -343,90 +341,37 @@ export function useDealPipeline() {
   useEffect(() => { fetchAll(); }, []);
 
   // ⚠️ HARDENING: Realtime subscription for cross-user sync on deals/stages
+  // Consolidated with aggressive debounce to avoid redundant re-fetches
   useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+    const debouncedRefresh = (delayMs = 1500) => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        try {
+          const enriched = await fetchDeals(filters);
+          setDeals(enriched);
+        } catch (e) { console.error("Realtime refresh:", e); }
+      }, delayMs);
+    };
+
     const channel = supabase
       .channel('deals-pipeline-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'deals' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(async () => {
-            try {
-              const enriched = await fetchDeals(filters);
-              setDeals(enriched);
-            } catch (e) { console.error("Realtime deals refresh:", e); }
-          }, 700);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'deal_stage_history' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(async () => {
-            try {
-              const enriched = await fetchDeals(filters);
-              setDeals(enriched);
-            } catch (e) { console.error("Realtime stage history refresh:", e); }
-          }, 700);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'propostas_nativas' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(async () => {
-            try {
-              const enriched = await fetchDeals(filters);
-              setDeals(enriched);
-            } catch (e) { console.error("Realtime propostas refresh:", e); }
-          }, 800);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'deal_kanban_projection' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(async () => {
-            try {
-              const enriched = await fetchDeals(filters);
-              setDeals(enriched);
-            } catch (e) { console.error("Realtime projection refresh:", e); }
-          }, 700);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'projetos' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(async () => {
-            try {
-              const enriched = await fetchDeals(filters);
-              setDeals(enriched);
-            } catch (e) { console.error("Realtime projetos refresh:", e); }
-          }, 1000);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'pipeline_stages' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(async () => {
-            try {
-              await fetchMetadata();
-              const enriched = await fetchDeals(filters);
-              setDeals(enriched);
-            } catch (e) { console.error("Realtime stages refresh:", e); }
-          }, 700);
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, () => debouncedRefresh(1500))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deal_stage_history' }, () => debouncedRefresh(1500))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'propostas_nativas' }, () => debouncedRefresh(2000))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deal_kanban_projection' }, () => debouncedRefresh(1500))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, () => debouncedRefresh(2000))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline_stages' }, async () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+          try {
+            await fetchMetadata();
+            const enriched = await fetchDeals(filters);
+            setDeals(enriched);
+          } catch (e) { console.error("Realtime stages refresh:", e); }
+        }, 1500);
+      })
       .subscribe();
 
     return () => {
