@@ -57,7 +57,7 @@ export function PropostaComercialPage() {
           <VariableTester />
         </TabsContent>
         <TabsContent value="modelos-proposta">
-          <TemplatesManager />
+          <ModelosPropostaUnified />
         </TabsContent>
         <TabsContent value="modelos-documento">
           <DocumentTemplatesTab />
