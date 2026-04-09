@@ -22,8 +22,8 @@ function sortDeals(deals: DealKanbanCard[], sort: SortOption): DealKanbanCard[] 
   if (sort === "default") return deals;
   const sorted = [...deals];
   switch (sort) {
-    case "nome_asc": return sorted.sort((a, b) => (a.deal_name || "").localeCompare(b.deal_name || ""));
-    case "nome_desc": return sorted.sort((a, b) => (b.deal_name || "").localeCompare(a.deal_name || ""));
+    case "nome_asc": return sorted.sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || ""));
+    case "nome_desc": return sorted.sort((a, b) => (b.customer_name || "").localeCompare(a.customer_name || ""));
     case "valor_desc": return sorted.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
     case "valor_asc": return sorted.sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
     case "data_desc": return sorted.sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
