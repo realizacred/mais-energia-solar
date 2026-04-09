@@ -158,9 +158,11 @@ export function TemplatesTab() {
   }
 
   const DEFAULT_TEMPLATES_CONFIG: { style: TemplateStyle; nome: string; descricao: string }[] = [
-    { style: "consultivo", nome: "Consultivo — Venda Assistida", descricao: "Template detalhado com comparações antes/depois, ideal para projetos maiores e vendedor presencial." },
-    { style: "fechamento", nome: "Fechamento Rápido — WhatsApp", descricao: "Template de alto impacto visual para envio direto ao cliente, foco em decisão rápida." },
-    { style: "escala", nome: "Escala Automática — Leads", descricao: "Template educativo para leads frios ou tráfego, construção de valor antes do preço." },
+    { style: "consultivo", nome: "Premium Consultivo", descricao: "Template detalhado com comparativo antes/depois, confiança e dados técnicos. Ideal para projetos maiores." },
+    { style: "fechamento", nome: "Fechamento Rápido — WhatsApp", descricao: "Alto impacto visual com urgência e CTA forte. Ideal para envio direto ao cliente via WhatsApp." },
+    { style: "escala", nome: "Educacional — Leads", descricao: "Educativo com 'Como Funciona', construção de valor progressiva. Ideal para leads frios." },
+    { style: "hibrido", nome: "Híbrido / Off-Grid", descricao: "Múltiplos inversores, bateria, estrutura e serviços inclusos. Ideal para projetos com backup." },
+    { style: "corporativo", nome: "Corporativo B2B", descricao: "Foco em ROI empresarial, multi-UC, dados técnicos detalhados. Ideal para empresas e comércios." },
   ];
 
   async function handleSeedDefaults() {

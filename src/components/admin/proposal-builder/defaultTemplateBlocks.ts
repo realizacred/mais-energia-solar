@@ -1,11 +1,13 @@
 /**
  * Default rich template blocks for the Visual Proposal Builder.
- * 
- * 3 strategic templates aligned with the sales funnel:
- *   1. CONSULTIVO (Venda Assistida) — detailed, trust-building, for bigger deals
- *   2. FECHAMENTO RÁPIDO (WhatsApp) — high-impact, fast decision, urgency CTAs
- *   3. ESCALA AUTOMÁTICA (Leads) — educational, value-building, self-service
- * 
+ *
+ * 5 strategic templates aligned with the sales funnel:
+ *   1. PREMIUM CONSULTIVO — Trust-building, detailed, for bigger deals
+ *   2. FECHAMENTO RÁPIDO — WhatsApp, urgency, fast decision
+ *   3. EDUCACIONAL — Cold leads, educational, self-service
+ *   4. HÍBRIDO OFF-GRID — Multiple inverters, battery, structure services
+ *   5. CORPORATIVO — B2B, multi-UC, ROI-focused
+ *
  * All templates use CSS variables from landingThemes.ts for theme compatibility.
  * Uses {{variable}} format from variablesCatalog.
  * Página pública — exceção RB-02 documentada.
@@ -17,7 +19,7 @@ function uid(): string {
   return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2, 10);
 }
 
-export type TemplateStyle = "consultivo" | "fechamento" | "escala";
+export type TemplateStyle = "consultivo" | "fechamento" | "escala" | "hibrido" | "corporativo";
 
 /**
  * Factory principal — cria blocos por estilo de template.
@@ -29,772 +31,938 @@ export function createDefaultTemplateBlocks(proposalType: ProposalType = "grid",
       return createFechamentoBlocks(proposalType);
     case "escala":
       return createEscalaBlocks(proposalType);
+    case "hibrido":
+      return createHibridoBlocks(proposalType);
+    case "corporativo":
+      return createCorporativoBlocks(proposalType);
     default:
       return createConsultivoBlocks(proposalType);
   }
 }
 
+// ── Shared helpers ─────────────────────────────────────────
+function makeBase(proposalType: ProposalType): Pick<TemplateBlock, "_proposalType" | "isVisible"> {
+  return { _proposalType: proposalType, isVisible: true };
+}
+
+function sec(base: Pick<TemplateBlock, "_proposalType" | "isVisible">, order: number, style: Partial<TemplateBlock["style"]>): TemplateBlock {
+  return { ...base, id: uid(), type: "section", content: "", parentId: null, order, style: { paddingTop: "56", paddingBottom: "56", paddingLeft: "24", paddingRight: "24", contentWidth: "boxed", ...style } };
+}
+
+function col(base: Pick<TemplateBlock, "_proposalType" | "isVisible">, parentId: string, order: number, style: Partial<TemplateBlock["style"]> = {}): TemplateBlock {
+  return { ...base, id: uid(), type: "column", content: "", parentId, order, style: { width: 100, ...style } };
+}
+
+function txt(base: Pick<TemplateBlock, "_proposalType" | "isVisible">, parentId: string, order: number, content: string, style: Partial<TemplateBlock["style"]> = {}): TemplateBlock {
+  return { ...base, id: uid(), type: "editor", parentId, order, content, style };
+}
+
+function btn(base: Pick<TemplateBlock, "_proposalType" | "isVisible">, parentId: string, order: number, label: string, style: Partial<TemplateBlock["style"]> = {}): TemplateBlock {
+  return { ...base, id: uid(), type: "button", content: label, parentId, order, style: { textAlign: "center", borderRadius: "14", fontSize: "18", fontWeight: "800", paddingTop: "18", paddingBottom: "18", paddingLeft: "48", paddingRight: "48", ...style } };
+}
+
 // ═══════════════════════════════════════════════════════════════
-// TEMPLATE 1 — CONSULTIVO (Venda Assistida)
-// Foco: explicação detalhada, confiança, comparações antes/depois
-// Ideal para: vendedor presencial, projetos maiores, clientes indecisos
+// TEMPLATE 1 — PREMIUM CONSULTIVO
+// Foco: confiança, detalhamento, comparativo antes/depois
+// Ideal para: venda assistida, projetos maiores
 // ═══════════════════════════════════════════════════════════════
 
-function createConsultivoBlocks(proposalType: ProposalType): TemplateBlock[] {
-  const heroSec = uid(), heroCol = uid();
-  const benefSec = uid(), benefCol = uid();
-  const techSec = uid(), techCol1 = uid(), techCol2 = uid();
-  const finSec = uid(), finCol = uid();
-  const ctaSec = uid(), ctaCol = uid();
+function createConsultivoBlocks(pt: ProposalType): TemplateBlock[] {
+  const b = makeBase(pt);
+  const blocks: TemplateBlock[] = [];
 
-  const base: Pick<TemplateBlock, "_proposalType" | "isVisible"> = {
-    _proposalType: proposalType,
-    isVisible: true,
-  };
+  // ── HERO ──
+  const heroS = sec(b, 0, {
+    paddingTop: "80", paddingBottom: "80",
+    useGradient: true, gradientStart: "var(--az, #0F172A)", gradientEnd: "var(--az2, #1E3A5F)",
+    staticGradientAngle: 160, textAlign: "center",
+  });
+  blocks.push(heroS);
+  const heroC = col(b, heroS.id, 0); blocks.push(heroC);
 
-  return [
-    // ═══ HERO — Saudação + Métricas Principais ═══
-    {
-      ...base, id: heroSec, type: "section", content: "", parentId: null, order: 0,
-      style: {
-        paddingTop: "72", paddingBottom: "72", paddingLeft: "24", paddingRight: "24",
-        useGradient: true, gradientStart: "var(--az, #1B3A8C)", gradientEnd: "var(--az2, #0D2460)",
-        staticGradientAngle: 135, contentWidth: "boxed", textAlign: "center",
-      },
-    },
-    {
-      ...base, id: heroCol, type: "column", content: "", parentId: heroSec, order: 0,
-      style: { width: 100, paddingTop: "0", paddingBottom: "0" },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: heroCol, order: 0, style: { textAlign: "center" },
-      content: `
-        <div style="max-width:680px;margin:0 auto;">
-          <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.2em;color:var(--hero-muted, rgba(255,255,255,0.5));margin:0 0 16px;font-weight:700;">
-            ☀️ Proposta Personalizada
-          </p>
-          <h1 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:2.4rem;font-weight:800;color:var(--hero-text, #fff);margin:0 0 16px;line-height:1.15;letter-spacing:-0.02em;">
-            Olá, {{cliente.nome}}!
-          </h1>
-          <p style="font-size:1.1rem;color:var(--hero-muted, rgba(255,255,255,0.6));margin:0 0 40px;line-height:1.6;">
-            Preparamos uma solução sob medida de energia solar para você em <strong style="color:var(--la, #F07B24);">{{cliente.cidade}}/{{cliente.estado}}</strong>.
-          </p>
-        </div>
-      `,
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: heroCol, order: 1, style: {},
-      content: `
-        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:16px;max-width:720px;margin:0 auto;">
-          <div style="background:var(--hero-overlay, rgba(255,255,255,0.07));border:1px solid var(--hero-overlay-border, rgba(255,255,255,0.12));border-radius:16px;padding:24px 32px;min-width:180px;text-align:center;flex:1;">
-            <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--hero-muted, rgba(255,255,255,0.5));margin:0 0 8px;font-weight:600;">⚡ Potência</p>
-            <p style="font-size:2rem;font-weight:800;color:var(--hero-metrics-text, #F07B24);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">{{potencia_kwp}} kWp</p>
-          </div>
-          <div style="background:var(--hero-overlay, rgba(255,255,255,0.07));border:1px solid var(--hero-overlay-border, rgba(255,255,255,0.12));border-radius:16px;padding:24px 32px;min-width:180px;text-align:center;flex:1;">
-            <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--hero-muted, rgba(255,255,255,0.5));margin:0 0 8px;font-weight:600;">💰 Economia Mensal</p>
-            <p style="font-size:2rem;font-weight:800;color:var(--verde, #16A34A);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">R$ {{economia_mensal}}</p>
-          </div>
-          <div style="background:var(--hero-overlay, rgba(255,255,255,0.07));border:1px solid var(--hero-overlay-border, rgba(255,255,255,0.12));border-radius:16px;padding:24px 32px;min-width:180px;text-align:center;flex:1;">
-            <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--hero-muted, rgba(255,255,255,0.5));margin:0 0 8px;font-weight:600;">🔋 Geração Mensal</p>
-            <p style="font-size:2rem;font-weight:800;color:var(--hero-metrics-text, #F07B24);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">{{geracao_mensal}} kWh</p>
-          </div>
-        </div>
-      `,
-    },
+  blocks.push(txt(b, heroC.id, 0, `
+    <div style="max-width:720px;margin:0 auto;">
+      <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:24px;">
+        <img src="{{empresa_logo_url}}" alt="{{empresa_nome}}" style="height:36px;max-width:180px;object-fit:contain;" onerror="this.style.display='none'" />
+      </div>
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:rgba(255,255,255,0.4);font-weight:700;margin:0 0 16px;">Proposta Comercial Personalizada</p>
+      <h1 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:clamp(2rem,5vw,3rem);font-weight:900;color:#fff;margin:0 0 16px;line-height:1.08;letter-spacing:-0.03em;">
+        Olá, <span style="color:var(--la, #F07B24);">{{cliente_nome}}</span>!
+      </h1>
+      <p style="font-size:1.1rem;color:rgba(255,255,255,0.55);margin:0 0 40px;line-height:1.7;">
+        Preparamos uma solução exclusiva de energia solar para <strong style="color:rgba(255,255,255,0.8);">{{cliente_cidade}}/{{cliente_estado}}</strong>.
+      </p>
+    </div>
+  `));
 
-    // ═══ BENEFÍCIOS — Antes vs Depois ═══
-    {
-      ...base, id: benefSec, type: "section", content: "", parentId: null, order: 1,
-      style: {
-        paddingTop: "56", paddingBottom: "56", paddingLeft: "24", paddingRight: "24",
-        backgroundColor: "var(--fundo, #F0F4FA)", contentWidth: "boxed",
-      },
-    },
-    {
-      ...base, id: benefCol, type: "column", content: "", parentId: benefSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: benefCol, order: 0, style: {},
-      content: `
-        <div style="text-align:center;margin-bottom:36px;">
-          <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">Por que energia solar?</p>
-          <h2 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1.6rem;font-weight:800;color:var(--body-text, #1e293b);margin:0;">Antes vs Depois da Energia Solar</h2>
-        </div>
-      `,
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: benefCol, order: 1, style: {},
-      content: `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:800px;margin:0 auto;">
-          <div style="background:var(--card-bg, #fff);border:2px solid var(--negative, #ef4444);border-radius:16px;padding:28px;position:relative;overflow:hidden;">
-            <div style="position:absolute;top:0;left:0;right:0;height:4px;background:var(--negative, #ef4444);"></div>
-            <p style="font-size:12px;text-transform:uppercase;letter-spacing:0.15em;color:var(--negative, #ef4444);font-weight:800;margin:0 0 20px;">❌ Sem Solar</p>
-            <div style="space-y:16px;">
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                <span style="font-size:20px;">💸</span>
-                <div>
-                  <p style="font-size:11px;color:var(--cinza, #64748B);margin:0;text-transform:uppercase;letter-spacing:0.05em;">Conta de Luz</p>
-                  <p style="font-weight:700;color:var(--negative, #ef4444);margin:0;font-size:1.1rem;">R$ {{economia_mensal}}/mês</p>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                <span style="font-size:20px;">📈</span>
-                <div>
-                  <p style="font-size:11px;color:var(--cinza, #64748B);margin:0;text-transform:uppercase;letter-spacing:0.05em;">Gasto em 25 anos</p>
-                  <p style="font-weight:700;color:var(--negative, #ef4444);margin:0;font-size:1.1rem;">R$ {{economia_25_anos}}+</p>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;">
-                <span style="font-size:20px;">🌍</span>
-                <div>
-                  <p style="font-size:11px;color:var(--cinza, #64748B);margin:0;text-transform:uppercase;letter-spacing:0.05em;">Impacto Ambiental</p>
-                  <p style="font-weight:700;color:var(--cinza, #64748B);margin:0;font-size:0.95rem;">{{co2_evitado_ton_ano}} ton CO₂/ano</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style="background:var(--card-bg, #fff);border:2px solid var(--verde, #16A34A);border-radius:16px;padding:28px;position:relative;overflow:hidden;">
-            <div style="position:absolute;top:0;left:0;right:0;height:4px;background:var(--verde, #16A34A);"></div>
-            <p style="font-size:12px;text-transform:uppercase;letter-spacing:0.15em;color:var(--verde, #16A34A);font-weight:800;margin:0 0 20px;">✅ Com Solar</p>
-            <div>
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                <span style="font-size:20px;">☀️</span>
-                <div>
-                  <p style="font-size:11px;color:var(--cinza, #64748B);margin:0;text-transform:uppercase;letter-spacing:0.05em;">Conta de Luz</p>
-                  <p style="font-weight:700;color:var(--verde, #16A34A);margin:0;font-size:1.1rem;">Economia de {{economia_percentual}}%</p>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                <span style="font-size:20px;">💰</span>
-                <div>
-                  <p style="font-size:11px;color:var(--cinza, #64748B);margin:0;text-transform:uppercase;letter-spacing:0.05em;">Economia em 25 anos</p>
-                  <p style="font-weight:700;color:var(--verde, #16A34A);margin:0;font-size:1.1rem;">R$ {{economia_25_anos}}</p>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;">
-                <span style="font-size:20px;">🌱</span>
-                <div>
-                  <p style="font-size:11px;color:var(--cinza, #64748B);margin:0;text-transform:uppercase;letter-spacing:0.05em;">Impacto Ambiental</p>
-                  <p style="font-weight:700;color:var(--verde, #16A34A);margin:0;font-size:0.95rem;">Zero emissões</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `,
-    },
+  // KPI cards
+  blocks.push(txt(b, heroC.id, 1, `
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:16px;max-width:800px;margin:0 auto;">
+      <div style="background:rgba(255,255,255,0.06);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px 36px;min-width:200px;text-align:center;flex:1;">
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 10px;font-weight:700;">⚡ Potência</p>
+        <p style="font-size:2.2rem;font-weight:900;color:var(--la, #F07B24);margin:0;font-family:var(--font-numbers,'Montserrat',sans-serif);">{{potencia_kwp}} kWp</p>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px 36px;min-width:200px;text-align:center;flex:1;">
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 10px;font-weight:700;">💰 Economia/mês</p>
+        <p style="font-size:2.2rem;font-weight:900;color:var(--verde, #22C55E);margin:0;font-family:var(--font-numbers,'Montserrat',sans-serif);">R$ {{economia_mensal}}</p>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px 36px;min-width:200px;text-align:center;flex:1;">
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 10px;font-weight:700;">🔋 Geração Mensal</p>
+        <p style="font-size:2.2rem;font-weight:900;color:var(--la, #F07B24);margin:0;font-family:var(--font-numbers,'Montserrat',sans-serif);">{{geracao_mensal}} kWh</p>
+      </div>
+    </div>
+  `));
 
-    // ═══ TECNOLOGIA — Detalhes do Sistema ═══
-    {
-      ...base, id: techSec, type: "section", content: "", parentId: null, order: 2,
-      style: {
-        paddingTop: "56", paddingBottom: "56", paddingLeft: "24", paddingRight: "24",
-        backgroundColor: "var(--card-bg, #ffffff)", contentWidth: "boxed",
-      },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: techSec, order: 0, style: {},
-      content: `
-        <div style="text-align:center;margin-bottom:36px;">
-          <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">⚙️ Configuração Técnica</p>
-          <h2 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1.6rem;font-weight:800;color:var(--body-text, #1e293b);margin:0;">Componentes do Seu Sistema</h2>
-          <p style="color:var(--cinza, #64748B);font-size:0.9rem;margin:8px 0 0;max-width:500px;margin-left:auto;margin-right:auto;">Equipamentos de alta performance com garantia estendida de fábrica.</p>
-        </div>
-      `,
-    },
-    {
-      ...base, id: techCol1, type: "column", content: "", parentId: techSec, order: 1,
-      style: { width: 50, paddingRight: "10" },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: techCol1, order: 0, style: {},
-      content: `
-        <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:28px;height:100%;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-            <div style="width:42px;height:42px;border-radius:12px;background:rgba(240,123,36,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">⚡</div>
-            <div>
-              <h3 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1.05rem;font-weight:700;color:var(--body-text, #1e293b);margin:0;">Módulos Solares</h3>
-              <p style="font-size:11px;color:var(--cinza, #64748B);margin:2px 0 0;">Painéis fotovoltaicos de última geração</p>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cinza, #64748B);margin:0 0 4px;font-weight:600;">Fabricante</p>
-              <p style="font-weight:700;color:var(--body-text, #1e293b);margin:0;font-size:0.9rem;">{{modulo_fabricante}}</p>
-            </div>
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cinza, #64748B);margin:0 0 4px;font-weight:600;">Modelo</p>
-              <p style="font-weight:700;color:var(--body-text, #1e293b);margin:0;font-size:0.9rem;">{{modulo_modelo}}</p>
-            </div>
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cinza, #64748B);margin:0 0 4px;font-weight:600;">Quantidade</p>
-              <p style="font-weight:700;color:var(--body-text, #1e293b);margin:0;font-size:0.9rem;">{{modulo_quantidade}} painéis</p>
-            </div>
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cinza, #64748B);margin:0 0 4px;font-weight:600;">Potência</p>
-              <p style="font-weight:700;color:var(--la, #F07B24);margin:0;font-size:0.9rem;">{{modulo_potencia}}</p>
-            </div>
-          </div>
-        </div>
-      `,
-    },
-    {
-      ...base, id: techCol2, type: "column", content: "", parentId: techSec, order: 2,
-      style: { width: 50, paddingLeft: "10" },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: techCol2, order: 0, style: {},
-      content: `
-        <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:28px;height:100%;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-            <div style="width:42px;height:42px;border-radius:12px;background:rgba(240,123,36,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🔌</div>
-            <div>
-              <h3 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1.05rem;font-weight:700;color:var(--body-text, #1e293b);margin:0;">Inversor Solar</h3>
-              <p style="font-size:11px;color:var(--cinza, #64748B);margin:2px 0 0;">Conversão inteligente de energia</p>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cinza, #64748B);margin:0 0 4px;font-weight:600;">Fabricante</p>
-              <p style="font-weight:700;color:var(--body-text, #1e293b);margin:0;font-size:0.9rem;">{{inversor_fabricante}}</p>
-            </div>
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cinza, #64748B);margin:0 0 4px;font-weight:600;">Modelo</p>
-              <p style="font-weight:700;color:var(--body-text, #1e293b);margin:0;font-size:0.9rem;">{{inversor_modelo}}</p>
-            </div>
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;grid-column:1/-1;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cinza, #64748B);margin:0 0 4px;font-weight:600;">🛡️ Garantia</p>
-              <p style="font-weight:700;color:var(--verde, #16A34A);margin:0;font-size:0.9rem;">{{inversor_garantia}}</p>
-            </div>
-          </div>
-        </div>
-      `,
-    },
+  // ── ANTES vs DEPOIS ──
+  const compS = sec(b, 1, { backgroundColor: "var(--fundo, #F8FAFC)" });
+  blocks.push(compS);
+  const compC = col(b, compS.id, 0); blocks.push(compC);
 
-    // ═══ ANÁLISE FINANCEIRA ═══
-    {
-      ...base, id: finSec, type: "section", content: "", parentId: null, order: 3,
-      style: {
-        paddingTop: "56", paddingBottom: "56", paddingLeft: "24", paddingRight: "24",
-        backgroundColor: "var(--fundo, #F0F4FA)", contentWidth: "boxed",
-      },
-    },
-    {
-      ...base, id: finCol, type: "column", content: "", parentId: finSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: finCol, order: 0, style: {},
-      content: `
-        <div style="text-align:center;margin-bottom:36px;">
-          <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">📊 Análise Financeira</p>
-          <h2 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1.6rem;font-weight:800;color:var(--body-text, #1e293b);margin:0;">Retorno do Seu Investimento</h2>
-        </div>
-      `,
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: finCol, order: 1, style: {},
-      content: `
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
-          <div style="background:linear-gradient(135deg, var(--az, #1B3A8C), var(--az2, #0D2460));border-radius:16px;padding:28px;text-align:center;">
-            <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.5);margin:0 0 8px;font-weight:600;">Investimento</p>
-            <p style="font-size:2rem;font-weight:800;color:var(--la, #F07B24);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">R$ {{valor_total}}</p>
-          </div>
-          <div style="background:linear-gradient(135deg, var(--verde, #16A34A), #15803d);border-radius:16px;padding:28px;text-align:center;">
-            <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.6);margin:0 0 8px;font-weight:600;">Economia Anual</p>
-            <p style="font-size:2rem;font-weight:800;color:#fff;margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">R$ {{economia_anual}}</p>
-          </div>
-          <div style="background:linear-gradient(135deg, var(--az, #1B3A8C), var(--az2, #0D2460));border-radius:16px;padding:28px;text-align:center;">
-            <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.5);margin:0 0 8px;font-weight:600;">Payback</p>
-            <p style="font-size:2rem;font-weight:800;color:var(--la, #F07B24);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">{{payback}} meses</p>
-          </div>
-        </div>
-      `,
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: finCol, order: 2, style: {},
-      content: `
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-          <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:12px;padding:20px;text-align:center;">
-            <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cinza, #64748B);margin:0 0 6px;font-weight:600;">Geração Mensal</p>
-            <p style="font-weight:700;color:var(--body-text, #1e293b);font-size:1.2rem;margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">{{geracao_mensal}} kWh</p>
-          </div>
-          <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:12px;padding:20px;text-align:center;">
-            <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cinza, #64748B);margin:0 0 6px;font-weight:600;">Economia 25 Anos</p>
-            <p style="font-weight:700;color:var(--verde, #16A34A);font-size:1.2rem;margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">R$ {{economia_25_anos}}</p>
-          </div>
-          <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:12px;padding:20px;text-align:center;">
-            <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cinza, #64748B);margin:0 0 6px;font-weight:600;">CO₂ Evitado/Ano</p>
-            <p style="font-weight:700;color:var(--verde, #16A34A);font-size:1.2rem;margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">{{co2_evitado_ton_ano}} ton</p>
-          </div>
-        </div>
-      `,
-    },
+  blocks.push(txt(b, compC.id, 0, `
+    <div style="text-align:center;margin-bottom:40px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">Comparativo</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Antes vs Depois da Energia Solar</h2>
+    </div>
+  `));
 
-    // ═══ CTA — Aceitar Proposta ═══
-    {
-      ...base, id: ctaSec, type: "section", content: "", parentId: null, order: 4,
-      style: {
-        paddingTop: "60", paddingBottom: "72", paddingLeft: "24", paddingRight: "24",
-        useGradient: true, gradientStart: "var(--az, #0D2460)", gradientEnd: "var(--az2, #1B3A8C)",
-        staticGradientAngle: 135, contentWidth: "boxed", textAlign: "center",
-      },
-    },
-    {
-      ...base, id: ctaCol, type: "column", content: "", parentId: ctaSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: ctaCol, order: 0, style: {},
-      content: `
-        <div style="text-align:center;max-width:600px;margin:0 auto;">
-          <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.5);font-weight:700;margin:0 0 12px;">🚀 Próximo Passo</p>
-          <h2 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1.8rem;font-weight:800;color:#fff;margin:0 0 16px;">Pronto para economizar?</h2>
-          <p style="color:rgba(255,255,255,0.65);margin:0 0 32px;font-size:1rem;line-height:1.6;">
-            Fale com <strong style="color:var(--la, #F07B24);">{{consultor_nome}}</strong> e dê o primeiro passo na sua transição energética.
-          </p>
+  blocks.push(txt(b, compC.id, 1, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:800px;margin:0 auto;">
+      <div style="background:var(--card-bg, #fff);border-radius:20px;padding:32px;position:relative;overflow:hidden;border:1px solid rgba(239,68,68,0.15);">
+        <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ef4444,#f97316);"></div>
+        <p style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#ef4444;font-weight:800;margin:0 0 24px;">❌ Sem Solar</p>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+          <span style="font-size:24px;">💸</span>
+          <div>
+            <p style="font-size:10px;color:var(--cinza, #94A3B8);margin:0;text-transform:uppercase;letter-spacing:1px;">Conta de Luz</p>
+            <p style="font-weight:800;color:#ef4444;margin:0;font-size:1.2rem;">R$ {{economia_mensal}}/mês</p>
+          </div>
         </div>
-      `,
-    },
-    {
-      ...base, id: uid(), type: "button", content: "✅ Aceitar Proposta", parentId: ctaCol, order: 1,
-      style: {
-        textAlign: "center", backgroundColor: "var(--verde, #16A34A)", color: "#fff",
-        borderRadius: "14", fontSize: "18", fontWeight: "800",
-        paddingTop: "18", paddingBottom: "18", paddingLeft: "48", paddingRight: "48",
-      },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: ctaCol, order: 2, style: {},
-      content: `
-        <p style="text-align:center;margin-top:20px;font-size:12px;color:rgba(255,255,255,0.35);">
-          {{empresa_nome}} · Proposta personalizada · Condição válida por tempo limitado
-        </p>
-      `,
-    },
-  ];
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+          <span style="font-size:24px;">📈</span>
+          <div>
+            <p style="font-size:10px;color:var(--cinza, #94A3B8);margin:0;text-transform:uppercase;letter-spacing:1px;">Gasto em 25 anos</p>
+            <p style="font-weight:800;color:#ef4444;margin:0;font-size:1.2rem;">R$ {{economia_25_anos}}+</p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <span style="font-size:24px;">🌍</span>
+          <div>
+            <p style="font-size:10px;color:var(--cinza, #94A3B8);margin:0;text-transform:uppercase;letter-spacing:1px;">CO₂</p>
+            <p style="font-weight:700;color:var(--cinza, #64748B);margin:0;">{{co2_evitado_ton_ano}} ton/ano</p>
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--card-bg, #fff);border-radius:20px;padding:32px;position:relative;overflow:hidden;border:1px solid rgba(34,197,94,0.2);">
+        <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#22C55E,#10B981);"></div>
+        <p style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#22C55E;font-weight:800;margin:0 0 24px;">✅ Com Solar</p>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+          <span style="font-size:24px;">☀️</span>
+          <div>
+            <p style="font-size:10px;color:var(--cinza, #94A3B8);margin:0;text-transform:uppercase;letter-spacing:1px;">Economia</p>
+            <p style="font-weight:800;color:#22C55E;margin:0;font-size:1.2rem;">{{economia_percentual}}% na conta</p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+          <span style="font-size:24px;">💰</span>
+          <div>
+            <p style="font-size:10px;color:var(--cinza, #94A3B8);margin:0;text-transform:uppercase;letter-spacing:1px;">Economia 25 anos</p>
+            <p style="font-weight:800;color:#22C55E;margin:0;font-size:1.2rem;">R$ {{economia_25_anos}}</p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <span style="font-size:24px;">🌱</span>
+          <div>
+            <p style="font-size:10px;color:var(--cinza, #94A3B8);margin:0;text-transform:uppercase;letter-spacing:1px;">Impacto</p>
+            <p style="font-weight:700;color:#22C55E;margin:0;">Zero emissões</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `));
+
+  // ── TECNOLOGIA ──
+  const techS = sec(b, 2, { backgroundColor: "var(--card-bg, #fff)" });
+  blocks.push(techS);
+  const techC = col(b, techS.id, 0); blocks.push(techC);
+
+  blocks.push(txt(b, techC.id, 0, `
+    <div style="text-align:center;margin-bottom:40px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">⚙️ Tecnologia</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Componentes do Seu Sistema</h2>
+      <p style="color:var(--cinza, #64748B);font-size:0.9rem;margin:10px auto 0;max-width:500px;">Equipamentos de alta performance com garantia estendida de fábrica.</p>
+    </div>
+  `));
+
+  blocks.push(txt(b, techC.id, 1, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:800px;margin:0 auto;">
+      <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:32px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+          <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--la, #F07B24),#F59E0B);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0;">☀️</div>
+          <div>
+            <h3 style="font-size:1rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Módulos Solares</h3>
+            <p style="font-size:11px;color:var(--cinza, #94A3B8);margin:2px 0 0;">Painéis fotovoltaicos</p>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:var(--card-bg, #fff);border-radius:12px;padding:16px;border:1px solid var(--card-border, #E2E8F0);">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 4px;font-weight:700;">Fabricante</p>
+            <p style="font-weight:700;color:var(--body-text, #0F172A);margin:0;font-size:0.9rem;">{{modulo_fabricante}}</p>
+          </div>
+          <div style="background:var(--card-bg, #fff);border-radius:12px;padding:16px;border:1px solid var(--card-border, #E2E8F0);">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 4px;font-weight:700;">Quantidade</p>
+            <p style="font-weight:700;color:var(--body-text, #0F172A);margin:0;font-size:0.9rem;">{{modulo_quantidade}} painéis</p>
+          </div>
+          <div style="background:var(--card-bg, #fff);border-radius:12px;padding:16px;border:1px solid var(--card-border, #E2E8F0);grid-column:1/-1;">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 4px;font-weight:700;">Modelo · Potência</p>
+            <p style="font-weight:700;color:var(--la, #F07B24);margin:0;font-size:0.9rem;">{{modulo_modelo}} · {{modulo_potencia}}</p>
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:32px;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+          <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--az, #1E3A5F),#3B82F6);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0;">🔌</div>
+          <div>
+            <h3 style="font-size:1rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Inversor Solar</h3>
+            <p style="font-size:11px;color:var(--cinza, #94A3B8);margin:2px 0 0;">Conversão inteligente</p>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:var(--card-bg, #fff);border-radius:12px;padding:16px;border:1px solid var(--card-border, #E2E8F0);">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 4px;font-weight:700;">Fabricante</p>
+            <p style="font-weight:700;color:var(--body-text, #0F172A);margin:0;font-size:0.9rem;">{{inversor_fabricante}}</p>
+          </div>
+          <div style="background:var(--card-bg, #fff);border-radius:12px;padding:16px;border:1px solid var(--card-border, #E2E8F0);">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 4px;font-weight:700;">Modelo</p>
+            <p style="font-weight:700;color:var(--body-text, #0F172A);margin:0;font-size:0.9rem;">{{inversor_modelo}}</p>
+          </div>
+          <div style="background:var(--card-bg, #fff);border-radius:12px;padding:16px;border:1px solid var(--card-border, #E2E8F0);grid-column:1/-1;">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 4px;font-weight:700;">🛡️ Garantia</p>
+            <p style="font-weight:700;color:var(--verde, #22C55E);margin:0;font-size:0.9rem;">{{inversor_garantia}}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `));
+
+  // ── FINANCEIRO ──
+  const finS = sec(b, 3, { backgroundColor: "var(--fundo, #F8FAFC)" });
+  blocks.push(finS);
+  const finC = col(b, finS.id, 0); blocks.push(finC);
+
+  blocks.push(txt(b, finC.id, 0, `
+    <div style="text-align:center;margin-bottom:40px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">📊 Análise Financeira</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Retorno do Seu Investimento</h2>
+    </div>
+  `));
+
+  blocks.push(txt(b, finC.id, 1, `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;max-width:900px;margin-left:auto;margin-right:auto;">
+      <div style="background:linear-gradient(135deg, var(--az, #0F172A), var(--az2, #1E3A5F));border-radius:20px;padding:32px;text-align:center;">
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 10px;font-weight:700;">Investimento</p>
+        <p style="font-size:2rem;font-weight:900;color:var(--la, #F07B24);margin:0;">R$ {{valor_total}}</p>
+      </div>
+      <div style="background:linear-gradient(135deg, #22C55E, #16A34A);border-radius:20px;padding:32px;text-align:center;">
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.5);margin:0 0 10px;font-weight:700;">Economia Anual</p>
+        <p style="font-size:2rem;font-weight:900;color:#fff;margin:0;">R$ {{economia_anual}}</p>
+      </div>
+      <div style="background:linear-gradient(135deg, var(--az, #0F172A), var(--az2, #1E3A5F));border-radius:20px;padding:32px;text-align:center;">
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 10px;font-weight:700;">Payback</p>
+        <p style="font-size:2rem;font-weight:900;color:var(--la, #F07B24);margin:0;">{{payback}} meses</p>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:900px;margin:0 auto;">
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:24px;text-align:center;">
+        <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">Geração Mensal</p>
+        <p style="font-weight:800;color:var(--body-text, #0F172A);font-size:1.3rem;margin:0;">{{geracao_mensal}} kWh</p>
+      </div>
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:24px;text-align:center;">
+        <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">Economia 25 Anos</p>
+        <p style="font-weight:800;color:var(--verde, #22C55E);font-size:1.3rem;margin:0;">R$ {{economia_25_anos}}</p>
+      </div>
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:24px;text-align:center;">
+        <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">CO₂ Evitado/Ano</p>
+        <p style="font-weight:800;color:var(--verde, #22C55E);font-size:1.3rem;margin:0;">{{co2_evitado_ton_ano}} ton</p>
+      </div>
+    </div>
+  `));
+
+  // ── CTA ──
+  const ctaS = sec(b, 4, {
+    paddingTop: "72", paddingBottom: "80",
+    useGradient: true, gradientStart: "var(--az, #0F172A)", gradientEnd: "var(--az2, #1E3A5F)",
+    staticGradientAngle: 160, textAlign: "center",
+  });
+  blocks.push(ctaS);
+  const ctaC = col(b, ctaS.id, 0); blocks.push(ctaC);
+
+  blocks.push(txt(b, ctaC.id, 0, `
+    <div style="max-width:600px;margin:0 auto;text-align:center;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:rgba(255,255,255,0.4);font-weight:700;margin:0 0 16px;">🚀 Próximo Passo</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:2rem;font-weight:900;color:#fff;margin:0 0 16px;">Pronto para economizar?</h2>
+      <p style="color:rgba(255,255,255,0.55);margin:0 0 36px;font-size:1rem;line-height:1.7;">
+        Fale com <strong style="color:var(--la, #F07B24);">{{consultor_nome}}</strong> e dê o primeiro passo.
+      </p>
+    </div>
+  `));
+
+  blocks.push(btn(b, ctaC.id, 1, "✅ Aceitar Proposta", { backgroundColor: "var(--verde, #22C55E)", color: "#fff" }));
+
+  blocks.push(txt(b, ctaC.id, 2, `
+    <p style="text-align:center;margin-top:24px;font-size:12px;color:rgba(255,255,255,0.3);">
+      {{empresa_nome}} · Proposta personalizada · Condição válida por tempo limitado
+    </p>
+  `));
+
+  return blocks;
 }
 
 // ═══════════════════════════════════════════════════════════════
 // TEMPLATE 2 — FECHAMENTO RÁPIDO (WhatsApp)
-// Foco: decisão rápida, alto impacto visual, urgência
-// Ideal para: envio direto ao cliente via WhatsApp
+// Foco: decisão rápida, urgência, alto impacto
 // ═══════════════════════════════════════════════════════════════
 
-function createFechamentoBlocks(proposalType: ProposalType): TemplateBlock[] {
-  const heroSec = uid(), heroCol = uid();
-  const numSec = uid(), numCol = uid();
-  const techSec = uid(), techCol = uid();
-  const ctaSec = uid(), ctaCol = uid();
+function createFechamentoBlocks(pt: ProposalType): TemplateBlock[] {
+  const b = makeBase(pt);
+  const blocks: TemplateBlock[] = [];
 
-  const base: Pick<TemplateBlock, "_proposalType" | "isVisible"> = {
-    _proposalType: proposalType,
-    isVisible: true,
-  };
+  // ── HERO ──
+  const heroS = sec(b, 0, {
+    paddingTop: "80", paddingBottom: "80",
+    useGradient: true, gradientStart: "var(--az, #0F172A)", gradientEnd: "var(--az2, #1E293B)",
+    staticGradientAngle: 135, textAlign: "center",
+  });
+  blocks.push(heroS);
+  const heroC = col(b, heroS.id, 0); blocks.push(heroC);
 
-  return [
-    // ═══ HERO — Impacto Máximo ═══
-    {
-      ...base, id: heroSec, type: "section", content: "", parentId: null, order: 0,
-      style: {
-        paddingTop: "80", paddingBottom: "80", paddingLeft: "24", paddingRight: "24",
-        useGradient: true, gradientStart: "var(--az, #1B3A8C)", gradientEnd: "var(--az2, #0D2460)",
-        staticGradientAngle: 135, contentWidth: "boxed", textAlign: "center",
-      },
-    },
-    {
-      ...base, id: heroCol, type: "column", content: "", parentId: heroSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: heroCol, order: 0, style: {},
-      content: `
-        <div style="max-width:600px;margin:0 auto;">
-          <div style="display:inline-block;background:var(--la, #F07B24);color:#fff;padding:6px 16px;border-radius:100px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:20px;">
-            ⚡ Proposta Exclusiva
-          </div>
-          <h1 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:2.8rem;font-weight:900;color:var(--hero-text, #fff);margin:0 0 12px;line-height:1.1;letter-spacing:-0.03em;">
-            {{cliente.nome}}, sua economia começa agora!
-          </h1>
-          <p style="font-size:1rem;color:var(--hero-muted, rgba(255,255,255,0.6));margin:0 0 36px;">
-            Sistema de {{potencia_kwp}} kWp para {{cliente.cidade}}/{{cliente.estado}}
-          </p>
+  blocks.push(txt(b, heroC.id, 0, `
+    <div style="max-width:600px;margin:0 auto;">
+      <img src="{{empresa_logo_url}}" alt="{{empresa_nome}}" style="height:32px;margin:0 auto 20px;display:block;max-width:160px;object-fit:contain;" onerror="this.style.display='none'" />
+      <div style="display:inline-block;background:var(--la, #F07B24);color:#fff;padding:8px 20px;border-radius:100px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;margin-bottom:24px;">
+        ⚡ Proposta Exclusiva
+      </div>
+      <h1 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;color:#fff;margin:0 0 12px;line-height:1.1;">
+        {{cliente_nome}}, sua economia começa <span style="color:var(--verde, #22C55E);">agora!</span>
+      </h1>
+      <p style="font-size:1rem;color:rgba(255,255,255,0.5);margin:0 0 40px;">
+        Sistema de {{potencia_kwp}} kWp · {{cliente_cidade}}/{{cliente_estado}}
+      </p>
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:36px;max-width:360px;margin:0 auto;">
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 10px;font-weight:700;">Sua economia mensal</p>
+        <p style="font-size:3.5rem;font-weight:900;color:var(--verde, #22C55E);margin:0;line-height:1;">R$ {{economia_mensal}}</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.35);margin:10px 0 0;">por mês na sua conta de luz</p>
+      </div>
+    </div>
+  `));
 
-          <div style="background:var(--hero-overlay, rgba(255,255,255,0.08));border:1px solid var(--hero-overlay-border, rgba(255,255,255,0.15));border-radius:20px;padding:32px;max-width:400px;margin:0 auto;">
-            <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--hero-muted, rgba(255,255,255,0.5));margin:0 0 8px;font-weight:600;">Sua economia mensal</p>
-            <p style="font-size:3.5rem;font-weight:900;color:var(--verde, #16A34A);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);line-height:1;">R$ {{economia_mensal}}</p>
-            <p style="font-size:12px;color:var(--hero-muted, rgba(255,255,255,0.4));margin:8px 0 0;">por mês na sua conta de luz</p>
-          </div>
+  // ── KPIs ──
+  const kpiS = sec(b, 1, { backgroundColor: "var(--fundo, #F8FAFC)" });
+  blocks.push(kpiS);
+  const kpiC = col(b, kpiS.id, 0); blocks.push(kpiC);
+
+  blocks.push(txt(b, kpiC.id, 0, `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:800px;margin:0 auto;">
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:32px;text-align:center;">
+        <p style="font-size:32px;margin:0 0 10px;">💰</p>
+        <p style="font-size:1.8rem;font-weight:900;color:var(--la, #F07B24);margin:0;">R$ {{valor_total}}</p>
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--cinza, #94A3B8);margin:10px 0 0;font-weight:700;">Investimento</p>
+      </div>
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:32px;text-align:center;">
+        <p style="font-size:32px;margin:0 0 10px;">⏱️</p>
+        <p style="font-size:1.8rem;font-weight:900;color:var(--az, #1E3A5F);margin:0;">{{payback}} meses</p>
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--cinza, #94A3B8);margin:10px 0 0;font-weight:700;">Payback</p>
+      </div>
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:32px;text-align:center;">
+        <p style="font-size:32px;margin:0 0 10px;">📈</p>
+        <p style="font-size:1.8rem;font-weight:900;color:var(--verde, #22C55E);margin:0;">R$ {{economia_anual}}</p>
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--cinza, #94A3B8);margin:10px 0 0;font-weight:700;">Economia Anual</p>
+      </div>
+    </div>
+  `));
+
+  // ── TECH ──
+  const techS = sec(b, 2, { backgroundColor: "var(--card-bg, #fff)" });
+  blocks.push(techS);
+  const techC = col(b, techS.id, 0); blocks.push(techC);
+
+  blocks.push(txt(b, techC.id, 0, `
+    <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:32px;max-width:700px;margin:0 auto;">
+      <h3 style="font-size:1.1rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 24px;text-align:center;">⚙️ Seu Sistema Solar</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:var(--card-bg, #fff);border-radius:12px;padding:16px;border:1px solid var(--card-border, #E2E8F0);">
+          <p style="font-size:9px;text-transform:uppercase;color:var(--cinza, #94A3B8);margin:0 0 4px;font-weight:700;letter-spacing:1px;">Módulos</p>
+          <p style="font-weight:700;color:var(--body-text, #0F172A);margin:0;font-size:0.85rem;">{{modulo_quantidade}}x {{modulo_fabricante}} {{modulo_potencia}}</p>
         </div>
-      `,
-    },
+        <div style="background:var(--card-bg, #fff);border-radius:12px;padding:16px;border:1px solid var(--card-border, #E2E8F0);">
+          <p style="font-size:9px;text-transform:uppercase;color:var(--cinza, #94A3B8);margin:0 0 4px;font-weight:700;letter-spacing:1px;">Inversor</p>
+          <p style="font-weight:700;color:var(--body-text, #0F172A);margin:0;font-size:0.85rem;">{{inversor_fabricante}} {{inversor_modelo}}</p>
+        </div>
+        <div style="background:var(--card-bg, #fff);border-radius:12px;padding:16px;border:1px solid var(--card-border, #E2E8F0);">
+          <p style="font-size:9px;text-transform:uppercase;color:var(--cinza, #94A3B8);margin:0 0 4px;font-weight:700;letter-spacing:1px;">Geração</p>
+          <p style="font-weight:700;color:var(--la, #F07B24);margin:0;font-size:0.85rem;">{{geracao_mensal}} kWh/mês</p>
+        </div>
+        <div style="background:var(--card-bg, #fff);border-radius:12px;padding:16px;border:1px solid var(--card-border, #E2E8F0);">
+          <p style="font-size:9px;text-transform:uppercase;color:var(--cinza, #94A3B8);margin:0 0 4px;font-weight:700;letter-spacing:1px;">Garantia</p>
+          <p style="font-weight:700;color:var(--verde, #22C55E);margin:0;font-size:0.85rem;">{{inversor_garantia}}</p>
+        </div>
+      </div>
+    </div>
+  `));
 
-    // ═══ NÚMEROS-CHAVE — 3 KPIs Grandes ═══
-    {
-      ...base, id: numSec, type: "section", content: "", parentId: null, order: 1,
-      style: {
-        paddingTop: "48", paddingBottom: "48", paddingLeft: "24", paddingRight: "24",
-        backgroundColor: "var(--fundo, #F0F4FA)", contentWidth: "boxed",
-      },
-    },
-    {
-      ...base, id: numCol, type: "column", content: "", parentId: numSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: numCol, order: 0, style: {},
-      content: `
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
-          <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:28px;text-align:center;">
-            <p style="font-size:28px;margin:0 0 8px;">💰</p>
-            <p style="font-size:1.8rem;font-weight:800;color:var(--la, #F07B24);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">R$ {{valor_total}}</p>
-            <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--cinza, #64748B);margin:8px 0 0;font-weight:600;">Investimento Total</p>
-          </div>
-          <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:28px;text-align:center;">
-            <p style="font-size:28px;margin:0 0 8px;">⏱️</p>
-            <p style="font-size:1.8rem;font-weight:800;color:var(--az, #1B3A8C);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">{{payback}} meses</p>
-            <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--cinza, #64748B);margin:8px 0 0;font-weight:600;">Payback</p>
-          </div>
-          <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:28px;text-align:center;">
-            <p style="font-size:28px;margin:0 0 8px;">📈</p>
-            <p style="font-size:1.8rem;font-weight:800;color:var(--verde, #16A34A);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">R$ {{economia_anual}}</p>
-            <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--cinza, #64748B);margin:8px 0 0;font-weight:600;">Economia Anual</p>
-          </div>
-        </div>
-      `,
-    },
+  // ── CTA ──
+  const ctaS = sec(b, 3, {
+    paddingTop: "64", paddingBottom: "80",
+    useGradient: true, gradientStart: "var(--az, #0F172A)", gradientEnd: "var(--az2, #1E293B)",
+    staticGradientAngle: 135, textAlign: "center",
+  });
+  blocks.push(ctaS);
+  const ctaC = col(b, ctaS.id, 0); blocks.push(ctaC);
 
-    // ═══ TECH SPECS — Compacto ═══
-    {
-      ...base, id: techSec, type: "section", content: "", parentId: null, order: 2,
-      style: {
-        paddingTop: "40", paddingBottom: "40", paddingLeft: "24", paddingRight: "24",
-        backgroundColor: "var(--card-bg, #fff)", contentWidth: "boxed",
-      },
-    },
-    {
-      ...base, id: techCol, type: "column", content: "", parentId: techSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: techCol, order: 0, style: {},
-      content: `
-        <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:28px;">
-          <h3 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1rem;font-weight:700;color:var(--body-text, #1e293b);margin:0 0 20px;text-align:center;">⚙️ Seu Sistema Solar</h3>
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;color:var(--cinza, #64748B);margin:0 0 3px;font-weight:600;">Módulos</p>
-              <p style="font-weight:700;color:var(--body-text, #1e293b);margin:0;font-size:0.85rem;">{{modulo_quantidade}}x {{modulo_fabricante}} {{modulo_potencia}}</p>
-            </div>
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;color:var(--cinza, #64748B);margin:0 0 3px;font-weight:600;">Inversor</p>
-              <p style="font-weight:700;color:var(--body-text, #1e293b);margin:0;font-size:0.85rem;">{{inversor_fabricante}} {{inversor_modelo}}</p>
-            </div>
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;color:var(--cinza, #64748B);margin:0 0 3px;font-weight:600;">Geração Mensal</p>
-              <p style="font-weight:700;color:var(--la, #F07B24);margin:0;font-size:0.85rem;">{{geracao_mensal}} kWh/mês</p>
-            </div>
-            <div style="background:var(--card-bg, #fff);border-radius:10px;padding:14px;border:1px solid var(--card-border, #e2e8f0);">
-              <p style="font-size:10px;text-transform:uppercase;color:var(--cinza, #64748B);margin:0 0 3px;font-weight:600;">Garantia</p>
-              <p style="font-weight:700;color:var(--verde, #16A34A);margin:0;font-size:0.85rem;">{{inversor_garantia}}</p>
-            </div>
-          </div>
-        </div>
-      `,
-    },
+  blocks.push(txt(b, ctaC.id, 0, `
+    <div style="max-width:520px;margin:0 auto;text-align:center;">
+      <div style="display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:8px 20px;border-radius:100px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;margin-bottom:24px;">
+        ⏰ Condição válida por tempo limitado
+      </div>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:2rem;font-weight:900;color:#fff;margin:0 0 12px;">
+        Pronto para começar a economizar?
+      </h2>
+      <p style="color:rgba(255,255,255,0.5);margin:0 0 36px;font-size:0.95rem;">
+        Clique abaixo e garanta essa condição exclusiva.
+      </p>
+    </div>
+  `));
 
-    // ═══ CTA — Fechamento com Urgência ═══
-    {
-      ...base, id: ctaSec, type: "section", content: "", parentId: null, order: 3,
-      style: {
-        paddingTop: "60", paddingBottom: "80", paddingLeft: "24", paddingRight: "24",
-        useGradient: true, gradientStart: "var(--az, #0D2460)", gradientEnd: "var(--az2, #1B3A8C)",
-        staticGradientAngle: 135, contentWidth: "boxed", textAlign: "center",
-      },
-    },
-    {
-      ...base, id: ctaCol, type: "column", content: "", parentId: ctaSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: ctaCol, order: 0, style: {},
-      content: `
-        <div style="max-width:520px;margin:0 auto;text-align:center;">
-          <div style="display:inline-block;background:rgba(239,68,68,0.15);color:#ef4444;padding:6px 16px;border-radius:100px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:20px;">
-            ⏰ Condição válida por tempo limitado
-          </div>
-          <h2 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:2rem;font-weight:900;color:#fff;margin:0 0 12px;line-height:1.15;">
-            Pronto para começar a economizar?
-          </h2>
-          <p style="color:rgba(255,255,255,0.6);margin:0 0 36px;font-size:0.95rem;">
-            Clique abaixo e garanta essa condição exclusiva.
-          </p>
-        </div>
-      `,
-    },
-    {
-      ...base, id: uid(), type: "button", content: "🚀 ACEITAR PROPOSTA", parentId: ctaCol, order: 1,
-      style: {
-        textAlign: "center", backgroundColor: "var(--verde, #16A34A)", color: "#fff",
-        borderRadius: "16", fontSize: "20", fontWeight: "900",
-        paddingTop: "22", paddingBottom: "22", paddingLeft: "56", paddingRight: "56",
-      },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: ctaCol, order: 2, style: {},
-      content: `
-        <div style="text-align:center;margin-top:24px;">
-          <p style="font-size:12px;color:rgba(255,255,255,0.3);margin:0 0 4px;">
-            🔒 Dados protegidos · {{empresa_nome}}
-          </p>
-          <p style="font-size:11px;color:rgba(255,255,255,0.25);margin:0;">
-            Consultor: {{consultor_nome}}
-          </p>
-        </div>
-      `,
-    },
-  ];
+  blocks.push(btn(b, ctaC.id, 1, "🚀 ACEITAR PROPOSTA", { backgroundColor: "var(--verde, #22C55E)", color: "#fff", fontSize: "20", fontWeight: "900", borderRadius: "16", paddingTop: "22", paddingBottom: "22", paddingLeft: "56", paddingRight: "56" }));
+
+  blocks.push(txt(b, ctaC.id, 2, `
+    <div style="text-align:center;margin-top:28px;">
+      <p style="font-size:12px;color:rgba(255,255,255,0.25);margin:0 0 4px;">🔒 Dados protegidos · {{empresa_nome}}</p>
+      <p style="font-size:11px;color:rgba(255,255,255,0.2);margin:0;">Consultor: {{consultor_nome}}</p>
+    </div>
+  `));
+
+  return blocks;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TEMPLATE 3 — ESCALA AUTOMÁTICA (Leads)
-// Foco: educação, construção de valor, simulação, captura
-// Ideal para: leads frios, tráfego, funciona sem vendedor
+// TEMPLATE 3 — EDUCACIONAL (Leads frios)
+// Foco: educação, construção de valor, como funciona
 // ═══════════════════════════════════════════════════════════════
 
-function createEscalaBlocks(proposalType: ProposalType): TemplateBlock[] {
-  const heroSec = uid(), heroCol = uid();
-  const eduSec = uid(), eduCol = uid();
-  const sisSec = uid(), sisCol1 = uid(), sisCol2 = uid();
-  const valSec = uid(), valCol = uid();
-  const ctaSec = uid(), ctaCol = uid();
+function createEscalaBlocks(pt: ProposalType): TemplateBlock[] {
+  const b = makeBase(pt);
+  const blocks: TemplateBlock[] = [];
 
-  const base: Pick<TemplateBlock, "_proposalType" | "isVisible"> = {
-    _proposalType: proposalType,
-    isVisible: true,
-  };
+  // ── HERO ──
+  const heroS = sec(b, 0, {
+    paddingTop: "72", paddingBottom: "72",
+    useGradient: true, gradientStart: "var(--az, #0F172A)", gradientEnd: "var(--az2, #1E3A5F)",
+    staticGradientAngle: 160, textAlign: "center",
+  });
+  blocks.push(heroS);
+  const heroC = col(b, heroS.id, 0); blocks.push(heroC);
 
-  return [
-    // ═══ HERO — Educativo + Acolhedor ═══
-    {
-      ...base, id: heroSec, type: "section", content: "", parentId: null, order: 0,
-      style: {
-        paddingTop: "72", paddingBottom: "72", paddingLeft: "24", paddingRight: "24",
-        useGradient: true, gradientStart: "var(--az, #1B3A8C)", gradientEnd: "var(--az2, #0D2460)",
-        staticGradientAngle: 135, contentWidth: "boxed", textAlign: "center",
-      },
-    },
-    {
-      ...base, id: heroCol, type: "column", content: "", parentId: heroSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: heroCol, order: 0, style: {},
-      content: `
-        <div style="max-width:640px;margin:0 auto;">
-          <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.2em;color:var(--hero-muted, rgba(255,255,255,0.5));margin:0 0 16px;font-weight:700;">
-            ☀️ Simulação Personalizada
-          </p>
-          <h1 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:2.2rem;font-weight:800;color:var(--hero-text, #fff);margin:0 0 16px;line-height:1.2;">
-            Descubra quanto você pode economizar com energia solar
-          </h1>
-          <p style="font-size:1.05rem;color:var(--hero-muted, rgba(255,255,255,0.6));margin:0 0 36px;line-height:1.6;">
-            Olá, <strong style="color:var(--la, #F07B24);">{{cliente.nome}}</strong>! Fizemos uma simulação exclusiva para {{cliente.cidade}}/{{cliente.estado}}.
-          </p>
+  blocks.push(txt(b, heroC.id, 0, `
+    <div style="max-width:640px;margin:0 auto;">
+      <img src="{{empresa_logo_url}}" alt="{{empresa_nome}}" style="height:32px;margin:0 auto 24px;display:block;max-width:160px;object-fit:contain;" onerror="this.style.display='none'" />
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:rgba(255,255,255,0.4);font-weight:700;margin:0 0 16px;">☀️ Simulação Personalizada</p>
+      <h1 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:clamp(1.8rem,4vw,2.4rem);font-weight:900;color:#fff;margin:0 0 16px;line-height:1.15;">
+        Descubra quanto você pode economizar com energia solar
+      </h1>
+      <p style="font-size:1.05rem;color:rgba(255,255,255,0.5);margin:0 0 40px;line-height:1.7;">
+        Olá, <strong style="color:var(--la, #F07B24);">{{cliente_nome}}</strong>! Simulação exclusiva para {{cliente_cidade}}/{{cliente_estado}}.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:16px;">
+        <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px 32px;min-width:170px;text-align:center;">
+          <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 8px;font-weight:700;">Economia/mês</p>
+          <p style="font-size:2rem;font-weight:900;color:var(--verde, #22C55E);margin:0;">R$ {{economia_mensal}}</p>
+        </div>
+        <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px 32px;min-width:170px;text-align:center;">
+          <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 8px;font-weight:700;">Potência</p>
+          <p style="font-size:2rem;font-weight:900;color:var(--la, #F07B24);margin:0;">{{potencia_kwp}} kWp</p>
+        </div>
+      </div>
+    </div>
+  `));
 
-          <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:16px;">
-            <div style="background:var(--hero-overlay, rgba(255,255,255,0.07));border:1px solid var(--hero-overlay-border, rgba(255,255,255,0.12));border-radius:16px;padding:20px 28px;min-width:160px;text-align:center;">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--hero-muted, rgba(255,255,255,0.5));margin:0 0 6px;">Economia/mês</p>
-              <p style="font-size:1.8rem;font-weight:800;color:var(--verde, #16A34A);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">R$ {{economia_mensal}}</p>
-            </div>
-            <div style="background:var(--hero-overlay, rgba(255,255,255,0.07));border:1px solid var(--hero-overlay-border, rgba(255,255,255,0.12));border-radius:16px;padding:20px 28px;min-width:160px;text-align:center;">
-              <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--hero-muted, rgba(255,255,255,0.5));margin:0 0 6px;">Potência</p>
-              <p style="font-size:1.8rem;font-weight:800;color:var(--hero-metrics-text, #F07B24);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">{{potencia_kwp}} kWp</p>
-            </div>
+  // ── COMO FUNCIONA ──
+  const eduS = sec(b, 1, { backgroundColor: "var(--fundo, #F8FAFC)" });
+  blocks.push(eduS);
+  const eduC = col(b, eduS.id, 0); blocks.push(eduC);
+
+  blocks.push(txt(b, eduC.id, 0, `
+    <div style="text-align:center;margin-bottom:40px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">💡 Entenda</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Como Funciona a Energia Solar</h2>
+    </div>
+  `));
+
+  blocks.push(txt(b, eduC.id, 1, `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:840px;margin:0 auto;">
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:32px;text-align:center;">
+        <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#F07B24,#F59E0B);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;color:#fff;">☀️</div>
+        <h4 style="font-size:0.95rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 10px;">1. Captação</h4>
+        <p style="font-size:0.82rem;color:var(--cinza, #64748B);margin:0;line-height:1.6;">Os painéis solares captam a luz do sol e convertem em eletricidade limpa.</p>
+      </div>
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:32px;text-align:center;">
+        <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#3B82F6,#1E3A5F);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;color:#fff;">⚡</div>
+        <h4 style="font-size:0.95rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 10px;">2. Conversão</h4>
+        <p style="font-size:0.82rem;color:var(--cinza, #64748B);margin:0;line-height:1.6;">O inversor transforma a energia em corrente alternada para uso na sua casa.</p>
+      </div>
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:32px;text-align:center;">
+        <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#22C55E,#16A34A);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;color:#fff;">💰</div>
+        <h4 style="font-size:0.95rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 10px;">3. Economia</h4>
+        <p style="font-size:0.82rem;color:var(--cinza, #64748B);margin:0;line-height:1.6;">A energia gerada abate da sua conta de luz. O excedente vira créditos!</p>
+      </div>
+    </div>
+  `));
+
+  // ── SEU SISTEMA ──
+  const sisS = sec(b, 2, { backgroundColor: "var(--card-bg, #fff)" });
+  blocks.push(sisS);
+  const sisC = col(b, sisS.id, 0); blocks.push(sisC);
+
+  blocks.push(txt(b, sisC.id, 0, `
+    <div style="text-align:center;margin-bottom:36px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">🔧 Seu Sistema</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">O que está incluso</h2>
+    </div>
+  `));
+
+  blocks.push(txt(b, sisC.id, 1, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:700px;margin:0 auto;">
+      <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:28px;">
+        <p style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--la, #F07B24);font-weight:800;margin:0 0 16px;">☀️ Painéis</p>
+        <p style="font-weight:800;color:var(--body-text, #0F172A);margin:0 0 4px;font-size:1rem;">{{modulo_quantidade}}x {{modulo_fabricante}}</p>
+        <p style="color:var(--cinza, #64748B);margin:0;font-size:0.85rem;">{{modulo_modelo}} · {{modulo_potencia}}</p>
+      </div>
+      <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:28px;">
+        <p style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--la, #F07B24);font-weight:800;margin:0 0 16px;">🔌 Inversor</p>
+        <p style="font-weight:800;color:var(--body-text, #0F172A);margin:0 0 4px;font-size:1rem;">{{inversor_fabricante}} {{inversor_modelo}}</p>
+        <p style="color:var(--cinza, #64748B);margin:0;font-size:0.85rem;">Garantia: {{inversor_garantia}}</p>
+      </div>
+    </div>
+  `));
+
+  // ── INVESTIMENTO ──
+  const valS = sec(b, 3, { backgroundColor: "var(--fundo, #F8FAFC)" });
+  blocks.push(valS);
+  const valC = col(b, valS.id, 0); blocks.push(valC);
+
+  blocks.push(txt(b, valC.id, 0, `
+    <div style="text-align:center;margin-bottom:36px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">💰 Investimento</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Quanto você vai economizar</h2>
+    </div>
+  `));
+
+  blocks.push(txt(b, valC.id, 1, `
+    <div style="max-width:700px;margin:0 auto;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+        <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:28px;text-align:center;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 8px;font-weight:700;">Economia Mensal</p>
+          <p style="font-size:1.8rem;font-weight:900;color:var(--verde, #22C55E);margin:0;">R$ {{economia_mensal}}</p>
+        </div>
+        <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:28px;text-align:center;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 8px;font-weight:700;">Economia Anual</p>
+          <p style="font-size:1.8rem;font-weight:900;color:var(--verde, #22C55E);margin:0;">R$ {{economia_anual}}</p>
+        </div>
+      </div>
+      <div style="background:linear-gradient(135deg, var(--az, #0F172A), var(--az2, #1E3A5F));border-radius:20px;padding:32px;text-align:center;">
+        <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 10px;font-weight:700;">Economia em 25 anos</p>
+        <p style="font-size:2.4rem;font-weight:900;color:var(--la, #F07B24);margin:0;">R$ {{economia_25_anos}}</p>
+        <p style="font-size:12px;color:rgba(255,255,255,0.35);margin:10px 0 0;">com payback em {{payback}} meses</p>
+      </div>
+    </div>
+  `));
+
+  // ── CTA ──
+  const ctaS = sec(b, 4, { backgroundColor: "var(--card-bg, #fff)", paddingTop: "64", paddingBottom: "72", textAlign: "center" });
+  blocks.push(ctaS);
+  const ctaC = col(b, ctaS.id, 0); blocks.push(ctaC);
+
+  blocks.push(txt(b, ctaC.id, 0, `
+    <div style="max-width:520px;margin:0 auto;text-align:center;">
+      <p style="font-size:48px;margin:0 0 16px;">🤝</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:900;color:var(--body-text, #0F172A);margin:0 0 12px;">Gostou da simulação?</h2>
+      <p style="color:var(--cinza, #64748B);margin:0 0 36px;font-size:0.95rem;line-height:1.7;">
+        Fale com um especialista da <strong style="color:var(--body-text, #0F172A);">{{empresa_nome}}</strong> e tire suas dúvidas.
+      </p>
+    </div>
+  `));
+
+  blocks.push(btn(b, ctaC.id, 1, "💬 Falar com Consultor", { backgroundColor: "var(--la, #F07B24)", color: "#fff", fontSize: "16", fontWeight: "700" }));
+
+  blocks.push(txt(b, ctaC.id, 2, `
+    <div style="text-align:center;margin-top:24px;">
+      <p style="font-size:12px;color:var(--cinza, #94A3B8);margin:0;">Consultor: <strong>{{consultor_nome}}</strong> · {{empresa_nome}}</p>
+    </div>
+  `));
+
+  return blocks;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TEMPLATE 4 — HÍBRIDO / OFF-GRID
+// Foco: múltiplos inversores, bateria, estrutura, serviços
+// Ideal para: projetos complexos, off-grid, backup
+// ═══════════════════════════════════════════════════════════════
+
+function createHibridoBlocks(pt: ProposalType): TemplateBlock[] {
+  const b = makeBase(pt);
+  const blocks: TemplateBlock[] = [];
+
+  // ── HERO ──
+  const heroS = sec(b, 0, {
+    paddingTop: "80", paddingBottom: "80",
+    useGradient: true, gradientStart: "#0C1222", gradientEnd: "#1A2744",
+    staticGradientAngle: 150, textAlign: "center",
+  });
+  blocks.push(heroS);
+  const heroC = col(b, heroS.id, 0); blocks.push(heroC);
+
+  blocks.push(txt(b, heroC.id, 0, `
+    <div style="max-width:720px;margin:0 auto;">
+      <img src="{{empresa_logo_url}}" alt="{{empresa_nome}}" style="height:36px;margin:0 auto 24px;display:block;max-width:180px;object-fit:contain;" onerror="this.style.display='none'" />
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,0.15);color:#22C55E;padding:8px 20px;border-radius:100px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:2px;margin-bottom:24px;">
+        🔋 Sistema Híbrido com Backup
+      </div>
+      <h1 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:clamp(2rem,5vw,2.8rem);font-weight:900;color:#fff;margin:0 0 16px;line-height:1.1;">
+        <span style="color:var(--la, #F07B24);">{{cliente_nome}}</span>, independência energética total
+      </h1>
+      <p style="font-size:1.05rem;color:rgba(255,255,255,0.5);margin:0 0 40px;line-height:1.7;">
+        Sistema solar com armazenamento e backup para {{cliente_cidade}}/{{cliente_estado}}. Funciona mesmo sem a rede elétrica.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px;">
+        <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px 28px;min-width:150px;text-align:center;flex:1;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 8px;font-weight:700;">Potência</p>
+          <p style="font-size:1.8rem;font-weight:900;color:var(--la, #F07B24);margin:0;">{{potencia_kwp}} kWp</p>
+        </div>
+        <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px 28px;min-width:150px;text-align:center;flex:1;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 8px;font-weight:700;">Economia/mês</p>
+          <p style="font-size:1.8rem;font-weight:900;color:var(--verde, #22C55E);margin:0;">R$ {{economia_mensal}}</p>
+        </div>
+        <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px 28px;min-width:150px;text-align:center;flex:1;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin:0 0 8px;font-weight:700;">Geração</p>
+          <p style="font-size:1.8rem;font-weight:900;color:var(--la, #F07B24);margin:0;">{{geracao_mensal}} kWh</p>
+        </div>
+      </div>
+    </div>
+  `));
+
+  // ── EQUIPAMENTOS — Módulos + Inversores + Bateria ──
+  const eqS = sec(b, 1, { backgroundColor: "var(--fundo, #F8FAFC)" });
+  blocks.push(eqS);
+  const eqC = col(b, eqS.id, 0); blocks.push(eqC);
+
+  blocks.push(txt(b, eqC.id, 0, `
+    <div style="text-align:center;margin-bottom:40px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">⚙️ Equipamentos</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Sistema Completo</h2>
+    </div>
+  `));
+
+  blocks.push(txt(b, eqC.id, 1, `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;max-width:900px;margin:0 auto;">
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:28px;text-align:center;">
+        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#F07B24,#F59E0B);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;color:#fff;">☀️</div>
+        <h4 style="font-size:0.95rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 12px;">Módulos Solares</h4>
+        <p style="font-weight:800;color:var(--la, #F07B24);margin:0 0 4px;font-size:1.1rem;">{{modulo_quantidade}} painéis</p>
+        <p style="color:var(--cinza, #64748B);margin:0;font-size:0.8rem;">{{modulo_fabricante}} · {{modulo_modelo}}</p>
+        <p style="color:var(--cinza, #94A3B8);margin:4px 0 0;font-size:0.75rem;">{{modulo_potencia}} por painel</p>
+      </div>
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;padding:28px;text-align:center;">
+        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#3B82F6,#1E3A5F);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;color:#fff;">🔌</div>
+        <h4 style="font-size:0.95rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 12px;">Inversores</h4>
+        <p style="font-weight:800;color:var(--az, #1E3A5F);margin:0 0 4px;font-size:1.1rem;">{{inversores_utilizados}}x Inversor</p>
+        <p style="color:var(--cinza, #64748B);margin:0;font-size:0.8rem;">{{inversor_fabricante}} · {{inversor_modelo}}</p>
+        <p style="color:var(--verde, #22C55E);margin:4px 0 0;font-size:0.75rem;">Garantia: {{inversor_garantia}}</p>
+      </div>
+      <div style="background:var(--card-bg, #fff);border:2px solid var(--verde, #22C55E);border-radius:20px;padding:28px;text-align:center;position:relative;">
+        <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--verde, #22C55E);color:#fff;padding:3px 14px;border-radius:100px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Backup</div>
+        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#22C55E,#16A34A);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;color:#fff;">🔋</div>
+        <h4 style="font-size:0.95rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 12px;">Bateria</h4>
+        <p style="font-weight:800;color:var(--verde, #22C55E);margin:0 0 4px;font-size:1.1rem;">Armazenamento</p>
+        <p style="color:var(--cinza, #64748B);margin:0;font-size:0.8rem;">Backup para falta de energia</p>
+        <p style="color:var(--cinza, #94A3B8);margin:4px 0 0;font-size:0.75rem;">Funciona sem a rede</p>
+      </div>
+    </div>
+  `));
+
+  // ── SERVIÇOS INCLUSOS ──
+  const svcS = sec(b, 2, { backgroundColor: "var(--card-bg, #fff)" });
+  blocks.push(svcS);
+  const svcC = col(b, svcS.id, 0); blocks.push(svcC);
+
+  blocks.push(txt(b, svcC.id, 0, `
+    <div style="text-align:center;margin-bottom:40px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">🛠️ Serviços</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">O que está incluso</h2>
+    </div>
+  `));
+
+  blocks.push(txt(b, svcC.id, 1, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:800px;margin:0 auto;">
+      <div style="display:flex;align-items:flex-start;gap:14px;background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:24px;">
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(240,123,36,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📐</div>
+        <div>
+          <h4 style="font-size:0.9rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 4px;">Projeto Técnico</h4>
+          <p style="font-size:0.8rem;color:var(--cinza, #64748B);margin:0;line-height:1.5;">Dimensionamento e projeto elétrico completo com ART.</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:14px;background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:24px;">
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(240,123,36,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏗️</div>
+        <div>
+          <h4 style="font-size:0.9rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 4px;">Estrutura de Fixação</h4>
+          <p style="font-size:0.8rem;color:var(--cinza, #64748B);margin:0;line-height:1.5;">Estrutura adequada para {{tipo_telhado}} com fixação reforçada.</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:14px;background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:24px;">
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(34,197,94,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⚡</div>
+        <div>
+          <h4 style="font-size:0.9rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 4px;">Instalação Completa</h4>
+          <p style="font-size:0.8rem;color:var(--cinza, #64748B);margin:0;line-height:1.5;">Equipe técnica certificada com seguro e garantia de serviço.</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:14px;background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:24px;">
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(34,197,94,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📋</div>
+        <div>
+          <h4 style="font-size:0.9rem;font-weight:800;color:var(--body-text, #0F172A);margin:0 0 4px;">Homologação</h4>
+          <p style="font-size:0.8rem;color:var(--cinza, #64748B);margin:0;line-height:1.5;">Processo completo junto à {{distribuidora_nome}} com acompanhamento.</p>
+        </div>
+      </div>
+    </div>
+  `));
+
+  // ── FINANCEIRO ──
+  const finS = sec(b, 3, { backgroundColor: "var(--fundo, #F8FAFC)" });
+  blocks.push(finS);
+  const finC = col(b, finS.id, 0); blocks.push(finC);
+
+  blocks.push(txt(b, finC.id, 0, `
+    <div style="text-align:center;margin-bottom:36px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">📊 Investimento</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Retorno Garantido</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:800px;margin:0 auto;">
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:28px;text-align:center;">
+        <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 8px;font-weight:700;">Investimento</p>
+        <p style="font-size:1.6rem;font-weight:900;color:var(--body-text, #0F172A);margin:0;">R$ {{valor_total}}</p>
+      </div>
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:28px;text-align:center;">
+        <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 8px;font-weight:700;">Payback</p>
+        <p style="font-size:1.6rem;font-weight:900;color:var(--az, #1E3A5F);margin:0;">{{payback}} meses</p>
+      </div>
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:16px;padding:28px;text-align:center;">
+        <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 8px;font-weight:700;">Economia 25 anos</p>
+        <p style="font-size:1.6rem;font-weight:900;color:var(--verde, #22C55E);margin:0;">R$ {{economia_25_anos}}</p>
+      </div>
+    </div>
+  `));
+
+  // ── CTA ──
+  const ctaS = sec(b, 4, {
+    paddingTop: "72", paddingBottom: "80",
+    useGradient: true, gradientStart: "#0C1222", gradientEnd: "#1A2744",
+    staticGradientAngle: 150, textAlign: "center",
+  });
+  blocks.push(ctaS);
+  const ctaC = col(b, ctaS.id, 0); blocks.push(ctaC);
+
+  blocks.push(txt(b, ctaC.id, 0, `
+    <div style="max-width:580px;margin:0 auto;text-align:center;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:rgba(255,255,255,0.4);font-weight:700;margin:0 0 16px;">🔋 Independência Energética</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:2rem;font-weight:900;color:#fff;margin:0 0 16px;">Nunca mais fique sem energia</h2>
+      <p style="color:rgba(255,255,255,0.5);margin:0 0 36px;font-size:1rem;line-height:1.7;">
+        Com o sistema híbrido da <strong style="color:var(--la, #F07B24);">{{empresa_nome}}</strong>, sua casa ou empresa funciona 24h.
+      </p>
+    </div>
+  `));
+
+  blocks.push(btn(b, ctaC.id, 1, "✅ Aceitar Proposta", { backgroundColor: "var(--verde, #22C55E)", color: "#fff" }));
+
+  blocks.push(txt(b, ctaC.id, 2, `
+    <p style="text-align:center;margin-top:24px;font-size:12px;color:rgba(255,255,255,0.25);">
+      {{empresa_nome}} · Consultor: {{consultor_nome}} · {{consultor_telefone}}
+    </p>
+  `));
+
+  return blocks;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TEMPLATE 5 — CORPORATIVO / B2B
+// Foco: ROI empresarial, multi-UC, profissional, dados
+// ═══════════════════════════════════════════════════════════════
+
+function createCorporativoBlocks(pt: ProposalType): TemplateBlock[] {
+  const b = makeBase(pt);
+  const blocks: TemplateBlock[] = [];
+
+  // ── HERO ──
+  const heroS = sec(b, 0, {
+    paddingTop: "72", paddingBottom: "72",
+    useGradient: true, gradientStart: "#0F172A", gradientEnd: "#1E293B",
+    staticGradientAngle: 180, textAlign: "center",
+  });
+  blocks.push(heroS);
+  const heroC = col(b, heroS.id, 0); blocks.push(heroC);
+
+  blocks.push(txt(b, heroC.id, 0, `
+    <div style="max-width:760px;margin:0 auto;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:32px;">
+        <img src="{{empresa_logo_url}}" alt="{{empresa_nome}}" style="height:40px;max-width:200px;object-fit:contain;" onerror="this.style.display='none'" />
+      </div>
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:rgba(255,255,255,0.35);font-weight:700;margin:0 0 16px;">Proposta Comercial</p>
+      <h1 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:clamp(1.8rem,4vw,2.6rem);font-weight:900;color:#fff;margin:0 0 12px;line-height:1.12;">
+        Reduza os custos operacionais da <span style="color:var(--la, #F07B24);">{{cliente_empresa}}</span>
+      </h1>
+      <p style="font-size:1rem;color:rgba(255,255,255,0.45);margin:0 0 40px;line-height:1.7;">
+        Proposta de geração distribuída para {{cliente_nome}} em {{cliente_cidade}}/{{cliente_estado}}.
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:700px;margin:0 auto;">
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px 8px;text-align:center;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.35);margin:0 0 6px;font-weight:700;">Potência</p>
+          <p style="font-size:1.3rem;font-weight:900;color:var(--la, #F07B24);margin:0;">{{potencia_kwp}} kWp</p>
+        </div>
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px 8px;text-align:center;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.35);margin:0 0 6px;font-weight:700;">Economia</p>
+          <p style="font-size:1.3rem;font-weight:900;color:var(--verde, #22C55E);margin:0;">R$ {{economia_mensal}}/m</p>
+        </div>
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px 8px;text-align:center;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.35);margin:0 0 6px;font-weight:700;">Payback</p>
+          <p style="font-size:1.3rem;font-weight:900;color:#fff;margin:0;">{{payback}} meses</p>
+        </div>
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px 8px;text-align:center;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.35);margin:0 0 6px;font-weight:700;">Geração</p>
+          <p style="font-size:1.3rem;font-weight:900;color:var(--la, #F07B24);margin:0;">{{geracao_mensal}} kWh</p>
+        </div>
+      </div>
+    </div>
+  `));
+
+  // ── ANÁLISE TÉCNICA ──
+  const techS = sec(b, 1, { backgroundColor: "var(--fundo, #F8FAFC)" });
+  blocks.push(techS);
+  const techC = col(b, techS.id, 0); blocks.push(techC);
+
+  blocks.push(txt(b, techC.id, 0, `
+    <div style="text-align:center;margin-bottom:40px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">⚙️ Análise Técnica</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Especificações do Sistema</h2>
+    </div>
+  `));
+
+  blocks.push(txt(b, techC.id, 1, `
+    <div style="max-width:800px;margin:0 auto;">
+      <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #E2E8F0);border-radius:20px;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--card-border, #E2E8F0);">
+          <div style="padding:24px;border-right:1px solid var(--card-border, #E2E8F0);">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">Módulos Fotovoltaicos</p>
+            <p style="font-weight:800;color:var(--body-text, #0F172A);margin:0;font-size:1rem;">{{modulo_quantidade}}x {{modulo_fabricante}}</p>
+            <p style="color:var(--cinza, #64748B);margin:4px 0 0;font-size:0.8rem;">{{modulo_modelo}} · {{modulo_potencia}}/un</p>
+          </div>
+          <div style="padding:24px;">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">Inversores</p>
+            <p style="font-weight:800;color:var(--body-text, #0F172A);margin:0;font-size:1rem;">{{inversores_utilizados}}x {{inversor_fabricante}}</p>
+            <p style="color:var(--cinza, #64748B);margin:4px 0 0;font-size:0.8rem;">{{inversor_modelo}} · Garantia {{inversor_garantia}}</p>
           </div>
         </div>
-      `,
-    },
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;">
+          <div style="padding:24px;text-align:center;border-right:1px solid var(--card-border, #E2E8F0);">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">Estrutura</p>
+            <p style="font-weight:700;color:var(--body-text, #0F172A);margin:0;">{{tipo_telhado}}</p>
+          </div>
+          <div style="padding:24px;text-align:center;border-right:1px solid var(--card-border, #E2E8F0);">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">Rede</p>
+            <p style="font-weight:700;color:var(--body-text, #0F172A);margin:0;">{{fase}}</p>
+          </div>
+          <div style="padding:24px;text-align:center;">
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">Concessionária</p>
+            <p style="font-weight:700;color:var(--body-text, #0F172A);margin:0;">{{distribuidora_nome}}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `));
 
-    // ═══ EDUCAÇÃO — Como funciona ═══
-    {
-      ...base, id: eduSec, type: "section", content: "", parentId: null, order: 1,
-      style: {
-        paddingTop: "56", paddingBottom: "56", paddingLeft: "24", paddingRight: "24",
-        backgroundColor: "var(--fundo, #F0F4FA)", contentWidth: "boxed",
-      },
-    },
-    {
-      ...base, id: eduCol, type: "column", content: "", parentId: eduSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: eduCol, order: 0, style: {},
-      content: `
-        <div style="text-align:center;margin-bottom:36px;">
-          <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">💡 Entenda</p>
-          <h2 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1.6rem;font-weight:800;color:var(--body-text, #1e293b);margin:0;">Como Funciona a Energia Solar</h2>
-        </div>
-      `,
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: eduCol, order: 1, style: {},
-      content: `
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:800px;margin:0 auto;">
-          <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:28px;text-align:center;">
-            <div style="width:56px;height:56px;border-radius:16px;background:rgba(240,123,36,0.1);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;">☀️</div>
-            <h4 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:0.9rem;font-weight:700;color:var(--body-text, #1e293b);margin:0 0 8px;">1. Captação</h4>
-            <p style="font-size:0.8rem;color:var(--cinza, #64748B);margin:0;line-height:1.5;">Os painéis solares captam a luz do sol e convertem em eletricidade limpa.</p>
-          </div>
-          <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:28px;text-align:center;">
-            <div style="width:56px;height:56px;border-radius:16px;background:rgba(240,123,36,0.1);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;">⚡</div>
-            <h4 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:0.9rem;font-weight:700;color:var(--body-text, #1e293b);margin:0 0 8px;">2. Conversão</h4>
-            <p style="font-size:0.8rem;color:var(--cinza, #64748B);margin:0;line-height:1.5;">O inversor transforma a energia em corrente alternada para uso na sua casa.</p>
-          </div>
-          <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:28px;text-align:center;">
-            <div style="width:56px;height:56px;border-radius:16px;background:rgba(22,163,74,0.1);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;">💰</div>
-            <h4 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:0.9rem;font-weight:700;color:var(--body-text, #1e293b);margin:0 0 8px;">3. Economia</h4>
-            <p style="font-size:0.8rem;color:var(--cinza, #64748B);margin:0;line-height:1.5;">A energia gerada abate da sua conta de luz. O excedente vira créditos!</p>
-          </div>
-        </div>
-      `,
-    },
+  // ── ROI / FINANCEIRO ──
+  const finS = sec(b, 2, { backgroundColor: "var(--card-bg, #fff)" });
+  blocks.push(finS);
+  const finC = col(b, finS.id, 0); blocks.push(finC);
 
-    // ═══ SEU SISTEMA — Visão simplificada ═══
-    {
-      ...base, id: sisSec, type: "section", content: "", parentId: null, order: 2,
-      style: {
-        paddingTop: "56", paddingBottom: "56", paddingLeft: "24", paddingRight: "24",
-        backgroundColor: "var(--card-bg, #fff)", contentWidth: "boxed",
-      },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: sisSec, order: 0, style: {},
-      content: `
-        <div style="text-align:center;margin-bottom:32px;">
-          <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">🔧 Seu Sistema</p>
-          <h2 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1.6rem;font-weight:800;color:var(--body-text, #1e293b);margin:0;">O que está incluso</h2>
-        </div>
-      `,
-    },
-    {
-      ...base, id: sisCol1, type: "column", content: "", parentId: sisSec, order: 1,
-      style: { width: 50, paddingRight: "10" },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: sisCol1, order: 0, style: {},
-      content: `
-        <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:24px;">
-          <p style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--la, #F07B24);font-weight:700;margin:0 0 16px;">⚡ Painéis Solares</p>
-          <p style="font-weight:700;color:var(--body-text, #1e293b);margin:0 0 4px;font-size:1rem;">{{modulo_quantidade}}x {{modulo_fabricante}}</p>
-          <p style="color:var(--cinza, #64748B);margin:0;font-size:0.85rem;">Modelo {{modulo_modelo}} · {{modulo_potencia}} por painel</p>
-        </div>
-      `,
-    },
-    {
-      ...base, id: sisCol2, type: "column", content: "", parentId: sisSec, order: 2,
-      style: { width: 50, paddingLeft: "10" },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: sisCol2, order: 0, style: {},
-      content: `
-        <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #e2e8f0);border-radius:16px;padding:24px;">
-          <p style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--la, #F07B24);font-weight:700;margin:0 0 16px;">🔌 Inversor</p>
-          <p style="font-weight:700;color:var(--body-text, #1e293b);margin:0 0 4px;font-size:1rem;">{{inversor_fabricante}} {{inversor_modelo}}</p>
-          <p style="color:var(--cinza, #64748B);margin:0;font-size:0.85rem;">Garantia: {{inversor_garantia}}</p>
-        </div>
-      `,
-    },
+  blocks.push(txt(b, finC.id, 0, `
+    <div style="text-align:center;margin-bottom:40px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">📊 Viabilidade Financeira</p>
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:1.8rem;font-weight:800;color:var(--body-text, #0F172A);margin:0;">Retorno sobre o Investimento</h2>
+    </div>
+  `));
 
-    // ═══ VALOR — Construção progressiva ═══
-    {
-      ...base, id: valSec, type: "section", content: "", parentId: null, order: 3,
-      style: {
-        paddingTop: "56", paddingBottom: "56", paddingLeft: "24", paddingRight: "24",
-        backgroundColor: "var(--fundo, #F0F4FA)", contentWidth: "boxed",
-      },
-    },
-    {
-      ...base, id: valCol, type: "column", content: "", parentId: valSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: valCol, order: 0, style: {},
-      content: `
-        <div style="text-align:center;margin-bottom:32px;">
-          <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:var(--la, #F07B24);font-weight:700;margin:0 0 8px;">💰 Investimento Inteligente</p>
-          <h2 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1.6rem;font-weight:800;color:var(--body-text, #1e293b);margin:0;">Quanto você vai economizar</h2>
-        </div>
-      `,
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: valCol, order: 1, style: {},
-      content: `
-        <div style="max-width:700px;margin:0 auto;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-            <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:14px;padding:24px;text-align:center;">
-              <p style="font-size:10px;text-transform:uppercase;color:var(--cinza, #64748B);margin:0 0 6px;font-weight:600;">Economia Mensal</p>
-              <p style="font-size:1.6rem;font-weight:800;color:var(--verde, #16A34A);margin:0;font-family:var(--font-numbers);">R$ {{economia_mensal}}</p>
-            </div>
-            <div style="background:var(--card-bg, #fff);border:1px solid var(--card-border, #e2e8f0);border-radius:14px;padding:24px;text-align:center;">
-              <p style="font-size:10px;text-transform:uppercase;color:var(--cinza, #64748B);margin:0 0 6px;font-weight:600;">Economia Anual</p>
-              <p style="font-size:1.6rem;font-weight:800;color:var(--verde, #16A34A);margin:0;font-family:var(--font-numbers);">R$ {{economia_anual}}</p>
-            </div>
+  blocks.push(txt(b, finC.id, 1, `
+    <div style="max-width:800px;margin:0 auto;">
+      <div style="background:linear-gradient(135deg, #0F172A, #1E293B);border-radius:20px;padding:40px;margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;text-align:center;">
+          <div>
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.35);margin:0 0 8px;font-weight:700;">Investimento Total</p>
+            <p style="font-size:2rem;font-weight:900;color:var(--la, #F07B24);margin:0;">R$ {{valor_total}}</p>
           </div>
-          <div style="background:linear-gradient(135deg, var(--az, #1B3A8C), var(--az2, #0D2460));border-radius:16px;padding:28px;text-align:center;">
-            <p style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.5);margin:0 0 8px;font-weight:600;">Economia em 25 anos</p>
-            <p style="font-size:2.2rem;font-weight:900;color:var(--la, #F07B24);margin:0;font-family:var(--font-numbers, 'Montserrat', sans-serif);">R$ {{economia_25_anos}}</p>
-            <p style="font-size:12px;color:rgba(255,255,255,0.4);margin:8px 0 0;">com payback em apenas {{payback}} meses</p>
+          <div>
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.35);margin:0 0 8px;font-weight:700;">Economia Anual</p>
+            <p style="font-size:2rem;font-weight:900;color:var(--verde, #22C55E);margin:0;">R$ {{economia_anual}}</p>
+          </div>
+          <div>
+            <p style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.35);margin:0 0 8px;font-weight:700;">ROI 25 Anos</p>
+            <p style="font-size:2rem;font-weight:900;color:#fff;margin:0;">R$ {{economia_25_anos}}</p>
           </div>
         </div>
-      `,
-    },
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+        <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:14px;padding:20px;text-align:center;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">Payback</p>
+          <p style="font-weight:900;color:var(--body-text, #0F172A);font-size:1.2rem;margin:0;">{{payback}} meses</p>
+        </div>
+        <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:14px;padding:20px;text-align:center;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">Economia/mês</p>
+          <p style="font-weight:900;color:var(--verde, #22C55E);font-size:1.2rem;margin:0;">R$ {{economia_mensal}}</p>
+        </div>
+        <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:14px;padding:20px;text-align:center;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">Geração</p>
+          <p style="font-weight:900;color:var(--body-text, #0F172A);font-size:1.2rem;margin:0;">{{geracao_mensal}} kWh</p>
+        </div>
+        <div style="background:var(--fundo, #F8FAFC);border:1px solid var(--card-border, #E2E8F0);border-radius:14px;padding:20px;text-align:center;">
+          <p style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--cinza, #94A3B8);margin:0 0 6px;font-weight:700;">CO₂/ano</p>
+          <p style="font-weight:900;color:var(--verde, #22C55E);font-size:1.2rem;margin:0;">{{co2_evitado_ton_ano}} ton</p>
+        </div>
+      </div>
+    </div>
+  `));
 
-    // ═══ CTA — Falar com Consultor ═══
-    {
-      ...base, id: ctaSec, type: "section", content: "", parentId: null, order: 4,
-      style: {
-        paddingTop: "60", paddingBottom: "72", paddingLeft: "24", paddingRight: "24",
-        backgroundColor: "var(--card-bg, #fff)", contentWidth: "boxed", textAlign: "center",
-      },
-    },
-    {
-      ...base, id: ctaCol, type: "column", content: "", parentId: ctaSec, order: 0,
-      style: { width: 100 },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: ctaCol, order: 0, style: {},
-      content: `
-        <div style="max-width:520px;margin:0 auto;text-align:center;">
-          <p style="font-size:40px;margin:0 0 16px;">🤝</p>
-          <h2 style="font-family:var(--font-heading, 'Montserrat', sans-serif);font-size:1.6rem;font-weight:800;color:var(--body-text, #1e293b);margin:0 0 12px;">Gostou da simulação?</h2>
-          <p style="color:var(--cinza, #64748B);margin:0 0 32px;font-size:0.95rem;line-height:1.6;">
-            Fale com um especialista da <strong style="color:var(--body-text, #1e293b);">{{empresa_nome}}</strong> e tire todas as suas dúvidas sem compromisso.
-          </p>
-        </div>
-      `,
-    },
-    {
-      ...base, id: uid(), type: "button", content: "💬 Falar com Consultor", parentId: ctaCol, order: 1,
-      style: {
-        textAlign: "center", backgroundColor: "var(--la, #F07B24)", color: "#fff",
-        borderRadius: "14", fontSize: "16", fontWeight: "700",
-        paddingTop: "16", paddingBottom: "16", paddingLeft: "40", paddingRight: "40",
-      },
-    },
-    {
-      ...base, id: uid(), type: "editor", parentId: ctaCol, order: 2, style: {},
-      content: `
-        <div style="text-align:center;margin-top:24px;">
-          <p style="font-size:12px;color:var(--cinza, #64748B);margin:0 0 4px;">
-            Consultor responsável: <strong>{{consultor_nome}}</strong>
-          </p>
-          <p style="font-size:11px;color:var(--cinza, #64748B);margin:0;opacity:0.6;">
-            {{empresa_nome}} · Simulação sem compromisso
-          </p>
-        </div>
-      `,
-    },
-  ];
+  // ── CTA ──
+  const ctaS = sec(b, 3, {
+    paddingTop: "64", paddingBottom: "72",
+    useGradient: true, gradientStart: "#0F172A", gradientEnd: "#1E293B",
+    staticGradientAngle: 180, textAlign: "center",
+  });
+  blocks.push(ctaS);
+  const ctaC = col(b, ctaS.id, 0); blocks.push(ctaC);
+
+  blocks.push(txt(b, ctaC.id, 0, `
+    <div style="max-width:600px;margin:0 auto;text-align:center;">
+      <h2 style="font-family:var(--font-heading,'Montserrat',sans-serif);font-size:2rem;font-weight:900;color:#fff;margin:0 0 16px;">Pronto para reduzir custos?</h2>
+      <p style="color:rgba(255,255,255,0.45);margin:0 0 36px;font-size:1rem;line-height:1.7;">
+        Entre em contato com <strong style="color:var(--la, #F07B24);">{{consultor_nome}}</strong> para avançar com a proposta.
+      </p>
+    </div>
+  `));
+
+  blocks.push(btn(b, ctaC.id, 1, "✅ Aceitar Proposta", { backgroundColor: "var(--verde, #22C55E)", color: "#fff" }));
+
+  blocks.push(txt(b, ctaC.id, 2, `
+    <div style="text-align:center;margin-top:28px;">
+      <p style="font-size:12px;color:rgba(255,255,255,0.3);margin:0 0 4px;">{{empresa_nome}} · CNPJ: {{empresa_cnpj_cpf}}</p>
+      <p style="font-size:11px;color:rgba(255,255,255,0.2);margin:0;">{{consultor_nome}} · {{consultor_telefone}} · {{consultor_email}}</p>
+    </div>
+  `));
+
+  return blocks;
 }
