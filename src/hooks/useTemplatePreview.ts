@@ -88,6 +88,8 @@ export async function buildPropostaContext(proposta: PropostaOption): Promise<Re
   const projeto = projetoRes.data as any;
   const consultor = consultorRes.data as any;
   const versao = versaoRes.data as any;
+  const brand = brandRes.data as any;
+  const tenant = tenantRes.data as any;
 
   // Se tiver snapshot, ele é a fonte primária (contém todos os cálculos)
   const snapshot = versao?.snapshot as Record<string, any> | null;
