@@ -54,7 +54,7 @@ export async function buildPropostaContext(proposta: PropostaOption): Promise<Re
   const now = new Date();
 
   // Fetch all related data in parallel
-  const [leadRes, clienteRes, projetoRes, consultorRes, versaoRes] = await Promise.all([
+  const [leadRes, clienteRes, projetoRes, consultorRes, versaoRes, brandRes, tenantRes] = await Promise.all([
     proposta.lead_id
       ? supabase.from("leads").select("nome, telefone, cidade, estado, media_consumo, valor_estimado, tipo_telhado, rede_atendimento, area").eq("id", proposta.lead_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -71,6 +71,14 @@ export async function buildPropostaContext(proposta: PropostaOption): Promise<Re
       .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
       .eq("proposta_id", proposta.id)
       .order("versao_numero", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("brand_settings")
+      .select("logo_url, logo_small_url, logo_white_url, representante_legal, representante_email, representante_cpf, representante_cargo")
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("tenants")
+      .select("nome, nome_fantasia, cnpj, telefone, email, endereco, cidade, estado, bairro, cep, inscricao_estadual")
       .limit(1)
       .maybeSingle(),
   ]);
