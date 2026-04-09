@@ -324,8 +324,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         basePayload.owner_id = ownerId;
       }
 
-      // ── Batch processing: split into batches of 10 ──
-      const BATCH_SIZE = 10;
+      // ── Batch processing: split into batches of 5 (smaller to avoid EF timeout) ──
+      const BATCH_SIZE = 5;
       const batches: string[][] = [];
       for (let i = 0; i < internalIds.length; i += BATCH_SIZE) {
         batches.push(internalIds.slice(i, i + BATCH_SIZE));
@@ -386,7 +386,13 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           }
 
           allResults.push(data);
-          addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)}`);
+          const successCount = allResults.reduce((acc, r) => acc + (r.total_processed || 0), 0);
+          addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)} — Total migrado até agora: ${successCount}`);
+
+          // Invalidate sm-proposals to update the live counter on the page
+          if (!dryRun) {
+            qc.invalidateQueries({ queryKey: ["sm-proposals"] });
+          }
 
           // Update steps progressively from this batch's first detail
           if (!dryRun && data.details?.[0]) {

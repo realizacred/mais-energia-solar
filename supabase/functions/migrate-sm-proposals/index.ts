@@ -1027,8 +1027,8 @@ Deno.serve(async (req) => {
     let proposalsToProcess = allProposals.slice(0, batch_size);
     console.error(`[SM Migration] Processing ${proposalsToProcess.length} of ${allProposals.length} proposals (batch_size=${batch_size})`);
 
-    // Time budget: stop processing before edge function timeout
-    const MIGRATION_TIMEOUT_MS = 270_000;
+    // Time budget: stop processing before edge function timeout (wall-clock ~60s)
+    const MIGRATION_TIMEOUT_MS = 50_000;
     const migrationStartTime = Date.now();
 
     // ─── Filter by vendedor if specified ─────
@@ -2374,18 +2374,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    const timeBudgetExceeded = Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS;
     const result = {
       mode: dry_run ? "dry_run" : "execute",
       total_found: allProposals.length,
-      total_processed: proposalsToProcess.length,
+      total_processed: reports.length,
       total_projects_without_proposal: groupBReports.length,
       summary,
       details: [...reports.slice(0, 150), ...groupBReports.slice(0, 50)],
       filters_applied: filters,
       has_more: allProposals.length > batch_size,
+      time_budget_exceeded: timeBudgetExceeded,
+      elapsed_ms: Date.now() - migrationStartTime,
     };
 
-    console.log(`[SM Migration] Done. Summary: ${JSON.stringify(summary)} GroupB: ${groupBReports.length}`);
+    console.error(`[SM Migration] Done in ${result.elapsed_ms}ms. Summary: ${JSON.stringify(summary)} GroupB: ${groupBReports.length} TimeBudget: ${timeBudgetExceeded}`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
