@@ -890,7 +890,7 @@ export function ProposalWizard() {
             if (Array.isArray(snapServicos)) {
               const instServ = snapServicos.find(
                 (s: any) => s.tipo === 'instalacao' || s.categoria === 'instalacao' ||
-                  s.nome?.toLowerCase().includes('instala')
+                  s.nome?.toLowerCase()?.includes('instala')
               );
               if (instServ?.valor > 0) {
                 vendaMapped.custo_instalacao = Number(instServ.valor);
@@ -902,7 +902,7 @@ export function ProposalWizard() {
             if (Array.isArray(snapServicos)) {
               const comServ = snapServicos.find(
                 (s: any) => s.tipo === 'comissao' || s.categoria === 'comissao' ||
-                  s.nome?.toLowerCase().includes('comiss')
+                  s.nome?.toLowerCase()?.includes('comiss')
               );
               if (comServ?.valor > 0) {
                 vendaMapped.custo_comissao = Number(comServ.valor);
