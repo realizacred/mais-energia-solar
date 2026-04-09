@@ -487,7 +487,9 @@ export function ProjetosManager() {
               </div>
             </div>
 
-            {/* Kanban / List */}
+            {/* Kanban / List + Legend lateral */}
+            <div className="flex gap-0">
+              <div className="flex-1 min-w-0">
             {loading ? (
               <ProjetoKanbanSkeleton />
             ) : viewMode === "kanban-etapa" ? (
