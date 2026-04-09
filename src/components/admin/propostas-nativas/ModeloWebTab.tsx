@@ -157,6 +157,53 @@ export function TemplatesTab() {
     setSaving(false);
   }
 
+  const DEFAULT_TEMPLATES_CONFIG: { style: TemplateStyle; nome: string; descricao: string }[] = [
+    { style: "consultivo", nome: "Consultivo — Venda Assistida", descricao: "Template detalhado com comparações antes/depois, ideal para projetos maiores e vendedor presencial." },
+    { style: "fechamento", nome: "Fechamento Rápido — WhatsApp", descricao: "Template de alto impacto visual para envio direto ao cliente, foco em decisão rápida." },
+    { style: "escala", nome: "Escala Automática — Leads", descricao: "Template educativo para leads frios ou tráfego, construção de valor antes do preço." },
+  ];
+
+  async function handleSeedDefaults() {
+    setSeedingDefaults(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .single();
+      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+
+      let created = 0;
+      for (let i = 0; i < DEFAULT_TEMPLATES_CONFIG.length; i++) {
+        const cfg = DEFAULT_TEMPLATES_CONFIG[i];
+        const blocks = createDefaultTemplateBlocks("grid", cfg.style);
+        const templateHtml = JSON.stringify(blocks);
+        const { error } = await supabase.from("proposta_templates").insert({
+          nome: cfg.nome,
+          descricao: cfg.descricao,
+          grupo: "B",
+          categoria: "padrao",
+          tipo: "html",
+          template_html: templateHtml,
+          ativo: true,
+          ordem: templates.length + i,
+          tenant_id: profile.tenant_id,
+        } as any);
+        if (error) throw error;
+        created++;
+      }
+      toast({ title: `${created} templates criados com sucesso!` });
+      setInitialized(false);
+      refreshTemplates();
+    } catch (e: any) {
+      toast({ title: "Erro ao criar templates", description: e.message, variant: "destructive" });
+    } finally {
+      setSeedingDefaults(false);
+    }
+  }
+
   const handleBuilderSave = useCallback(async (jsonData: string) => {
     if (!editingTemplate) return;
     await atualizarHtml.mutateAsync({ id: editingTemplate.id, template_html: jsonData });
