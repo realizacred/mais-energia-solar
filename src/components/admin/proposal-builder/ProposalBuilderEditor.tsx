@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { BuilderSidebar } from "./BuilderSidebar";
+import { generateDefaultTemplate } from "./SectionTemplates";
 import { BuilderTopbar } from "./BuilderTopbar";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
@@ -40,7 +41,7 @@ export function ProposalBuilderEditor({
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load initial data or fetch default template
+  // Load initial data or generate default template
   useEffect(() => {
     if (initialData && initialData.length > 0) {
       dispatch({ type: "SET_BLOCKS", blocks: initialData });
@@ -50,22 +51,10 @@ export function ProposalBuilderEditor({
         dispatch({ type: "SET_PROPOSAL_TYPE", proposalType: [...types][0] });
       }
     } else {
-      // Auto-load default template when editor opens empty
-      const loadDefault = async () => {
-        try {
-          const res = await fetch(`/default-templates/template-${state.proposalType}.json`);
-          if (res.ok) {
-            const blocks = await res.json();
-            if (Array.isArray(blocks) && blocks.length > 0) {
-              dispatch({ type: "SET_BLOCKS", blocks });
-              toast({ title: "Template padrão carregado!", description: `${blocks.length} blocos` });
-            }
-          }
-        } catch {
-          // silently ignore — user can build from scratch
-        }
-      };
-      loadDefault();
+      // Generate default GDASH-quality template
+      const defaultBlocks = generateDefaultTemplate(state.proposalType);
+      dispatch({ type: "SET_BLOCKS", blocks: defaultBlocks });
+      toast({ title: "Template padrão carregado!", description: `${defaultBlocks.length} blocos` });
     }
   }, [initialData]);
 
@@ -153,18 +142,11 @@ export function ProposalBuilderEditor({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
-  const handleRestoreDefault = useCallback(async () => {
-    if (!confirm("Restaurar template padrão? Todas as alterações serão perdidas.")) return;
-    
-    try {
-      const response = await fetch(`/default-templates/template-${state.proposalType}.json`);
-      if (!response.ok) throw new Error("Template padrão não encontrado");
-      const blocks = await response.json();
-      dispatch({ type: "SET_BLOCKS", blocks });
-      toast({ title: "Template padrão restaurado!" });
-    } catch (err: any) {
-      toast({ title: "Erro ao restaurar", description: err.message, variant: "destructive" });
-    }
+  const handleRestoreDefault = useCallback(() => {
+    if (!confirm("Restaurar template padrão GDASH? Todas as alterações serão perdidas.")) return;
+    const blocks = generateDefaultTemplate(state.proposalType);
+    dispatch({ type: "SET_BLOCKS", blocks });
+    toast({ title: "Template padrão restaurado!", description: `${blocks.length} blocos premium carregados` });
   }, [state.proposalType]);
 
   // Find selected block for properties panel
