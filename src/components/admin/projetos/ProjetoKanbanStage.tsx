@@ -423,6 +423,7 @@ function ResizableKanbanColumn({
   const hasRestriction = permission && permission !== "todos";
   const [stageColor, setStageColor] = useState<string | null>(stage.color || null);
   const [visibleFields, setVisibleFields] = useState<string[]>(stage.card_visible_fields || ["valor_projeto", "potencia_kwp", "cidade"]);
+  const [stageSort, setStageSort] = useState<StageSortOption>("default");
 
   const STAGE_COLORS = [
     { value: null, label: "Padrão" },
