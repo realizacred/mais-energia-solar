@@ -1374,8 +1374,8 @@ Deno.serve(async (req) => {
             if (validFunnels.length > 0) {
               const pipelineDetails: Array<{ funnel: string; stage: string; pipeline_id?: string; stage_id?: string }> = [];
 
-              for (let idx = 0; idx < nonVendedores.length; idx++) {
-                const f = nonVendedores[idx];
+              for (let idx = 0; idx < validFunnels.length; idx++) {
+                const f = validFunnels[idx];
                 try {
                   const pipeId = await resolveOrCreatePipeline(f.funnelName);
                   const stgId = await resolveOrCreateStage(pipeId, f.stageName, idx);
