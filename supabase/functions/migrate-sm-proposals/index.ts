@@ -1677,6 +1677,27 @@ Deno.serve(async (req) => {
                 lon: null as number | null,
               };
 
+              // Resolve concessionária ID from SM dis_energia name
+              let resolvedConcId: string | null = null;
+              let resolvedConcNome = smProp.dis_energia || "";
+              if (resolvedConcNome) {
+                const disNorm = resolvedConcNome.toLowerCase().trim();
+                const exact = concMap.get(disNorm);
+                if (exact) {
+                  resolvedConcId = exact.id;
+                  resolvedConcNome = exact.nome;
+                } else {
+                  // Fuzzy: check if any concessionária name contains the SM name or vice-versa
+                  for (const [key, val] of concMap) {
+                    if (key.includes(disNorm) || disNorm.includes(key)) {
+                      resolvedConcId = val.id;
+                      resolvedConcNome = val.nome;
+                      break;
+                    }
+                  }
+                }
+              }
+
               const finalSnapshot: Record<string, any> = {
                 source: "legacy_import",
                 // Canonical WizardState nodes
@@ -1685,7 +1706,8 @@ Deno.serve(async (req) => {
                 locCidade: smProp.cidade || smClient?.city || "",
                 locEstado: smProp.estado || smClient?.state || "",
                 locTipoTelhado: smProp.roof_type || "",
-                locDistribuidoraNome: smProp.dis_energia || "",
+                locDistribuidoraNome: resolvedConcNome,
+                locDistribuidoraId: resolvedConcId,
                 // Project address for wizard editing
                 projectAddress,
                 cliente: {
