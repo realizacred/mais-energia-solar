@@ -324,8 +324,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
         basePayload.owner_id = ownerId;
       }
 
-      // ── Batch processing: split into batches of 10 ──
-      const BATCH_SIZE = 10;
+      // ── Batch processing: split into batches of 5 (smaller to avoid EF timeout) ──
+      const BATCH_SIZE = 5;
       const batches: string[][] = [];
       for (let i = 0; i < internalIds.length; i += BATCH_SIZE) {
         batches.push(internalIds.slice(i, i + BATCH_SIZE));
