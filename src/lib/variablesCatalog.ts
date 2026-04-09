@@ -1635,3 +1635,83 @@ export function replaceVariables(
 
   return result;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// SUBCONJUNTOS POR CANAL — para unificar catálogos duplicados
+// ═══════════════════════════════════════════════════════════════
+
+/** Variáveis simplificadas para uso em canais WA/email */
+export interface ChannelVariable {
+  /** Chave mustache: {{campo}} */
+  key: string;
+  /** Label para exibição */
+  label: string;
+  /** Exemplo de valor */
+  example: string;
+  /** Categoria para agrupamento na UI */
+  category: string;
+}
+
+/**
+ * Variáveis disponíveis para automações WhatsApp CRM.
+ * Dados vêm de lead/cliente/consultor no momento do disparo.
+ */
+export const WA_AUTOMATION_VARIABLES: ChannelVariable[] = [
+  { key: "{{nome}}", label: "Nome do lead/cliente", example: "João Silva", category: "Lead" },
+  { key: "{{cidade}}", label: "Cidade do lead", example: "Belo Horizonte", category: "Lead" },
+  { key: "{{estado}}", label: "Estado (UF) do lead", example: "MG", category: "Lead" },
+  { key: "{{consumo}}", label: "Consumo mensal (kWh)", example: "450", category: "Lead" },
+  { key: "{{vendedor}}", label: "Nome do consultor", example: "Maria Souza", category: "Consultor" },
+  { key: "{{telefone}}", label: "Telefone do contato", example: "(31) 99876-5432", category: "Lead" },
+  { key: "{{consultor}}", label: "Nome do consultor (alias)", example: "Maria Souza", category: "Consultor" },
+];
+
+/** Exemplos de valores para preview no editor WA */
+export const WA_SAMPLE_VARS: Record<string, string> = Object.fromEntries(
+  WA_AUTOMATION_VARIABLES.map((v) => [v.key, v.example])
+);
+
+/**
+ * Variáveis disponíveis para templates de e-mail de proposta.
+ * Mapeadas a partir do catálogo canônico.
+ */
+export const EMAIL_PROPOSAL_VARIABLES: ChannelVariable[] = [
+  { key: "{{cliente_nome}}", label: "Nome do cliente", example: "João Silva", category: "Cliente" },
+  { key: "{{tipo_instalacao}}", label: "Tipo de instalação", example: "Telhado Cerâmico", category: "Sistema" },
+  { key: "{{potencia_kwp}}", label: "Potência kWp", example: "8.56", category: "Sistema" },
+  { key: "{{numero_modulos}}", label: "Qtd módulos", example: "16", category: "Sistema" },
+  { key: "{{modelo_inversor}}", label: "Modelo inversor", example: "Growatt MIN 8000TL-X", category: "Sistema" },
+  { key: "{{consumo_mensal}}", label: "Consumo mensal kWh", example: "650", category: "Energia" },
+  { key: "{{geracao_mensal}}", label: "Geração mensal kWh", example: "1.120", category: "Energia" },
+  { key: "{{valor_total}}", label: "Valor total (R$)", example: "42.500,00", category: "Financeiro" },
+  { key: "{{economia_mensal}}", label: "Economia mensal (R$)", example: "580,00", category: "Financeiro" },
+  { key: "{{payback_meses}}", label: "Payback (meses)", example: "48", category: "Financeiro" },
+  { key: "{{proposta_link}}", label: "Link da proposta", example: "https://app.exemplo.com/proposta/abc123", category: "Proposta" },
+  { key: "{{empresa_nome}}", label: "Nome da empresa", example: "Mais Energia Solar", category: "Empresa" },
+];
+
+/** Exemplos de valores para preview no editor de e-mail */
+export const EMAIL_SAMPLE_VARS: Record<string, string> = Object.fromEntries(
+  EMAIL_PROPOSAL_VARIABLES.map((v) => [v.key, v.example])
+);
+
+/**
+ * Variáveis disponíveis para mensagens de proposta (WA/E-mail ao enviar proposta).
+ * Mapeadas a partir do catálogo canônico.
+ */
+export const PROPOSAL_MESSAGE_VARIABLES: ChannelVariable[] = [
+  { key: "{{cliente_nome}}", label: "Nome do cliente", example: "João Silva", category: "Cliente" },
+  { key: "{{potencia_kwp}}", label: "Potência total (kWp)", example: "8,54", category: "Sistema" },
+  { key: "{{modulos_qtd}}", label: "Quantidade de módulos", example: "16", category: "Sistema" },
+  { key: "{{modulo_potencia}}", label: "Potência do módulo", example: "545W", category: "Sistema" },
+  { key: "{{modulo_modelo}}", label: "Modelo do módulo", example: "Canadian 545W", category: "Sistema" },
+  { key: "{{inversor_modelo}}", label: "Modelo do inversor", example: "Growatt MIN 8000TL-X", category: "Sistema" },
+  { key: "{{consumo_mensal}}", label: "Consumo mensal (kWh)", example: "850", category: "Energia" },
+  { key: "{{geracao_mensal}}", label: "Geração mensal (kWh)", example: "1.100", category: "Energia" },
+  { key: "{{economia_mensal}}", label: "Economia mensal (R$)", example: "R$ 680,00", category: "Financeiro" },
+  { key: "{{valor_total}}", label: "Valor total da proposta", example: "R$ 42.500,00", category: "Financeiro" },
+  { key: "{{link_proposta}}", label: "Link público da proposta", example: "https://app.com/proposta/abc123", category: "Proposta" },
+  { key: "{{status}}", label: "Status da proposta", example: "Gerada", category: "Proposta" },
+  { key: "{{consultor_nome}}", label: "Nome do consultor", example: "Maria Santos", category: "Empresa" },
+  { key: "{{empresa_nome}}", label: "Nome da empresa", example: "Solar Energy", category: "Empresa" },
+];
