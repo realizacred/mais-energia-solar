@@ -32,6 +32,45 @@ interface TemplateRow {
   template_html: string | null;
   isNew?: boolean;
 }
+/** Renders block JSON as a visual preview (read-only) */
+function PreviewRenderer({ jsonData }: { jsonData: string | null }) {
+  const tree = useMemo(() => {
+    if (!jsonData) return [];
+    try {
+      const parsed = JSON.parse(jsonData);
+      if (Array.isArray(parsed)) return buildTree(parsed as TemplateBlock[]);
+    } catch { /* ignore */ }
+    return [];
+  }, [jsonData]);
+
+  const noopSelect = useCallback(() => {}, []);
+
+  if (tree.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
+        Nenhum bloco encontrado neste template
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card min-h-[400px]">
+      {tree.map(node => (
+        <BlockRenderer
+          key={node.block.id}
+          node={node}
+          device="desktop"
+          mode="preview"
+          selectedId={null}
+          hoveredId={null}
+          onSelect={noopSelect}
+          onHover={noopSelect}
+          onDrop={noopSelect as any}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function TemplatesTab() {
   const { data: serverData, isLoading: loading } = usePropostaTemplates();
