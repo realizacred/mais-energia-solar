@@ -866,6 +866,46 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── 4b. Pre-create ALL pipelines + stages from SM funnels (INCLUDING Vendedores) ──
+    // This ensures all funnels exist in the system before proposals are processed.
+    if (!dry_run) {
+      const allFunnelStages = new Map<string, Set<string>>(); // funnelName → Set<stageName>
+      for (const [, proj] of smProjectMap) {
+        const funnels: any[] = proj.all_funnels || [];
+        for (const f of funnels) {
+          const fName = (f.funnelName || "").trim();
+          const sName = (f.stageName || "").trim();
+          if (!fName) continue;
+          if (!allFunnelStages.has(fName)) allFunnelStages.set(fName, new Set());
+          if (sName) allFunnelStages.get(fName)!.add(sName);
+        }
+      }
+
+      let pipelinesCreated = 0;
+      let stagesCreated = 0;
+      for (const [funnelName, stages] of allFunnelStages) {
+        try {
+          const canonicalName = FUNNEL_TO_CANONICAL[funnelName] || funnelName;
+          const pipeId = await resolveOrCreatePipeline(canonicalName);
+          if (!pipeId.startsWith("AUTO_CREATE")) {
+            pipelinesCreated++;
+            let pos = 0;
+            for (const stageName of stages) {
+              try {
+                await resolveOrCreateStage(pipeId, stageName, pos++);
+                stagesCreated++;
+              } catch (e) {
+                console.warn(`[SM Migration] Pre-create stage "${stageName}" error: ${(e as Error).message}`);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn(`[SM Migration] Pre-create pipeline "${funnelName}" error: ${(e as Error).message}`);
+        }
+      }
+      console.error(`[SM Migration] Pre-created ${pipelinesCreated} pipelines, ${stagesCreated} stages from SM funnels`);
+    }
+
     // ─── 5. Process proposals ────────────────────────────
 
     const reports: ProposalReport[] = [];
