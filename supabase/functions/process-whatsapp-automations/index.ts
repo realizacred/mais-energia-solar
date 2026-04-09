@@ -414,10 +414,9 @@ function checkTriggerConditions(
   }
 }
 
+// ── Shared resolver import ────────────────────────────
+import { resolveWaTemplate } from "../_shared/resolveWaTemplate.ts";
+
 function substituirVariaveis(mensagem: string, dados: Record<string, string>): string {
-  let resultado = mensagem;
-  for (const [chave, valor] of Object.entries(dados)) {
-    resultado = resultado.replace(new RegExp(`\\{${chave}\\}`, "g"), valor || "");
-  }
-  return resultado;
+  return resolveWaTemplate(mensagem, dados);
 }

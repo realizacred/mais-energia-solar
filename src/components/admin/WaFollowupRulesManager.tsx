@@ -502,11 +502,11 @@ export function WaFollowupRulesManager() {
                 <Textarea
                   value={formData.mensagem_template || ""}
                   onChange={(e) => setFormData({ ...formData, mensagem_template: e.target.value || null })}
-                  placeholder="Olá {nome}! Gostaria de saber se ainda tem interesse no projeto de energia solar..."
+                  placeholder="Olá {{nome}}! Gostaria de saber se ainda tem interesse no projeto de energia solar..."
                   rows={3}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Use {"{nome}"} para o nome do cliente e {"{vendedor}"} para o consultor
+                  Use {`{{nome}}`} para o nome do cliente e {`{{vendedor}}`} para o consultor
                 </p>
               </div>
             )}

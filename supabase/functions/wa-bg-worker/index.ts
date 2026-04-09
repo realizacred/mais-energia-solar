@@ -445,9 +445,12 @@ async function jobAutoReply(supabase: any, instanceId: string, tenantId: string,
 
   if (!autoReplyConfig?.auto_reply_enabled || !autoReplyConfig?.auto_reply_message) return;
 
-  const replyMsg = autoReplyConfig.auto_reply_message
-    .replace(/\{nome\}/g, p.contact_name || "")
-    .replace(/\{telefone\}/g, p.phone || "");
+  // Use shared resolver for variable substitution
+  const { resolveWaTemplate } = await import("../_shared/resolveWaTemplate.ts");
+  const replyMsg = resolveWaTemplate(autoReplyConfig.auto_reply_message, {
+    nome: p.contact_name || "",
+    telefone: p.phone || "",
+  });
 
   const correlationId = crypto.randomUUID();
 

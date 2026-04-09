@@ -132,8 +132,10 @@ export function EmailTemplatesPage() {
   };
 
   const copyVariable = (key: string) => {
-    navigator.clipboard.writeText(`{{${key}}}`);
-    toast({ title: `{{${key}}} copiado!` });
+    // key already in {{var}} format from ChannelVariable catalog
+    const formatted = key.startsWith("{{") ? key : `{{${key}}}`;
+    navigator.clipboard.writeText(formatted);
+    toast({ title: `${formatted} copiado!` });
   };
 
   const currentCanal = form.canal || "email";
@@ -252,10 +254,10 @@ export function EmailTemplatesPage() {
                     size="sm"
                     className="h-6 text-[10px] gap-1 px-2"
                     onClick={() => copyVariable(v.key)}
-                    title={`${v.label} — ${v.origem}`}
+                    title={`${v.label} — Ex: ${v.example}`}
                   >
                     <Copy className="h-2.5 w-2.5" />
-                    {`{{${v.key}}}`}
+                    {v.key}
                   </Button>
                 ))}
               </div>

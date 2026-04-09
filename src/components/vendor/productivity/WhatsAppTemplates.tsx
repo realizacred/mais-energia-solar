@@ -155,8 +155,15 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
 
   const replaceVariables = (mensagem: string, data: Record<string, string> = {}) => {
     let result = mensagem;
-    result = result.replace(/{vendedor}/g, vendedorNome);
-    result = result.replace(/{consultor}/g, vendedorNome);
+    // Canonical {{var}} format
+    result = result.replace(/\{\{vendedor\}\}/g, vendedorNome);
+    result = result.replace(/\{\{consultor\}\}/g, vendedorNome);
+    Object.entries(data).forEach(([key, value]) => {
+      result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
+    });
+    // Legacy {var} backward compat
+    result = result.replace(/\{vendedor\}/g, vendedorNome);
+    result = result.replace(/\{consultor\}/g, vendedorNome);
     Object.entries(data).forEach(([key, value]) => {
       result = result.replace(new RegExp(`\\{${key}\\}`, "g"), value);
     });

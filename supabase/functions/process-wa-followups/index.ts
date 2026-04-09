@@ -99,7 +99,8 @@ Deno.serve(async (req) => {
         // If no template but AI is active, generate message via AI
         let base: string;
         if (c.mensagem_template) {
-          base = (c.mensagem_template as string).replace(/\{nome\}/g, c.cliente_nome || "").replace(/\{vendedor\}/g, "").replace(/\{consultor\}/g, "");
+          const { resolveWaTemplate } = await import("../_shared/resolveWaTemplate.ts");
+          base = resolveWaTemplate(c.mensagem_template as string, { nome: c.cliente_nome || "", vendedor: "", consultor: "" });
         } else if (s?.modo === "automatico") {
           // AI generates the message from scratch
           const gen = await aiGenerate(sb, c, s);

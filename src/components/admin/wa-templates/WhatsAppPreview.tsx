@@ -1,22 +1,24 @@
 import { cn } from "@/lib/utils";
+import { WA_SAMPLE_VARS } from "@/lib/variablesCatalog";
 
 interface WhatsAppPreviewProps {
   message: string;
   className?: string;
 }
 
-const SAMPLE_VARS: Record<string, string> = {
-  "{nome}": "João Silva",
-  "{cidade}": "Belo Horizonte",
-  "{estado}": "MG",
-  "{consumo}": "450",
-  "{vendedor}": "Maria Souza",
-};
+// Re-export for backward compat (consumers that imported SAMPLE_VARS from here)
+const SAMPLE_VARS = WA_SAMPLE_VARS;
 
 function renderPreviewMessage(msg: string): string {
   let result = msg;
+  // Replace {{var}} canonical format
   for (const [key, value] of Object.entries(SAMPLE_VARS)) {
     result = result.split(key).join(value);
+  }
+  // Also replace legacy {var} format for backward compat
+  for (const [key, value] of Object.entries(SAMPLE_VARS)) {
+    const legacyKey = key.replace(/^\{\{/, "{").replace(/\}\}$/, "}");
+    result = result.split(legacyKey).join(value);
   }
   // Bold: *text* → <b>text</b>
   result = result.replace(/\*([^*]+)\*/g, "<b>$1</b>");
