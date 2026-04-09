@@ -593,7 +593,8 @@ Deno.serve(async (req) => {
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
       const key = normalizeComparableName(stageName);
       if (!key) {
-        throw new Error("Nome do consultor vazio na resolução automática");
+        // Empty name → use "Escritório"
+        return resolveOrCreateEscritorio();
       }
 
       // Priority 1: exact match in consultoresMap
@@ -615,17 +616,43 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Priority 4: Fallback to "Escritório" — NEVER create new consultors for unknown vendors
-      const escritorioKey = normalizeComparableName("escritório");
-      const escritorioId = consultoresMap.get(escritorioKey);
-      if (escritorioId) {
-        return { id: escritorioId, created: false };
+      // Priority 4: Create new consultor with real SM name
+      if (dry_run) {
+        return { id: `AUTO_CREATE_CONSULTOR:${stageName.trim()}`, created: true };
       }
 
-      // If Escritório doesn't exist yet, create it as the single fallback
-      if (dry_run) {
-        return { id: `AUTO_FALLBACK:escritorio`, created: true };
+      const realName = stageName.trim();
+      const codigo = realName.toLowerCase().replace(/\s+/g, "_").slice(0, 50);
+      const { data: newConsultor, error: consErr } = await adminClient
+        .from("consultores")
+        .insert({
+          tenant_id: tenantId,
+          nome: realName,
+          telefone: "N/A",
+          codigo,
+          ativo: true,
+          user_id: null,
+        })
+        .select("id")
+        .single();
+
+      if (consErr) {
+        console.error(`[SM Migration] Failed to create consultor "${realName}":`, consErr.message);
+        throw new Error(`Falha ao criar consultor "${realName}": ${consErr.message}`);
       }
+
+      const id = newConsultor!.id;
+      consultoresMap.set(key, id);
+      return { id, created: true };
+    }
+
+    /** Resolve or create "Escritório" consultor — used when vendor name is empty */
+    async function resolveOrCreateEscritorio(): Promise<{ id: string; created: boolean }> {
+      const escritorioKey = normalizeComparableName("escritório");
+      const escritorioId = consultoresMap.get(escritorioKey);
+      if (escritorioId) return { id: escritorioId, created: false };
+
+      if (dry_run) return { id: `AUTO_FALLBACK:escritorio`, created: true };
 
       const { data: newConsultor, error: consErr } = await adminClient
         .from("consultores")
@@ -774,19 +801,27 @@ Deno.serve(async (req) => {
       tId: string,
       fallbackPipelineId: string,
       fallbackStageId: string | null,
+      smFunnelName?: string | null,
+      smStageName?: string | null,
     ): Promise<{ pipeline_id: string; stage_id: string | null; source: string }> {
-      if (!allFunnels || allFunnels.length === 0) {
+      // Build effective funnels list: all_funnels + fallback from sm_funnel_name/sm_stage_name
+      let effectiveFunnels = allFunnels || [];
+      if (effectiveFunnels.length === 0 && smFunnelName) {
+        effectiveFunnels = [{ funnelName: smFunnelName, stageName: smStageName || null }];
+      }
+
+      if (effectiveFunnels.length === 0) {
         return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
       }
 
       // First pass: create/resolve only REAL pipelines from SM funnels.
       // "Vendedores" is used exclusively for owner resolution and must never become a real pipeline.
-      for (const funnel of allFunnels) {
+      for (const funnel of effectiveFunnels) {
         const fName = String(funnel.funnelName || "").trim();
         if (!fName || normalizeComparableName(fName) === "vendedores") continue;
 
-        // Collect all known stage names for this funnel from allFunnels entries with same funnelName
-        const stagesForFunnel = allFunnels
+        // Collect all known stage names for this funnel from effectiveFunnels entries with same funnelName
+        const stagesForFunnel = effectiveFunnels
           .filter((f: any) => String(f.funnelName || "").trim() === fName && f.stageName)
           .map((f: any) => f.stageName as string);
 
@@ -794,23 +829,25 @@ Deno.serve(async (req) => {
       }
 
       // Second pass: find the principal pipeline by priority
+      // Apply LEAD→Comercial mapping for cache lookup
       for (const funnelName of FUNNEL_PRIORITY) {
-        const funnel = allFunnels.find((f: any) => f.funnelName === funnelName);
+        const funnel = effectiveFunnels.find((f: any) => f.funnelName === funnelName);
         if (!funnel) continue;
 
-        const pipelineName = funnelName;
-        let pipelineId = pipelineCache.get(pipelineName);
+        // Apply same LEAD→Comercial mapping used in resolveOrCreatePipeline
+        const mappedName = funnelName === "LEAD" ? "Comercial" : funnelName;
+        let pipelineId = pipelineCache.get(mappedName);
         if (!pipelineId) {
           // Should have been created in first pass, but try ilike lookup
           const { data: pipeline } = await adminClient
             .from("pipelines")
             .select("id")
             .eq("tenant_id", tId)
-            .ilike("name", pipelineName)
+            .ilike("name", mappedName)
             .maybeSingle();
           if (pipeline) {
             pipelineId = pipeline.id;
-            pipelineCache.set(pipelineName, pipelineId);
+            pipelineCache.set(mappedName, pipelineId);
           }
         }
         if (!pipelineId) continue;
@@ -1373,6 +1410,8 @@ Deno.serve(async (req) => {
             tenantId,
             params.pipeline_id!,
             params.stage_id || null,
+            smProjForPipeline?.sm_funnel_name || null,
+            smProjForPipeline?.sm_stage_name || null,
           );
 
           // Fallback: if stage_id is null, use pre-fetched first stage of the pipeline
