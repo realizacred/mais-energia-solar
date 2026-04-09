@@ -132,8 +132,10 @@ export function EmailTemplatesPage() {
   };
 
   const copyVariable = (key: string) => {
-    navigator.clipboard.writeText(`{{${key}}}`);
-    toast({ title: `{{${key}}} copiado!` });
+    // key already in {{var}} format from ChannelVariable catalog
+    const formatted = key.startsWith("{{") ? key : `{{${key}}}`;
+    navigator.clipboard.writeText(formatted);
+    toast({ title: `${formatted} copiado!` });
   };
 
   const currentCanal = form.canal || "email";
