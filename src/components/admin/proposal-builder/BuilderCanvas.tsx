@@ -9,6 +9,8 @@ import { BlockActionBar } from "./BlockActionBar";
 import { buildTree } from "./treeUtils";
 import type { BuilderState, TemplateBlock } from "./types";
 import { cn } from "@/lib/utils";
+import { TemplateHtmlRenderer } from "@/components/proposal-landing/TemplateHtmlRenderer";
+import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
 
 interface BuilderCanvasProps {
   state: BuilderState;
@@ -26,6 +28,40 @@ const DEVICE_WIDTHS = {
   tablet: "768px",
   mobile: "390px",
 };
+
+const PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Record<string, string>>((acc, variable) => {
+  acc[variable.legacyKey] = variable.example;
+  acc[variable.canonicalKey] = variable.example;
+
+  const canonicalWithoutBraces = variable.canonicalKey.replace(/^\{\{/, "").replace(/\}\}$/, "");
+  acc[canonicalWithoutBraces] = variable.example;
+
+  return acc;
+}, {
+  cliente_nome: "João Silva",
+  cliente_cidade: "Belo Horizonte",
+  cliente_estado: "MG",
+  empresa_nome: "Mais Energia Solar",
+  potencia_kwp: "8,20",
+  economia_percentual: "93",
+  geracao_media_mensal: "1.120",
+  geracao_mensal: "1.120",
+  modulo_quantidade: "16",
+  modulo_fabricante: "Canadian Solar",
+  modulo_modelo: "HiKu 550W",
+  modulo_potencia: "550 Wp",
+  modulo_eficiencia: "21,3",
+  inversor_fabricante: "Growatt",
+  inversor_modelo: "MID 10KTL3-X",
+  inversor_garantia: "10 anos",
+  valor_total: "42.500,00",
+  economia_anual: "6.960,00",
+  economia_25_anos: "174.000,00",
+  co2_evitado_ton_ano: "1,8",
+  payback: "4,8",
+  payback_meses: "58",
+  economia_mensal: "580,00",
+});
 
 export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteBlock, onDuplicateBlock, onSwapOrder, onUpdateBlock }: BuilderCanvasProps) {
   const tree = useMemo(
@@ -88,7 +124,12 @@ export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteB
             onDragOver={handleCanvasDragOver}
             onDrop={handleCanvasDrop}
           >
-            {tree.length === 0 ? (
+            {state.mode === "preview" ? (
+              <TemplateHtmlRenderer
+                blocks={state.blocks.filter((b) => b._proposalType === state.proposalType && b.isVisible !== false)}
+                variables={PREVIEW_VARIABLES}
+              />
+            ) : tree.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground gap-3">
                 <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center text-2xl">📄</div>
                 <p className="text-sm font-medium">Template vazio</p>

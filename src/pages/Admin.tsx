@@ -262,12 +262,6 @@ const ProposalDetailPage = lazy(() =>
   }))
 );
 
-const TemplatesManagerPage = lazy(() =>
-  import("@/components/admin/propostas-nativas/TemplatesManager").then((m) => ({
-    default: m.TemplatesManager,
-  }))
-);
-
 const VariaveisCustomPage = lazy(() =>
   import("@/components/admin/propostas-nativas/VariaveisCustomManager").then((m) => ({
     default: m.VariaveisCustomManager,
@@ -568,7 +562,7 @@ export default function Admin() {
                 <Route path="projetos" element={<ProjetosManagerPage />} />
                 <Route path="propostas-nativas/nova" element={<ProposalWizardErrorBoundary><ProposalWizardPage /></ProposalWizardErrorBoundary>} />
                 <Route path="propostas/novo" element={<Navigate to="/admin/propostas-nativas/nova" replace />} />
-                <Route path="propostas-nativas/templates" element={<TemplatesManagerPage />} />
+                <Route path="propostas-nativas/templates" element={<Navigate to="/admin/proposta-comercial?tab=modelos-proposta" replace />} />
                 <Route path="propostas-nativas/variaveis" element={<VariaveisCustomPage />} />
                 <Route path="propostas-nativas/:propostaId/versoes/:versaoId" element={<ProposalDetailPage />} />
                 <Route path="aprovacao" element={<AprovacaoUsuarios />} />

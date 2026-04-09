@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Variable, FileText, Mail, Settings, BarChart3, FlaskConical, FolderOpen } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { VariaveisDisponiveisPage } from "./VariaveisDisponiveisPage";
 import { ModelosPropostaUnified } from "@/components/admin/propostas-nativas/ModelosPropostaUnified";
 import { TemplatesTab as DocumentTemplatesTab } from "@/components/admin/documentos/TemplatesTab";
@@ -8,10 +9,29 @@ import { PropostaConfigPage } from "./PropostaConfigPage";
 import { ProposalChartsManager } from "./ProposalChartsManager";
 import { VariableTester } from "./VariableTester";
 
+const COMMERCIAL_TABS = ["variaveis", "testador", "modelos-proposta", "modelos-documento", "modelos-email", "configuracoes", "graficos"] as const;
+
 export function PropostaComercialPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const activeTab = COMMERCIAL_TABS.includes((requestedTab || "") as (typeof COMMERCIAL_TABS)[number])
+    ? (requestedTab as (typeof COMMERCIAL_TABS)[number])
+    : "variaveis";
+
   return (
     <div className="space-y-4">
-      <Tabs defaultValue="variaveis">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          const nextParams = new URLSearchParams(searchParams);
+          if (value === "variaveis") {
+            nextParams.delete("tab");
+          } else {
+            nextParams.set("tab", value);
+          }
+          setSearchParams(nextParams, { replace: true });
+        }}
+      >
         <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto">
           <TabsTrigger value="variaveis" className="gap-1.5 text-xs sm:text-sm shrink-0 whitespace-nowrap">
             <Variable className="h-4 w-4" />
