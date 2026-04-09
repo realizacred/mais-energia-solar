@@ -592,6 +592,7 @@ Deno.serve(async (req) => {
 
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
       const key = normalizeComparableName(stageName);
+      const naoDefinidoKey = normalizeComparableName("Não Definido");
       if (!key) {
         throw new Error("Nome do consultor vazio na resolução automática");
       }
@@ -616,23 +617,21 @@ Deno.serve(async (req) => {
       }
 
       // Priority 4: fallback to "Não Definido"
-      const naoDefinido = consultoresMap.get(normalizeComparableName("Não Definido"));
-      if (naoDefinido) return { id: naoDefinido, created: false };
+      const existingNaoDefinido = consultoresMap.get(naoDefinidoKey);
+      if (existingNaoDefinido) return { id: existingNaoDefinido, created: false };
 
       if (dry_run) {
-        return { id: `AUTO_CREATE:${stageName}`, created: true };
+        return { id: `AUTO_CREATE:nao-definido`, created: true };
       }
 
-      // Create consultor without user access (user_id = null)
-      const codigoBase = key.replace(/\s+/g, "-").substring(0, 20) || "sm-owner";
-      const codigo = `SM-${codigoBase}`;
+      // Create fallback consultor without user access (user_id = null)
       const { data: newConsultor, error: consErr } = await adminClient
         .from("consultores")
         .insert({
           tenant_id: tenantId,
-          nome: stageName,
+          nome: "Não Definido",
           telefone: "N/A",
-          codigo,
+          codigo: "SM-NAO-DEFINIDO",
           ativo: true,
           user_id: null,
         })
@@ -640,12 +639,12 @@ Deno.serve(async (req) => {
         .single();
 
       if (consErr) {
-        console.error(`[SM Migration] Failed to create consultor "${stageName}":`, consErr.message);
-        throw new Error(`Falha ao criar consultor "${stageName}": ${consErr.message}`);
+        console.error(`[SM Migration] Failed to create fallback consultor "Não Definido":`, consErr.message);
+        throw new Error(`Falha ao criar consultor "Não Definido": ${consErr.message}`);
       }
 
       const id = newConsultor!.id;
-      consultoresMap.set(key, id);
+      consultoresMap.set(naoDefinidoKey, id);
       return { id, created: true };
     }
 
