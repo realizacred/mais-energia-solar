@@ -72,13 +72,15 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: ty
 };
 
 export function WaInstancesManager() {
-  const { instances, loading, updateInstance, deleteInstance, checkStatus, checkingStatus, syncHistory, vendedores, instanceVendedores, saveVendedores } = useWaInstances();
+  const { instances, loading, updateInstance, deleteInstance, disconnectInstance, disconnecting, checkStatus, checkingStatus, syncHistory, vendedores, instanceVendedores, saveVendedores } = useWaInstances();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [editInstance, setEditInstance] = useState<WaInstance | null>(null);
   const [syncInstance, setSyncInstance] = useState<WaInstance | null>(null);
   const [qrInstance, setQrInstance] = useState<WaInstance | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState<WaInstance | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<WaInstance | null>(null);
   const [syncDays, setSyncDays] = useState("365");
   const [isSyncing, setIsSyncing] = useState(false);
 
