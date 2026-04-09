@@ -371,7 +371,7 @@ export function StepConsumptionIntelligence({
   };
 
   const toggleTopologia = (t: string) => {
-    const current = pd.topologias;
+    const current = pd.topologias || ["tradicional"];
     if (current.includes(t)) {
       if (current.length > 1) pdUpdate("topologias", current.filter(x => x !== t));
     } else {
