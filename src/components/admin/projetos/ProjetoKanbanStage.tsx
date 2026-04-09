@@ -565,6 +565,22 @@ function ResizableKanbanColumn({
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Ordenar cards</DropdownMenuLabel>
+              {(Object.entries(STAGE_SORT_LABELS) as [StageSortOption, string][]).map(([key, label]) => (
+                <DropdownMenuItem
+                  key={key}
+                  className={cn("text-xs gap-2", stageSort === key && "font-bold text-primary")}
+                  onClick={() => setStageSort(key)}
+                >
+                  {key.includes("nome") ? <Type className="h-3 w-3" /> :
+                   key.includes("valor") ? <DollarSign className="h-3 w-3" /> :
+                   key.includes("data") ? <Calendar className="h-3 w-3" /> :
+                   <ArrowUpDown className="h-3 w-3" />}
+                  {label}
+                </DropdownMenuItem>
+              ))}
+
+              <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Inteligência</DropdownMenuLabel>
               <DropdownMenuItem
                 className="text-xs gap-2"
