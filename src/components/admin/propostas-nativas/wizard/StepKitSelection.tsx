@@ -1586,7 +1586,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
               {allTopos.map(topo => {
                 const cfg = getTopoConfig(topo);
                 const potIdeal = potenciaIdealByTopo[topo] || 0;
-                const isActive = pd.topologias.includes(topo);
+                const isActive = (pd.topologias || []).includes(topo);
                 return (
                   <div key={topo} className={`space-y-3 ${!isActive ? "opacity-40 pointer-events-none" : ""}`}>
                     <div className="flex items-center gap-2 flex-wrap">
