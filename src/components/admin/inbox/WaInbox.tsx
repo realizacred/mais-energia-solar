@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, WifiOff, QrCode } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
@@ -618,6 +618,23 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           />
         )}
       </div>
+
+      {/* WhatsApp disconnection alert */}
+      {instances.length > 0 && (() => {
+        const disconnected = instances.filter(i => i.status !== "connected");
+        if (disconnected.length === 0) return null;
+        const allDown = disconnected.length === instances.length;
+        return (
+          <div className={`shrink-0 mb-2 flex items-center gap-3 px-4 py-3 rounded-lg border text-sm ${allDown ? "bg-destructive/10 border-destructive/20" : "bg-warning/10 border-warning/20"}`}>
+            <WifiOff className={`h-4 w-4 shrink-0 ${allDown ? "text-destructive" : "text-warning"}`} />
+            <span className={`flex-1 min-w-0 ${allDown ? "text-destructive" : "text-warning"}`}>
+              {allDown
+                ? "WhatsApp desconectado — mensagens não serão enviadas ou recebidas."
+                : `${disconnected.length} instância${disconnected.length > 1 ? "s" : ""} desconectada${disconnected.length > 1 ? "s" : ""}. Algumas mensagens podem não funcionar.`}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Follow-up Widget */}
       <div className="shrink-0">
