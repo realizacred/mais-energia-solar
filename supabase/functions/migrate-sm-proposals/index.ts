@@ -1723,7 +1723,7 @@ Deno.serve(async (req) => {
                 itens: itensCanonicos,
                 servicos: servicosCanonicos,
                 // FIX 5+6: UCs fully compatible with wizard field names
-                ucs: [buildWizardUC(smProp)],
+                ucs: [buildWizardUC(smProp, resolvedConcId)],
                 // Pre-dimensioning data from SM
                 preDimensionamento: {
                   inclinacao: smProp.inclinacao ?? 20,
