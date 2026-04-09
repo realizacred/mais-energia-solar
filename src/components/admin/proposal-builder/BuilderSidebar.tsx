@@ -150,6 +150,23 @@ export function BuilderSidebar({ proposalType, onAddBlock, onInsertBlocks }: Bui
               </Collapsible>
             );
           })}
+          {/* Section Templates */}
+          {onInsertBlocks && !search.trim() && (
+            <Collapsible
+              open={openCategories["templates"]}
+              onOpenChange={() => toggleCategory("templates")}
+            >
+              <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                <span className="flex items-center gap-1"><Sparkles className="h-3 w-3" /> SEÇÕES PRÉ-PRONTAS</span>
+                <ChevronDown className={cn("h-3 w-3 transition-transform", openCategories["templates"] ? "" : "-rotate-90")} />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="px-1 pb-2">
+                  <SectionTemplates proposalType={proposalType} onInsertBlocks={onInsertBlocks} />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </div>
       </ScrollArea>
     </div>
