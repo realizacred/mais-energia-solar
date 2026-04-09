@@ -910,6 +910,96 @@ Deno.serve(async (req) => {
       console.error(`[SM Migration] Pre-created ${pipelinesCreated} pipelines, ${stagesCreated} stages from SM funnels`);
     }
 
+    // ─── 5a. Batch pre-fetch canonical entities for O(1) lookup ──
+    // Pre-fetch ALL clientes for this tenant to avoid N+1 phone/email/doc lookups
+    const allClientes: Array<{ id: string; telefone_normalized: string | null; email: string | null; cpf_cnpj: string | null; cliente_code: string; rua: string | null; cidade: string | null }> = [];
+    {
+      let cOffset = 0;
+      while (true) {
+        const { data: cPage } = await adminClient
+          .from("clientes")
+          .select("id, telefone_normalized, email, cpf_cnpj, cliente_code, rua, cidade")
+          .eq("tenant_id", tenantId)
+          .range(cOffset, cOffset + 999);
+        allClientes.push(...(cPage || []));
+        if ((cPage || []).length < 1000) break;
+        cOffset += 1000;
+      }
+    }
+    const clienteByPhone = new Map<string, { id: string; count: number }>();
+    const clienteByEmail = new Map<string, string>();
+    const clienteByDoc = new Map<string, string>();
+    const clienteByCode = new Map<string, string>();
+    const clienteAddressMap = new Map<string, { rua: string | null; cidade: string | null }>();
+    for (const c of allClientes) {
+      if (c.telefone_normalized) {
+        const existing = clienteByPhone.get(c.telefone_normalized);
+        if (existing) {
+          existing.count++;
+        } else {
+          clienteByPhone.set(c.telefone_normalized, { id: c.id, count: 1 });
+        }
+      }
+      if (c.email) clienteByEmail.set(c.email.trim().toLowerCase(), c.id);
+      if (c.cpf_cnpj) clienteByDoc.set(c.cpf_cnpj, c.id);
+      if (c.cliente_code) clienteByCode.set(c.cliente_code, c.id);
+      clienteAddressMap.set(c.id, { rua: c.rua, cidade: c.cidade });
+    }
+
+    // Pre-fetch ALL projetos for lookup by codigo and deal_id
+    const allProjetos: Array<{ id: string; codigo: string | null; deal_id: string | null }> = [];
+    {
+      let pOffset = 0;
+      while (true) {
+        const { data: pPage } = await adminClient
+          .from("projetos")
+          .select("id, codigo, deal_id")
+          .eq("tenant_id", tenantId)
+          .range(pOffset, pOffset + 999);
+        allProjetos.push(...(pPage || []));
+        if ((pPage || []).length < 1000) break;
+        pOffset += 1000;
+      }
+    }
+    const projetoByCodigo = new Map<string, string>();
+    const projetoByDeal = new Map<string, string>();
+    for (const p of allProjetos) {
+      if (p.codigo) projetoByCodigo.set(p.codigo, p.id);
+      if (p.deal_id) projetoByDeal.set(p.deal_id, p.id);
+    }
+
+    // Pre-fetch first stages of all pipelines for fallback
+    const pipelineFirstStage = new Map<string, string>();
+    {
+      const { data: allStages } = await adminClient
+        .from("pipeline_stages")
+        .select("id, pipeline_id, position")
+        .eq("tenant_id", tenantId)
+        .order("position", { ascending: true });
+      for (const s of allStages || []) {
+        if (!pipelineFirstStage.has(s.pipeline_id)) {
+          pipelineFirstStage.set(s.pipeline_id, s.id);
+        }
+      }
+    }
+
+    // Pre-fetch existing proposta_versoes for dedup
+    const existingVersoes = new Set<string>();
+    {
+      let vOffset = 0;
+      while (true) {
+        const { data: vPage } = await adminClient
+          .from("proposta_versoes")
+          .select("proposta_id")
+          .eq("tenant_id", tenantId)
+          .eq("versao_numero", 1)
+          .range(vOffset, vOffset + 999);
+        for (const v of vPage || []) existingVersoes.add(v.proposta_id);
+        if ((vPage || []).length < 1000) break;
+        vOffset += 1000;
+      }
+    }
+
     // ─── 5. Process proposals ────────────────────────────
 
     const reports: ProposalReport[] = [];
