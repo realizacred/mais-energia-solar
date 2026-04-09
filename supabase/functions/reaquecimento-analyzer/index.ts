@@ -127,12 +127,14 @@ async function processarLead(lead: any, config: any, supabase: any) {
   const fmt = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
-  const mensagem = template
-    .replace(/\{\{nome\}\}/g, lead.nome || "")
-    .replace(/\{\{valor_perdido\}\}/g, fmt(valorPerdido))
-    .replace(/\{\{potencia\}\}/g, String(novaPotencia))
-    .replace(/\{\{novo_valor\}\}/g, novoValorProjeto ? fmt(novoValorProjeto) : "R$ 0,00")
-    .replace(/\{\{data_primeiro_contato\}\}/g, new Date(lead.created_at).toLocaleDateString("pt-BR"));
+  const { resolveWaTemplate } = await import("../_shared/resolveWaTemplate.ts");
+  const mensagem = resolveWaTemplate(template, {
+    nome: lead.nome || "",
+    valor_perdido: fmt(valorPerdido),
+    potencia: String(novaPotencia),
+    novo_valor: novoValorProjeto ? fmt(novoValorProjeto) : "R$ 0,00",
+    data_primeiro_contato: new Date(lead.created_at).toLocaleDateString("pt-BR"),
+  });
 
   // Insert opportunity
   const { data: oportunidade } = await supabase

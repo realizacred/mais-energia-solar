@@ -142,13 +142,15 @@ Deno.serve(async (req) => {
       minute: "2-digit",
     });
 
-    // 6. Substituir variáveis
-    const mensagem = template
-      .replace(/\{\{nome_cliente\}\}/g, nomeCliente)
-      .replace(/\{\{data\}\}/g, dataFormatada)
-      .replace(/\{\{hora\}\}/g, horaFormatada)
-      .replace(/\{\{consultor\}\}/g, consultorNome)
-      .replace(/\{\{motivo\}\}/g, motivo || "");
+    // 6. Substituir variáveis via shared resolver
+    const { resolveWaTemplate } = await import("../_shared/resolveWaTemplate.ts");
+    const mensagem = resolveWaTemplate(template, {
+      nome_cliente: nomeCliente,
+      data: dataFormatada,
+      hora: horaFormatada,
+      consultor: consultorNome,
+      motivo: motivo || "",
+    });
 
     // 7. Buscar instância WA conectada
     const { data: waInstance } = await adminClient

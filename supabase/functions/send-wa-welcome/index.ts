@@ -177,15 +177,18 @@ Já estamos analisando e em breve enviaremos sua proposta atualizada. Qualquer d
     if (tipoTelhado && tipoTelhado !== "N/A") dadosParts.push(`🏠 Tipo de telhado: ${tipoTelhado}`);
     const dadosStr = dadosParts.length > 0 ? dadosParts.join("\n") : "Dados em análise";
 
-    const mensagem = template
-      .replace(/\{nome\}/g, firstName)
-      .replace(/\{consultor\}/g, vendedor.nome || "a equipe")
-      .replace(/\{dados\}/g, dadosStr)
-      .replace(/\{cidade\}/g, cidade !== "N/A" ? cidade : "")
-      .replace(/\{estado\}/g, estado !== "N/A" ? estado : "")
-      .replace(/\{consumo\}/g, mediaConsumo ? `${mediaConsumo}` : "")
-      .replace(/\{tipo_telhado\}/g, tipoTelhado !== "N/A" ? tipoTelhado : "")
-      .replace(/\{orc_code\}/g, orcCode);
+    // Use shared resolver for variable substitution
+    const { resolveWaTemplate } = await import("../_shared/resolveWaTemplate.ts");
+    const mensagem = resolveWaTemplate(template, {
+      nome: firstName,
+      consultor: vendedor.nome || "a equipe",
+      dados: dadosStr,
+      cidade: cidade !== "N/A" ? cidade : "",
+      estado: estado !== "N/A" ? estado : "",
+      consumo: mediaConsumo ? `${mediaConsumo}` : "",
+      tipo_telhado: tipoTelhado !== "N/A" ? tipoTelhado : "",
+      orc_code: orcCode,
+    });
 
     // ── CALL send-whatsapp-message with service_role ──
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
