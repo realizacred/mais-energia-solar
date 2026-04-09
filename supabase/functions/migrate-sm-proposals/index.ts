@@ -646,6 +646,37 @@ Deno.serve(async (req) => {
       return { id, created: true };
     }
 
+    /** Resolve or create "Escritório" consultor — used when vendor name is empty */
+    async function resolveOrCreateEscritorio(): Promise<{ id: string; created: boolean }> {
+      const escritorioKey = normalizeComparableName("escritório");
+      const escritorioId = consultoresMap.get(escritorioKey);
+      if (escritorioId) return { id: escritorioId, created: false };
+
+      if (dry_run) return { id: `AUTO_FALLBACK:escritorio`, created: true };
+
+      const { data: newConsultor, error: consErr } = await adminClient
+        .from("consultores")
+        .insert({
+          tenant_id: tenantId,
+          nome: "Escritório",
+          telefone: "N/A",
+          codigo: "escritorio",
+          ativo: true,
+          user_id: null,
+        })
+        .select("id")
+        .single();
+
+      if (consErr) {
+        console.error(`[SM Migration] Failed to create consultor "Escritório":`, consErr.message);
+        throw new Error(`Falha ao criar consultor "Escritório": ${consErr.message}`);
+      }
+
+      const id = newConsultor!.id;
+      consultoresMap.set(escritorioKey, id);
+      return { id, created: true };
+    }
+
     // ─── Helper: find or create canonical pipeline by name ──
     const pipelineCache = new Map<string, string>(); // funnelName → pipeline_id
     const stageCache = new Map<string, string>(); // "pipelineId::stageName" → stage_id
