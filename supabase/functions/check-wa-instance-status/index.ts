@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const instanceId = body.instance_id || null;
+    const action = body.action || "check"; // "check" | "logout"
 
     // Fetch instance(s) with tenant isolation
     let query = supabaseAdmin
