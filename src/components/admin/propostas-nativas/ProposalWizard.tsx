@@ -1109,6 +1109,11 @@ export function ProposalWizard() {
                 margem_pot_ideal: 0,
                 considerar_transformador: true,
               } as any;
+            } else {
+              // preDimensionamento exists but may be missing required arrays
+              const pd = (s as any).preDimensionamento;
+              if (!Array.isArray(pd.topologias)) pd.topologias = ["tradicional"];
+              if (!Array.isArray(pd.tipos_kit)) pd.tipos_kit = ["customizado"];
             }
           } catch (normErr) {
             console.error("[ProposalWizard] Erro ao normalizar snapshot nativo:", normErr);
