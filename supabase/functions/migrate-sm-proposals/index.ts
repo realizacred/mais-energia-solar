@@ -1337,14 +1337,14 @@ Deno.serve(async (req) => {
             }
           }
 
-          // If still no owner, fallback to "Não Definido" consultor
+          // If still no owner, fallback to "Escritório" consultor
           if (!resolvedOwnerId) {
             try {
-              const { id, created } = await resolveOrCreateConsultor("Não Definido");
+              const { id, created } = await resolveOrCreateConsultor("Escritório");
               resolvedOwnerId = id;
               ownerAutoCreated = ownerAutoCreated || created;
-              ownerSource = "fallback_nao_definido";
-              (report as any).owner_resolved = { name: "Não Definido", id, created, source: "fallback_nao_definido" };
+              ownerSource = "fallback_escritorio";
+              (report as any).owner_resolved = { name: "Escritório", id, created, source: "fallback_escritorio" };
             } catch (e) {
               report.aborted = true;
               report.steps.deal = { status: "ERROR", reason: (e as Error).message || "Falha ao resolver consultor 'Não Definido'" };
