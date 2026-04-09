@@ -227,21 +227,21 @@ export function TemplatesTab() {
         </div>
       </CardContent>
 
-      {/* Preview Modal */}
+      {/* Preview Modal — renders blocks visually */}
       <Dialog open={!!previewHtml} onOpenChange={(open) => { if (!open) setPreviewHtml(null); }}>
-        <DialogContent className="w-[90vw] max-w-4xl max-h-[calc(100dvh-2rem)] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogContent className="w-[90vw] max-w-5xl max-h-[calc(100dvh-2rem)] flex flex-col p-0 gap-0 overflow-hidden">
           <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
               <DialogTitle className="text-base font-semibold text-foreground">Preview do Template</DialogTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Visualize o HTML do template de proposta</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Visualização da proposta web como o cliente verá</p>
             </div>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
-            <iframe srcDoc={previewHtml || ""} title="Preview" className="w-full border-0" style={{ height: 600, pointerEvents: "none" }} />
-          </div>
+          <ScrollArea className="flex-1 min-h-0">
+            <PreviewRenderer jsonData={previewHtml} />
+          </ScrollArea>
           <div className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30">
             <Button variant="outline" onClick={() => setPreviewHtml(null)}>Fechar</Button>
           </div>
