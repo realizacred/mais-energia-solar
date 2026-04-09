@@ -57,7 +57,10 @@ export const SYSTEM_DEFAULT_CONFIG: ProposalMessageDefaults = {
   channel: "copiar",
 };
 
-// ─── Placeholder catalog ────────────────────────────
+// ─── Placeholder catalog (SSOT: variablesCatalog.ts) ────
+// Re-exported with key format adapted ({{var}} → var) for backward compat
+
+import { PROPOSAL_MESSAGE_VARIABLES, type ChannelVariable } from "@/lib/variablesCatalog";
 
 export interface PlaceholderInfo {
   key: string;
@@ -66,22 +69,15 @@ export interface PlaceholderInfo {
   category: string;
 }
 
-export const PLACEHOLDER_CATALOG: PlaceholderInfo[] = [
-  { key: "cliente_nome", label: "Nome do cliente", example: "João Silva", category: "Cliente" },
-  { key: "potencia_kwp", label: "Potência total (kWp)", example: "8,54", category: "Sistema" },
-  { key: "modulos_qtd", label: "Quantidade de módulos", example: "16", category: "Sistema" },
-  { key: "modulo_potencia", label: "Potência do módulo", example: "545W", category: "Sistema" },
-  { key: "modulo_modelo", label: "Modelo do módulo", example: "Canadian 545W", category: "Sistema" },
-  { key: "inversor_modelo", label: "Modelo do inversor", example: "Growatt MIN 8000TL-X", category: "Sistema" },
-  { key: "consumo_mensal", label: "Consumo mensal (kWh)", example: "850", category: "Energia" },
-  { key: "geracao_mensal", label: "Geração mensal (kWh)", example: "1.100", category: "Energia" },
-  { key: "economia_mensal", label: "Economia mensal (R$)", example: "R$ 680,00", category: "Financeiro" },
-  { key: "valor_total", label: "Valor total da proposta", example: "R$ 42.500,00", category: "Financeiro" },
-  { key: "link_proposta", label: "Link público da proposta", example: "https://app.com/proposta/abc123", category: "Proposta" },
-  { key: "status", label: "Status da proposta", example: "Gerada", category: "Proposta" },
-  { key: "consultor_nome", label: "Nome do consultor", example: "Maria Santos", category: "Empresa" },
-  { key: "empresa_nome", label: "Nome da empresa", example: "Solar Energy", category: "Empresa" },
-];
+/** Strip {{}} from key for backward compat with message generator */
+export const PLACEHOLDER_CATALOG: PlaceholderInfo[] = PROPOSAL_MESSAGE_VARIABLES.map(
+  (v: ChannelVariable) => ({
+    key: v.key.replace(/^\{\{/, "").replace(/\}\}$/, ""),
+    label: v.label,
+    example: v.example,
+    category: v.category,
+  })
+);
 
 // ─── Constants ──────────────────────────────────────
 
