@@ -108,6 +108,7 @@ export function TemplatesTab() {
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TemplateRow | null>(null);
+  const [seedingDefaults, setSeedingDefaults] = useState(false);
 
   useEffect(() => {
     if (serverData && !initialized) {
