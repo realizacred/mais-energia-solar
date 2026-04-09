@@ -252,10 +252,10 @@ export function EmailTemplatesPage() {
                     size="sm"
                     className="h-6 text-[10px] gap-1 px-2"
                     onClick={() => copyVariable(v.key)}
-                    title={`${v.label} — ${v.origem}`}
+                    title={`${v.label} — Ex: ${v.example}`}
                   >
                     <Copy className="h-2.5 w-2.5" />
-                    {`{{${v.key}}}`}
+                    {v.key}
                   </Button>
                 ))}
               </div>
