@@ -1096,87 +1096,65 @@ Deno.serve(async (req) => {
           report.sm_client_name = smClient.name;
 
           // ── B. Dedupe client by phone_normalized, email, or sm_id (multi-fallback) ──
+          // Uses pre-fetched Maps for O(1) lookup instead of N+1 queries
           const phoneNorm = smClient.phone_normalized || normalizePhone(smClient.phone);
           let clienteId: string | null = null;
 
-          // 1) Match by phone
+          // 1) Match by phone (using pre-fetched map)
           if (phoneNorm) {
-            const { data: matches } = await adminClient
-              .from("clientes")
-              .select("id, nome")
-              .eq("tenant_id", tenantId)
-              .eq("telefone_normalized", phoneNorm);
-
-            const matchCount = (matches || []).length;
-
-            if (matchCount > 1) {
-              report.aborted = true;
-              report.steps.cliente = {
-                status: "CONFLICT",
-                reason: `${matchCount} clients match phone ${phoneNorm}`,
-                matches: matchCount,
-              };
-              summary.CONFLICT++;
-              reports.push(report);
-              await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "CONFLICT", report, dry_run);
-              continue;
-            }
-
-            if (matchCount === 1) {
-              clienteId = matches![0].id;
+            const phoneMatch = clienteByPhone.get(phoneNorm);
+            if (phoneMatch) {
+              if (phoneMatch.count > 1) {
+                report.aborted = true;
+                report.steps.cliente = {
+                  status: "CONFLICT",
+                  reason: `${phoneMatch.count} clients match phone ${phoneNorm}`,
+                  matches: phoneMatch.count,
+                };
+                summary.CONFLICT++;
+                reports.push(report);
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "CONFLICT", report, dry_run);
+                continue;
+              }
+              clienteId = phoneMatch.id;
               report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by phone" };
             }
           }
 
-          // 2) Fallback: email exact match
+          // 2) Fallback: email exact match (using pre-fetched map)
           if (!clienteId && smClient.email) {
             const emailNorm = smClient.email.trim().toLowerCase();
             if (emailNorm) {
-              const { data: emailMatches } = await adminClient
-                .from("clientes")
-                .select("id")
-                .eq("tenant_id", tenantId)
-                .eq("email", emailNorm)
-                .limit(1);
-
-              if ((emailMatches || []).length === 1) {
-                clienteId = emailMatches![0].id;
+              const emailMatch = clienteByEmail.get(emailNorm);
+              if (emailMatch) {
+                clienteId = emailMatch;
                 report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by email" };
               }
             }
           }
 
-          // 3) Fallback: cpf_cnpj exact match
+          // 3) Fallback: cpf_cnpj exact match (using pre-fetched map)
           if (!clienteId && smClient.document) {
             const docNorm = smClient.document.replace(/\D/g, "");
             if (docNorm.length >= 11) {
-              const { data: docMatches } = await adminClient
-                .from("clientes")
-                .select("id")
-                .eq("tenant_id", tenantId)
-                .eq("cpf_cnpj", docNorm);
-
-              if ((docMatches || []).length === 1) {
-                clienteId = docMatches![0].id;
+              const docMatch = clienteByDoc.get(docNorm);
+              if (docMatch) {
+                clienteId = docMatch;
                 report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by cpf_cnpj" };
               }
             }
           }
 
-          // 4) Fallback: sm_client_id in existing cliente_code pattern
+          // 4) Fallback: sm_client_id in existing cliente_code pattern (using pre-fetched map)
           if (!clienteId) {
             const resolvedSmClientId = smClient.sm_client_id || smProp.sm_client_id;
             const codePattern = `SM-${resolvedSmClientId}-`;
-            const { data: codeMatches } = await adminClient
-              .from("clientes")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .like("cliente_code", `${codePattern}%`)
-              .limit(1);
-
-            if ((codeMatches || []).length === 1) {
-              clienteId = codeMatches![0].id;
-              report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by sm_client_code" };
+            for (const [code, cId] of clienteByCode) {
+              if (code.startsWith(codePattern)) {
+                clienteId = cId;
+                report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "matched by sm_client_code" };
+                break;
+              }
             }
           }
 
