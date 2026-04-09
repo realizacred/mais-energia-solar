@@ -902,8 +902,7 @@ Deno.serve(async (req) => {
         // "Vendedores" is NOT a real pipeline — it maps to consultor/owner via resolveOrCreateConsultor
         if (funnelName.toLowerCase() === "vendedores") continue;
         try {
-          const canonicalName = FUNNEL_TO_CANONICAL[funnelName] || funnelName;
-          const pipeId = await resolveOrCreatePipeline(canonicalName);
+          const pipeId = await resolveOrCreatePipeline(funnelName);
           if (!pipeId.startsWith("AUTO_CREATE")) {
             pipelinesCreated++;
             let pos = 0;
@@ -1454,21 +1453,29 @@ Deno.serve(async (req) => {
           if (dealId && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
             const funnels: any[] = smProj?.all_funnels || [];
-              // Exclude "Vendedores" — it's resolved as consultor/owner, not a pipeline
-              const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName && (f.funnelName || "").toLowerCase() !== "vendedores");
+            const validFunnels = funnels.filter((f: any) => f.funnelName && f.stageName && (f.funnelName || "").toLowerCase() !== "vendedores");
 
             if (validFunnels.length > 0) {
+              const funnelStageGroups = new Map<string, string[]>();
+              for (const funnel of validFunnels) {
+                const funnelName = String(funnel.funnelName || "").trim();
+                const stageName = String(funnel.stageName || "").trim();
+                if (!funnelName || !stageName) continue;
+                const stages = funnelStageGroups.get(funnelName) || [];
+                if (!stages.includes(stageName)) stages.push(stageName);
+                funnelStageGroups.set(funnelName, stages);
+              }
+
               const pipelineDetails: Array<{ funnel: string; stage: string; pipeline_id?: string; stage_id?: string }> = [];
 
-              for (let idx = 0; idx < validFunnels.length; idx++) {
-                const f = validFunnels[idx];
+              for (const [funnelName, stageNames] of funnelStageGroups) {
                 try {
-                  const pipeId = await resolveOrCreatePipeline(f.funnelName);
-                  const stgId = await resolveOrCreateStage(pipeId, f.stageName, idx);
-                  pipelineDetails.push({ funnel: f.funnelName, stage: f.stageName, pipeline_id: pipeId, stage_id: stgId });
+                  const pipeId = await resolveOrCreatePipeline(funnelName, stageNames);
+                  const stageName = stageNames[0];
+                  const stgId = await resolveOrCreateStage(pipeId, stageName, 0);
+                  pipelineDetails.push({ funnel: funnelName, stage: stageName, pipeline_id: pipeId, stage_id: stgId });
 
                   if (!dry_run && !pipeId.startsWith("AUTO_CREATE") && !stgId.startsWith("AUTO_CREATE")) {
-                    // Insert deal_pipeline_stages (idempotent — skip if exists)
                     const { error: dpsErr } = await adminClient
                       .from("deal_pipeline_stages")
                       .upsert({
@@ -1483,8 +1490,8 @@ Deno.serve(async (req) => {
                     }
                   }
                 } catch (e) {
-                  pipelineDetails.push({ funnel: f.funnelName, stage: f.stageName });
-                  console.warn(`[SM Migration] Pipeline resolution error for "${f.funnelName}/${f.stageName}": ${(e as Error).message}`);
+                  pipelineDetails.push({ funnel: funnelName, stage: stageNames[0] || "" });
+                  console.warn(`[SM Migration] Pipeline resolution error for "${funnelName}/${stageNames[0] || ""}": ${(e as Error).message}`);
                 }
               }
 
