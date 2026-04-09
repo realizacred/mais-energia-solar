@@ -163,6 +163,7 @@ export function TemplatesTab() {
     { style: "escala", nome: "Educacional — Leads", descricao: "Educativo com 'Como Funciona', construção de valor progressiva. Ideal para leads frios." },
     { style: "hibrido", nome: "Híbrido / Off-Grid", descricao: "Múltiplos inversores, bateria, estrutura e serviços inclusos. Ideal para projetos com backup." },
     { style: "corporativo", nome: "Corporativo B2B", descricao: "Foco em ROI empresarial, multi-UC, dados técnicos detalhados. Ideal para empresas e comércios." },
+    { style: "dashboard", nome: "Dashboard — Alta Conversão", descricao: "Visual limpo estilo Gdash com comparativo gráfico, simulador de fluxo e timeline de retorno. Mobile-first." },
   ];
 
   async function handleSeedDefaults() {
