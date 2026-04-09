@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useKanbanAutomations, useKanbanStagePermissions } from "@/hooks/useProjetoKanbanStage";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, Settings2, Clock, Eye, Lock, Palette, ChevronDown, DollarSign, Filter, Search, Check } from "lucide-react";
+import { Zap, Plus, Settings2, Clock, Eye, Lock, Palette, ChevronDown, DollarSign, Filter, Search, Check, MoreVertical, ArrowUpDown, Type, Calendar } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
@@ -64,6 +64,32 @@ interface Props {
 const formatKwp = (v: number) => {
   if (!v) return "0 kWp";
   return `${v.toFixed(1).replace(".", ",")} kWp`;
+};
+
+type StageSortOption = "default" | "nome_asc" | "nome_desc" | "valor_desc" | "valor_asc" | "data_desc" | "data_asc";
+
+function sortStageDeals(deals: DealKanbanCard[], sort: StageSortOption): DealKanbanCard[] {
+  if (sort === "default") return deals;
+  const sorted = [...deals];
+  switch (sort) {
+    case "nome_asc": return sorted.sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || ""));
+    case "nome_desc": return sorted.sort((a, b) => (b.customer_name || "").localeCompare(a.customer_name || ""));
+    case "valor_desc": return sorted.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
+    case "valor_asc": return sorted.sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
+    case "data_desc": return sorted.sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
+    case "data_asc": return sorted.sort((a, b) => new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime());
+    default: return sorted;
+  }
+}
+
+const STAGE_SORT_LABELS: Record<StageSortOption, string> = {
+  default: "Padrão",
+  nome_asc: "Nome A→Z",
+  nome_desc: "Nome Z→A",
+  valor_desc: "Maior valor",
+  valor_asc: "Menor valor",
+  data_desc: "Mais recente",
+  data_asc: "Mais antigo",
 };
 
 // ─── Resizable column hook ─────────────────────
@@ -397,6 +423,7 @@ function ResizableKanbanColumn({
   const hasRestriction = permission && permission !== "todos";
   const [stageColor, setStageColor] = useState<string | null>(stage.color || null);
   const [visibleFields, setVisibleFields] = useState<string[]>(stage.card_visible_fields || ["valor_projeto", "potencia_kwp", "cidade"]);
+  const [stageSort, setStageSort] = useState<StageSortOption>("default");
 
   const STAGE_COLORS = [
     { value: null, label: "Padrão" },
@@ -538,6 +565,22 @@ function ResizableKanbanColumn({
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Ordenar cards</DropdownMenuLabel>
+              {(Object.entries(STAGE_SORT_LABELS) as [StageSortOption, string][]).map(([key, label]) => (
+                <DropdownMenuItem
+                  key={key}
+                  className={cn("text-xs gap-2", stageSort === key && "font-bold text-primary")}
+                  onClick={() => setStageSort(key)}
+                >
+                  {key.includes("nome") ? <Type className="h-3 w-3" /> :
+                   key.includes("valor") ? <DollarSign className="h-3 w-3" /> :
+                   key.includes("data") ? <Calendar className="h-3 w-3" /> :
+                   <ArrowUpDown className="h-3 w-3" />}
+                  {label}
+                </DropdownMenuItem>
+              ))}
+
+              <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Inteligência</DropdownMenuLabel>
               <DropdownMenuItem
                 className="text-xs gap-2"
@@ -590,24 +633,25 @@ function ResizableKanbanColumn({
       </div>
 
       {/* ── Cards ── */}
-      <div className="px-2 pb-2 min-h-[60px] space-y-1.5 flex-1 min-h-0 overflow-y-auto">
+      <div className="px-2 pb-2 min-h-[60px] space-y-0 flex-1 min-h-0 overflow-y-auto divide-y divide-border/40">
         {deals.length === 0 && (
           <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/40 italic">
             Arraste projetos aqui
           </div>
         )}
-        {deals.map(deal => (
-          <StageDealCard
-            key={deal.deal_id}
-            deal={deal}
-            isDragging={draggedId === deal.deal_id}
-            onDragStart={onDragStart}
-            onClick={() => onViewProjeto?.(deal)}
-            onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
-            hasAutomation={hasActiveAutomation}
-            dynamicEtiquetas={dynamicEtiquetas}
-            cardVisibleFields={visibleFields}
-          />
+        {sortStageDeals(deals, stageSort).map(deal => (
+          <div key={deal.deal_id} className="py-1.5">
+            <StageDealCard
+              deal={deal}
+              isDragging={draggedId === deal.deal_id}
+              onDragStart={onDragStart}
+              onClick={() => onViewProjeto?.(deal)}
+              onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
+              hasAutomation={hasActiveAutomation}
+              dynamicEtiquetas={dynamicEtiquetas}
+              cardVisibleFields={visibleFields}
+            />
+          </div>
         ))}
       </div>
 

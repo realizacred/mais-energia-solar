@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info, Users, FileCheck, Download, Clock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { motion } from "framer-motion";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
@@ -116,6 +116,7 @@ export function ProjetosManager() {
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
+  const [legendOpen, setLegendOpen] = useState(false);
   const [defaultStageId, setDefaultStageId] = useState<string | undefined>();
   const [defaultModalPipelineId, setDefaultModalPipelineId] = useState<string | undefined>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -473,48 +474,22 @@ export function ProjetosManager() {
                   )}
                 </div>
 
-                {/* Color Legend — click to toggle */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-[10px] text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3" />
-                      Legenda
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-64 p-3">
-                    <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2.5">Bordas dos cards</p>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full shrink-0 bg-success" />
-                        <span className="text-[11px] text-foreground font-medium">Projeto ganho</span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full shrink-0 bg-destructive" />
-                        <span className="text-[11px] text-foreground font-medium">Projeto perdido / estagnado +7d / Proposta recusada</span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full shrink-0 bg-warning" />
-                        <span className="text-[11px] text-foreground font-medium">Estagnado +3 dias</span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full shrink-0 bg-muted-foreground/60" />
-                        <span className="text-[11px] text-foreground font-medium">Sem proposta vinculada</span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full bg-primary shrink-0" />
-                        <span className="text-[11px] text-foreground font-medium">Com proposta</span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-1 h-5 rounded-full bg-accent shrink-0" />
-                        <span className="text-[11px] text-foreground font-medium">Cor da etiqueta do projeto</span>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                {/* Color Legend — lateral toggle */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                  onClick={() => setLegendOpen(prev => !prev)}
+                >
+                  <Info className="h-3 w-3" />
+                  Legenda
+                </Button>
               </div>
             </div>
 
-            {/* Kanban / List */}
+            {/* Kanban / List + Legend lateral */}
+            <div className="flex gap-0">
+              <div className="flex-1 min-w-0">
             {loading ? (
               <ProjetoKanbanSkeleton />
             ) : viewMode === "kanban-etapa" ? (
@@ -594,6 +569,41 @@ export function ProjetosManager() {
                 }))}
               />
             )}
+              </div>
+
+              {/* Lateral Legend Panel */}
+              {legendOpen && (
+                <div className="w-48 shrink-0 border-l border-border bg-card/80 rounded-r-xl p-3 hidden sm:block animate-in slide-in-from-right-2 duration-200">
+                  <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-3">Bordas dos cards</p>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-success" />
+                      <span className="text-[11px] text-foreground font-medium">Projeto ganho</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-destructive" />
+                      <span className="text-[11px] text-foreground font-medium leading-tight">Perdido / estagnado +7d / Recusada</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-warning" />
+                      <span className="text-[11px] text-foreground font-medium">Estagnado +3 dias</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full shrink-0 bg-muted-foreground/60" />
+                      <span className="text-[11px] text-foreground font-medium">Sem proposta</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full bg-primary shrink-0" />
+                      <span className="text-[11px] text-foreground font-medium">Com proposta</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-1 h-5 rounded-full bg-accent shrink-0" />
+                      <span className="text-[11px] text-foreground font-medium">Etiqueta do projeto</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </TabsContent>
 

@@ -1,16 +1,46 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Plus, DollarSign, User, ChevronDown, Zap, GripVertical } from "lucide-react";
+import { Plus, DollarSign, User, ChevronDown, Zap, GripVertical, MoreVertical, ArrowUpDown, SortAsc, SortDesc, Calendar, Type } from "lucide-react";
 import type { DealKanbanCard, OwnerColumn } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StageDealCard } from "./StageDealCard";
+
+type SortOption = "default" | "nome_asc" | "nome_desc" | "valor_desc" | "valor_asc" | "data_desc" | "data_asc";
+
+function sortDeals(deals: DealKanbanCard[], sort: SortOption): DealKanbanCard[] {
+  if (sort === "default") return deals;
+  const sorted = [...deals];
+  switch (sort) {
+    case "nome_asc": return sorted.sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || ""));
+    case "nome_desc": return sorted.sort((a, b) => (b.customer_name || "").localeCompare(a.customer_name || ""));
+    case "valor_desc": return sorted.sort((a, b) => (b.deal_value || 0) - (a.deal_value || 0));
+    case "valor_asc": return sorted.sort((a, b) => (a.deal_value || 0) - (b.deal_value || 0));
+    case "data_desc": return sorted.sort((a, b) => new Date(b.last_stage_change).getTime() - new Date(a.last_stage_change).getTime());
+    case "data_asc": return sorted.sort((a, b) => new Date(a.last_stage_change).getTime() - new Date(b.last_stage_change).getTime());
+    default: return sorted;
+  }
+}
+
+const SORT_LABELS: Record<SortOption, string> = {
+  default: "Padrão",
+  nome_asc: "Nome A→Z",
+  nome_desc: "Nome Z→A",
+  valor_desc: "Maior valor",
+  valor_asc: "Menor valor",
+  data_desc: "Mais recente",
+  data_asc: "Mais antigo",
+};
 
 interface DynamicEtiqueta {
   id: string;
@@ -72,6 +102,11 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [columnSorts, setColumnSorts] = useState<Record<string, SortOption>>({});
+
+  const setColumnSort = (colId: string, sort: SortOption) => {
+    setColumnSorts(prev => ({ ...prev, [colId]: sort }));
+  };
 
   // Column reorder state
   const [draggedColId, setDraggedColId] = useState<string | null>(null);
@@ -286,6 +321,31 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                   <Badge variant="secondary" className={cn("text-[9px] h-4 px-1.5 font-bold ml-auto rounded-full border-0", isOrphanColumn(col.id) ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary")}>
                     {col.count}
                   </Badge>
+
+                  {/* Sort Menu */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground">
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Ordenar por</DropdownMenuLabel>
+                      {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([key, label]) => (
+                        <DropdownMenuItem
+                          key={key}
+                          className={cn("text-xs", columnSorts[col.id] === key && "font-bold text-primary")}
+                          onClick={() => setColumnSort(col.id, key)}
+                        >
+                          {key.includes("nome") ? <Type className="h-3 w-3 mr-2" /> :
+                           key.includes("valor") ? <DollarSign className="h-3 w-3 mr-2" /> :
+                           key.includes("data") ? <Calendar className="h-3 w-3 mr-2" /> :
+                           <ArrowUpDown className="h-3 w-3 mr-2" />}
+                          {label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
@@ -304,20 +364,21 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
               )}
 
               {/* Cards — using StageDealCard for full visual richness */}
-              <div className="flex-1 min-h-0 px-2 pb-2 space-y-1.5 overflow-y-auto" style={{ maxHeight: "calc(100vh - 340px)" }}>
+              <div className="flex-1 min-h-0 px-2 pb-2 space-y-0 overflow-y-auto divide-y divide-border/40" style={{ maxHeight: "calc(100vh - 340px)" }}>
                 {col.deals.length === 0 ? (
                   <p className="text-[10px] text-muted-foreground/40 italic text-center py-6">Nenhum projeto</p>
                 ) : (
-                  col.deals.map(deal => (
-                    <StageDealCard
-                      key={deal.deal_id}
-                      deal={deal}
-                      isDragging={draggedId === deal.deal_id}
-                      onDragStart={e => handleDragStart(e, deal.deal_id)}
-                      onClick={() => onViewProjeto?.(deal)}
-                      onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
-                      dynamicEtiquetas={dynamicEtiquetas}
-                    />
+                  sortDeals(col.deals, columnSorts[col.id] || "default").map(deal => (
+                    <div key={deal.deal_id} className="py-1.5">
+                      <StageDealCard
+                        deal={deal}
+                        isDragging={draggedId === deal.deal_id}
+                        onDragStart={e => handleDragStart(e, deal.deal_id)}
+                        onClick={() => onViewProjeto?.(deal)}
+                        onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
+                        dynamicEtiquetas={dynamicEtiquetas}
+                      />
+                    </div>
                   ))
                 )}
               </div>
