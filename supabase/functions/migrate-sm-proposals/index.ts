@@ -1348,17 +1348,11 @@ Deno.serve(async (req) => {
             params.stage_id || null,
           );
 
-          // Fallback: if stage_id is null, fetch first stage of the pipeline
+          // Fallback: if stage_id is null, use pre-fetched first stage of the pipeline
           if (!resolved.stage_id) {
-            const { data: firstStage } = await adminClient
-              .from("pipeline_stages")
-              .select("id")
-              .eq("pipeline_id", resolved.pipeline_id)
-              .order("position", { ascending: true })
-              .limit(1)
-              .maybeSingle();
-            if (firstStage?.id) {
-              resolved.stage_id = firstStage.id;
+            const firstStage = pipelineFirstStage.get(resolved.pipeline_id);
+            if (firstStage) {
+              resolved.stage_id = firstStage;
             }
           }
           if (dealId) {
