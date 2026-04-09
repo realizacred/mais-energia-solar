@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { BuilderSidebar } from "./BuilderSidebar";
+import { generateDefaultTemplate } from "./SectionTemplates";
 import { BuilderTopbar } from "./BuilderTopbar";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
