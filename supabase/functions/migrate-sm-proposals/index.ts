@@ -153,7 +153,7 @@ function mapFaseToWizard(smFase: string | null): { fase: string; fase_tensao: st
  * Build a UC object fully compatible with the wizard's UCData interface.
  * Maps SM field names to wizard field names so that editing a migrated proposal works.
  */
-function buildWizardUC(smProp: Record<string, any>): Record<string, any> {
+function buildWizardUC(smProp: Record<string, any>, resolvedConcId?: string | null): Record<string, any> {
   const { fase, fase_tensao, tensao_rede } = mapFaseToWizard(smProp.fase);
   const consumo = Number(smProp.consumo_mensal ?? 0);
   const tarifaEnergia = Number(smProp.tarifa_distribuidora ?? 0);
@@ -173,7 +173,7 @@ function buildWizardUC(smProp: Record<string, any>): Record<string, any> {
     grupo_tarifario: "B",
     tipo_dimensionamento: "consumo",
     distribuidora: smProp.dis_energia ?? "",
-    distribuidora_id: null,
+    distribuidora_id: resolvedConcId || null,
     subgrupo,
     estado: "",
     cidade: "",
