@@ -184,10 +184,10 @@ export function StageDealCard({
         isDragging && "kanban-card--dragging",
       )}
     >
-      {/* Top gradient bar */}
+      {/* Left color bar */}
       <div className="kanban-card__top-bar" style={topBarStyle} />
 
-      <div className="relative px-3 pt-2.5 pb-2.5 space-y-2">
+      <div className="relative px-3 pt-2.5 pb-2.5 space-y-2 flex-1 min-w-0">
         {/* Accepted check icon */}
         {isPropostaAceita && (
           <div className="absolute top-2.5 right-3">
