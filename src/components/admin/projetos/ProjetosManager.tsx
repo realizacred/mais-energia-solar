@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info, Users, FileCheck, Download, Clock } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+
 
 import { motion } from "framer-motion";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -383,64 +383,8 @@ export function ProjetosManager() {
         <TabsContent value="kanban" className="space-y-4 mt-0">
           <div className="flex-1 min-w-0 space-y-4">
             <div className="rounded-xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
-              {/* Filters row */}
-              <div className="px-4 py-3">
-                <ProjetoFilters
-                  searchTerm={filters.search}
-                  onSearchChange={(v) => handleFilterChange("search", v)}
-                  funis={activePipelines.map(p => ({
-                    id: p.id,
-                    nome: p.name,
-                    ordem: 0,
-                    ativo: p.is_active,
-                    tenant_id: p.tenant_id,
-                  }))}
-                  filterFunil={filters.pipelineId || selectedPipelineId || (viewMode === "kanban-consultor" ? "todos" : "")}
-                  onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
-                  filterConsultor={filters.ownerId}
-                  onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
-                  consultores={consultoresFilter}
-                  filterStatus={filters.status}
-                  onFilterStatusChange={(v) => handleFilterChange("status", v)}
-                  etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
-                  filterEtiquetas={[]}
-                  onFilterEtiquetasChange={() => {}}
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                  onClearFilters={clearFilters}
-                  onEditEtapas={(funilId) => setEditingEtapasFunilId(funilId)}
-                  onCreateFunil={() => setTemplateDialogOpen(true)}
-                  allowAllFunis={viewMode === "kanban-consultor"}
-                />
-              </div>
-
-              {/* Template dialog for creating new pipelines */}
-              <ProjetoPipelineTemplates
-                open={templateDialogOpen}
-                onOpenChange={setTemplateDialogOpen}
-                onCreateFromTemplate={(name, stgs) => createPipeline(name, stgs)}
-                onCreateBlank={(name) => createPipeline(name)}
-              />
-
-              <Separator className="opacity-60" />
-
-              {/* Etapa Manager Dialog */}
-              {editingEtapasFunilId && (
-                <ProjetoEtapaManagerDialog
-                  pipeline={pipelines.find(p => p.id === editingEtapasFunilId) || null}
-                  stages={stages}
-                  allPipelines={pipelines.filter(p => p.is_active && p.id !== editingEtapasFunilId)}
-                  onClose={() => setEditingEtapasFunilId(null)}
-                  onCreateStage={createStage}
-                  onRenameStage={renameStage}
-                  onReorderStages={reorderStages}
-                  onDeleteStage={deleteStage}
-                  onDeletePipeline={deletePipeline}
-                />
-              )}
-
-              {/* Summary bar */}
-              <div className="px-4 py-2.5 flex items-center justify-between">
+              {/* Summary bar — top */}
+                            <div className="px-4 py-2.5 flex items-center justify-between border-b border-border/40">
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-1.5">
                     <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
@@ -485,7 +429,62 @@ export function ProjetosManager() {
                   Legenda
                 </Button>
               </div>
+
+              {/* Filters row */}
+              <div className="px-4 py-3">
+                <ProjetoFilters
+                  searchTerm={filters.search}
+                  onSearchChange={(v) => handleFilterChange("search", v)}
+                  funis={activePipelines.map(p => ({
+                    id: p.id,
+                    nome: p.name,
+                    ordem: 0,
+                    ativo: p.is_active,
+                    tenant_id: p.tenant_id,
+                  }))}
+                  filterFunil={filters.pipelineId || selectedPipelineId || (viewMode === "kanban-consultor" ? "todos" : "")}
+                  onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
+                  filterConsultor={filters.ownerId}
+                  onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
+                  consultores={consultoresFilter}
+                  filterStatus={filters.status}
+                  onFilterStatusChange={(v) => handleFilterChange("status", v)}
+                  etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
+                  filterEtiquetas={[]}
+                  onFilterEtiquetasChange={() => {}}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  onClearFilters={clearFilters}
+                  onEditEtapas={(funilId) => setEditingEtapasFunilId(funilId)}
+                  onCreateFunil={() => setTemplateDialogOpen(true)}
+                  allowAllFunis={viewMode === "kanban-consultor"}
+                />
+              </div>
+
+              {/* Template dialog for creating new pipelines */}
+              <ProjetoPipelineTemplates
+                open={templateDialogOpen}
+                onOpenChange={setTemplateDialogOpen}
+                onCreateFromTemplate={(name, stgs) => createPipeline(name, stgs)}
+                onCreateBlank={(name) => createPipeline(name)}
+              />
+
+              {/* Etapa Manager Dialog */}
+              {editingEtapasFunilId && (
+                <ProjetoEtapaManagerDialog
+                  pipeline={pipelines.find(p => p.id === editingEtapasFunilId) || null}
+                  stages={stages}
+                  allPipelines={pipelines.filter(p => p.is_active && p.id !== editingEtapasFunilId)}
+                  onClose={() => setEditingEtapasFunilId(null)}
+                  onCreateStage={createStage}
+                  onRenameStage={renameStage}
+                  onReorderStages={reorderStages}
+                  onDeleteStage={deleteStage}
+                  onDeletePipeline={deletePipeline}
+                />
+              )}
             </div>
+
 
             {/* Kanban / List + Legend lateral */}
             <div className="flex gap-0">
