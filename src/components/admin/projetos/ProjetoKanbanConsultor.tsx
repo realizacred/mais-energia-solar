@@ -146,7 +146,7 @@ function ProgressiveCardList({
   );
 }
 
-
+export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, onViewProjetoTab, onNewProject, onMoveDealToOwner, dynamicEtiquetas = [] }: Props) {
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
