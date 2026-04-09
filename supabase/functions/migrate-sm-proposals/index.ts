@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
 
     const tenantId = profile.tenant_id;
     const params: MigrationParams = await req.json();
-    const { dry_run = true, filters = {}, batch_size = 50 } = params;
+    const { dry_run = true, filters = {}, batch_size = 10 } = params;
 
     const autoResolveOwner = params.auto_resolve_owner !== false; // default true
 
