@@ -321,6 +321,31 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                   <Badge variant="secondary" className={cn("text-[9px] h-4 px-1.5 font-bold ml-auto rounded-full border-0", isOrphanColumn(col.id) ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary")}>
                     {col.count}
                   </Badge>
+
+                  {/* Sort Menu */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 text-muted-foreground hover:text-foreground">
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Ordenar por</DropdownMenuLabel>
+                      {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([key, label]) => (
+                        <DropdownMenuItem
+                          key={key}
+                          className={cn("text-xs", columnSorts[col.id] === key && "font-bold text-primary")}
+                          onClick={() => setColumnSort(col.id, key)}
+                        >
+                          {key.includes("nome") ? <Type className="h-3 w-3 mr-2" /> :
+                           key.includes("valor") ? <DollarSign className="h-3 w-3 mr-2" /> :
+                           key.includes("data") ? <Calendar className="h-3 w-3 mr-2" /> :
+                           <ArrowUpDown className="h-3 w-3 mr-2" />}
+                          {label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
