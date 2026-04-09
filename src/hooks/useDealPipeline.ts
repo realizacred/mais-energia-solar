@@ -453,6 +453,17 @@ export function useDealPipeline() {
 
   // ─── Pipeline CRUD ──────────────────────────────────
   const createPipeline = useCallback(async (name: string, templateStages?: { name: string; probability: number; is_closed?: boolean; is_won?: boolean }[], kind: PipelineKind = "process") => {
+    // Verificar duplicidade antes de criar (ilike para case-insensitive)
+    const { data: existing } = await supabase
+      .from("pipelines")
+      .select("id, tenant_id, name, kind, version, is_active, created_at")
+      .ilike("name", name)
+      .maybeSingle();
+    if (existing) {
+      toast({ title: "Pipeline já existe", description: `O pipeline "${existing.name}" já existe.`, variant: "destructive" });
+      return existing as Pipeline;
+    }
+
     const { data, error } = await supabase
       .from("pipelines")
       .insert({ name, kind } as any)
