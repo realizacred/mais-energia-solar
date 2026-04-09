@@ -778,15 +778,15 @@ Deno.serve(async (req) => {
         return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
       }
 
-      // First pass: create/resolve ALL pipelines and their stages from SM funnels.
-      // "Vendedores" also remains a real pipeline membership, while still driving owner resolution.
+      // First pass: create/resolve only REAL pipelines from SM funnels.
+      // "Vendedores" is used exclusively for owner resolution and must never become a real pipeline.
       for (const funnel of allFunnels) {
-        const fName = funnel.funnelName || "";
-        if (!fName) continue;
+        const fName = String(funnel.funnelName || "").trim();
+        if (!fName || normalizeComparableName(fName) === "vendedores") continue;
 
         // Collect all known stage names for this funnel from allFunnels entries with same funnelName
         const stagesForFunnel = allFunnels
-          .filter((f: any) => f.funnelName === fName && f.stageName)
+          .filter((f: any) => String(f.funnelName || "").trim() === fName && f.stageName)
           .map((f: any) => f.stageName as string);
 
         await resolveOrCreatePipeline(fName, stagesForFunnel);
