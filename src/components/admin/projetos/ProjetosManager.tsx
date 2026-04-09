@@ -112,7 +112,29 @@ export function ProjetosManager() {
     }
   }, []);
 
-  // Fetch dynamic etiquetas from DB
+  const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
+  const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
+  const [defaultStageId, setDefaultStageId] = useState<string | undefined>();
+  const [defaultModalPipelineId, setDefaultModalPipelineId] = useState<string | undefined>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedDealId = searchParams.get("projeto") || null;
+  const setSelectedDealId = useCallback((id: string | null) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) {
+        next.set("projeto", id);
+      } else {
+        next.delete("projeto");
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+  const [activeTab, setActiveTab] = useState<string>("kanban");
+  const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
+  const [defaultPipelineApplied, setDefaultPipelineApplied] = useState(false);
+
   useEffect(() => {
     supabase
       .from("projeto_etiquetas")
