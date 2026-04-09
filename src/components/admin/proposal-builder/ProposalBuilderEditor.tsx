@@ -142,18 +142,11 @@ export function ProposalBuilderEditor({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
-  const handleRestoreDefault = useCallback(async () => {
-    if (!confirm("Restaurar template padrão? Todas as alterações serão perdidas.")) return;
-    
-    try {
-      const response = await fetch(`/default-templates/template-${state.proposalType}.json`);
-      if (!response.ok) throw new Error("Template padrão não encontrado");
-      const blocks = await response.json();
-      dispatch({ type: "SET_BLOCKS", blocks });
-      toast({ title: "Template padrão restaurado!" });
-    } catch (err: any) {
-      toast({ title: "Erro ao restaurar", description: err.message, variant: "destructive" });
-    }
+  const handleRestoreDefault = useCallback(() => {
+    if (!confirm("Restaurar template padrão GDASH? Todas as alterações serão perdidas.")) return;
+    const blocks = generateDefaultTemplate(state.proposalType);
+    dispatch({ type: "SET_BLOCKS", blocks });
+    toast({ title: "Template padrão restaurado!", description: `${blocks.length} blocos premium carregados` });
   }, [state.proposalType]);
 
   // Find selected block for properties panel
