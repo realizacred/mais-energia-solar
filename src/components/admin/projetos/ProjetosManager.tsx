@@ -52,50 +52,63 @@ export function ProjetosManager() {
     createDeal, fetchAll,
   } = useDealPipeline();
 
-  const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">("kanban-consultor");
+  // ── Persistent filter storage ──
+  const STORAGE_KEY = "projetos_kanban_prefs";
+  
+  const getStoredPrefs = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw) as {
+        viewMode?: string;
+        pipelineId?: string | null;
+        ownerId?: string;
+        status?: string;
+      };
+    } catch { return null; }
+  }, []);
+
+  const savePrefs = useCallback((prefs: Record<string, any>) => {
+    try {
+      const current = getStoredPrefs() || {};
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...prefs }));
+    } catch { /* ignore */ }
+  }, [getStoredPrefs]);
+
+  // Initialize from localStorage
+  const storedPrefs = useMemo(() => getStoredPrefs(), []);
+  
+  const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">(
+    (storedPrefs?.viewMode as any) || "kanban-consultor"
+  );
 
   // When switching to "Consultores" view, auto-select all funnels
   const setViewMode = (mode: "kanban-etapa" | "kanban-consultor" | "lista") => {
     setViewModeRaw(mode);
+    savePrefs({ viewMode: mode });
     if (mode === "kanban-consultor") {
       setSelectedPipelineId(null);
       applyFilters({ pipelineId: null });
+      savePrefs({ viewMode: mode, pipelineId: null });
     }
   };
-  const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
-  const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
-  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
-  const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
-  const [defaultStageId, setDefaultStageId] = useState<string | undefined>();
-  const [defaultModalPipelineId, setDefaultModalPipelineId] = useState<string | undefined>();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selectedDealId = searchParams.get("projeto") || null;
-  const setSelectedDealId = useCallback((id: string | null) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (id) {
-        next.set("projeto", id);
-      } else {
-        next.delete("projeto");
-      }
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
-  const [activeTab, setActiveTab] = useState<string>("kanban");
-  const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
-  const [defaultPipelineApplied, setDefaultPipelineApplied] = useState(false);
 
-  // Persist status filter in sessionStorage
-  const STORED_STATUS_KEY = "projetos_filter_status";
-  const getStoredStatus = () => {
-    try { return sessionStorage.getItem(STORED_STATUS_KEY) || "todos"; } catch { return "todos"; }
-  };
-
-  // Apply stored status on mount
+  // Apply stored filters on mount
   useEffect(() => {
-    const stored = getStoredStatus();
-    if (stored !== "todos" && filters.status !== stored) {
-      applyFilters({ status: stored });
+    if (!storedPrefs) return;
+    const updates: Record<string, any> = {};
+    if (storedPrefs.status && storedPrefs.status !== "todos" && filters.status !== storedPrefs.status) {
+      updates.status = storedPrefs.status;
+    }
+    if (storedPrefs.ownerId && storedPrefs.ownerId !== "todos" && filters.ownerId !== storedPrefs.ownerId) {
+      updates.ownerId = storedPrefs.ownerId;
+    }
+    if (storedPrefs.pipelineId && filters.pipelineId !== storedPrefs.pipelineId) {
+      updates.pipelineId = storedPrefs.pipelineId;
+      setSelectedPipelineId(storedPrefs.pipelineId);
+    }
+    if (Object.keys(updates).length > 0) {
+      applyFilters(updates);
     }
   }, []);
 

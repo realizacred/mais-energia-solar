@@ -329,20 +329,16 @@ export function useDealPipeline() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const pipelinesData = await fetchMetadata();
+      await fetchMetadata();
       const enriched = await fetchDeals(filters);
       setDeals(enriched);
-
-      if (pipelinesData.length > 0 && !selectedPipelineId) {
-        setSelectedPipelineId(pipelinesData[0].id);
-      }
     } catch (err: any) {
       console.error("useDealPipeline fetchAll:", err);
       toast({ title: "Erro ao carregar pipeline", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, [toast, selectedPipelineId, filters, fetchMetadata, fetchDeals]);
+  }, [toast, filters, fetchMetadata, fetchDeals]);
 
   useEffect(() => { fetchAll(); }, []);
 
