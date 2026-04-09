@@ -163,7 +163,7 @@ export interface SmCustomField {
 
 // ─── Queries ────────────────────────────────────────────
 
-const SM_PAGE_SIZE = 1000;
+const SM_PAGE_SIZE = 200;
 
 async function fetchAllRows<T>(params: {
   table: string;
