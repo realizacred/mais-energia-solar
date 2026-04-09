@@ -54,7 +54,7 @@ export async function buildPropostaContext(proposta: PropostaOption): Promise<Re
   const now = new Date();
 
   // Fetch all related data in parallel
-  const [leadRes, clienteRes, projetoRes, consultorRes, versaoRes] = await Promise.all([
+  const [leadRes, clienteRes, projetoRes, consultorRes, versaoRes, brandRes, tenantRes] = await Promise.all([
     proposta.lead_id
       ? supabase.from("leads").select("nome, telefone, cidade, estado, media_consumo, valor_estimado, tipo_telhado, rede_atendimento, area").eq("id", proposta.lead_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -73,6 +73,14 @@ export async function buildPropostaContext(proposta: PropostaOption): Promise<Re
       .order("versao_numero", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase.from("brand_settings")
+      .select("logo_url, logo_small_url, logo_white_url, representante_legal, representante_email, representante_cpf, representante_cargo")
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("tenants")
+      .select("nome, nome_fantasia, cnpj, telefone, email, endereco, cidade, estado, bairro, cep, inscricao_estadual")
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const lead = leadRes.data as any;
@@ -80,6 +88,8 @@ export async function buildPropostaContext(proposta: PropostaOption): Promise<Re
   const projeto = projetoRes.data as any;
   const consultor = consultorRes.data as any;
   const versao = versaoRes.data as any;
+  const brand = brandRes.data as any;
+  const tenant = tenantRes.data as any;
 
   // Se tiver snapshot, ele é a fonte primária (contém todos os cálculos)
   const snapshot = versao?.snapshot as Record<string, any> | null;
@@ -146,7 +156,25 @@ export async function buildPropostaContext(proposta: PropostaOption): Promise<Re
     set("comercial.consultor_email", "consultor_email", consultor.email);
   }
 
-  // ── Preencher variáveis do catálogo não preenchidas com examples ──
+  // ── Empresa (brand_settings + tenants) ──
+  const logoUrl = brand?.logo_url || brand?.logo_small_url || "";
+  set("comercial.empresa_logo_url", "empresa_logo_url", logoUrl);
+  set("comercial.empresa_logo_white_url", "empresa_logo_white_url", brand?.logo_white_url || logoUrl);
+  set("comercial.empresa_nome", "empresa_nome", tenant?.nome_fantasia || tenant?.nome);
+  set("comercial.empresa_cnpj_cpf", "empresa_cnpj_cpf", tenant?.cnpj);
+  set("comercial.empresa_telefone", "empresa_telefone", tenant?.telefone);
+  set("comercial.empresa_email", "empresa_email", tenant?.email);
+  set("comercial.empresa_endereco", "empresa_endereco", tenant?.endereco);
+  set("comercial.empresa_cidade", "empresa_cidade", tenant?.cidade);
+  set("comercial.empresa_estado", "empresa_estado", tenant?.estado);
+  set("comercial.empresa_bairro", "empresa_bairro", tenant?.bairro);
+  set("comercial.empresa_cep", "empresa_cep", tenant?.cep);
+  set("comercial.empresa_inscricao_estadual", "empresa_inscricao_estadual", tenant?.inscricao_estadual);
+  set("comercial.representante_legal", "representante_legal", brand?.representante_legal);
+  set("comercial.representante_email", "representante_email", brand?.representante_email);
+  set("comercial.representante_cpf", "representante_cpf", brand?.representante_cpf);
+  set("comercial.representante_cargo", "representante_cargo", brand?.representante_cargo);
+
   for (const v of VARIABLES_CATALOG) {
     if (v.isSeries || v.notImplemented) continue;
     const canonicalBare = v.canonicalKey.replace(/^\{\{|\}\}$/g, "");
