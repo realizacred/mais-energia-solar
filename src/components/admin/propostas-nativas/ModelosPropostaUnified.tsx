@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Globe, FileText } from "lucide-react";
-import { TemplatesTab as ModeloWebTab } from "@/components/admin/conf-solar/tabs/TemplatesTab";
+import { TemplatesTab as ModeloWebTab } from "./ModeloWebTab";
 import { TemplatesManager as ModeloDocTab } from "./TemplatesManager";
 
 export function ModelosPropostaUnified() {
