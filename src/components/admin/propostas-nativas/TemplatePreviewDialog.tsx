@@ -106,6 +106,15 @@ export function TemplatePreviewDialog({
     html = html.replace(/\[[a-z_0-9]+\]/gi, (match) =>
       `<span style="background:#fef3c7;color:#92400e;padding:0 4px;border-radius:3px;font-size:0.8em">${match}</span>`
     );
+    // Inject scroll-enabling styles so the iframe content is navigable
+    const scrollStyle = `<style>html,body{overflow:auto!important;height:auto!important;min-height:100%!important;}</style>`;
+    if (html.includes("</head>")) {
+      html = html.replace("</head>", `${scrollStyle}</head>`);
+    } else if (html.includes("<body")) {
+      html = html.replace("<body", `${scrollStyle}<body`);
+    } else {
+      html = scrollStyle + html;
+    }
     setRenderedHtml(html);
     toast({ title: `Preview gerado` });
   };
