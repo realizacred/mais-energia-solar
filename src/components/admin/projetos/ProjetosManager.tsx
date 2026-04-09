@@ -116,6 +116,7 @@ export function ProjetosManager() {
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
+  const [legendOpen, setLegendOpen] = useState(false);
   const [defaultStageId, setDefaultStageId] = useState<string | undefined>();
   const [defaultModalPipelineId, setDefaultModalPipelineId] = useState<string | undefined>();
   const [searchParams, setSearchParams] = useSearchParams();
