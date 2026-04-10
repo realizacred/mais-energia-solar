@@ -11,6 +11,8 @@ import { toast } from "sonner";
 
 const HEARTBEAT_INTERVAL_MS = 30_000; // 30s
 const RECONNECT_DELAY_MS = 3_000;
+const GRACE_PERIOD_MS = 10_000; // Wait 10s after mount before showing disconnect toast
+const isLovablePreview = typeof window !== "undefined" && window.location.hostname.includes("lovableproject.com");
 
 interface UseRealtimeHeartbeatOptions {
   enabled?: boolean;
@@ -20,6 +22,7 @@ export function useRealtimeHeartbeat({ enabled = true }: UseRealtimeHeartbeatOpt
   const queryClient = useQueryClient();
   const wasDisconnectedRef = useRef(false);
   const hasConnectedRef = useRef(false);
+  const mountedAtRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -30,6 +33,8 @@ export function useRealtimeHeartbeat({ enabled = true }: UseRealtimeHeartbeatOpt
       toast.dismiss("realtime-disconnect");
       return;
     }
+
+    mountedAtRef.current = Date.now();
 
     const channel = supabase.channel("heartbeat-monitor");
 
@@ -42,6 +47,10 @@ export function useRealtimeHeartbeat({ enabled = true }: UseRealtimeHeartbeatOpt
 
     const notifyDisconnected = () => {
       if (!hasConnectedRef.current || !navigator.onLine) return;
+      // Suppress in Lovable preview — realtime drops are expected there
+      if (isLovablePreview) return;
+      // Grace period: don't show toast within first 10s of mount
+      if (Date.now() - mountedAtRef.current < GRACE_PERIOD_MS) return;
 
       if (!wasDisconnectedRef.current) {
         wasDisconnectedRef.current = true;
