@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { formatPhoneBR } from "@/lib/formatters";
 import { WaProfileAvatar } from "./WaProfileAvatar";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -56,6 +55,32 @@ function getUrgencyLabel(lastMessageAt: string | null, status: string): string {
 function getHoursAgo(lastMessageAt: string | null): number | null {
   if (!lastMessageAt) return null;
   return (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
+}
+// ── Display name helper ────────────────────────────────
+function formatWaDisplayName(conv: { cliente_nome?: string | null; cliente_telefone?: string | null; remote_jid?: string | null }): string {
+  if (conv.cliente_nome?.trim()) return conv.cliente_nome.trim();
+
+  const rawPhone = conv.cliente_telefone || conv.remote_jid || "";
+  const cleanPhone = rawPhone
+    .replace(/@lid$/, "")
+    .replace(/@s\.whatsapp\.net$/, "")
+    .replace(/@g\.us$/, "")
+    .trim();
+
+  if (!cleanPhone) return "Contato desconhecido";
+
+  if (/^\d+$/.test(cleanPhone)) {
+    const digits = cleanPhone.replace(/^55/, "");
+    if (digits.length === 11) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    }
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+    return `+${cleanPhone}`;
+  }
+
+  return cleanPhone;
 }
 
 // ── Message preview helper ─────────────────────────────
@@ -159,10 +184,7 @@ function ConversationItem({
   const isHidden = hiddenIds?.has(conv.id);
   const isFollowup = followupConvIds?.has(conv.id);
   const isNote = conv.last_message_preview?.startsWith("[Nota interna]") || conv.last_message_preview?.startsWith("[Nota]");
-  // Clean phone: strip JID suffixes (@lid, @s.whatsapp.net, @g.us) then format
-  const cleanPhone = conv.cliente_telefone?.replace(/@.*$/, "") || "";
-  const formattedPhone = formatPhoneBR(cleanPhone);
-  const displayName = conv.cliente_nome || formattedPhone || "Desconhecido";
+  const displayName = formatWaDisplayName(conv);
 
   const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
 
