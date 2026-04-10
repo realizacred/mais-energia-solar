@@ -26,6 +26,7 @@ import {
   useUpdateSmClient,
   useDeleteSmClient,
   useClearSyncLogs,
+  useSmMigrationRealtimeSync,
   type SmClient,
   type SmProject,
   type SmProposal,

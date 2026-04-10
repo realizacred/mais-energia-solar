@@ -28,6 +28,7 @@ import {
   useDeletarArquivo,
   useGerarDocumento,
   useEnviarParaAssinatura,
+  useDocumentosRealtimeSync,
   downloadArquivo,
   downloadGeneratedDoc,
   type GeneratedDocRow,
@@ -92,6 +93,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const { data: files = [], isLoading: loadingFiles } = useProjetoArquivos(dealId);
   const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
   const { data: templates = [] } = useDocTemplates();
+  useDocumentosRealtimeSync(dealId);
 
   // Buscar dados do cliente vinculado para validação pré-contrato
   const { data: clienteData } = useQuery({
