@@ -1,0 +1,1 @@
+UPDATE solar_market_config SET migration_blocked = false WHERE migration_blocked = true;
