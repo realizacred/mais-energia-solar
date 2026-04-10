@@ -1214,6 +1214,48 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Auto-resume confirmation */}
+      <Dialog open={autoResumeConfirmOpen} onOpenChange={setAutoResumeConfirmOpen}>
+        <DialogContent className="w-[90vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PlayCircle className="h-5 w-5 text-primary" />
+              Migrar todos os pendentes
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Isto vai migrar automaticamente todas as <span className="font-bold text-foreground">{pendingStats?.pending || 0}</span> propostas
+              pendentes em lotes de 25, criando clientes, deals, projetos e propostas no sistema canônico.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              A migração pode ser pausada a qualquer momento. Os registros já processados serão mantidos.
+            </p>
+            <p className="text-sm">
+              Digite <span className="font-bold text-destructive">MIGRAR TODOS</span> para confirmar:
+            </p>
+            <Input
+              value={autoResumeConfirmText}
+              onChange={e => setAutoResumeConfirmText(e.target.value)}
+              placeholder="MIGRAR TODOS"
+              className="font-mono"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setAutoResumeConfirmOpen(false); setAutoResumeConfirmText(""); }}>
+              Cancelar
+            </Button>
+            <Button
+              variant="default"
+              disabled={autoResumeConfirmText !== "MIGRAR TODOS"}
+              onClick={handleAutoResumeConfirm}
+            >
+              Iniciar migração
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
