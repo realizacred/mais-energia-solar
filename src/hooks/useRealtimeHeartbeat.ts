@@ -22,6 +22,7 @@ export function useRealtimeHeartbeat({ enabled = true }: UseRealtimeHeartbeatOpt
   const queryClient = useQueryClient();
   const wasDisconnectedRef = useRef(false);
   const hasConnectedRef = useRef(false);
+  const mountedAtRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
