@@ -6,11 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 // invokeEdgeFunction replaced by direct fetch with 120s timeout for migration
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Sun, CheckCircle, XCircle, Loader2, Clock, ArrowRight, AlertTriangle, FileText, User, Briefcase, FolderKanban, Copy } from "lucide-react";
+import { Sun, CheckCircle, XCircle, Loader2, Clock, ArrowRight, AlertTriangle, FileText, User, Briefcase, FolderKanban, Copy, StopCircle } from "lucide-react";
+import { toast } from "sonner";
 import type { SmProposal } from "@/hooks/useSolarMarket";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
@@ -210,6 +212,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
   const [smoothProgress, setSmoothProgress] = useState(0);
   const cancelRef = useRef(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: consultores = [] } = useConsultores();
@@ -441,6 +445,24 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       // Stop animation and wait for it to finish
       stepAnimCancelRef.current = true;
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+
+      // Handle user cancellation
+      if (cancelRef.current) {
+        const completedBatches = batchProgress ? batchProgress.current - 1 : 0;
+        const totalBatches = batches.length;
+        addLog(`Migração cancelada pelo usuário — ${completedBatches} de ${totalBatches} lotes concluídos`);
+        toast.warning(`Migração cancelada. ${completedBatches} lote(s) processados.`);
+        updateStep("done", {
+          state: "error",
+          detail: `Migração interrompida — ${completedBatches} de ${totalBatches} lotes concluídos`,
+        });
+        if (!dryRun) {
+          qc.invalidateQueries({ queryKey: ["sm-proposals"] });
+          qc.invalidateQueries({ queryKey: ["canonical-check"] });
+        }
+        return;
+      }
+
       setSmoothProgress(100);
 
       // All batches done
@@ -525,6 +547,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       updateStep("done", { state: "error", detail: msg });
     } finally {
       setRunning(false);
+      setCancelling(false);
+      cancelRef.current = false;
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     }
   }, [ownerId, internalIds, activePipelineId, activeStageId, addLog, resetState, updateStep, isBulk, qc, consultores, cancelRef]);
@@ -698,9 +722,27 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {running ? "Processando..." : result ? "Resultado" : ""}
+                    {cancelling ? "Cancelando..." : running ? "Processando..." : result ? "Resultado" : ""}
                   </span>
-                  <span className="text-xs text-muted-foreground font-mono">{progressPercent}%</span>
+                  <div className="flex items-center gap-2">
+                    {running && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs border-destructive text-destructive"
+                        disabled={cancelling}
+                        onClick={() => setCancelConfirmOpen(true)}
+                      >
+                        {cancelling ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <StopCircle className="h-3 w-3 mr-1" />
+                        )}
+                        {cancelling ? "Cancelando..." : "Cancelar"}
+                      </Button>
+                    )}
+                    <span className="text-xs text-muted-foreground font-mono">{progressPercent}%</span>
+                  </div>
                 </div>
                 <Progress value={progressPercent} className="h-2" />
 
@@ -867,6 +909,35 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel confirmation */}
+      <AlertDialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <StopCircle className="h-5 w-5 text-destructive" />
+              Cancelar migração?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza? Os lotes já processados serão mantidos. A migração será interrompida após o lote atual terminar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                cancelRef.current = true;
+                setCancelling(true);
+                setCancelConfirmOpen(false);
+                addLog("Cancelamento solicitado — aguardando lote atual terminar...");
+              }}
+            >
+              Cancelar migração
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
