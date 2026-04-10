@@ -15,7 +15,6 @@ serve(async (req: Request) => {
   }
 
   const startMs = Date.now();
-  console.log("[pipeline-automations] Starting automation check...");
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -25,19 +24,16 @@ serve(async (req: Request) => {
     // Fetch all active automations with tipo_gatilho = 'tempo_parado'
     const { data: automations, error: autoErr } = await supabase
       .from("pipeline_automations")
-      .select("id, tenant_id, stage_id, tempo_horas, tipo_acao, destino_stage_id, notificar_responsavel, pipeline_id")
+      .select("id, tenant_id, stage_id, tempo_horas, tipo_acao, destino_stage_id, notificar_responsavel, pipeline_id, execucoes_total")
       .eq("ativo", true)
       .eq("tipo_gatilho", "tempo_parado");
 
     if (autoErr) throw autoErr;
     if (!automations || automations.length === 0) {
-      console.log("[pipeline-automations] No active automations found.");
       return new Response(JSON.stringify({ processed: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    console.log(`[pipeline-automations] Found ${automations.length} active automations`);
 
     let totalProcessed = 0;
     let totalMoved = 0;
@@ -46,17 +42,11 @@ serve(async (req: Request) => {
     for (const auto of automations) {
       // Entitlement check per tenant
       const entitlement = await checkFeatureAccess(supabase, auto.tenant_id, "automacoes");
-      if (!entitlement.has_access) {
-        console.log(`[pipeline-automations] Skipping auto ${auto.id} — tenant ${auto.tenant_id} has no automacoes access`);
-        continue;
-      }
+      if (!entitlement.has_access) continue;
 
       // Usage limit check per tenant
       const limitCheck = await checkUsageLimit(supabase, auto.tenant_id, "max_automations");
-      if (!limitCheck.allowed) {
-        console.log(`[pipeline-automations] Skipping auto ${auto.id} — tenant ${auto.tenant_id} automations limit reached (${limitCheck.current_value}/${limitCheck.limit_value})`);
-        continue;
-      }
+      if (!limitCheck.allowed) continue;
 
       const cutoffDate = new Date(Date.now() - auto.tempo_horas * 60 * 60 * 1000).toISOString();
 
@@ -77,7 +67,7 @@ serve(async (req: Request) => {
 
       if (!stalledDeals || stalledDeals.length === 0) continue;
 
-      console.log(`[pipeline-automations] Auto ${auto.id}: ${stalledDeals.length} stalled deals found`);
+      let autoExecutions = 0;
 
       for (const deal of stalledDeals) {
         try {
@@ -133,28 +123,28 @@ serve(async (req: Request) => {
           });
 
           totalProcessed++;
+          autoExecutions++;
           await trackUsage(supabase, auto.tenant_id, "automacoes_executadas", 1, { source: "pipeline-automations" });
-
-          // Update automation execution counter
-          await supabase
-            .from("pipeline_automations")
-            .update({
-              execucoes_total: auto.execucoes_total + totalProcessed,
-              ultima_execucao: new Date().toISOString(),
-            } as any)
-            .eq("id", auto.id);
 
         } catch (err) {
           console.error(`[pipeline-automations] Error processing deal ${deal.deal_id}:`, err);
           totalErrors++;
         }
       }
+
+      // Update automation execution counter once per automation (not per deal)
+      if (autoExecutions > 0) {
+        await supabase
+          .from("pipeline_automations")
+          .update({
+            execucoes_total: (auto.execucoes_total || 0) + autoExecutions,
+            ultima_execucao: new Date().toISOString(),
+          } as any)
+          .eq("id", auto.id);
+      }
     }
 
     const elapsed = Date.now() - startMs;
-    console.log(
-      `[pipeline-automations] Done in ${elapsed}ms. Processed: ${totalProcessed}, Moved: ${totalMoved}, Errors: ${totalErrors}`
-    );
 
     return new Response(
       JSON.stringify({ processed: totalProcessed, moved: totalMoved, errors: totalErrors, elapsed_ms: elapsed }),
