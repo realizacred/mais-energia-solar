@@ -792,6 +792,59 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             {/* Migration Block Banner */}
             <MigrationBlockBanner />
 
+            {/* Pending migration stats */}
+            {pendingStats && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
+                  <p className="text-lg font-bold text-foreground">{pendingStats.migrated}</p>
+                  <p className="text-[10px] text-muted-foreground">Migradas</p>
+                </div>
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
+                  <p className="text-lg font-bold text-foreground">{pendingStats.pending}</p>
+                  <p className="text-[10px] text-muted-foreground">Pendentes</p>
+                </div>
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
+                  <p className="text-lg font-bold text-foreground">
+                    {pendingStats.total > 0 ? Math.round((pendingStats.migrated / pendingStats.total) * 100) : 0}%
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Progresso total</p>
+                </div>
+              </div>
+            )}
+
+            {/* Auto-resume progress */}
+            {autoResumeRunning && autoResumeStats && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    Migração automática em andamento
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs border-destructive text-destructive"
+                    disabled={cancelling}
+                    onClick={() => setCancelConfirmOpen(true)}
+                  >
+                    {cancelling ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <StopCircle className="h-3 w-3 mr-1" />}
+                    {cancelling ? "Cancelando..." : "Parar"}
+                  </Button>
+                </div>
+                <Progress value={smoothProgress} className="h-2" />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>{autoResumeStats.migrated} migrados, {autoResumeStats.errors} erros</span>
+                  <span>{(() => {
+                    const elapsed = (Date.now() - autoResumeStats.startTime) / 1000;
+                    const rate = autoResumeStats.migrated / Math.max(elapsed, 1);
+                    const remaining = pendingStats ? Math.max(0, pendingStats.pending - autoResumeStats.migrated) : 0;
+                    const eta = rate > 0 ? Math.round(remaining / rate) : 0;
+                    return eta > 60 ? `~${Math.round(eta / 60)}min restantes` : `~${eta}s restantes`;
+                  })()}</span>
+                </div>
+              </div>
+            )}
+
             {/* Proposal Summary */}
             {!isBulk && (
               <>
