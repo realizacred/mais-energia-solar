@@ -189,6 +189,38 @@ function useSmProjectFunnels(smProjectId: number | null) {
   });
 }
 
+// ─── Migration Block Banner ──────────────────────────────
+
+function MigrationBlockBanner() {
+  const { data: config } = useQuery({
+    queryKey: ["sm-config-block"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("solar_market_config")
+        .select("migration_blocked")
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 1000 * 30,
+  });
+
+  if (!config?.migration_blocked) return null;
+
+  return (
+    <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 flex items-start gap-2">
+      <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+      <div>
+        <p className="text-sm font-semibold text-warning">Migração pausada para manutenção</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          A migração está temporariamente bloqueada enquanto os dados existentes são auditados e corrigidos.
+          Contate o administrador para mais informações.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Drawer Component ───────────────────────────────────
 
 interface SmMigrationDrawerProps {
