@@ -1,7 +1,6 @@
 /**
  * ProposalFinancialSection — Financial analysis with animated chart.
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log
  */
 
 import { useRef, useState, useEffect } from "react";

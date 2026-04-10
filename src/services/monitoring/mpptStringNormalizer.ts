@@ -29,7 +29,6 @@ export function normalizeDeviceToStringReadings(
   const inverterOnline = derived.status === "online";
 
   const mpptCount = Number(meta.dcInputTypeMppt ?? meta.dcInputType ?? meta.mpptCount ?? 0);
-  // console.log("[normalizer] device:", device.id, "mpptCount:", mpptCount, "dcInputTypeMppt:", meta.dcInputTypeMppt, "dcInputType:", meta.dcInputType);
   const readings: NormalizedStringReading[] = [];
 
   // ── Step 1: Collect raw channel data ──

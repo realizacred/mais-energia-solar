@@ -1,7 +1,6 @@
 /**
  * ProposalHeroSection — Hero section with animated counters and CTA.
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log
  */
 
 import { useRef, useEffect, useState } from "react";

@@ -333,7 +333,6 @@ export async function getMonthlyIrradiance(
   if (versionId && (preference === "auto" || preference === "local_grid")) {
     try {
       const gridResult = await tryLocalGrid(lat, lon, config, versionId, versionTag);
-      // console.log(`[IrradianceProvider] ✅ TIER 1 Local Grid: ${gridResult.annual_average.toFixed(2)} kWh/m²/day`);
       return gridResult;
     } catch (e: any) {
       console.warn(`[IrradianceProvider] ⚠️ TIER 1 Local Grid failed: ${e.message}, trying TIER 2…`);
@@ -344,7 +343,6 @@ export async function getMonthlyIrradiance(
   if (preference === "auto" || preference === "nsrdb") {
     const nsrdbResult = await tryNsrdbLookup(lat, lon, versionId || undefined);
     if (nsrdbResult) {
-      // console.log(`[IrradianceProvider] ✅ TIER 2 NSRDB: ${nsrdbResult.annual_average.toFixed(2)} kWh/m²/day`);
       return nsrdbResult;
     }
     console.warn(`[IrradianceProvider] ⚠️ TIER 2 NSRDB also failed`);

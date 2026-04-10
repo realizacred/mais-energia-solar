@@ -670,8 +670,6 @@ export function ConvertLeadToClientDialog({
       const { data: tenantId } = await supabase.rpc("get_user_tenant_id");
       if (!tenantId) throw new Error("Não foi possível identificar o tenant. Faça login novamente.");
 
-      // console.debug("[ConvertLead] Starting conversion for lead:", lead.id);
-      // console.debug("[ConvertLead] Files count:", {
       //   identidade: identidadeFiles.length,
       //   comprovante: comprovanteFiles.length,
       //   beneficiaria: beneficiariaFiles.length,
@@ -683,7 +681,6 @@ export function ConvertLeadToClientDialog({
       const beneficiariaUrls = await uploadDocumentFiles(beneficiariaFiles, `${tenantId}/beneficiaria`, supabase);
       const assinaturaUrls = await uploadDocumentFiles(assinaturaFiles, `${tenantId}/assinatura`, supabase);
 
-      // console.debug("[ConvertLead] Upload results:", {
       //   identidade: identidadeUrls,
       //   comprovante: comprovanteUrls,
       //   beneficiaria: beneficiariaUrls,
@@ -723,7 +720,6 @@ export function ConvertLeadToClientDialog({
             if (versao) {
               potenciaKwp = versao.potencia_kwp || null;
               valorProjeto = versao.valor_total || null;
-              // console.debug("[ConvertLead] Got data from proposta_nativa:", { potenciaKwp, valorProjeto });
             }
           }
         } catch (e) {
@@ -756,7 +752,6 @@ export function ConvertLeadToClientDialog({
         valor_projeto: valorProjeto,
       };
 
-      // console.debug("[ConvertLead] clientePayload:", {
       //   ...clientePayload,
       //   identidade_urls: clientePayload.identidade_urls?.length || 0,
       //   comprovante_endereco_urls: clientePayload.comprovante_endereco_urls?.length || 0,
@@ -797,7 +792,6 @@ export function ConvertLeadToClientDialog({
       let cliente: { id: string } | null = null;
 
       if (existingCliente) {
-        // console.debug("[ConvertLead] Updating existing cliente:", existingCliente.id);
         const { data: updated, error: updateError } = await supabase
           .from("clientes")
           .update({ ...clientePayload, lead_id: lead.id, updated_at: new Date().toISOString() })

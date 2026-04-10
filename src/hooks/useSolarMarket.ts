@@ -444,7 +444,6 @@ export function useSyncSolarMarket() {
       const allErrorDetails: string[] = [];
 
       for (const stage of stages) {
-        // console.log(`[SM Sync] Starting stage: ${stage}`);
 
         const { data, error } = await supabase.functions.invoke("solarmarket-sync", {
           body: { sync_type: stage },

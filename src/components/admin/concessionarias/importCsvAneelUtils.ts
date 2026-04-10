@@ -330,9 +330,6 @@ export function detectColumns(headers: string[]): ColumnMap {
   // Safety: if vlrComponente matched the same column as vlrTUSD or vlrTE, keep vlrComponente
   // (it's more specific for componentes files)
 
-  // console.log("[ANEEL detectColumns] Normalized headers:", normalizedHeaders);
-  // console.log("[ANEEL detectColumns] Column map result:", map);
-
   return map;
 }
 
@@ -386,7 +383,6 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
         // Check if any value looks like a known energy company abbreviation
         if (values.some(v => /^[A-Z]{2,10}$/i.test(v.trim()))) {
           cols.sigAgente = colIdx;
-          // console.log("[ANEEL Homol] Content-based fallback: sigAgente at col", colIdx);
           break;
         }
       }
@@ -419,7 +415,6 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
             )
           );
           if (hasCompanyPattern) {
-            // console.log("[ANEEL Homol] Reassigning agent to col", colIdx, "with values:", colVals.slice(0, 3));
             if (cols.nomAgente === agentColIdx) cols.nomAgente = colIdx;
             if (cols.sigAgente === agentColIdx) cols.sigAgente = colIdx;
             foundAlternative = true;
@@ -443,7 +438,6 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
       const matchCount = values.filter(v => subgrupoPattern.test(v.trim())).length;
       if (matchCount >= 3) {
         cols.subgrupo = colIdx;
-        // console.log("[ANEEL Homol] Content-based fallback: subgrupo at col", colIdx, "matched", matchCount, "values");
         break;
       }
     }
@@ -497,13 +491,8 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
     debugSkipReasons.filteredDetalhe = before - filtered.length;
   }
 
-  // console.log("[ANEEL Homol] Debug:", debugSkipReasons, "Records found:", filtered.length, "Column map:", cols);
-  // console.log("[ANEEL Homol] Sample baseTarifaria values:", [...new Set(allRecords.slice(0, 100).map(r => r.baseTarifaria))]);
-  // console.log("[ANEEL Homol] Sample detalhe values:", [...new Set(allRecords.slice(0, 100).map(r => r.detalhe))]);
-
   return filtered;
 }
-
 
 export function parseComponentesTarifas(data: string[] | string[][], headers: string[]): ParsedTarifa[] {
   const cols = detectColumns(headers);
@@ -523,7 +512,6 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
       if (!looksLikeAgentColumn(values)) continue;
       if (values.length > 0 && values.some(v => /^[A-Z]{2,10}$/i.test(v.trim()))) {
         cols.sigAgente = colIdx;
-        // console.log("[ANEEL Comp] Content-based fallback: sigAgente at col", colIdx);
         break;
       }
     }
@@ -542,7 +530,6 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
       const matchCount = values.filter(v => subgrupoPattern.test(v.trim())).length;
       if (matchCount >= 3) {
         cols.subgrupo = colIdx;
-        // console.log("[ANEEL Comp] Content-based fallback: subgrupo at col", colIdx);
         break;
       }
     }
@@ -592,8 +579,6 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
     });
   }
   
-  // console.log("[ANEEL Comp] Debug:", debugSkipReasons, "Records found:", records.length);
-  
   return records;
 }
 
@@ -629,7 +614,6 @@ export async function parseXlsxFile(buffer: ArrayBuffer): Promise<{ headers: str
       headerRowIndex = i;
     }
     if (matchCount >= 4) {
-      // console.log(`[ANEEL XLSX] Header found at row ${i + 1} (matched ${matchCount} keywords)`);
       break;
     }
   }
@@ -644,10 +628,7 @@ export async function parseXlsxFile(buffer: ArrayBuffer): Promise<{ headers: str
     .filter(row => (row as any[]).some(c => String(c ?? "").trim() !== ""))
     .map(row => (row as any[]).map(c => String(c ?? "").trim()));
   
-  // console.log(`[ANEEL XLSX] Headers detected (row ${headerRowIndex + 1}):`, headers);
-  // console.log(`[ANEEL XLSX] Total data rows: ${rows.length}`);
   if (rows.length > 0) {
-    // console.log(`[ANEEL XLSX] Sample row 1:`, rows[0]);
   }
   
   return { headers, rows };

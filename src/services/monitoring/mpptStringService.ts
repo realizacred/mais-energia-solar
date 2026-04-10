@@ -55,7 +55,6 @@ async function resolveMonitorPlantId(plantId: string): Promise<string> {
 
 export async function listStringRegistry(plantId: string): Promise<StringRegistry[]> {
   const resolvedId = await resolveMonitorPlantId(plantId);
-  // console.log("[listStringRegistry] plantId:", plantId, "resolvedId:", resolvedId);
   const { data, error } = await supabase
     .from("monitor_string_registry" as any)
     .select("*")
@@ -64,11 +63,9 @@ export async function listStringRegistry(plantId: string): Promise<StringRegistr
     .order("device_id")
     .order("mppt_number")
     .order("string_number");
-  // console.log("[listStringRegistry] result:", data?.length ?? 0, "rows, error:", error?.message ?? "none");
   
   // If no results with resolved ID, try with original plantId as fallback
   if ((!data || data.length === 0) && resolvedId !== plantId) {
-    // console.log("[listStringRegistry] Trying with original plantId as fallback");
     const { data: fallbackData } = await supabase
       .from("monitor_string_registry" as any)
       .select("*")
@@ -78,7 +75,6 @@ export async function listStringRegistry(plantId: string): Promise<StringRegistr
       .order("mppt_number")
       .order("string_number");
     if (fallbackData && fallbackData.length > 0) {
-      // console.log("[listStringRegistry] Fallback found", fallbackData.length, "rows");
       return (fallbackData as unknown as StringRegistry[]);
     }
   }
@@ -364,7 +360,6 @@ async function autoRegisterStrings(
   if (error) {
     console.error("[autoRegisterStrings] upsert error:", error.message);
   } else {
-    // console.log("[autoRegisterStrings] Registered", rows.length, "strings for device", device.id);
   }
 }
 

@@ -23,8 +23,6 @@ export function SistemaInstallBanner() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (navigator as any).standalone === true;
 
-    // console.log("[PWA Banner Sistema]", { isInstalled, canInstall, isIOS, isAndroid, isStandalone, isMobile });
-
     if (isInstalled || isStandalone || !isMobile) {
       setDismissed(true);
       return;

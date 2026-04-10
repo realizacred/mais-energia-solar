@@ -97,7 +97,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   useEffect(() => {
     if (loadedDefaults || !pricingConfig) return;
     if (venda.margem_percentual === 20 && pricingConfig.margem_minima_percent) {
-      // console.debug("[StepFinancialCenter] Margem inicial aplicada:", pricingConfig.margem_minima_percent, "| Origem: pricing_config");
       onVendaChange({ ...venda, margem_percentual: pricingConfig.margem_minima_percent });
     }
     setLoadedDefaults(true);
@@ -113,7 +112,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       return;
     }
     if (suggested?.custo_instalacao != null && suggested.custo_instalacao > 0) {
-      // console.debug("[StepFinancialCenter] Instalação pré-preenchida:", suggested.custo_instalacao, "| Origem: pricing_defaults_history");
       setInstalacaoCusto(suggested.custo_instalacao);
     }
     setInstalacaoDefaultApplied(true);
@@ -137,7 +135,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
           .maybeSingle();
         const consultorId = lead?.consultor_id;
         if (!consultorId) {
-          // console.debug("[Comissão] Lead sem consultor vinculado");
           setComissaoLoaded(true);
           return;
         }
@@ -157,7 +154,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         if (consultorPercent > 0) {
           setPercentualComissaoConsultor(consultorPercent);
           setComissaoSource("consultor");
-          // console.debug("[Comissão] Consultor:", nome, "| Percentual:", consultorPercent + "% | Origem: cadastro do consultor");
         } else {
           // Fallback: buscar plano de comissão atribuído via user_pricing_assignments
           const userId = (consultor as any)?.user_id;
@@ -182,7 +178,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                 : 0;
               if (planPercent > 0) {
                 setComissaoSource(`plano: ${(plan as any)?.name || "atribuído"}`);
-                // console.debug("[Comissão] Consultor:", nome, "| Percentual:", planPercent + "% | Origem: plano", (plan as any)?.name);
               }
             }
           }
@@ -195,9 +190,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
             if (fallback > 0) {
               setPercentualComissaoConsultor(fallback);
               setComissaoSource("padrão do tenant");
-              // console.debug("[Comissão] Consultor:", nome, "| Percentual:", fallback + "% | Origem: pricing_config (fallback)");
             } else {
-              // console.debug("[Comissão] Consultor:", nome, "| Sem percentual configurado");
             }
           }
         }
@@ -207,7 +200,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       setComissaoLoaded(true);
     })();
   }, [leadId, pricingConfig]); // leadId + pricingConfig para fallback
-
 
   // ── Sync Financial Center costs back to VendaData ──
   // This ensures calcPrecoFinal and StepResumo see the correct values
@@ -262,7 +254,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
   const custoKitEfetivo = kitCustoOverride !== null ? kitCustoOverride : custoKit;
   const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${(Number(potenciaKwp) || 0).toFixed(2)} kWp` : "Kit fotovoltaico";
-
 
   // Build all cost rows
   const allRows = useMemo<CustoRow[]>(() => {
@@ -338,8 +329,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   );
   const precoVendaSemComissao = roundCurrency(custoSemComissao * (1 + margemPercent / 100));
 
-
-
   // Auto-recalculate commission whenever base price or percentage changes
   useEffect(() => {
     if (!comissaoEnabled || percentualComissaoConsultor <= 0 || !comissaoLoaded) return;
@@ -348,7 +337,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     const calculado = roundCurrency(precoVendaSemComissao * percentualComissaoConsultor / 100);
     // Only update if difference is significant (avoid loops)
     if (Math.abs(comissaoCusto - calculado) > 0.01) {
-      // console.debug("[StepFinancialCenter] Comissão recalculada:", formatBRL(calculado), `(${percentualComissaoConsultor}% de ${formatBRL(precoVendaSemComissao)})`);
       setComissaoCusto(calculado);
     }
   }, [precoVendaSemComissao, percentualComissaoConsultor, comissaoEnabled, comissaoLoaded, comissaoManualOverride]);
@@ -358,7 +346,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     if (precoVendaSemComissao <= 0) return 0;
     return Math.round((comissaoCusto / precoVendaSemComissao) * 10000) / 100;
   }, [comissaoCusto, precoVendaSemComissao]);
-
 
   const sliderMin = custoTotal;
   const sliderMax = custoTotal * 2 || 50000;

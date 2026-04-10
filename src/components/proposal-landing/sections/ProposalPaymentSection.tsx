@@ -1,7 +1,6 @@
 /**
  * ProposalPaymentSection — Payment options with scenario selection.
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log
  */
 
 import { CreditCard, Banknote } from "lucide-react";

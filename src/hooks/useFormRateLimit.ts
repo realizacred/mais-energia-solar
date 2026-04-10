@@ -79,7 +79,6 @@ export function useFormRateLimit(options: Partial<RateLimitOptions> = {}) {
       remainingAttempts: Math.max(0, remaining),
     }));
 
-    // console.log(`[RateLimit] Attempt recorded. ${remaining} attempts remaining.`);
   }, [config.maxAttempts, cleanOldAttempts]);
 
   const getRemainingCooldownSeconds = useCallback((): number => {

@@ -39,7 +39,6 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
         if (data) {
           const d = data as any;
           if (venda.margem_percentual === 20 && d.margem_minima_percent) {
-            // console.debug("[StepVenda] Margem inicial aplicada:", d.margem_minima_percent, "| Origem: pricing_config");
             onVendaChange({
               ...venda,
               margem_percentual: d.margem_minima_percent,

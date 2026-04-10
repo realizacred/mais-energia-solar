@@ -1,7 +1,6 @@
 /**
  * ProposalCTASection — Final CTA with accept form and WhatsApp.
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log
  */
 
 import { motion } from "framer-motion";

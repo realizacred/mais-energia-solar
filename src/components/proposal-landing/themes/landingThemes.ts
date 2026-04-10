@@ -7,7 +7,6 @@
  *   3. Premium Dark (Dark/Gold) — premium corporate
  * 
  * All themes use CSS variables consumed by the same JSX.
- * RB-17: no console.log
  */
 
 const SHARED_CSS = `

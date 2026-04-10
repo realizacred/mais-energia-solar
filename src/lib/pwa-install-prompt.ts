@@ -15,17 +15,14 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
 const listeners = new Set<(e: BeforeInstallPromptEvent | null) => void>();
 
 export function initPWAPromptCapture() {
-  // console.log("[PWA] initPWAPromptCapture registered");
 
   window.addEventListener("beforeinstallprompt", (e: Event) => {
     e.preventDefault();
     deferredPrompt = e as BeforeInstallPromptEvent;
-    // console.log("[PWA] beforeinstallprompt captured ✅", { listenerCount: listeners.size });
     listeners.forEach((fn) => fn(deferredPrompt));
   });
 
   window.addEventListener("appinstalled", () => {
-    // console.log("[PWA] appinstalled event fired");
     deferredPrompt = null;
     listeners.forEach((fn) => fn(null));
   });

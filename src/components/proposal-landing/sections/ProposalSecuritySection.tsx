@@ -1,7 +1,6 @@
 /**
  * ProposalSecuritySection — Trust & guarantee signals.
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log
  */
 
 import { Shield, ClipboardCheck, Wifi, Wrench } from "lucide-react";

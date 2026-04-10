@@ -822,7 +822,6 @@ export function useDealPipeline() {
       return null;
     }
 
-    // console.debug("[createDeal] Inserindo deal:", {
     //   title: params.title, ownerId, customerId: params.customerId,
     //   pipelineId: pipeId, stageId: targetStageId,
     // });

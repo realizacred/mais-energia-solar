@@ -1,7 +1,6 @@
 /**
  * ProposalAuthoritySection — Company authority/trust signals.
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log
  */
 
 import { Award, MapPin, Zap, Users } from "lucide-react";

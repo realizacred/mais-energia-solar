@@ -290,7 +290,6 @@ export function ApproveVendaDialog({
     ? (cliente.localizacao.includes("google.com/maps") ? "Link de localização informado" : cliente.localizacao)
     : "—";
 
-  // console.debug("[ApproveVendaDialog] data:", {
   //   selectedSimulacaoId, selectedSim, firstSim,
   //   clienteSimulacoes: cliente.simulacoes,
   //   leadMediaConsumo: cliente.leads?.media_consumo,
