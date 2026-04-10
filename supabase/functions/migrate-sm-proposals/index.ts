@@ -1863,6 +1863,9 @@ Deno.serve(async (req) => {
                 report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "matched by deal_id" };
               } else {
                 const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
+                // Resolve kanban funil/etapa from SM funnel name
+                const smProjForFunil = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                const { funil_id, etapa_id } = resolveProjetoFunilEtapa(smProjForFunil?.sm_funnel_name ?? null);
                 const projInsert: Record<string, any> = {
                     origem: "imported",
                     tenant_id: tenantId,
@@ -1888,6 +1891,8 @@ Deno.serve(async (req) => {
                     codigo: projetoCodigo,
                     projeto_num: null,
                     is_principal: false, // avoid unique constraint on is_principal per cliente
+                    funil_id: funil_id,
+                    etapa_id: etapa_id,
                 };
                 if (smProjDate) {
                   projInsert.created_at = smProjDate;
