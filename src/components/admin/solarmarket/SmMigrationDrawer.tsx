@@ -135,6 +135,30 @@ function useCanonicalCheck(smProposalId: number | null) {
   });
 }
 
+// ─── Hook: pending migration count ─────────────────────
+
+function usePendingMigrationCount() {
+  return useQuery<{ total: number; pending: number; migrated: number; errors: number }>({
+    queryKey: ["sm-migration-pending-count"],
+    queryFn: async () => {
+      const { count: total } = await supabase
+        .from("solar_market_proposals")
+        .select("id", { count: "exact", head: true });
+      const { count: migrated } = await supabase
+        .from("solar_market_proposals")
+        .select("id", { count: "exact", head: true })
+        .not("migrado_em", "is", null);
+      return {
+        total: total || 0,
+        migrated: migrated || 0,
+        pending: (total || 0) - (migrated || 0),
+        errors: 0,
+      };
+    },
+    staleTime: 1000 * 30,
+  });
+}
+
 // ─── Hook: resolve real client name via project → client ──
 
 function useSmRealClientName(smProjectId: number | null) {
