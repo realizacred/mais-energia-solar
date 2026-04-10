@@ -56,6 +56,32 @@ function getHoursAgo(lastMessageAt: string | null): number | null {
   if (!lastMessageAt) return null;
   return (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
 }
+// ── Display name helper ────────────────────────────────
+function formatWaDisplayName(conv: { cliente_nome?: string | null; cliente_telefone?: string | null; remote_jid?: string | null }): string {
+  if (conv.cliente_nome?.trim()) return conv.cliente_nome.trim();
+
+  const rawPhone = conv.cliente_telefone || conv.remote_jid || "";
+  const cleanPhone = rawPhone
+    .replace(/@lid$/, "")
+    .replace(/@s\.whatsapp\.net$/, "")
+    .replace(/@g\.us$/, "")
+    .trim();
+
+  if (!cleanPhone) return "Contato desconhecido";
+
+  if (/^\d+$/.test(cleanPhone)) {
+    const digits = cleanPhone.replace(/^55/, "");
+    if (digits.length === 11) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    }
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+    return `+${cleanPhone}`;
+  }
+
+  return cleanPhone;
+}
 
 // ── Message preview helper ─────────────────────────────
 function getMessagePreview(type: string | null | undefined, body: string | null | undefined): string {
