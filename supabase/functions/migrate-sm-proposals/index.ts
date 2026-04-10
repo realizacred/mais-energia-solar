@@ -264,7 +264,14 @@ Deno.serve(async (req) => {
     }
 
     const tenantId = profile.tenant_id;
-    const params: MigrationParams = await req.json();
+    const rawBody = await req.json();
+
+    // ─── PASSO 0: sync_pipelines action ─────────────────
+    if (rawBody?.action === "sync_pipelines") {
+      return await handleSyncPipelines(adminClient, tenantId);
+    }
+
+    const params: MigrationParams = rawBody as MigrationParams;
     const { dry_run = true, filters = {}, batch_size = 10 } = params;
 
     const autoResolveOwner = params.auto_resolve_owner !== false; // default true
