@@ -323,10 +323,52 @@ function extractContent(messageContent: any, msg: any): { content: string | null
     const loc = messageContent.locationMessage;
     return { content: `${loc.degreesLatitude},${loc.degreesLongitude}`, messageType: "location" };
   }
-  if (messageContent.contactMessage || messageContent.contactsArrayMessage) return { content: null, messageType: "contact" };
+  if (messageContent.contactMessage || messageContent.contactsArrayMessage) {
+    const contactDisplay = extractContactDisplay(messageContent);
+    return { content: contactDisplay, messageType: "contact" };
+  }
   if (messageContent.reactionMessage) return { content: messageContent.reactionMessage.text || null, messageType: "reaction" };
   if (msg.body || msg.text) return { content: msg.body || msg.text, messageType: "text" };
   return { content: null, messageType: "text" };
+}
+
+
+function extractContactDisplay(mc: any): string | null {
+  try {
+    if (mc.contactMessage) {
+      const displayName = mc.contactMessage.displayName;
+      const vcard = mc.contactMessage.vcard || "";
+      const phone = extractPhoneFromVcard(vcard);
+      if (displayName && phone) return `${displayName} (${phone})`;
+      if (displayName) return displayName;
+      if (phone) return phone;
+      return null;
+    }
+    if (mc.contactsArrayMessage) {
+      const contacts = mc.contactsArrayMessage.contacts || [];
+      if (contacts.length === 0) return mc.contactsArrayMessage.displayName || null;
+      const names: string[] = [];
+      for (const c of contacts) {
+        const name = c.displayName;
+        const vcard = c.vcard || "";
+        const phone = extractPhoneFromVcard(vcard);
+        if (name && phone) names.push(`${name} (${phone})`);
+        else if (name) names.push(name);
+        else if (phone) names.push(phone);
+      }
+      return names.length > 0 ? names.join(", ") : null;
+    }
+  } catch { /* fallback */ }
+  return null;
+}
+
+function extractPhoneFromVcard(vcard: string): string | null {
+  if (!vcard) return null;
+  const match = vcard.match(/TEL[^:]*:([+\d\s()-]+)/i);
+  if (match) return match[1].trim();
+  const waidMatch = vcard.match(/waid=(\d+)/i);
+  if (waidMatch) return `+${waidMatch[1]}`;
+  return null;
 }
 
 function jsonRes(body: Record<string, unknown>, status = 200) {
