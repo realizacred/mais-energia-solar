@@ -44,6 +44,10 @@ export function useRealtimeHeartbeat({ enabled = true }: UseRealtimeHeartbeatOpt
 
     const notifyDisconnected = () => {
       if (!hasConnectedRef.current || !navigator.onLine) return;
+      // Suppress in Lovable preview — realtime drops are expected there
+      if (isLovablePreview) return;
+      // Grace period: don't show toast within first 10s of mount
+      if (Date.now() - mountedAtRef.current < GRACE_PERIOD_MS) return;
 
       if (!wasDisconnectedRef.current) {
         wasDisconnectedRef.current = true;
