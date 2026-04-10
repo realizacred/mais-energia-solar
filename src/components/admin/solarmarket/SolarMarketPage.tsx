@@ -608,6 +608,44 @@ export default function SolarMarketPage() {
   const migratedProposalsCount = useMemo(() => proposals.filter(p => !!p.migrado_em).length, [proposals]);
 
   const [migrateAllOpen, setMigrateAllOpen] = useState(false);
+  const [syncPipelinesRunning, setSyncPipelinesRunning] = useState(false);
+  const [syncPipelinesResult, setSyncPipelinesResult] = useState<{ pipelines: { created: number; existing: number }; stages: { created: number; existing: number }; consultores: { created: number; existing: number } } | null>(null);
+
+  const runSyncPipelines = useCallback(async () => {
+    setSyncPipelinesRunning(true);
+    setSyncPipelinesResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada");
+      const projectUrl = import.meta.env.VITE_SUPABASE_URL;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60_000);
+      let response: Response;
+      try {
+        response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action: "sync_pipelines" }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody?.error || `HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      if (data?.report) setSyncPipelinesResult(data.report);
+      return data;
+    } finally {
+      setSyncPipelinesRunning(false);
+    }
+  }, []);
 
   const clientsWithoutProposalsCount = useMemo(() => {
     const clientIdsWithProposals = new Set(proposals.map(p => p.sm_client_id).filter(Boolean));
