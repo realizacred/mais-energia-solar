@@ -547,6 +547,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       updateStep("done", { state: "error", detail: msg });
     } finally {
       setRunning(false);
+      setCancelling(false);
+      cancelRef.current = false;
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     }
   }, [ownerId, internalIds, activePipelineId, activeStageId, addLog, resetState, updateStep, isBulk, qc, consultores, cancelRef]);
