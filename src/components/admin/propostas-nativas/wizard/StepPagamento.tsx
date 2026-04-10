@@ -324,9 +324,15 @@ export function StepPagamento({
       const geracaoAnual = Math.round(geracaoBase * degradacao * 100) / 100;
       const economiaBruta = Math.round(geracaoAnual * tarifaVigente * 100) / 100;
 
-      // Fio B: use simplified 15% for frontend preview (backend uses full Lei 14.300 escalation)
-      const fioBPct = 0.15;
-      const custoFioB = Math.round(geracaoAnual * tarifaVigente * 0.28 * fioBPct * 100) / 100;
+      // Fio B: escalonamento dinâmico Lei 14.300 (percentual de cobrança sobre TUSD)
+      const anoProjecao = new Date().getFullYear() + ano - 1;
+      const fioBPct = anoProjecao <= 2025 ? 0.45
+        : anoProjecao === 2026 ? 0.60
+        : anoProjecao === 2027 ? 0.75
+        : anoProjecao === 2028 ? 0.90
+        : 1.00;
+      const tarifaFioBBase = ucGeradora?.tarifa_fio_b || tarifaBase * 0.28;
+      const custoFioB = Math.round(geracaoAnual * tarifaFioBBase * inflacao * fioBPct * 100) / 100;
       const economiaLiquida = Math.round((economiaBruta - custoFioB) * 100) / 100;
 
       // Troca de inversor
