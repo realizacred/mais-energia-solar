@@ -515,7 +515,47 @@ Deno.serve(async (req) => {
     }
 
     const params: MigrationParams = rawBody as MigrationParams;
-    const { dry_run = true, filters = {}, batch_size = 10 } = params;
+    const { dry_run = true, batch_size = 25 } = params;
+    let { filters = {} } = params;
+
+    // ─── AUTO_RESUME: fetch next pending batch automatically ─────
+    if (params.auto_resume && !dry_run) {
+      const { data: pendentes } = await adminClient
+        .from("solar_market_proposals")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .is("migrado_em", null)
+        .order("sm_proposal_id", { ascending: true })
+        .limit(batch_size);
+
+      if (!pendentes || pendentes.length === 0) {
+        // Count totals for final report
+        const { count: totalCount } = await adminClient
+          .from("solar_market_proposals")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenantId);
+        const { count: migratedCount } = await adminClient
+          .from("solar_market_proposals")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenantId)
+          .not("migrado_em", "is", null);
+
+        return new Response(
+          JSON.stringify({
+            completed: true,
+            message: "Todas as propostas foram migradas",
+            total: totalCount || 0,
+            migrated: migratedCount || 0,
+            pending: 0,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Override filters with auto-fetched IDs
+      filters = { ...filters, internal_ids: pendentes.map((p: any) => p.id) };
+      console.error(`[SM Migration] auto_resume: fetched ${pendentes.length} pending proposals`);
+    }
 
     const autoResolveOwner = params.auto_resolve_owner !== false; // default true
 
