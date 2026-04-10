@@ -527,12 +527,17 @@ export function useWaMessages(conversationId?: string) {
         },
         (payload) => {
           const updated = payload.new as any;
+          // Safe merge: only apply non-null/non-undefined fields to prevent
+          // Realtime payloads with null values from wiping existing data
+          const safeFields = Object.fromEntries(
+            Object.entries(updated).filter(([_, v]) => v !== null && v !== undefined)
+          );
           setAllMessages(prev =>
             prev.map(m => {
               // Match by id or correlation_id for optimistic update reconciliation
-              if (m.id === updated.id) return { ...m, ...updated };
+              if (m.id === updated.id) return { ...m, ...safeFields };
               if (updated.correlation_id && (m as any).correlation_id === updated.correlation_id) {
-                return { ...m, ...updated };
+                return { ...m, ...safeFields };
               }
               return m;
             })
