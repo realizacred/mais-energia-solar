@@ -57,7 +57,7 @@ export function LeadFilters({
       <div className="relative w-full md:w-80">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por nome, telefone, cidade..."
+          placeholder="Buscar por nome, telefone, email, cidade..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-10"
