@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { formatPhoneBR } from "@/lib/formatters";
 import { WaProfileAvatar } from "./WaProfileAvatar";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
