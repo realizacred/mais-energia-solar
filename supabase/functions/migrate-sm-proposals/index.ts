@@ -1292,6 +1292,44 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── Pre-fetch projeto_funis and projeto_etapas for kanban assignment ──
+    const projetoFunilByNome = new Map<string, string>();
+    const projetoEtapaByNomeEFunil = new Map<string, string>();
+    {
+      const { data: projetoFunis } = await adminClient
+        .from("projeto_funis")
+        .select("id, nome")
+        .eq("tenant_id", tenantId);
+      for (const f of projetoFunis || []) {
+        projetoFunilByNome.set(f.nome.toLowerCase().trim(), f.id);
+      }
+
+      const { data: projetoEtapas } = await adminClient
+        .from("projeto_etapas")
+        .select("id, nome, funil_id")
+        .eq("tenant_id", tenantId);
+      for (const e of projetoEtapas || []) {
+        projetoEtapaByNomeEFunil.set(`${e.funil_id}::${e.nome.toLowerCase().trim()}`, e.id);
+      }
+    }
+
+    /** Resolve funil_id and etapa_id for projeto kanban based on SM funnel name */
+    function resolveProjetoFunilEtapa(smFunnelName: string | null): { funil_id: string | null; etapa_id: string | null } {
+      let funilNome = "vendedor"; // default
+      if (smFunnelName) {
+        const normalized = smFunnelName.toLowerCase().trim();
+        if (normalized === "engenharia") {
+          funilNome = "engenharia";
+        }
+      }
+
+      const funilId = projetoFunilByNome.get(funilNome) ?? null;
+      if (!funilId) return { funil_id: null, etapa_id: null };
+
+      const etapaId = projetoEtapaByNomeEFunil.get(`${funilId}::novo`) ?? null;
+      return { funil_id: funilId, etapa_id: etapaId };
+    }
+
     // Pre-fetch existing proposta_versoes for dedup
     const existingVersoes = new Set<string>();
     {
