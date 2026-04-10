@@ -438,7 +438,22 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log("[SM Migration] Handler invoked", req.method);
+    // ─── EMERGENCY BLOCK CHECK ─────────────────────────────
+    const _supaUrl = Deno.env.get("SUPABASE_URL")!;
+    const _svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const _blockClient = createClient(_supaUrl, _svcKey);
+    const { data: _blockRow } = await _blockClient
+      .from("solar_market_config")
+      .select("migration_blocked")
+      .limit(1)
+      .maybeSingle();
+    if (_blockRow?.migration_blocked === true) {
+      return new Response(
+        JSON.stringify({ blocked: true, message: "Migração bloqueada para manutenção. Contate o administrador." }),
+        { status: 423, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    // ─── END BLOCK CHECK ───────────────────────────────────
     // Auth
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
