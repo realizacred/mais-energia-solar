@@ -445,6 +445,24 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
       // Stop animation and wait for it to finish
       stepAnimCancelRef.current = true;
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+
+      // Handle user cancellation
+      if (cancelRef.current) {
+        const completedBatches = batchProgress ? batchProgress.current - 1 : 0;
+        const totalBatches = batches.length;
+        addLog(`Migração cancelada pelo usuário — ${completedBatches} de ${totalBatches} lotes concluídos`);
+        toast.warning(`Migração cancelada. ${completedBatches} lote(s) processados.`);
+        updateStep("done", {
+          state: "error",
+          detail: `Migração interrompida — ${completedBatches} de ${totalBatches} lotes concluídos`,
+        });
+        if (!dryRun) {
+          qc.invalidateQueries({ queryKey: ["sm-proposals"] });
+          qc.invalidateQueries({ queryKey: ["canonical-check"] });
+        }
+        return;
+      }
+
       setSmoothProgress(100);
 
       // All batches done
