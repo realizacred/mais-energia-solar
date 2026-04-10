@@ -205,7 +205,7 @@ export function StageDealCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <p className={cn(
-                "text-sm font-semibold leading-tight line-clamp-1",
+                "text-sm font-semibold leading-tight line-clamp-2",
                 isInactive ? "text-muted-foreground" : "text-foreground"
               )}>
                 {deal.customer_name || deal.deal_title || "Sem nome"}
