@@ -971,10 +971,10 @@ export function ConcessionariasManager() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(c)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(c)} aria-label="Editar concessionária">
                             <Pencil className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleting(c)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleting(c)} aria-label="Excluir concessionária">
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -1011,11 +1011,11 @@ export function ConcessionariasManager() {
               <span>de {filteredConcessionarias.length} resultados</span>
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={safeCurrentPage <= 1} onClick={() => setPage(p => p - 1)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={safeCurrentPage <= 1} onClick={() => setPage(p => p - 1)} aria-label="Página anterior">
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <span className="px-2 text-xs">{safeCurrentPage} / {totalPages}</span>
-              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={safeCurrentPage >= totalPages} onClick={() => setPage(p => p + 1)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={safeCurrentPage >= totalPages} onClick={() => setPage(p => p + 1)} aria-label="Próxima página">
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>

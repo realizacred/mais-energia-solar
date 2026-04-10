@@ -113,9 +113,8 @@ export function useProjetoPipeline() {
   const fetchProjetos = useCallback(async (f: ProjetoFiltersState) => {
     let query = supabase
       .from("projetos")
-      .select("id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
-      .order("created_at", { ascending: false })
-      .limit(5000);
+      .select("id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone), consultores:consultor_id(id, nome)")
+      .order("created_at", { ascending: false });
 
     // Backend filters
     if (f.funilId) {
@@ -135,19 +134,24 @@ export function useProjetoPipeline() {
     const { data, error } = await query;
     if (error) throw error;
 
-    // Fetch etiqueta relations
+    // Fetch etiqueta relations in a single batch query
     const projetoIds = (data || []).map((p: any) => p.id);
     const relMap = new Map<string, string[]>();
     if (projetoIds.length > 0) {
-      const { data: rels } = await supabase
-        .from("projeto_etiqueta_rel")
-        .select("projeto_id, etiqueta_id")
-        .in("projeto_id", projetoIds);
-      (rels || []).forEach((r: any) => {
-        const arr = relMap.get(r.projeto_id) || [];
-        arr.push(r.etiqueta_id);
-        relMap.set(r.projeto_id, arr);
-      });
+      // Supabase .in() has a practical limit; batch in chunks of 500
+      const chunkSize = 500;
+      for (let i = 0; i < projetoIds.length; i += chunkSize) {
+        const chunk = projetoIds.slice(i, i + chunkSize);
+        const { data: rels } = await supabase
+          .from("projeto_etiqueta_rel")
+          .select("projeto_id, etiqueta_id")
+          .in("projeto_id", chunk);
+        (rels || []).forEach((r: any) => {
+          const arr = relMap.get(r.projeto_id) || [];
+          arr.push(r.etiqueta_id);
+          relMap.set(r.projeto_id, arr);
+        });
+      }
     }
 
     // Filter by etiquetas if any selected
@@ -162,23 +166,13 @@ export function useProjetoPipeline() {
       filteredData = filteredData.filter((p: any) => projetosComEtiqueta.has(p.id));
     }
 
-    // Enrich with consultant names
-    const consultorIds = [...new Set(filteredData.map((p: any) => p.consultor_id).filter(Boolean))];
-    const consultorMap = new Map<string, string>();
-    if (consultorIds.length > 0) {
-      const { data: cData } = await supabase
-        .from("consultores")
-        .select("id, nome")
-        .in("id", consultorIds);
-      (cData || []).forEach((c: any) => consultorMap.set(c.id, c.nome));
-    }
-
-    // Post-filter search by client name (not possible via Supabase query on joined field)
+    // Enrich — consultant data now comes from the join
     let enriched: ProjetoItem[] = filteredData.map((p: any) => ({
       ...p,
       cliente: p.clientes || null,
-      consultor: p.consultor_id && consultorMap.has(p.consultor_id) ? { nome: consultorMap.get(p.consultor_id)! } : null,
+      consultor: p.consultores || null,
       clientes: undefined,
+      consultores: undefined,
       etiquetas: relMap.get(p.id) || [],
     }));
 
