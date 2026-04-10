@@ -132,7 +132,7 @@ export function useDealPipeline() {
       .from("deal_kanban_projection")
       .select("deal_id, tenant_id, pipeline_id, stage_id, stage_name, stage_position, owner_id, owner_name, customer_name, customer_phone, deal_title, deal_value, deal_kwp, deal_status, stage_probability, last_stage_change, etiqueta, cliente_code, deal_num")
       .order("last_stage_change", { ascending: false })
-      .limit(500);
+      .limit(5000);
 
     if (f.pipelineId) {
       query = query.eq("pipeline_id", f.pipelineId);

@@ -115,7 +115,7 @@ export function useProjetoPipeline() {
       .from("projetos")
       .select("id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
       .order("created_at", { ascending: false })
-      .limit(500);
+      .limit(5000);
 
     // Backend filters
     if (f.funilId) {
