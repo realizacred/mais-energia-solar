@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const QUERY_BATCH_SIZE = 200;
+const PROJECTION_PAGE_SIZE = 500;
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -145,6 +146,40 @@ async function fetchPropostasInBatches(dealIds: string[], projetoIds: string[]) 
   return Array.from(unique.values());
 }
 
+async function fetchProjectionInPages(filters: DealFilters) {
+  const allRows: DealKanbanCard[] = [];
+  let from = 0;
+
+  while (true) {
+    let query = supabase
+      .from("deal_kanban_projection")
+      .select("deal_id, tenant_id, pipeline_id, stage_id, stage_name, stage_position, owner_id, owner_name, customer_name, customer_phone, deal_title, deal_value, deal_kwp, deal_status, stage_probability, last_stage_change, etiqueta, cliente_code, deal_num")
+      .order("last_stage_change", { ascending: false })
+      .range(from, from + PROJECTION_PAGE_SIZE - 1);
+
+    if (filters.pipelineId) {
+      query = query.eq("pipeline_id", filters.pipelineId);
+    }
+    if (filters.ownerId !== "todos") {
+      query = query.eq("owner_id", filters.ownerId);
+    }
+    if (filters.status !== "todos") {
+      query = query.eq("deal_status", filters.status);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const page = (data || []) as DealKanbanCard[];
+    allRows.push(...page);
+
+    if (page.length < PROJECTION_PAGE_SIZE) break;
+    from += PROJECTION_PAGE_SIZE;
+  }
+
+  return allRows;
+}
+
 // ─── Hook ────────────────────────────────────────────────────
 
 export function useDealPipeline() {
@@ -194,26 +229,7 @@ export function useDealPipeline() {
 
   // ─── Fetch deals from projection ──────────────────────
   const fetchDeals = useCallback(async (f: DealFilters) => {
-    let query = supabase
-      .from("deal_kanban_projection")
-      .select("deal_id, tenant_id, pipeline_id, stage_id, stage_name, stage_position, owner_id, owner_name, customer_name, customer_phone, deal_title, deal_value, deal_kwp, deal_status, stage_probability, last_stage_change, etiqueta, cliente_code, deal_num")
-      .order("last_stage_change", { ascending: false })
-      .limit(5000);
-
-    if (f.pipelineId) {
-      query = query.eq("pipeline_id", f.pipelineId);
-    }
-    if (f.ownerId !== "todos") {
-      query = query.eq("owner_id", f.ownerId);
-    }
-    if (f.status !== "todos") {
-      query = query.eq("deal_status", f.status);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    let results = (data || []) as DealKanbanCard[];
+    let results = await fetchProjectionInPages(f);
 
     // Post-filter search
     if (f.search) {
