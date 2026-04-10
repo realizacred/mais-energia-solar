@@ -27993,6 +27993,10 @@ export type Database = {
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }
       user_is_active: { Args: { _user_id?: string }; Returns: boolean }
+      user_sent_in_conversation: {
+        Args: { _conversation_id: string; _user_id: string }
+        Returns: boolean
+      }
       validate_consultor_code: {
         Args: { _codigo: string }
         Returns: {
