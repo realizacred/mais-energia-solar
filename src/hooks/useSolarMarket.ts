@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -504,4 +505,37 @@ export function useSyncSolarMarket() {
       });
     },
   });
+}
+
+// ─── Realtime sync for migration counts ─────────────
+/**
+ * Subscribes to INSERT on propostas_nativas and clientes to keep
+ * SM migration page counters in sync across tabs/users. Debounce 1000ms.
+ */
+export function useSmMigrationRealtimeSync() {
+  const queryClient = useQueryClient();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const invalidate = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["sm-proposals"] });
+        queryClient.invalidateQueries({ queryKey: ["sm-clients"] });
+        queryClient.invalidateQueries({ queryKey: ["sm-projects"] });
+        queryClient.invalidateQueries({ queryKey: ["canonical-check"] });
+      }, 1000);
+    };
+
+    const channel = supabase
+      .channel("sm-migration-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "propostas_nativas" }, invalidate)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "clientes" }, invalidate)
+      .subscribe();
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 }

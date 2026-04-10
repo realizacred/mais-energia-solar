@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -305,4 +306,36 @@ export function useEnviarParaAssinatura(dealId: string) {
       toast({ title: "Erro ao enviar para assinatura", description: err.message, variant: "destructive" });
     },
   });
+}
+
+// ─── Realtime sync ──────────────────────────────────
+/**
+ * Subscribes to realtime changes on generated_documents for a specific deal.
+ * Debounce 500ms (webhook may arrive with delay).
+ */
+export function useDocumentosRealtimeSync(dealId: string) {
+  const queryClient = useQueryClient();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!dealId) return;
+
+    const invalidate = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY_DOCS, dealId] });
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY_FILES, dealId] });
+      }, 500);
+    };
+
+    const channel = supabase
+      .channel(`generated-docs-realtime-${dealId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "generated_documents" }, invalidate)
+      .subscribe();
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [dealId, queryClient]);
 }

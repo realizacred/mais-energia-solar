@@ -56,7 +56,7 @@ import { useProjetoCustomFieldValues } from "@/hooks/useProjetoCustomFields";
 import { useProjetoNotes } from "@/hooks/useProjetoNotes";
 import { useProjetoActivities } from "@/hooks/useProjetoActivities";
 import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
-import { usePropostasProjetoTab, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
+import { usePropostasProjetoTab, usePropostasRealtimeSync, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
 import {
   ProjetoDetalheProvider,
   useProjetoDetalhe,
@@ -1959,6 +1959,7 @@ interface LinkedOrcamento {
 
 function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string }) {
   const { data: propostas = [], isLoading: loading, refetch } = usePropostasProjetoTab(dealId, customerId);
+  usePropostasRealtimeSync(dealId, customerId);
   const setPrincipalMutation = useSetPropostaPrincipal();
   const arquivarMutation = useArquivarProposta();
   const [expandedId, setExpandedId] = useState<string | null>(null);
