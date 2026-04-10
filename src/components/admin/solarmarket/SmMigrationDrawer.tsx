@@ -624,6 +624,146 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     runMigration(false);
   };
 
+  // ─── Auto-resume: migrate all pending proposals in loop ──
+  const runAutoResume = useCallback(async () => {
+    if (!activePipelineId) {
+      setError("Nenhum pipeline encontrado.");
+      return;
+    }
+    resetState();
+    setAutoResumeRunning(true);
+    setRunning(true);
+    cancelRef.current = false;
+    const stats = { migrated: 0, errors: 0, startTime: Date.now() };
+    setAutoResumeStats(stats);
+    addLog("Iniciando migração automática de todos os pendentes...");
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada.");
+
+      const projectUrl = import.meta.env.VITE_SUPABASE_URL;
+      let continuar = true;
+      let round = 0;
+
+      while (continuar && !cancelRef.current) {
+        round++;
+        addLog(`Rodada ${round} — enviando lote auto_resume...`);
+        setBatchProgress({ current: stats.migrated, total: pendingStats?.pending || stats.migrated + 25 });
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+        try {
+          const payload = {
+            dry_run: false,
+            pipeline_id: activePipelineId,
+            stage_id: activeStageId || null,
+            auto_resolve_owner: true,
+            auto_resume: true,
+            batch_size: 25,
+            ...(ownerId && ownerId !== "__auto__" ? { owner_id: ownerId } : {}),
+          };
+
+          const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errBody = await response.json().catch(() => ({}));
+            if (response.status === 423 || errBody?.blocked) {
+              throw new Error(errBody?.message || "Migração bloqueada.");
+            }
+            throw new Error(errBody?.error || `HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.completed) {
+            addLog(`✅ Migração completa! Total: ${data.migrated || stats.migrated}`);
+            continuar = false;
+            break;
+          }
+
+          const batchMigrated = data.total_processed || 0;
+          const batchErrors = (data.summary?.ERROR || 0);
+          stats.migrated += batchMigrated;
+          stats.errors += batchErrors;
+          setAutoResumeStats({ ...stats });
+
+          const elapsed = (Date.now() - stats.startTime) / 1000;
+          const rate = stats.migrated / elapsed;
+          const remaining = pendingStats ? Math.max(0, pendingStats.pending - stats.migrated) : 0;
+          const eta = rate > 0 ? Math.round(remaining / rate) : 0;
+
+          addLog(`Rodada ${round}: +${batchMigrated} migrados, ${batchErrors} erros — Total: ${stats.migrated} — ETA: ${eta}s`);
+          setSmoothProgress(pendingStats ? Math.min(95, Math.round((stats.migrated / pendingStats.pending) * 100)) : 50);
+
+          if (batchMigrated === 0 && !data.completed) {
+            addLog("⚠️ Nenhuma proposta processada nesta rodada. Verificar dados.");
+            continuar = false;
+          }
+
+          // Refresh pending count every 5 rounds
+          if (round % 5 === 0) {
+            refetchPending();
+            qc.invalidateQueries({ queryKey: ["sm-proposals"] });
+          }
+
+          // Small pause between rounds
+          await new Promise(r => setTimeout(r, 500));
+        } catch (roundErr: any) {
+          clearTimeout(timeoutId);
+          if (roundErr?.name === "AbortError") {
+            stats.errors++;
+            addLog(`⚠️ Timeout na rodada ${round}, tentando próximo lote...`);
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
+          }
+          throw roundErr;
+        }
+      }
+
+      if (cancelRef.current) {
+        addLog(`Migração cancelada pelo usuário — ${stats.migrated} migrados, ${stats.errors} erros`);
+        toast.warning(`Migração pausada. ${stats.migrated} propostas migradas.`);
+      } else {
+        toast.success(`Migração completa! ${stats.migrated} propostas migradas.`);
+      }
+
+      setSmoothProgress(100);
+      updateStep("done", { state: cancelRef.current ? "error" : "done", detail: `${stats.migrated} migrados, ${stats.errors} erros` });
+
+    } catch (err: any) {
+      const msg = err?.message ?? "Erro desconhecido";
+      setError(msg);
+      addLog(`ERRO FATAL: ${msg}`);
+      updateStep("done", { state: "error", detail: msg });
+    } finally {
+      setAutoResumeRunning(false);
+      setRunning(false);
+      setCancelling(false);
+      cancelRef.current = false;
+      qc.invalidateQueries({ queryKey: ["sm-proposals"] });
+      qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
+    }
+  }, [activePipelineId, activeStageId, ownerId, addLog, resetState, updateStep, qc, pendingStats, refetchPending]);
+
+  const handleAutoResumeConfirm = () => {
+    setAutoResumeConfirmOpen(false);
+    setAutoResumeConfirmText("");
+    runAutoResume();
+  };
+
   // Progress calculation
   const completedSteps = steps.filter(s => s.state === "done" || s.state === "error" || s.state === "skipped").length;
   const progressPercent = running
