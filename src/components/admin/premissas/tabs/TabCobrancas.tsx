@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, EyeOff, CreditCard, Landmark, Receipt, Settings2, Copy, Link, MessageSquare } from "lucide-react";
+import { Eye, EyeOff, CreditCard, Landmark, Receipt, Settings2, Copy, Link, MessageSquare, Wrench } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 import { useWebhookUrl } from "@/hooks/useWebhookConfig";
 import { toast } from "sonner";
@@ -351,6 +353,117 @@ export function TabCobrancas({ premises, onChange }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Templates WA de instalação */}
+      <InstalacaoTemplatesCard premises={premises} set={set} />
     </div>
+  );
+}
+
+const INSTALACAO_VARS = [
+  { key: "{{nome_cliente}}", desc: "Nome do cliente" },
+  { key: "{{data}}", desc: "Data da instalação" },
+  { key: "{{hora}}", desc: "Hora da instalação" },
+  { key: "{{consultor}}", desc: "Nome do consultor" },
+  { key: "{{motivo}}", desc: "Motivo do reagendamento (só reagendamento)" },
+];
+
+function InstalacaoTemplatesCard({
+  premises,
+  set,
+}: {
+  premises: Props["premises"];
+  set: <K extends keyof Props["premises"]>(key: K, value: Props["premises"][K]) => void;
+}) {
+  const insertVar = useCallback((
+    fieldRef: React.RefObject<HTMLTextAreaElement | null>,
+    fieldKey: "wa_template_agendamento_instalacao" | "wa_template_reagendamento_instalacao",
+    varKey: string,
+  ) => {
+    const el = fieldRef.current;
+    if (!el) return;
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? start;
+    const newVal = el.value.slice(0, start) + varKey + el.value.slice(end);
+    set(fieldKey, newVal);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + varKey.length, start + varKey.length);
+    });
+  }, [set]);
+
+  const agendRef = useRef<HTMLTextAreaElement>(null);
+  const reagendRef = useRef<HTMLTextAreaElement>(null);
+
+  return (
+    <Card className="border-border/60">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+            <Wrench className="w-5 h-5 text-primary" />
+          </div>
+          Notificações de Instalação (WhatsApp)
+        </CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          Templates das mensagens enviadas ao cliente quando uma instalação é agendada ou reagendada.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Variáveis disponíveis */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Variáveis disponíveis (clique para inserir):</p>
+          <div className="flex flex-wrap gap-1.5">
+            {INSTALACAO_VARS.map((v) => (
+              <button
+                key={v.key}
+                type="button"
+                className="group"
+                title={v.desc}
+                onClick={() => {
+                  insertVar(agendRef, "wa_template_agendamento_instalacao", v.key);
+                }}
+              >
+                <Badge
+                  variant="outline"
+                  className="cursor-pointer text-xs transition-colors group-hover:bg-primary group-hover:text-primary-foreground"
+                >
+                  {v.key}
+                </Badge>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Template agendamento */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground">Template de agendamento</Label>
+          <Textarea
+            ref={agendRef}
+            value={premises.wa_template_agendamento_instalacao || ""}
+            onChange={(e) => set("wa_template_agendamento_instalacao", e.target.value)}
+            placeholder="Olá {{nome_cliente}}! Sua instalação solar está agendada para {{data}} às {{hora}}..."
+            className="min-h-[80px]"
+          />
+          <p className="text-[10px] text-muted-foreground">
+            Enviada quando uma instalação é agendada pela primeira vez.
+          </p>
+        </div>
+
+        {/* Template reagendamento */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-foreground">Template de reagendamento</Label>
+          <Textarea
+            ref={reagendRef}
+            value={premises.wa_template_reagendamento_instalacao || ""}
+            onChange={(e) => set("wa_template_reagendamento_instalacao", e.target.value)}
+            placeholder="Olá {{nome_cliente}}! Sua instalação foi reagendada para {{data}} às {{hora}}. Motivo: {{motivo}}..."
+            className="min-h-[80px]"
+          />
+          <p className="text-[10px] text-muted-foreground">
+            Enviada quando uma instalação é reagendada. Use {"{{motivo}}"} para incluir a justificativa.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
