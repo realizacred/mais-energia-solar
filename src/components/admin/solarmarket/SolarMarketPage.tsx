@@ -802,6 +802,9 @@ export default function SolarMarketPage() {
                   </AlertDialogTitle>
                   <AlertDialogDescription asChild>
                     <div className="space-y-3">
+                      <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+                        <strong>PASSO 0:</strong> Funis, etapas e consultores serão sincronizados automaticamente antes da migração.
+                      </div>
                       <p className="text-sm text-foreground font-medium">Serão migrados:</p>
                       <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
                         <li><strong>{pendingProposals.length}</strong> propostas pendentes</li>
@@ -818,8 +821,14 @@ export default function SolarMarketPage() {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <Button
-                    onClick={() => {
+                    onClick={async () => {
                       setMigrateAllOpen(false);
+                      // PASSO 0: sync pipelines first
+                      try {
+                        await runSyncPipelines();
+                      } catch {
+                        // Best-effort — continue with migration
+                      }
                       openMigrationDrawer(pendingProposals);
                     }}
                   >
