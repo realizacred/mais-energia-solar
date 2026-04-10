@@ -31,7 +31,6 @@ export function useLeadStatusMap() {
         return [];
       }
 
-      // console.debug(
       //   "[useLeadStatusMap] Available statuses:",
       //   data?.map((s) => `${s.nome} (ordem=${s.ordem}, id=${s.id})`)
       // );

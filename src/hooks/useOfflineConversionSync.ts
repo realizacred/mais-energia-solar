@@ -63,7 +63,6 @@ export function useOfflineConversionSync() {
 
   const syncConversion = async (conversion: OfflineConversion): Promise<{ success: boolean; error?: string }> => {
     try {
-      // console.log("[syncConversion] Syncing conversion for lead:", conversion.leadNome);
 
       // Upload all documents
       const identidadeUrls = await uploadDocumentFiles(conversion.identidadeFiles, "identidade", supabase);
@@ -160,7 +159,6 @@ export function useOfflineConversionSync() {
         if (leadStatusError) throw leadStatusError;
       }
 
-      // console.log("[syncConversion] Successfully synced conversion:", cliente);
       return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
@@ -171,13 +169,11 @@ export function useOfflineConversionSync() {
 
   const syncSingleConversion = useCallback(async (leadId: string): Promise<boolean> => {
     if (syncInProgressRef.current) {
-      // console.log("[syncSingleConversion] Sync already in progress, skipping");
       return false;
     }
 
     // Check online status at call time
     const currentlyOnline = navigator.onLine;
-    // console.log("[syncSingleConversion] Online status check:", currentlyOnline);
     
     if (!currentlyOnline) {
       toast({
@@ -235,13 +231,11 @@ export function useOfflineConversionSync() {
     const result: SyncResult = { total: 0, synced: 0, failed: 0 };
 
     if (syncInProgressRef.current) {
-      // console.log("[syncAllConversions] Sync already in progress, skipping");
       return result;
     }
 
     // Check online status at call time
     const currentlyOnline = navigator.onLine;
-    // console.log("[syncAllConversions] Online status check:", currentlyOnline);
     
     if (!currentlyOnline) {
       toast({

@@ -1,7 +1,6 @@
 /**
  * ProposalSolutionSection — System specs grid.
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log
  */
 
 import { Sun, Zap, LayoutGrid } from "lucide-react";

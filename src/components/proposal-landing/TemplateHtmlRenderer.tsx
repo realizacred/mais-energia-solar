@@ -5,7 +5,6 @@
  * substituindo {{variáveis}} pelos dados reais do snapshot.
  *
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log ativo.
  */
 
 import { useMemo } from "react";

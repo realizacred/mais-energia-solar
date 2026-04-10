@@ -86,7 +86,6 @@ export function usePushNotifications() {
   // Send a local notification
   const sendNotification = useCallback((title: string, options?: NotificationOptions) => {
     if (!state.isSupported || state.permission !== "granted") {
-      // console.log("Notifications not available or not granted");
       return;
     }
 

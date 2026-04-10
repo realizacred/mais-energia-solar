@@ -207,7 +207,6 @@ export default function DevSeedPage() {
       }
 
       seedResult.clienteId = clienteId as string;
-      // console.debug("[Seed] clienteId:", seedResult.clienteId);
 
       // Fetch cliente_code
       const { data: clienteRow } = await supabase
@@ -256,8 +255,6 @@ export default function DevSeedPage() {
         stageId = firstStage?.id || null;
       }
 
-      // console.debug("[Seed] deal payload:", { consultorId, customerId: seedResult.clienteId, pipelineId, stageId });
-
       const { data: dealRow, error: dealErr } = await supabase
         .from("deals")
         .insert({
@@ -283,7 +280,6 @@ export default function DevSeedPage() {
 
       seedResult.dealId = dealRow.id;
       seedResult.dealNum = (dealRow as any).deal_num;
-      // console.debug("[Seed] dealId:", seedResult.dealId, "deal_num:", seedResult.dealNum);
 
       updateStep(3, { status: "success", message: `ID: ${seedResult.dealId} | #${seedResult.dealNum}` });
 
@@ -300,7 +296,6 @@ export default function DevSeedPage() {
 
       const projetoIdForProposta = projetoRow?.id || null;
 
-      // console.debug("[Seed] proposta payload:", {
       //   projetoId: projetoIdForProposta,
       //   dealId: seedResult.dealId,
       // });
@@ -340,8 +335,6 @@ export default function DevSeedPage() {
         .maybeSingle();
       seedResult.propostaNum = propRow?.proposta_num || null;
       seedResult.propostaCodigo = (propRow as any)?.codigo || null;
-
-      // console.debug("[Seed] propostaId:", seedResult.propostaId, "proposta_num:", seedResult.propostaNum);
 
       updateStep(4, { status: "success", message: `ID: ${seedResult.propostaId} | #${seedResult.propostaNum} | Código: ${seedResult.propostaCodigo}` });
 

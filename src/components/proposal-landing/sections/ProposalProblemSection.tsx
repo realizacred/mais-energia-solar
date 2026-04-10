@@ -1,7 +1,6 @@
 /**
  * ProposalProblemSection — "Sua Conta Atual" before/after comparison.
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log
  */
 
 import { motion } from "framer-motion";

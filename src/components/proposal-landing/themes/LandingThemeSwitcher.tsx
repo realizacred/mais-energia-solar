@@ -3,7 +3,6 @@
  * 
  * Visible only for authenticated users (vendedor logado).
  * Switches between 3 visual models via URL param ?modelo=N.
- * RB-17: no console.log
  */
 
 import { useState, useEffect } from "react";

@@ -125,7 +125,6 @@ function extractCsvCategories(text: string): string[] {
   const lines = text.split("\n").filter(l => l.trim());
   if (lines.length < 2) return [];
   const categories = [...new Set(lines.slice(1).map(line => line.split(";")[0]?.trim()).filter(Boolean))];
-  // console.log("[parseCSV] Categorias encontradas:", categories);
   return categories;
 }
 

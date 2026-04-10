@@ -6,7 +6,6 @@
  *
  * Página pública — sem AuthGuard (exceção RB-02 documentada).
  * Paleta própria (não usa design system do admin).
- * RB-17: sem console.log ativo.
  * RB-16: tarifas sem formatter.
  */
 

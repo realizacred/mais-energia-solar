@@ -3,7 +3,6 @@
  *
  * Chat de dúvidas com IA na landing page pública da proposta.
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log ativo.
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";

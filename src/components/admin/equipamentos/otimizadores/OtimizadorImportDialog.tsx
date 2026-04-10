@@ -157,11 +157,7 @@ export function OtimizadorImportDialog({ open, onOpenChange, existingOtimizadore
         .select("id")
         .limit(1);
 
-      // console.log("[test] fornecedores query:", fornecedoresTestData, fornecedoresTestError);
-      // console.log("[fornecedores] tenantId:", tenantId);
-      // console.log("[fornecedores] chamando importFornecedoresFromHeader");
       const fornecedoresCriados = await importFornecedoresFromHeader(rawCsvText, tenantId);
-      // console.log("[fornecedores] importFornecedoresFromHeader retorno:", fornecedoresCriados);
 
       if (toInsert.length === 0 && toUpdate.length === 0) {
         if (fornecedoresCriados > 0) {

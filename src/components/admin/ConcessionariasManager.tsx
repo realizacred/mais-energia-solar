@@ -1069,7 +1069,6 @@ export function ConcessionariasManager() {
         open={contaImportOpen}
         onOpenChange={setContaImportOpen}
         onDataExtracted={(data) => {
-          // console.log("[ImportConta] Dados extraídos:", data);
           fetchData();
         }}
       />

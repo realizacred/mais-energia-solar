@@ -366,8 +366,6 @@ export async function connectSupplierProvider(
     const { config, providerKey } = await findSupplierConfig(tenantId, providerId, providerLabel);
     resolvedProviderKey = providerKey;
 
-    // console.log("[connectSupplierProvider] providerId:", providerId, "providerLabel:", providerLabel, "resolved key:", providerKey, "config found:", !!config, "config.provider:", config?.provider);
-
     // Provider-specific credential validation
     const existingCreds = (config?.credentials as Record<string, string>) || {};
     const mergedForValidation = { ...existingCreds, ...credentials };

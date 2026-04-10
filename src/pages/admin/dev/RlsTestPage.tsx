@@ -60,7 +60,6 @@ export default function RlsTestPage() {
       // Step 4: INSERT
       update(3, { status: "running" });
       const payload = { tenant_id: tenantId, name: `Kit RLS Test ${Date.now()}`, status: "active", pricing_mode: "calculated" };
-      // console.log("[RLS-TEST] INSERT payload:", JSON.stringify(payload));
       const { data: inserted, error: e3 } = await supabase
         .from("solar_kit_catalog")
         .insert(payload)

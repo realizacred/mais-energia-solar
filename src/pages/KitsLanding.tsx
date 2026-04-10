@@ -5,7 +5,6 @@
  * Rota: /kits/:token
  * 
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log ativo.
  */
 
 import { useState, useRef, useMemo, useCallback } from "react";

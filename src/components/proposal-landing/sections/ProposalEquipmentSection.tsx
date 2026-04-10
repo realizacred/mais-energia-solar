@@ -1,7 +1,6 @@
 /**
  * ProposalEquipmentSection — Equipment showcase.
  * Página pública — exceção RB-02 documentada.
- * RB-17: sem console.log
  */
 
 import { Wrench, Shield } from "lucide-react";
