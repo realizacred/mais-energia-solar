@@ -821,7 +821,7 @@ function extractPhoneFromVcard(vcard: string): string | null {
   return null;
 }
 
-
+async function handleMessageUpdate(supabase: any, payload: any) {
   const data = payload.data || payload;
   const updates = Array.isArray(data) ? data : [data];
   
