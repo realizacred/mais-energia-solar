@@ -451,9 +451,10 @@ export function useWaMessages(conversationId?: string) {
     gcTime: 2 * 60_000,
   });
 
-  // Reset on conversation change
+  // Reset pagination/loading state on conversation change
+  // Note: do NOT clear allMessages here — the query (line 445) will replace them
+  // when new data arrives, avoiding a flash of empty screen
   useEffect(() => {
-    setAllMessages([]);
     setHasOlderMessages(true);
     setInitialLoadDone(false);
   }, [conversationId]);
