@@ -11,6 +11,8 @@ import { toast } from "sonner";
 
 const HEARTBEAT_INTERVAL_MS = 30_000; // 30s
 const RECONNECT_DELAY_MS = 3_000;
+const GRACE_PERIOD_MS = 10_000; // Wait 10s after mount before showing disconnect toast
+const isLovablePreview = typeof window !== "undefined" && window.location.hostname.includes("lovableproject.com");
 
 interface UseRealtimeHeartbeatOptions {
   enabled?: boolean;
