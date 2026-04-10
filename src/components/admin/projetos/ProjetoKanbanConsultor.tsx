@@ -295,7 +295,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
 
   // ── Desktop ──
   return (
-    <div className="w-full max-w-full overflow-x-auto">
+    <ScrollArea className="w-full">
       <div
         className="grid gap-3 pb-4 px-1"
         style={{
@@ -424,6 +424,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
           );
         })}
       </div>
-    </div>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   );
 }
