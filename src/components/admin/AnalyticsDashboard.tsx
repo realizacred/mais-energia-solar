@@ -4,10 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SalesFunnel, VendorPerformance, ConversionMetrics } from "@/components/admin/analytics";
 import { RevenueForecastWidget } from "@/components/admin/widgets/RevenueForecastWidget";
 import DashboardCharts from "@/components/admin/DashboardCharts";
-import { BarChart3, Users, TrendingUp, Target } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Target, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { useAnalyticsLeads, useAnalyticsLeadStatuses, type AnalyticsLead, type AnalyticsLeadStatus } from "@/hooks/useAnalyticsDashboard";
+import { LeadsByOriginChart } from "@/components/admin/metrics/LeadsByOriginChart";
+import { ClosingTimeCard } from "@/components/admin/metrics/ClosingTimeCard";
+import { RevenuePrevVsRealizedChart } from "@/components/admin/metrics/RevenuePrevVsRealizedChart";
 
 interface AnalyticsDashboardProps {
   leads?: AnalyticsLead[];
