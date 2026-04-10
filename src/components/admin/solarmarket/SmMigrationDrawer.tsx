@@ -382,6 +382,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
           if (!response.ok) {
             const errBody = await response.json().catch(() => ({}));
+            if (response.status === 423 || errBody?.blocked) {
+              throw new Error(errBody?.message || "Migração bloqueada para manutenção. Contate o administrador.");
+            }
             throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
           }
 
@@ -584,6 +587,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           </DrawerHeader>
 
           <div className="px-4 pb-4 space-y-4 overflow-y-auto max-h-[60vh]">
+            {/* Migration Block Banner */}
+            <MigrationBlockBanner />
+
             {/* Proposal Summary */}
             {!isBulk && (
               <>
