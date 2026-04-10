@@ -376,7 +376,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     }
   }
 
-  // 5. Create/resolve consultores from Vendedores funnel
+  // 5. Resolve consultores from Vendedores funnel (no auto-creation — fallback to Escritório)
   for (const vendedorName of vendedorNames) {
     const normalizedName = normalizeNameForCompare(vendedorName);
     if (!normalizedName) continue;
@@ -397,27 +397,8 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     }
     if (found) continue;
 
-    // Create new consultor
-    const realName = vendedorName.trim();
-    const codigo = `SM-${realName.toUpperCase().replace(/\s+/g, "_").slice(0, 40)}`;
-
-    const { error: consErr } = await adminClient
-      .from("consultores")
-      .insert({
-        tenant_id: tenantId,
-        nome: realName,
-        telefone: "N/A",
-        codigo,
-        ativo: true,
-        user_id: null,
-      });
-
-    if (consErr) {
-      console.error(`[SM Sync] Failed to create consultor "${realName}": ${consErr.message}`);
-    } else {
-      consultorMap.set(normalizedName, "created");
-      report.consultores.created++;
-    }
+    // No match — will use Escritório fallback at runtime (no auto-creation)
+    console.error(`[SM Sync] Consultor "${vendedorName}" not found in cadastro, will use Escritório fallback`);
   }
 
   // 6. Ensure "Escritório" fallback consultor exists
@@ -868,34 +849,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Priority 4: Create new consultor with real SM name
-      if (dry_run) {
-        return { id: `AUTO_CREATE_CONSULTOR:${stageName.trim()}`, created: true };
-      }
-
-      const realName = stageName.trim();
-      const codigo = realName.toLowerCase().replace(/\s+/g, "_").slice(0, 50);
-      const { data: newConsultor, error: consErr } = await adminClient
-        .from("consultores")
-        .insert({
-          tenant_id: tenantId,
-          nome: realName,
-          telefone: "N/A",
-          codigo,
-          ativo: true,
-          user_id: null,
-        })
-        .select("id")
-        .single();
-
-      if (consErr) {
-        console.error(`[SM Migration] Failed to create consultor "${realName}":`, consErr.message);
-        throw new Error(`Falha ao criar consultor "${realName}": ${consErr.message}`);
-      }
-
-      const id = newConsultor!.id;
-      consultoresMap.set(key, id);
-      return { id, created: true };
+      // Priority 4: No match found — fallback to "Escritório" instead of creating new consultor
+      console.error(`[SM Migration] Consultor "${stageName}" not found, falling back to Escritório`);
+      return resolveOrCreateEscritorio();
     }
 
     /** Resolve or create "Escritório" consultor — used when vendor name is empty */

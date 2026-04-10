@@ -1,0 +1,1 @@
+DELETE FROM consultores WHERE codigo LIKE 'SM-%' AND codigo != 'SM-escritorio' AND nome NOT IN ('Escritório');
