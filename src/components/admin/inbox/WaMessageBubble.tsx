@@ -332,7 +332,13 @@ export function WaMessageBubble({
             <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
           )}
 
-          {/* Attendant name — discrete line below content */}
+          {/* Fallback for corrupted/empty messages — no content and no media */}
+          {!msg.content && !msg.media_url && !["location", "reaction"].includes(msg.message_type) && (
+            <p className="whitespace-pre-wrap break-words text-sm italic text-muted-foreground">
+              Mensagem não disponível
+            </p>
+          )}
+
           {isOut && msg.sent_by_name && !isNote && (
             <p className="text-[10px] text-muted-foreground/50 mt-0.5">
               Enviado por {msg.sent_by_name}
