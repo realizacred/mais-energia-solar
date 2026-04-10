@@ -92,7 +92,98 @@ const STAGE_SORT_LABELS: Record<StageSortOption, string> = {
   data_asc: "Mais antigo",
 };
 
-// ─── Resizable column hook ─────────────────────
+const INITIAL_STAGE_CARDS = 15;
+
+// ─── Progressive card list for desktop Kanban columns ──
+function ProgressiveStageCards({
+  deals, draggedId, onDragStart, onViewProjeto, onViewProjetoTab,
+  hasAutomation, dynamicEtiquetas, visibleFields,
+}: {
+  deals: DealKanbanCard[];
+  draggedId: string | null;
+  onDragStart: (e: React.DragEvent, dealId: string) => void;
+  onViewProjeto?: (deal: DealKanbanCard) => void;
+  onViewProjetoTab?: (deal: DealKanbanCard, tab: string) => void;
+  hasAutomation: boolean;
+  dynamicEtiquetas: DynamicEtiqueta[];
+  visibleFields: string[];
+}) {
+  const [visibleCount, setVisibleCount] = useState(INITIAL_STAGE_CARDS);
+  const visible = deals.slice(0, visibleCount);
+  const remaining = deals.length - visibleCount;
+
+  return (
+    <div className="px-2 pb-2 min-h-[60px] space-y-0 flex-1 min-h-0 overflow-y-auto divide-y divide-border/40">
+      {deals.length === 0 && (
+        <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/40 italic">
+          Arraste projetos aqui
+        </div>
+      )}
+      {visible.map(deal => (
+        <div key={deal.deal_id} className="py-1.5">
+          <StageDealCard
+            deal={deal}
+            isDragging={draggedId === deal.deal_id}
+            onDragStart={onDragStart}
+            onClick={() => onViewProjeto?.(deal)}
+            onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
+            hasAutomation={hasAutomation}
+            dynamicEtiquetas={dynamicEtiquetas}
+            cardVisibleFields={visibleFields}
+          />
+        </div>
+      ))}
+      {remaining > 0 && (
+        <button
+          onClick={() => setVisibleCount(prev => prev + INITIAL_STAGE_CARDS)}
+          className="w-full py-2 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
+        >
+          Mostrar mais {Math.min(remaining, INITIAL_STAGE_CARDS)} de {remaining}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Progressive card list for mobile Kanban ──
+function ProgressiveMobileCards({
+  deals, onViewProjeto, hasAutomation, dynamicEtiquetas,
+}: {
+  deals: DealKanbanCard[];
+  onViewProjeto?: (deal: DealKanbanCard) => void;
+  hasAutomation: boolean;
+  dynamicEtiquetas: DynamicEtiqueta[];
+}) {
+  const [visibleCount, setVisibleCount] = useState(INITIAL_STAGE_CARDS);
+  const visible = deals.slice(0, visibleCount);
+  const remaining = deals.length - visibleCount;
+
+  return (
+    <>
+      {visible.map(deal => (
+        <StageDealCard
+          key={deal.deal_id}
+          deal={deal}
+          isDragging={false}
+          onDragStart={() => {}}
+          onClick={() => onViewProjeto?.(deal)}
+          hasAutomation={hasAutomation}
+          dynamicEtiquetas={dynamicEtiquetas}
+        />
+      ))}
+      {remaining > 0 && (
+        <button
+          onClick={() => setVisibleCount(prev => prev + INITIAL_STAGE_CARDS)}
+          className="w-full py-2 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
+        >
+          Mostrar mais {Math.min(remaining, INITIAL_STAGE_CARDS)} de {remaining}
+        </button>
+      )}
+    </>
+  );
+}
+
+
 function useResizableColumn(initialWidth: number, minWidth = 220, maxWidth = 450) {
   const [width, setWidth] = useState(initialWidth);
   const isResizing = useRef(false);
@@ -300,17 +391,12 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                     {stageDeals.length === 0 ? (
                       <p className="text-xs text-muted-foreground/50 italic text-center py-4">Nenhum projeto nesta etapa</p>
                     ) : (
-                      stageDeals.map(deal => (
-                        <StageDealCard
-                          key={deal.deal_id}
-                          deal={deal}
-                          isDragging={false}
-                          onDragStart={() => {}}
-                          onClick={() => onViewProjeto?.(deal)}
-                          hasAutomation={hasActiveAutomation}
-                          dynamicEtiquetas={dynamicEtiquetas}
-                        />
-                      ))
+                      <ProgressiveMobileCards
+                        deals={stageDeals}
+                        onViewProjeto={onViewProjeto}
+                        hasAutomation={hasActiveAutomation}
+                        dynamicEtiquetas={dynamicEtiquetas}
+                      />
                     )}
                     <Button
                       variant="outline"
@@ -632,28 +718,17 @@ function ResizableKanbanColumn({
         </Button>
       </div>
 
-      {/* ── Cards ── */}
-      <div className="px-2 pb-2 min-h-[60px] space-y-0 flex-1 min-h-0 overflow-y-auto divide-y divide-border/40">
-        {deals.length === 0 && (
-          <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/40 italic">
-            Arraste projetos aqui
-          </div>
-        )}
-        {sortStageDeals(deals, stageSort).map(deal => (
-          <div key={deal.deal_id} className="py-1.5">
-            <StageDealCard
-              deal={deal}
-              isDragging={draggedId === deal.deal_id}
-              onDragStart={onDragStart}
-              onClick={() => onViewProjeto?.(deal)}
-              onProposalClick={() => onViewProjetoTab?.(deal, "propostas")}
-              hasAutomation={hasActiveAutomation}
-              dynamicEtiquetas={dynamicEtiquetas}
-              cardVisibleFields={visibleFields}
-            />
-          </div>
-        ))}
-      </div>
+      {/* ── Cards (progressive) ── */}
+      <ProgressiveStageCards
+        deals={sortStageDeals(deals, stageSort)}
+        draggedId={draggedId}
+        onDragStart={onDragStart}
+        onViewProjeto={onViewProjeto}
+        onViewProjetoTab={onViewProjetoTab}
+        hasAutomation={hasActiveAutomation}
+        dynamicEtiquetas={dynamicEtiquetas}
+        visibleFields={visibleFields}
+      />
 
       {/* Automation Alert at Column Base */}
       {stageAutomations.length > 0 && (
