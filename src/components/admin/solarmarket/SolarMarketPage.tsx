@@ -977,6 +977,18 @@ export default function SolarMarketPage() {
         </div>
       )}
 
+      {/* Sync Pipelines Result */}
+      {syncPipelinesResult && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-success/5 border border-success/20 text-sm">
+          <CheckCircle className="h-4 w-4 text-success shrink-0" />
+          <span className="text-foreground">
+            Funis sincronizados: {syncPipelinesResult.pipelines.created} criados, {syncPipelinesResult.pipelines.existing} existentes
+            {" · "}Etapas: {syncPipelinesResult.stages.created} criadas, {syncPipelinesResult.stages.existing} existentes
+            {" · "}Consultores: {syncPipelinesResult.consultores.created} criados, {syncPipelinesResult.consultores.existing} existentes
+          </span>
+        </div>
+      )}
+
       {/* Sync Progress */}
       <SyncProgressBar progress={progress} />
 
