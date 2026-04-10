@@ -184,10 +184,7 @@ function ConversationItem({
   const isHidden = hiddenIds?.has(conv.id);
   const isFollowup = followupConvIds?.has(conv.id);
   const isNote = conv.last_message_preview?.startsWith("[Nota interna]") || conv.last_message_preview?.startsWith("[Nota]");
-  // Clean phone: strip JID suffixes (@lid, @s.whatsapp.net, @g.us) then format
-  const cleanPhone = conv.cliente_telefone?.replace(/@.*$/, "") || "";
-  const formattedPhone = formatPhoneBR(cleanPhone);
-  const displayName = conv.cliente_nome || formattedPhone || "Desconhecido";
+  const displayName = formatWaDisplayName(conv);
 
   const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
 
