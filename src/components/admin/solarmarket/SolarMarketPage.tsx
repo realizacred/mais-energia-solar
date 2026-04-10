@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
@@ -608,6 +609,44 @@ export default function SolarMarketPage() {
   const migratedProposalsCount = useMemo(() => proposals.filter(p => !!p.migrado_em).length, [proposals]);
 
   const [migrateAllOpen, setMigrateAllOpen] = useState(false);
+  const [syncPipelinesRunning, setSyncPipelinesRunning] = useState(false);
+  const [syncPipelinesResult, setSyncPipelinesResult] = useState<{ pipelines: { created: number; existing: number }; stages: { created: number; existing: number }; consultores: { created: number; existing: number } } | null>(null);
+
+  const runSyncPipelines = useCallback(async () => {
+    setSyncPipelinesRunning(true);
+    setSyncPipelinesResult(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão expirada");
+      const projectUrl = import.meta.env.VITE_SUPABASE_URL;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60_000);
+      let response: Response;
+      try {
+        response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action: "sync_pipelines" }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody?.error || `HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      if (data?.report) setSyncPipelinesResult(data.report);
+      return data;
+    } finally {
+      setSyncPipelinesRunning(false);
+    }
+  }, []);
 
   const clientsWithoutProposalsCount = useMemo(() => {
     const clientIdsWithProposals = new Set(proposals.map(p => p.sm_client_id).filter(Boolean));
@@ -728,6 +767,22 @@ export default function SolarMarketPage() {
             </Button>
 
             <Button
+              onClick={() => runSyncPipelines()}
+              disabled={syncPipelinesRunning || projects.length === 0}
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              title="Sincronize funis e etapas ANTES de migrar propostas"
+            >
+              {syncPipelinesRunning ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <GitBranch className="h-3.5 w-3.5" />
+              )}
+              {syncPipelinesRunning ? "Sincronizando..." : "Sincronizar Funis & Etapas"}
+            </Button>
+
+            <Button
               onClick={() => setMigrateAllOpen(true)}
               disabled={pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
               size="sm"
@@ -747,6 +802,9 @@ export default function SolarMarketPage() {
                   </AlertDialogTitle>
                   <AlertDialogDescription asChild>
                     <div className="space-y-3">
+                      <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+                        <strong>PASSO 0:</strong> Funis, etapas e consultores serão sincronizados automaticamente antes da migração.
+                      </div>
                       <p className="text-sm text-foreground font-medium">Serão migrados:</p>
                       <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
                         <li><strong>{pendingProposals.length}</strong> propostas pendentes</li>
@@ -763,8 +821,14 @@ export default function SolarMarketPage() {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <Button
-                    onClick={() => {
+                    onClick={async () => {
                       setMigrateAllOpen(false);
+                      // PASSO 0: sync pipelines first
+                      try {
+                        await runSyncPipelines();
+                      } catch {
+                        // Best-effort — continue with migration
+                      }
                       openMigrationDrawer(pendingProposals);
                     }}
                   >
@@ -910,6 +974,18 @@ export default function SolarMarketPage() {
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-warning/10 border border-warning/20 text-warning text-xs">
           <RefreshCw className="h-3 w-3 animate-spin" />
           Sincronização automática em andamento... os contadores atualizam a cada ~10s
+        </div>
+      )}
+
+      {/* Sync Pipelines Result */}
+      {syncPipelinesResult && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-success/5 border border-success/20 text-sm">
+          <CheckCircle className="h-4 w-4 text-success shrink-0" />
+          <span className="text-foreground">
+            Funis sincronizados: {syncPipelinesResult.pipelines.created} criados, {syncPipelinesResult.pipelines.existing} existentes
+            {" · "}Etapas: {syncPipelinesResult.stages.created} criadas, {syncPipelinesResult.stages.existing} existentes
+            {" · "}Consultores: {syncPipelinesResult.consultores.created} criados, {syncPipelinesResult.consultores.existing} existentes
+          </span>
         </div>
       )}
 

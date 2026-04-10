@@ -204,6 +204,251 @@ function buildWizardUC(smProp: Record<string, any>, resolvedConcId?: string | nu
   };
 }
 
+// ─── PASSO 0: Sync Pipelines Handler ────────────────────
+
+function normalizeNameForCompare(value: string | null | undefined): string {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<Response> {
+  const report = {
+    pipelines: { created: 0, existing: 0, names: [] as string[] },
+    stages: { created: 0, existing: 0 },
+    consultores: { created: 0, existing: 0 },
+  };
+
+  // 1. Fetch ALL SM projects for this tenant
+  const allProjects: any[] = [];
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data: page, error: pageErr } = await adminClient
+      .from("solar_market_projects")
+      .select("sm_project_id, sm_funnel_name, sm_stage_name, all_funnels, responsible")
+      .eq("tenant_id", tenantId)
+      .range(offset, offset + pageSize - 1);
+    if (pageErr) throw new Error(`Fetch SM projects: ${pageErr.message}`);
+    allProjects.push(...(page || []));
+    if ((page || []).length < pageSize) break;
+    offset += pageSize;
+  }
+
+  // 2. Extract all unique funnels and stages
+  // Map: funnelName → Set<stageName>
+  const funnelStagesMap = new Map<string, Set<string>>();
+  const vendedorNames = new Set<string>();
+
+  for (const proj of allProjects) {
+    const funnels: Array<{ funnelName: string; stageName: string }> = [];
+
+    // From all_funnels array
+    if (Array.isArray(proj.all_funnels)) {
+      for (const f of proj.all_funnels) {
+        const fName = String(f.funnelName || f.funnel_name || "").trim();
+        const sName = String(f.stageName || f.stage_name || "").trim();
+        if (fName) funnels.push({ funnelName: fName, stageName: sName });
+      }
+    }
+
+    // Fallback from sm_funnel_name + sm_stage_name
+    if (funnels.length === 0 && proj.sm_funnel_name) {
+      funnels.push({
+        funnelName: String(proj.sm_funnel_name).trim(),
+        stageName: String(proj.sm_stage_name || "").trim(),
+      });
+    }
+
+    for (const f of funnels) {
+      const normalizedFunnel = normalizeNameForCompare(f.funnelName);
+      if (normalizedFunnel === "vendedores") {
+        // Collect vendedor names for consultor creation
+        if (f.stageName) vendedorNames.add(f.stageName);
+        continue;
+      }
+      if (!f.funnelName) continue;
+
+      if (!funnelStagesMap.has(f.funnelName)) {
+        funnelStagesMap.set(f.funnelName, new Set());
+      }
+      if (f.stageName) {
+        funnelStagesMap.get(f.funnelName)!.add(f.stageName);
+      }
+    }
+  }
+
+  // 3. Pre-fetch existing pipelines, stages, consultores
+  const { data: existingPipelines } = await adminClient
+    .from("pipelines")
+    .select("id, name")
+    .eq("tenant_id", tenantId);
+
+  const pipelineMap = new Map<string, string>(); // normalized name → id
+  for (const p of existingPipelines || []) {
+    pipelineMap.set(normalizeNameForCompare(p.name), p.id);
+  }
+
+  const { data: existingConsultores } = await adminClient
+    .from("consultores")
+    .select("id, nome")
+    .eq("tenant_id", tenantId);
+
+  const consultorMap = new Map<string, string>(); // normalized name → id
+  for (const c of existingConsultores || []) {
+    consultorMap.set(normalizeNameForCompare(c.nome), c.id);
+  }
+
+  // 4. Create/resolve pipelines and stages
+  for (const [funnelName, stageNames] of funnelStagesMap) {
+    // LEAD → Comercial mapping
+    const pipelineName = funnelName === "LEAD" ? "Comercial" : funnelName;
+    const normalizedPipeName = normalizeNameForCompare(pipelineName);
+
+    let pipelineId = pipelineMap.get(normalizedPipeName);
+
+    if (pipelineId) {
+      report.pipelines.existing++;
+    } else {
+      // Create pipeline
+      const { data: newPipe, error: pipeErr } = await adminClient
+        .from("pipelines")
+        .insert({
+          tenant_id: tenantId,
+          name: pipelineName,
+          kind: "process",
+          is_active: true,
+          version: 1,
+        })
+        .select("id")
+        .single();
+
+      if (pipeErr) throw new Error(`Falha ao criar pipeline "${pipelineName}": ${pipeErr.message}`);
+      pipelineId = newPipe!.id;
+      pipelineMap.set(normalizedPipeName, pipelineId);
+      report.pipelines.created++;
+    }
+
+    report.pipelines.names.push(pipelineName);
+
+    // Fetch existing stages for this pipeline
+    const { data: existingStages } = await adminClient
+      .from("pipeline_stages")
+      .select("id, name")
+      .eq("tenant_id", tenantId)
+      .eq("pipeline_id", pipelineId);
+
+    const existingStageMap = new Map<string, string>();
+    for (const s of existingStages || []) {
+      existingStageMap.set(normalizeNameForCompare(s.name), s.id);
+    }
+
+    // Create stages in order
+    const stageArray = [...stageNames];
+    let position = (existingStages || []).length;
+    for (const stageName of stageArray) {
+      const normalizedStageName = normalizeNameForCompare(stageName);
+      if (existingStageMap.has(normalizedStageName)) {
+        report.stages.existing++;
+        continue;
+      }
+
+      const { error: stageErr } = await adminClient
+        .from("pipeline_stages")
+        .insert({
+          tenant_id: tenantId,
+          pipeline_id: pipelineId,
+          name: stageName.trim(),
+          position: position++,
+          probability: 50,
+          is_closed: false,
+          is_won: false,
+        });
+
+      if (stageErr) {
+        console.error(`[SM Sync] Failed to create stage "${stageName}": ${stageErr.message}`);
+      } else {
+        report.stages.created++;
+        existingStageMap.set(normalizedStageName, "created");
+      }
+    }
+  }
+
+  // 5. Create/resolve consultores from Vendedores funnel
+  for (const vendedorName of vendedorNames) {
+    const normalizedName = normalizeNameForCompare(vendedorName);
+    if (!normalizedName) continue;
+
+    if (consultorMap.has(normalizedName)) {
+      report.consultores.existing++;
+      continue;
+    }
+
+    // Check partial match (first name)
+    let found = false;
+    for (const [k] of consultorMap) {
+      if (k.startsWith(normalizedName) || normalizedName.startsWith(k)) {
+        report.consultores.existing++;
+        found = true;
+        break;
+      }
+    }
+    if (found) continue;
+
+    // Create new consultor
+    const realName = vendedorName.trim();
+    const codigo = `SM-${realName.toUpperCase().replace(/\s+/g, "_").slice(0, 40)}`;
+
+    const { error: consErr } = await adminClient
+      .from("consultores")
+      .insert({
+        tenant_id: tenantId,
+        nome: realName,
+        telefone: "N/A",
+        codigo,
+        ativo: true,
+        user_id: null,
+      });
+
+    if (consErr) {
+      console.error(`[SM Sync] Failed to create consultor "${realName}": ${consErr.message}`);
+    } else {
+      consultorMap.set(normalizedName, "created");
+      report.consultores.created++;
+    }
+  }
+
+  // 6. Ensure "Escritório" fallback consultor exists
+  if (!consultorMap.has(normalizeNameForCompare("escritório"))) {
+    const { error: consErr } = await adminClient
+      .from("consultores")
+      .insert({
+        tenant_id: tenantId,
+        nome: "Escritório",
+        telefone: "N/A",
+        codigo: "escritorio",
+        ativo: true,
+        user_id: null,
+      });
+
+    if (!consErr) {
+      report.consultores.created++;
+    }
+  }
+
+  return new Response(
+    JSON.stringify({
+      action: "sync_pipelines",
+      success: true,
+      report,
+      total_projects_scanned: allProjects.length,
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
 // ─── Main Handler ───────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -264,7 +509,14 @@ Deno.serve(async (req) => {
     }
 
     const tenantId = profile.tenant_id;
-    const params: MigrationParams = await req.json();
+    const rawBody = await req.json();
+
+    // ─── PASSO 0: sync_pipelines action ─────────────────
+    if (rawBody?.action === "sync_pipelines") {
+      return await handleSyncPipelines(adminClient, tenantId);
+    }
+
+    const params: MigrationParams = rawBody as MigrationParams;
     const { dry_run = true, filters = {}, batch_size = 10 } = params;
 
     const autoResolveOwner = params.auto_resolve_owner !== false; // default true
