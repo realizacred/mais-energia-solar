@@ -323,7 +323,10 @@ function extractContent(messageContent: any, msg: any): { content: string | null
     const loc = messageContent.locationMessage;
     return { content: `${loc.degreesLatitude},${loc.degreesLongitude}`, messageType: "location" };
   }
-  if (messageContent.contactMessage || messageContent.contactsArrayMessage) return { content: null, messageType: "contact" };
+  if (messageContent.contactMessage || messageContent.contactsArrayMessage) {
+    const contactDisplay = extractContactDisplay(messageContent);
+    return { content: contactDisplay, messageType: "contact" };
+  }
   if (messageContent.reactionMessage) return { content: messageContent.reactionMessage.text || null, messageType: "reaction" };
   if (msg.body || msg.text) return { content: msg.body || msg.text, messageType: "text" };
   return { content: null, messageType: "text" };

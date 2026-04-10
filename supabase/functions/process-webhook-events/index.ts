@@ -758,7 +758,8 @@ function extractMessageContent(messageContent: any, msg: any): { content: string
     return { content: `${loc.degreesLatitude},${loc.degreesLongitude}`, messageType: "location" };
   }
   if (messageContent.contactMessage || messageContent.contactsArrayMessage) {
-    return { content: null, messageType: "contact" };
+    const contactDisplay = extractContactDisplay(messageContent);
+    return { content: contactDisplay, messageType: "contact" };
   }
   if (messageContent.reactionMessage) {
     return { content: messageContent.reactionMessage.text || null, messageType: "reaction" };

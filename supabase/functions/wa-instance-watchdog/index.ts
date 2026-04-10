@@ -386,7 +386,10 @@ function extractMessageContent(mc: any, msg: any): { content: string | null; mes
   if (mc.documentMessage) return { content: mc.documentMessage.fileName || null, messageType: "document" };
   if (mc.stickerMessage) return { content: null, messageType: "sticker" };
   if (mc.locationMessage) return { content: `${mc.locationMessage.degreesLatitude},${mc.locationMessage.degreesLongitude}`, messageType: "location" };
-  if (mc.contactMessage || mc.contactsArrayMessage) return { content: null, messageType: "contact" };
+  if (mc.contactMessage || mc.contactsArrayMessage) {
+    const contactDisplay = extractContactDisplay(mc);
+    return { content: contactDisplay, messageType: "contact" };
+  }
   if (mc.reactionMessage) return { content: mc.reactionMessage.text || null, messageType: "reaction" };
   if (msg.body || msg.text) return { content: msg.body || msg.text, messageType: "text" };
   return { content: null, messageType: "text" };
