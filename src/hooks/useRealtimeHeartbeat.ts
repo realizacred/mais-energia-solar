@@ -34,6 +34,8 @@ export function useRealtimeHeartbeat({ enabled = true }: UseRealtimeHeartbeatOpt
       return;
     }
 
+    mountedAtRef.current = Date.now();
+
     const channel = supabase.channel("heartbeat-monitor");
 
     const clearReconnectTimeout = () => {
