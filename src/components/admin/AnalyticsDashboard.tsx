@@ -161,7 +161,15 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
           <DashboardCharts leads={leads} />
         </TabsContent>
 
-        <TabsContent value="funnel" className="space-y-4">
+        <TabsContent value="commercial" className="space-y-6">
+          <LeadsByOriginChart />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ClosingTimeCard />
+            <RevenuePrevVsRealizedChart />
+          </div>
+        </TabsContent>
+
+
           <div className="grid md:grid-cols-2 gap-6">
             <SalesFunnel leads={leads} statuses={statuses} />
             <Card>
