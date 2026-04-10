@@ -271,10 +271,16 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [cancelling, setCancelling] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Auto-resume state
+  const [autoResumeRunning, setAutoResumeRunning] = useState(false);
+  const [autoResumeStats, setAutoResumeStats] = useState<{ migrated: number; errors: number; startTime: number } | null>(null);
+  const [autoResumeConfirmOpen, setAutoResumeConfirmOpen] = useState(false);
+  const [autoResumeConfirmText, setAutoResumeConfirmText] = useState("");
 
   const { data: consultores = [] } = useConsultores();
   const { data: pipelines = [] } = usePipelines();
   const { data: pipelineStages = [] } = usePipelineStages(selectedPipelineId || null);
+  const { data: pendingStats, refetch: refetchPending } = usePendingMigrationCount();
   const qc = useQueryClient();
 
   const proposal = proposals[0]; // Single or first for display
