@@ -1110,24 +1110,39 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             )}
           </div>
 
-          <DrawerFooter className="flex-row gap-2 pt-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => runMigration(true)}
-              disabled={running}
-            >
-              {running ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-              Simular (Dry-run)
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={() => setConfirmOpen(true)}
-              disabled={running || (!dryRunCompleted && !!existingCanonical) || !canMigrate}
-              title={!canMigrate ? "Selecione uma etapa do pipeline antes de migrar" : existingCanonical && !dryRunCompleted ? "Execute uma simulação (dry-run) antes de migrar novamente" : undefined}
-            >
-              Migrar agora
-            </Button>
+          <DrawerFooter className="flex-col gap-2 pt-2">
+            {/* Auto-resume button — top priority */}
+            {pendingStats && pendingStats.pending > 0 && (
+              <Button
+                className="w-full"
+                variant="default"
+                onClick={() => setAutoResumeConfirmOpen(true)}
+                disabled={running || !canMigrate}
+              >
+                <PlayCircle className="h-4 w-4 mr-1.5" />
+                Migrar todos os {pendingStats.pending} pendentes
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => runMigration(true)}
+                disabled={running}
+              >
+                {running && !autoResumeRunning ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                Simular (Dry-run)
+              </Button>
+              <Button
+                className="flex-1"
+                variant="outline"
+                onClick={() => setConfirmOpen(true)}
+                disabled={running || (!dryRunCompleted && !!existingCanonical) || !canMigrate}
+                title={!canMigrate ? "Selecione uma etapa do pipeline antes de migrar" : existingCanonical && !dryRunCompleted ? "Execute uma simulação (dry-run) antes de migrar novamente" : undefined}
+              >
+                Migrar selecionadas
+              </Button>
+            </div>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
