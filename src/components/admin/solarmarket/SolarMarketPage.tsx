@@ -601,6 +601,7 @@ export default function SolarMarketPage() {
   const updateClient = useUpdateSmClient();
   const deleteClient = useDeleteSmClient();
   const clearLogs = useClearSyncLogs();
+  useSmMigrationRealtimeSync();
 
   const lastSync = syncLogs[0];
 
