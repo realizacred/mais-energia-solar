@@ -845,6 +845,11 @@ Deno.serve(async (req) => {
         return resolveOrCreateEscritorio();
       }
 
+      // Priority 0: ex-funcionários → Escritório direto (sem log de erro)
+      if (EX_FUNCIONARIOS.includes(key)) {
+        return resolveOrCreateEscritorio();
+      }
+
       // Priority 1: exact match in consultoresMap
       const existing = consultoresMap.get(key);
       if (existing) return { id: existing, created: false };
