@@ -55,6 +55,7 @@ export interface OrcamentoDisplayItem {
   lead_id: string;
   lead_code: string | null;
   nome: string;
+  email: string | null;
   telefone: string;
   cep: string | null;
   estado: string;
