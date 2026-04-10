@@ -148,11 +148,12 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
 
       {/* Tabbed Content */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-          <TabsTrigger value="overview" className="gap-1.5"><BarChart3 className="h-4 w-4 text-info" /> Visão Geral</TabsTrigger>
-          <TabsTrigger value="funnel" className="gap-1.5"><Target className="h-4 w-4 text-primary" /> Funil</TabsTrigger>
-          <TabsTrigger value="vendors" className="gap-1.5"><Users className="h-4 w-4 text-secondary" /> Vendedores</TabsTrigger>
-          <TabsTrigger value="conversion" className="gap-1.5"><TrendingUp className="h-4 w-4 text-success" /> Conversão</TabsTrigger>
+        <TabsList className="overflow-x-auto flex-wrap h-auto grid w-full grid-cols-2 sm:grid-cols-5">
+          <TabsTrigger value="overview" className="gap-1.5 shrink-0 whitespace-nowrap"><BarChart3 className="h-4 w-4 text-info" /> Visão Geral</TabsTrigger>
+          <TabsTrigger value="commercial" className="gap-1.5 shrink-0 whitespace-nowrap"><DollarSign className="h-4 w-4 text-success" /> Comercial</TabsTrigger>
+          <TabsTrigger value="funnel" className="gap-1.5 shrink-0 whitespace-nowrap"><Target className="h-4 w-4 text-primary" /> Funil</TabsTrigger>
+          <TabsTrigger value="vendors" className="gap-1.5 shrink-0 whitespace-nowrap"><Users className="h-4 w-4 text-secondary" /> Vendedores</TabsTrigger>
+          <TabsTrigger value="conversion" className="gap-1.5 shrink-0 whitespace-nowrap"><TrendingUp className="h-4 w-4 text-success" /> Conversão</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
