@@ -169,7 +169,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
           </div>
         </TabsContent>
 
-
+        <TabsContent value="funnel" className="space-y-4">
           <div className="grid md:grid-cols-2 gap-6">
             <SalesFunnel leads={leads} statuses={statuses} />
             <Card>
