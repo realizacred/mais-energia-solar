@@ -98,7 +98,7 @@ export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
           pageSize={pageSize}
           onPageChange={setPage}
           onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-          pageSizeOptions={[10, 25, 100]}
+          pageSizeOptions={[10, 25, 50]}
         />
       )}
     </div>
