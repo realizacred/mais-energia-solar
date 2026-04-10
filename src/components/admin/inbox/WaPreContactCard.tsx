@@ -26,7 +26,7 @@ export function WaPreContactCard({ nome, phone, onClose, compact }: WaPreContact
           href={`https://wa.me/${phoneDigits}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-success text-white font-medium rounded-lg hover:bg-success/90 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-success text-success-foreground font-medium rounded-lg hover:bg-success/90 transition-colors"
           onClick={onClose}
         >
           <MessageCircle className="h-4 w-4" />
@@ -53,7 +53,7 @@ export function WaPreContactCard({ nome, phone, onClose, compact }: WaPreContact
         href={`https://wa.me/${phoneDigits}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 px-5 py-2.5 bg-success text-white font-medium rounded-lg hover:bg-success/90 transition-colors shadow-md"
+        className="inline-flex items-center gap-2 px-5 py-2.5 bg-success text-success-foreground font-medium rounded-lg hover:bg-success/90 transition-colors shadow-md"
         onClick={onClose}
       >
         <MessageCircle className="h-4 w-4" />

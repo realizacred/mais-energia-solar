@@ -149,10 +149,10 @@ export function EtiquetasManager() {
                         )}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(et)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(et)} aria-label="Editar etiqueta">
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(et.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(et.id)} aria-label="Excluir etiqueta">
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
