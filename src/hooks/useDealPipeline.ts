@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+const QUERY_BATCH_SIZE = 200;
+
 // ─── Types ───────────────────────────────────────────────────
 
 export type PipelineKind = "process" | "owner_board";
@@ -80,6 +82,69 @@ export interface DealFilters {
   search: string;
 }
 
+function chunkValues<T>(values: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < values.length; i += size) {
+    chunks.push(values.slice(i, i + size));
+  }
+  return chunks;
+}
+
+async function fetchRowsInBatches<T>(
+  table: string,
+  select: string,
+  column: string,
+  values: string[],
+) {
+  if (values.length === 0) return [] as T[];
+
+  const responses = await Promise.all(
+    chunkValues(values, QUERY_BATCH_SIZE).map((chunk) =>
+      (supabase as any)
+        .from(table)
+        .select(select)
+        .in(column, chunk),
+    ),
+  );
+
+  const failed = responses.find((response) => response.error);
+  if (failed?.error) throw failed.error;
+
+  return responses.flatMap((response) => (response.data || []) as T[]);
+}
+
+async function fetchPropostasInBatches(dealIds: string[], projetoIds: string[]) {
+  const requests = [
+    ...chunkValues(dealIds, QUERY_BATCH_SIZE).map((chunk) =>
+      supabase
+        .from("propostas_nativas")
+        .select("id, deal_id, projeto_id, status, is_principal")
+        .in("deal_id", chunk)
+        .order("created_at", { ascending: false }),
+    ),
+    ...chunkValues(projetoIds, QUERY_BATCH_SIZE).map((chunk) =>
+      supabase
+        .from("propostas_nativas")
+        .select("id, deal_id, projeto_id, status, is_principal")
+        .in("projeto_id", chunk)
+        .order("created_at", { ascending: false }),
+    ),
+  ];
+
+  if (requests.length === 0) return [] as any[];
+
+  const responses = await Promise.all(requests);
+  const failed = responses.find((response) => response.error);
+  if (failed?.error) throw failed.error;
+
+  const unique = new Map<string, any>();
+  responses.flatMap((response) => response.data || []).forEach((proposta: any) => {
+    unique.set(proposta.id, proposta);
+  });
+
+  return Array.from(unique.values());
+}
+
 // ─── Hook ────────────────────────────────────────────────────
 
 export function useDealPipeline() {
@@ -118,6 +183,7 @@ export function useDealPipeline() {
 
     if (pipelinesRes.error) throw pipelinesRes.error;
     if (stagesRes.error) throw stagesRes.error;
+    if (consultoresRes.error) throw consultoresRes.error;
 
     setPipelines((pipelinesRes.data || []) as Pipeline[]);
     setStages((stagesRes.data || []) as PipelineStage[]);
@@ -165,21 +231,25 @@ export function useDealPipeline() {
 
     const dealIds = results.map(d => d.deal_id);
 
-    // ── PARALLEL batch: etiquetas + deals + canonical check ──
-    const [etiquetaRelsRes, dealsDataRes] = await Promise.all([
-      supabase
-        .from("projeto_etiqueta_rel")
-        .select("projeto_id, etiqueta_id")
-        .in("projeto_id", dealIds),
-      supabase
-        .from("deals")
-        .select("id, customer_id, notas, expected_close_date, doc_checklist, projeto_id")
-        .in("id", dealIds),
+    // ── Batch large IN queries to avoid silently emptying big kanban datasets ──
+    const [etiquetaRels, dealsData] = await Promise.all([
+      fetchRowsInBatches<any>(
+        "projeto_etiqueta_rel",
+        "projeto_id, etiqueta_id",
+        "projeto_id",
+        dealIds,
+      ),
+      fetchRowsInBatches<any>(
+        "deals",
+        "id, customer_id, notas, expected_close_date, doc_checklist, projeto_id",
+        "id",
+        dealIds,
+      ),
     ]);
 
     // Apply etiquetas
     const etiquetaRelMap = new Map<string, string[]>();
-    (etiquetaRelsRes.data || []).forEach((r: any) => {
+    (etiquetaRels || []).forEach((r: any) => {
       const arr = etiquetaRelMap.get(r.projeto_id) || [];
       arr.push(r.etiqueta_id);
       etiquetaRelMap.set(r.projeto_id, arr);
@@ -190,7 +260,6 @@ export function useDealPipeline() {
     }));
 
     // Filter to existing deals only
-    const dealsData = dealsDataRes.data || [];
     const existingDealIds = new Set(dealsData.map((d: any) => d.id));
     results = results.filter(d => existingDealIds.has(d.deal_id));
 
@@ -212,27 +281,19 @@ export function useDealPipeline() {
     const projetoIds = [...new Set(Array.from(projetoIdMap.values()))].filter(Boolean);
 
     if (customerIds.length > 0 || dealIds.length > 0 || projetoIds.length > 0) {
-      const orParts: string[] = [];
-      if (dealIds.length > 0) orParts.push(`deal_id.in.(${dealIds.join(",")})`);
-      if (projetoIds.length > 0) orParts.push(`projeto_id.in.(${projetoIds.join(",")})`);
-
       const [propostasRes, locationRes] = await Promise.all([
-        supabase
-          .from("propostas_nativas")
-          .select("id, deal_id, projeto_id, status, is_principal")
-          .or(orParts.join(","))
-          .order("created_at", { ascending: false }),
+        fetchPropostasInBatches(dealIds, projetoIds),
         customerIds.length > 0
-          ? supabase.from("clientes").select("id, cidade, estado").in("id", customerIds)
-          : Promise.resolve({ data: [] }),
+          ? fetchRowsInBatches<any>("clientes", "id, cidade, estado", "id", customerIds)
+          : Promise.resolve([]),
       ]);
 
       const locationMap = new Map<string, { city: string | null; state: string | null }>();
-      (locationRes.data || []).forEach((c: any) => {
+      (locationRes || []).forEach((c: any) => {
         locationMap.set(c.id, { city: c.cidade, state: c.estado });
       });
 
-      const propostas = propostasRes.data || [];
+      const propostas = propostasRes || [];
 
       // Fetch economia only for proposals that need it (best per deal)
       // First determine best proposal per deal, THEN fetch only those versoes
@@ -280,11 +341,12 @@ export function useDealPipeline() {
       const bestPropostaIds = [...new Set(Array.from(bestPropostaByDeal.values()).map(p => p.id))];
       const economiaMap = new Map<string, number>();
       if (bestPropostaIds.length > 0) {
-        const { data: versoes } = await supabase
-          .from("proposta_versoes")
-          .select("proposta_id, economia_mensal")
-          .in("proposta_id", bestPropostaIds)
-          .order("versao_numero", { ascending: false });
+        const versoes = await fetchRowsInBatches<any>(
+          "proposta_versoes",
+          "proposta_id, economia_mensal",
+          "proposta_id",
+          bestPropostaIds,
+        );
         (versoes || []).forEach((v: any) => {
           if (v.economia_mensal && !economiaMap.has(v.proposta_id)) {
             economiaMap.set(v.proposta_id, v.economia_mensal);
