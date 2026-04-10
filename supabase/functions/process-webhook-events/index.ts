@@ -454,7 +454,7 @@ async function handleMessageUpsert(
       
       if (!fromMe) {
         updates.unread_count = (existingConv.unread_count || 0) + 1;
-        if (!isGroup && contactName) {
+        if (!isGroup && contactName && !existingConv.cliente_nome) {
           const phoneE164 = `+${phone}`;
           const phonesToCheck = altJids.map(j => `+${j.split("@")[0]}`);
           const { data: savedContact } = await supabase
