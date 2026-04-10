@@ -212,6 +212,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
   const [smoothProgress, setSmoothProgress] = useState(0);
   const cancelRef = useRef(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: consultores = [] } = useConsultores();
