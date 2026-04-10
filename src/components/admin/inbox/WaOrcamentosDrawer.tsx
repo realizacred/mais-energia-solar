@@ -56,6 +56,7 @@ export function WaOrcamentosDrawer({
         lead_id: orc.lead_id,
         lead_code: null,
         nome: clienteNome || "",
+        email: null,
         telefone: clienteTelefone || "",
         cep: orc.cep,
         estado: orc.estado,

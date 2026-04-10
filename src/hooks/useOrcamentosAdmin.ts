@@ -15,7 +15,7 @@ const ORC_ADMIN_SELECT = `
   observacoes, arquivos_urls, consultor, consultor_id, visto, visto_admin,
   status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
   leads!inner (
-    id, lead_code, nome, telefone, telefone_normalized,
+    id, lead_code, nome, telefone, telefone_normalized, email,
     consultor_id, consultor,
     consultores:consultor_id(id, nome)
   ),
@@ -68,6 +68,7 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
           lead_code: orc.leads?.lead_code || null,
           nome: orc.leads?.nome || "",
           telefone: orc.leads?.telefone || "",
+          email: orc.leads?.email || null,
           cep: orc.cep,
           estado: orc.estado,
           cidade: orc.cidade,

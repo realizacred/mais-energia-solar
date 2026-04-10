@@ -56,6 +56,7 @@ export function LeadsView() {
         orc.telefone.includes(searchTerm) ||
         orc.cidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
         orc.estado.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (orc.email && orc.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (orc.orc_code && orc.orc_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (orc.lead_code && orc.lead_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (orc.vendedor_nome && orc.vendedor_nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -193,6 +194,7 @@ export function LeadsView() {
         Código: orc.lead_code || "",
         Nome: orc.nome || "",
         Telefone: orc.telefone || "",
+        Email: orc.email || "",
         Cidade: orc.cidade || "",
         Estado: orc.estado || "",
         Consultor: orc.vendedor_nome || orc.vendedor || "",
