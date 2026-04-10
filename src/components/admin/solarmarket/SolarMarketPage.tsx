@@ -767,6 +767,22 @@ export default function SolarMarketPage() {
             </Button>
 
             <Button
+              onClick={() => runSyncPipelines()}
+              disabled={syncPipelinesRunning || projects.length === 0}
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              title="Sincronize funis e etapas ANTES de migrar propostas"
+            >
+              {syncPipelinesRunning ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <GitBranch className="h-3.5 w-3.5" />
+              )}
+              {syncPipelinesRunning ? "Sincronizando..." : "Sincronizar Funis & Etapas"}
+            </Button>
+
+            <Button
               onClick={() => setMigrateAllOpen(true)}
               disabled={pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
               size="sm"
