@@ -31,6 +31,8 @@ interface MigrationParams {
   owner_id?: string;
   /** If true, auto-resolve owner from SM funnel stage name and create consultor if missing */
   auto_resolve_owner?: boolean;
+  /** If true, auto-fetch next batch of pending proposals instead of requiring internal_ids */
+  auto_resume?: boolean;
 }
 
 type StepStatus = "WOULD_CREATE" | "WOULD_LINK" | "WOULD_SKIP" | "CONFLICT" | "ERROR";
