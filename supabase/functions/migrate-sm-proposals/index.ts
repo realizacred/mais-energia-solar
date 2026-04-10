@@ -1556,10 +1556,11 @@ Deno.serve(async (req) => {
           }
 
           // ── B2. Resolve owner_id ──
-          // Priority: 1) DB cached funnel data (fast, no external call)
+          // Priority: 1) DB cached funnel data "Vendedores" (fast, no external call)
           //           2) SM API funnel "Vendedores" (live fetch, only if DB empty)
-          //           3) project responsible.name
-          //           4) params.owner_id (manual fallback)
+          //           3) Fallback → Escritório (projetos sem consultor definido)
+          // NOTE: responsible.name removido da cadeia — causava atribuição errada
+          //       (Bruno era o responsible padrão no SM, inflava seus deals)
           let resolvedOwnerId = params.owner_id || null;
           let ownerAutoCreated = false;
           let ownerSource = resolvedOwnerId ? "manual_fallback" : "none";
@@ -1593,20 +1594,6 @@ Deno.serve(async (req) => {
                 } catch (e) {
                   (report as any).owner_resolved = { error: (e as Error).message };
                 }
-              }
-            }
-
-            // Priority 3: project responsible.name
-            if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
-              const respName = smProj?.responsible_name;
-              if (respName) {
-                try {
-                  const { id, created } = await resolveOrCreateConsultor(respName);
-                  resolvedOwnerId = id;
-                  ownerAutoCreated = created;
-                  ownerSource = `responsible:${respName}`;
-                  (report as any).owner_resolved = { name: respName, id, created, source: "project_responsible" };
-                } catch (e) { /* fallthrough */ }
               }
             }
           }
