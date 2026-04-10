@@ -722,9 +722,27 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {running ? "Processando..." : result ? "Resultado" : ""}
+                    {cancelling ? "Cancelando..." : running ? "Processando..." : result ? "Resultado" : ""}
                   </span>
-                  <span className="text-xs text-muted-foreground font-mono">{progressPercent}%</span>
+                  <div className="flex items-center gap-2">
+                    {running && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs border-destructive text-destructive"
+                        disabled={cancelling}
+                        onClick={() => setCancelConfirmOpen(true)}
+                      >
+                        {cancelling ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <StopCircle className="h-3 w-3 mr-1" />
+                        )}
+                        {cancelling ? "Cancelando..." : "Cancelar"}
+                      </Button>
+                    )}
+                    <span className="text-xs text-muted-foreground font-mono">{progressPercent}%</span>
+                  </div>
                 </div>
                 <Progress value={progressPercent} className="h-2" />
 
