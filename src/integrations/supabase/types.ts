@@ -20847,6 +20847,7 @@ export type Database = {
           enabled: boolean
           id: string
           last_sync_at: string | null
+          migration_blocked: boolean
           tenant_id: string
           updated_at: string
         }
@@ -20857,6 +20858,7 @@ export type Database = {
           enabled?: boolean
           id?: string
           last_sync_at?: string | null
+          migration_blocked?: boolean
           tenant_id: string
           updated_at?: string
         }
@@ -20867,6 +20869,7 @@ export type Database = {
           enabled?: boolean
           id?: string
           last_sync_at?: string | null
+          migration_blocked?: boolean
           tenant_id?: string
           updated_at?: string
         }
