@@ -909,6 +909,35 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel confirmation */}
+      <AlertDialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <StopCircle className="h-5 w-5 text-destructive" />
+              Cancelar migração?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza? Os lotes já processados serão mantidos. A migração será interrompida após o lote atual terminar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                cancelRef.current = true;
+                setCancelling(true);
+                setCancelConfirmOpen(false);
+                addLog("Cancelamento solicitado — aguardando lote atual terminar...");
+              }}
+            >
+              Cancelar migração
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
