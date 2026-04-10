@@ -1646,11 +1646,48 @@ Deno.serve(async (req) => {
             smProjForPipeline?.sm_stage_name || null,
           );
 
-          // Fallback: if stage_id is null, use pre-fetched first stage of the pipeline
-          if (!resolved.stage_id) {
-            const firstStage = pipelineFirstStage.get(resolved.pipeline_id);
-            if (firstStage) {
-              resolved.stage_id = firstStage;
+          // Fallback: if stage_id is null or source is fallback_ui, resolve from SM proposal status
+          // This handles projects that only have "Vendedores" funnel (no LEAD/Engenharia/etc.)
+          if (!resolved.stage_id || resolved.source === "fallback_ui") {
+            // Map SM proposal status → native Comercial stage
+            const smStatus = (smProp.status || "").toLowerCase();
+            const statusStageMap: Record<string, string> = {
+              // SM status → native stage name for lookup
+              "approved": "Ganho",
+              "generated": "Proposta Enviada",
+              "sent": "Proposta Enviada",
+              "viewed": "Proposta Enviada",
+              "created": "Qualificação",
+            };
+            const targetStageName = statusStageMap[smStatus];
+            if (targetStageName) {
+              // Look up the stage in the resolved pipeline
+              const normalizedTarget = normalizeComparableName(targetStageName);
+              const cacheKey = `${resolved.pipeline_id}::${normalizedTarget}`;
+              let mappedStageId = stageCache.get(cacheKey) || null;
+              if (!mappedStageId) {
+                const { data: stages } = await adminClient
+                  .from("pipeline_stages")
+                  .select("id, name")
+                  .eq("tenant_id", tenantId)
+                  .eq("pipeline_id", resolved.pipeline_id);
+                const match = (stages || []).find((s: any) => normalizeComparableName(s.name) === normalizedTarget);
+                if (match?.id) {
+                  mappedStageId = match.id;
+                  stageCache.set(cacheKey, mappedStageId);
+                }
+              }
+              if (mappedStageId) {
+                resolved.stage_id = mappedStageId;
+                resolved.source = `sm_status:${smStatus}→${targetStageName}`;
+              }
+            }
+            // Final fallback: first stage of the pipeline
+            if (!resolved.stage_id) {
+              const firstStage = pipelineFirstStage.get(resolved.pipeline_id);
+              if (firstStage) {
+                resolved.stage_id = firstStage;
+              }
             }
           }
           if (dealId) {
