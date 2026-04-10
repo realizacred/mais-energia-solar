@@ -770,7 +770,58 @@ function extractMessageContent(messageContent: any, msg: any): { content: string
   return { content: null, messageType: "text" };
 }
 
-async function handleMessageUpdate(supabase: any, payload: any) {
+/**
+ * Extract display info from contactMessage / contactsArrayMessage.
+ * Evolution API sends vCard data inside these fields.
+ * Returns a human-readable string like "João Silva (+5511999990000)"
+ */
+function extractContactDisplay(mc: any): string | null {
+  try {
+    // Single contact
+    if (mc.contactMessage) {
+      const displayName = mc.contactMessage.displayName;
+      const vcard = mc.contactMessage.vcard || "";
+      const phone = extractPhoneFromVcard(vcard);
+      if (displayName && phone) return `${displayName} (${phone})`;
+      if (displayName) return displayName;
+      if (phone) return phone;
+      return null;
+    }
+    // Multiple contacts
+    if (mc.contactsArrayMessage) {
+      const contacts = mc.contactsArrayMessage.contacts || [];
+      if (contacts.length === 0) {
+        return mc.contactsArrayMessage.displayName || null;
+      }
+      const names: string[] = [];
+      for (const c of contacts) {
+        const name = c.displayName;
+        const vcard = c.vcard || "";
+        const phone = extractPhoneFromVcard(vcard);
+        if (name && phone) names.push(`${name} (${phone})`);
+        else if (name) names.push(name);
+        else if (phone) names.push(phone);
+      }
+      return names.length > 0 ? names.join(", ") : null;
+    }
+  } catch {
+    // Fallback silently
+  }
+  return null;
+}
+
+function extractPhoneFromVcard(vcard: string): string | null {
+  if (!vcard) return null;
+  // Match TEL lines: TEL;type=CELL:+5511999990000 or TEL:+5511999990000
+  const match = vcard.match(/TEL[^:]*:([+\d\s()-]+)/i);
+  if (match) return match[1].trim();
+  // Match waid (WhatsApp ID in vCard)
+  const waidMatch = vcard.match(/waid=(\d+)/i);
+  if (waidMatch) return `+${waidMatch[1]}`;
+  return null;
+}
+
+
   const data = payload.data || payload;
   const updates = Array.isArray(data) ? data : [data];
   

@@ -319,8 +319,11 @@ export function WaMessageBubble({
 
           {/* CONTACT */}
           {msg.message_type === "contact" && (
-            <div className="flex items-center gap-2 text-xs opacity-80">
-              <span>👤</span> Contato compartilhado
+            <div className="flex items-center gap-2 text-xs">
+              <span>👤</span>
+              <span className="font-medium">
+                {msg.content ? msg.content : "Contato compartilhado"}
+              </span>
             </div>
           )}
 
