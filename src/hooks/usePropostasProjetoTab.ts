@@ -317,3 +317,36 @@ export function useExcluirProposta() {
     },
   });
 }
+
+// ─── Realtime sync ──────────────────────────────────
+/**
+ * Subscribes to realtime changes on propostas_nativas + proposta_versoes
+ * for a specific deal/customer. Debounce 300ms.
+ */
+export function usePropostasRealtimeSync(dealId: string, customerId: string | null) {
+  const queryClient = useQueryClient();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!dealId && !customerId) return;
+
+    const invalidate = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, dealId, customerId] });
+        queryClient.invalidateQueries({ queryKey: ["deal-proposals-count"] });
+      }, 300);
+    };
+
+    const channel = supabase
+      .channel(`propostas-nativas-realtime-${dealId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "propostas_nativas" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "proposta_versoes" }, invalidate)
+      .subscribe();
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [dealId, customerId, queryClient]);
+}
