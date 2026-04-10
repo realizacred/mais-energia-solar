@@ -823,6 +823,9 @@ Deno.serve(async (req) => {
 
 
     // ─── Vendedor name mapping (SM stage name → canonical consultor name) ──
+    // Ex-funcionários mapeados diretamente para Escritório (DA confirmado 2026-04-10)
+    const EX_FUNCIONARIOS = ['rogerio', 'rogério', 'ricardo'];
+
     const VENDEDOR_MAP: Record<string, string> = {
       'bruno': 'BRUNO BANDEIRA',
       'claudia': 'claudia',
@@ -831,9 +834,6 @@ Deno.serve(async (req) => {
       'renan': 'renan',
       'sebastiao': 'sebastião',
       'sebastião': 'sebastião',
-      'rogerio': 'rogerio',
-      'rogério': 'rogerio',
-      'ricardo': 'ricardo',
       'escritorio': 'escritório',
       'escritório': 'escritório',
     };
@@ -842,6 +842,11 @@ Deno.serve(async (req) => {
       const key = normalizeComparableName(stageName);
       if (!key) {
         // Empty name → use "Escritório"
+        return resolveOrCreateEscritorio();
+      }
+
+      // Priority 0: ex-funcionários → Escritório direto (sem log de erro)
+      if (EX_FUNCIONARIOS.includes(key)) {
         return resolveOrCreateEscritorio();
       }
 
