@@ -928,11 +928,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 </div>
                 <Progress value={smoothProgress} className="h-2" />
                 <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>{autoResumeStats.migrated} migrados, {autoResumeStats.errors} erros</span>
+                  <span>Rodada {autoResumeCurrentRound}/{autoResumeTotalRounds} • {autoResumeStats.migrated} migrados, {autoResumeStats.errors} erros</span>
                   <span>{(() => {
                     const elapsed = (Date.now() - autoResumeStats.startTime) / 1000;
                     const rate = autoResumeStats.migrated / Math.max(elapsed, 1);
-                    const remaining = pendingStats ? Math.max(0, pendingStats.pending - autoResumeStats.migrated) : 0;
+                    const remaining = Math.max(0, autoResumeStats.initialPending - autoResumeStats.migrated);
                     const eta = rate > 0 ? Math.round(remaining / rate) : 0;
                     return eta > 60 ? `~${Math.round(eta / 60)}min restantes` : `~${eta}s restantes`;
                   })()}</span>
@@ -1103,7 +1103,18 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 <Progress value={progressPercent} className="h-2" />
 
                 {/* Batch counter */}
-                {running && batchProgress && isBulk && (
+                {running && autoResumeRunning && autoResumeStats && (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      Rodada <span className="font-semibold text-foreground">{autoResumeCurrentRound}</span> de{" "}
+                      <span className="font-semibold text-foreground">{autoResumeTotalRounds}</span>
+                    </span>
+                    <span>
+                      <span className="font-semibold text-foreground">{autoResumeStats.migrated}</span>/{autoResumeStats.initialPending} propostas
+                    </span>
+                  </div>
+                )}
+                {running && !autoResumeRunning && batchProgress && isBulk && (
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
                       Lote <span className="font-semibold text-foreground">{batchProgress.current}</span> de{" "}
