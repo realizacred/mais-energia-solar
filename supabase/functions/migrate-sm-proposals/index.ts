@@ -1053,7 +1053,7 @@ Deno.serve(async (req) => {
 
       if (stageErr) throw new Error(`Falha ao criar stage "${stageName}": ${stageErr.message}`);
       stageCache.set(cacheKey, newStage!.id);
-      console.log(`[SM Migration] Created stage "${stageName}" in pipeline ${pipelineId} → ${newStage!.id}`);
+      // console.log(`[SM Migration] Created stage "${stageName}" in pipeline ${pipelineId} → ${newStage!.id}`);
       return newStage!.id;
     }
 
@@ -1369,7 +1369,7 @@ Deno.serve(async (req) => {
       
       const beforeCount = proposalsToProcess.length;
       proposalsToProcess = proposalsToProcess.filter((p: any) => p.sm_project_id && vendedorProjectIds.has(p.sm_project_id));
-      console.log(`[SM Migration] Vendedor filter "${filters.vendedor_name}": ${beforeCount} → ${proposalsToProcess.length} proposals (${vendedorProjectIds.size} projects matched)`);
+      // console.log(`[SM Migration] Vendedor filter "${filters.vendedor_name}": ${beforeCount} → ${proposalsToProcess.length} proposals (${vendedorProjectIds.size} projects matched)`);
     }
 
     for (const smProp of proposalsToProcess) {
@@ -1409,7 +1409,7 @@ Deno.serve(async (req) => {
                   .limit(1);
                 if (clients?.[0]) smClient = clients[0];
               }
-              if (smClient) console.log(`[SM Migration] Resolved client via project ${smProp.sm_project_id}: sm_client_id ${smProp.sm_client_id} → ${proj.sm_client_id}`);
+              // if (smClient) console.log(`[SM Migration] Resolved client via project ${smProp.sm_project_id}: sm_client_id ${smProp.sm_client_id} → ${proj.sm_client_id}`);
             }
           }
           if (!smClient) {
@@ -2592,7 +2592,7 @@ Deno.serve(async (req) => {
         .eq("has_active_proposal", false);
 
       const pwp = projectsWithoutProposal || [];
-      console.log(`[SM Migration] Group B: ${pwp.length} projects without active proposal`);
+      // console.log(`[SM Migration] Group B: ${pwp.length} projects without active proposal`);
 
       for (const proj of pwp) {
         // Time budget check inside Group B loop
