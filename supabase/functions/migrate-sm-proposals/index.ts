@@ -473,7 +473,7 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: { user }, error: authErr } = await adminClient.auth.getUser(token);
-    console.log("[SM Migration] Auth result:", user?.id ?? "NO_USER", authErr?.message ?? "OK");
+    // console.log("[SM Migration] Auth result:", user?.id ?? "NO_USER", authErr?.message ?? "OK");
     if (authErr || !user) {
       console.error("ERR", { step: "user_auth", err: authErr?.message });
       return new Response(JSON.stringify({ error: "Unauthorized", step: "user_auth", debug: { message: authErr?.message } }), {
@@ -489,7 +489,7 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
-    console.log("[SM Migration] Profile:", JSON.stringify({ tenant_id: profile?.tenant_id, status: profile?.status, ativo: profile?.ativo, err: profileError?.message }));
+    // console.log("[SM Migration] Profile:", JSON.stringify({ tenant_id: profile?.tenant_id, status: profile?.status, ativo: profile?.ativo, err: profileError?.message }));
     if (profileError || !profile?.tenant_id) {
       console.error("ERR", { step: "profile_lookup", err: profileError?.message });
       return new Response(JSON.stringify({ error: "No tenant/profile", step: "profile_lookup", debug: { message: profileError?.message, code: profileError?.code } }), {
@@ -583,7 +583,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[SM Migration] tenant=${tenantId} dry_run=${dry_run} filters=${JSON.stringify(filters)}`);
+    // console.log(`[SM Migration] tenant=${tenantId} dry_run=${dry_run} filters=${JSON.stringify(filters)}`);
 
     // ─── 0. Authenticate with SolarMarket API to fetch funnel data ────
     let smAccessToken: string | null = null;
@@ -742,7 +742,7 @@ Deno.serve(async (req) => {
       offset += pageSize;
     }
 
-    console.log(`[SM Migration] Found ${allProposals.length} proposals matching filters`);
+    // console.log(`[SM Migration] Found ${allProposals.length} proposals matching filters`);
 
     if (allProposals.length === 0) {
       return new Response(
@@ -768,7 +768,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
+    // console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
 
     // ─── 2b. Pre-fetch SM projects to resolve responsible (vendedor) & funnels ─
     const smProjectIds = [...new Set(allProposals.map((p) => p.sm_project_id).filter(Boolean))];
@@ -786,7 +786,7 @@ Deno.serve(async (req) => {
         smProjectMap.set(p.sm_project_id, { responsible_name: respName, sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name, all_funnels: p.all_funnels || null });
       }
     }
-    console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
+    // console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
 
 
     // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
@@ -809,7 +809,7 @@ Deno.serve(async (req) => {
         if (normalizedName) consultoresMap.set(normalizedName, c.id);
       }
     }
-    console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
+    // console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
 
     // ─── 2d. Pre-fetch custom field mappings ────────────
     // Normalize source_key on load: store as bareKey (no brackets) for consistent lookup
@@ -834,7 +834,7 @@ Deno.serve(async (req) => {
         });
       }
     }
-    console.log(`[SM Migration] Loaded ${cfMappings.size} custom field mappings`);
+    // console.log(`[SM Migration] Loaded ${cfMappings.size} custom field mappings`);
 
     /** Apply transform to a raw value */
     function applyTransform(rawValue: any, transform: string): any {
@@ -896,8 +896,8 @@ Deno.serve(async (req) => {
       const existing = consultoresMap.get(key);
       if (existing) return { id: existing, created: false };
 
-      // Priority 2: VENDEDOR_MAP lookup — find canonical name and match
-      const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key.includes(k))?.[1];
+      // Priority 2: VENDEDOR_MAP lookup — find canonical name and match (word-boundary safe)
+      const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key === k || key.startsWith(k + ' ') || key.endsWith(' ' + k))?.[1];
       if (mappedName) {
         const normalizedMapped = normalizeComparableName(mappedName);
         const mapped = consultoresMap.get(normalizedMapped);
@@ -926,14 +926,10 @@ Deno.serve(async (req) => {
 
       const { data: newConsultor, error: consErr } = await adminClient
         .from("consultores")
-        .insert({
-          tenant_id: tenantId,
-          nome: "Escritório",
-          telefone: "N/A",
-          codigo: "escritorio",
-          ativo: true,
-          user_id: null,
-        })
+        .upsert(
+          { tenant_id: tenantId, nome: "Escritório", telefone: "N/A", codigo: "escritorio", ativo: true, user_id: null },
+          { onConflict: "tenant_id,codigo", ignoreDuplicates: false }
+        )
         .select("id")
         .single();
 
@@ -1057,7 +1053,7 @@ Deno.serve(async (req) => {
 
       if (stageErr) throw new Error(`Falha ao criar stage "${stageName}": ${stageErr.message}`);
       stageCache.set(cacheKey, newStage!.id);
-      console.log(`[SM Migration] Created stage "${stageName}" in pipeline ${pipelineId} → ${newStage!.id}`);
+      // console.log(`[SM Migration] Created stage "${stageName}" in pipeline ${pipelineId} → ${newStage!.id}`);
       return newStage!.id;
     }
 
@@ -1373,7 +1369,7 @@ Deno.serve(async (req) => {
       
       const beforeCount = proposalsToProcess.length;
       proposalsToProcess = proposalsToProcess.filter((p: any) => p.sm_project_id && vendedorProjectIds.has(p.sm_project_id));
-      console.log(`[SM Migration] Vendedor filter "${filters.vendedor_name}": ${beforeCount} → ${proposalsToProcess.length} proposals (${vendedorProjectIds.size} projects matched)`);
+      // console.log(`[SM Migration] Vendedor filter "${filters.vendedor_name}": ${beforeCount} → ${proposalsToProcess.length} proposals (${vendedorProjectIds.size} projects matched)`);
     }
 
     for (const smProp of proposalsToProcess) {
@@ -1413,7 +1409,7 @@ Deno.serve(async (req) => {
                   .limit(1);
                 if (clients?.[0]) smClient = clients[0];
               }
-              if (smClient) console.log(`[SM Migration] Resolved client via project ${smProp.sm_project_id}: sm_client_id ${smProp.sm_client_id} → ${proj.sm_client_id}`);
+              // if (smClient) console.log(`[SM Migration] Resolved client via project ${smProp.sm_project_id}: sm_client_id ${smProp.sm_client_id} → ${proj.sm_client_id}`);
             }
           }
           if (!smClient) {
@@ -2400,6 +2396,11 @@ Deno.serve(async (req) => {
 
               if (verErr) {
                 report.steps.proposta_versao = { status: "ERROR", reason: verErr.message };
+                report.aborted = true;
+                summary.ERROR++;
+                reports.push(report);
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, report.sm_client_name, "ERROR", report, dry_run);
+                continue;
               } else {
                 report.steps.proposta_versao = { status: "WOULD_CREATE", id: newVer!.id };
               }
@@ -2591,7 +2592,7 @@ Deno.serve(async (req) => {
         .eq("has_active_proposal", false);
 
       const pwp = projectsWithoutProposal || [];
-      console.log(`[SM Migration] Group B: ${pwp.length} projects without active proposal`);
+      // console.log(`[SM Migration] Group B: ${pwp.length} projects without active proposal`);
 
       for (const proj of pwp) {
         // Time budget check inside Group B loop
@@ -2643,32 +2644,34 @@ Deno.serve(async (req) => {
 
           if (smClient) {
             const phoneNorm = smClient.phone_normalized || normalizePhone(smClient.phone);
-            // Match by phone
+            // Match using pre-fetched Maps (same pattern as Group A — no N+1 queries)
             if (phoneNorm) {
-              const { data: matches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("telefone_normalized", phoneNorm).limit(2);
-              if ((matches || []).length === 1) clienteId = matches![0].id;
+              const phoneMatch = clienteByPhone.get(phoneNorm);
+              if (phoneMatch && phoneMatch.count === 1) clienteId = phoneMatch.id;
             }
-            // Match by email
             if (!clienteId && smClient.email) {
               const emailNorm = smClient.email.trim().toLowerCase();
               if (emailNorm) {
-                const { data: emailMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("email", emailNorm).limit(1);
-                if ((emailMatches || []).length === 1) clienteId = emailMatches![0].id;
+                const emailMatch = clienteByEmail.get(emailNorm);
+                if (emailMatch) clienteId = emailMatch;
               }
             }
-            // Match by document
             if (!clienteId && smClient.document) {
               const docNorm = smClient.document.replace(/\D/g, "");
               if (docNorm.length >= 11) {
-                const { data: docMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("cpf_cnpj", docNorm).limit(1);
-                if ((docMatches || []).length === 1) clienteId = docMatches![0].id;
+                const docMatch = clienteByDoc.get(docNorm);
+                if (docMatch) clienteId = docMatch;
               }
             }
-            // Match by SM client code
             if (!clienteId) {
-              const codePattern = `SM-${smClient.sm_client_id}-`;
-              const { data: codeMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).like("cliente_code", `${codePattern}%`).limit(1);
-              if ((codeMatches || []).length === 1) clienteId = codeMatches![0].id;
+              const resolvedSmClientId = smClient.sm_client_id || 0;
+              const codePattern = `SM-${resolvedSmClientId}-`;
+              for (const [code, cId] of clienteByCode) {
+                if (code.startsWith(codePattern)) {
+                  clienteId = cId;
+                  break;
+                }
+              }
             }
 
             // Create client if needed
