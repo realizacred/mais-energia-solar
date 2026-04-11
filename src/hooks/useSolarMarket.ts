@@ -333,7 +333,9 @@ export function useSmSyncLogs() {
     },
     refetchInterval: (query) => {
       const latest = query.state.data?.[0];
-      return latest?.status === "running" ? 2000 : false;
+      if (latest?.status !== "running") return false;
+      const age = Date.now() - new Date(latest.started_at).getTime();
+      return age < 600000 ? 2000 : false;
     },
   });
 }
