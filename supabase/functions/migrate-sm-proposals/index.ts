@@ -742,7 +742,7 @@ Deno.serve(async (req) => {
       offset += pageSize;
     }
 
-    console.log(`[SM Migration] Found ${allProposals.length} proposals matching filters`);
+    // console.log(`[SM Migration] Found ${allProposals.length} proposals matching filters`);
 
     if (allProposals.length === 0) {
       return new Response(
@@ -768,7 +768,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
+    // console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
 
     // ─── 2b. Pre-fetch SM projects to resolve responsible (vendedor) & funnels ─
     const smProjectIds = [...new Set(allProposals.map((p) => p.sm_project_id).filter(Boolean))];
@@ -786,7 +786,7 @@ Deno.serve(async (req) => {
         smProjectMap.set(p.sm_project_id, { responsible_name: respName, sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name, all_funnels: p.all_funnels || null });
       }
     }
-    console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
+    // console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
 
 
     // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
@@ -809,7 +809,7 @@ Deno.serve(async (req) => {
         if (normalizedName) consultoresMap.set(normalizedName, c.id);
       }
     }
-    console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
+    // console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
 
     // ─── 2d. Pre-fetch custom field mappings ────────────
     // Normalize source_key on load: store as bareKey (no brackets) for consistent lookup
@@ -834,7 +834,7 @@ Deno.serve(async (req) => {
         });
       }
     }
-    console.log(`[SM Migration] Loaded ${cfMappings.size} custom field mappings`);
+    // console.log(`[SM Migration] Loaded ${cfMappings.size} custom field mappings`);
 
     /** Apply transform to a raw value */
     function applyTransform(rawValue: any, transform: string): any {
@@ -897,7 +897,8 @@ Deno.serve(async (req) => {
       if (existing) return { id: existing, created: false };
 
       // Priority 2: VENDEDOR_MAP lookup — find canonical name and match
-      const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key.includes(k))?.[1];
+      // M01 fix: use word-boundary match to avoid false positives (e.g. "brunocarlos" → "bruno")
+      const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key === k || key.startsWith(k + ' '))?.[1];
       if (mappedName) {
         const normalizedMapped = normalizeComparableName(mappedName);
         const mapped = consultoresMap.get(normalizedMapped);
@@ -1003,36 +1004,35 @@ Deno.serve(async (req) => {
       return pipeId;
     }
 
+    // M02 fix: pre-load all stages per pipeline in a single query, stored in stageCache.
+    // Eliminates the double-query pattern (exact match + full scan) per stage call.
+    const stageCacheLoaded = new Set<string>(); // tracks which pipelineIds were already loaded
+
+    async function preloadStagesForPipeline(pipelineId: string): Promise<void> {
+      if (stageCacheLoaded.has(pipelineId)) return;
+      stageCacheLoaded.add(pipelineId);
+      const { data: allStages } = await adminClient
+        .from("pipeline_stages")
+        .select("id, name")
+        .eq("tenant_id", tenantId)
+        .eq("pipeline_id", pipelineId);
+      for (const s of allStages || []) {
+        const normalizedName = normalizeComparableName(s.name);
+        const key = `${pipelineId}::${normalizedName}`;
+        if (!stageCache.has(key)) stageCache.set(key, s.id);
+      }
+    }
+
     async function resolveOrCreateStage(pipelineId: string, stageName: string, position: number): Promise<string> {
       const normalizedStageName = normalizeComparableName(stageName);
       const cacheKey = `${pipelineId}::${normalizedStageName}`;
       if (stageCache.has(cacheKey)) return stageCache.get(cacheKey)!;
 
-      // Look up existing stage
-      const { data: existing } = await adminClient
-        .from("pipeline_stages")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .eq("pipeline_id", pipelineId)
-        .eq("name", stageName.trim())
-        .limit(1);
+      // Pre-load all stages for this pipeline in one query (M02 fix)
+      await preloadStagesForPipeline(pipelineId);
 
-      if (existing && existing.length > 0) {
-        stageCache.set(cacheKey, existing[0].id);
-        return existing[0].id;
-      }
-
-      // Fallback: accent-insensitive match to avoid duplicates like SEBASTIAO/SEBASTIÃO
-      const { data: existingStages } = await adminClient
-        .from("pipeline_stages")
-        .select("id, name")
-        .eq("tenant_id", tenantId)
-        .eq("pipeline_id", pipelineId);
-      const matchedStage = (existingStages || []).find((stage: any) => normalizeComparableName(stage.name) === normalizedStageName);
-      if (matchedStage?.id) {
-        stageCache.set(cacheKey, matchedStage.id);
-        return matchedStage.id;
-      }
+      // Check again after pre-load (accent-insensitive already handled by normalization above)
+      if (stageCache.has(cacheKey)) return stageCache.get(cacheKey)!;
 
       if (dry_run) {
         const placeholder = `AUTO_CREATE_STAGE:${stageName}`;
@@ -1057,7 +1057,6 @@ Deno.serve(async (req) => {
 
       if (stageErr) throw new Error(`Falha ao criar stage "${stageName}": ${stageErr.message}`);
       stageCache.set(cacheKey, newStage!.id);
-      console.log(`[SM Migration] Created stage "${stageName}" in pipeline ${pipelineId} → ${newStage!.id}`);
       return newStage!.id;
     }
 
@@ -1373,7 +1372,7 @@ Deno.serve(async (req) => {
       
       const beforeCount = proposalsToProcess.length;
       proposalsToProcess = proposalsToProcess.filter((p: any) => p.sm_project_id && vendedorProjectIds.has(p.sm_project_id));
-      console.log(`[SM Migration] Vendedor filter "${filters.vendedor_name}": ${beforeCount} → ${proposalsToProcess.length} proposals (${vendedorProjectIds.size} projects matched)`);
+      // console.log(`[SM Migration] Vendedor filter "${filters.vendedor_name}": ${beforeCount} → ${proposalsToProcess.length} proposals (${vendedorProjectIds.size} projects matched)`);
     }
 
     for (const smProp of proposalsToProcess) {
@@ -1413,7 +1412,7 @@ Deno.serve(async (req) => {
                   .limit(1);
                 if (clients?.[0]) smClient = clients[0];
               }
-              if (smClient) console.log(`[SM Migration] Resolved client via project ${smProp.sm_project_id}: sm_client_id ${smProp.sm_client_id} → ${proj.sm_client_id}`);
+              // console.log(`[SM Migration] Resolved client via project ${smProp.sm_project_id}: sm_client_id ${smProp.sm_client_id} → ${proj.sm_client_id}`);
             }
           }
           if (!smClient) {
@@ -2122,19 +2121,30 @@ Deno.serve(async (req) => {
                 observacoes: "",
               };
 
-              // Build pagamentoOpcoes in canonical schema
+              // M06 fix: infer payment type from payment_conditions string
+              function inferTipoPagamento(cond: string | null): "a_vista" | "financiamento" | "entrada" {
+                if (!cond) return "a_vista";
+                const c = cond.toLowerCase();
+                if (/financiamento|parcela|\d+x/.test(c)) return "financiamento";
+                if (/entrada/.test(c)) return "entrada";
+                return "a_vista";
+              }
+              const tipoPagamento = inferTipoPagamento(smProp.payment_conditions);
+              // Infer num_parcelas from text like "72x" or "em 60 parcelas"
+              const parcelasMatch = (smProp.payment_conditions || "").match(/(\d+)\s*[xX]|em\s*(\d+)\s*parcelas?/i);
+              const numParcelas = parcelasMatch ? Number(parcelasMatch[1] || parcelasMatch[2]) : 1;
               const pagamentoOpcoes = [{
                 id: crypto.randomUUID(),
                 nome: smProp.payment_conditions || "À Vista",
                 label: smProp.payment_conditions || "À Vista",
-                tipo: "a_vista" as const,
+                tipo: tipoPagamento,
                 valor_financiado: valorTotal,
                 entrada: 0,
                 taxa_mensal: 0,
                 carencia_meses: 0,
-                num_parcelas: 1,
-                parcelas: 1,
-                valor_parcela: valorTotal,
+                num_parcelas: numParcelas,
+                parcelas: numParcelas,
+                valor_parcela: numParcelas > 1 ? Math.round(valorTotal / numParcelas * 100) / 100 : valorTotal,
                 is_default: true,
               }];
 
@@ -2399,7 +2409,15 @@ Deno.serve(async (req) => {
                 .single();
 
               if (verErr) {
+                // C03 fix: abort the proposal flow when version insert fails.
+                // Without this, migrado_em could be stamped even though no valid version exists,
+                // creating a semi-migrated "ghost" proposal invisible in the pending queue.
                 report.steps.proposta_versao = { status: "ERROR", reason: verErr.message };
+                report.aborted = true;
+                summary.ERROR++;
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
+                reports.push(report);
+                continue;
               } else {
                 report.steps.proposta_versao = { status: "WOULD_CREATE", id: newVer!.id };
               }
@@ -2591,12 +2609,12 @@ Deno.serve(async (req) => {
         .eq("has_active_proposal", false);
 
       const pwp = projectsWithoutProposal || [];
-      console.log(`[SM Migration] Group B: ${pwp.length} projects without active proposal`);
+      // console.log(`[SM Migration] Group B: ${pwp.length} projects without active proposal`);
 
       for (const proj of pwp) {
         // Time budget check inside Group B loop
         if (Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS) {
-          console.warn(`[SM Migration] Group B time budget exceeded, stopping early`);
+          console.error(`[SM Migration] Group B time budget exceeded, stopping early`);
           break;
         }
         const groupBReport: any = {
@@ -2624,7 +2642,7 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Resolve client
+          // Resolve client from pre-loaded smClientMap
           let smClient = proj.sm_client_id ? smClientMap.get(proj.sm_client_id) : null;
           if (!smClient && proj.sm_client_id) {
             const { data: clients } = await adminClient
@@ -2638,37 +2656,34 @@ Deno.serve(async (req) => {
 
           groupBReport.sm_client_name = smClient?.name || proj.name || null;
 
-          // Resolve or create canonical client (same logic as Group A)
+          // C01 fix: Resolve canonical client using pre-loaded Maps (same O(1) pattern as Group A).
+          // Eliminates 4 direct DB queries per project in the Group B loop.
           let clienteId: string | null = null;
 
           if (smClient) {
             const phoneNorm = smClient.phone_normalized || normalizePhone(smClient.phone);
-            // Match by phone
+            // 1) Match by phone (pre-loaded Map, O(1))
             if (phoneNorm) {
-              const { data: matches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("telefone_normalized", phoneNorm).limit(2);
-              if ((matches || []).length === 1) clienteId = matches![0].id;
+              const phoneMatch = clienteByPhone.get(phoneNorm);
+              if (phoneMatch && phoneMatch.count === 1) clienteId = phoneMatch.id;
+              // If count > 1 (CONFLICT), we skip phone match but don't abort Group B (no proposal)
             }
-            // Match by email
+            // 2) Match by email (pre-loaded Map, O(1))
             if (!clienteId && smClient.email) {
               const emailNorm = smClient.email.trim().toLowerCase();
-              if (emailNorm) {
-                const { data: emailMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("email", emailNorm).limit(1);
-                if ((emailMatches || []).length === 1) clienteId = emailMatches![0].id;
-              }
+              if (emailNorm) clienteId = clienteByEmail.get(emailNorm) || null;
             }
-            // Match by document
+            // 3) Match by document (pre-loaded Map, O(1))
             if (!clienteId && smClient.document) {
               const docNorm = smClient.document.replace(/\D/g, "");
-              if (docNorm.length >= 11) {
-                const { data: docMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("cpf_cnpj", docNorm).limit(1);
-                if ((docMatches || []).length === 1) clienteId = docMatches![0].id;
-              }
+              if (docNorm.length >= 11) clienteId = clienteByDoc.get(docNorm) || null;
             }
-            // Match by SM client code
+            // 4) Match by SM client code (pre-loaded Map, O(1))
             if (!clienteId) {
               const codePattern = `SM-${smClient.sm_client_id}-`;
-              const { data: codeMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).like("cliente_code", `${codePattern}%`).limit(1);
-              if ((codeMatches || []).length === 1) clienteId = codeMatches![0].id;
+              for (const [code, cId] of clienteByCode) {
+                if (code.startsWith(codePattern)) { clienteId = cId; break; }
+              }
             }
 
             // Create client if needed

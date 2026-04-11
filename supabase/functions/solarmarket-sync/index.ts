@@ -1709,7 +1709,8 @@ Deno.serve(async (req) => {
           .update({ has_active_proposal: false })
           .eq("tenant_id", tenantId);
         if (projectIdsWithProposal.length > 0) {
-          q1 = q1.not("sm_project_id", "in", `(${projectIdsWithProposal.join(",")})`);
+          // M03 fix: use typed array (not inline SQL string) to avoid URL-length limits and SQL injection risk
+          q1 = q1.not("sm_project_id", "in", projectIdsWithProposal);
         }
         const { error: u1Err } = await q1;
         if (u1Err) throw u1Err;
