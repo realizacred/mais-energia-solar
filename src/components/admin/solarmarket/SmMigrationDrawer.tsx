@@ -275,7 +275,13 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Auto-resume state
   const [autoResumeRunning, setAutoResumeRunning] = useState(false);
-  const [autoResumeStats, setAutoResumeStats] = useState<{ migrated: number; errors: number; startTime: number } | null>(null);
+  const [autoResumeStats, setAutoResumeStats] = useState<{
+    migrated: number;
+    errors: number;
+    startTime: number;
+    round: number;
+    initialPending: number;
+  } | null>(null);
   const [autoResumeConfirmOpen, setAutoResumeConfirmOpen] = useState(false);
   const [autoResumeConfirmText, setAutoResumeConfirmText] = useState("");
 
