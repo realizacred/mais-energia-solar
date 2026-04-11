@@ -251,6 +251,8 @@ interface SmMigrationDrawerProps {
   proposals: SmProposal[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Expose running state to parent */
+  onRunningChange?: (running: boolean) => void;
 }
 
 export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigrationDrawerProps) {
