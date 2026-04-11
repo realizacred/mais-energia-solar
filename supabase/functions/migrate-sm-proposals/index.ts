@@ -122,12 +122,12 @@ function mapSmStatusToProposta(smProp: any): string {
 function mapSmStatusToVersao(smProp: any): string {
   const lc = resolveSmLifecycle(smProp);
   switch (lc) {
-    case "approved": return "aceita";
-    case "rejected": return "recusada";
-    case "viewed": return "vista";
-    case "sent": return "enviada";
-    case "generated": return "gerada";
-    default: return "rascunho";
+    case "approved": return "accepted";
+    case "rejected": return "rejected";
+    case "viewed": return "sent";
+    case "sent": return "sent";
+    case "generated": return "generated";
+    default: return "draft";
   }
 }
 
