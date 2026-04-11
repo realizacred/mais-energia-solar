@@ -679,8 +679,31 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       const projectUrl = import.meta.env.VITE_SUPABASE_URL;
       let continuar = true;
       let round = 0;
+      const MAX_ROUNDS = 200;
+      let lastMigrated = -1;
+      let stagnantRounds = 0;
 
       while (continuar && !cancelRef.current) {
+        round++;
+        if (round > MAX_ROUNDS) {
+          addLog(`⚠️ Limite de ${MAX_ROUNDS} rodadas atingido. Verifique os erros.`);
+          toast.warning(`Migração interrompida após ${MAX_ROUNDS} rodadas. Verifique os conflitos.`);
+          break;
+        }
+
+        // Detect stagnation (no progress for 5 consecutive rounds)
+        const currentMigrated = stats.migrated;
+        if (currentMigrated === lastMigrated) {
+          stagnantRounds++;
+          if (stagnantRounds >= 5) {
+            addLog(`⚠️ Migração parou de avançar (5 lotes sem progresso). Verifique os conflitos.`);
+            toast.warning("Migração parou de avançar. Verifique os conflitos pendentes.");
+            break;
+          }
+        } else {
+          stagnantRounds = 0;
+        }
+        lastMigrated = currentMigrated;
         round++;
         stats.round = round;
         setAutoResumeStats({ ...stats });
