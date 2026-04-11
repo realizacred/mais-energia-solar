@@ -473,7 +473,7 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: { user }, error: authErr } = await adminClient.auth.getUser(token);
-    console.log("[SM Migration] Auth result:", user?.id ?? "NO_USER", authErr?.message ?? "OK");
+    // console.log("[SM Migration] Auth result:", user?.id ?? "NO_USER", authErr?.message ?? "OK");
     if (authErr || !user) {
       console.error("ERR", { step: "user_auth", err: authErr?.message });
       return new Response(JSON.stringify({ error: "Unauthorized", step: "user_auth", debug: { message: authErr?.message } }), {
@@ -489,7 +489,7 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
-    console.log("[SM Migration] Profile:", JSON.stringify({ tenant_id: profile?.tenant_id, status: profile?.status, ativo: profile?.ativo, err: profileError?.message }));
+    // console.log("[SM Migration] Profile:", JSON.stringify({ tenant_id: profile?.tenant_id, status: profile?.status, ativo: profile?.ativo, err: profileError?.message }));
     if (profileError || !profile?.tenant_id) {
       console.error("ERR", { step: "profile_lookup", err: profileError?.message });
       return new Response(JSON.stringify({ error: "No tenant/profile", step: "profile_lookup", debug: { message: profileError?.message, code: profileError?.code } }), {
@@ -583,7 +583,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[SM Migration] tenant=${tenantId} dry_run=${dry_run} filters=${JSON.stringify(filters)}`);
+    // console.log(`[SM Migration] tenant=${tenantId} dry_run=${dry_run} filters=${JSON.stringify(filters)}`);
 
     // ─── 0. Authenticate with SolarMarket API to fetch funnel data ────
     let smAccessToken: string | null = null;
@@ -742,7 +742,7 @@ Deno.serve(async (req) => {
       offset += pageSize;
     }
 
-    console.log(`[SM Migration] Found ${allProposals.length} proposals matching filters`);
+    // console.log(`[SM Migration] Found ${allProposals.length} proposals matching filters`);
 
     if (allProposals.length === 0) {
       return new Response(
@@ -768,7 +768,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
+    // console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
 
     // ─── 2b. Pre-fetch SM projects to resolve responsible (vendedor) & funnels ─
     const smProjectIds = [...new Set(allProposals.map((p) => p.sm_project_id).filter(Boolean))];
@@ -786,7 +786,7 @@ Deno.serve(async (req) => {
         smProjectMap.set(p.sm_project_id, { responsible_name: respName, sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name, all_funnels: p.all_funnels || null });
       }
     }
-    console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
+    // console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
 
 
     // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
@@ -809,7 +809,7 @@ Deno.serve(async (req) => {
         if (normalizedName) consultoresMap.set(normalizedName, c.id);
       }
     }
-    console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
+    // console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
 
     // ─── 2d. Pre-fetch custom field mappings ────────────
     // Normalize source_key on load: store as bareKey (no brackets) for consistent lookup
@@ -834,7 +834,7 @@ Deno.serve(async (req) => {
         });
       }
     }
-    console.log(`[SM Migration] Loaded ${cfMappings.size} custom field mappings`);
+    // console.log(`[SM Migration] Loaded ${cfMappings.size} custom field mappings`);
 
     /** Apply transform to a raw value */
     function applyTransform(rawValue: any, transform: string): any {
