@@ -2546,10 +2546,12 @@ Deno.serve(async (req) => {
       }
 
     // ─── GROUP B: Projects without active proposal ──────────
-    const includeProjectsWithoutProposal = params.include_projects_without_proposal !== false;
+    // Default to false — Group B is opt-in only. Skip entirely if time budget exceeded.
+    const includeProjectsWithoutProposal = params.include_projects_without_proposal === true;
     const groupBReports: any[] = [];
+    const timeBudgetAlreadyExceeded = Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS;
 
-    if (includeProjectsWithoutProposal) {
+    if (includeProjectsWithoutProposal && !timeBudgetAlreadyExceeded) {
       const { data: projectsWithoutProposal } = await adminClient
         .from("solar_market_projects")
         .select("id, sm_project_id, sm_client_id, name, potencia_kwp, status, valor, city, state, address, neighborhood, zip_code, number, complement, installation_type, sm_funnel_name, sm_stage_name, all_funnels, tenant_id, sm_created_at, responsible")
@@ -2560,6 +2562,11 @@ Deno.serve(async (req) => {
       console.log(`[SM Migration] Group B: ${pwp.length} projects without active proposal`);
 
       for (const proj of pwp) {
+        // Time budget check inside Group B loop
+        if (Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS) {
+          console.warn(`[SM Migration] Group B time budget exceeded, stopping early`);
+          break;
+        }
         const groupBReport: any = {
           sm_project_id: proj.sm_project_id,
           sm_client_name: null,
