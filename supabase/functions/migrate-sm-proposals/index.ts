@@ -2562,6 +2562,11 @@ Deno.serve(async (req) => {
       console.log(`[SM Migration] Group B: ${pwp.length} projects without active proposal`);
 
       for (const proj of pwp) {
+        // Time budget check inside Group B loop
+        if (Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS) {
+          console.warn(`[SM Migration] Group B time budget exceeded, stopping early`);
+          break;
+        }
         const groupBReport: any = {
           sm_project_id: proj.sm_project_id,
           sm_client_name: null,
