@@ -2420,6 +2420,9 @@ Deno.serve(async (req) => {
             }
           } else if (dry_run) {
             report.steps.proposta_versao = { status: "WOULD_CREATE" };
+          } else if (propostaNativaSkipped) {
+            // Proposta already migrated — version should also be considered skipped
+            report.steps.proposta_versao = report.steps.proposta_versao || { status: "WOULD_SKIP" };
           }
 
           // ── G. Apply Custom Field Mappings to canonical entities ──
