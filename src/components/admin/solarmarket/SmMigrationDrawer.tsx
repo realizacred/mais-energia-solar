@@ -782,7 +782,14 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
   return (
     <>
-      <Drawer open={open} onOpenChange={(v) => { onOpenChange(v); if (!v && !running) resetState(); }}>
+      <Drawer open={open} onOpenChange={(v) => {
+        if (!v && running) {
+          toast.warning("Migração em andamento. Cancele a migração antes de fechar.");
+          return;
+        }
+        onOpenChange(v);
+        if (!v && !running) resetState();
+      }}>
         <DrawerContent className="max-h-[calc(100dvh-2rem)]">
           <DrawerHeader>
             <DrawerTitle className="flex items-center gap-2">
