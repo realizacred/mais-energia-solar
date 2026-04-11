@@ -279,6 +279,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const [autoResumeConfirmOpen, setAutoResumeConfirmOpen] = useState(false);
   const [autoResumeConfirmText, setAutoResumeConfirmText] = useState("");
 
+  // Notify parent of running state changes
+  useEffect(() => {
+    onRunningChange?.(running);
+  }, [running, onRunningChange]);
+
   const { data: consultores = [] } = useConsultores();
   const { data: pipelines = [] } = usePipelines();
   const { data: pipelineStages = [] } = usePipelineStages(selectedPipelineId || null);
