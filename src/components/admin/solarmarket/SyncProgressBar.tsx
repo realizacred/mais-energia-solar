@@ -60,6 +60,8 @@ export function SyncProgressBar({ progress }: Props) {
                 ? "border-primary/40 bg-primary/5"
                 : stage.status === "done"
                 ? "border-success/30 bg-success/5"
+                : stage.status === "partial"
+                ? "border-warning/30 bg-warning/5"
                 : stage.status === "error"
                 ? "border-destructive/30 bg-destructive/5"
                 : stage.status === "skipped"
@@ -78,11 +80,16 @@ export function SyncProgressBar({ progress }: Props) {
                   {stage.fetched} encontrados → {stage.upserted} importados
                 </p>
               )}
+              {stage.status === "partial" && (
+                <p className="text-[10px] text-warning">
+                  Parcial — {stage.upserted} de {stage.fetched} importados
+                </p>
+              )}
               {stage.status === "error" && stage.errorMessage && (
                 <p className="text-[10px] text-destructive truncate">{stage.errorMessage}</p>
               )}
               {stage.status === "skipped" && (
-                <p className="text-[10px] text-muted-foreground">Pulado</p>
+                <p className="text-[10px] text-muted-foreground truncate">{stage.errorMessage || "Pulado"}</p>
               )}
             </div>
           </div>
