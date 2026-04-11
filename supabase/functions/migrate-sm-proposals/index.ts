@@ -122,12 +122,12 @@ function mapSmStatusToProposta(smProp: any): string {
 function mapSmStatusToVersao(smProp: any): string {
   const lc = resolveSmLifecycle(smProp);
   switch (lc) {
-    case "approved": return "accepted";
-    case "rejected": return "rejected";
-    case "viewed": return "sent";
-    case "sent": return "sent";
-    case "generated": return "generated";
-    default: return "draft";
+    case "approved": return "aceita";
+    case "rejected": return "recusada";
+    case "viewed": return "vista";
+    case "sent": return "enviada";
+    case "generated": return "gerada";
+    default: return "rascunho";
   }
 }
 
@@ -138,6 +138,21 @@ function parsePaybackMonths(payback: string | null): number | null {
   const meses = payback.match(/(\d+)\s*m[eê]s/i);
   const totalMonths = (anos ? parseInt(anos[1]) * 12 : 0) + (meses ? parseInt(meses[1]) : 0);
   return totalMonths > 0 ? totalMonths : null;
+}
+
+function inferNumeroParcelas(paymentConditions: string | null | undefined): number {
+  if (!paymentConditions) return 1;
+
+  const normalized = paymentConditions.toLowerCase();
+  const compactMatch = normalized.match(/(\d{1,3})\s*x/);
+  if (compactMatch) return Math.max(1, parseInt(compactMatch[1], 10));
+
+  const parcelasMatch = normalized.match(/(\d{1,3})\s*parcelas?/);
+  if (parcelasMatch) return Math.max(1, parseInt(parcelasMatch[1], 10));
+
+  if (normalized.includes("financiamento")) return 12;
+
+  return 1;
 }
 /**
  * Map SM fase string to wizard-compatible fase/fase_tensao.
@@ -2081,8 +2096,10 @@ Deno.serve(async (req) => {
             if (existingVersoes.has(propostaId)) {
               report.steps.proposta_versao = { status: "WOULD_SKIP" };
             } else {
+              try {
               const paybackMeses = parsePaybackMonths(smProp.payback);
               const valorTotal = smProp.preco_total || smProp.valor_total || 0;
+              const numParcelas = inferNumeroParcelas(smProp.payment_conditions);
 
               // Resolve custo_instalacao with fallbacks
               let custoInstalacao = smProp.installation_cost || 0;
@@ -2417,6 +2434,15 @@ Deno.serve(async (req) => {
                 continue;
               } else {
                 report.steps.proposta_versao = { status: "WOULD_CREATE", id: newVer!.id };
+                existingVersoes.add(propostaId);
+              }
+              } catch (versionBuildErr) {
+                report.steps.proposta_versao = { status: "ERROR", reason: (versionBuildErr as Error).message };
+                report.aborted = true;
+                summary.ERROR++;
+                reports.push(report);
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, report.sm_client_name, "ERROR", report, dry_run);
+                continue;
               }
             }
           } else if (dry_run) {

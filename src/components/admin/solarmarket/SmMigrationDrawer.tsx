@@ -144,17 +144,26 @@ function usePendingMigrationCount() {
       const [
         { count: total },
         { count: migrated },
-        { count: errors },
+        { data: errorRows, error: errorsQueryError },
       ] = await Promise.all([
         supabase.from("solar_market_proposals").select("id", { count: "exact", head: true }),
         supabase.from("solar_market_proposals").select("id", { count: "exact", head: true }).not("migrado_em", "is", null),
-        supabase.from("sm_migration_log").select("id", { count: "exact", head: true }).eq("status", "ERROR"),
+        supabase.from("sm_migration_log").select("sm_proposal_id").eq("status", "ERROR"),
       ]);
+
+      if (errorsQueryError) throw errorsQueryError;
+
+      const distinctErrorCount = new Set(
+        (errorRows ?? [])
+          .map((row) => row.sm_proposal_id)
+          .filter((value): value is number => value !== null && value !== undefined),
+      ).size;
+
       return {
         total: total || 0,
         migrated: migrated || 0,
         pending: Math.max(0, (total || 0) - (migrated || 0)),
-        errors: errors || 0,
+        errors: distinctErrorCount,
       };
     },
     staleTime: 1000 * 30,
@@ -293,6 +302,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   } | null>(null);
   const [autoResumeConfirmOpen, setAutoResumeConfirmOpen] = useState(false);
   const [autoResumeConfirmText, setAutoResumeConfirmText] = useState("");
+  const autoResumeErrorIdsRef = useRef<Set<number>>(new Set());
 
   // Notify parent of running state changes
   useEffect(() => {
@@ -335,6 +345,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     setLogs([]);
     setConfirmText("");
     setSmoothProgress(0);
+    autoResumeErrorIdsRef.current = new Set();
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   }, []);
 
@@ -778,8 +789,15 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           const batchProcessed = data.total_processed || 0;
           const batchErrors = data.summary?.ERROR || 0;
           const batchSuccess = Math.max(0, batchProcessed - batchErrors);
+          const roundErrorIds = (data.details ?? [])
+            .filter((detail: any) => detail?.aborted || Object.values(detail?.steps ?? {}).some((step: any) => step?.status === "ERROR"))
+            .map((detail: any) => detail.sm_proposal_id)
+            .filter((value: number | null | undefined): value is number => value !== null && value !== undefined);
+
+          roundErrorIds.forEach((id: number) => autoResumeErrorIdsRef.current.add(id));
+
           stats.migrated += batchSuccess;
-          stats.errors += batchErrors;
+          stats.errors = autoResumeErrorIdsRef.current.size;
           setAutoResumeStats({ ...stats });
 
           const elapsed = (Date.now() - stats.startTime) / 1000;
@@ -787,7 +805,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           const remaining = Math.max(0, stats.initialPending - stats.migrated);
           const eta = rate > 0 ? Math.round(remaining / rate) : 0;
 
-          addLog(`Rodada ${round}: +${batchSuccess} migrados, ${batchErrors} erros — Total: ${stats.migrated} — ETA: ${eta}s`);
+          addLog(`Rodada ${round}: +${batchSuccess} migrados, ${roundErrorIds.length} erros no lote — Total: ${stats.migrated} — ETA: ${eta}s`);
           setSmoothProgress(
             stats.initialPending > 0
               ? Math.min(95, Math.round((stats.migrated / stats.initialPending) * 100))
@@ -933,7 +951,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
                   <p className="text-lg font-bold text-destructive">{pendingStats.errors}</p>
-                  <p className="text-[10px] text-muted-foreground">Erros logados</p>
+                  <p className="text-[10px] text-muted-foreground">Propostas com erro</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
                   <p className="text-lg font-bold text-foreground">
