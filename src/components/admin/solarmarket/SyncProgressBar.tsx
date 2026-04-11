@@ -1,6 +1,6 @@
 import { SyncProgress, SyncStageStatus } from "@/hooks/useSolarMarketSync";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, XCircle, Loader2, Clock, SkipForward } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Clock, SkipForward, AlertTriangle } from "lucide-react";
 
 function StageIcon({ status }: { status: SyncStageStatus["status"] }) {
   switch (status) {
@@ -8,6 +8,8 @@ function StageIcon({ status }: { status: SyncStageStatus["status"] }) {
       return <Loader2 className="h-4 w-4 text-primary animate-spin" />;
     case "done":
       return <CheckCircle className="h-4 w-4 text-success" />;
+    case "partial":
+      return <AlertTriangle className="h-4 w-4 text-warning" />;
     case "error":
       return <XCircle className="h-4 w-4 text-destructive" />;
     case "skipped":
@@ -29,7 +31,7 @@ export function SyncProgressBar({ progress }: Props) {
     return null;
   }
 
-  const doneCount = activeStages.filter((s) => s.status === "done").length;
+  const doneCount = activeStages.filter((s) => s.status === "done" || s.status === "partial").length;
   const totalActive = activeStages.length;
   const runningStage = activeStages.find((s) => s.status === "running");
   const percent = progress.isRunning
@@ -58,6 +60,8 @@ export function SyncProgressBar({ progress }: Props) {
                 ? "border-primary/40 bg-primary/5"
                 : stage.status === "done"
                 ? "border-success/30 bg-success/5"
+                : stage.status === "partial"
+                ? "border-warning/30 bg-warning/5"
                 : stage.status === "error"
                 ? "border-destructive/30 bg-destructive/5"
                 : stage.status === "skipped"
@@ -76,11 +80,16 @@ export function SyncProgressBar({ progress }: Props) {
                   {stage.fetched} encontrados → {stage.upserted} importados
                 </p>
               )}
+              {stage.status === "partial" && (
+                <p className="text-[10px] text-warning">
+                  Parcial — {stage.upserted} de {stage.fetched} importados
+                </p>
+              )}
               {stage.status === "error" && stage.errorMessage && (
                 <p className="text-[10px] text-destructive truncate">{stage.errorMessage}</p>
               )}
               {stage.status === "skipped" && (
-                <p className="text-[10px] text-muted-foreground">Pulado</p>
+                <p className="text-[10px] text-muted-foreground truncate">{stage.errorMessage || "Pulado"}</p>
               )}
             </div>
           </div>

@@ -473,7 +473,7 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: { user }, error: authErr } = await adminClient.auth.getUser(token);
-    console.log("[SM Migration] Auth result:", user?.id ?? "NO_USER", authErr?.message ?? "OK");
+    // console.log("[SM Migration] Auth result:", user?.id ?? "NO_USER", authErr?.message ?? "OK");
     if (authErr || !user) {
       console.error("ERR", { step: "user_auth", err: authErr?.message });
       return new Response(JSON.stringify({ error: "Unauthorized", step: "user_auth", debug: { message: authErr?.message } }), {
@@ -489,7 +489,7 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
-    console.log("[SM Migration] Profile:", JSON.stringify({ tenant_id: profile?.tenant_id, status: profile?.status, ativo: profile?.ativo, err: profileError?.message }));
+    // console.log("[SM Migration] Profile:", JSON.stringify({ tenant_id: profile?.tenant_id, status: profile?.status, ativo: profile?.ativo, err: profileError?.message }));
     if (profileError || !profile?.tenant_id) {
       console.error("ERR", { step: "profile_lookup", err: profileError?.message });
       return new Response(JSON.stringify({ error: "No tenant/profile", step: "profile_lookup", debug: { message: profileError?.message, code: profileError?.code } }), {
@@ -583,7 +583,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[SM Migration] tenant=${tenantId} dry_run=${dry_run} filters=${JSON.stringify(filters)}`);
+    // console.log(`[SM Migration] tenant=${tenantId} dry_run=${dry_run} filters=${JSON.stringify(filters)}`);
 
     // ─── 0. Authenticate with SolarMarket API to fetch funnel data ────
     let smAccessToken: string | null = null;
@@ -896,9 +896,14 @@ Deno.serve(async (req) => {
       const existing = consultoresMap.get(key);
       if (existing) return { id: existing, created: false };
 
+<<<<<<< HEAD
       // Priority 2: VENDEDOR_MAP lookup — find canonical name and match
       // M01 fix: use word-boundary match to avoid false positives (e.g. "brunocarlos" → "bruno")
       const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key === k || key.startsWith(k + ' '))?.[1];
+=======
+      // Priority 2: VENDEDOR_MAP lookup — find canonical name and match (word-boundary safe)
+      const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key === k || key.startsWith(k + ' ') || key.endsWith(' ' + k))?.[1];
+>>>>>>> 9c63aa236f7de182399f8e8163cc76f065832bb5
       if (mappedName) {
         const normalizedMapped = normalizeComparableName(mappedName);
         const mapped = consultoresMap.get(normalizedMapped);
@@ -927,14 +932,10 @@ Deno.serve(async (req) => {
 
       const { data: newConsultor, error: consErr } = await adminClient
         .from("consultores")
-        .insert({
-          tenant_id: tenantId,
-          nome: "Escritório",
-          telefone: "N/A",
-          codigo: "escritorio",
-          ativo: true,
-          user_id: null,
-        })
+        .upsert(
+          { tenant_id: tenantId, nome: "Escritório", telefone: "N/A", codigo: "escritorio", ativo: true, user_id: null },
+          { onConflict: "tenant_id,codigo", ignoreDuplicates: false }
+        )
         .select("id")
         .single();
 
@@ -1057,6 +1058,10 @@ Deno.serve(async (req) => {
 
       if (stageErr) throw new Error(`Falha ao criar stage "${stageName}": ${stageErr.message}`);
       stageCache.set(cacheKey, newStage!.id);
+<<<<<<< HEAD
+=======
+      // console.log(`[SM Migration] Created stage "${stageName}" in pipeline ${pipelineId} → ${newStage!.id}`);
+>>>>>>> 9c63aa236f7de182399f8e8163cc76f065832bb5
       return newStage!.id;
     }
 
@@ -1412,7 +1417,11 @@ Deno.serve(async (req) => {
                   .limit(1);
                 if (clients?.[0]) smClient = clients[0];
               }
+<<<<<<< HEAD
               // console.log(`[SM Migration] Resolved client via project ${smProp.sm_project_id}: sm_client_id ${smProp.sm_client_id} → ${proj.sm_client_id}`);
+=======
+              // if (smClient) console.log(`[SM Migration] Resolved client via project ${smProp.sm_project_id}: sm_client_id ${smProp.sm_client_id} → ${proj.sm_client_id}`);
+>>>>>>> 9c63aa236f7de182399f8e8163cc76f065832bb5
             }
           }
           if (!smClient) {
@@ -2121,23 +2130,37 @@ Deno.serve(async (req) => {
                 observacoes: "",
               };
 
+<<<<<<< HEAD
               // M06 fix: infer payment type from payment_conditions string
               function inferTipoPagamento(cond: string | null): "a_vista" | "financiamento" | "entrada" {
+=======
+              // Build pagamentoOpcoes in canonical schema
+              // Infer payment type from SM payment_conditions text
+              function inferTipoPagamento(cond: string | null | undefined): "a_vista" | "financiamento" | "entrada" {
+>>>>>>> 9c63aa236f7de182399f8e8163cc76f065832bb5
                 if (!cond) return "a_vista";
                 const c = cond.toLowerCase();
                 if (/financiamento|parcela|\d+x/.test(c)) return "financiamento";
                 if (/entrada/.test(c)) return "entrada";
                 return "a_vista";
               }
+<<<<<<< HEAD
               const tipoPagamento = inferTipoPagamento(smProp.payment_conditions);
               // Infer num_parcelas from text like "72x" or "em 60 parcelas"
               const parcelasMatch = (smProp.payment_conditions || "").match(/(\d+)\s*[xX]|em\s*(\d+)\s*parcelas?/i);
               const numParcelas = parcelasMatch ? Number(parcelasMatch[1] || parcelasMatch[2]) : 1;
+=======
+
+>>>>>>> 9c63aa236f7de182399f8e8163cc76f065832bb5
               const pagamentoOpcoes = [{
                 id: crypto.randomUUID(),
                 nome: smProp.payment_conditions || "À Vista",
                 label: smProp.payment_conditions || "À Vista",
+<<<<<<< HEAD
                 tipo: tipoPagamento,
+=======
+                tipo: inferTipoPagamento(smProp.payment_conditions),
+>>>>>>> 9c63aa236f7de182399f8e8163cc76f065832bb5
                 valor_financiado: valorTotal,
                 entrada: 0,
                 taxa_mensal: 0,
@@ -2415,8 +2438,13 @@ Deno.serve(async (req) => {
                 report.steps.proposta_versao = { status: "ERROR", reason: verErr.message };
                 report.aborted = true;
                 summary.ERROR++;
+<<<<<<< HEAD
                 await logItem(adminClient, tenantId, smProp.sm_proposal_id, smClient.name, "ERROR", report, dry_run);
                 reports.push(report);
+=======
+                reports.push(report);
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, report.sm_client_name, "ERROR", report, dry_run);
+>>>>>>> 9c63aa236f7de182399f8e8163cc76f065832bb5
                 continue;
               } else {
                 report.steps.proposta_versao = { status: "WOULD_CREATE", id: newVer!.id };
@@ -2662,6 +2690,7 @@ Deno.serve(async (req) => {
 
           if (smClient) {
             const phoneNorm = smClient.phone_normalized || normalizePhone(smClient.phone);
+<<<<<<< HEAD
             // 1) Match by phone (pre-loaded Map, O(1))
             if (phoneNorm) {
               const phoneMatch = clienteByPhone.get(phoneNorm);
@@ -2683,6 +2712,35 @@ Deno.serve(async (req) => {
               const codePattern = `SM-${smClient.sm_client_id}-`;
               for (const [code, cId] of clienteByCode) {
                 if (code.startsWith(codePattern)) { clienteId = cId; break; }
+=======
+            // Match using pre-fetched Maps (same pattern as Group A — no N+1 queries)
+            if (phoneNorm) {
+              const phoneMatch = clienteByPhone.get(phoneNorm);
+              if (phoneMatch && phoneMatch.count === 1) clienteId = phoneMatch.id;
+            }
+            if (!clienteId && smClient.email) {
+              const emailNorm = smClient.email.trim().toLowerCase();
+              if (emailNorm) {
+                const emailMatch = clienteByEmail.get(emailNorm);
+                if (emailMatch) clienteId = emailMatch;
+              }
+            }
+            if (!clienteId && smClient.document) {
+              const docNorm = smClient.document.replace(/\D/g, "");
+              if (docNorm.length >= 11) {
+                const docMatch = clienteByDoc.get(docNorm);
+                if (docMatch) clienteId = docMatch;
+              }
+            }
+            if (!clienteId) {
+              const resolvedSmClientId = smClient.sm_client_id || 0;
+              const codePattern = `SM-${resolvedSmClientId}-`;
+              for (const [code, cId] of clienteByCode) {
+                if (code.startsWith(codePattern)) {
+                  clienteId = cId;
+                  break;
+                }
+>>>>>>> 9c63aa236f7de182399f8e8163cc76f065832bb5
               }
             }
 

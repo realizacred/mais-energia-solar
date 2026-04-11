@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_projetos_codigo ON public.projetos(codigo);

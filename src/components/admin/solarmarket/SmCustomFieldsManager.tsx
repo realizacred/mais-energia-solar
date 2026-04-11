@@ -40,6 +40,7 @@ interface CfMapping {
 function useCfDefinitions() {
   return useQuery<CfDefinition[]>({
     queryKey: ["sm-cf-definitions"],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("solar_market_custom_fields")
@@ -54,6 +55,7 @@ function useCfDefinitions() {
 function useCfMappings() {
   return useQuery<CfMapping[]>({
     queryKey: ["sm-cf-mappings"],
+    staleTime: 1000 * 60 * 15,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("custom_field_mappings")

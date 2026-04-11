@@ -11,7 +11,7 @@ export type SyncStage = "funnels" | "custom_fields" | "clients" | "projects" | "
 export interface SyncStageStatus {
   stage: SyncStage;
   label: string;
-  status: "pending" | "running" | "done" | "error" | "skipped";
+  status: "pending" | "running" | "done" | "error" | "skipped" | "partial";
   fetched: number;
   upserted: number;
   errors: number;
@@ -123,7 +123,7 @@ export function useSolarMarketSync() {
         const remaining = data?.remaining || 0;
 
         updateStage(stage, {
-          status: isPartial ? "done" : (errors > 0 ? "error" : "done"),
+          status: isPartial ? "partial" : (errors > 0 ? "error" : "done"),
           fetched,
           upserted,
           errors,
@@ -171,10 +171,11 @@ export function useSolarMarketSync() {
     });
 
     let hadFatalError = false;
+    let skipReason = "";
 
     for (const stage of ALL_STAGES) {
       if (hadFatalError) {
-        updateStage(stage, { status: "skipped" });
+        updateStage(stage, { status: "skipped", errorMessage: skipReason || "Etapa anterior falhou" });
         continue;
       }
 
@@ -199,13 +200,30 @@ export function useSolarMarketSync() {
           if (isAuthError) {
             toast.error("Token SolarMarket inválido/expirado.");
             hadFatalError = true;
+            skipReason = "Token inválido";
             continue;
           }
+
+          // C2: clients error → skip projects + proposals
+          if (stage === "clients") {
+            hadFatalError = true;
+            skipReason = `Etapa "${STAGE_LABELS.clients}" falhou — projetos e propostas não serão sincronizados`;
+            toast.error(skipReason, { duration: 8000 });
+            continue;
+          }
+
           continue;
         }
 
         if (data?.error) {
           updateStage(stage, { status: "error", errorMessage: data.error });
+
+          if (stage === "clients") {
+            hadFatalError = true;
+            skipReason = `Etapa "${STAGE_LABELS.clients}" falhou — projetos e propostas não serão sincronizados`;
+            toast.error(skipReason, { duration: 8000 });
+          }
+
           continue;
         }
 
@@ -215,11 +233,21 @@ export function useSolarMarketSync() {
         const isPartial = data?.status === "partial";
 
         updateStage(stage, {
-          status: isPartial ? "done" : (errors > 0 ? "error" : "done"),
+          status: isPartial ? "partial" : (errors > 0 ? "error" : "done"),
           fetched,
           upserted,
           errors,
         });
+
+        // C2: projects with >50% error rate → skip proposals
+        if (stage === "projects" && fetched > 0) {
+          const errorRate = errors / fetched;
+          if (errorRate > 0.5) {
+            hadFatalError = true;
+            skipReason = `Etapa "${STAGE_LABELS.projects}" com ${Math.round(errorRate * 100)}% de erros — propostas não serão sincronizadas`;
+            toast.error(skipReason, { duration: 8000 });
+          }
+        }
 
         qc.invalidateQueries({ queryKey: [STAGE_QUERY_KEYS[stage]] });
         qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
@@ -233,6 +261,12 @@ export function useSolarMarketSync() {
           status: "error",
           errorMessage: e.message || "Erro desconhecido",
         });
+
+        if (stage === "clients" || stage === "projects") {
+          hadFatalError = true;
+          skipReason = `Etapa "${STAGE_LABELS[stage]}" falhou — etapas seguintes puladas`;
+          toast.error(skipReason, { duration: 8000 });
+        }
       }
     }
 
