@@ -1558,15 +1558,47 @@ Deno.serve(async (req) => {
                     continue;
                   }
                 } else if (insErr.message.includes("uq_clientes_tenant_telefone")) {
-                  // Duplicate phone — reuse existing client
-                  const { data: existing } = await adminClient
-                    .from("clientes")
-                    .select("id")
-                    .eq("tenant_id", tenantId)
-                    .eq("telefone_normalized", phoneNorm)
-                    .maybeSingle();
+                  // Duplicate phone — reuse existing client (use limit(1) to handle multiple matches safely)
+                  let existing: { id: string } | null = null;
+                  // Try 1: match by telefone_normalized
+                  if (phoneNorm) {
+                    const { data: normMatch } = await adminClient
+                      .from("clientes")
+                      .select("id")
+                      .eq("tenant_id", tenantId)
+                      .eq("telefone_normalized", phoneNorm)
+                      .limit(1);
+                    if (normMatch?.[0]) existing = normMatch[0];
+                  }
+                  // Try 2: match by raw telefone field
+                  if (!existing) {
+                    const rawPhone = smClient.phone_formatted || smClient.phone;
+                    if (rawPhone) {
+                      const { data: rawMatch } = await adminClient
+                        .from("clientes")
+                        .select("id")
+                        .eq("tenant_id", tenantId)
+                        .eq("telefone", rawPhone)
+                        .limit(1);
+                      if (rawMatch?.[0]) existing = rawMatch[0];
+                    }
+                  }
+                  // Try 3: match by digits-only normalization of the raw phone
+                  if (!existing) {
+                    const rawDigits = (smClient.phone || "").replace(/\D/g, "");
+                    if (rawDigits.length >= 10) {
+                      const { data: digitMatch } = await adminClient
+                        .from("clientes")
+                        .select("id")
+                        .eq("tenant_id", tenantId)
+                        .eq("telefone_normalized", rawDigits)
+                        .limit(1);
+                      if (digitMatch?.[0]) existing = digitMatch[0];
+                    }
+                  }
                   if (existing) {
                     clienteId = existing.id;
+                    if (phoneNorm) clienteByPhone.set(phoneNorm, { id: clienteId, count: 1 });
                     report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "telefone já existia — vinculado ao cliente existente" };
                   } else {
                     report.aborted = true;
