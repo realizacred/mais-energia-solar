@@ -141,18 +141,20 @@ function usePendingMigrationCount() {
   return useQuery<{ total: number; pending: number; migrated: number; errors: number }>({
     queryKey: ["sm-migration-pending-count"],
     queryFn: async () => {
-      const { count: total } = await supabase
-        .from("solar_market_proposals")
-        .select("id", { count: "exact", head: true });
-      const { count: migrated } = await supabase
-        .from("solar_market_proposals")
-        .select("id", { count: "exact", head: true })
-        .not("migrado_em", "is", null);
+      const [
+        { count: total },
+        { count: migrated },
+        { count: errors },
+      ] = await Promise.all([
+        supabase.from("solar_market_proposals").select("id", { count: "exact", head: true }),
+        supabase.from("solar_market_proposals").select("id", { count: "exact", head: true }).not("migrado_em", "is", null),
+        supabase.from("sm_migration_log").select("id", { count: "exact", head: true }).eq("status", "ERROR"),
+      ]);
       return {
         total: total || 0,
         migrated: migrated || 0,
-        pending: (total || 0) - (migrated || 0),
-        errors: 0,
+        pending: Math.max(0, (total || 0) - (migrated || 0)),
+        errors: errors || 0,
       };
     },
     staleTime: 1000 * 30,
@@ -477,7 +479,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           }
 
           allResults.push(data);
-          const successCount = allResults.reduce((acc, r) => acc + (r.total_processed || 0), 0);
+          const successCount = allResults.reduce((acc, r) => acc + Math.max(0, (r.total_processed || 0) - (r.summary?.ERROR || 0)), 0);
           addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)} — Total migrado até agora: ${successCount}`);
 
           // Avoid refetching the full 1k+ proposals list on every single batch,
@@ -773,9 +775,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             break;
           }
 
-          const batchMigrated = data.total_processed || 0;
+          const batchProcessed = data.total_processed || 0;
           const batchErrors = data.summary?.ERROR || 0;
-          stats.migrated += batchMigrated;
+          const batchSuccess = Math.max(0, batchProcessed - batchErrors);
+          stats.migrated += batchSuccess;
           stats.errors += batchErrors;
           setAutoResumeStats({ ...stats });
 
@@ -784,7 +787,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           const remaining = Math.max(0, stats.initialPending - stats.migrated);
           const eta = rate > 0 ? Math.round(remaining / rate) : 0;
 
-          addLog(`Rodada ${round}: +${batchMigrated} migrados, ${batchErrors} erros — Total: ${stats.migrated} — ETA: ${eta}s`);
+          addLog(`Rodada ${round}: +${batchSuccess} migrados, ${batchErrors} erros — Total: ${stats.migrated} — ETA: ${eta}s`);
           setSmoothProgress(
             stats.initialPending > 0
               ? Math.min(95, Math.round((stats.migrated / stats.initialPending) * 100))
@@ -798,7 +801,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             });
           }
 
-          if (batchMigrated === 0 && !data.completed) {
+          if (batchProcessed === 0 && !data.completed) {
             addLog("⚠️ Nenhuma proposta processada nesta rodada. Verificar dados.");
             continuar = false;
           }
@@ -919,7 +922,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
             {/* Pending migration stats */}
             {pendingStats && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
                   <p className="text-lg font-bold text-foreground">{pendingStats.migrated}</p>
                   <p className="text-[10px] text-muted-foreground">Migradas</p>
@@ -927,6 +930,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
                   <p className="text-lg font-bold text-foreground">{pendingStats.pending}</p>
                   <p className="text-[10px] text-muted-foreground">Pendentes</p>
+                </div>
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
+                  <p className="text-lg font-bold text-destructive">{pendingStats.errors}</p>
+                  <p className="text-[10px] text-muted-foreground">Erros logados</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
                   <p className="text-lg font-bold text-foreground">
