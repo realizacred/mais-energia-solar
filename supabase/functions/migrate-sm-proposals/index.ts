@@ -2073,7 +2073,9 @@ Deno.serve(async (req) => {
           }
 
           // ── F. Proposta Versão ──
-          if (propostaId && !dry_run) {
+          // If proposta_nativa was WOULD_SKIP (already migrated), skip version creation too
+          const propostaNativaSkipped = report.steps.proposta_nativa?.status === "WOULD_SKIP";
+          if (propostaId && !dry_run && !propostaNativaSkipped) {
             // Check if version already exists (using pre-fetched Set)
             if (existingVersoes.has(propostaId)) {
               report.steps.proposta_versao = { status: "WOULD_SKIP" };
