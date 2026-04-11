@@ -896,8 +896,8 @@ Deno.serve(async (req) => {
       const existing = consultoresMap.get(key);
       if (existing) return { id: existing, created: false };
 
-      // Priority 2: VENDEDOR_MAP lookup — find canonical name and match
-      const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key.includes(k))?.[1];
+      // Priority 2: VENDEDOR_MAP lookup — find canonical name and match (word-boundary safe)
+      const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key === k || key.startsWith(k + ' ') || key.endsWith(' ' + k))?.[1];
       if (mappedName) {
         const normalizedMapped = normalizeComparableName(mappedName);
         const mapped = consultoresMap.get(normalizedMapped);
@@ -926,14 +926,10 @@ Deno.serve(async (req) => {
 
       const { data: newConsultor, error: consErr } = await adminClient
         .from("consultores")
-        .insert({
-          tenant_id: tenantId,
-          nome: "Escritório",
-          telefone: "N/A",
-          codigo: "escritorio",
-          ativo: true,
-          user_id: null,
-        })
+        .upsert(
+          { tenant_id: tenantId, nome: "Escritório", telefone: "N/A", codigo: "escritorio", ativo: true, user_id: null },
+          { onConflict: "tenant_id,codigo", ignoreDuplicates: false }
+        )
         .select("id")
         .single();
 
@@ -2400,6 +2396,11 @@ Deno.serve(async (req) => {
 
               if (verErr) {
                 report.steps.proposta_versao = { status: "ERROR", reason: verErr.message };
+                report.aborted = true;
+                summary.ERROR++;
+                reports.push(report);
+                await logItem(adminClient, tenantId, smProp.sm_proposal_id, report.sm_client_name, "ERROR", report, dry_run);
+                continue;
               } else {
                 report.steps.proposta_versao = { status: "WOULD_CREATE", id: newVer!.id };
               }
@@ -2643,32 +2644,34 @@ Deno.serve(async (req) => {
 
           if (smClient) {
             const phoneNorm = smClient.phone_normalized || normalizePhone(smClient.phone);
-            // Match by phone
+            // Match using pre-fetched Maps (same pattern as Group A — no N+1 queries)
             if (phoneNorm) {
-              const { data: matches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("telefone_normalized", phoneNorm).limit(2);
-              if ((matches || []).length === 1) clienteId = matches![0].id;
+              const phoneMatch = clienteByPhone.get(phoneNorm);
+              if (phoneMatch && phoneMatch.count === 1) clienteId = phoneMatch.id;
             }
-            // Match by email
             if (!clienteId && smClient.email) {
               const emailNorm = smClient.email.trim().toLowerCase();
               if (emailNorm) {
-                const { data: emailMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("email", emailNorm).limit(1);
-                if ((emailMatches || []).length === 1) clienteId = emailMatches![0].id;
+                const emailMatch = clienteByEmail.get(emailNorm);
+                if (emailMatch) clienteId = emailMatch;
               }
             }
-            // Match by document
             if (!clienteId && smClient.document) {
               const docNorm = smClient.document.replace(/\D/g, "");
               if (docNorm.length >= 11) {
-                const { data: docMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("cpf_cnpj", docNorm).limit(1);
-                if ((docMatches || []).length === 1) clienteId = docMatches![0].id;
+                const docMatch = clienteByDoc.get(docNorm);
+                if (docMatch) clienteId = docMatch;
               }
             }
-            // Match by SM client code
             if (!clienteId) {
-              const codePattern = `SM-${smClient.sm_client_id}-`;
-              const { data: codeMatches } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).like("cliente_code", `${codePattern}%`).limit(1);
-              if ((codeMatches || []).length === 1) clienteId = codeMatches![0].id;
+              const resolvedSmClientId = smClient.sm_client_id || 0;
+              const codePattern = `SM-${resolvedSmClientId}-`;
+              for (const [code, cId] of clienteByCode) {
+                if (code.startsWith(codePattern)) {
+                  clienteId = cId;
+                  break;
+                }
+              }
             }
 
             // Create client if needed
