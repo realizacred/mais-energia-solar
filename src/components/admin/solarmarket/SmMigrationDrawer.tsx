@@ -275,7 +275,13 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Auto-resume state
   const [autoResumeRunning, setAutoResumeRunning] = useState(false);
-  const [autoResumeStats, setAutoResumeStats] = useState<{ migrated: number; errors: number; startTime: number } | null>(null);
+  const [autoResumeStats, setAutoResumeStats] = useState<{
+    migrated: number;
+    errors: number;
+    startTime: number;
+    round: number;
+    initialPending: number;
+  } | null>(null);
   const [autoResumeConfirmOpen, setAutoResumeConfirmOpen] = useState(false);
   const [autoResumeConfirmText, setAutoResumeConfirmText] = useState("");
 
@@ -637,13 +643,34 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       setError("Nenhum pipeline encontrado.");
       return;
     }
+
     resetState();
+    setBatchProgress(null);
     setAutoResumeRunning(true);
     setRunning(true);
     cancelRef.current = false;
-    const stats = { migrated: 0, errors: 0, startTime: Date.now() };
+
+    const initialPending = pendingStats?.pending ?? proposals.length;
+    const stats = {
+      migrated: 0,
+      errors: 0,
+      startTime: Date.now(),
+      round: 0,
+      initialPending,
+    };
+
     setAutoResumeStats(stats);
-    addLog("Iniciando migração automática de todos os pendentes em lotes de 10...");
+    updateStep("fetch", {
+      state: "done",
+      detail: `${initialPending} proposta(s) pendente(s) identificada(s)`,
+    });
+    for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+      updateStep(stepName, {
+        state: "running",
+        detail: "Aguardando primeiro lote...",
+      });
+    }
+    addLog(`Iniciando migração automática de ${initialPending} pendentes em lotes de 10...`);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -655,8 +682,20 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
       while (continuar && !cancelRef.current) {
         round++;
+        stats.round = round;
+        setAutoResumeStats({ ...stats });
+        setBatchProgress({
+          current: round,
+          total: Math.max(Math.ceil(Math.max(stats.initialPending, 1) / 10), 1),
+        });
         addLog(`Rodada ${round} — enviando lote auto_resume...`);
-        setBatchProgress({ current: stats.migrated, total: pendingStats?.pending || stats.migrated + 25 });
+
+        for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+          updateStep(stepName, {
+            state: "running",
+            detail: `Rodada ${round} em andamento • ${stats.migrated}/${stats.initialPending} migradas`,
+          });
+        }
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120_000);
@@ -697,48 +736,78 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           const data = await response.json();
 
           if (data.completed) {
-            addLog(`✅ Migração completa! Total: ${data.migrated || stats.migrated}`);
+            stats.migrated = Math.max(stats.migrated, data.migrated || 0);
+            setAutoResumeStats({ ...stats });
+            addLog(`✅ Migração completa! Total: ${stats.migrated}`);
             continuar = false;
             break;
           }
 
           const batchMigrated = data.total_processed || 0;
-          const batchErrors = (data.summary?.ERROR || 0);
+          const batchErrors = data.summary?.ERROR || 0;
           stats.migrated += batchMigrated;
           stats.errors += batchErrors;
           setAutoResumeStats({ ...stats });
 
           const elapsed = (Date.now() - stats.startTime) / 1000;
-          const rate = stats.migrated / elapsed;
-          const remaining = pendingStats ? Math.max(0, pendingStats.pending - stats.migrated) : 0;
+          const rate = stats.migrated / Math.max(elapsed, 1);
+          const remaining = Math.max(0, stats.initialPending - stats.migrated);
           const eta = rate > 0 ? Math.round(remaining / rate) : 0;
 
           addLog(`Rodada ${round}: +${batchMigrated} migrados, ${batchErrors} erros — Total: ${stats.migrated} — ETA: ${eta}s`);
-          setSmoothProgress(pendingStats ? Math.min(95, Math.round((stats.migrated / pendingStats.pending) * 100)) : 50);
+          setSmoothProgress(
+            stats.initialPending > 0
+              ? Math.min(95, Math.round((stats.migrated / stats.initialPending) * 100))
+              : 0,
+          );
+
+          for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+            updateStep(stepName, {
+              state: "running",
+              detail: `Rodada ${round} concluída • ${stats.migrated}/${stats.initialPending} migradas`,
+            });
+          }
 
           if (batchMigrated === 0 && !data.completed) {
             addLog("⚠️ Nenhuma proposta processada nesta rodada. Verificar dados.");
             continuar = false;
           }
 
-          // Refresh pending count every 5 rounds
           if (round % 5 === 0) {
             refetchPending();
             qc.invalidateQueries({ queryKey: ["sm-proposals"] });
           }
 
-          // Small pause between rounds
           await new Promise(r => setTimeout(r, 500));
         } catch (roundErr: any) {
           clearTimeout(timeoutId);
           if (roundErr?.name === "AbortError") {
             stats.errors++;
+            setAutoResumeStats({ ...stats });
             addLog(`⚠️ Timeout na rodada ${round}, tentando próximo lote...`);
+            for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+              updateStep(stepName, {
+                state: "running",
+                detail: `Rodada ${round} excedeu o tempo limite; tentando o próximo lote...`,
+              });
+            }
             await new Promise(r => setTimeout(r, 2000));
             continue;
           }
           throw roundErr;
         }
+      }
+
+      const finalStepState: StepState = cancelRef.current ? "error" : "done";
+      const finalStepDetail = cancelRef.current
+        ? `Interrompido após ${stats.round} rodada(s) • ${stats.migrated} migradas`
+        : `${stats.migrated} proposta(s) processadas em ${stats.round} rodada(s)`;
+
+      for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+        updateStep(stepName, {
+          state: finalStepState,
+          detail: finalStepDetail,
+        });
       }
 
       if (cancelRef.current) {
@@ -749,13 +818,17 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       }
 
       setSmoothProgress(100);
-      updateStep("done", { state: cancelRef.current ? "error" : "done", detail: `${stats.migrated} migrados, ${stats.errors} erros` });
-
+      updateStep("done", {
+        state: cancelRef.current ? "error" : "done",
+        detail: `${stats.migrated} migrados, ${stats.errors} erros`,
+      });
     } catch (err: any) {
       const msg = err?.message ?? "Erro desconhecido";
       setError(msg);
       addLog(`ERRO FATAL: ${msg}`);
-      updateStep("done", { state: "error", detail: msg });
+      for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao", "done"] as StepName[]) {
+        updateStep(stepName, { state: "error", detail: msg });
+      }
     } finally {
       setAutoResumeRunning(false);
       setRunning(false);
@@ -764,7 +837,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       qc.invalidateQueries({ queryKey: ["sm-proposals"] });
       qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
     }
-  }, [activePipelineId, activeStageId, ownerId, addLog, resetState, updateStep, qc, pendingStats, refetchPending]);
+  }, [activePipelineId, activeStageId, ownerId, addLog, pendingStats?.pending, proposals.length, resetState, updateStep, qc, refetchPending]);
 
   const handleAutoResumeConfirm = () => {
     setAutoResumeConfirmOpen(false);
@@ -774,8 +847,15 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
   // Progress calculation
   const completedSteps = steps.filter(s => s.state === "done" || s.state === "error" || s.state === "skipped").length;
+  const autoResumeTotal = autoResumeStats?.initialPending ?? 0;
+  const autoResumeTotalRounds = Math.max(Math.ceil(Math.max(autoResumeTotal, 1) / 10), 1);
+  const autoResumeCurrentRound = Math.min(Math.max(autoResumeStats?.round ?? 1, 1), autoResumeTotalRounds);
   const progressPercent = running
-    ? (batchProgress && isBulk ? Math.min(95, Math.round((batchProgress.current / batchProgress.total) * 100)) : smoothProgress)
+    ? autoResumeRunning && autoResumeStats
+      ? autoResumeTotal > 0
+        ? Math.min(95, Math.round((autoResumeStats.migrated / autoResumeTotal) * 100))
+        : smoothProgress
+      : (batchProgress && isBulk ? Math.min(95, Math.round((batchProgress.current / batchProgress.total) * 100)) : smoothProgress)
     : (result ? 100 : 0);
 
   if (!proposal) return null;
@@ -848,11 +928,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 </div>
                 <Progress value={smoothProgress} className="h-2" />
                 <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>{autoResumeStats.migrated} migrados, {autoResumeStats.errors} erros</span>
+                  <span>Rodada {autoResumeCurrentRound}/{autoResumeTotalRounds} • {autoResumeStats.migrated} migrados, {autoResumeStats.errors} erros</span>
                   <span>{(() => {
                     const elapsed = (Date.now() - autoResumeStats.startTime) / 1000;
                     const rate = autoResumeStats.migrated / Math.max(elapsed, 1);
-                    const remaining = pendingStats ? Math.max(0, pendingStats.pending - autoResumeStats.migrated) : 0;
+                    const remaining = Math.max(0, autoResumeStats.initialPending - autoResumeStats.migrated);
                     const eta = rate > 0 ? Math.round(remaining / rate) : 0;
                     return eta > 60 ? `~${Math.round(eta / 60)}min restantes` : `~${eta}s restantes`;
                   })()}</span>
@@ -1023,7 +1103,18 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 <Progress value={progressPercent} className="h-2" />
 
                 {/* Batch counter */}
-                {running && batchProgress && isBulk && (
+                {running && autoResumeRunning && autoResumeStats && (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      Rodada <span className="font-semibold text-foreground">{autoResumeCurrentRound}</span> de{" "}
+                      <span className="font-semibold text-foreground">{autoResumeTotalRounds}</span>
+                    </span>
+                    <span>
+                      <span className="font-semibold text-foreground">{autoResumeStats.migrated}</span>/{autoResumeStats.initialPending} propostas
+                    </span>
+                  </div>
+                )}
+                {running && !autoResumeRunning && batchProgress && isBulk && (
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
                       Lote <span className="font-semibold text-foreground">{batchProgress.current}</span> de{" "}
