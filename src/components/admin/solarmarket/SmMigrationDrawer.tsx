@@ -272,6 +272,13 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const cancelRef = useRef(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+
+  // Cleanup: cancel auto-resume on unmount to prevent background loops
+  useEffect(() => {
+    return () => {
+      cancelRef.current = true;
+    };
+  }, []);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Auto-resume state
   const [autoResumeRunning, setAutoResumeRunning] = useState(false);
