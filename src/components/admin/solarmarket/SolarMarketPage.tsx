@@ -522,6 +522,7 @@ export default function SolarMarketPage() {
   const [selectedProposalIds, setSelectedProposalIds] = useState<Set<string>>(new Set());
   const [migrationDrawerProposals, setMigrationDrawerProposals] = useState<SmProposal[]>([]);
   const [migrationDrawerOpen, setMigrationDrawerOpen] = useState(false);
+  const [migrationRunning, setMigrationRunning] = useState(false);
 
   const toggleProposalSelect = useCallback((id: string) => {
     setSelectedProposalIds(prev => {
