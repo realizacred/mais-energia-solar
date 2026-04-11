@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
@@ -522,6 +523,7 @@ export default function SolarMarketPage() {
   const [selectedProposalIds, setSelectedProposalIds] = useState<Set<string>>(new Set());
   const [migrationDrawerProposals, setMigrationDrawerProposals] = useState<SmProposal[]>([]);
   const [migrationDrawerOpen, setMigrationDrawerOpen] = useState(false);
+  const [migrationRunning, setMigrationRunning] = useState(false);
 
   const toggleProposalSelect = useCallback((id: string) => {
     setSelectedProposalIds(prev => {
@@ -785,14 +787,26 @@ export default function SolarMarketPage() {
             </Button>
 
             <Button
-              onClick={() => setMigrateAllOpen(true)}
-              disabled={pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
+              onClick={() => {
+                if (migrationRunning) {
+                  setMigrationDrawerOpen(true);
+                } else {
+                  setMigrateAllOpen(true);
+                }
+              }}
+              disabled={!migrationRunning && pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
               size="sm"
-              variant="outline"
-              className="gap-1.5"
+              variant={migrationRunning ? "default" : "outline"}
+              className={cn("gap-1.5", migrationRunning && "animate-pulse")}
             >
-              <Upload className="h-3.5 w-3.5" />
-              Migrar Tudo ({pendingProposals.length + pendingProjectsNoProposal.length})
+              {migrationRunning ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Upload className="h-3.5 w-3.5" />
+              )}
+              {migrationRunning
+                ? "Migrando... (clique para ver)"
+                : `Migrar Tudo (${pendingProposals.length + pendingProjectsNoProposal.length})`}
             </Button>
 
             <AlertDialog open={migrateAllOpen} onOpenChange={setMigrateAllOpen}>
@@ -1279,6 +1293,7 @@ export default function SolarMarketPage() {
         proposals={migrationDrawerProposals}
         open={migrationDrawerOpen}
         onOpenChange={setMigrationDrawerOpen}
+        onRunningChange={setMigrationRunning}
       />
     </div>
   );

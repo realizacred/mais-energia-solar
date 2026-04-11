@@ -251,9 +251,11 @@ interface SmMigrationDrawerProps {
   proposals: SmProposal[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Expose running state to parent */
+  onRunningChange?: (running: boolean) => void;
 }
 
-export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigrationDrawerProps) {
+export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChange }: SmMigrationDrawerProps) {
   const [ownerId, setOwnerId] = useState<string>(""); // always used as fallback
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
   const [selectedStageId, setSelectedStageId] = useState<string>("");
@@ -276,6 +278,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
   const [autoResumeStats, setAutoResumeStats] = useState<{ migrated: number; errors: number; startTime: number } | null>(null);
   const [autoResumeConfirmOpen, setAutoResumeConfirmOpen] = useState(false);
   const [autoResumeConfirmText, setAutoResumeConfirmText] = useState("");
+
+  // Notify parent of running state changes
+  useEffect(() => {
+    onRunningChange?.(running);
+  }, [running, onRunningChange]);
 
   const { data: consultores = [] } = useConsultores();
   const { data: pipelines = [] } = usePipelines();
@@ -775,7 +782,14 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
 
   return (
     <>
-      <Drawer open={open} onOpenChange={(v) => { onOpenChange(v); if (!v && !running) resetState(); }}>
+      <Drawer open={open} onOpenChange={(v) => {
+        if (!v && running) {
+          toast.warning("Migração em andamento. Cancele a migração antes de fechar.");
+          return;
+        }
+        onOpenChange(v);
+        if (!v && !running) resetState();
+      }}>
         <DrawerContent className="max-h-[calc(100dvh-2rem)]">
           <DrawerHeader>
             <DrawerTitle className="flex items-center gap-2">
