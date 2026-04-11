@@ -786,14 +786,26 @@ export default function SolarMarketPage() {
             </Button>
 
             <Button
-              onClick={() => setMigrateAllOpen(true)}
-              disabled={pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
+              onClick={() => {
+                if (migrationRunning) {
+                  setMigrationDrawerOpen(true);
+                } else {
+                  setMigrateAllOpen(true);
+                }
+              }}
+              disabled={!migrationRunning && pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
               size="sm"
-              variant="outline"
-              className="gap-1.5"
+              variant={migrationRunning ? "default" : "outline"}
+              className={cn("gap-1.5", migrationRunning && "animate-pulse")}
             >
-              <Upload className="h-3.5 w-3.5" />
-              Migrar Tudo ({pendingProposals.length + pendingProjectsNoProposal.length})
+              {migrationRunning ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Upload className="h-3.5 w-3.5" />
+              )}
+              {migrationRunning
+                ? "Migrando... (clique para ver)"
+                : `Migrar Tudo (${pendingProposals.length + pendingProjectsNoProposal.length})`}
             </Button>
 
             <AlertDialog open={migrateAllOpen} onOpenChange={setMigrateAllOpen}>
