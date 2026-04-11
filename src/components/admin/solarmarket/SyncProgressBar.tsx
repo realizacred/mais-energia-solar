@@ -1,6 +1,6 @@
 import { SyncProgress, SyncStageStatus } from "@/hooks/useSolarMarketSync";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, XCircle, Loader2, Clock, SkipForward } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Clock, SkipForward, AlertTriangle } from "lucide-react";
 
 function StageIcon({ status }: { status: SyncStageStatus["status"] }) {
   switch (status) {
@@ -8,6 +8,8 @@ function StageIcon({ status }: { status: SyncStageStatus["status"] }) {
       return <Loader2 className="h-4 w-4 text-primary animate-spin" />;
     case "done":
       return <CheckCircle className="h-4 w-4 text-success" />;
+    case "partial":
+      return <AlertTriangle className="h-4 w-4 text-warning" />;
     case "error":
       return <XCircle className="h-4 w-4 text-destructive" />;
     case "skipped":
@@ -29,7 +31,7 @@ export function SyncProgressBar({ progress }: Props) {
     return null;
   }
 
-  const doneCount = activeStages.filter((s) => s.status === "done").length;
+  const doneCount = activeStages.filter((s) => s.status === "done" || s.status === "partial").length;
   const totalActive = activeStages.length;
   const runningStage = activeStages.find((s) => s.status === "running");
   const percent = progress.isRunning
