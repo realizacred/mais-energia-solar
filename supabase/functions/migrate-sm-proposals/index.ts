@@ -2706,12 +2706,12 @@ Deno.serve(async (req) => {
                 clienteId = newClient.id;
                 groupBReport.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
               } else if (insErr?.message?.includes("uq_clientes_tenant_cliente_code")) {
-                const { data: existing } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("cliente_code", clienteCode).maybeSingle();
-                if (existing) clienteId = existing.id;
+                const existingId = clienteByCode.get(clienteCode);
+                if (existingId) clienteId = existingId;
                 groupBReport.steps.cliente = { status: "WOULD_LINK", id: clienteId || undefined, reason: "cliente_code já existia" };
               } else if (insErr?.message?.includes("uq_clientes_tenant_telefone")) {
-                const { data: existing } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("telefone_normalized", phoneNorm2).maybeSingle();
-                if (existing) clienteId = existing.id;
+                const existingMatch = phoneNorm2 ? clienteByPhone.get(phoneNorm2) : undefined;
+                if (existingMatch) clienteId = existingMatch.id;
                 groupBReport.steps.cliente = { status: "WOULD_LINK", id: clienteId || undefined, reason: "telefone já existia — vinculado ao cliente existente" };
               } else {
                 groupBReport.steps.cliente = { status: "ERROR", reason: insErr?.message || "Erro ao criar cliente" };
