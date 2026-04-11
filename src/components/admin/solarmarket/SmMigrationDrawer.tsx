@@ -255,7 +255,7 @@ interface SmMigrationDrawerProps {
   onRunningChange?: (running: boolean) => void;
 }
 
-export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigrationDrawerProps) {
+export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChange }: SmMigrationDrawerProps) {
   const [ownerId, setOwnerId] = useState<string>(""); // always used as fallback
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
   const [selectedStageId, setSelectedStageId] = useState<string>("");
