@@ -1293,6 +1293,7 @@ export default function SolarMarketPage() {
         proposals={migrationDrawerProposals}
         open={migrationDrawerOpen}
         onOpenChange={setMigrationDrawerOpen}
+        onRunningChange={setMigrationRunning}
       />
     </div>
   );
