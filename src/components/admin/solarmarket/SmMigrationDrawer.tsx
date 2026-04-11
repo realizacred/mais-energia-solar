@@ -153,17 +153,11 @@ function usePendingMigrationCount() {
 
       if (errorsQueryError) throw errorsQueryError;
 
-      const distinctErrorCount = new Set(
-        (errorRows ?? [])
-          .map((row) => row.sm_proposal_id)
-          .filter((value): value is number => value !== null && value !== undefined),
-      ).size;
-
       return {
         total: total || 0,
         migrated: migrated || 0,
         pending: Math.max(0, (total || 0) - (migrated || 0)),
-        errors: distinctErrorCount,
+        errors: errorRows?.length || 0,
       };
     },
     staleTime: 1000 * 30,
@@ -951,7 +945,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
                   <p className="text-lg font-bold text-destructive">{pendingStats.errors}</p>
-                  <p className="text-[10px] text-muted-foreground">Propostas com erro</p>
+                  <p className="text-[10px] text-muted-foreground">Logs de erro</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
                   <p className="text-lg font-bold text-foreground">
