@@ -2,7 +2,7 @@ import { Sun } from "lucide-react";
 import { lazy, Suspense } from "react";
 import ApiKeyConfigPage from "@/components/admin/integrations/ApiKeyConfigPage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import LoadingState from "@/components/shared/LoadingState";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 
 const SmCustomFieldsManager = lazy(() => import("@/components/admin/solarmarket/SmCustomFieldsManager"));
 
