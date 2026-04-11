@@ -662,6 +662,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             auto_resolve_owner: true,
             auto_resume: true,
             batch_size: 25,
+            include_projects_without_proposal: false,
             ...(ownerId && ownerId !== "__auto__" ? { owner_id: ownerId } : {}),
           };
 
