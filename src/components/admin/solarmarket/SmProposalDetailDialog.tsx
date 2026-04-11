@@ -201,7 +201,7 @@ export function SmProposalDetailDialog({ proposal, open, onOpenChange }: Props) 
                   <Field label="Consumo Mensal" value={proposal.consumo_mensal ? `${proposal.consumo_mensal} kWh` : null} />
                   <Field label="Geração Anual" value={proposal.geracao_anual ? `${proposal.geracao_anual} kWh` : null} />
                   <Field label="Geração Energia" value={proposal.energy_generation ? `${proposal.energy_generation} kWh` : null} />
-                  <Field label="Tarifa Distribuidora" value={currency(proposal.tarifa_distribuidora)} />
+                  <Field label="Tarifa Distribuidora" value={proposal.tarifa_distribuidora ? "R$ " + Number(proposal.tarifa_distribuidora).toFixed(6).replace(".", ",") + "/kWh" : null} />
                   <Field label="Distribuidora" value={proposal.dis_energia} />
                   <Field label="Custo Disponibilidade" value={currency(proposal.custo_disponibilidade)} />
                   <Field label="Inflação Energética" value={pct(proposal.inflacao_energetica)} />

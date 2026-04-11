@@ -2,7 +2,7 @@ import { Sun } from "lucide-react";
 import { lazy, Suspense } from "react";
 import ApiKeyConfigPage from "@/components/admin/integrations/ApiKeyConfigPage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import LoadingState from "@/components/shared/LoadingState";
 
 const SmCustomFieldsManager = lazy(() => import("@/components/admin/solarmarket/SmCustomFieldsManager"));
 
@@ -27,7 +27,7 @@ export default function SolarMarketConfigPage() {
         </TabsContent>
 
         <TabsContent value="custom-fields">
-          <Suspense fallback={<div className="flex items-center justify-center py-8 text-muted-foreground gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Carregando...</div>}>
+          <Suspense fallback={<LoadingState />}>
             <SmCustomFieldsManager />
           </Suspense>
         </TabsContent>

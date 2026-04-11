@@ -11,7 +11,7 @@ export type SyncStage = "funnels" | "custom_fields" | "clients" | "projects" | "
 export interface SyncStageStatus {
   stage: SyncStage;
   label: string;
-  status: "pending" | "running" | "done" | "error" | "skipped";
+  status: "pending" | "running" | "done" | "error" | "skipped" | "partial";
   fetched: number;
   upserted: number;
   errors: number;
@@ -123,7 +123,7 @@ export function useSolarMarketSync() {
         const remaining = data?.remaining || 0;
 
         updateStage(stage, {
-          status: isPartial ? "done" : (errors > 0 ? "error" : "done"),
+          status: isPartial ? "partial" : (errors > 0 ? "error" : "done"),
           fetched,
           upserted,
           errors,
@@ -233,7 +233,7 @@ export function useSolarMarketSync() {
         const isPartial = data?.status === "partial";
 
         updateStage(stage, {
-          status: isPartial ? "done" : (errors > 0 ? "error" : "done"),
+          status: isPartial ? "partial" : (errors > 0 ? "error" : "done"),
           fetched,
           upserted,
           errors,
