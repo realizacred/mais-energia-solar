@@ -2073,9 +2073,10 @@ Deno.serve(async (req) => {
           }
 
           // ── F. Proposta Versão ──
-          // If proposta_nativa was WOULD_SKIP (already migrated), skip version creation too
+          // FIX: Always attempt version creation if propostaId exists and version is missing,
+          // even when proposta_nativa was WOULD_SKIP (re-run after partial migration).
           const propostaNativaSkipped = report.steps.proposta_nativa?.status === "WOULD_SKIP";
-          if (propostaId && !dry_run && !propostaNativaSkipped) {
+          if (propostaId && !dry_run) {
             // Check if version already exists (using pre-fetched Set)
             if (existingVersoes.has(propostaId)) {
               report.steps.proposta_versao = { status: "WOULD_SKIP" };
@@ -2420,9 +2421,6 @@ Deno.serve(async (req) => {
             }
           } else if (dry_run) {
             report.steps.proposta_versao = { status: "WOULD_CREATE" };
-          } else if (propostaNativaSkipped) {
-            // Proposta already migrated — version should also be considered skipped
-            report.steps.proposta_versao = report.steps.proposta_versao || { status: "WOULD_SKIP" };
           }
 
           // ── G. Apply Custom Field Mappings to canonical entities ──
