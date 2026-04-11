@@ -636,7 +636,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
     cancelRef.current = false;
     const stats = { migrated: 0, errors: 0, startTime: Date.now() };
     setAutoResumeStats(stats);
-    addLog("Iniciando migração automática de todos os pendentes...");
+    addLog("Iniciando migração automática de todos os pendentes em lotes de 10...");
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -661,7 +661,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange }: SmMigration
             stage_id: activeStageId || null,
             auto_resolve_owner: true,
             auto_resume: true,
-            batch_size: 25,
+            batch_size: 10,
             include_projects_without_proposal: false,
             ...(ownerId && ownerId !== "__auto__" ? { owner_id: ownerId } : {}),
           };
