@@ -715,7 +715,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           stagnantRounds = 0;
         }
         lastMigrated = currentMigrated;
-        round++;
+        // round already incremented at top of loop
         stats.round = round;
         setAutoResumeStats({ ...stats });
         setBatchProgress({
