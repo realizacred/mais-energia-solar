@@ -801,7 +801,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             });
           }
 
-          if (batchMigrated === 0 && !data.completed) {
+          if (batchProcessed === 0 && !data.completed) {
             addLog("⚠️ Nenhuma proposta processada nesta rodada. Verificar dados.");
             continuar = false;
           }
