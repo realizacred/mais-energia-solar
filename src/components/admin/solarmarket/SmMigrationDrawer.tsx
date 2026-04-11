@@ -686,13 +686,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       const projectUrl = import.meta.env.VITE_SUPABASE_URL;
       let continuar = true;
       let round = 0;
-<<<<<<< HEAD
-      const MAX_ROUNDS = 500; // C02 fix: safety limit — prevents infinite loop when all batches return errors
-=======
       const MAX_ROUNDS = 200;
       let lastMigrated = -1;
       let stagnantRounds = 0;
->>>>>>> 9c63aa236f7de182399f8e8163cc76f065832bb5
 
       while (continuar && !cancelRef.current && round < MAX_ROUNDS) {
         round++;
