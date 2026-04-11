@@ -1004,31 +1004,23 @@ Deno.serve(async (req) => {
       const cacheKey = `${pipelineId}::${normalizedStageName}`;
       if (stageCache.has(cacheKey)) return stageCache.get(cacheKey)!;
 
-      // Look up existing stage
-      const { data: existing } = await adminClient
-        .from("pipeline_stages")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .eq("pipeline_id", pipelineId)
-        .eq("name", stageName.trim())
-        .limit(1);
-
-      if (existing && existing.length > 0) {
-        stageCache.set(cacheKey, existing[0].id);
-        return existing[0].id;
+      // Bulk-load ALL stages for this pipeline into cache (1 query per pipeline, not per stage)
+      const pipelineCacheMarker = `__loaded__::${pipelineId}`;
+      if (!stageCache.has(pipelineCacheMarker)) {
+        const { data: allStages } = await adminClient
+          .from("pipeline_stages")
+          .select("id, name")
+          .eq("tenant_id", tenantId)
+          .eq("pipeline_id", pipelineId);
+        for (const s of (allStages || [])) {
+          const normKey = `${pipelineId}::${normalizeComparableName(s.name)}`;
+          if (!stageCache.has(normKey)) stageCache.set(normKey, s.id);
+        }
+        stageCache.set(pipelineCacheMarker, "__marker__");
       }
 
-      // Fallback: accent-insensitive match to avoid duplicates like SEBASTIAO/SEBASTIÃO
-      const { data: existingStages } = await adminClient
-        .from("pipeline_stages")
-        .select("id, name")
-        .eq("tenant_id", tenantId)
-        .eq("pipeline_id", pipelineId);
-      const matchedStage = (existingStages || []).find((stage: any) => normalizeComparableName(stage.name) === normalizedStageName);
-      if (matchedStage?.id) {
-        stageCache.set(cacheKey, matchedStage.id);
-        return matchedStage.id;
-      }
+      // Re-check cache after bulk load
+      if (stageCache.has(cacheKey)) return stageCache.get(cacheKey)!;
 
       if (dry_run) {
         const placeholder = `AUTO_CREATE_STAGE:${stageName}`;
