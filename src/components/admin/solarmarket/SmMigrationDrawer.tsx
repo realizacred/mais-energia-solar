@@ -687,8 +687,21 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     addLog(`Iniciando migração automática de ${initialPending} pendentes em lotes de 10...`);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("Sessão expirada.");
+      // Helper: get a valid session, refreshing if close to expiry
+      const getValidSession = async () => {
+        const { data: { session: s } } = await supabase.auth.getSession();
+        if (!s?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
+        const expiresAt = s.expires_at ?? 0;
+        const now = Math.floor(Date.now() / 1000);
+        if (expiresAt - now < 300) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          if (!refreshed.session?.access_token) throw new Error("Não foi possível renovar a sessão.");
+          return refreshed.session;
+        }
+        return s;
+      };
+
+      let session = await getValidSession();
 
       const projectUrl = import.meta.env.VITE_SUPABASE_URL;
       let continuar = true;
@@ -698,6 +711,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       let stagnantRounds = 0;
 
       while (continuar && !cancelRef.current && round < MAX_ROUNDS) {
+        // Refresh token before each round to prevent 401 on long migrations
+        session = await getValidSession();
         round++;
         if (round > MAX_ROUNDS) {
           addLog(`⚠️ Limite de ${MAX_ROUNDS} rodadas atingido. Verifique os erros.`);
