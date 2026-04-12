@@ -390,7 +390,14 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     };
   }, [autoResumeRunning, qc, refetchPending]);
 
-  useEffect(() => {
+  const addLog = useCallback((msg: string) => {
+    setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
+  }, []);
+
+  const updateStep = useCallback((name: StepName, update: Partial<MigrationStep>) => {
+    setSteps(prev => prev.map(s => s.name === name ? { ...s, ...update } : s));
+  }, []);
+
     if (!autoResumeRunning || !autoResumeStats || !pendingStats) return;
 
     const now = Date.now();
