@@ -611,7 +611,7 @@ Deno.serve(async (req) => {
       if (pendingProposals > 0) {
         sync_type = "proposals";
       } else if (pendingFunnels > 0) {
-        sync_type = "projects"; // This triggers funnel enrichment
+        sync_type = "projects_funnels"; // Dedicated stage for funnel enrichment
       } else {
         // console.log("[SM Sync] Cron: everything synced, skipping");
         return new Response(JSON.stringify({ 
