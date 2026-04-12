@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,7 @@ import { useRealtimeSyncLogs } from "@/hooks/useRealtimeSyncLogs";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
 import { SmOperationStatusPanel } from "@/components/admin/solarmarket/SmOperationStatusPanel";
 import { SmDashboardPanel } from "@/components/admin/solarmarket/SmDashboardPanel";
+import { useActiveSmOperation } from "@/hooks/useSmOperationRuns";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
