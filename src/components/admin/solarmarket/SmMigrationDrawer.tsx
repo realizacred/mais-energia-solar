@@ -68,9 +68,10 @@ interface MigrationResult {
 
 // ─── Hook: fetch consultores for owner dropdown ─────────
 
-function useConsultores() {
+function useConsultores(isReady: boolean) {
   return useQuery<{ id: string; nome: string }[]>({
     queryKey: ["consultores-active"],
+    enabled: isReady,
     queryFn: async () => {
       const { data } = await supabase
         .from("consultores")
@@ -85,9 +86,10 @@ function useConsultores() {
 
 // ─── Hook: fetch available pipelines ───────────────────
 
-function usePipelines() {
+function usePipelines(isReady: boolean) {
   return useQuery<{ id: string; name: string; kind: string }[]>({
     queryKey: ["pipelines-for-migration"],
+    enabled: isReady,
     queryFn: async () => {
       const { data } = await supabase
         .from("pipelines")
@@ -102,10 +104,10 @@ function usePipelines() {
 
 // ─── Hook: fetch stages for a pipeline ─────────────────
 
-function usePipelineStages(pipelineId: string | null) {
+function usePipelineStages(pipelineId: string | null, isReady: boolean) {
   return useQuery<{ id: string; name: string }[]>({
     queryKey: ["pipeline-stages-migration", pipelineId],
-    enabled: !!pipelineId,
+    enabled: !!pipelineId && isReady,
     queryFn: async () => {
       const { data } = await supabase
         .from("pipeline_stages")
