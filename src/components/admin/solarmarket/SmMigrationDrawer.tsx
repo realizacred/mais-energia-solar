@@ -313,9 +313,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     onRunningChange?.(running);
   }, [running, onRunningChange]);
 
-  const { data: consultores = [] } = useConsultores();
-  const { data: pipelines = [] } = usePipelines();
-  const { data: pipelineStages = [] } = usePipelineStages(selectedPipelineId || null);
+  const { session } = useAuth();
+  const isAuthReady = !!session;
+
+  const { data: consultores = [] } = useConsultores(isAuthReady);
+  const { data: pipelines = [] } = usePipelines(isAuthReady);
+  const { data: pipelineStages = [] } = usePipelineStages(selectedPipelineId || null, isAuthReady);
   const { data: pendingStats, refetch: refetchPending } = usePendingMigrationCount();
   const qc = useQueryClient();
 
