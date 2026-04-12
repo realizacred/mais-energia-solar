@@ -1955,6 +1955,24 @@ Deno.serve(async (req) => {
         .eq("id", logId);
     }
 
+    // ─── SSOT: Finalize operation run ──────────────────────
+    if (smOpRunId) {
+      try {
+        await supabase
+          .from("sm_operation_runs")
+          .update({
+            status: totalErrors > 0 && totalUpserted === 0 ? "failed" : "completed",
+            finished_at: new Date().toISOString(),
+            heartbeat_at: new Date().toISOString(),
+            total_items: totalFetched,
+            processed_items: totalUpserted + totalErrors,
+            success_items: totalUpserted,
+            error_items: totalErrors,
+            error_summary: errors.length > 0 ? errors.slice(0, 5).join("; ").slice(0, 1000) : null,
+          })
+          .eq("id", smOpRunId);
+      } catch (_) { /* best-effort */ }
+    }
     await supabase
       .from("solar_market_config")
       .upsert(
