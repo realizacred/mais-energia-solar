@@ -1069,6 +1069,7 @@ export default function SolarMarketPage() {
       <SmDashboardPanel
         localSyncRunning={syncIsRunning || fullSyncStatus.running}
         localMigrationRunning={migrationRunning}
+        localSyncProgress={progress}
       />
 
       {/* Tabs */}
