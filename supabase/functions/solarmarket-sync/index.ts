@@ -1752,7 +1752,7 @@ Deno.serve(async (req) => {
     }
 
     // ─── Update has_active_proposal flag on projects ──────────
-    if (sync_type === "proposals" || sync_type === "full") {
+    if (!skipPostProcessing && (sync_type === "proposals" || sync_type === "full")) {
       try {
         // Get all sm_project_ids that have proposals (paginated to avoid 1000-row limit)
         const projectIdsWithProposalSet = new Set<number>();
@@ -1801,7 +1801,7 @@ Deno.serve(async (req) => {
     }
 
     // ─── Backfill custom_fields_raw for existing proposals ──
-    if (sync_type === "backfill_cf_raw" || sync_type === "full") {
+    if (!skipPostProcessing && (sync_type === "backfill_cf_raw" || sync_type === "full")) {
       try {
         // Re-load defs if not loaded yet
         if (cfDefsLookup.size === 0) {
