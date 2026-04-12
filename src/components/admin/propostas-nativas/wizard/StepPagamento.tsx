@@ -467,7 +467,7 @@ export function StepPagamento({
   // ─── Gastos detail table
   const gastosData = useMemo(() => {
     const atual = economiaAtual;
-    const novo = economiaNova;
+    const novo = custoDisp;
     return {
       linhas: [
         { label: "Energia Baixa Tensão", atual, novo, children: [
@@ -488,7 +488,7 @@ export function StepPagamento({
       totalNovo: novo,
       economia: economiaMensal,
     };
-  }, [economiaAtual, economiaNova, economiaMensal, custoDisp, ucGeradora]);
+  }, [economiaAtual, economiaMensal, custoDisp, ucGeradora]);
 
   // ─── Render ─────────────────────────────────────────────
 
