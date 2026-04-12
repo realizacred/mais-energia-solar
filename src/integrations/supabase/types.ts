@@ -1821,6 +1821,7 @@ export type Database = {
           id: string
           identidade_url: string | null
           identidade_urls: string[] | null
+          import_source: string | null
           lead_id: string | null
           localizacao: string | null
           modelo_inversor: string | null
@@ -1863,6 +1864,7 @@ export type Database = {
           id?: string
           identidade_url?: string | null
           identidade_urls?: string[] | null
+          import_source?: string | null
           lead_id?: string | null
           localizacao?: string | null
           modelo_inversor?: string | null
@@ -1905,6 +1907,7 @@ export type Database = {
           id?: string
           identidade_url?: string | null
           identidade_urls?: string[] | null
+          import_source?: string | null
           lead_id?: string | null
           localizacao?: string | null
           modelo_inversor?: string | null
@@ -3475,6 +3478,7 @@ export type Database = {
           etiqueta: string | null
           expected_close_date: string | null
           id: string
+          import_source: string | null
           kwp: number | null
           legacy_key: string | null
           motivo_perda_id: string | null
@@ -3499,6 +3503,7 @@ export type Database = {
           etiqueta?: string | null
           expected_close_date?: string | null
           id?: string
+          import_source?: string | null
           kwp?: number | null
           legacy_key?: string | null
           motivo_perda_id?: string | null
@@ -3523,6 +3528,7 @@ export type Database = {
           etiqueta?: string | null
           expected_close_date?: string | null
           id?: string
+          import_source?: string | null
           kwp?: number | null
           legacy_key?: string | null
           motivo_perda_id?: string | null
@@ -15608,6 +15614,7 @@ export type Database = {
           funil_id: string | null
           geracao_mensal_media_kwh: number | null
           id: string
+          import_source: string | null
           instalador_id: string | null
           is_principal: boolean
           lat_instalacao: number | null
@@ -15662,6 +15669,7 @@ export type Database = {
           funil_id?: string | null
           geracao_mensal_media_kwh?: number | null
           id?: string
+          import_source?: string | null
           instalador_id?: string | null
           is_principal?: boolean
           lat_instalacao?: number | null
@@ -15716,6 +15724,7 @@ export type Database = {
           funil_id?: string | null
           geracao_mensal_media_kwh?: number | null
           id?: string
+          import_source?: string | null
           instalador_id?: string | null
           is_principal?: boolean
           lat_instalacao?: number | null
@@ -18458,6 +18467,7 @@ export type Database = {
           enviada_via: string | null
           fio_b_percent_aplicado: number | null
           id: string
+          import_source: string | null
           is_principal: boolean
           lead_id: string | null
           metadata: Json | null
@@ -18515,6 +18525,7 @@ export type Database = {
           enviada_via?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
+          import_source?: string | null
           is_principal?: boolean
           lead_id?: string | null
           metadata?: Json | null
@@ -18572,6 +18583,7 @@ export type Database = {
           enviada_via?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
+          import_source?: string | null
           is_principal?: boolean
           lead_id?: string | null
           metadata?: Json | null
