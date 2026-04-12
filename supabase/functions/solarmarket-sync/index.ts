@@ -576,7 +576,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    let smOpRunId: string = lockResult.run_id;
+    smOpRunId = lockResult.run_id;
 
     // ── Cron auto-detection: pick what's still pending ──
     if (isCron && (!body.sync_type || body.sync_type === "auto")) {
