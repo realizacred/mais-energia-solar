@@ -855,18 +855,23 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     setCancelling(false);
     cancelRef.current = false;
 
+    const MAX_ROUNDS = 200;
+    const MAX_STAGNANT_ROUNDS = 5;
     const initialPending = pendingStats?.pending ?? proposals.length;
-    const stats = {
-      migrated: pendingStats?.migrated ?? 0,
-      errors: pendingStats?.errors ?? 0,
+    const initialMigrated = pendingStats?.migrated ?? 0;
+    const initialErrors = pendingStats?.errors ?? 0;
+
+    let currentStats = {
+      migrated: initialMigrated,
+      errors: initialErrors,
       startTime: Date.now(),
       round: 1,
       initialPending,
     };
 
-    setAutoResumeStats(stats);
+    setAutoResumeStats(currentStats);
     autoResumeLastProgressAtRef.current = Date.now();
-    autoResumeLastMigratedRef.current = stats.migrated;
+    autoResumeLastMigratedRef.current = initialMigrated;
 
     updateStep("fetch", {
       state: "done",
@@ -875,10 +880,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
       updateStep(stepName, {
         state: "running",
-        detail: "Preparando processamento em segundo plano...",
+        detail: "Preparando processamento em lotes...",
       });
     }
-    addLog(`Iniciando migração automática em segundo plano para ${initialPending} pendentes...`);
+    addLog(`Iniciando migração automática para ${initialPending} pendentes...`);
 
     try {
       const getValidSession = async () => {
@@ -894,71 +899,126 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
         return s;
       };
 
-      const session = await getValidSession();
       const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120_000);
+      let stagnantRounds = 0;
+      let lastMigrated = initialMigrated;
 
-      try {
-        const payload = {
-          dry_run: false,
-          pipeline_id: activePipelineId,
-          stage_id: activeStageId || null,
-          auto_resolve_owner: true,
-          auto_resume: true,
-          background: true,
-          batch_size: 10,
-          include_projects_without_proposal: false,
-          ...(ownerId && ownerId !== "__auto__" ? { owner_id: ownerId } : {}),
-        };
-
-        const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          const errBody = await response.json().catch(() => ({}));
-          if (response.status === 423 || errBody?.blocked) {
-            throw new Error(errBody?.message || "Migração bloqueada.");
-          }
-          throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        refetchPending();
-        qc.invalidateQueries({ queryKey: ["sm-proposals"] });
-        qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
-
-        if (data.completed) {
-          const migrated = data.migrated || stats.migrated;
-          setAutoResumeStats({ ...stats, migrated });
+      for (let round = 1; round <= MAX_ROUNDS; round++) {
+        if (cancelRef.current) {
+          addLog("Migração automática cancelada pelo usuário.");
           setAutoResumeRunning(false);
           setRunning(false);
-          setSmoothProgress(100);
-          for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-            updateStep(stepName, { state: "done", detail: `${migrated} proposta(s) migradas` });
-          }
-          updateStep("done", { state: "done", detail: `${migrated} migrados, 0 erros` });
-          toast.success(`Migração completa! ${migrated} propostas migradas.`);
+          setCancelling(false);
+          cancelRef.current = false;
+          updateStep("done", {
+            state: "error",
+            detail: "Migração interrompida pelo usuário.",
+          });
           return;
         }
 
-        addLog(data.background_will_continue === false && data.background_pending_after > 0
-          ? "Primeiro lote concluído. O servidor pausará se detectar estagnação; acompanhando progresso..."
-          : "Migração destacada para o servidor. Você pode sair da tela sem precisar dar F5.");
-      } finally {
-        clearTimeout(timeoutId);
+        const session = await getValidSession();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+        try {
+          const payload = {
+            dry_run: false,
+            pipeline_id: activePipelineId,
+            stage_id: activeStageId || null,
+            auto_resolve_owner: true,
+            auto_resume: true,
+            batch_size: 10,
+            include_projects_without_proposal: false,
+            ...(ownerId && ownerId !== "__auto__" ? { owner_id: ownerId } : {}),
+          };
+
+          const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            const errBody = await response.json().catch(() => ({}));
+            if (response.status === 423 || errBody?.blocked) {
+              throw new Error(errBody?.message || "Migração bloqueada.");
+            }
+            throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          const pendingResult = await refetchPending();
+          const refreshedStats = pendingResult.data ?? currentStats;
+
+          qc.invalidateQueries({ queryKey: ["sm-proposals"] });
+          qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
+          qc.invalidateQueries({ queryKey: ["canonical-check"] });
+
+          currentStats = {
+            ...currentStats,
+            round,
+            migrated: refreshedStats.migrated ?? currentStats.migrated,
+            errors: refreshedStats.errors ?? currentStats.errors,
+          };
+          setAutoResumeStats(currentStats);
+
+          const currentPending = refreshedStats.pending ?? Math.max(0, initialPending - currentStats.migrated);
+          const progressed = currentStats.migrated > lastMigrated;
+
+          if (progressed) {
+            stagnantRounds = 0;
+            lastMigrated = currentStats.migrated;
+            autoResumeLastMigratedRef.current = currentStats.migrated;
+            autoResumeLastProgressAtRef.current = Date.now();
+          } else {
+            stagnantRounds += 1;
+          }
+
+          for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+            updateStep(stepName, {
+              state: "running",
+              detail: `Em segundo plano • ${currentStats.migrated}/${initialPending} migradas • Rodada ${round}`,
+            });
+          }
+
+          addLog(
+            progressed
+              ? `Rodada ${round}: progresso confirmado (${currentStats.migrated}/${initialPending}).`
+              : `Rodada ${round}: sem avanço (${stagnantRounds}/${MAX_STAGNANT_ROUNDS}).`
+          );
+
+          if (data.completed || currentPending === 0) {
+            setAutoResumeRunning(false);
+            setRunning(false);
+            setSmoothProgress(100);
+            for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+              updateStep(stepName, { state: "done", detail: `${currentStats.migrated} proposta(s) migradas` });
+            }
+            updateStep("done", { state: "done", detail: `${currentStats.migrated} migrados, ${currentStats.errors} erros` });
+            toast.success(`Migração completa! ${currentStats.migrated} propostas migradas.`);
+            return;
+          }
+
+          if (stagnantRounds >= MAX_STAGNANT_ROUNDS) {
+            throw new Error("A migração deixou de avançar após 5 rodadas. Verifique os erros pendentes no log.");
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        } finally {
+          clearTimeout(timeoutId);
+        }
       }
+
+      throw new Error("Migração interrompida por segurança após 200 rodadas sem concluir.");
     } catch (err: any) {
       const msg = err?.name === "AbortError"
-        ? "Timeout ao iniciar a migração em segundo plano."
+        ? "Timeout durante a migração automática."
         : err?.message ?? "Erro desconhecido";
       setAutoResumeRunning(false);
       setRunning(false);
