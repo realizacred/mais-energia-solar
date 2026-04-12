@@ -700,8 +700,18 @@ export default function PropostaPublica() {
           </Card>
         </div>
       )}
+      {/* ── ECONOMY DETAIL CARDS — always visible ──────── */}
+      {versaoData && (
+        <div className="max-w-lg mx-auto px-4 pb-4">
+          <EconomiaDetailCards
+            snapshot={versaoData.snapshot}
+            economiaMensal={versaoData.economia_mensal ?? 0}
+            potenciaKwp={versaoData.potencia_kwp ?? 0}
+          />
+        </div>
+      )}
 
-      {/* ── PAYMENT METHOD SELECTION ──────────────── */}
+
       {formasProprias.length > 0 && (
         <div className="max-w-lg mx-auto px-4 pb-4">
           <Card className="border-border/60">
