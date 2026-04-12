@@ -269,6 +269,14 @@ export default function PropostaPublica() {
       if (renderRes.data?.html) setHtml(renderRes.data.html);
       if (versaoRes.data) {
         setVersaoData(versaoRes.data);
+
+        // If template_id_used exists (HTML web template), redirect to landing page
+        if ((versaoRes.data as any).template_id_used) {
+          setRedirectToLanding(true);
+          setLoading(false);
+          return;
+        }
+
         // If no HTML render but PDF exists, generate signed URL for PDF viewing
         if (!renderRes.data?.html && versaoRes.data.output_pdf_path) {
           const { data: signedData } = await supabase.storage
