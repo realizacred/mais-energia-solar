@@ -215,10 +215,11 @@ export function useIsBackgroundSyncActive() {
   });
 }
 
-export function useSmClients(syncRunning?: boolean) {
+export function useSmClients(syncRunning?: boolean, enabled = true) {
   return useQuery<SmClient[]>({
     queryKey: ["sm-clients"],
     staleTime: 1000 * 60 * 5,
+    enabled,
     queryFn: async () => {
       return fetchAllRows<SmClient>({
         table: "solar_market_clients",
@@ -230,10 +231,11 @@ export function useSmClients(syncRunning?: boolean) {
   });
 }
 
-export function useSmProjects(syncRunning?: boolean) {
+export function useSmProjects(syncRunning?: boolean, enabled = true) {
   return useQuery<SmProject[]>({
     queryKey: ["sm-projects"],
     staleTime: 1000 * 60 * 5,
+    enabled,
     queryFn: async () => {
       // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProject>({
@@ -301,10 +303,11 @@ export function useSmCustomFields() {
   });
 }
 
-export function useSmProposals(syncRunning?: boolean) {
+export function useSmProposals(syncRunning?: boolean, enabled = true) {
   return useQuery<SmProposal[]>({
     queryKey: ["sm-proposals"],
     staleTime: 1000 * 60 * 5,
+    enabled,
     queryFn: async () => {
       // Exclude raw_payload from listing to avoid timeouts on large datasets
       return fetchAllRows<SmProposal>({
