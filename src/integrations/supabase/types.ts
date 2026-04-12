@@ -21085,6 +21085,7 @@ export type Database = {
           number: string | null
           phase_type: string | null
           potencia_kwp: number | null
+          proposals_synced_at: string | null
           raw_payload: Json | null
           representative: Json | null
           responsible: Json | null
@@ -21124,6 +21125,7 @@ export type Database = {
           number?: string | null
           phase_type?: string | null
           potencia_kwp?: number | null
+          proposals_synced_at?: string | null
           raw_payload?: Json | null
           representative?: Json | null
           responsible?: Json | null
@@ -21163,6 +21165,7 @@ export type Database = {
           number?: string | null
           phase_type?: string | null
           potencia_kwp?: number | null
+          proposals_synced_at?: string | null
           raw_payload?: Json | null
           representative?: Json | null
           responsible?: Json | null
