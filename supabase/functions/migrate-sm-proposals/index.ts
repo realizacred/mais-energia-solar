@@ -2879,25 +2879,22 @@ Deno.serve(async (req) => {
 
     console.error(`[SM Migration] Done in ${result.elapsed_ms}ms. Summary: ${JSON.stringify(summary)} GroupB: ${groupBReports.length} TimeBudget: ${timeBudgetExceeded}`);
 
-    // ─── SSOT: Finalize migration operation run ─────────────
+    // ─── SSOT: Release lock with final counts ─────────────
     if (smOpRunId) {
       try {
         const successCount = (summary as any).SUCCESS || 0;
         const errorCount = (summary as any).ERROR || 0;
         const skipCount = (summary as any).SKIP || (summary as any).WOULD_SKIP || 0;
-        await adminClient
-          .from("sm_operation_runs")
-          .update({
-            status: errorCount > 0 && successCount === 0 ? "failed" : "completed",
-            finished_at: new Date().toISOString(),
-            heartbeat_at: new Date().toISOString(),
-            total_items: allProposals.length,
-            processed_items: reports.length,
-            success_items: successCount,
-            error_items: errorCount,
-            skipped_items: skipCount,
-          })
-          .eq("id", smOpRunId);
+        await adminClient.rpc("release_sm_operation_lock", {
+          p_run_id: smOpRunId,
+          p_status: errorCount > 0 && successCount === 0 ? "failed" : "completed",
+          p_total_items: allProposals.length,
+          p_processed_items: reports.length,
+          p_success_items: successCount,
+          p_error_items: errorCount,
+          p_skipped_items: skipCount,
+          p_checkpoint: { last_batch_size: reports.length, time_budget_exceeded: timeBudgetExceeded },
+        });
       } catch (_) { /* best-effort */ }
     }
 
@@ -2906,20 +2903,17 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("ERR", { step: "fatal", err: (err as Error).message, stack: (err as Error).stack });
-    // ─── SSOT: Mark operation as failed on fatal error ────
+    // ─── SSOT: Release lock as failed on fatal error ────
     if (typeof smOpRunId !== "undefined" && smOpRunId) {
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const fallbackClient = createClient(supabaseUrl, serviceKey);
-        await fallbackClient
-          .from("sm_operation_runs")
-          .update({
-            status: "failed",
-            finished_at: new Date().toISOString(),
-            error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
-          })
-          .eq("id", smOpRunId);
+        await fallbackClient.rpc("release_sm_operation_lock", {
+          p_run_id: smOpRunId,
+          p_status: "failed",
+          p_error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
+        });
       } catch (_) { /* best-effort */ }
     }
     return new Response(
