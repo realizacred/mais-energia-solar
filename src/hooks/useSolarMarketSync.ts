@@ -341,27 +341,18 @@ export function useSolarMarketSync() {
         return;
       }
 
-      // Check counts BEFORE syncing to decide what to skip
-      const [preClients, preProjects] = await Promise.all([
-        supabase.from("solar_market_clients").select("id", { count: "exact", head: true }),
-        supabase.from("solar_market_projects").select("id", { count: "exact", head: true }),
-      ]);
-      const clientsCount = preClients.count ?? 0;
-      const projectsCount = preProjects.count ?? 0;
-
-      // If clients and projects already imported, only sync proposals
-      const skipEarlyStages = round > 1 && clientsCount >= 1900 && projectsCount >= 1890;
+      // Round 1: full sync. Round 2+: only proposals (funis/clientes/projetos already done)
+      const onlyProposals = round > 1;
 
       setFullSyncStatus((prev) => ({
         ...prev,
         round,
-        message: skipEarlyStages
+        message: onlyProposals
           ? `Rodada ${round}/${MAX_ROUNDS} — sincronizando propostas...`
-          : `Rodada ${round}/${MAX_ROUNDS} — sincronizando...`,
+          : `Rodada ${round}/${MAX_ROUNDS} — sincronizando tudo...`,
       }));
 
-      if (skipEarlyStages) {
-        // Only sync proposals stage
+      if (onlyProposals) {
         await syncStage("proposals");
       } else {
         await syncAll();
