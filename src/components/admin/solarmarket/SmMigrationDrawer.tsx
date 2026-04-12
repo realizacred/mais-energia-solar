@@ -284,6 +284,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       cancelRef.current = true;
     };
   }, []);
+
+  // Track when tab was last hidden for stall detection
+  const lastHiddenAtRef = useRef<number | null>(null);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Auto-resume state
   const [autoResumeRunning, setAutoResumeRunning] = useState(false);
