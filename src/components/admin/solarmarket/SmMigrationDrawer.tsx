@@ -954,7 +954,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
           const data = await response.json();
           const pendingResult = await refetchPending();
-          const refreshedStats = pendingResult.data ?? currentStats;
+          const refreshedStats = pendingResult.data ?? {
+            total: initialPending + initialMigrated,
+            pending: Math.max(0, initialPending - currentStats.migrated),
+            migrated: currentStats.migrated,
+            errors: currentStats.errors,
+          };
 
           qc.invalidateQueries({ queryKey: ["sm-proposals"] });
           qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
