@@ -23,7 +23,7 @@ export interface SmOperationRun {
   created_at: string;
 }
 
-const STALE_HEARTBEAT_MS = 15 * 60 * 1000; // 15 min
+const STALE_HEARTBEAT_MS = 5 * 60 * 1000; // 5 min (matches acquire_sm_operation_lock threshold)
 
 /** Returns the active SM operation (running/queued), or null */
 export function useActiveSmOperation() {
