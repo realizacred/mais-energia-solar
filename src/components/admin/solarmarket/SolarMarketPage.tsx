@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink, Activity } from "lucide-react";
-import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
+import { PageHeader, SectionCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,7 @@ import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
 import { useRealtimeSyncLogs } from "@/hooks/useRealtimeSyncLogs";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
 import { SmOperationStatusPanel } from "@/components/admin/solarmarket/SmOperationStatusPanel";
+import { SmDashboardPanel } from "@/components/admin/solarmarket/SmDashboardPanel";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
@@ -1060,10 +1061,13 @@ export default function SolarMarketPage() {
         </div>
       )}
 
-      {/* Sync Progress */}
+      {/* Sync Progress (stage-by-stage during active sync) */}
       <SyncProgressBar progress={progress} />
 
-      {/* SSOT Operation Status */}
+      {/* Operational Dashboard */}
+      <SmDashboardPanel />
+
+      {/* SSOT Operation Status (active/last run) */}
       <SmOperationStatusPanel />
 
       {/* Full Sync Status */}
@@ -1085,29 +1089,6 @@ export default function SolarMarketPage() {
           )}
         </div>
       )}
-
-      {/* Migration Progress Counter */}
-      {proposals.length > 0 && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-sm">
-          <CheckCircle className="h-4 w-4 text-success shrink-0" />
-          <span className="text-foreground font-medium">
-            {migratedProposalsCount} de {proposals.length} migrados
-          </span>
-          <span className="text-muted-foreground">
-            ({pendingProposals.length} pendentes)
-          </span>
-        </div>
-      )}
-
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        <StatCard icon={Users} label="Clientes" value={clients.length} color="primary" />
-        <StatCard icon={FolderKanban} label="Projetos" value={projects.length} color="info" />
-        <StatCard icon={FileText} label="Propostas" value={proposals.length} color="success" />
-        <StatCard icon={UserMinus} label="Sem Projeto" value={clientsWithoutProjectsCount} color="destructive" />
-        <StatCard icon={UserX} label="Sem Proposta" value={clientsWithoutProposalsCount} color="warning" />
-        <StatCard icon={Clock} label="Syncs" value={syncLogs.length} color="secondary" />
-      </div>
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => { setTab(v); clearFilters(); setSearch(""); clientsPag.resetPage(); projectsPag.resetPage(); proposalsPag.resetPage(); noProjectPag.resetPage(); noProposalPag.resetPage(); }}>

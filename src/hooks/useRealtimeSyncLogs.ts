@@ -27,6 +27,8 @@ export function useRealtimeSyncLogs() {
         },
         () => {
           qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
+          qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
+          qc.invalidateQueries({ queryKey: ["sm-operation-runs"] });
         }
       )
       .subscribe();
