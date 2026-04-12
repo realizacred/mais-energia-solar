@@ -1422,7 +1422,7 @@ Deno.serve(async (req) => {
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
-        const timeBudgetMs = 60_000; // 60s budget — conservative to avoid CPU exceeded
+        const timeBudgetMs = 45_000; // 45s budget — reduce compute per execution
         const startTime = Date.now();
         const CONCURRENCY = 2; // 2 parallel requests (reduced to avoid CPU exceeded)
 
@@ -1539,7 +1539,7 @@ Deno.serve(async (req) => {
           }
 
           // Small delay between parallel batches to respect rate limits
-          await delay(500);
+          await delay(300);
         }
 
         // Save remaining rows
