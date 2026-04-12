@@ -1535,6 +1535,13 @@ Deno.serve(async (req) => {
           }
           batchCount += chunk.length;
 
+          // Mark processed projects as scanned (with or without proposals)
+          await supabase
+            .from("solar_market_projects")
+            .update({ proposals_synced_at: new Date().toISOString() })
+            .eq("tenant_id", tenantId)
+            .in("sm_project_id", chunk);
+
           // Save partial results every 50 rows (smaller batches to reduce CPU per cycle)
           if (allProposalRows.length >= 50) {
             // console.log(`[SM Sync] Saving partial proposals batch: ${allProposalRows.length} rows (${batchCount}/${pendingIds.length} projects processed)`);
