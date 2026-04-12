@@ -571,30 +571,17 @@ Deno.serve(async (req) => {
 
     // ── Cron auto-detection: pick what's still pending ──
     if (isCron && (!body.sync_type || body.sync_type === "auto")) {
-      // Check pending proposals (projects without proposals)
+      // Check pending proposals: projects NOT yet scanned (proposals_synced_at IS NULL)
       const { count: totalProjects } = await supabase
         .from("solar_market_projects")
         .select("*", { count: "exact", head: true })
         .eq("tenant_id", tenantId);
 
-      // Paginate to avoid 1000-row default limit (Supabase constraint)
-      const syncedProjectIdSet = new Set<number>();
-      {
-        let offset = 0;
-        const pageSize = 1000;
-        while (true) {
-          const { data: syncedRows } = await supabase
-            .from("solar_market_proposals")
-            .select("sm_project_id")
-            .eq("tenant_id", tenantId)
-            .range(offset, offset + pageSize - 1);
-          const batch = (syncedRows || []).map((r: any) => r.sm_project_id as number);
-          for (const id of batch) syncedProjectIdSet.add(id);
-          if (batch.length < pageSize) break;
-          offset += pageSize;
-        }
-      }
-      const syncedCount = syncedProjectIdSet.size;
+      const { count: scannedCount } = await supabase
+        .from("solar_market_projects")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .not("proposals_synced_at", "is", null);
 
       // Check pending funnel enrichment
       const { count: enrichedCount } = await supabase
@@ -603,7 +590,7 @@ Deno.serve(async (req) => {
         .eq("tenant_id", tenantId)
         .not("sm_funnel_id", "is", null);
 
-      const pendingProposals = (totalProjects || 0) - syncedCount;
+      const pendingProposals = (totalProjects || 0) - (scannedCount || 0);
       const pendingFunnels = (totalProjects || 0) - (enrichedCount || 0);
 
       // console.log(`[SM Sync] Cron auto: ${pendingProposals} pending proposals, ${pendingFunnels} pending funnels`);
@@ -618,7 +605,7 @@ Deno.serve(async (req) => {
           skipped: true, 
           reason: "all_synced",
           total_projects: totalProjects,
-          synced_proposals: syncedCount,
+          scanned_proposals: scannedCount,
           enriched_funnels: enrichedCount,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -1384,7 +1371,26 @@ Deno.serve(async (req) => {
           offset += pageSize;
         }
       }
-      // console.log(`[SM Sync] Resume check: ${alreadySyncedProjectIds.size} projects already have proposals`);
+
+      // ── Resume logic 2: projects already scanned (proposals_synced_at IS NOT NULL) ──
+      const alreadyScannedIds = new Set<number>();
+      {
+        let offset = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data: scannedRows } = await supabase
+            .from("solar_market_projects")
+            .select("sm_project_id")
+            .eq("tenant_id", tenantId)
+            .not("proposals_synced_at", "is", null)
+            .range(offset, offset + pageSize - 1);
+          const batch = (scannedRows || []).map((r: any) => r.sm_project_id as number);
+          for (const id of batch) alreadyScannedIds.add(id);
+          if (batch.length < pageSize) break;
+          offset += pageSize;
+        }
+      }
+      // console.log(`[SM Sync] Resume check: ${alreadySyncedProjectIds.size} with proposals, ${alreadyScannedIds.size} already scanned`);
 
       {
         // Fetch per-project proposals, SKIPPING projects already synced (resume logic)
@@ -1416,9 +1422,9 @@ Deno.serve(async (req) => {
           totalErrors++;
         }
 
-        // Use the alreadySyncedProjectIds computed above (shared resume set)
-        const pendingIds = ids.filter((id: number) => !alreadySyncedProjectIds.has(id));
-        // console.log(`[SM Sync] Proposals resume: ${alreadySyncedProjectIds.size} projects already synced, ${pendingIds.length} pending out of ${ids.length} total`);
+        // Use both resume sets: projects with proposals + projects already scanned
+        const pendingIds = ids.filter((id: number) => !alreadySyncedProjectIds.has(id) && !alreadyScannedIds.has(id));
+        // console.log(`[SM Sync] Proposals resume: ${alreadySyncedProjectIds.size} with proposals, ${alreadyScannedIds.size} scanned, ${pendingIds.length} pending out of ${ids.length} total`);
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
@@ -1515,6 +1521,13 @@ Deno.serve(async (req) => {
             }
           }
           batchCount += chunk.length;
+
+          // Mark processed projects as scanned (with or without proposals)
+          await supabase
+            .from("solar_market_projects")
+            .update({ proposals_synced_at: new Date().toISOString() })
+            .eq("tenant_id", tenantId)
+            .in("sm_project_id", chunk);
 
           // Save partial results every 50 rows (smaller batches to reduce CPU per cycle)
           if (allProposalRows.length >= 50) {
