@@ -506,7 +506,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const needsStage = selectedPipeline?.kind === "process";
   const canMigrate = !!activePipelineId && (!needsStage || !!activeStageId || pipelineStages.length === 0);
 
-  const addLog = addLogCb;
+  // addLog already declared above
 
   const resetState = useCallback(() => {
     setSteps(INITIAL_STEPS);
@@ -520,7 +520,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   }, []);
 
-  const updateStep = updateStepCb;
+  // updateStep already declared above
 
   const runMigration = useCallback(async (dryRun: boolean) => {
     if (!activePipelineId) {
