@@ -314,6 +314,7 @@ export function useSolarMarketSync() {
 
   const syncUntilComplete = useCallback(async () => {
     const MAX_ROUNDS = 20;
+    const MAX_STAGNANT = 3;
     stopFullSyncRef.current = false;
     setFullSyncStatus({
       running: true,
@@ -327,6 +328,9 @@ export function useSolarMarketSync() {
       stopRequested: false,
     });
 
+    let lastPropostas = -1;
+    let stagnantRounds = 0;
+
     for (let round = 1; round <= MAX_ROUNDS; round++) {
       if (stopFullSyncRef.current) {
         setFullSyncStatus((prev) => ({
@@ -337,15 +341,31 @@ export function useSolarMarketSync() {
         return;
       }
 
+      // Check counts BEFORE syncing to decide what to skip
+      const [preClients, preProjects] = await Promise.all([
+        supabase.from("solar_market_clients").select("id", { count: "exact", head: true }),
+        supabase.from("solar_market_projects").select("id", { count: "exact", head: true }),
+      ]);
+      const clientsCount = preClients.count ?? 0;
+      const projectsCount = preProjects.count ?? 0;
+
+      // If clients and projects already imported, only sync proposals
+      const skipEarlyStages = round > 1 && clientsCount >= 1900 && projectsCount >= 1890;
+
       setFullSyncStatus((prev) => ({
         ...prev,
         round,
-        message: `Rodada ${round}/${MAX_ROUNDS} — sincronizando...`,
+        message: skipEarlyStages
+          ? `Rodada ${round}/${MAX_ROUNDS} — sincronizando propostas...`
+          : `Rodada ${round}/${MAX_ROUNDS} — sincronizando...`,
       }));
 
-      // Run syncAll (only proposals + funnels stages after first round could be optimized,
-      // but we reuse the full syncAll for simplicity and safety)
-      await syncAll();
+      if (skipEarlyStages) {
+        // Only sync proposals stage
+        await syncStage("proposals");
+      } else {
+        await syncAll();
+      }
 
       // Wait before checking progress
       await new Promise((r) => setTimeout(r, 3000));
@@ -362,6 +382,14 @@ export function useSolarMarketSync() {
       const comFunis = funisRes.count ?? 0;
       const pctFunis = totalProjetos > 0 ? Math.round((comFunis / totalProjetos) * 1000) / 10 : 0;
 
+      // Stagnation detection
+      if (propostas > lastPropostas) {
+        stagnantRounds = 0;
+      } else {
+        stagnantRounds++;
+      }
+      lastPropostas = propostas;
+
       setFullSyncStatus((prev) => ({
         ...prev,
         propostas,
@@ -371,7 +399,7 @@ export function useSolarMarketSync() {
         message: `Rodada ${round}/${MAX_ROUNDS} — ${propostas} propostas, ${pctFunis}% com funis`,
       }));
 
-      // Check completion: proposals >= projects AND funnels >= 95%
+      // Check completion
       if (propostas >= totalProjetos && pctFunis >= 95) {
         setFullSyncStatus((prev) => ({
           ...prev,
@@ -379,6 +407,17 @@ export function useSolarMarketSync() {
           message: `✅ Sync completo! ${propostas} propostas, ${pctFunis}% com funis.`,
         }));
         toast.success(`Sync completo! ${propostas} propostas importadas, ${pctFunis}% dos projetos com funis.`);
+        return;
+      }
+
+      // Stop if stagnant
+      if (stagnantRounds >= MAX_STAGNANT) {
+        setFullSyncStatus((prev) => ({
+          ...prev,
+          running: false,
+          message: `Sync estagnado — ${propostas} propostas (sem avanço por ${MAX_STAGNANT} rodadas). Verifique erros no log.`,
+        }));
+        toast.warning(`Sync parou: sem avanço por ${MAX_STAGNANT} rodadas consecutivas.`, { duration: 8000 });
         return;
       }
     }
@@ -389,7 +428,7 @@ export function useSolarMarketSync() {
       message: `Sync parcial — ${prev.propostas} propostas, ${prev.pctFunis}% com funis. Clique novamente para continuar.`,
     }));
     toast.warning("Sync parcial — clique novamente para continuar.", { duration: 8000 });
-  }, [syncAll]);
+  }, [syncAll, syncStage]);
 
   return { syncAll, syncStage, progress, syncUntilComplete, requestStopFullSync, fullSyncStatus };
 }
