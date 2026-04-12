@@ -1413,11 +1413,28 @@ Deno.serve(async (req) => {
       // console.log(`[SM Migration] Vendedor filter "${filters.vendedor_name}": ${beforeCount} → ${proposalsToProcess.length} proposals (${vendedorProjectIds.size} projects matched)`);
     }
 
+    let heartbeatCounter = 0;
     for (const smProp of proposalsToProcess) {
         // Check time budget before each proposal
         if (Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS) {
           console.error(`[SM Migration] Time budget exceeded (${MIGRATION_TIMEOUT_MS}ms). Stopping with partial results.`);
           break;
+        }
+
+        // ─── Heartbeat every 5 proposals ─────────────────────
+        heartbeatCounter++;
+        if (smOpRunId && heartbeatCounter % 5 === 0) {
+          try {
+            const successCount = (summary as any).SUCCESS || 0;
+            const errorCount = (summary as any).ERROR || 0;
+            await adminClient.rpc("update_sm_operation_heartbeat", {
+              p_run_id: smOpRunId,
+              p_processed_items: reports.length,
+              p_success_items: successCount,
+              p_error_items: errorCount,
+              p_checkpoint: { last_sm_proposal_id: smProp.sm_proposal_id, batch_index: heartbeatCounter },
+            });
+          } catch (_) { /* best-effort heartbeat */ }
         }
 
         const report: ProposalReport = {
