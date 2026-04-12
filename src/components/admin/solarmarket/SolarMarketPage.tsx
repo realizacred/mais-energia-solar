@@ -587,7 +587,7 @@ export default function SolarMarketPage() {
     setFilterProposalConsultor("");
   };
 
-  const { syncAll, syncStage, progress } = useSolarMarketSync();
+  const { syncAll, syncStage, progress, syncUntilComplete, requestStopFullSync, fullSyncStatus } = useSolarMarketSync();
   // Realtime: all users see sync progress live
   useRealtimeSyncLogs();
   const syncIsRunning = progress.isRunning;
