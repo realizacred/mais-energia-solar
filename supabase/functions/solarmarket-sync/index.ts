@@ -571,30 +571,17 @@ Deno.serve(async (req) => {
 
     // ── Cron auto-detection: pick what's still pending ──
     if (isCron && (!body.sync_type || body.sync_type === "auto")) {
-      // Check pending proposals (projects without proposals)
+      // Check pending proposals: projects NOT yet scanned (proposals_synced_at IS NULL)
       const { count: totalProjects } = await supabase
         .from("solar_market_projects")
         .select("*", { count: "exact", head: true })
         .eq("tenant_id", tenantId);
 
-      // Paginate to avoid 1000-row default limit (Supabase constraint)
-      const syncedProjectIdSet = new Set<number>();
-      {
-        let offset = 0;
-        const pageSize = 1000;
-        while (true) {
-          const { data: syncedRows } = await supabase
-            .from("solar_market_proposals")
-            .select("sm_project_id")
-            .eq("tenant_id", tenantId)
-            .range(offset, offset + pageSize - 1);
-          const batch = (syncedRows || []).map((r: any) => r.sm_project_id as number);
-          for (const id of batch) syncedProjectIdSet.add(id);
-          if (batch.length < pageSize) break;
-          offset += pageSize;
-        }
-      }
-      const syncedCount = syncedProjectIdSet.size;
+      const { count: scannedCount } = await supabase
+        .from("solar_market_projects")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .not("proposals_synced_at", "is", null);
 
       // Check pending funnel enrichment
       const { count: enrichedCount } = await supabase
@@ -603,7 +590,7 @@ Deno.serve(async (req) => {
         .eq("tenant_id", tenantId)
         .not("sm_funnel_id", "is", null);
 
-      const pendingProposals = (totalProjects || 0) - syncedCount;
+      const pendingProposals = (totalProjects || 0) - (scannedCount || 0);
       const pendingFunnels = (totalProjects || 0) - (enrichedCount || 0);
 
       // console.log(`[SM Sync] Cron auto: ${pendingProposals} pending proposals, ${pendingFunnels} pending funnels`);
