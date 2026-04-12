@@ -1998,17 +1998,14 @@ Deno.serve(async (req) => {
         // best-effort log update
       }
     }
-    // ─── SSOT: Mark operation as failed on fatal error ────
+    // ─── SSOT: Release lock as failed on fatal error ────
     if (smOpRunId) {
       try {
-        await supabase
-          .from("sm_operation_runs")
-          .update({
-            status: "failed",
-            finished_at: new Date().toISOString(),
-            error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
-          })
-          .eq("id", smOpRunId);
+        await supabase.rpc("release_sm_operation_lock", {
+          p_run_id: smOpRunId,
+          p_status: "failed",
+          p_error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
+        });
       } catch (_) { /* best-effort */ }
     }
     return new Response(
