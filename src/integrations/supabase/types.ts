@@ -26942,6 +26942,15 @@ export type Database = {
         Args: { _conversation_id: string }
         Returns: boolean
       }
+      acquire_sm_operation_lock: {
+        Args: {
+          p_context?: Json
+          p_created_by?: string
+          p_operation_type: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       activate_irradiance_version: {
         Args: { _version_id: string }
         Returns: Json
@@ -27932,6 +27941,20 @@ export type Database = {
             Args: { p_instance_id?: string; p_tenant_id?: string }
             Returns: undefined
           }
+      release_sm_operation_lock: {
+        Args: {
+          p_checkpoint?: Json
+          p_error_items?: number
+          p_error_summary?: string
+          p_processed_items?: number
+          p_run_id: string
+          p_skipped_items?: number
+          p_status?: string
+          p_success_items?: number
+          p_total_items?: number
+        }
+        Returns: undefined
+      }
       release_webhook_lock: { Args: never; Returns: undefined }
       reorder_pipeline_stages: {
         Args: { _ordered_ids: string[]; _pipeline_id: string }
@@ -28084,6 +28107,16 @@ export type Database = {
           }
       try_webhook_lock: { Args: never; Returns: boolean }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
+      update_sm_operation_heartbeat: {
+        Args: {
+          p_checkpoint?: Json
+          p_error_items?: number
+          p_processed_items?: number
+          p_run_id: string
+          p_success_items?: number
+        }
+        Returns: undefined
+      }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }
       user_is_active: { Args: { _user_id?: string }; Returns: boolean }
       user_sent_in_conversation: {

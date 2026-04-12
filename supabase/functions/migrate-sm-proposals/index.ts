@@ -533,26 +533,31 @@ Deno.serve(async (req) => {
     const { dry_run = true, batch_size = 25 } = params;
     let { filters = {} } = params;
 
-    // ─── SSOT: Register migration operation run ─────────────
+    // ─── Formal Lock: prevent concurrent SM operations ─────
     let smOpRunId: string | null = null;
     if (!dry_run) {
-      try {
-        const { data: opRun } = await adminClient
-          .from("sm_operation_runs")
-          .insert({
-            tenant_id: tenantId,
-            source: "solar_market",
-            operation_type: "migrate_to_native",
-            status: "running",
-            started_at: new Date().toISOString(),
-            heartbeat_at: new Date().toISOString(),
-            created_by: user.id,
-            context_json: { batch_size, auto_resume: params.auto_resume ?? false },
-          })
-          .select("id")
-          .single();
-        smOpRunId = opRun?.id ?? null;
-      } catch (_) { /* best-effort SSOT tracking */ }
+      const { data: lockResult, error: lockErr } = await adminClient.rpc(
+        "acquire_sm_operation_lock",
+        {
+          p_tenant_id: tenantId,
+          p_operation_type: "migrate_to_native",
+          p_created_by: user.id,
+          p_context: { batch_size, auto_resume: params.auto_resume ?? false },
+        }
+      );
+
+      if (lockErr || !lockResult?.acquired) {
+        const reason = lockResult?.reason || lockErr?.message || "Lock acquisition failed";
+        return new Response(JSON.stringify({
+          error: reason,
+          blocked: true,
+          blocked_by: lockResult?.blocked_by_type,
+        }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      smOpRunId = lockResult.run_id;
     }
 
     // ─── AUTO_RESUME: fetch next pending batch automatically ─────
@@ -1408,11 +1413,28 @@ Deno.serve(async (req) => {
       // console.log(`[SM Migration] Vendedor filter "${filters.vendedor_name}": ${beforeCount} → ${proposalsToProcess.length} proposals (${vendedorProjectIds.size} projects matched)`);
     }
 
+    let heartbeatCounter = 0;
     for (const smProp of proposalsToProcess) {
         // Check time budget before each proposal
         if (Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS) {
           console.error(`[SM Migration] Time budget exceeded (${MIGRATION_TIMEOUT_MS}ms). Stopping with partial results.`);
           break;
+        }
+
+        // ─── Heartbeat every 5 proposals ─────────────────────
+        heartbeatCounter++;
+        if (smOpRunId && heartbeatCounter % 5 === 0) {
+          try {
+            const successCount = (summary as any).SUCCESS || 0;
+            const errorCount = (summary as any).ERROR || 0;
+            await adminClient.rpc("update_sm_operation_heartbeat", {
+              p_run_id: smOpRunId,
+              p_processed_items: reports.length,
+              p_success_items: successCount,
+              p_error_items: errorCount,
+              p_checkpoint: { last_sm_proposal_id: smProp.sm_proposal_id, batch_index: heartbeatCounter },
+            });
+          } catch (_) { /* best-effort heartbeat */ }
         }
 
         const report: ProposalReport = {
@@ -2874,25 +2896,22 @@ Deno.serve(async (req) => {
 
     console.error(`[SM Migration] Done in ${result.elapsed_ms}ms. Summary: ${JSON.stringify(summary)} GroupB: ${groupBReports.length} TimeBudget: ${timeBudgetExceeded}`);
 
-    // ─── SSOT: Finalize migration operation run ─────────────
+    // ─── SSOT: Release lock with final counts ─────────────
     if (smOpRunId) {
       try {
         const successCount = (summary as any).SUCCESS || 0;
         const errorCount = (summary as any).ERROR || 0;
         const skipCount = (summary as any).SKIP || (summary as any).WOULD_SKIP || 0;
-        await adminClient
-          .from("sm_operation_runs")
-          .update({
-            status: errorCount > 0 && successCount === 0 ? "failed" : "completed",
-            finished_at: new Date().toISOString(),
-            heartbeat_at: new Date().toISOString(),
-            total_items: allProposals.length,
-            processed_items: reports.length,
-            success_items: successCount,
-            error_items: errorCount,
-            skipped_items: skipCount,
-          })
-          .eq("id", smOpRunId);
+        await adminClient.rpc("release_sm_operation_lock", {
+          p_run_id: smOpRunId,
+          p_status: errorCount > 0 && successCount === 0 ? "failed" : "completed",
+          p_total_items: allProposals.length,
+          p_processed_items: reports.length,
+          p_success_items: successCount,
+          p_error_items: errorCount,
+          p_skipped_items: skipCount,
+          p_checkpoint: { last_batch_size: reports.length, time_budget_exceeded: timeBudgetExceeded },
+        });
       } catch (_) { /* best-effort */ }
     }
 
@@ -2901,20 +2920,17 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("ERR", { step: "fatal", err: (err as Error).message, stack: (err as Error).stack });
-    // ─── SSOT: Mark operation as failed on fatal error ────
+    // ─── SSOT: Release lock as failed on fatal error ────
     if (typeof smOpRunId !== "undefined" && smOpRunId) {
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const fallbackClient = createClient(supabaseUrl, serviceKey);
-        await fallbackClient
-          .from("sm_operation_runs")
-          .update({
-            status: "failed",
-            finished_at: new Date().toISOString(),
-            error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
-          })
-          .eq("id", smOpRunId);
+        await fallbackClient.rpc("release_sm_operation_lock", {
+          p_run_id: smOpRunId,
+          p_status: "failed",
+          p_error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
+        });
       } catch (_) { /* best-effort */ }
     }
     return new Response(

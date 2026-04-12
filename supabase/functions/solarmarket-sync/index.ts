@@ -546,28 +546,38 @@ Deno.serve(async (req) => {
 
     let sync_type = body.sync_type || "full";
 
-    // ─── Circuit Breaker: prevent concurrent executions ───
-    const CIRCUIT_BREAKER_MINUTES = 8; // Must be less than cron interval (10 min)
-    const { data: runningSync } = await supabase
-      .from("solar_market_sync_logs")
-      .select("id, started_at")
-      .eq("tenant_id", tenantId)
-      .eq("status", "running")
-      .gte("started_at", new Date(Date.now() - CIRCUIT_BREAKER_MINUTES * 60_000).toISOString())
-      .limit(1);
+    // ─── Formal Lock: prevent concurrent SM operations ───
+    const opType = (() => {
+      const st = body.sync_type || "full";
+      if (st === "proposals") return "sync_proposals";
+      if (st === "funnels" || st === "projects_funnels") return "sync_funnels";
+      return "sync_staging";
+    })();
 
-    if (runningSync && runningSync.length > 0) {
-      const msg = `Sync already running (id=${runningSync[0].id}, started=${runningSync[0].started_at}). Skipping to prevent connection saturation.`;
-      // console.log(`[SM Sync] CIRCUIT BREAKER: ${msg}`);
-      return new Response(JSON.stringify({ 
-        skipped: true, 
-        reason: "circuit_breaker", 
-        running_sync_id: runningSync[0].id,
-        message: msg,
+    const { data: lockResult, error: lockErr } = await supabase.rpc(
+      "acquire_sm_operation_lock",
+      {
+        p_tenant_id: tenantId,
+        p_operation_type: opType,
+        p_context: { sync_type: body.sync_type || "full", triggered_by: isCron ? "cron" : "user" },
+      }
+    );
+
+    if (lockErr || !lockResult?.acquired) {
+      const reason = lockResult?.reason || lockErr?.message || "Lock acquisition failed";
+      return new Response(JSON.stringify({
+        skipped: true,
+        reason: "lock_blocked",
+        blocked_by: lockResult?.blocked_by_type,
+        message: reason,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    let smOpRunId: string = lockResult.run_id;
+
+    let sync_type = body.sync_type || "full";
 
     // ── Cron auto-detection: pick what's still pending ──
     if (isCron && (!body.sync_type || body.sync_type === "auto")) {
@@ -593,16 +603,15 @@ Deno.serve(async (req) => {
       const pendingProposals = (totalProjects || 0) - (scannedCount || 0);
       const pendingFunnels = (totalProjects || 0) - (enrichedCount || 0);
 
-      // console.log(`[SM Sync] Cron auto: ${pendingProposals} pending proposals, ${pendingFunnels} pending funnels`);
-
       if (pendingProposals > 0) {
         sync_type = "proposals";
       } else if (pendingFunnels > 0) {
-        sync_type = "projects_funnels"; // Dedicated stage for funnel enrichment
+        sync_type = "projects_funnels";
       } else {
-        // console.log("[SM Sync] Cron: everything synced, skipping");
-        return new Response(JSON.stringify({ 
-          skipped: true, 
+        // Release lock — nothing to do
+        await supabase.rpc("release_sm_operation_lock", { p_run_id: smOpRunId, p_status: "completed" });
+        return new Response(JSON.stringify({
+          skipped: true,
           reason: "all_synced",
           total_projects: totalProjects,
           scanned_proposals: scannedCount,
@@ -614,7 +623,6 @@ Deno.serve(async (req) => {
     }
 
     // ─── Backfill CF Raw: DB-only, skip SM API auth ─────────
-    // backfill_cf_raw only reads from local DB, no SM API needed
     const needsSmApi = sync_type !== "backfill_cf_raw";
 
     let smHeaders: Record<string, string> = { Accept: "application/json" };
@@ -643,14 +651,12 @@ Deno.serve(async (req) => {
       baseUrl = (config?.base_url || "https://business.solarmarket.com.br/api/v2").replace(/\/$/, "");
 
       if (!apiToken) {
+        await supabase.rpc("release_sm_operation_lock", { p_run_id: smOpRunId, p_status: "failed", p_error_summary: "Token SolarMarket não configurado" });
         return new Response(
           JSON.stringify({ error: "Token SolarMarket não configurado. Adicione na página de configuração." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      // SolarMarket API v2 — two-step auth: POST /auth/signin with token → get JWT
-      // console.log(`[SM Sync] Authenticating with /auth/signin (token len=${apiToken.length}, prefix=${apiToken.slice(0, 8)})`);
 
       const signinRes = await fetch(`${baseUrl}/auth/signin`, {
         method: "POST",
@@ -664,6 +670,7 @@ Deno.serve(async (req) => {
       if (!signinRes.ok) {
         const signinBody = await signinRes.text();
         console.error(`[SM Sync] /auth/signin failed: ${signinRes.status} ${signinBody.slice(0, 300)}`);
+        await supabase.rpc("release_sm_operation_lock", { p_run_id: smOpRunId, p_status: "failed", p_error_summary: `Auth failed: ${signinRes.status}` });
         return new Response(
           JSON.stringify({
             error: `Falha na autenticação SolarMarket (${signinRes.status}). Verifique se a API key em Integrações > SolarMarket está correta.`,
@@ -678,20 +685,17 @@ Deno.serve(async (req) => {
 
       if (!accessToken) {
         console.error("[SM Sync] /auth/signin response missing access_token:", JSON.stringify(signinData).slice(0, 300));
+        await supabase.rpc("release_sm_operation_lock", { p_run_id: smOpRunId, p_status: "failed", p_error_summary: "No access_token in signin response" });
         return new Response(
           JSON.stringify({ error: "SolarMarket /auth/signin não retornou access_token." }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // console.log(`[SM Sync] JWT obtained (len=${accessToken.length})`);
-
       smHeaders = {
         Accept: "application/json",
         Authorization: `Bearer ${accessToken}`,
       };
-    } else {
-      // console.log(`[SM Sync] Skipping SM API auth for ${sync_type} (DB-only operation)`);
     }
 
     // ─── Cleanup stale "running" logs (older than 3 min) ──
@@ -711,25 +715,6 @@ Deno.serve(async (req) => {
 
     logId = syncLog?.id;
 
-    // ─── SSOT: Register operation run ──────────────────────
-    const opType = sync_type === "proposals" ? "sync_proposals" : sync_type === "funnels" || sync_type === "projects_funnels" ? "sync_funnels" : "sync_staging";
-    let smOpRunId: string | null = null;
-    try {
-      const { data: opRun } = await supabase
-        .from("sm_operation_runs")
-        .insert({
-          tenant_id: tenantId,
-          source: "solar_market",
-          operation_type: opType,
-          status: "running",
-          started_at: new Date().toISOString(),
-          heartbeat_at: new Date().toISOString(),
-          context_json: { sync_type, log_id: logId },
-        })
-        .select("id")
-        .single();
-      smOpRunId = opRun?.id ?? null;
-    } catch (_) { /* best-effort SSOT tracking */ }
     let hasSolarMarketAuthError = false;
     let isPartialSync = false;
     let partialRemaining = 0;
@@ -1955,22 +1940,19 @@ Deno.serve(async (req) => {
         .eq("id", logId);
     }
 
-    // ─── SSOT: Finalize operation run ──────────────────────
+    // ─── SSOT: Release lock with final counts ──────────────
     if (smOpRunId) {
       try {
-        await supabase
-          .from("sm_operation_runs")
-          .update({
-            status: totalErrors > 0 && totalUpserted === 0 ? "failed" : "completed",
-            finished_at: new Date().toISOString(),
-            heartbeat_at: new Date().toISOString(),
-            total_items: totalFetched,
-            processed_items: totalUpserted + totalErrors,
-            success_items: totalUpserted,
-            error_items: totalErrors,
-            error_summary: errors.length > 0 ? errors.slice(0, 5).join("; ").slice(0, 1000) : null,
-          })
-          .eq("id", smOpRunId);
+        const lockStatus = totalErrors > 0 && totalUpserted === 0 ? "failed" : "completed";
+        await supabase.rpc("release_sm_operation_lock", {
+          p_run_id: smOpRunId,
+          p_status: lockStatus,
+          p_total_items: totalFetched,
+          p_processed_items: totalUpserted + totalErrors,
+          p_success_items: totalUpserted,
+          p_error_items: totalErrors,
+          p_error_summary: errors.length > 0 ? errors.slice(0, 5).join("; ").slice(0, 1000) : null,
+        });
       } catch (_) { /* best-effort */ }
     }
     await supabase
@@ -2016,17 +1998,14 @@ Deno.serve(async (req) => {
         // best-effort log update
       }
     }
-    // ─── SSOT: Mark operation as failed on fatal error ────
+    // ─── SSOT: Release lock as failed on fatal error ────
     if (smOpRunId) {
       try {
-        await supabase
-          .from("sm_operation_runs")
-          .update({
-            status: "failed",
-            finished_at: new Date().toISOString(),
-            error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
-          })
-          .eq("id", smOpRunId);
+        await supabase.rpc("release_sm_operation_lock", {
+          p_run_id: smOpRunId,
+          p_status: "failed",
+          p_error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
+        });
       } catch (_) { /* best-effort */ }
     }
     return new Response(
