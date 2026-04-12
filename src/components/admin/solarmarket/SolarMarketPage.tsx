@@ -595,9 +595,12 @@ export default function SolarMarketPage() {
   const { data: isBgSyncActive = false } = useIsBackgroundSyncActive();
   const isAnySyncActive = syncIsRunning || isBgSyncActive;
 
-  const { data: clients = [], isLoading: loadingC } = useSmClients(isAnySyncActive);
-  const { data: projects = [], isLoading: loadingP } = useSmProjects(isAnySyncActive);
-  const { data: proposals = [], isLoading: loadingPr } = useSmProposals(isAnySyncActive);
+  const { session } = useAuth();
+  const sessionReady = !!session;
+
+  const { data: clients = [], isLoading: loadingC } = useSmClients(isAnySyncActive, sessionReady);
+  const { data: projects = [], isLoading: loadingP } = useSmProjects(isAnySyncActive, sessionReady);
+  const { data: proposals = [], isLoading: loadingPr } = useSmProposals(isAnySyncActive, sessionReady);
   const { data: syncLogs = [] } = useSmSyncLogs();
   const { data: funnels = [], isLoading: loadingF } = useSmFunnels();
   const { data: customFields = [], isLoading: loadingCF } = useSmCustomFields();
