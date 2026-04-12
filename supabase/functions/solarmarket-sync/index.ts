@@ -1589,7 +1589,7 @@ Deno.serve(async (req) => {
 
     // ─── Standalone Funnel Enrichment (runs after proposals OR projects sync) ──
     // This ensures funnel data gets populated even when cron picks proposals sync
-    if ((sync_type === "proposals" || sync_type === "full") && smHeaders) {
+    if (sync_type === "proposals" || sync_type === "full" || sync_type === "projects_funnels") {
       try {
         const alreadyEnrichedSet2 = new Set<number>();
         {
