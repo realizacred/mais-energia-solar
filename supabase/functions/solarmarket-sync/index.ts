@@ -1940,22 +1940,19 @@ Deno.serve(async (req) => {
         .eq("id", logId);
     }
 
-    // ─── SSOT: Finalize operation run ──────────────────────
+    // ─── SSOT: Release lock with final counts ──────────────
     if (smOpRunId) {
       try {
-        await supabase
-          .from("sm_operation_runs")
-          .update({
-            status: totalErrors > 0 && totalUpserted === 0 ? "failed" : "completed",
-            finished_at: new Date().toISOString(),
-            heartbeat_at: new Date().toISOString(),
-            total_items: totalFetched,
-            processed_items: totalUpserted + totalErrors,
-            success_items: totalUpserted,
-            error_items: totalErrors,
-            error_summary: errors.length > 0 ? errors.slice(0, 5).join("; ").slice(0, 1000) : null,
-          })
-          .eq("id", smOpRunId);
+        const lockStatus = totalErrors > 0 && totalUpserted === 0 ? "failed" : "completed";
+        await supabase.rpc("release_sm_operation_lock", {
+          p_run_id: smOpRunId,
+          p_status: lockStatus,
+          p_total_items: totalFetched,
+          p_processed_items: totalUpserted + totalErrors,
+          p_success_items: totalUpserted,
+          p_error_items: totalErrors,
+          p_error_summary: errors.length > 0 ? errors.slice(0, 5).join("; ").slice(0, 1000) : null,
+        });
       } catch (_) { /* best-effort */ }
     }
     await supabase
