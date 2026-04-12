@@ -2901,6 +2901,22 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("ERR", { step: "fatal", err: (err as Error).message, stack: (err as Error).stack });
+    // ─── SSOT: Mark operation as failed on fatal error ────
+    if (typeof smOpRunId !== "undefined" && smOpRunId) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const fallbackClient = createClient(supabaseUrl, serviceKey);
+        await fallbackClient
+          .from("sm_operation_runs")
+          .update({
+            status: "failed",
+            finished_at: new Date().toISOString(),
+            error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
+          })
+          .eq("id", smOpRunId);
+      } catch (_) { /* best-effort */ }
+    }
     return new Response(
       JSON.stringify({ error: (err as Error).message, step: "fatal", debug: { stack: (err as Error).stack } }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
