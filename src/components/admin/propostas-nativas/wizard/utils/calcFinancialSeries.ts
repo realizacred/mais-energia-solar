@@ -4,11 +4,14 @@
  * Extracts the 25-year series, payback, TIR, VPL, economia, and gasto calculations
  * from StepPagamento into a reusable pure function.
  *
- * SSOT: StepPagamento uses identical logic for preview. This function is the
+ * SSOT: Uses calcGrupoB as canonical motor for GD economy calculations.
+ * StepPagamento uses identical logic for preview. This function is the
  * canonical source for persisting financial fields into the snapshot.
  *
  * Usage: called by collectSnapshot() in ProposalWizard before saving.
  */
+
+import { calcGrupoB, type RegraGD, type TipoFase, type TariffComponentes, type CustoDisponibilidade } from "@/lib/calcGrupoB";
 
 export interface FinancialSeriesInput {
   precoFinal: number;
@@ -25,6 +28,12 @@ export interface FinancialSeriesInput {
     troca_inversor_anos?: number;
     troca_inversor_custo?: number;
   } | null;
+  /** GD rule — maps to calcGrupoB's RegraGD. Default: "GD2" → GD_II */
+  regra?: "GD1" | "GD2" | "GD3";
+  /** Phase for custo de disponibilidade. Default: "bifasico" */
+  fase?: "monofasico" | "bifasico" | "trifasico";
+  /** Tarifa Fio B separada (R$/kWh). If 0/missing, uses tarifaBase * 0.28 as proxy */
+  tarifaFioB?: number;
 }
 
 export interface FinancialSeriesOutput {
@@ -56,27 +65,26 @@ export interface FinancialSeriesOutput {
   tarifa_distribuidora_series: number[];
 }
 
-/**
- * Returns Fio B percentage (non-compensated fraction) for a given year.
- * REN 1000/2021 / Lei 14.300 progressive schedule.
- */
-function getFioBPercentual(ano: number): number {
-  if (ano <= 2022) return 0;
-  if (ano === 2023) return 0.15;
-  if (ano === 2024) return 0.30;
-  if (ano === 2025) return 0.45;
-  if (ano === 2026) return 0.60;
-  if (ano === 2027) return 0.75;
-  if (ano === 2028) return 0.90;
-  return 1.00; // 2029+
+/** Maps wizard RegraCompensacao to calcGrupoB's RegraGD */
+function mapRegra(regra: string | undefined): RegraGD {
+  if (regra === "GD1") return "GD_I";
+  if (regra === "GD3") return "GD_III";
+  return "GD_II"; // default
 }
+
+/** Standard custo de disponibilidade kWh by phase (ANEEL) */
+const CUSTO_DISP_KWH: CustoDisponibilidade = {
+  monofasico: 30,
+  bifasico: 50,
+  trifasico: 100,
+};
 
 /**
  * Computes all financial series for snapshot enrichment.
- * Logic mirrors StepPagamento's fluxoCaixaData + paybackInfo calculations.
+ * Logic delegates to calcGrupoB for each year of the 25-year projection.
  *
  * Economy base: geração total (todo kWh gerado tem valor).
- * Fio B: escalonamento dinâmico Lei 14.300 aplicado sobre excedente injetado.
+ * Fio B: escalonamento dinâmico Lei 14.300 via calcGrupoB motor.
  */
 export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSeriesOutput {
   const {
@@ -88,6 +96,8 @@ export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSerie
     tarifaBase,
     custoDisponibilidade,
     premissas: prem,
+    regra,
+    fase = "bifasico",
   } = input;
 
   const inflacaoRate = ((prem?.inflacao_energetica ?? 9.5) / 100);
@@ -102,19 +112,29 @@ export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSerie
   const geracaoAnualBase = geracaoMensalBase * 12;
 
   // Tarifa Fio B: usar campo separado se disponível, senão ~28% da tarifa (TUSD média)
-  const tarifaFioB = (input as any).tarifaFioB > 0 ? (input as any).tarifaFioB : tarifaBase * 0.28;
+  const tarifaFioB = (input.tarifaFioB ?? 0) > 0 ? input.tarifaFioB! : tarifaBase * 0.28;
 
-  // Gasto atual — baseado na geração total (todo kWh gerado tem valor)
+  const regraGD = mapRegra(regra);
+
+  // Gasto atual — baseado no consumo real
   const gastoAtualMensal = consumoTotal > 0 ? consumoTotal * tarifaBase : geracaoMensalBase * tarifaBase;
   const gastoNovoMensal = custoDisponibilidade;
 
-  // Economia mensal com desconto do Fio B do ano corrente
+  // Economia mensal do ano corrente via calcGrupoB
   const anoAtual = new Date().getFullYear();
-  const fioBPctAtual = getFioBPercentual(anoAtual);
-  const economiaBrutaMensal = geracaoMensalBase * tarifaBase;
-  const excedenteInjetado = Math.max(0, geracaoMensalBase - consumoTotal);
-  const custoFioBMensal = excedenteInjetado * tarifaFioB * fioBPctAtual;
-  const economiaMensal = Math.max(0, economiaBrutaMensal - custoFioBMensal - custoDisponibilidade);
+  const resultAnoAtual = calcGrupoB({
+    regra: regraGD,
+    fase: fase as TipoFase,
+    geracao_mensal_kwh: geracaoMensalBase,
+    consumo_mensal_kwh: consumoTotal,
+    tariff: {
+      te_kwh: tarifaBase - tarifaFioB, // TE ≈ tarifa total - Fio B
+      tusd_fio_b_kwh: tarifaFioB,
+    },
+    custo_disponibilidade: CUSTO_DISP_KWH,
+    ano: anoAtual,
+  });
+  const economiaMensal = Math.max(0, resultAnoAtual.economia_mensal_rs);
   const economiaPercent = gastoAtualMensal > 0 ? (economiaMensal / gastoAtualMensal * 100) : 0;
 
   // 25-year series
@@ -139,15 +159,27 @@ export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSerie
     const inflacao = Math.pow(1 + inflacaoRate, ano - 1);
     const tarifaVigente = Math.round(tarifaBase * inflacao * 100) / 100;
     const geracaoAnual = Math.round(geracaoAnualBase * degradacao * 100) / 100;
-    const economiaBruta = Math.round(geracaoAnual * tarifaVigente * 100) / 100;
+    const geracaoMensalAno = geracaoAnual / 12;
 
-    // Fio B: escalonamento dinâmico Lei 14.300
+    // Use calcGrupoB for each projection year — canonical motor
     const anoProjecao = anoAtual + ano - 1;
-    const fioBPct = getFioBPercentual(anoProjecao);
-    const consumoAnual = consumoTotal * 12;
-    const excedenteAnual = Math.max(0, geracaoAnual - consumoAnual);
-    const custoFioB = Math.round(excedenteAnual * tarifaFioB * inflacao * fioBPct * 100) / 100;
-    const economiaLiquida = Math.round((economiaBruta - custoFioB) * 100) / 100;
+    const tarifaFioBVigente = tarifaFioB * inflacao;
+    const teVigente = tarifaVigente - tarifaFioBVigente;
+
+    const resultAno = calcGrupoB({
+      regra: regraGD,
+      fase: fase as TipoFase,
+      geracao_mensal_kwh: geracaoMensalAno,
+      consumo_mensal_kwh: consumoTotal, // consumo nominal (não inflaciona)
+      tariff: {
+        te_kwh: Math.max(0, teVigente),
+        tusd_fio_b_kwh: tarifaFioBVigente,
+      },
+      custo_disponibilidade: CUSTO_DISP_KWH,
+      ano: anoProjecao,
+    });
+
+    const economiaAnualCalc = Math.round(resultAno.economia_mensal_rs * 12 * 100) / 100;
 
     // Troca de inversor
     let custoExtra = 0;
@@ -155,15 +187,15 @@ export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSerie
       custoExtra = Math.round(precoFinal * trocaInversorCustoPct * 100) / 100;
     }
 
-    const fluxo = economiaLiquida - custoExtra;
+    const fluxo = economiaAnualCalc - custoExtra;
     fluxoAcumulado += fluxo;
 
-    economiaAnualArr.push(economiaLiquida);
+    economiaAnualArr.push(economiaAnualCalc);
     geracaoAnualArr.push(geracaoAnual);
     fluxoAcumuladoArr.push(Math.round(fluxoAcumulado * 100) / 100);
     investimentoArr.push(-custoExtra);
     tarifaArr.push(tarifaVigente);
-    fluxosLiquidos.push(economiaLiquida - custoExtra);
+    fluxosLiquidos.push(economiaAnualCalc - custoExtra);
   }
 
   // Payback

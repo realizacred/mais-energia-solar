@@ -400,6 +400,9 @@ export function ProposalWizard() {
         tarifaBase: tarifaBaseSnap,
         custoDisponibilidade: custoDispSnap,
         premissas,
+        regra: ucGeradoraSnap?.regra as "GD1" | "GD2" | "GD3" | undefined,
+        fase: ucGeradoraSnap?.fase as "monofasico" | "bifasico" | "trifasico" | undefined,
+        tarifaFioB: ucGeradoraSnap?.tarifa_fio_b ?? 0,
       });
       financialFields = flattenFinancialToSnapshot(finResult);
     }
