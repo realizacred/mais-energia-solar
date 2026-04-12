@@ -1048,6 +1048,9 @@ export default function SolarMarketPage() {
       {/* Sync Progress */}
       <SyncProgressBar progress={progress} />
 
+      {/* SSOT Operation Status */}
+      <SmOperationStatusPanel />
+
       {/* Full Sync Status */}
       {fullSyncStatus.message && (
         <div className={cn(
