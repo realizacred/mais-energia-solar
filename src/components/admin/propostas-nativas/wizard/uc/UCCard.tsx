@@ -251,7 +251,11 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                 <TooltipContent><p className="text-xs">GD II (Lei 14.300) ou GD III</p></TooltipContent>
               </Tooltip></TooltipProvider>
             </Label>
-            <RadioGroup value={uc.regra} onValueChange={v => update("regra", v as RegraCompensacao)} className="flex items-center gap-3">
+            <RadioGroup value={uc.regra} onValueChange={v => update("regra", v as RegraCompensacao)} className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem value="GD1" id={`gd1-${uc.id}`} />
+                <Label htmlFor={`gd1-${uc.id}`} className="text-xs cursor-pointer">GD I</Label>
+              </div>
               <div className="flex items-center gap-1.5">
                 <RadioGroupItem value="GD2" id={`gd2-${uc.id}`} />
                 <Label htmlFor={`gd2-${uc.id}`} className="text-xs cursor-pointer">GD II</Label>

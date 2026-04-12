@@ -56,7 +56,7 @@ export interface ComercialData {
   empresa_cidade: string;
 }
 
-export type RegraCompensacao = "GD2" | "GD3";
+export type RegraCompensacao = "GD1" | "GD2" | "GD3";
 export type GrupoTarifario = "A" | "B";
 export type FaseTensao =
   | "monofasico_127" | "monofasico_220"

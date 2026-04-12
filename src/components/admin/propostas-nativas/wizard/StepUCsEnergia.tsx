@@ -330,8 +330,12 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
             <RadioGroup
               value={uc.regra}
               onValueChange={(v) => onUpdate("regra", v as RegraCompensacao)}
-              className="flex gap-3"
+              className="flex flex-wrap gap-3"
             >
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem value="GD1" id={`regra-gd1-${uc.id}`} />
+                <Label htmlFor={`regra-gd1-${uc.id}`} className="text-xs cursor-pointer">GD I</Label>
+              </div>
               <div className="flex items-center gap-1.5">
                 <RadioGroupItem value="GD2" id={`regra-gd2-${uc.id}`} />
                 <Label htmlFor={`regra-gd2-${uc.id}`} className="text-xs cursor-pointer">GD II</Label>
