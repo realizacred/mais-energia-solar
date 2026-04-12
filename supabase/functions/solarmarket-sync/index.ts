@@ -1422,9 +1422,9 @@ Deno.serve(async (req) => {
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
-        const timeBudgetMs = 150_000; // 150s budget — maximize import per execution
+        const timeBudgetMs = 60_000; // 60s budget — conservative to avoid CPU exceeded
         const startTime = Date.now();
-        const CONCURRENCY = 5; // 5 parallel requests (reduced to avoid CPU exceeded)
+        const CONCURRENCY = 2; // 2 parallel requests (reduced to avoid CPU exceeded)
 
         // Process in parallel batches of CONCURRENCY
         for (let i = 0; i < pendingIds.length; i += CONCURRENCY) {
@@ -1539,7 +1539,7 @@ Deno.serve(async (req) => {
           }
 
           // Small delay between parallel batches to respect rate limits
-          await delay(300);
+          await delay(500);
         }
 
         // Save remaining rows
