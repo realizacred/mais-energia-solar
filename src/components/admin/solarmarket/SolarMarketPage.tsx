@@ -765,26 +765,15 @@ export default function SolarMarketPage() {
                 Sync: {formatDistanceToNow(new Date(lastSync.started_at), { addSuffix: true, locale: ptBR })}
               </span>
             )}
-            <Button onClick={() => syncAll()} disabled={syncIsRunning || fullSyncStatus.running} size="sm">
-              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
-              {syncIsRunning ? "Sincronizando..." : "Sincronizar Tudo"}
-            </Button>
             {fullSyncStatus.running ? (
               <Button onClick={requestStopFullSync} size="sm" variant="outline" className="border-destructive text-destructive gap-1.5">
                 <XCircle className="h-3.5 w-3.5" />
-                Parar
+                Parar Sync
               </Button>
             ) : (
-              <Button
-                onClick={syncUntilComplete}
-                disabled={syncIsRunning}
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-                title="Repete o sync automaticamente até importar tudo"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Sync Completo
+              <Button onClick={syncUntilComplete} disabled={syncIsRunning} size="sm">
+                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
+                {syncIsRunning ? "Sincronizando..." : "Sincronizar Tudo"}
               </Button>
             )}
 
