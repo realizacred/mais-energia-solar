@@ -1432,7 +1432,7 @@ Deno.serve(async (req) => {
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
-        const timeBudgetMs = 45_000; // 45s budget — reduce compute per execution
+        const timeBudgetMs = 35_000; // 35s budget — leave 25s margin for finalize + lock release
         const startTime = Date.now();
         const CONCURRENCY = 2; // 2 parallel requests (reduced to avoid CPU exceeded)
 
@@ -1526,6 +1526,18 @@ Deno.serve(async (req) => {
           }
           batchCount += chunk.length;
 
+          // Update heartbeat every 10 projects to prevent stale detection
+          if (smOpRunId && batchCount % 10 === 0) {
+            try {
+              await supabase.rpc("update_sm_operation_heartbeat", {
+                p_run_id: smOpRunId,
+                p_processed_items: batchCount,
+                p_success_items: totalUpserted,
+                p_error_items: totalErrors,
+              });
+            } catch (_) { /* best-effort heartbeat */ }
+          }
+
           // Mark processed projects as scanned (with or without proposals)
           await supabase
             .from("solar_market_projects")
@@ -1571,7 +1583,8 @@ Deno.serve(async (req) => {
         // console.log(`[SM Sync] Proposals complete: processed ${batchCount} pending projects, fetched=${totalFetched}, upserted=${totalUpserted}`);
       }
 
-      // ── Enrich proposals with sm_client_id from projects ──
+      // ── Enrich proposals with sm_client_id from projects (skip on partial to save time for finalize) ──
+      if (!isPartialSync) {
       try {
         // Build project→client lookup
         const projectClientMap = new Map<number, number>();
@@ -1622,6 +1635,7 @@ Deno.serve(async (req) => {
       } catch (enrichErr) {
         console.warn(`[SM Sync] sm_client_id enrichment error:`, enrichErr);
       }
+      } // end if (!isPartialSync)
       } catch (proposalStageErr) {
         console.error("[SM Sync] Proposals stage error:", proposalStageErr);
         const msg = (proposalStageErr as Error).message || "Erro desconhecido na etapa de propostas";
