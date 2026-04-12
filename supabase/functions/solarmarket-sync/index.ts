@@ -580,6 +580,12 @@ Deno.serve(async (req) => {
 
     // ── Cron auto-detection: pick what's still pending ──
     if (isCron && (!body.sync_type || body.sync_type === "auto")) {
+      // Check if global funnels table is empty (needs initial sync after reset)
+      const { count: funnelCount } = await supabase
+        .from("solar_market_funnels")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId);
+
       // Check pending proposals: projects NOT yet scanned (proposals_synced_at IS NULL)
       const { count: totalProjects } = await supabase
         .from("solar_market_projects")
@@ -602,7 +608,10 @@ Deno.serve(async (req) => {
       const pendingProposals = (totalProjects || 0) - (scannedCount || 0);
       const pendingFunnels = (totalProjects || 0) - (enrichedCount || 0);
 
-      if (pendingProposals > 0) {
+      if ((funnelCount || 0) === 0) {
+        // Global funnels list is empty — sync it first
+        sync_type = "funnels";
+      } else if (pendingProposals > 0) {
         sync_type = "proposals";
       } else if (pendingFunnels > 0) {
         sync_type = "projects_funnels";
@@ -615,6 +624,7 @@ Deno.serve(async (req) => {
           total_projects: totalProjects,
           scanned_proposals: scannedCount,
           enriched_funnels: enrichedCount,
+          funnels_synced: funnelCount,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
