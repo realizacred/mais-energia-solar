@@ -2016,6 +2016,19 @@ Deno.serve(async (req) => {
         // best-effort log update
       }
     }
+    // ─── SSOT: Mark operation as failed on fatal error ────
+    if (smOpRunId) {
+      try {
+        await supabase
+          .from("sm_operation_runs")
+          .update({
+            status: "failed",
+            finished_at: new Date().toISOString(),
+            error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
+          })
+          .eq("id", smOpRunId);
+      } catch (_) { /* best-effort */ }
+    }
     return new Response(
       JSON.stringify({ error: (err as Error).message || "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
