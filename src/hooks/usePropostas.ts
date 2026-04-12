@@ -6,7 +6,7 @@
  * Read model via RPC proposal_list (single query, server-side joins).
  */
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -14,6 +14,42 @@ import { toast } from "@/hooks/use-toast";
 const STALE_TIME = 1000 * 60 * 5; // 5 min
 const QUERY_KEY = "propostas-listagem" as const;
 const PAGE_SIZE = 50;
+
+function usePropostasRealtimeSync() {
+  const queryClient = useQueryClient();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const invalidate = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+        queryClient.invalidateQueries({ queryKey: ["deal-pipeline"] });
+        queryClient.invalidateQueries({ queryKey: ["proposal-detail"] });
+        queryClient.invalidateQueries({ queryKey: ["deal-proposals-count"] });
+      }, 400);
+    };
+
+    const channel = supabase
+      .channel("propostas-listagem-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "propostas_nativas" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "proposta_versoes" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "generated_documents" }, invalidate)
+      .subscribe();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") invalidate();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [queryClient]);
+}
 
 export interface PropostaFilters {
   status?: string;
@@ -134,6 +170,8 @@ async function fetchPropostas(filters: PropostaFilters = {}): Promise<PropostaLi
 export function usePropostas(filters: PropostaFilters = {}) {
   const queryClient = useQueryClient();
   const filtersKey = JSON.stringify(filters);
+
+  usePropostasRealtimeSync();
 
   const { data, isLoading: loading } = useQuery({
     queryKey: [QUERY_KEY, filtersKey],

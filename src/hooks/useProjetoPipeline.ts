@@ -218,39 +218,39 @@ export function useProjetoPipeline() {
   useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+    const refreshProjetos = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        try {
+          const enriched = await fetchProjetos(filters);
+          setProjetos(enriched);
+        } catch (e) {
+          console.error("Realtime projetos refresh:", e);
+        }
+      }, 500);
+    };
+
     const channel = supabase
       .channel('projetos-pipeline-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'projetos' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(async () => {
-            try {
-              const enriched = await fetchProjetos(filters);
-              setProjetos(enriched);
-            } catch (e) { console.error("Realtime projetos refresh:", e); }
-          }, 700);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'projeto_etiqueta_rel' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(async () => {
-            try {
-              const enriched = await fetchProjetos(filters);
-              setProjetos(enriched);
-            } catch (e) { console.error("Realtime etiqueta rel refresh:", e); }
-          }, 700);
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etiqueta_rel' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'propostas_nativas' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'proposta_versoes' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'consultores' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'generated_documents' }, refreshProjetos)
       .subscribe();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refreshProjetos();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [filters, fetchProjetos]);
 
