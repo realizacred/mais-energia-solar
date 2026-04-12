@@ -3,6 +3,7 @@ import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock, XCircle, ThumbsDown, CreditCard, Smartphone, FileText, Banknote, Wallet, DollarSign, Building2, MessageCircle } from "lucide-react";
+import EconomiaDetailCards from "@/components/proposta-publica/EconomiaDetailCards";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -699,8 +700,18 @@ export default function PropostaPublica() {
           </Card>
         </div>
       )}
+      {/* ── ECONOMY DETAIL CARDS — always visible ──────── */}
+      {versaoData && (
+        <div className="max-w-lg mx-auto px-4 pb-4">
+          <EconomiaDetailCards
+            snapshot={versaoData.snapshot}
+            economiaMensal={versaoData.economia_mensal ?? 0}
+            potenciaKwp={versaoData.potencia_kwp ?? 0}
+          />
+        </div>
+      )}
 
-      {/* ── PAYMENT METHOD SELECTION ──────────────── */}
+
       {formasProprias.length > 0 && (
         <div className="max-w-lg mx-auto px-4 pb-4">
           <Card className="border-border/60">
