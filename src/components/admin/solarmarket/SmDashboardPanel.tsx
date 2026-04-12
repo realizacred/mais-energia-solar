@@ -95,7 +95,7 @@ export function SmDashboardPanel() {
   const hasPendingMigration = proposalsPending > 0;
 
   let statusLabel = "Pronto";
-  let statusColor: "success" | "warning" | "primary" | "destructive" | "muted" = "muted";
+  let statusColor: "success" | "warning" | "primary" | "muted" = "muted";
   let statusIcon = CheckCircle;
 
   if (isStale) {
