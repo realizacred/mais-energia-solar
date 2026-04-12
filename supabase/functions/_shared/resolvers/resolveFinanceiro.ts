@@ -406,9 +406,23 @@ export function resolveFinanceiro(
     // Custo de disponibilidade for later gasto_novo calculation
     const custoDisp = num(ucGeradora.custo_disponibilidade_valor) ?? num(snap.custo_disponibilidade) ?? 54.81;
 
+    // Tarifa Fio B
+    const tarifaFioB = num(ucGeradora.tarifa_fio_b) ?? (tarifaUC * 0.28);
+
+    // Fio B progressivo (REN 1000 / Lei 14.300)
+    const anoAtual = new Date().getFullYear();
+    const fioBPctAtual = anoAtual <= 2022 ? 0 : anoAtual === 2023 ? 0.15 : anoAtual === 2024 ? 0.30
+      : anoAtual === 2025 ? 0.45 : anoAtual === 2026 ? 0.60 : anoAtual === 2027 ? 0.75
+      : anoAtual === 2028 ? 0.90 : 1.00;
+
     // Economia mensal derivada (fallback se economia_mensal não foi setada acima)
     if (!out["economia_mensal"]) {
-      const econDerived = Math.max(0, gastoAtual - custoDisp);
+      // Base: geração total (todo kWh gerado tem valor)
+      const geracaoRef = geracaoMensal ?? 0;
+      const economiaBruta = geracaoRef > 0 ? geracaoRef * tarifaUC : Math.max(0, gastoAtual - custoDisp);
+      const excedenteInjetado = geracaoRef > 0 ? Math.max(0, geracaoRef - consumoMensal) : 0;
+      const custoFioBMensal = excedenteInjetado * tarifaFioB * fioBPctAtual;
+      const econDerived = Math.max(0, economiaBruta - custoFioBMensal - custoDisp);
       setCur("economia_mensal", econDerived);
       out["economia_mensal_numero"] = fmtNum(econDerived, 2);
       setCurIfMissing("economia_anual", econDerived * 12);
@@ -438,6 +452,7 @@ export function resolveFinanceiro(
     const trocaInvAnos = num(premissas.troca_inversor_anos) ?? num(snap.troca_inversor_anos) ?? 15;
     const trocaInvCusto = num(premissas.troca_inversor_custo) ?? num(snap.troca_inversor_custo) ?? 30;
     const geracaoRef = geracaoMensal ?? 0;
+    const consumoAnual = consumoMensal * 12;
 
     if (econMensalResolved > 0 || geracaoRef > 0) {
       let fluxoAcumulado = -precoTotalSeries;
@@ -451,9 +466,17 @@ export function resolveFinanceiro(
           out[`geracao_anual_${i}`] = fmtNum(geracaoAnual, 0);
         }
 
-        // Economia anual + fluxo de caixa
+        // Economia anual + fluxo de caixa com Fio B progressivo
         if (!out[`economia_anual_valor_${i}`] && econMensalResolved > 0) {
-          let economiaAnual = econMensalResolved * 12 * fatorInflacao * fatorPerda;
+          const geracaoAnual = geracaoRef * 12 * fatorPerda;
+          const economiaBrutaAnual = geracaoAnual * tarifaUC * fatorInflacao;
+          const anoProjecao = anoAtual + i;
+          const fioBPctAno = anoProjecao <= 2022 ? 0 : anoProjecao === 2023 ? 0.15 : anoProjecao === 2024 ? 0.30
+            : anoProjecao === 2025 ? 0.45 : anoProjecao === 2026 ? 0.60 : anoProjecao === 2027 ? 0.75
+            : anoProjecao === 2028 ? 0.90 : 1.00;
+          const excedenteAnual = Math.max(0, geracaoAnual - consumoAnual);
+          const custoFioBAnual = excedenteAnual * tarifaFioB * fatorInflacao * fioBPctAno;
+          let economiaAnual = economiaBrutaAnual - custoFioBAnual;
           if (i === trocaInvAnos) {
             economiaAnual -= precoTotalSeries * (trocaInvCusto / 100);
           }

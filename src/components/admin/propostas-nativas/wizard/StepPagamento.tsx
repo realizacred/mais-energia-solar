@@ -277,10 +277,18 @@ export function StepPagamento({
   const tarifaBase = ucGeradora?.tarifa_distribuidora || 1.10;
   const custoDisp = ucGeradora?.custo_disponibilidade_valor || 54.81;
 
-  // Economy calc
-  const economiaAtual = ucGeradora ? (ucGeradora.consumo_mensal * tarifaBase) : (geracaoAnualBase / 12 * tarifaBase);
-  const economiaNova = custoDisp;
-  const economiaMensal = Math.max(0, economiaAtual - economiaNova);
+  // Economy calc — baseado na geração total com desconto Fio B progressivo
+  const anoAtualCalc = new Date().getFullYear();
+  const fioBPctAtual = anoAtualCalc <= 2022 ? 0 : anoAtualCalc === 2023 ? 0.15 : anoAtualCalc === 2024 ? 0.30
+    : anoAtualCalc === 2025 ? 0.45 : anoAtualCalc === 2026 ? 0.60 : anoAtualCalc === 2027 ? 0.75
+    : anoAtualCalc === 2028 ? 0.90 : 1.00;
+  const tarifaFioBCalc = ucGeradora?.tarifa_fio_b || tarifaBase * 0.28;
+  const economiaBrutaMensal = geracaoMensalBase * tarifaBase;
+  const consumoMensalUC = ucGeradora?.consumo_mensal || 0;
+  const excedenteInjetado = Math.max(0, geracaoMensalBase - consumoMensalUC);
+  const custoFioBMensal = excedenteInjetado * tarifaFioBCalc * fioBPctAtual;
+  const economiaMensal = Math.max(0, economiaBrutaMensal - custoFioBMensal - custoDisp);
+  const economiaAtual = consumoMensalUC > 0 ? consumoMensalUC * tarifaBase : economiaBrutaMensal;
   const economiaPercent = economiaAtual > 0 ? (economiaMensal / economiaAtual * 100) : 75;
 
   // ─── Cash flow table (25 years) — aligned with calc-engine.ts calcSeries25
@@ -459,7 +467,7 @@ export function StepPagamento({
   // ─── Gastos detail table
   const gastosData = useMemo(() => {
     const atual = economiaAtual;
-    const novo = economiaNova;
+    const novo = custoDisp;
     return {
       linhas: [
         { label: "Energia Baixa Tensão", atual, novo, children: [
@@ -480,7 +488,7 @@ export function StepPagamento({
       totalNovo: novo,
       economia: economiaMensal,
     };
-  }, [economiaAtual, economiaNova, economiaMensal, custoDisp, ucGeradora]);
+  }, [economiaAtual, economiaMensal, custoDisp, ucGeradora]);
 
   // ─── Render ─────────────────────────────────────────────
 
