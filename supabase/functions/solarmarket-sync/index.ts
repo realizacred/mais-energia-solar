@@ -434,8 +434,9 @@ Deno.serve(async (req) => {
   let totalFetched = 0;
   let totalUpserted = 0;
   let totalErrors = 0;
-  // Declare supabase outside try so catch block can access it for log updates
+  // Declare outside try so catch block can access them for log updates / lock release
   let supabase: any = null;
+  let smOpRunId: string | undefined;
   try {
     // ─── Auth ──────────────────────────────────────────────
     const authHeader = req.headers.get("authorization");
@@ -575,7 +576,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    let smOpRunId: string = lockResult.run_id;
+    smOpRunId = lockResult.run_id;
 
     // ── Cron auto-detection: pick what's still pending ──
     if (isCron && (!body.sync_type || body.sync_type === "auto")) {
@@ -1630,9 +1631,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── Skip heavy post-processing when time budget was exhausted ──
+    // These sections (funnel enrichment, has_active_proposal, backfill) can take
+    // 30-120s each and will cause Deno to kill the function before lock release.
+    const skipPostProcessing = isPartialSync && (sync_type === "proposals" || sync_type === "full");
+
     // ─── Standalone Funnel Enrichment (runs after proposals OR projects sync) ──
     // This ensures funnel data gets populated even when cron picks proposals sync
-    if (sync_type === "proposals" || sync_type === "full" || sync_type === "projects_funnels") {
+    if (!skipPostProcessing && (sync_type === "proposals" || sync_type === "full" || sync_type === "projects_funnels")) {
       try {
         const alreadyEnrichedSet2 = new Set<number>();
         {
@@ -1746,7 +1752,7 @@ Deno.serve(async (req) => {
     }
 
     // ─── Update has_active_proposal flag on projects ──────────
-    if (sync_type === "proposals" || sync_type === "full") {
+    if (!skipPostProcessing && (sync_type === "proposals" || sync_type === "full")) {
       try {
         // Get all sm_project_ids that have proposals (paginated to avoid 1000-row limit)
         const projectIdsWithProposalSet = new Set<number>();
@@ -1795,7 +1801,7 @@ Deno.serve(async (req) => {
     }
 
     // ─── Backfill custom_fields_raw for existing proposals ──
-    if (sync_type === "backfill_cf_raw" || sync_type === "full") {
+    if (!skipPostProcessing && (sync_type === "backfill_cf_raw" || sync_type === "full")) {
       try {
         // Re-load defs if not loaded yet
         if (cfDefsLookup.size === 0) {
@@ -1941,7 +1947,8 @@ Deno.serve(async (req) => {
     // ─── SSOT: Release lock with final counts ──────────────
     if (smOpRunId) {
       try {
-        const lockStatus = totalErrors > 0 && totalUpserted === 0 ? "failed" : "completed";
+        const lockStatus = isPartialSync ? "completed" : (totalErrors > 0 && totalUpserted === 0 ? "failed" : "completed");
+        const partialNote = isPartialSync ? `Partial by time budget: ${partialRemaining} remaining` : null;
         await supabase.rpc("release_sm_operation_lock", {
           p_run_id: smOpRunId,
           p_status: lockStatus,
@@ -1949,7 +1956,7 @@ Deno.serve(async (req) => {
           p_processed_items: totalUpserted + totalErrors,
           p_success_items: totalUpserted,
           p_error_items: totalErrors,
-          p_error_summary: errors.length > 0 ? errors.slice(0, 5).join("; ").slice(0, 1000) : null,
+          p_error_summary: partialNote || (errors.length > 0 ? errors.slice(0, 5).join("; ").slice(0, 1000) : null),
         });
       } catch (_) { /* best-effort */ }
     }
