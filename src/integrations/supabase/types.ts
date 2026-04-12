@@ -13670,6 +13670,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          is_default: boolean
           kind: Database["public"]["Enums"]["pipeline_kind"]
           name: string
           parent_pipeline_id: string | null
@@ -13680,6 +13681,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_default?: boolean
           kind?: Database["public"]["Enums"]["pipeline_kind"]
           name: string
           parent_pipeline_id?: string | null
@@ -13690,6 +13692,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_default?: boolean
           kind?: Database["public"]["Enums"]["pipeline_kind"]
           name?: string
           parent_pipeline_id?: string | null
