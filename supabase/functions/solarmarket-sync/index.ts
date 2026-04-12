@@ -1435,9 +1435,9 @@ Deno.serve(async (req) => {
           totalErrors++;
         }
 
-        // Use the alreadySyncedProjectIds computed above (shared resume set)
-        const pendingIds = ids.filter((id: number) => !alreadySyncedProjectIds.has(id));
-        // console.log(`[SM Sync] Proposals resume: ${alreadySyncedProjectIds.size} projects already synced, ${pendingIds.length} pending out of ${ids.length} total`);
+        // Use both resume sets: projects with proposals + projects already scanned
+        const pendingIds = ids.filter((id: number) => !alreadySyncedProjectIds.has(id) && !alreadyScannedIds.has(id));
+        // console.log(`[SM Sync] Proposals resume: ${alreadySyncedProjectIds.size} with proposals, ${alreadyScannedIds.size} scanned, ${pendingIds.length} pending out of ${ids.length} total`);
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
