@@ -447,8 +447,17 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
         try {
           // Use direct fetch with 120s timeout to avoid "Failed to fetch" on long migrations
           const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
+          // Refresh token if close to expiry before each batch call
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (!currentSession?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
+          const expiresAt = currentSession.expires_at ?? 0;
+          const now = Math.floor(Date.now() / 1000);
+          let session = currentSession;
+          if (expiresAt - now < 300) {
+            const { data: refreshed } = await supabase.auth.refreshSession();
+            if (!refreshed.session?.access_token) throw new Error("Não foi possível renovar a sessão.");
+            session = refreshed.session;
+          }
 
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 120_000);
