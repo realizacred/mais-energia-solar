@@ -761,8 +761,8 @@ export default function SolarMarketPage() {
       {/* Header */}
       <PageHeader
         icon={Sun}
-        title="SolarMarket"
-        description="Dados importados do SolarMarket"
+        title="SolarMarket Importação"
+        description="Painel de importação, sincronização e migração de dados do SolarMarket"
         actions={
           <div className="flex gap-2 items-center flex-wrap justify-end">
             {lastSync && (
@@ -781,249 +781,264 @@ export default function SolarMarketPage() {
                 {syncIsRunning ? "Sincronizando..." : "Sincronizar Tudo"}
               </Button>
             )}
-
-            <Button
-              onClick={() => runSyncPipelines()}
-              disabled={syncPipelinesRunning || projects.length === 0}
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              title="Sincronize funis e etapas ANTES de migrar propostas"
-            >
-              {syncPipelinesRunning ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <GitBranch className="h-3.5 w-3.5" />
-              )}
-              {syncPipelinesRunning ? "Sincronizando..." : "Sincronizar Funis & Etapas"}
-            </Button>
-
-            <Button
-              onClick={() => syncStage("projects_funnels" as any)}
-              disabled={syncIsRunning || projects.length === 0}
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              title="Busca dados de funil para cada projeto na API do SolarMarket"
-            >
-              {syncIsRunning && progress.currentStage === ("projects_funnels" as any) ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <GitBranch className="h-3.5 w-3.5" />
-              )}
-              Sincronizar Funis
-            </Button>
-
-            <Button
-              onClick={() => {
-                if (migrationRunning) {
-                  setMigrationDrawerOpen(true);
-                } else {
-                  setMigrateAllOpen(true);
-                }
-              }}
-              disabled={!migrationRunning && pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
-              size="sm"
-              variant={migrationRunning ? "default" : "outline"}
-              className={cn("gap-1.5", migrationRunning && "animate-pulse")}
-            >
-              {migrationRunning ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Upload className="h-3.5 w-3.5" />
-              )}
-              {migrationRunning
-                ? "Migrando... (clique para ver)"
-                : `Migrar Tudo (${pendingProposals.length + pendingProjectsNoProposal.length})`}
-            </Button>
-
-            <AlertDialog open={migrateAllOpen} onOpenChange={setMigrateAllOpen}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2">
-                    <Upload className="h-5 w-5 text-primary" />
-                    Migrar tudo para o sistema canônico
-                  </AlertDialogTitle>
-                  <AlertDialogDescription asChild>
-                    <div className="space-y-3">
-                      <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
-                        <strong>PASSO 0:</strong> Funis, etapas e consultores serão sincronizados automaticamente antes da migração.
-                      </div>
-                      <p className="text-sm text-foreground font-medium">Serão migrados:</p>
-                      <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                        <li><strong>{pendingProposals.length}</strong> propostas pendentes</li>
-                        <li><strong>{pendingProjectsNoProposal.length}</strong> projetos sem proposta pendentes</li>
-                      </ul>
-                      {migratedProposalsCount > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          Já migrados anteriormente: <strong>{migratedProposalsCount}</strong> (serão ignorados)
-                        </p>
-                      )}
-                    </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <Button
-                    onClick={async () => {
-                      setMigrateAllOpen(false);
-                      // PASSO 0: sync pipelines first
-                      try {
-                        await runSyncPipelines();
-                      } catch {
-                        // Best-effort — continue with migration
-                      }
-                      openMigrationDrawer(pendingProposals);
-                    }}
-                  >
-                    Confirmar Migração
-                  </Button>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
-            <AlertDialog open={resetMigratedOpen} onOpenChange={(v) => { setResetMigratedOpen(v); if (!v) setResetMigratedText(""); }}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-warning hover:text-warning border-warning/30 hover:bg-warning/10"
-                  disabled={isAnySyncActive || migrationRunning}
-                  title={isAnySyncActive || migrationRunning ? "Bloqueado: migração/sync em andamento" : undefined}
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  Limpar Migrados
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2 text-warning">
-                    <AlertTriangle className="h-5 w-5" />
-                    Limpar dados migrados
-                  </AlertDialogTitle>
-                  <AlertDialogDescription asChild>
-                    <div className="space-y-3">
-                      <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-sm text-warning font-medium">
-                        Remove clientes, projetos, propostas e deals migrados do SM.
-                      </div>
-                      <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                        <li>Clientes, projetos, propostas nativas serão apagados</li>
-                        <li>Deals e recebimentos serão removidos</li>
-                        <li className="font-medium text-success">✅ Dados do SolarMarket (sync) são MANTIDOS</li>
-                        <li className="font-medium text-success">✅ Flags de migração são resetadas para re-migrar</li>
-                      </ul>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirm-reset-migrated" className="text-sm font-medium">
-                          Digite <span className="font-mono font-bold text-warning">LIMPAR MIGRADOS</span> para confirmar:
-                        </Label>
-                        <Input
-                          id="confirm-reset-migrated"
-                          value={resetMigratedText}
-                          onChange={(e) => setResetMigratedText(e.target.value)}
-                          placeholder="LIMPAR MIGRADOS"
-                          className="font-mono"
-                          autoComplete="off"
-                          disabled={resetMigratedMutation.isPending}
-                        />
-                      </div>
-                    </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={resetMigratedMutation.isPending}>Cancelar</AlertDialogCancel>
-                  <Button
-                    variant="outline"
-                    onClick={() => resetMigratedMutation.mutate()}
-                    disabled={!canResetMigrated}
-                    className="gap-1.5 border-warning text-warning hover:bg-warning/10"
-                  >
-                    {resetMigratedMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Limpando…
-                      </>
-                    ) : (
-                      "Confirmar Limpeza"
-                    )}
-                  </Button>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
-            <AlertDialog open={resetOpen} onOpenChange={(v) => { setResetOpen(v); if (!v) setResetConfirmText(""); }}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-                  disabled={isAnySyncActive || migrationRunning}
-                  title={isAnySyncActive || migrationRunning ? "Bloqueado: migração/sync em andamento" : undefined}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Resetar Tudo
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                    <AlertTriangle className="h-5 w-5" />
-                    Resetar todos os dados
-                  </AlertDialogTitle>
-                  <AlertDialogDescription asChild>
-                    <div className="space-y-3">
-                      <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive font-medium">
-                        ⚠️ AÇÃO IRREVERSÍVEL — Esta ação irá apagar PERMANENTEMENTE:
-                      </div>
-                      <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                        <li>Todos os clientes</li>
-                        <li>Todos os projetos</li>
-                        <li>Todas as propostas</li>
-                        <li>Todos os recebimentos e pagamentos</li>
-                        <li>Todos os dados sincronizados do SolarMarket</li>
-                      </ul>
-                      <p className="text-sm text-muted-foreground font-medium">
-                        Esta ação NÃO pode ser desfeita.
-                      </p>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirm-reset-sm" className="text-sm font-medium">
-                          Digite <span className="font-mono font-bold text-destructive">APAGAR TUDO</span> para confirmar:
-                        </Label>
-                        <Input
-                          id="confirm-reset-sm"
-                          value={resetConfirmText}
-                          onChange={(e) => setResetConfirmText(e.target.value)}
-                          placeholder="APAGAR TUDO"
-                          className="font-mono"
-                          autoComplete="off"
-                          disabled={resetMutation.isPending}
-                        />
-                      </div>
-                    </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={resetMutation.isPending}>Cancelar</AlertDialogCancel>
-                  <Button
-                    variant="destructive"
-                    onClick={() => resetMutation.mutate()}
-                    disabled={!canReset}
-                    className="gap-1.5"
-                  >
-                    {resetMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Apagando dados…
-                      </>
-                    ) : (
-                      "Confirmar Reset"
-                    )}
-                  </Button>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
         }
       />
+
+      {/* Action Bar — grouped by scope */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Sync actions */}
+        <div className="flex items-center gap-1.5 border-r border-border pr-3 mr-1">
+          <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider mr-1">Sync</span>
+          <Button
+            onClick={() => runSyncPipelines()}
+            disabled={syncPipelinesRunning || projects.length === 0}
+            size="sm"
+            variant="outline"
+            className="gap-1 h-7 text-xs"
+            title="Sincronize funis e etapas ANTES de migrar propostas"
+          >
+            {syncPipelinesRunning ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <GitBranch className="h-3 w-3" />
+            )}
+            {syncPipelinesRunning ? "Sincronizando..." : "Funis & Etapas"}
+          </Button>
+          <Button
+            onClick={() => syncStage("projects_funnels" as any)}
+            disabled={syncIsRunning || projects.length === 0}
+            size="sm"
+            variant="outline"
+            className="gap-1 h-7 text-xs"
+            title="Busca dados de funil para cada projeto na API do SolarMarket"
+          >
+            {syncIsRunning && progress.currentStage === ("projects_funnels" as any) ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <GitBranch className="h-3 w-3" />
+            )}
+            Funis Projetos
+          </Button>
+        </div>
+
+        {/* Migration actions */}
+        <div className="flex items-center gap-1.5 border-r border-border pr-3 mr-1">
+          <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider mr-1">Migrar</span>
+          <Button
+            onClick={() => {
+              if (migrationRunning) {
+                setMigrationDrawerOpen(true);
+              } else {
+                setMigrateAllOpen(true);
+              }
+            }}
+            disabled={!migrationRunning && pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
+            size="sm"
+            variant={migrationRunning ? "default" : "outline"}
+            className={cn("gap-1 h-7 text-xs", migrationRunning && "animate-pulse")}
+          >
+            {migrationRunning ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Upload className="h-3 w-3" />
+            )}
+            {migrationRunning
+              ? "Migrando..."
+              : `Migrar (${pendingProposals.length + pendingProjectsNoProposal.length})`}
+          </Button>
+        </div>
+
+        {/* Reset actions */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider mr-1">Reset</span>
+          <AlertDialog open={resetMigratedOpen} onOpenChange={(v) => { setResetMigratedOpen(v); if (!v) setResetMigratedText(""); }}>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 h-7 text-xs text-warning hover:text-warning border-warning/30 hover:bg-warning/10"
+                disabled={isAnySyncActive || migrationRunning}
+                title={isAnySyncActive || migrationRunning ? "Bloqueado: migração/sync em andamento" : "Remove apenas dados migrados do SM"}
+              >
+                <RefreshCw className="h-3 w-3" />
+                Migrados
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2 text-warning">
+                  <AlertTriangle className="h-5 w-5" />
+                  Limpar dados migrados
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-3">
+                    <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-sm text-warning font-medium">
+                      Remove clientes, projetos, propostas e deals migrados do SM.
+                    </div>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li>Clientes, projetos, propostas nativas serão apagados</li>
+                      <li>Deals e recebimentos serão removidos</li>
+                      <li className="font-medium text-success">✅ Dados do SolarMarket (sync) são MANTIDOS</li>
+                      <li className="font-medium text-success">✅ Flags de migração são resetadas para re-migrar</li>
+                    </ul>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-reset-migrated" className="text-sm font-medium">
+                        Digite <span className="font-mono font-bold text-warning">LIMPAR MIGRADOS</span> para confirmar:
+                      </Label>
+                      <Input
+                        id="confirm-reset-migrated"
+                        value={resetMigratedText}
+                        onChange={(e) => setResetMigratedText(e.target.value)}
+                        placeholder="LIMPAR MIGRADOS"
+                        className="font-mono"
+                        autoComplete="off"
+                        disabled={resetMigratedMutation.isPending}
+                      />
+                    </div>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={resetMigratedMutation.isPending}>Cancelar</AlertDialogCancel>
+                <Button
+                  variant="outline"
+                  onClick={() => resetMigratedMutation.mutate()}
+                  disabled={!canResetMigrated}
+                  className="gap-1.5 border-warning text-warning hover:bg-warning/10"
+                >
+                  {resetMigratedMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Limpando…
+                    </>
+                  ) : (
+                    "Confirmar Limpeza"
+                  )}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog open={resetOpen} onOpenChange={(v) => { setResetOpen(v); if (!v) setResetConfirmText(""); }}>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 h-7 text-xs text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                disabled={isAnySyncActive || migrationRunning}
+                title={isAnySyncActive || migrationRunning ? "Bloqueado: migração/sync em andamento" : "Apaga TODOS os dados (staging + migrados)"}
+              >
+                <Trash2 className="h-3 w-3" />
+                Tudo
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="h-5 w-5" />
+                  Resetar todos os dados
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-3">
+                    <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive font-medium">
+                      ⚠️ AÇÃO IRREVERSÍVEL — Esta ação irá apagar PERMANENTEMENTE:
+                    </div>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      <li>Todos os clientes</li>
+                      <li>Todos os projetos</li>
+                      <li>Todas as propostas</li>
+                      <li>Todos os recebimentos e pagamentos</li>
+                      <li>Todos os dados sincronizados do SolarMarket</li>
+                    </ul>
+                    <p className="text-sm text-muted-foreground font-medium">
+                      Esta ação NÃO pode ser desfeita.
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-reset-sm" className="text-sm font-medium">
+                        Digite <span className="font-mono font-bold text-destructive">APAGAR TUDO</span> para confirmar:
+                      </Label>
+                      <Input
+                        id="confirm-reset-sm"
+                        value={resetConfirmText}
+                        onChange={(e) => setResetConfirmText(e.target.value)}
+                        placeholder="APAGAR TUDO"
+                        className="font-mono"
+                        autoComplete="off"
+                        disabled={resetMutation.isPending}
+                      />
+                    </div>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={resetMutation.isPending}>Cancelar</AlertDialogCancel>
+                <Button
+                  variant="destructive"
+                  onClick={() => resetMutation.mutate()}
+                  disabled={!canReset}
+                  className="gap-1.5"
+                >
+                  {resetMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Apagando dados…
+                    </>
+                  ) : (
+                    "Confirmar Reset"
+                  )}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+
+      {/* Migrate All Dialog */}
+      <AlertDialog open={migrateAllOpen} onOpenChange={setMigrateAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-primary" />
+              Migrar tudo para o sistema canônico
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+                  <strong>PASSO 0:</strong> Funis, etapas e consultores serão sincronizados automaticamente antes da migração.
+                </div>
+                <p className="text-sm text-foreground font-medium">Serão migrados:</p>
+                <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                  <li><strong>{pendingProposals.length}</strong> propostas pendentes</li>
+                  <li><strong>{pendingProjectsNoProposal.length}</strong> projetos sem proposta pendentes</li>
+                </ul>
+                {migratedProposalsCount > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Já migrados anteriormente: <strong>{migratedProposalsCount}</strong> (serão ignorados)
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              onClick={async () => {
+                setMigrateAllOpen(false);
+                // PASSO 0: sync pipelines first
+                try {
+                  await runSyncPipelines();
+                } catch {
+                  // Best-effort — continue with migration
+                }
+                openMigrationDrawer(pendingProposals);
+              }}
+            >
+              Confirmar Migração
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Sync indicator for background sync */}
       {isBgSyncActive && !syncIsRunning && (
