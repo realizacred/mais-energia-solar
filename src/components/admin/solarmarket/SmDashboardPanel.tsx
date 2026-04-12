@@ -137,7 +137,7 @@ export function SmDashboardPanel() {
         statusColor === "primary" && "border-primary/30 bg-primary/5",
         statusColor === "success" && "border-success/20 bg-success/5",
         statusColor === "warning" && "border-warning/30 bg-warning/5",
-        statusColor === "destructive" && "border-destructive/20 bg-destructive/5",
+        
         statusColor === "muted" && "border-border bg-muted/30",
       )}>
         <StatusIcon className={cn(
@@ -145,7 +145,7 @@ export function SmDashboardPanel() {
           statusColor === "primary" && "text-primary animate-spin",
           statusColor === "success" && "text-success",
           statusColor === "warning" && "text-warning",
-          statusColor === "destructive" && "text-destructive",
+          
           statusColor === "muted" && "text-muted-foreground",
         )} />
         <div className="flex-1 min-w-0">
