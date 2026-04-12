@@ -1025,7 +1025,7 @@ Deno.serve(async (req) => {
         // console.log(`[SM Sync] Funnel enrichment: ${alreadyEnrichedSet.size} already done, ${pendingEnrich.length} pending`);
         
         let enriched = 0;
-        const funnelTimeBudget = 35_000; // 35s budget (reduced to avoid CPU exceeded)
+        const funnelTimeBudget = 150_000; // 150s budget — maximize enrichment per execution
         const funnelStart = Date.now();
 
         for (const projId of pendingEnrich) {
@@ -1395,7 +1395,7 @@ Deno.serve(async (req) => {
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
-        const timeBudgetMs = 35_000; // 35s budget (CPU time is stricter than wall time)
+        const timeBudgetMs = 150_000; // 150s budget — maximize import per execution
         const startTime = Date.now();
         const CONCURRENCY = 5; // 5 parallel requests (reduced to avoid CPU exceeded)
 
@@ -1630,7 +1630,7 @@ Deno.serve(async (req) => {
 
         if (pendingFunnelIds.length > 0) {
           let enriched = 0;
-          const funnelTimeBudget = 30_000; // 30s budget
+          const funnelTimeBudget = 120_000; // 120s budget — maximize standalone funnel enrichment
           const funnelStart = Date.now();
 
           for (const projId of pendingFunnelIds) {
@@ -1778,7 +1778,7 @@ Deno.serve(async (req) => {
         let bfErrors = 0;
         let bfOffset = 0;
         const bfPageSize = 200;
-        const bfTimeBudget = 30_000; // 30s budget (reduced to avoid CPU exceeded)
+        const bfTimeBudget = 120_000; // 120s budget — maximize backfill per execution
         const bfStart = Date.now();
 
         while (Date.now() - bfStart < bfTimeBudget) {
