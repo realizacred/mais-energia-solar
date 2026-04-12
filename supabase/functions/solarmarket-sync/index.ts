@@ -577,11 +577,24 @@ Deno.serve(async (req) => {
         .select("*", { count: "exact", head: true })
         .eq("tenant_id", tenantId);
 
-      const { data: syncedProjectIds } = await supabase
-        .from("solar_market_proposals")
-        .select("sm_project_id")
-        .eq("tenant_id", tenantId);
-      const syncedCount = new Set((syncedProjectIds || []).map((r: any) => r.sm_project_id)).size;
+      // Paginate to avoid 1000-row default limit (Supabase constraint)
+      const syncedProjectIdSet = new Set<number>();
+      {
+        let offset = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data: syncedRows } = await supabase
+            .from("solar_market_proposals")
+            .select("sm_project_id")
+            .eq("tenant_id", tenantId)
+            .range(offset, offset + pageSize - 1);
+          const batch = (syncedRows || []).map((r: any) => r.sm_project_id as number);
+          for (const id of batch) syncedProjectIdSet.add(id);
+          if (batch.length < pageSize) break;
+          offset += pageSize;
+        }
+      }
+      const syncedCount = syncedProjectIdSet.size;
 
       // Check pending funnel enrichment
       const { count: enrichedCount } = await supabase
@@ -1692,40 +1705,47 @@ Deno.serve(async (req) => {
     // ─── Update has_active_proposal flag on projects ──────────
     if (sync_type === "proposals" || sync_type === "full") {
       try {
-        // Get all sm_project_ids that have proposals
-        const { data: proposalProjects, error: ppErr } = await supabase
-          .from("solar_market_proposals")
-          .select("sm_project_id")
-          .eq("tenant_id", tenantId);
-        if (ppErr) throw ppErr;
-
-        const projectIdsWithProposal = [...new Set(
-          (proposalProjects ?? []).map((r: any) => r.sm_project_id).filter(Boolean)
-        )];
-
-        // Mark projects WITHOUT proposals as false
-        let q1 = supabase
-          .from("solar_market_projects")
-          .update({ has_active_proposal: false })
-          .eq("tenant_id", tenantId);
-        if (projectIdsWithProposal.length > 0) {
-          // M03 fix: use typed array (not inline SQL string) to avoid URL-length limits and SQL injection risk
-          q1 = q1.not("sm_project_id", "in", projectIdsWithProposal);
+        // Get all sm_project_ids that have proposals (paginated to avoid 1000-row limit)
+        const projectIdsWithProposalSet = new Set<number>();
+        {
+          let offset = 0;
+          const pageSize = 1000;
+          while (true) {
+            const { data: ppRows, error: ppErr } = await supabase
+              .from("solar_market_proposals")
+              .select("sm_project_id")
+              .eq("tenant_id", tenantId)
+              .range(offset, offset + pageSize - 1);
+            if (ppErr) throw ppErr;
+            const batch = (ppRows || []).map((r: any) => r.sm_project_id as number).filter(Boolean);
+            for (const id of batch) projectIdsWithProposalSet.add(id);
+            if ((ppRows || []).length < pageSize) break;
+            offset += pageSize;
+          }
         }
-        const { error: u1Err } = await q1;
+        const projectIdsWithProposal = [...projectIdsWithProposalSet];
+
+        // Batch the update to avoid PostgREST URL length limits
+        // Step 1: Set ALL projects to false
+        const { error: u1Err } = await supabase
+          .from("solar_market_projects")
+          .update({ has_active_proposal: false } as any)
+          .eq("tenant_id", tenantId);
         if (u1Err) throw u1Err;
 
-        // Mark projects WITH proposals as true
+        // Step 2: Set projects WITH proposals to true (in batches of 200 to avoid URL limit)
         if (projectIdsWithProposal.length > 0) {
-          const { error: u2Err } = await supabase
-            .from("solar_market_projects")
-            .update({ has_active_proposal: true })
-            .eq("tenant_id", tenantId)
-            .in("sm_project_id", projectIdsWithProposal);
-          if (u2Err) throw u2Err;
+          const BATCH_SIZE = 200;
+          for (let i = 0; i < projectIdsWithProposal.length; i += BATCH_SIZE) {
+            const chunk = projectIdsWithProposal.slice(i, i + BATCH_SIZE);
+            const { error: u2Err } = await supabase
+              .from("solar_market_projects")
+              .update({ has_active_proposal: true } as any)
+              .eq("tenant_id", tenantId)
+              .in("sm_project_id", chunk);
+            if (u2Err) throw u2Err;
+          }
         }
-
-        // console.log(`[SM Sync] has_active_proposal updated: ${projectIdsWithProposal.length} with proposals`);
       } catch (hapErr) {
         console.warn("[SM Sync] has_active_proposal update error:", (hapErr as Error).message);
       }
