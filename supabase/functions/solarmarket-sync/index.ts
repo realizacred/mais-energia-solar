@@ -1119,7 +1119,7 @@ Deno.serve(async (req) => {
           .limit(100);
         ids = (dbProjects || []).map((p: any) => p.sm_project_id);
       } else {
-        ids = ids.slice(0, 100); // Limit to avoid timeout
+        ids = ids.slice(0, 500); // Increased limit — time budget controls actual processing
       }
 
       // console.log(`[SM Sync] Fetching custom fields for ${ids.length} projects...`);
