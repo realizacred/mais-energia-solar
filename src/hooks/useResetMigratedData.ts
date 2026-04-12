@@ -32,6 +32,7 @@ export function useResetMigratedData() {
       qc.invalidateQueries({ queryKey: ["sm-projects"] });
       qc.invalidateQueries({ queryKey: ["sm-proposals"] });
       qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
+      qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
 
       const c = data?.counts ?? {};
       const parts = [

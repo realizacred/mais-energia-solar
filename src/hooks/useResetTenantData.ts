@@ -31,6 +31,7 @@ export function useResetTenantData() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries();
+      qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
       const c = data?.counts ?? data?.results ?? {};
       const parts = [
         c.clientes && `${c.clientes} clientes`,
