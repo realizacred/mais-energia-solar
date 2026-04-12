@@ -88,20 +88,7 @@ export function validateGrupoConsistency(
 
 // ─── Calculation Engine Router ─────────────────────────────
 // Architecture: separate calc paths for A vs B
-
-export interface CalcGrupoAResult {
-  // Placeholder — Grupo A motor not yet implemented
-  placeholder: true;
-  message: string;
-}
-
-/**
- * Placeholder for Grupo A calculation engine.
- * Will be implemented when Grupo A tariff rules are finalized.
- */
-export function calcGrupoA(_input: unknown): CalcGrupoAResult {
-  return {
-    placeholder: true,
-    message: "Motor de cálculo Grupo A ainda não implementado. Use o wizard apenas para Grupo B.",
-  };
-}
+// calcGrupoA implemented in src/lib/calcGrupoA.ts
+// calcGrupoB implemented in src/lib/calcGrupoB.ts
+export { calcGrupoA } from "./calcGrupoA";
+export type { CalcGrupoAInput, CalcGrupoAResult } from "./calcGrupoA";

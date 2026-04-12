@@ -4,7 +4,8 @@
  * Extracts the 25-year series, payback, TIR, VPL, economia, and gasto calculations
  * from StepPagamento into a reusable pure function.
  *
- * SSOT: Uses calcGrupoB as canonical motor for GD economy calculations.
+ * SSOT: Uses calcGrupoB as canonical motor for Grupo B GD economy calculations.
+ *       Uses calcGrupoA as canonical motor for Grupo A (binomial tariff).
  * StepPagamento uses identical logic for preview. This function is the
  * canonical source for persisting financial fields into the snapshot.
  *
@@ -12,6 +13,7 @@
  */
 
 import { calcGrupoB, type RegraGD, type TipoFase, type TariffComponentes, type CustoDisponibilidade } from "@/lib/calcGrupoB";
+import { calcGrupoA } from "@/lib/calcGrupoA";
 
 export interface FinancialSeriesInput {
   precoFinal: number;
@@ -34,6 +36,29 @@ export interface FinancialSeriesInput {
   fase?: "monofasico" | "bifasico" | "trifasico";
   /** Tarifa Fio B separada (R$/kWh). If 0/missing, uses tarifaBase * 0.28 as proxy */
   tarifaFioB?: number;
+  /** Grupo tarifário: "A" ou "B". Default: "B" */
+  grupo?: "A" | "B";
+  // ── Campos Grupo A (binomial) ──
+  /** Consumo mensal ponta (kWh) — Grupo A */
+  consumoPonta?: number;
+  /** Consumo mensal fora ponta (kWh) — Grupo A */
+  consumoForaPonta?: number;
+  /** Tarifa TE ponta (R$/kWh) */
+  tarifaTEPonta?: number;
+  /** Tarifa TUSD ponta (R$/kWh) */
+  tarifaTUSDPonta?: number;
+  /** Tarifa TE fora ponta (R$/kWh) */
+  tarifaTEForaPonta?: number;
+  /** Tarifa TUSD fora ponta (R$/kWh) */
+  tarifaTUSDForaPonta?: number;
+  /** Tarifa Fio B ponta (R$/kWh) */
+  tarifaFioBPonta?: number;
+  /** Tarifa Fio B fora ponta (R$/kWh) */
+  tarifaFioBForaPonta?: number;
+  /** Demanda contratada (kW) — Grupo A */
+  demandaContratada?: number;
+  /** Tarifa de demanda (R$/kW) — Grupo A */
+  tarifaDemanda?: number;
 }
 
 export interface FinancialSeriesOutput {
@@ -80,11 +105,55 @@ const CUSTO_DISP_KWH: CustoDisponibilidade = {
 };
 
 /**
+ * Computes economy for a single period using Grupo A motor.
+ * Returns monthly economy in R$.
+ */
+function calcEconomiaGrupoA(
+  input: FinancialSeriesInput,
+  geracaoMensal: number,
+  inflacao: number,
+  ano: number,
+): { economiaMensal: number; gastoSemSolar: number; gastoComSolar: number } {
+  const consumoP = (input.consumoPonta ?? 0);
+  const consumoFP = (input.consumoForaPonta ?? 0);
+  const teTarP = (input.tarifaTEPonta ?? 0) * inflacao;
+  const tusdP = (input.tarifaTUSDPonta ?? 0) * inflacao;
+  const teTarFP = (input.tarifaTEForaPonta ?? 0) * inflacao;
+  const tusdFP = (input.tarifaTUSDForaPonta ?? 0) * inflacao;
+  const fioBP = (input.tarifaFioBPonta ?? 0) * inflacao;
+  const fioBFP = (input.tarifaFioBForaPonta ?? 0) * inflacao;
+  const demandaKW = input.demandaContratada ?? 0;
+  const tarifaDem = (input.tarifaDemanda ?? 0) * inflacao;
+
+  const result = calcGrupoA({
+    geracao_mensal_kwh: geracaoMensal,
+    consumo_fp_kwh: consumoFP,
+    consumo_p_kwh: consumoP,
+    demanda_contratada_kw: demandaKW,
+    tarifa_te_p: teTarP,
+    tarifa_tusd_p: tusdP,
+    tarifa_te_fp: teTarFP,
+    tarifa_tusd_fp: tusdFP,
+    tarifa_demanda_rs: tarifaDem,
+    tarifa_fio_b_p: fioBP,
+    tarifa_fio_b_fp: fioBFP,
+    regra: input.regra ?? "GD2",
+    ano,
+  });
+
+  return {
+    economiaMensal: result.economia_mensal_rs,
+    gastoSemSolar: result.custo_total_sem_solar,
+    gastoComSolar: result.custo_total_com_solar,
+  };
+}
+
+/**
  * Computes all financial series for snapshot enrichment.
- * Logic delegates to calcGrupoB for each year of the 25-year projection.
+ * Routes to calcGrupoA or calcGrupoB based on grupo tarifário.
  *
- * Economy base: geração total (todo kWh gerado tem valor).
- * Fio B: escalonamento dinâmico Lei 14.300 via calcGrupoB motor.
+ * Grupo B: Economy via calcGrupoB (GD I/II/III, Lei 14.300).
+ * Grupo A: Economy via calcGrupoA (binomial tariff, demanda fixa).
  */
 export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSeriesOutput {
   const {
@@ -98,6 +167,7 @@ export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSerie
     premissas: prem,
     regra,
     fase = "bifasico",
+    grupo = "B",
   } = input;
 
   const inflacaoRate = ((prem?.inflacao_energetica ?? 9.5) / 100);
@@ -115,26 +185,39 @@ export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSerie
   const tarifaFioB = (input.tarifaFioB ?? 0) > 0 ? input.tarifaFioB! : tarifaBase * 0.28;
 
   const regraGD = mapRegra(regra);
-
-  // Gasto atual — baseado no consumo real
-  const gastoAtualMensal = consumoTotal > 0 ? consumoTotal * tarifaBase : geracaoMensalBase * tarifaBase;
-  const gastoNovoMensal = custoDisponibilidade;
-
-  // Economia mensal do ano corrente via calcGrupoB
   const anoAtual = new Date().getFullYear();
-  const resultAnoAtual = calcGrupoB({
-    regra: regraGD,
-    fase: fase as TipoFase,
-    geracao_mensal_kwh: geracaoMensalBase,
-    consumo_mensal_kwh: consumoTotal,
-    tariff: {
-      te_kwh: tarifaBase - tarifaFioB, // TE ≈ tarifa total - Fio B
-      tusd_fio_b_kwh: tarifaFioB,
-    },
-    custo_disponibilidade: CUSTO_DISP_KWH,
-    ano: anoAtual,
-  });
-  const economiaMensal = Math.max(0, resultAnoAtual.economia_mensal_rs);
+  const isGrupoA = grupo === "A";
+
+  // ── Economia do ano corrente ──
+  let gastoAtualMensal: number;
+  let gastoNovoMensal: number;
+  let economiaMensal: number;
+
+  if (isGrupoA) {
+    const r = calcEconomiaGrupoA(input, geracaoMensalBase, 1, anoAtual);
+    gastoAtualMensal = r.gastoSemSolar;
+    gastoNovoMensal = r.gastoComSolar;
+    economiaMensal = Math.max(0, r.economiaMensal);
+  } else {
+    // Grupo B — lógica existente via calcGrupoB
+    gastoAtualMensal = consumoTotal > 0 ? consumoTotal * tarifaBase : geracaoMensalBase * tarifaBase;
+    gastoNovoMensal = custoDisponibilidade;
+
+    const resultAnoAtual = calcGrupoB({
+      regra: regraGD,
+      fase: fase as TipoFase,
+      geracao_mensal_kwh: geracaoMensalBase,
+      consumo_mensal_kwh: consumoTotal,
+      tariff: {
+        te_kwh: tarifaBase - tarifaFioB,
+        tusd_fio_b_kwh: tarifaFioB,
+      },
+      custo_disponibilidade: CUSTO_DISP_KWH,
+      ano: anoAtual,
+    });
+    economiaMensal = Math.max(0, resultAnoAtual.economia_mensal_rs);
+  }
+
   const economiaPercent = gastoAtualMensal > 0 ? (economiaMensal / gastoAtualMensal * 100) : 0;
 
   // 25-year series
@@ -160,26 +243,33 @@ export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSerie
     const tarifaVigente = Math.round(tarifaBase * inflacao * 100) / 100;
     const geracaoAnual = Math.round(geracaoAnualBase * degradacao * 100) / 100;
     const geracaoMensalAno = geracaoAnual / 12;
-
-    // Use calcGrupoB for each projection year — canonical motor
     const anoProjecao = anoAtual + ano - 1;
-    const tarifaFioBVigente = tarifaFioB * inflacao;
-    const teVigente = tarifaVigente - tarifaFioBVigente;
 
-    const resultAno = calcGrupoB({
-      regra: regraGD,
-      fase: fase as TipoFase,
-      geracao_mensal_kwh: geracaoMensalAno,
-      consumo_mensal_kwh: consumoTotal, // consumo nominal (não inflaciona)
-      tariff: {
-        te_kwh: Math.max(0, teVigente),
-        tusd_fio_b_kwh: tarifaFioBVigente,
-      },
-      custo_disponibilidade: CUSTO_DISP_KWH,
-      ano: anoProjecao,
-    });
+    let economiaAnualCalc: number;
 
-    const economiaAnualCalc = Math.round(resultAno.economia_mensal_rs * 12 * 100) / 100;
+    if (isGrupoA) {
+      // Grupo A: motor binomial
+      const r = calcEconomiaGrupoA(input, geracaoMensalAno, inflacao, anoProjecao);
+      economiaAnualCalc = Math.round(r.economiaMensal * 12 * 100) / 100;
+    } else {
+      // Grupo B: motor GD
+      const tarifaFioBVigente = tarifaFioB * inflacao;
+      const teVigente = tarifaVigente - tarifaFioBVigente;
+
+      const resultAno = calcGrupoB({
+        regra: regraGD,
+        fase: fase as TipoFase,
+        geracao_mensal_kwh: geracaoMensalAno,
+        consumo_mensal_kwh: consumoTotal,
+        tariff: {
+          te_kwh: Math.max(0, teVigente),
+          tusd_fio_b_kwh: tarifaFioBVigente,
+        },
+        custo_disponibilidade: CUSTO_DISP_KWH,
+        ano: anoProjecao,
+      });
+      economiaAnualCalc = Math.round(resultAno.economia_mensal_rs * 12 * 100) / 100;
+    }
 
     // Troca de inversor
     let custoExtra = 0;
