@@ -246,7 +246,7 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
       </div>
       {pagination && (
         <TablePagination
-          totalItems={projects.length}
+          totalItems={deduped.length}
           page={pagination.page}
           pageSize={pagination.pageSize}
           onPageChange={pagination.onPageChange}
