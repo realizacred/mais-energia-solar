@@ -533,26 +533,31 @@ Deno.serve(async (req) => {
     const { dry_run = true, batch_size = 25 } = params;
     let { filters = {} } = params;
 
-    // ─── SSOT: Register migration operation run ─────────────
+    // ─── Formal Lock: prevent concurrent SM operations ─────
     let smOpRunId: string | null = null;
     if (!dry_run) {
-      try {
-        const { data: opRun } = await adminClient
-          .from("sm_operation_runs")
-          .insert({
-            tenant_id: tenantId,
-            source: "solar_market",
-            operation_type: "migrate_to_native",
-            status: "running",
-            started_at: new Date().toISOString(),
-            heartbeat_at: new Date().toISOString(),
-            created_by: user.id,
-            context_json: { batch_size, auto_resume: params.auto_resume ?? false },
-          })
-          .select("id")
-          .single();
-        smOpRunId = opRun?.id ?? null;
-      } catch (_) { /* best-effort SSOT tracking */ }
+      const { data: lockResult, error: lockErr } = await adminClient.rpc(
+        "acquire_sm_operation_lock",
+        {
+          p_tenant_id: tenantId,
+          p_operation_type: "migrate_to_native",
+          p_created_by: user.id,
+          p_context: { batch_size, auto_resume: params.auto_resume ?? false },
+        }
+      );
+
+      if (lockErr || !lockResult?.acquired) {
+        const reason = lockResult?.reason || lockErr?.message || "Lock acquisition failed";
+        return new Response(JSON.stringify({
+          error: reason,
+          blocked: true,
+          blocked_by: lockResult?.blocked_by_type,
+        }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      smOpRunId = lockResult.run_id;
     }
 
     // ─── AUTO_RESUME: fetch next pending batch automatically ─────
