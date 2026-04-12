@@ -1635,6 +1635,7 @@ Deno.serve(async (req) => {
       } catch (enrichErr) {
         console.warn(`[SM Sync] sm_client_id enrichment error:`, enrichErr);
       }
+      } // end if (!isPartialSync)
       } catch (proposalStageErr) {
         console.error("[SM Sync] Proposals stage error:", proposalStageErr);
         const msg = (proposalStageErr as Error).message || "Erro desconhecido na etapa de propostas";
