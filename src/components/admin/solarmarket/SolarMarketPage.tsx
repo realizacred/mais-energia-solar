@@ -587,7 +587,7 @@ export default function SolarMarketPage() {
     setFilterProposalConsultor("");
   };
 
-  const { syncAll, syncStage, progress } = useSolarMarketSync();
+  const { syncAll, syncStage, progress, syncUntilComplete, requestStopFullSync, fullSyncStatus } = useSolarMarketSync();
   // Realtime: all users see sync progress live
   useRealtimeSyncLogs();
   const syncIsRunning = progress.isRunning;
@@ -765,10 +765,28 @@ export default function SolarMarketPage() {
                 Sync: {formatDistanceToNow(new Date(lastSync.started_at), { addSuffix: true, locale: ptBR })}
               </span>
             )}
-            <Button onClick={() => syncAll()} disabled={syncIsRunning} size="sm">
+            <Button onClick={() => syncAll()} disabled={syncIsRunning || fullSyncStatus.running} size="sm">
               <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
               {syncIsRunning ? "Sincronizando..." : "Sincronizar Tudo"}
             </Button>
+            {fullSyncStatus.running ? (
+              <Button onClick={requestStopFullSync} size="sm" variant="outline" className="border-destructive text-destructive gap-1.5">
+                <XCircle className="h-3.5 w-3.5" />
+                Parar
+              </Button>
+            ) : (
+              <Button
+                onClick={syncUntilComplete}
+                disabled={syncIsRunning}
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                title="Repete o sync automaticamente até importar tudo"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Sync Completo
+              </Button>
+            )}
 
             <Button
               onClick={() => runSyncPipelines()}
@@ -1023,6 +1041,26 @@ export default function SolarMarketPage() {
 
       {/* Sync Progress */}
       <SyncProgressBar progress={progress} />
+
+      {/* Full Sync Status */}
+      {fullSyncStatus.message && (
+        <div className={cn(
+          "rounded-lg border p-3 text-sm flex items-center gap-2",
+          fullSyncStatus.running
+            ? "border-primary/40 bg-primary/5 text-foreground"
+            : fullSyncStatus.message.startsWith("✅")
+              ? "border-success/30 bg-success/5 text-foreground"
+              : "border-warning/30 bg-warning/5 text-foreground"
+        )}>
+          {fullSyncStatus.running && <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />}
+          <span>{fullSyncStatus.message}</span>
+          {fullSyncStatus.running && (
+            <span className="ml-auto text-xs text-muted-foreground font-mono shrink-0">
+              {fullSyncStatus.propostas} prop · {fullSyncStatus.pctFunis}% funis
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Migration Progress Counter */}
       {proposals.length > 0 && (
