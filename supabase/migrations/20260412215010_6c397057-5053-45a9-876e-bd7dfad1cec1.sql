@@ -1,0 +1,1 @@
+UPDATE sm_operation_runs SET status = 'failed', finished_at = NOW(), error_summary = 'Marked as failed: stale run with no progress' WHERE id = 'f485482a-5068-496e-bf87-78e2bafc4bef' AND status = 'running';
