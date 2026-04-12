@@ -391,6 +391,7 @@ export function ProposalWizard() {
 
     let financialFields: Record<string, number> = {};
     if (precoFinal > 0 && potenciaKwp > 0) {
+      const isGrupoA = ucGeradoraSnap?.grupo_tarifario === "A";
       const finResult = calcFinancialSeries({
         precoFinal,
         potenciaKwp,
@@ -403,6 +404,20 @@ export function ProposalWizard() {
         regra: ucGeradoraSnap?.regra as "GD1" | "GD2" | "GD3" | undefined,
         fase: ucGeradoraSnap?.fase as "monofasico" | "bifasico" | "trifasico" | undefined,
         tarifaFioB: ucGeradoraSnap?.tarifa_fio_b ?? 0,
+        grupo: isGrupoA ? "A" : "B",
+        // Grupo A fields
+        ...(isGrupoA ? {
+          consumoPonta: ucGeradoraSnap?.consumo_mensal_p ?? 0,
+          consumoForaPonta: ucGeradoraSnap?.consumo_mensal_fp ?? 0,
+          tarifaTEPonta: ucGeradoraSnap?.tarifa_te_p ?? 0,
+          tarifaTUSDPonta: ucGeradoraSnap?.tarifa_tusd_p ?? 0,
+          tarifaTEForaPonta: ucGeradoraSnap?.tarifa_te_fp ?? 0,
+          tarifaTUSDForaPonta: ucGeradoraSnap?.tarifa_tusd_fp ?? 0,
+          tarifaFioBPonta: ucGeradoraSnap?.tarifa_fio_b_p ?? 0,
+          tarifaFioBForaPonta: ucGeradoraSnap?.tarifa_fio_b_fp ?? 0,
+          demandaContratada: ucGeradoraSnap?.demanda_contratada ?? 0,
+          tarifaDemanda: ucGeradoraSnap?.demanda_consumo_rs ?? 0,
+        } : {}),
       });
       financialFields = flattenFinancialToSnapshot(finResult);
     }
