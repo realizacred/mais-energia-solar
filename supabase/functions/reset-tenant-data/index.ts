@@ -98,30 +98,41 @@ Deno.serve(async (req) => {
 
     const tenantId = profile.tenant_id;
 
-    // GUARD: Check for active migration/sync before proceeding
+    // GUARD: Check SSOT for active SolarMarket operations
+    const { data: hasActive, error: ssotErr } = await admin.rpc(
+      "has_active_sm_operation",
+      { p_tenant_id: tenantId }
+    );
+
+    if (ssotErr) {
+      console.error("[reset-tenant-data] SSOT check error:", ssotErr.message);
+    }
+
+    if (hasActive === true) {
+      return new Response(
+        JSON.stringify({
+          error: "Reset bloqueado: existe operação SolarMarket em andamento. Aguarde a conclusão antes de resetar.",
+          blocked: true,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // GUARD fallback: Check solar_market_sync_logs for running syncs
     const { data: activeSyncs } = await admin
       .from("solar_market_sync_logs")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tenantId)
       .eq("status", "running");
 
-    const { data: recentMigrations } = await admin
-      .from("sm_migration_log")
-      .select("id", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
-      .in("status", ["SUCCESS", "CREATED", "SKIP"]);
-
     const syncCount = (activeSyncs as any)?.length ?? 0;
-    const migCount = (recentMigrations as any)?.length ?? 0;
 
-    if (syncCount > 0 || migCount > 0) {
+    if (syncCount > 0) {
       return new Response(
         JSON.stringify({
-          error: "Reset bloqueado: existe migração/sincronização SolarMarket em andamento. Aguarde a conclusão antes de resetar.",
+          error: "Reset bloqueado: existe sincronização SolarMarket em andamento. Aguarde a conclusão antes de resetar.",
           blocked: true,
           active_syncs: syncCount,
-          recent_migrations: migCount,
         }),
         { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
