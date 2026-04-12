@@ -180,7 +180,7 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
             const createdAt = (p as any).sm_created_at;
 
             return (
-              <TableRow key={p.id} className="cursor-pointer" onClick={() => onSelect(p)}>
+              <TableRow key={`proj-${p.sm_project_id}`} className="cursor-pointer" onClick={() => onSelect(p)}>
                 <TableCell>
                   <div>
                     <p className="font-medium">{p.name || "—"}</p>
