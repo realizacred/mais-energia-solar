@@ -611,7 +611,7 @@ Deno.serve(async (req) => {
       if (pendingProposals > 0) {
         sync_type = "proposals";
       } else if (pendingFunnels > 0) {
-        sync_type = "projects"; // This triggers funnel enrichment
+        sync_type = "projects_funnels"; // Dedicated stage for funnel enrichment
       } else {
         // console.log("[SM Sync] Cron: everything synced, skipping");
         return new Response(JSON.stringify({ 
@@ -1001,9 +1001,38 @@ Deno.serve(async (req) => {
         totalErrors += result.errors.length;
         errors.push(...result.errors);
 
-        // ── Enrich projects with per-project funnel data (with resume) ──
-        // Skip projects that already have ALL funnel data (all_funnels populated)
-        // Previously used sm_funnel_id which caused projects to be skipped even without all_funnels
+        // NOTE: Funnel enrichment moved to dedicated sync_type = "projects_funnels"
+        // to avoid CPU timeout when syncing 1900+ projects
+      } catch (e) {
+        console.error("[SM Sync] Projects error:", e);
+        const msg = (e as Error).message;
+        if (msg.includes("SM API 401")) hasSolarMarketAuthError = true;
+        totalErrors++;
+        errors.push(`projects: ${msg}`);
+      }
+    }
+
+    // ─── Enrich Projects with Funnel Data (dedicated stage) ──
+    if (sync_type === "projects_funnels") {
+      try {
+        // Load all project IDs from DB
+        const allProjIds: number[] = [];
+        {
+          let offset = 0;
+          const pageSize = 1000;
+          while (true) {
+            const { data: rows } = await supabase
+              .from("solar_market_projects")
+              .select("sm_project_id")
+              .eq("tenant_id", tenantId)
+              .range(offset, offset + pageSize - 1);
+            for (const r of (rows || [])) allProjIds.push(r.sm_project_id);
+            if ((rows || []).length < pageSize) break;
+            offset += pageSize;
+          }
+        }
+
+        // Skip projects that already have all_funnels populated
         const alreadyEnrichedSet = new Set<number>();
         {
           let offset = 0;
@@ -1021,16 +1050,17 @@ Deno.serve(async (req) => {
           }
         }
 
-        const pendingEnrich = projectIds.filter((id: number) => !alreadyEnrichedSet.has(id));
-        // console.log(`[SM Sync] Funnel enrichment: ${alreadyEnrichedSet.size} already done, ${pendingEnrich.length} pending`);
-        
+        const pendingEnrich = allProjIds.filter((id: number) => !alreadyEnrichedSet.has(id));
+        totalFetched = pendingEnrich.length;
+
         let enriched = 0;
-        const funnelTimeBudget = 150_000; // 150s budget — maximize enrichment per execution
+        const funnelTimeBudget = 120_000; // 120s budget
         const funnelStart = Date.now();
 
         for (const projId of pendingEnrich) {
           if (Date.now() - funnelStart > funnelTimeBudget) {
-            // console.log(`[SM Sync] Funnel enrichment time budget hit after ${enriched} projects`);
+            isPartialSync = true;
+            partialRemaining = pendingEnrich.length - enriched;
             break;
           }
           try {
@@ -1051,11 +1081,9 @@ Deno.serve(async (req) => {
             const funnels = Array.isArray(funnelData) ? funnelData : funnelData.data ? (Array.isArray(funnelData.data) ? funnelData.data : [funnelData.data]) : [funnelData];
 
             if (funnels.length > 0) {
-              // Store ALL funnels for the project, finding the Vendedores one specifically
               let vendedoresFunnel: any = null;
               let primaryFunnel: any = funnels[0];
 
-              // Build normalized array of ALL funnels for this project
               const allFunnelsArray: any[] = [];
               for (const f of funnels) {
                 const fName = f.funnelName || f.funnel_name || f.name || "";
@@ -1068,7 +1096,6 @@ Deno.serve(async (req) => {
                 }
               }
 
-              // Prefer Vendedores funnel for consultant identification
               const f = vendedoresFunnel || primaryFunnel;
               const funnelId = f.funnelId || f.funnel_id || f.id || null;
               const funnelName = f.funnelName || f.funnel_name || f.name || null;
@@ -1091,18 +1118,18 @@ Deno.serve(async (req) => {
               }
             }
 
-            await delay(250);
+            await delay(100); // 100ms between requests (was 250ms)
           } catch (e) {
             // Non-fatal, just skip
           }
         }
-        // console.log(`[SM Sync] Enriched ${enriched}/${pendingEnrich.length} pending projects with funnel data`);
+        totalUpserted = enriched;
       } catch (e) {
-        console.error("[SM Sync] Projects error:", e);
+        console.error("[SM Sync] Projects funnels enrichment error:", e);
         const msg = (e as Error).message;
         if (msg.includes("SM API 401")) hasSolarMarketAuthError = true;
         totalErrors++;
-        errors.push(`projects: ${msg}`);
+        errors.push(`projects_funnels: ${msg}`);
       }
     }
 
