@@ -787,6 +787,22 @@ export default function SolarMarketPage() {
             </Button>
 
             <Button
+              onClick={() => syncStage("projects_funnels" as any)}
+              disabled={syncIsRunning || projects.length === 0}
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              title="Busca dados de funil para cada projeto na API do SolarMarket"
+            >
+              {syncIsRunning && progress.currentStage === ("projects_funnels" as any) ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <GitBranch className="h-3.5 w-3.5" />
+              )}
+              Sincronizar Funis
+            </Button>
+
+            <Button
               onClick={() => {
                 if (migrationRunning) {
                   setMigrationDrawerOpen(true);
