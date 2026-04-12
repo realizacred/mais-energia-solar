@@ -398,6 +398,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     setSteps(prev => prev.map(s => s.name === name ? { ...s, ...update } : s));
   }, []);
 
+  useEffect(() => {
     if (!autoResumeRunning || !autoResumeStats || !pendingStats) return;
 
     const now = Date.now();
