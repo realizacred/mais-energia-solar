@@ -883,7 +883,13 @@ export default function SolarMarketPage() {
 
             <AlertDialog open={resetMigratedOpen} onOpenChange={(v) => { setResetMigratedOpen(v); if (!v) setResetMigratedText(""); }}>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 text-warning hover:text-warning border-warning/30 hover:bg-warning/10">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-warning hover:text-warning border-warning/30 hover:bg-warning/10"
+                  disabled={isAnySyncActive || migrationRunning}
+                  title={isAnySyncActive || migrationRunning ? "Bloqueado: migração/sync em andamento" : undefined}
+                >
                   <RefreshCw className="h-3.5 w-3.5" />
                   Limpar Migrados
                 </Button>
@@ -945,7 +951,13 @@ export default function SolarMarketPage() {
 
             <AlertDialog open={resetOpen} onOpenChange={(v) => { setResetOpen(v); if (!v) setResetConfirmText(""); }}>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                  disabled={isAnySyncActive || migrationRunning}
+                  title={isAnySyncActive || migrationRunning ? "Bloqueado: migração/sync em andamento" : undefined}
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                   Resetar Tudo
                 </Button>
