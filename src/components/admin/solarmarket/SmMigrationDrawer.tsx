@@ -478,7 +478,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
       toast.warning(msg);
     }
-  }, [autoResumeRunning, autoResumeStats, pendingStats, addLog, qc, updateStep]);
+  }, [autoResumeRunning, autoResumeStats, pendingStats, addLogCb, qc, updateStepCb]);
 
   const proposal = proposals[0]; // Single or first for display
   const isBulk = proposals.length > 1;
@@ -498,9 +498,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const needsStage = selectedPipeline?.kind === "process";
   const canMigrate = !!activePipelineId && (!needsStage || !!activeStageId || pipelineStages.length === 0);
 
-  const addLog = useCallback((msg: string) => {
-    setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
-  }, []);
+  const addLog = addLogCb;
 
   const resetState = useCallback(() => {
     setSteps(INITIAL_STEPS);
@@ -514,9 +512,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   }, []);
 
-  const updateStep = useCallback((name: StepName, update: Partial<MigrationStep>) => {
-    setSteps(prev => prev.map(s => s.name === name ? { ...s, ...update } : s));
-  }, []);
+  const updateStep = updateStepCb;
 
   const runMigration = useCallback(async (dryRun: boolean) => {
     if (!activePipelineId) {
