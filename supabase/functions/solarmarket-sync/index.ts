@@ -434,8 +434,9 @@ Deno.serve(async (req) => {
   let totalFetched = 0;
   let totalUpserted = 0;
   let totalErrors = 0;
-  // Declare supabase outside try so catch block can access it for log updates
+  // Declare outside try so catch block can access them for log updates / lock release
   let supabase: any = null;
+  let smOpRunId: string | undefined;
   try {
     // ─── Auth ──────────────────────────────────────────────
     const authHeader = req.headers.get("authorization");
