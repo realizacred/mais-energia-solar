@@ -568,8 +568,7 @@ export function useDealPipeline() {
     const { error: stErr } = await supabase.from("pipeline_stages").delete().eq("pipeline_id", id);
     if (stErr) { toast({ title: "Erro ao remover etapas", description: stErr.message, variant: "destructive" }); return false; }
 
-    // Delete deal_pipeline_stages references
-    await supabase.from("deal_pipeline_stages").delete().eq("pipeline_id", id);
+    // Note: pipeline_stages already deleted above (L568). No separate junction table exists.
 
     const { error } = await supabase.from("pipelines").delete().eq("id", id);
     if (error) { toast({ title: "Erro ao remover pipeline", description: error.message, variant: "destructive" }); return false; }
@@ -659,6 +658,7 @@ export function useDealPipeline() {
     }
 
     // Sync project stage when deal moves to a terminal stage (Ganho/Perdido)
+    // Uses projeto_etapas.categoria (ganho/perdido) instead of fragile name match
     const targetStage = stages.find(s => s.id === stageId);
     if (targetStage?.is_closed) {
       try {
@@ -669,13 +669,29 @@ export function useDealPipeline() {
           .maybeSingle();
 
         if (deal?.projeto_id) {
-          const targetEtapaNome = targetStage.is_won ? "Ganho" : "Perdido";
-          const { data: etapa } = await supabase
+          // Get the project's current funil_id to find the correct etapa
+          const { data: projeto } = await supabase
+            .from("projetos")
+            .select("funil_id")
+            .eq("id", deal.projeto_id)
+            .maybeSingle();
+
+          const targetCategoria = targetStage.is_won ? "ganho" : "perdido";
+
+          // Find etapa by categoria within the project's funil (most specific)
+          // Fallback to any etapa with matching categoria if funil_id is null
+          let etapaQuery = supabase
             .from("projeto_etapas")
             .select("id")
-            .eq("nome", targetEtapaNome)
-            .limit(1)
-            .maybeSingle();
+            .eq("categoria", targetCategoria)
+            .order("ordem", { ascending: true })
+            .limit(1);
+
+          if (projeto?.funil_id) {
+            etapaQuery = etapaQuery.eq("funil_id", projeto.funil_id);
+          }
+
+          const { data: etapa } = await etapaQuery.maybeSingle();
 
           if (etapa) {
             await supabase
