@@ -65,6 +65,7 @@ export default function PropostaPublica() {
   const [html, setHtml] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [redirectToLanding, setRedirectToLanding] = useState(false);
   const [invalidatedInfo, setInvalidatedInfo] = useState<{
     invalidado_em: string;
     empresaNome: string | null;
