@@ -1583,7 +1583,8 @@ Deno.serve(async (req) => {
         // console.log(`[SM Sync] Proposals complete: processed ${batchCount} pending projects, fetched=${totalFetched}, upserted=${totalUpserted}`);
       }
 
-      // ── Enrich proposals with sm_client_id from projects ──
+      // ── Enrich proposals with sm_client_id from projects (skip on partial to save time for finalize) ──
+      if (!isPartialSync) {
       try {
         // Build project→client lookup
         const projectClientMap = new Map<number, number>();
