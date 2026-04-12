@@ -577,8 +577,6 @@ Deno.serve(async (req) => {
 
     let smOpRunId: string = lockResult.run_id;
 
-    let sync_type = body.sync_type || "full";
-
     // ── Cron auto-detection: pick what's still pending ──
     if (isCron && (!body.sync_type || body.sync_type === "auto")) {
       // Check pending proposals: projects NOT yet scanned (proposals_synced_at IS NULL)
