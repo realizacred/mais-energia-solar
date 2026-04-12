@@ -57,8 +57,26 @@ export interface FinancialSeriesOutput {
 }
 
 /**
+ * Returns Fio B percentage (non-compensated fraction) for a given year.
+ * REN 1000/2021 / Lei 14.300 progressive schedule.
+ */
+function getFioBPercentual(ano: number): number {
+  if (ano <= 2022) return 0;
+  if (ano === 2023) return 0.15;
+  if (ano === 2024) return 0.30;
+  if (ano === 2025) return 0.45;
+  if (ano === 2026) return 0.60;
+  if (ano === 2027) return 0.75;
+  if (ano === 2028) return 0.90;
+  return 1.00; // 2029+
+}
+
+/**
  * Computes all financial series for snapshot enrichment.
  * Logic mirrors StepPagamento's fluxoCaixaData + paybackInfo calculations.
+ *
+ * Economy base: geração total (todo kWh gerado tem valor).
+ * Fio B: escalonamento dinâmico Lei 14.300 aplicado sobre excedente injetado.
  */
 export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSeriesOutput {
   const {
@@ -83,10 +101,20 @@ export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSerie
   const geracaoMensalBase = geracaoMensalKwh > 0 ? geracaoMensalKwh : geracaoMensalCalculada;
   const geracaoAnualBase = geracaoMensalBase * 12;
 
-  // Gasto atual
+  // Tarifa Fio B: usar campo separado se disponível, senão ~28% da tarifa (TUSD média)
+  const tarifaFioB = (input as any).tarifaFioB > 0 ? (input as any).tarifaFioB : tarifaBase * 0.28;
+
+  // Gasto atual — baseado na geração total (todo kWh gerado tem valor)
   const gastoAtualMensal = consumoTotal > 0 ? consumoTotal * tarifaBase : geracaoMensalBase * tarifaBase;
   const gastoNovoMensal = custoDisponibilidade;
-  const economiaMensal = Math.max(0, gastoAtualMensal - gastoNovoMensal);
+
+  // Economia mensal com desconto do Fio B do ano corrente
+  const anoAtual = new Date().getFullYear();
+  const fioBPctAtual = getFioBPercentual(anoAtual);
+  const economiaBrutaMensal = geracaoMensalBase * tarifaBase;
+  const excedenteInjetado = Math.max(0, geracaoMensalBase - consumoTotal);
+  const custoFioBMensal = excedenteInjetado * tarifaFioB * fioBPctAtual;
+  const economiaMensal = Math.max(0, economiaBrutaMensal - custoFioBMensal - custoDisponibilidade);
   const economiaPercent = gastoAtualMensal > 0 ? (economiaMensal / gastoAtualMensal * 100) : 0;
 
   // 25-year series
@@ -113,9 +141,12 @@ export function calcFinancialSeries(input: FinancialSeriesInput): FinancialSerie
     const geracaoAnual = Math.round(geracaoAnualBase * degradacao * 100) / 100;
     const economiaBruta = Math.round(geracaoAnual * tarifaVigente * 100) / 100;
 
-    // Fio B simplified (same as StepPagamento)
-    const fioBPct = 0.15;
-    const custoFioB = Math.round(geracaoAnual * tarifaVigente * 0.28 * fioBPct * 100) / 100;
+    // Fio B: escalonamento dinâmico Lei 14.300
+    const anoProjecao = anoAtual + ano - 1;
+    const fioBPct = getFioBPercentual(anoProjecao);
+    const consumoAnual = consumoTotal * 12;
+    const excedenteAnual = Math.max(0, geracaoAnual - consumoAnual);
+    const custoFioB = Math.round(excedenteAnual * tarifaFioB * inflacao * fioBPct * 100) / 100;
     const economiaLiquida = Math.round((economiaBruta - custoFioB) * 100) / 100;
 
     // Troca de inversor
