@@ -1432,7 +1432,7 @@ Deno.serve(async (req) => {
 
         const allProposalRows: any[] = [];
         let batchCount = 0;
-        const timeBudgetMs = 45_000; // 45s budget — reduce compute per execution
+        const timeBudgetMs = 35_000; // 35s budget — leave 25s margin for finalize + lock release
         const startTime = Date.now();
         const CONCURRENCY = 2; // 2 parallel requests (reduced to avoid CPU exceeded)
 
