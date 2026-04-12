@@ -605,7 +605,7 @@ Deno.serve(async (req) => {
           skipped: true, 
           reason: "all_synced",
           total_projects: totalProjects,
-          synced_proposals: syncedCount,
+          scanned_proposals: scannedCount,
           enriched_funnels: enrichedCount,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
