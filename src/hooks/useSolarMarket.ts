@@ -512,10 +512,13 @@ export function useSyncSolarMarket() {
 /**
  * Subscribes to INSERT on propostas_nativas and clientes to keep
  * SM migration page counters in sync across tabs/users. Debounce 1000ms.
+ * Also listens for solar_market_proposals UPDATE (migrado_em) and
+ * refreshes on tab visibility change for dynamic UX.
  */
 export function useSmMigrationRealtimeSync() {
   const queryClient = useQueryClient();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastHiddenRef = useRef<number | null>(null);
 
   useEffect(() => {
     const invalidate = () => {
@@ -525,6 +528,7 @@ export function useSmMigrationRealtimeSync() {
         queryClient.invalidateQueries({ queryKey: ["sm-clients"] });
         queryClient.invalidateQueries({ queryKey: ["sm-projects"] });
         queryClient.invalidateQueries({ queryKey: ["canonical-check"] });
+        queryClient.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
       }, 1000);
     };
 
@@ -532,11 +536,37 @@ export function useSmMigrationRealtimeSync() {
       .channel("sm-migration-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "propostas_nativas" }, invalidate)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "clientes" }, invalidate)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "solar_market_proposals" }, invalidate)
       .subscribe();
+
+    // Visibility change: refetch immediately when user returns to tab
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        lastHiddenRef.current = Date.now();
+      }
+      if (document.visibilityState === "visible") {
+        // Always refetch when returning to tab
+        queryClient.invalidateQueries({ queryKey: ["sm-proposals"] });
+        queryClient.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
+        queryClient.invalidateQueries({ queryKey: ["sm-sync-logs"] });
+
+        // If hidden for > 30s, do a full refresh
+        const elapsed = lastHiddenRef.current ? Date.now() - lastHiddenRef.current : 0;
+        if (elapsed > 30_000) {
+          queryClient.invalidateQueries({ queryKey: ["sm-clients"] });
+          queryClient.invalidateQueries({ queryKey: ["sm-projects"] });
+          queryClient.invalidateQueries({ queryKey: ["canonical-check"] });
+        }
+        lastHiddenRef.current = null;
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       supabase.removeChannel(channel);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [queryClient]);
 }

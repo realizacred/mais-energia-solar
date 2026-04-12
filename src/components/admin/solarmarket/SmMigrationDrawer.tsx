@@ -284,6 +284,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       cancelRef.current = true;
     };
   }, []);
+
+  // Track when tab was last hidden for stall detection
+  const lastHiddenAtRef = useRef<number | null>(null);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Auto-resume state
   const [autoResumeRunning, setAutoResumeRunning] = useState(false);
@@ -308,6 +311,56 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const { data: pipelineStages = [] } = usePipelineStages(selectedPipelineId || null);
   const { data: pendingStats, refetch: refetchPending } = usePendingMigrationCount();
   const qc = useQueryClient();
+
+  // ─── Visibility change: refetch all data when tab regains focus ──
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        lastHiddenAtRef.current = Date.now();
+      }
+      if (document.visibilityState === "visible") {
+        const hiddenDuration = lastHiddenAtRef.current
+          ? Date.now() - lastHiddenAtRef.current
+          : 0;
+        lastHiddenAtRef.current = null;
+
+        // Always refetch counts when returning to tab
+        refetchPending();
+        qc.invalidateQueries({ queryKey: ["sm-proposals"] });
+        qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
+
+        // If tab was hidden for more than 10s, also refresh canonical checks
+        if (hiddenDuration > 10_000) {
+          qc.invalidateQueries({ queryKey: ["canonical-check"] });
+          qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [refetchPending, qc]);
+
+  // ─── Realtime: auto-update pending count when proposals are migrated ──
+  useEffect(() => {
+    if (!open) return;
+
+    const channel = supabase
+      .channel("sm-migration-realtime-drawer")
+      .on(
+        "postgres_changes" as any,
+        { event: "UPDATE", schema: "public", table: "solar_market_proposals" },
+        () => {
+          // Debounce: only refetch if not already running a batch
+          refetchPending();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, refetchPending]);
 
   const proposal = proposals[0]; // Single or first for display
   const isBulk = proposals.length > 1;
