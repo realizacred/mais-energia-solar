@@ -1526,6 +1526,18 @@ Deno.serve(async (req) => {
           }
           batchCount += chunk.length;
 
+          // Update heartbeat every 10 projects to prevent stale detection
+          if (smOpRunId && batchCount % 10 === 0) {
+            try {
+              await supabase.rpc("update_sm_operation_heartbeat", {
+                p_run_id: smOpRunId,
+                p_processed_items: batchCount,
+                p_success_items: totalUpserted,
+                p_error_items: totalErrors,
+              });
+            } catch (_) { /* best-effort heartbeat */ }
+          }
+
           // Mark processed projects as scanned (with or without proposals)
           await supabase
             .from("solar_market_projects")
