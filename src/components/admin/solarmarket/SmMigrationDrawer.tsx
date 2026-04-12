@@ -485,7 +485,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
       toast.warning(msg);
     }
-  }, [autoResumeRunning, autoResumeStats, pendingStats, addLogCb, qc, updateStepCb]);
+  }, [autoResumeRunning, autoResumeStats, pendingStats, addLog, qc, updateStep]);
 
   const proposal = proposals[0]; // Single or first for display
   const isBulk = proposals.length > 1;
