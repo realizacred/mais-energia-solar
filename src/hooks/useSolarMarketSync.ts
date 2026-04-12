@@ -289,6 +289,8 @@ export function useSolarMarketSync() {
     maxRounds: number;
     propostas: number;
     totalProjetos: number;
+    projetosVarridos: number;
+    projetosRestantes: number;
     comFunis: number;
     pctFunis: number;
     message: string;
@@ -299,6 +301,8 @@ export function useSolarMarketSync() {
     maxRounds: 20,
     propostas: 0,
     totalProjetos: 0,
+    projetosVarridos: 0,
+    projetosRestantes: 0,
     comFunis: 0,
     pctFunis: 0,
     message: "",
