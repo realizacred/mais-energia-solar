@@ -1059,9 +1059,9 @@ export default function SolarMarketPage() {
         )}>
           {fullSyncStatus.running && <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />}
           <span>{fullSyncStatus.message}</span>
-          {fullSyncStatus.running && (
+          {fullSyncStatus.running && fullSyncStatus.totalProjetos > 0 && (
             <span className="ml-auto text-xs text-muted-foreground font-mono shrink-0">
-              {fullSyncStatus.propostas} prop · {fullSyncStatus.pctFunis}% funis
+              {fullSyncStatus.projetosVarridos}/{fullSyncStatus.totalProjetos} varridos · {fullSyncStatus.propostas} prop · {fullSyncStatus.projetosRestantes} restantes
             </span>
           )}
         </div>
