@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 // invokeEdgeFunction replaced by direct fetch with 120s timeout for migration
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import { Sun, CheckCircle, XCircle, Loader2, Clock, ArrowRight, AlertTriangle, FileText, User, Briefcase, FolderKanban, Copy, StopCircle, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { SmProposal } from "@/hooks/useSolarMarket";
@@ -67,9 +68,10 @@ interface MigrationResult {
 
 // ─── Hook: fetch consultores for owner dropdown ─────────
 
-function useConsultores() {
+function useConsultores(isReady: boolean) {
   return useQuery<{ id: string; nome: string }[]>({
     queryKey: ["consultores-active"],
+    enabled: isReady,
     queryFn: async () => {
       const { data } = await supabase
         .from("consultores")
@@ -84,9 +86,10 @@ function useConsultores() {
 
 // ─── Hook: fetch available pipelines ───────────────────
 
-function usePipelines() {
+function usePipelines(isReady: boolean) {
   return useQuery<{ id: string; name: string; kind: string }[]>({
     queryKey: ["pipelines-for-migration"],
+    enabled: isReady,
     queryFn: async () => {
       const { data } = await supabase
         .from("pipelines")
@@ -101,10 +104,10 @@ function usePipelines() {
 
 // ─── Hook: fetch stages for a pipeline ─────────────────
 
-function usePipelineStages(pipelineId: string | null) {
+function usePipelineStages(pipelineId: string | null, isReady: boolean) {
   return useQuery<{ id: string; name: string }[]>({
     queryKey: ["pipeline-stages-migration", pipelineId],
-    enabled: !!pipelineId,
+    enabled: !!pipelineId && isReady,
     queryFn: async () => {
       const { data } = await supabase
         .from("pipeline_stages")
@@ -310,9 +313,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     onRunningChange?.(running);
   }, [running, onRunningChange]);
 
-  const { data: consultores = [] } = useConsultores();
-  const { data: pipelines = [] } = usePipelines();
-  const { data: pipelineStages = [] } = usePipelineStages(selectedPipelineId || null);
+  const { session } = useAuth();
+  const isAuthReady = !!session;
+
+  const { data: consultores = [] } = useConsultores(isAuthReady);
+  const { data: pipelines = [] } = usePipelines(isAuthReady);
+  const { data: pipelineStages = [] } = usePipelineStages(selectedPipelineId || null, isAuthReady);
   const { data: pendingStats, refetch: refetchPending } = usePendingMigrationCount();
   const qc = useQueryClient();
 
