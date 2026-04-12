@@ -527,38 +527,39 @@ export function useSmMigrationRealtimeSync() {
         queryClient.invalidateQueries({ queryKey: ["sm-proposals"] });
         queryClient.invalidateQueries({ queryKey: ["sm-clients"] });
         queryClient.invalidateQueries({ queryKey: ["sm-projects"] });
+        queryClient.invalidateQueries({ queryKey: ["sm-sync-logs"] });
         queryClient.invalidateQueries({ queryKey: ["canonical-check"] });
         queryClient.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
-      }, 1000);
+      }, 600);
     };
 
     const channel = supabase
       .channel("sm-migration-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "propostas_nativas" }, invalidate)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "clientes" }, invalidate)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "solar_market_proposals" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "solar_market_proposals" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "solar_market_projects" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "sm_migration_log" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "propostas_nativas" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "proposta_versoes" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "clientes" }, invalidate)
       .subscribe();
 
-    // Visibility change: refetch immediately when user returns to tab
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
         lastHiddenRef.current = Date.now();
+        return;
       }
-      if (document.visibilityState === "visible") {
-        // Always refetch when returning to tab
-        queryClient.invalidateQueries({ queryKey: ["sm-proposals"] });
-        queryClient.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
-        queryClient.invalidateQueries({ queryKey: ["sm-sync-logs"] });
 
-        // If hidden for > 30s, do a full refresh
-        const elapsed = lastHiddenRef.current ? Date.now() - lastHiddenRef.current : 0;
-        if (elapsed > 30_000) {
-          queryClient.invalidateQueries({ queryKey: ["sm-clients"] });
-          queryClient.invalidateQueries({ queryKey: ["sm-projects"] });
-          queryClient.invalidateQueries({ queryKey: ["canonical-check"] });
-        }
-        lastHiddenRef.current = null;
+      queryClient.invalidateQueries({ queryKey: ["sm-proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["sm-projects"] });
+      queryClient.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
+      queryClient.invalidateQueries({ queryKey: ["sm-sync-logs"] });
+
+      const elapsed = lastHiddenRef.current ? Date.now() - lastHiddenRef.current : 0;
+      if (elapsed > 10_000) {
+        queryClient.invalidateQueries({ queryKey: ["sm-clients"] });
+        queryClient.invalidateQueries({ queryKey: ["canonical-check"] });
       }
+      lastHiddenRef.current = null;
     };
 
     document.addEventListener("visibilitychange", handleVisibility);
