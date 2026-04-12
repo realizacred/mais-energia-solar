@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink, Activity } from "lucide-react";
 import { PageHeader, SectionCard, StatCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
