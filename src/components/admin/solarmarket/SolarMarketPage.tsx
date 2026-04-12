@@ -38,6 +38,7 @@ import {
 import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
 import { useRealtimeSyncLogs } from "@/hooks/useRealtimeSyncLogs";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
+import { SmOperationStatusPanel } from "@/components/admin/solarmarket/SmOperationStatusPanel";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
