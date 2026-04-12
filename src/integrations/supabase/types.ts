@@ -20408,6 +20408,80 @@ export type Database = {
           },
         ]
       }
+      sm_operation_runs: {
+        Row: {
+          checkpoint_json: Json | null
+          context_json: Json | null
+          created_at: string
+          created_by: string | null
+          error_items: number | null
+          error_summary: string | null
+          finished_at: string | null
+          heartbeat_at: string | null
+          id: string
+          operation_type: string
+          processed_items: number | null
+          skipped_items: number | null
+          source: string
+          started_at: string | null
+          status: string
+          success_items: number | null
+          tenant_id: string
+          total_items: number | null
+          updated_at: string
+        }
+        Insert: {
+          checkpoint_json?: Json | null
+          context_json?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_items?: number | null
+          error_summary?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          operation_type: string
+          processed_items?: number | null
+          skipped_items?: number | null
+          source?: string
+          started_at?: string | null
+          status?: string
+          success_items?: number | null
+          tenant_id: string
+          total_items?: number | null
+          updated_at?: string
+        }
+        Update: {
+          checkpoint_json?: Json | null
+          context_json?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_items?: number | null
+          error_summary?: string | null
+          finished_at?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          operation_type?: string
+          processed_items?: number | null
+          skipped_items?: number | null
+          source?: string
+          started_at?: string | null
+          status?: string
+          success_items?: number | null
+          tenant_id?: string
+          total_items?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_operation_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       smtp_settings: {
         Row: {
           created_at: string
@@ -27632,6 +27706,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      has_active_sm_operation: {
+        Args: { p_operation_types?: string[]; p_tenant_id: string }
+        Returns: boolean
       }
       has_feature_permission: {
         Args: { _feature: string; _user_id: string }

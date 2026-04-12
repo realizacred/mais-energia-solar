@@ -533,6 +533,28 @@ Deno.serve(async (req) => {
     const { dry_run = true, batch_size = 25 } = params;
     let { filters = {} } = params;
 
+    // ─── SSOT: Register migration operation run ─────────────
+    let smOpRunId: string | null = null;
+    if (!dry_run) {
+      try {
+        const { data: opRun } = await adminClient
+          .from("sm_operation_runs")
+          .insert({
+            tenant_id: tenantId,
+            source: "solar_market",
+            operation_type: "migrate_to_native",
+            status: "running",
+            started_at: new Date().toISOString(),
+            heartbeat_at: new Date().toISOString(),
+            created_by: user.id,
+            context_json: { batch_size, auto_resume: params.auto_resume ?? false },
+          })
+          .select("id")
+          .single();
+        smOpRunId = opRun?.id ?? null;
+      } catch (_) { /* best-effort SSOT tracking */ }
+    }
+
     // ─── AUTO_RESUME: fetch next pending batch automatically ─────
     if (params.auto_resume && !dry_run) {
       const { data: pendentes } = await adminClient
@@ -2852,11 +2874,49 @@ Deno.serve(async (req) => {
 
     console.error(`[SM Migration] Done in ${result.elapsed_ms}ms. Summary: ${JSON.stringify(summary)} GroupB: ${groupBReports.length} TimeBudget: ${timeBudgetExceeded}`);
 
+    // ─── SSOT: Finalize migration operation run ─────────────
+    if (smOpRunId) {
+      try {
+        const successCount = (summary as any).SUCCESS || 0;
+        const errorCount = (summary as any).ERROR || 0;
+        const skipCount = (summary as any).SKIP || (summary as any).WOULD_SKIP || 0;
+        await adminClient
+          .from("sm_operation_runs")
+          .update({
+            status: errorCount > 0 && successCount === 0 ? "failed" : "completed",
+            finished_at: new Date().toISOString(),
+            heartbeat_at: new Date().toISOString(),
+            total_items: allProposals.length,
+            processed_items: reports.length,
+            success_items: successCount,
+            error_items: errorCount,
+            skipped_items: skipCount,
+          })
+          .eq("id", smOpRunId);
+      } catch (_) { /* best-effort */ }
+    }
+
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("ERR", { step: "fatal", err: (err as Error).message, stack: (err as Error).stack });
+    // ─── SSOT: Mark operation as failed on fatal error ────
+    if (typeof smOpRunId !== "undefined" && smOpRunId) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const fallbackClient = createClient(supabaseUrl, serviceKey);
+        await fallbackClient
+          .from("sm_operation_runs")
+          .update({
+            status: "failed",
+            finished_at: new Date().toISOString(),
+            error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
+          })
+          .eq("id", smOpRunId);
+      } catch (_) { /* best-effort */ }
+    }
     return new Response(
       JSON.stringify({ error: (err as Error).message, step: "fatal", debug: { stack: (err as Error).stack } }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

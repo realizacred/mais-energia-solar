@@ -710,6 +710,26 @@ Deno.serve(async (req) => {
       .single();
 
     logId = syncLog?.id;
+
+    // ─── SSOT: Register operation run ──────────────────────
+    const opType = sync_type === "proposals" ? "sync_proposals" : sync_type === "funnels" || sync_type === "projects_funnels" ? "sync_funnels" : "sync_staging";
+    let smOpRunId: string | null = null;
+    try {
+      const { data: opRun } = await supabase
+        .from("sm_operation_runs")
+        .insert({
+          tenant_id: tenantId,
+          source: "solar_market",
+          operation_type: opType,
+          status: "running",
+          started_at: new Date().toISOString(),
+          heartbeat_at: new Date().toISOString(),
+          context_json: { sync_type, log_id: logId },
+        })
+        .select("id")
+        .single();
+      smOpRunId = opRun?.id ?? null;
+    } catch (_) { /* best-effort SSOT tracking */ }
     let hasSolarMarketAuthError = false;
     let isPartialSync = false;
     let partialRemaining = 0;
@@ -1935,6 +1955,24 @@ Deno.serve(async (req) => {
         .eq("id", logId);
     }
 
+    // ─── SSOT: Finalize operation run ──────────────────────
+    if (smOpRunId) {
+      try {
+        await supabase
+          .from("sm_operation_runs")
+          .update({
+            status: totalErrors > 0 && totalUpserted === 0 ? "failed" : "completed",
+            finished_at: new Date().toISOString(),
+            heartbeat_at: new Date().toISOString(),
+            total_items: totalFetched,
+            processed_items: totalUpserted + totalErrors,
+            success_items: totalUpserted,
+            error_items: totalErrors,
+            error_summary: errors.length > 0 ? errors.slice(0, 5).join("; ").slice(0, 1000) : null,
+          })
+          .eq("id", smOpRunId);
+      } catch (_) { /* best-effort */ }
+    }
     await supabase
       .from("solar_market_config")
       .upsert(
@@ -1977,6 +2015,19 @@ Deno.serve(async (req) => {
       } catch (_) {
         // best-effort log update
       }
+    }
+    // ─── SSOT: Mark operation as failed on fatal error ────
+    if (smOpRunId) {
+      try {
+        await supabase
+          .from("sm_operation_runs")
+          .update({
+            status: "failed",
+            finished_at: new Date().toISOString(),
+            error_summary: ((err as Error).message || "Fatal error").slice(0, 1000),
+          })
+          .eq("id", smOpRunId);
+      } catch (_) { /* best-effort */ }
     }
     return new Response(
       JSON.stringify({ error: (err as Error).message || "Internal error" }),
