@@ -390,6 +390,14 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     };
   }, [autoResumeRunning, qc, refetchPending]);
 
+  const addLog = useCallback((msg: string) => {
+    setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
+  }, []);
+
+  const updateStep = useCallback((name: StepName, update: Partial<MigrationStep>) => {
+    setSteps(prev => prev.map(s => s.name === name ? { ...s, ...update } : s));
+  }, []);
+
   useEffect(() => {
     if (!autoResumeRunning || !autoResumeStats || !pendingStats) return;
 
@@ -498,9 +506,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const needsStage = selectedPipeline?.kind === "process";
   const canMigrate = !!activePipelineId && (!needsStage || !!activeStageId || pipelineStages.length === 0);
 
-  const addLog = useCallback((msg: string) => {
-    setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
-  }, []);
+  // addLog already declared above
 
   const resetState = useCallback(() => {
     setSteps(INITIAL_STEPS);
@@ -514,9 +520,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   }, []);
 
-  const updateStep = useCallback((name: StepName, update: Partial<MigrationStep>) => {
-    setSteps(prev => prev.map(s => s.name === name ? { ...s, ...update } : s));
-  }, []);
+  // updateStep already declared above
 
   const runMigration = useCallback(async (dryRun: boolean) => {
     if (!activePipelineId) {

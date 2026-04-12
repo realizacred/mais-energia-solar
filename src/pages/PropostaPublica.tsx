@@ -1,7 +1,7 @@
 import { formatBRL } from "@/lib/formatters";
 import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, Navigate } from "react-router-dom";
 import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock, XCircle, ThumbsDown, CreditCard, Smartphone, FileText, Banknote, Wallet, DollarSign, Building2, MessageCircle } from "lucide-react";
 import EconomiaDetailCards from "@/components/proposta-publica/EconomiaDetailCards";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,7 @@ export default function PropostaPublica() {
   const [html, setHtml] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [redirectToLanding, setRedirectToLanding] = useState(false);
   const [invalidatedInfo, setInvalidatedInfo] = useState<{
     invalidado_em: string;
     empresaNome: string | null;
@@ -258,7 +259,7 @@ export default function PropostaPublica() {
         supabase.from("proposta_renders")
           .select("html").eq("versao_id", td.versao_id).eq("tipo", "html").maybeSingle(),
         supabase.from("proposta_versoes")
-          .select("id, valor_total, economia_mensal, payback_meses, potencia_kwp, snapshot, output_pdf_path")
+          .select("id, valor_total, economia_mensal, payback_meses, potencia_kwp, snapshot, output_pdf_path, template_id_used")
           .eq("id", td.versao_id).single(),
         (supabase as any).from("proposta_cenarios")
           .select("id, ordem, nome, tipo, is_default, preco_final, entrada_valor, num_parcelas, valor_parcela, taxa_juros_mensal, cet_anual, payback_meses, tir_anual, roi_25_anos, economia_primeiro_ano")
@@ -268,6 +269,14 @@ export default function PropostaPublica() {
       if (renderRes.data?.html) setHtml(renderRes.data.html);
       if (versaoRes.data) {
         setVersaoData(versaoRes.data);
+
+        // If template_id_used exists (HTML web template), redirect to landing page
+        if ((versaoRes.data as any).template_id_used) {
+          setRedirectToLanding(true);
+          setLoading(false);
+          return;
+        }
+
         // If no HTML render but PDF exists, generate signed URL for PDF viewing
         if (!renderRes.data?.html && versaoRes.data.output_pdf_path) {
           const { data: signedData } = await supabase.storage
@@ -409,6 +418,11 @@ export default function PropostaPublica() {
     () => cenarios.find(c => c.id === selectedCenario) ?? null,
     [cenarios, selectedCenario]
   );
+
+  // ── REDIRECT TO LANDING PAGE (template WEB) ────────────
+  if (redirectToLanding && token) {
+    return <Navigate to={`/pl/${token}`} replace />;
+  }
 
   // ── LOADING ───────────────────────────────────────────
   if (loading) {
