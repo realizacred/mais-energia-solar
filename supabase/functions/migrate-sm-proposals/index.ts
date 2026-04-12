@@ -1526,6 +1526,7 @@ Deno.serve(async (req) => {
                 .from("clientes")
                 .insert({
                   origem: "imported",
+                  import_source: "solar_market",
                   tenant_id: tenantId,
                   nome: smClient.name || "SM Import",
                   telefone: smClient.phone_formatted || smClient.phone || `SM-${resolvedSmClientId}`,
@@ -1801,6 +1802,7 @@ Deno.serve(async (req) => {
               const smOriginalDate = smProp.sm_created_at || smProp.generated_at || smProp.send_at || null;
               const dealInsert: Record<string, any> = {
                   origem: "imported",
+                  import_source: "solar_market",
                   tenant_id: tenantId,
                   pipeline_id: resolved.pipeline_id,
                   stage_id: resolved.stage_id,
@@ -1935,6 +1937,7 @@ Deno.serve(async (req) => {
 
                 const projInsert: Record<string, any> = {
                     origem: "imported",
+                    import_source: "solar_market",
                     tenant_id: tenantId,
                     cliente_id: clienteId!,
                     deal_id: dealId,
@@ -2052,6 +2055,7 @@ Deno.serve(async (req) => {
                   titulo: smClient.name || smProp.titulo || `Proposta SM #${smProp.sm_proposal_id}`,
                   status: mapSmStatusToProposta(smProp),
                   origem: "imported",
+                  import_source: "solar_market",
                   versao_atual: 1,
                   sm_id: smIdKey,
                   sm_project_id: smProp.sm_project_id ? String(smProp.sm_project_id) : null,
@@ -2724,6 +2728,7 @@ Deno.serve(async (req) => {
                 .from("clientes")
                 .insert({
                   origem: "imported",
+                  import_source: "solar_market",
                   tenant_id: tenantId,
                   nome: smClient.name || "SM Import",
                   telefone: smClient.phone_formatted || smClient.phone || `SM-${smClient.sm_client_id}`,
@@ -2777,6 +2782,7 @@ Deno.serve(async (req) => {
               .from("projetos")
               .insert({
                 origem: "imported",
+                import_source: "solar_market",
                 tenant_id: tenantId,
                 nome: proj.name || "Projeto SM",
                 cliente_id: clienteId,
