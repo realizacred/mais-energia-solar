@@ -1435,6 +1435,19 @@ export function ProposalWizard() {
     if (res.dealId) setSavedDealId(res.dealId);
   }, []);
 
+  // ─── Fire-and-forget: sync template_id_used on proposta_versoes (RB-25)
+  const syncTemplateIdUsed = useCallback((versaoId: string | undefined | null) => {
+    if (!versaoId || !templateSelecionado) return;
+    const selectedTpl = proposalTemplates.find(t => t.id === templateSelecionado);
+    if (!selectedTpl || selectedTpl.tipo !== "html") return;
+    supabase
+      .from("proposta_versoes")
+      .update({ template_id_used: templateSelecionado } as any)
+      .eq("id", versaoId)
+      .then(({ error }) => {
+        if (error) console.error("[ProposalWizard] template_id_used sync error:", error.message);
+      });
+  }, [templateSelecionado, proposalTemplates]);
   // ─── Fire-and-forget: persist custom field values to deal_custom_field_values (RB-25)
   const syncCustomFieldValues = useCallback((dealId: string | undefined | null) => {
     if (!dealId || Object.keys(customFieldValues).length === 0) return;
