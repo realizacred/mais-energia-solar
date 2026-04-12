@@ -317,7 +317,7 @@ export function useSolarMarketSync() {
   }, []);
 
   const syncUntilComplete = useCallback(async () => {
-    const MAX_ROUNDS = 20;
+    const MAX_ROUNDS = 25;
     const MAX_STAGNANT = 3;
     stopFullSyncRef.current = false;
     setFullSyncStatus({
@@ -326,13 +326,15 @@ export function useSolarMarketSync() {
       maxRounds: MAX_ROUNDS,
       propostas: 0,
       totalProjetos: 0,
+      projetosVarridos: 0,
+      projetosRestantes: 0,
       comFunis: 0,
       pctFunis: 0,
       message: "Iniciando sync completo...",
       stopRequested: false,
     });
 
-    let lastPropostas = -1;
+    let lastVarridos = -1;
     let stagnantRounds = 0;
 
     for (let round = 1; round <= MAX_ROUNDS; round++) {
@@ -365,52 +367,57 @@ export function useSolarMarketSync() {
       // Wait before checking progress
       await new Promise((r) => setTimeout(r, 3000));
 
-      // Check progress
-      const [propRes, projRes, funisRes] = await Promise.all([
+      // Check progress — use projects scanned (proposals_synced_at IS NOT NULL) as the real metric
+      const [propRes, projRes, funisRes, scannedRes] = await Promise.all([
         supabase.from("solar_market_proposals").select("id", { count: "exact", head: true }),
         supabase.from("solar_market_projects").select("id", { count: "exact", head: true }),
         supabase.from("solar_market_projects").select("id", { count: "exact", head: true }).not("all_funnels", "is", null),
+        (supabase as any).from("solar_market_projects").select("id", { count: "exact", head: true }).not("proposals_synced_at", "is", null),
       ]);
 
       const propostas = propRes.count ?? 0;
       const totalProjetos = projRes.count ?? 0;
       const comFunis = funisRes.count ?? 0;
+      const projetosVarridos = scannedRes.count ?? 0;
+      const projetosRestantes = totalProjetos - projetosVarridos;
       const pctFunis = totalProjetos > 0 ? Math.round((comFunis / totalProjetos) * 1000) / 10 : 0;
 
-      // Stagnation detection
-      if (propostas > lastPropostas) {
+      // Stagnation detection — based on projects scanned, NOT proposals count
+      if (projetosVarridos > lastVarridos) {
         stagnantRounds = 0;
       } else {
         stagnantRounds++;
       }
-      lastPropostas = propostas;
+      lastVarridos = projetosVarridos;
 
       setFullSyncStatus((prev) => ({
         ...prev,
         propostas,
         totalProjetos,
+        projetosVarridos,
+        projetosRestantes,
         comFunis,
         pctFunis,
-        message: `Rodada ${round}/${MAX_ROUNDS} — ${propostas} propostas, ${pctFunis}% com funis`,
+        message: `Rodada ${round}/${MAX_ROUNDS} — ${projetosVarridos} de ${totalProjetos} projetos varridos (${propostas} propostas encontradas)`,
       }));
 
-      // Check completion
-      if (propostas >= totalProjetos && pctFunis >= 95) {
+      // Check completion — all projects scanned
+      if (projetosRestantes <= 0) {
         setFullSyncStatus((prev) => ({
           ...prev,
           running: false,
-          message: `✅ Sync completo! ${propostas} propostas, ${pctFunis}% com funis.`,
+          message: `✅ Sync completo! ${projetosVarridos} projetos varridos, ${propostas} propostas encontradas, ${pctFunis}% com funis.`,
         }));
-        toast.success(`Sync completo! ${propostas} propostas importadas, ${pctFunis}% dos projetos com funis.`);
+        toast.success(`Sync completo! ${propostas} propostas importadas de ${totalProjetos} projetos.`);
         return;
       }
 
-      // Stop if stagnant
+      // Stop if stagnant — projects scanned didn't increase for 3 rounds
       if (stagnantRounds >= MAX_STAGNANT) {
         setFullSyncStatus((prev) => ({
           ...prev,
           running: false,
-          message: `Sync estagnado — ${propostas} propostas (sem avanço por ${MAX_STAGNANT} rodadas). Verifique erros no log.`,
+          message: `Sync estagnado — ${projetosVarridos}/${totalProjetos} projetos varridos, sem avanço por ${MAX_STAGNANT} rodadas. Verifique erros no log.`,
         }));
         toast.warning(`Sync parou: sem avanço por ${MAX_STAGNANT} rodadas consecutivas.`, { duration: 8000 });
         return;
@@ -420,7 +427,7 @@ export function useSolarMarketSync() {
     setFullSyncStatus((prev) => ({
       ...prev,
       running: false,
-      message: `Sync parcial — ${prev.propostas} propostas, ${prev.pctFunis}% com funis. Clique novamente para continuar.`,
+      message: `Sync parcial — ${prev.projetosVarridos}/${prev.totalProjetos} projetos varridos (${prev.propostas} propostas). Clique novamente para continuar.`,
     }));
     toast.warning("Sync parcial — clique novamente para continuar.", { duration: 8000 });
   }, [syncAll, syncStage]);
