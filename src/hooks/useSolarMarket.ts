@@ -173,6 +173,7 @@ async function fetchAllRows<T>(params: {
   ascending?: boolean;
 }): Promise<T[]> {
   const allRows: T[] = [];
+  const seen = new Set<string>();
   let from = 0;
 
   while (true) {
@@ -181,12 +182,20 @@ async function fetchAllRows<T>(params: {
       .from(params.table)
       .select(params.select)
       .order(params.orderBy, { ascending: params.ascending ?? true })
+      .order("id", { ascending: true }) // stable tie-breaker to prevent duplicates across pages
       .range(from, to);
 
     if (error) throw error;
 
     const batch = (data || []) as T[];
-    allRows.push(...batch);
+    // Deduplicate in case of boundary overlap
+    for (const row of batch) {
+      const rid = (row as any).id;
+      if (rid && !seen.has(rid)) {
+        seen.add(rid);
+        allRows.push(row);
+      }
+    }
 
     if (batch.length < SM_PAGE_SIZE) break;
     from += SM_PAGE_SIZE;
