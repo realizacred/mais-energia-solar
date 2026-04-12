@@ -710,6 +710,26 @@ Deno.serve(async (req) => {
       .single();
 
     logId = syncLog?.id;
+
+    // ─── SSOT: Register operation run ──────────────────────
+    const opType = sync_type === "proposals" ? "sync_proposals" : sync_type === "funnels" || sync_type === "projects_funnels" ? "sync_funnels" : "sync_staging";
+    let smOpRunId: string | null = null;
+    try {
+      const { data: opRun } = await supabase
+        .from("sm_operation_runs")
+        .insert({
+          tenant_id: tenantId,
+          source: "solar_market",
+          operation_type: opType,
+          status: "running",
+          started_at: new Date().toISOString(),
+          heartbeat_at: new Date().toISOString(),
+          context_json: { sync_type, log_id: logId },
+        })
+        .select("id")
+        .single();
+      smOpRunId = opRun?.id ?? null;
+    } catch (_) { /* best-effort SSOT tracking */ }
     let hasSolarMarketAuthError = false;
     let isPartialSync = false;
     let partialRemaining = 0;
