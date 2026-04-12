@@ -1055,14 +1055,6 @@ export default function SolarMarketPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Sync indicator for background sync */}
-      {isBgSyncActive && !syncIsRunning && (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-warning/10 border border-warning/20 text-warning text-xs">
-          <RefreshCw className="h-3 w-3 animate-spin" />
-          Sincronização automática em andamento... os contadores atualizam a cada ~10s
-        </div>
-      )}
-
       {/* Sync Pipelines Result */}
       {syncPipelinesResult && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-success/5 border border-success/20 text-sm">
@@ -1075,34 +1067,11 @@ export default function SolarMarketPage() {
         </div>
       )}
 
-      {/* Sync Progress (stage-by-stage during active sync) */}
-      <SyncProgressBar progress={progress} />
-
-      {/* Operational Dashboard */}
-      <SmDashboardPanel />
-
-      {/* SSOT Operation Status (active/last run) */}
-      <SmOperationStatusPanel />
-
-      {/* Full Sync Status */}
-      {fullSyncStatus.message && (
-        <div className={cn(
-          "rounded-lg border p-3 text-sm flex items-center gap-2",
-          fullSyncStatus.running
-            ? "border-primary/40 bg-primary/5 text-foreground"
-            : fullSyncStatus.message.startsWith("✅")
-              ? "border-success/30 bg-success/5 text-foreground"
-              : "border-warning/30 bg-warning/5 text-foreground"
-        )}>
-          {fullSyncStatus.running && <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />}
-          <span>{fullSyncStatus.message}</span>
-          {fullSyncStatus.running && fullSyncStatus.totalProjetos > 0 && (
-            <span className="ml-auto text-xs text-muted-foreground font-mono shrink-0">
-              {fullSyncStatus.projetosVarridos}/{fullSyncStatus.totalProjetos} varridos · {fullSyncStatus.propostas} prop · {fullSyncStatus.projetosRestantes} restantes
-            </span>
-          )}
-        </div>
-      )}
+      {/* SINGLE Operational Dashboard — all status + metrics in one place */}
+      <SmDashboardPanel
+        localSyncRunning={syncIsRunning || fullSyncStatus.running}
+        localMigrationRunning={migrationRunning}
+      />
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => { setTab(v); clearFilters(); setSearch(""); clientsPag.resetPage(); projectsPag.resetPage(); proposalsPag.resetPage(); noProjectPag.resetPage(); noProposalPag.resetPage(); }}>
