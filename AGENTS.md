@@ -1,6 +1,7 @@
-# AGENTS.md v3.11 — Mais Energia Solar CRM
+# AGENTS.md v3.12 — Mais Energia Solar CRM
 # Padrões obrigatórios para geração de código via AI (Lovable, Copilot, etc.)
-# Última atualização: 2026-04-07 (v3.11 — Autentique, Signatários, PDF cache, Purge jobs)
+# Última atualização: 2026-04-12 (v3.12 — Migração SM resiliente, Realtime, Template WEB, Cálculo GD)
+# Changelog v3.12: RB-52..RB-56, DA-36..DA-39 (JWT refresh, Realtime obrigatório, template_id_used, calcGrupoB, pipeline_stages)
 # Changelog v3.11: DA-33..DA-35, RB-51 (Autentique adapter, signatários auto, PDF sem re-geração, purge jobs)
 # Changelog v3.10: RB-50, DA-32 (quickConvertToProposal, usePropostaRapidaLead)
 # Changelog v3.7: RB-47..RB-49, DA-25..DA-26 (public action, auto-expire, empresa_*, CEP)
@@ -1342,5 +1343,132 @@ AP-29 CONTRATO SEM DESFRAGMENTAÇÃO
     Índice: idx_monitor_provider_payloads_received_at criado.
 
 # =============================================================================
-# FIM DO AGENTS.md v3.11
+# BLOCO 23 — REGRAS v3.12 — Sessão 2026-04-12
+# =============================================================================
+
+## REGRAS BLOQUEANTES NOVAS
+
+### RB-52 MIGRAÇÃO SM — NUNCA DEPENDER DE SESSÃO DO USUÁRIO
+    A edge function migrate-sm-proposals usa JWT do usuário que expira em ~1h.
+    SEMPRE renovar o token antes de cada lote no auto-resume:
+      const { data: { session } } = await supabase.auth.getSession()
+      if (expiresAt - now < 300) await supabase.auth.refreshSession()
+    NUNCA assumir que o token é válido durante toda a migração.
+    Implementado em: SmMigrationDrawer.tsx (getValidSession antes de cada lote)
+
+### RB-53 REALTIME — TABELAS CRÍTICAS OBRIGATÓRIAS
+    As seguintes tabelas DEVEM estar na publicação supabase_realtime:
+    deals, clientes, leads, propostas_nativas, proposta_versoes,
+    projetos, generated_documents, pipeline_stages
+    Verificar: SELECT tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime'
+    Adicionar se ausente: ALTER PUBLICATION supabase_realtime ADD TABLE public.{tabela}
+    NUNCA lançar feature com realtime sem verificar a publicação.
+
+### RB-54 TEMPLATE WEB — template_id_used OBRIGATÓRIO
+    Ao gerar proposta com template HTML, SEMPRE gravar template_id_used
+    em proposta_versoes após persistAtomic() bem-sucedido.
+    NUNCA deixar template_id_used NULL em versões com template HTML.
+    Sem isso, a landing page ignora o template e usa layout padrão.
+    Implementado em: ProposalWizard.tsx (syncTemplateIdUsed após persistAtomic)
+
+### RB-55 REFERÊNCIA CIRCULAR — VERIFICAR ANTES DE DEPLOY
+    Erro "Cannot access X before initialization" = referência circular no bundle.
+    SEMPRE verificar imports circulares antes de deploy:
+      npx madge --circular src/
+    Variáveis declaradas com const/let NUNCA podem ser usadas antes da declaração.
+    useCallback/useEffect que usa função local: declarar a função ANTES do hook.
+
+### RB-56 PIPELINE_STAGES — NOME CORRETO DA TABELA
+    A tabela de etapas se chama pipeline_stages (NÃO deal_pipeline_stages).
+    A tabela de pipelines se chama pipelines (NÃO deal_pipelines).
+    A coluna de fechamento se chama is_closed (NÃO is_lost).
+    SEMPRE verificar nomes reais antes de usar em edge functions.
+    Executar: SELECT table_name FROM information_schema.tables WHERE table_name LIKE '%pipeline%'
+
+## DECISÕES ARQUITETURAIS NOVAS
+
+### DA-36 MIGRAÇÃO SM — ARQUITETURA DEFINITIVA
+    A migração das 1813 propostas SM é frontend-driven (SmMigrationDrawer).
+    O auto-resume renova JWT antes de cada lote (RB-52).
+    Futuramente: mover para pg_cron job server-side que não depende de browser.
+    Deduplicação tripla: migrado_em IS NULL + legacy_key cache + ON CONFLICT.
+    Group B (projetos sem proposta) é opt-in — nunca roda por padrão.
+
+### DA-37 CÁLCULO FINANCEIRO — MOTOR CANÔNICO
+    calcGrupoB.ts é o motor canônico para Grupo B (GD I, GD II, GD III).
+    calcGrupoA.ts é o motor canônico para Grupo A (tarifa binômia).
+    calcFinancialSeries.ts DEVE chamar calcGrupoB/calcGrupoA — nunca lógica própria.
+    REN 1000 / Lei 14.300: Fio B progressivo 2023→2029 em calcGrupoB.
+    Economia baseada na geração total (não apenas consumo).
+    Excedente injetado na rede desconta Fio B progressivo.
+
+### DA-38 TEMPLATE WEB — FLUXO CORRETO
+    Templates WEB (tipo html) são armazenados como JSON de TemplateBlock[] em template_html.
+    Rota pública: /proposta/:token verifica template_id_used na versão.
+    Se template_id_used existe → redireciona para /pl/:token (PropostaLanding).
+    Se não existe → layout padrão (não quebrar).
+    NUNCA usar template_id_used com templates DOCX — apenas HTML.
+
+### DA-39 REALTIME — PADRÃO OBRIGATÓRIO
+    Todo canal Realtime DEVE seguir este padrão:
+      const channel = supabase.channel('nome-unico')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tabela' },
+          () => queryClient.invalidateQueries({ queryKey: ['chave'] }))
+        .subscribe()
+      return () => supabase.removeChannel(channel)
+    Verificar publicação supabase_realtime antes de implementar.
+    Tabelas não publicadas não disparam eventos mesmo com canal configurado.
+
+## CORREÇÕES CRÍTICAS DA SESSÃO 2026-04-12
+
+### Migração SM
+- JWT refresh automático antes de cada lote no auto-resume ✅
+- Group B defaulta false — nunca roda sozinho ✅
+- verErr agora aborta o fluxo (report.aborted = true + continue) ✅
+- VENDEDOR_MAP com word-boundary seguro (startsWith ao invés de includes) ✅
+- resolveOrCreateStage: 1 query por pipeline com bulk-load + cache ✅
+- inferTipoPagamento: tipo de pagamento inferido do texto SM ✅
+- console.logs comentados em migrate-sm-proposals e solarmarket-sync ✅
+- Conflitos de merge resolvidos (8 marcadores) ✅
+
+### Área de proposta
+- calcFinancialSeries agora usa calcGrupoB como motor canônico ✅
+- GD I adicionado no wizard ✅
+- calcGrupoA criado para Grupo A (tarifa binômia, demanda fixa) ✅
+- Tarifas horossazonais processadas no cálculo financeiro ✅
+- REN 1000 / Lei 14.300 implementada com Fio B progressivo ✅
+- Economia baseada na geração total ✅
+- template_id_used gravado após persistAtomic ✅
+- PropostaPublica redireciona para template WEB quando existe ✅
+- Landing page: badge subgrupo + 3 cards economia + barra cobertura ✅
+
+### Infraestrutura
+- Realtime habilitado: deals, clientes, leads, sm_migration_log, solar_market_proposals ✅
+- SolarMarketPage: referência circular corrigida (addLog/updateStep antes do useEffect) ✅
+- syncAll: interrompe stages dependentes em caso de falha (clients → projects → proposals) ✅
+- usePendingMigrationCount: mostra erros reais do banco ✅
+
+### Comercial
+- Campo email no lead: formulário, busca, exportação CSV ✅
+- Origens de lead configuráveis: tabela lead_origens, CRUD admin, 27 origens seeded ✅
+- Importação CSV/XLSX: wizard 4 passos, deduplicação, batches 50 ✅
+- Métricas: LeadsByOriginChart, ClosingTimeCard, RevenuePrevVsRealizedChart ✅
+
+### WhatsApp
+- Merge Realtime seletivo (filtrar null) em useWaInbox.ts ✅
+- RLS com SECURITY DEFINER para evitar recursão ✅
+- Automação do funil: cron job criado (job 65), bug contador corrigido ✅
+
+## CHECKLIST ADICIONAL v3.12
+
+[ ] JWT refresh antes de cada lote em operações longas (RB-52)
+[ ] Verificar pg_publication_tables antes de confiar no Realtime (RB-53)
+[ ] template_id_used gravado após persistAtomic para templates HTML (RB-54)
+[ ] Sem referência circular: npx madge --circular src/ (RB-55)
+[ ] Nomes corretos de tabela: pipeline_stages, pipelines, is_closed (RB-56)
+[ ] calcFinancialSeries usa calcGrupoB/calcGrupoA — nunca lógica própria (DA-37)
+[ ] Realtime: cleanup com supabase.removeChannel no return do useEffect (DA-39)
+
+# =============================================================================
+# FIM DO AGENTS.md v3.12
 # =============================================================================
