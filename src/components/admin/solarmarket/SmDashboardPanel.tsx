@@ -454,8 +454,7 @@ export function SmDashboardPanel({
           </div>
           <Progress value={scanPercent} className="h-2" />
           <p className="text-[11px] text-muted-foreground">
-            {projectsRemaining} projetos ainda não verificados
-            {state !== "sync_running" && " — clique em Sincronizar Tudo para continuar"}
+            {projectsRemaining} projetos ainda não verificados — clique em Sincronizar Tudo para continuar
           </p>
         </div>
       )}
