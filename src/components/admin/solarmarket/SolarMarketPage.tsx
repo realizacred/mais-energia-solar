@@ -596,7 +596,20 @@ export default function SolarMarketPage() {
   useRealtimeSyncLogs();
   const syncIsRunning = progress.isRunning;
   const { data: isBgSyncActive = false } = useIsBackgroundSyncActive();
+  const { data: activeSmRun } = useActiveSmOperation();
   const isAnySyncActive = syncIsRunning || isBgSyncActive;
+
+  // Auto-resume sync after F5/reload if there's an active non-stale run in SSOT
+  const hasAutoResumed = useRef(false);
+  useEffect(() => {
+    if (hasAutoResumed.current) return;
+    if (!activeSmRun) return;
+    if ((activeSmRun as any)._stale === true) return;
+    if (fullSyncStatus.running || syncIsRunning) return;
+
+    hasAutoResumed.current = true;
+    syncUntilComplete();
+  }, [activeSmRun, fullSyncStatus.running, syncIsRunning, syncUntilComplete]);
 
   const { session } = useAuth();
   const sessionReady = !!session;
