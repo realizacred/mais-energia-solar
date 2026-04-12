@@ -2874,6 +2874,28 @@ Deno.serve(async (req) => {
 
     console.error(`[SM Migration] Done in ${result.elapsed_ms}ms. Summary: ${JSON.stringify(summary)} GroupB: ${groupBReports.length} TimeBudget: ${timeBudgetExceeded}`);
 
+    // ─── SSOT: Finalize migration operation run ─────────────
+    if (smOpRunId) {
+      try {
+        const successCount = (summary as any).SUCCESS || 0;
+        const errorCount = (summary as any).ERROR || 0;
+        const skipCount = (summary as any).SKIP || (summary as any).WOULD_SKIP || 0;
+        await adminClient
+          .from("sm_operation_runs")
+          .update({
+            status: errorCount > 0 && successCount === 0 ? "failed" : "completed",
+            finished_at: new Date().toISOString(),
+            heartbeat_at: new Date().toISOString(),
+            total_items: allProposals.length,
+            processed_items: reports.length,
+            success_items: successCount,
+            error_items: errorCount,
+            skipped_items: skipCount,
+          })
+          .eq("id", smOpRunId);
+      } catch (_) { /* best-effort */ }
+    }
+
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
