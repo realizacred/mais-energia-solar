@@ -419,6 +419,11 @@ export default function PropostaPublica() {
     [cenarios, selectedCenario]
   );
 
+  // ── REDIRECT TO LANDING PAGE (template WEB) ────────────
+  if (redirectToLanding && token) {
+    return <Navigate to={`/pl/${token}`} replace />;
+  }
+
   // ── LOADING ───────────────────────────────────────────
   if (loading) {
     return (
