@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,7 @@ import { useRealtimeSyncLogs } from "@/hooks/useRealtimeSyncLogs";
 import { SyncProgressBar } from "@/components/admin/solarmarket/SyncProgressBar";
 import { SmOperationStatusPanel } from "@/components/admin/solarmarket/SmOperationStatusPanel";
 import { SmDashboardPanel } from "@/components/admin/solarmarket/SmDashboardPanel";
+import { useActiveSmOperation } from "@/hooks/useSmOperationRuns";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
@@ -595,7 +596,20 @@ export default function SolarMarketPage() {
   useRealtimeSyncLogs();
   const syncIsRunning = progress.isRunning;
   const { data: isBgSyncActive = false } = useIsBackgroundSyncActive();
+  const { data: activeSmRun } = useActiveSmOperation();
   const isAnySyncActive = syncIsRunning || isBgSyncActive;
+
+  // Auto-resume sync after F5/reload if there's an active non-stale run in SSOT
+  const hasAutoResumed = useRef(false);
+  useEffect(() => {
+    if (hasAutoResumed.current) return;
+    if (!activeSmRun) return;
+    if ((activeSmRun as any)._stale === true) return;
+    if (fullSyncStatus.running || syncIsRunning) return;
+
+    hasAutoResumed.current = true;
+    syncUntilComplete();
+  }, [activeSmRun, fullSyncStatus.running, syncIsRunning, syncUntilComplete]);
 
   const { session } = useAuth();
   const sessionReady = !!session;
@@ -1103,23 +1117,23 @@ export default function SolarMarketPage() {
             <TabsTrigger value="projetos" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
               <FolderKanban className="h-3.5 w-3.5" />
               Projetos
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{filtered.projects.length}</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{projects.length}</Badge>
               {filterClientId && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
             </TabsTrigger>
             <TabsTrigger value="propostas" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
               <FileText className="h-3.5 w-3.5" />
               Propostas
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{filtered.proposals.length}</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{proposals.length}</Badge>
               {filterProjectId && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
             </TabsTrigger>
             <TabsTrigger value="sem-projeto" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
               <UserMinus className="h-3.5 w-3.5" />
-              S/ Projeto
+              Clientes s/ Projeto
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{clientsWithoutProjectsCount}</Badge>
             </TabsTrigger>
             <TabsTrigger value="sem-proposta" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
               <UserX className="h-3.5 w-3.5" />
-              S/ Proposta
+              Clientes s/ Proposta
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-0.5">{clientsWithoutProposalsCount}</Badge>
             </TabsTrigger>
             <TabsTrigger value="funis" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
