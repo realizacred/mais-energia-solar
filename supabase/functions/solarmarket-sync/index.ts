@@ -1947,7 +1947,8 @@ Deno.serve(async (req) => {
     // ─── SSOT: Release lock with final counts ──────────────
     if (smOpRunId) {
       try {
-        const lockStatus = totalErrors > 0 && totalUpserted === 0 ? "failed" : "completed";
+        const lockStatus = isPartialSync ? "completed" : (totalErrors > 0 && totalUpserted === 0 ? "failed" : "completed");
+        const partialNote = isPartialSync ? `Partial by time budget: ${partialRemaining} remaining` : null;
         await supabase.rpc("release_sm_operation_lock", {
           p_run_id: smOpRunId,
           p_status: lockStatus,
@@ -1955,7 +1956,7 @@ Deno.serve(async (req) => {
           p_processed_items: totalUpserted + totalErrors,
           p_success_items: totalUpserted,
           p_error_items: totalErrors,
-          p_error_summary: errors.length > 0 ? errors.slice(0, 5).join("; ").slice(0, 1000) : null,
+          p_error_summary: partialNote || (errors.length > 0 ? errors.slice(0, 5).join("; ").slice(0, 1000) : null),
         });
       } catch (_) { /* best-effort */ }
     }
