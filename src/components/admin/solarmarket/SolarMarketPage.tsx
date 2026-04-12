@@ -156,7 +156,21 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
   clientsMap?: Map<number, SmClient>;
   pagination?: { page: number; pageSize: number; onPageChange: (p: number) => void; onPageSizeChange: (s: number) => void };
 }) {
-  const displayed = pagination ? paginate(projects, pagination.page, pagination.pageSize) : projects;
+  // Regression guard: dedupe by sm_project_id to guarantee 1 project = 1 row
+  const deduped = useMemo(() => {
+    const seen = new Set<number>();
+    const result: SmProject[] = [];
+    for (const p of projects) {
+      if (seen.has(p.sm_project_id)) {
+        console.warn(`[ProjectsTable] Duplicate sm_project_id detected: ${p.sm_project_id}`);
+        continue;
+      }
+      seen.add(p.sm_project_id);
+      result.push(p);
+    }
+    return result;
+  }, [projects]);
+  const displayed = pagination ? paginate(deduped, pagination.page, pagination.pageSize) : deduped;
   return (
     <SectionCard icon={FolderKanban} title="Projetos" variant="neutral" noPadding>
       <div className="overflow-x-auto">
