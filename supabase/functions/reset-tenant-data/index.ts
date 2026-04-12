@@ -98,6 +98,35 @@ Deno.serve(async (req) => {
 
     const tenantId = profile.tenant_id;
 
+    // GUARD: Check for active migration/sync before proceeding
+    const { data: activeSyncs } = await admin
+      .from("solar_market_sync_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("status", "running");
+
+    const { data: recentMigrations } = await admin
+      .from("sm_migration_log")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
+      .in("status", ["SUCCESS", "CREATED", "SKIP"]);
+
+    const syncCount = (activeSyncs as any)?.length ?? 0;
+    const migCount = (recentMigrations as any)?.length ?? 0;
+
+    if (syncCount > 0 || migCount > 0) {
+      return new Response(
+        JSON.stringify({
+          error: "Reset bloqueado: existe migração/sincronização SolarMarket em andamento. Aguarde a conclusão antes de resetar.",
+          blocked: true,
+          active_syncs: syncCount,
+          recent_migrations: migCount,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Marcar syncs travados como failed
     await admin
       .from("solar_market_sync_logs")
@@ -130,7 +159,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // RPC só para dados canônicos (rápido)
+    // RPC para dados canônicos (já tem guarda interna de migração)
     const { data: counts, error: resetErr } = await admin
       .rpc("reset_migrated_data", { p_tenant_id: tenantId });
 

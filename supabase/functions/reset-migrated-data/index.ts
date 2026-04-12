@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    // The RPC itself now checks for active migration/sync and blocks if needed
     const { data: counts, error: resetErr } = await admin.rpc(
       "reset_migrated_data",
       { p_tenant_id: profile.tenant_id }
@@ -73,6 +74,14 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: resetErr.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // RPC returns success:false when migration is active
+    if (counts && counts.success === false) {
+      return new Response(
+        JSON.stringify({ error: counts.error, blocked: true }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
