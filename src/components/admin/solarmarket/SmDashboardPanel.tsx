@@ -16,6 +16,7 @@
 import { useSmSyncProgress } from "@/hooks/useSmSyncProgress";
 import { useActiveSmOperation, useLastCompletedSmOperation } from "@/hooks/useSmOperationRuns";
 import { useIsBackgroundSyncActive } from "@/hooks/useSolarMarket";
+import type { SyncProgress, SyncStageStatus } from "@/hooks/useSolarMarketSync";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +30,8 @@ import {
   ArrowRightLeft,
   Clock,
   XCircle,
+  Activity,
+  SkipForward,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -114,11 +117,161 @@ function KpiCard({ icon: Icon, label, value, sub, color }: {
   );
 }
 
+// ─── Stage status icon ──────────────────────────────────
+
+function StageIcon({ status }: { status: SyncStageStatus["status"] }) {
+  switch (status) {
+    case "running":
+      return <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />;
+    case "done":
+      return <CheckCircle className="h-3.5 w-3.5 text-success" />;
+    case "partial":
+      return <AlertTriangle className="h-3.5 w-3.5 text-warning" />;
+    case "error":
+      return <XCircle className="h-3.5 w-3.5 text-destructive" />;
+    case "skipped":
+      return <SkipForward className="h-3.5 w-3.5 text-muted-foreground/50" />;
+    default:
+      return <Clock className="h-3.5 w-3.5 text-muted-foreground" />;
+  }
+}
+
+// ─── Active Operation Detail Panel ──────────────────────
+
+function ActiveOperationDetail({
+  activeRun,
+  localSyncProgress,
+  projectsScanned,
+  totalProjects,
+  totalProposals,
+  projectsRemaining,
+}: {
+  activeRun: any;
+  localSyncProgress?: SyncProgress | null;
+  projectsScanned: number;
+  totalProjects: number;
+  totalProposals: number;
+  projectsRemaining: number;
+}) {
+  const heartbeatLabel = activeRun?.heartbeat_at
+    ? formatDistanceToNow(new Date(activeRun.heartbeat_at), { addSuffix: true, locale: ptBR })
+    : null;
+
+  const opType = activeRun?.operation_type;
+
+  // Show local stage-by-stage detail for sync_staging
+  const showLocalStages = localSyncProgress?.isRunning &&
+    localSyncProgress.stages.some((s) => s.status !== "pending" && s.status !== "skipped");
+
+  // Show proposal scan detail for sync_proposals
+  const showProposalScan = opType === "sync_proposals";
+
+  return (
+    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2.5 animate-in fade-in duration-300">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Activity className="h-3.5 w-3.5 text-primary" />
+          <span className="text-xs font-semibold text-foreground">Execução atual</span>
+          {opType && (
+            <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+              {opType === "sync_proposals" ? "Varredura de propostas" :
+               opType === "sync_staging" || opType === "solarmarket_sync" ? "Sync de staging" :
+               opType === "migrate_to_native" ? "Migração" : opType}
+            </Badge>
+          )}
+        </div>
+        {heartbeatLabel && (
+          <span className="text-[10px] text-muted-foreground">
+            Heartbeat: {heartbeatLabel}
+          </span>
+        )}
+      </div>
+
+      {/* SSOT run progress */}
+      {activeRun && activeRun.total_items > 0 && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>Processados neste lote</span>
+            <span className="font-mono">{activeRun.processed_items} / {activeRun.total_items}</span>
+          </div>
+          <Progress value={Math.round((activeRun.processed_items / activeRun.total_items) * 100)} className="h-1.5" />
+          {activeRun.error_items > 0 && (
+            <span className="text-[10px] text-destructive">{activeRun.error_items} erros</span>
+          )}
+        </div>
+      )}
+
+      {/* Proposal scan — show aggregate progress */}
+      {showProposalScan && (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-md border border-border bg-card p-2 text-center">
+            <p className="text-sm font-bold text-foreground">{projectsScanned}</p>
+            <p className="text-[10px] text-muted-foreground">Proj. varridos</p>
+          </div>
+          <div className="rounded-md border border-border bg-card p-2 text-center">
+            <p className="text-sm font-bold text-foreground">{totalProposals}</p>
+            <p className="text-[10px] text-muted-foreground">Propostas encontradas</p>
+          </div>
+          <div className="rounded-md border border-border bg-card p-2 text-center">
+            <p className="text-sm font-bold text-foreground">{projectsRemaining}</p>
+            <p className="text-[10px] text-muted-foreground">Restantes</p>
+          </div>
+        </div>
+      )}
+
+      {/* Local stage-by-stage detail for sync_staging */}
+      {showLocalStages && localSyncProgress && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          {localSyncProgress.stages
+            .filter((s) => s.status !== "skipped")
+            .map((stage) => (
+              <div
+                key={stage.stage}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md border p-2 text-[11px]",
+                  stage.status === "running" ? "border-primary/30 bg-primary/5" :
+                  stage.status === "done" ? "border-success/20 bg-success/5" :
+                  stage.status === "partial" ? "border-warning/20 bg-warning/5" :
+                  stage.status === "error" ? "border-destructive/20 bg-destructive/5" :
+                  "border-border bg-muted/20"
+                )}
+              >
+                <StageIcon status={stage.status} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium truncate">{stage.label}</p>
+                  {stage.status === "running" && (
+                    <p className="text-[10px] text-muted-foreground">Processando...</p>
+                  )}
+                  {stage.status === "done" && (
+                    <p className="text-[10px] text-muted-foreground">
+                      {stage.fetched} → {stage.upserted}
+                    </p>
+                  )}
+                  {stage.status === "partial" && (
+                    <p className="text-[10px] text-warning">
+                      {stage.upserted}/{stage.fetched}
+                    </p>
+                  )}
+                  {stage.status === "error" && (
+                    <p className="text-[10px] text-destructive truncate">
+                      {stage.errorMessage || "Erro"}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── State derivation ───────────────────────────────────
 
 interface SmDashboardPanelProps {
   localSyncRunning?: boolean;
   localMigrationRunning?: boolean;
+  localSyncProgress?: SyncProgress | null;
 }
 
 function deriveState(params: {
@@ -166,7 +319,11 @@ function deriveState(params: {
 
 // ─── Component ──────────────────────────────────────────
 
-export function SmDashboardPanel({ localSyncRunning = false, localMigrationRunning = false }: SmDashboardPanelProps) {
+export function SmDashboardPanel({
+  localSyncRunning = false,
+  localMigrationRunning = false,
+  localSyncProgress = null,
+}: SmDashboardPanelProps) {
   const { data: progress } = useSmSyncProgress();
   const { data: activeRun } = useActiveSmOperation();
   const { data: lastRun } = useLastCompletedSmOperation();
@@ -218,6 +375,11 @@ export function SmDashboardPanel({ localSyncRunning = false, localMigrationRunni
     if (opType === "sync_proposals") statusSublabel = "Buscando propostas nos projetos...";
     else if (opType === "sync_staging" || opType === "solarmarket_sync") statusSublabel = "Sincronizando projetos...";
     else statusSublabel = "Operação em andamento...";
+  } else if (state === "sync_running" && localSyncRunning && localSyncProgress?.currentStage) {
+    const runningStage = localSyncProgress.stages.find((s) => s.status === "running");
+    if (runningStage) {
+      statusSublabel = `Etapa: ${runningStage.label}`;
+    }
   }
 
   const borderClass = {
@@ -237,6 +399,9 @@ export function SmDashboardPanel({ localSyncRunning = false, localMigrationRunni
     config.color === "destructive" && "text-destructive",
     config.spinning && "animate-spin",
   );
+
+  // Show active operation detail when something is running
+  const showActiveDetail = state === "sync_running" || state === "migration_running" || state === "stale";
 
   return (
     <div className="space-y-3">
@@ -268,8 +433,20 @@ export function SmDashboardPanel({ localSyncRunning = false, localMigrationRunni
         </div>
       </div>
 
+      {/* Active Operation Detail — visible only when operation is active */}
+      {showActiveDetail && (activeRun || localSyncProgress?.isRunning) && (
+        <ActiveOperationDetail
+          activeRun={activeRun}
+          localSyncProgress={localSyncProgress}
+          projectsScanned={projectsScanned}
+          totalProjects={totalProjects}
+          totalProposals={totalProposals}
+          projectsRemaining={projectsRemaining}
+        />
+      )}
+
       {/* Scan Progress Bar (only when scan incomplete and we have projects) */}
-      {totalProjects > 0 && projectsRemaining > 0 && (
+      {totalProjects > 0 && projectsRemaining > 0 && !showActiveDetail && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Projetos varridos (busca de propostas)</span>
@@ -277,8 +454,7 @@ export function SmDashboardPanel({ localSyncRunning = false, localMigrationRunni
           </div>
           <Progress value={scanPercent} className="h-2" />
           <p className="text-[11px] text-muted-foreground">
-            {projectsRemaining} projetos ainda não verificados
-            {state !== "sync_running" && " — clique em Sincronizar Tudo para continuar"}
+            {projectsRemaining} projetos ainda não verificados — clique em Sincronizar Tudo para continuar
           </p>
         </div>
       )}
