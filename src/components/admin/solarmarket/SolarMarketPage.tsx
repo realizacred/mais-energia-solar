@@ -1042,6 +1042,26 @@ export default function SolarMarketPage() {
       {/* Sync Progress */}
       <SyncProgressBar progress={progress} />
 
+      {/* Full Sync Status */}
+      {fullSyncStatus.message && (
+        <div className={cn(
+          "rounded-lg border p-3 text-sm flex items-center gap-2",
+          fullSyncStatus.running
+            ? "border-primary/40 bg-primary/5 text-foreground"
+            : fullSyncStatus.message.startsWith("✅")
+              ? "border-success/30 bg-success/5 text-foreground"
+              : "border-warning/30 bg-warning/5 text-foreground"
+        )}>
+          {fullSyncStatus.running && <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />}
+          <span>{fullSyncStatus.message}</span>
+          {fullSyncStatus.running && (
+            <span className="ml-auto text-xs text-muted-foreground font-mono shrink-0">
+              {fullSyncStatus.propostas} prop · {fullSyncStatus.pctFunis}% funis
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Migration Progress Counter */}
       {proposals.length > 0 && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/5 border border-primary/20 text-sm">
