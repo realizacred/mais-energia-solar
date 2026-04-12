@@ -533,6 +533,28 @@ Deno.serve(async (req) => {
     const { dry_run = true, batch_size = 25 } = params;
     let { filters = {} } = params;
 
+    // ─── SSOT: Register migration operation run ─────────────
+    let smOpRunId: string | null = null;
+    if (!dry_run) {
+      try {
+        const { data: opRun } = await adminClient
+          .from("sm_operation_runs")
+          .insert({
+            tenant_id: tenantId,
+            source: "solar_market",
+            operation_type: "migrate_to_native",
+            status: "running",
+            started_at: new Date().toISOString(),
+            heartbeat_at: new Date().toISOString(),
+            created_by: user.id,
+            context_json: { batch_size, auto_resume: params.auto_resume ?? false },
+          })
+          .select("id")
+          .single();
+        smOpRunId = opRun?.id ?? null;
+      } catch (_) { /* best-effort SSOT tracking */ }
+    }
+
     // ─── AUTO_RESUME: fetch next pending batch automatically ─────
     if (params.auto_resume && !dry_run) {
       const { data: pendentes } = await adminClient
