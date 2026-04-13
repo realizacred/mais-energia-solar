@@ -1475,6 +1475,32 @@ Deno.serve(async (req) => {
         }
       }
       console.error(`[SM Migration] Pre-created ${pipelinesCreated} pipelines, ${stagesCreated} stages from SM funnels (ordered)`);
+
+      // 4) Fix position of existing stages that were created with wrong order
+      let positionsFixed = 0;
+      for (const [funnelName, orderedStages] of smOrderedStagesMap) {
+        if (normalizeComparableName(funnelName) === "vendedores") continue;
+        const mappedName = funnelName.trim() === "LEAD" ? "Comercial" : funnelName.trim();
+        const pipeId = pipelineCache.get(mappedName);
+        if (!pipeId || pipeId.startsWith("AUTO_CREATE")) continue;
+
+        for (const s of orderedStages) {
+          const normalizedName = normalizeComparableName(s.stage_name);
+          const cacheKey = `${pipeId}::${normalizedName}`;
+          const stageId = stageCache.get(cacheKey);
+          if (!stageId) continue;
+
+          const { error: updErr } = await adminClient
+            .from("pipeline_stages")
+            .update({ position: s.stage_order })
+            .eq("id", stageId)
+            .eq("tenant_id", tenantId);
+          if (!updErr) positionsFixed++;
+        }
+      }
+      if (positionsFixed > 0) {
+        console.error(`[SM Migration] Fixed position of ${positionsFixed} existing stages using SM order`);
+      }
     }
 
     // ─── 5a. Batch pre-fetch canonical entities for O(1) lookup ──
