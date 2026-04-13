@@ -66,6 +66,28 @@ interface MigrationResult {
   total_processed: number;
 }
 
+interface MigrationBlockedPayload {
+  blocked?: boolean;
+  blocked_by?: string | null;
+  blocked_by_type?: string | null;
+  error?: string;
+  message?: string;
+}
+
+const SYNC_BLOCKING_OPERATION_TYPES = new Set([
+  "sync_proposals",
+  "solarmarket_sync",
+  "sync_staging",
+]);
+
+function getBlockedType(errBody: MigrationBlockedPayload) {
+  return errBody?.blocked_by_type || errBody?.blocked_by || null;
+}
+
+function getBlockedMessage(errBody: MigrationBlockedPayload, fallback: string) {
+  return errBody?.message || errBody?.error || fallback;
+}
+
 // ─── Hook: fetch consultores for owner dropdown ─────────
 
 function useConsultores(isReady: boolean) {
@@ -662,13 +684,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           }
 
           if (!response.ok) {
-            const errBody = await response.json().catch(() => ({}));
-            if (response.status === 423 || errBody?.blocked) {
-              throw new Error(errBody?.message || "Migração bloqueada para manutenção. Contate o administrador.");
-            }
+            const errBody = await response.json().catch(() => ({} as MigrationBlockedPayload));
             if (response.status === 409 && errBody?.blocked) {
-              const blockedType = errBody?.blocked_by_type || "operação";
-              const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
+              const rawBlockedType = getBlockedType(errBody);
+              const blockedType = rawBlockedType || "operação";
+              const isSyncBlock = !!rawBlockedType && SYNC_BLOCKING_OPERATION_TYPES.has(rawBlockedType);
               if (isSyncBlock && syncWaitRetries < MAX_SYNC_WAIT_RETRIES) {
                 syncWaitRetries++;
                 addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa automática ${syncWaitRetries}/${MAX_SYNC_WAIT_RETRIES} em 15s.`);
@@ -681,7 +701,13 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               }
               throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde a conclusão ou tente novamente em 2 minutos.`);
             }
-            throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
+            if (response.status === 423) {
+              throw new Error(getBlockedMessage(errBody, "Migração bloqueada para manutenção. Contate o administrador."));
+            }
+            if (errBody?.blocked) {
+              throw new Error(getBlockedMessage(errBody, "Migração bloqueada para manutenção. Contate o administrador."));
+            }
+            throw new Error(getBlockedMessage(errBody, `HTTP ${response.status}`));
           }
 
           const data = await response.json() as MigrationResult;
@@ -980,14 +1006,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           });
 
           if (!response.ok) {
-            const errBody = await response.json().catch(() => ({}));
-            if (response.status === 423 || errBody?.blocked) {
-              throw new Error(errBody?.message || "Migração bloqueada.");
-            }
+            const errBody = await response.json().catch(() => ({} as MigrationBlockedPayload));
             // 409 blocked by another SM operation (e.g. sync_proposals) — wait and retry
             if (response.status === 409 && errBody?.blocked) {
-              const blockedType = errBody?.blocked_by_type || "operação";
-              const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
+              const rawBlockedType = getBlockedType(errBody);
+              const blockedType = rawBlockedType || "operação";
+              const isSyncBlock = !!rawBlockedType && SYNC_BLOCKING_OPERATION_TYPES.has(rawBlockedType);
               if (isSyncBlock) {
                 addLog(`Rodada ${round}: aguardando término de ${blockedType}... Nova tentativa automática em 15s.`);
                 for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
@@ -1002,7 +1026,13 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               }
               throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde ou tente novamente em 2 min.`);
             }
-            throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
+            if (response.status === 423) {
+              throw new Error(getBlockedMessage(errBody, "Migração bloqueada."));
+            }
+            if (errBody?.blocked) {
+              throw new Error(getBlockedMessage(errBody, "Migração bloqueada."));
+            }
+            throw new Error(getBlockedMessage(errBody, `HTTP ${response.status}`));
           }
 
           const data = await response.json();
