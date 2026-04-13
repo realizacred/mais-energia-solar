@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 // ─── Types ──────────────────────────────────────────────
 
-export type SyncStage = "funnels" | "custom_fields" | "clients" | "projects" | "proposals" | "backfill_cf_raw";
+export type SyncStage = "funnels" | "custom_fields" | "clients" | "projects" | "projects_funnels" | "proposals" | "backfill_cf_raw";
 
 export interface SyncStageStatus {
   stage: SyncStage;
@@ -29,6 +29,7 @@ const STAGE_LABELS: Record<SyncStage, string> = {
   custom_fields: "Campos Custom",
   clients: "Clientes",
   projects: "Projetos",
+  projects_funnels: "Funis Projetos",
   proposals: "Propostas",
   backfill_cf_raw: "Backfill CF Raw",
 };
@@ -38,6 +39,7 @@ const STAGE_QUERY_KEYS: Record<SyncStage, string> = {
   custom_fields: "sm-custom-fields",
   clients: "sm-clients",
   projects: "sm-projects",
+  projects_funnels: "sm-projects",
   proposals: "sm-proposals",
   backfill_cf_raw: "sm-proposals",
 };
@@ -45,7 +47,11 @@ const STAGE_QUERY_KEYS: Record<SyncStage, string> = {
 const ALL_STAGES: SyncStage[] = ["funnels", "custom_fields", "clients", "projects", "proposals", "backfill_cf_raw"];
 
 function createInitialStages(onlyStage?: SyncStage): SyncStageStatus[] {
-  return ALL_STAGES.map((stage) => ({
+  const stages = onlyStage && !ALL_STAGES.includes(onlyStage)
+    ? [...ALL_STAGES, onlyStage]
+    : ALL_STAGES;
+
+  return stages.map((stage) => ({
     stage,
     label: STAGE_LABELS[stage],
     status: onlyStage && stage !== onlyStage ? "skipped" : "pending",
