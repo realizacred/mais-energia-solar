@@ -669,11 +669,15 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             if (response.status === 409 && errBody?.blocked) {
               const blockedType = errBody?.blocked_by_type || "operação";
               const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
-              if (isSyncBlock) {
-                addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa em 15s.`);
+              if (isSyncBlock && syncWaitRetries < MAX_SYNC_WAIT_RETRIES) {
+                syncWaitRetries++;
+                addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa ${syncWaitRetries}/${MAX_SYNC_WAIT_RETRIES} em 15s.`);
                 await new Promise(r => setTimeout(r, 15_000));
                 b--; // retry same batch
                 continue;
+              }
+              if (isSyncBlock) {
+                throw new Error(`Sync de propostas ainda em execução após ${MAX_SYNC_WAIT_RETRIES} tentativas. Tente novamente mais tarde.`);
               }
               throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde a conclusão ou tente novamente em 2 minutos.`);
             }
