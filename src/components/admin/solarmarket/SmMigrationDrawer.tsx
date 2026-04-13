@@ -497,6 +497,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       qc.invalidateQueries({ queryKey: ["sm-proposals"] });
       qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
       qc.invalidateQueries({ queryKey: ["canonical-check"] });
+      qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
+      qc.invalidateQueries({ queryKey: ["projetos"] });
+      qc.invalidateQueries({ queryKey: ["deals"] });
+      qc.invalidateQueries({ queryKey: ["clientes"] });
       toast.success(`Migração completa! ${migrated} propostas migradas.`);
       return;
     }
