@@ -15,6 +15,34 @@ interface SendMessageRequest {
   tenant_id?: string; // ONLY accepted for service_role callers (internal automations). JWT users: IGNORED, resolved from profile.
 }
 
+function normalizeJid(rawJid: string): string {
+  if (!rawJid) return rawJid;
+  if (rawJid.includes("@g.us")) return rawJid;
+
+  const [numPart] = rawJid.split("@");
+  let digits = numPart.replace(/\D/g, "");
+
+  if (digits.startsWith("55") && digits.length === 12) {
+    digits = digits.slice(0, 4) + "9" + digits.slice(4);
+  }
+
+  return `${digits}@s.whatsapp.net`;
+}
+
+function getAltJids(remoteJid: string): string[] {
+  const canonical = normalizeJid(remoteJid);
+  const jids = [remoteJid];
+  if (canonical !== remoteJid) jids.push(canonical);
+
+  const digits = canonical.split("@")[0];
+  if (digits.startsWith("55") && digits.length === 13) {
+    const without9 = `55${digits.slice(2, 4)}${digits.slice(5)}`;
+    jids.push(`${without9}@s.whatsapp.net`);
+  }
+
+  return [...new Set(jids)];
+}
+
 /**
  * AUTH MODEL: "auth required" — NOT a public webhook.
  * - Regular users: JWT validated via getClaims(), tenant resolved from profiles (NEVER from payload)
@@ -622,21 +650,8 @@ Deno.serve(async (req) => {
     let tagApplied = false;
     if (evolutionSuccess && resolvedInstance) {
       try {
-        const remoteJid = `${formattedPhone}@s.whatsapp.net`;
-
-        // Build alternate JID formats to find existing conversations
-        // Evolution API sometimes strips/adds the 9th digit for BR numbers
-        const altJids: string[] = [remoteJid];
-        const digits = formattedPhone;
-        if (digits.startsWith("55") && digits.length === 13) {
-          // 55 + 2-digit DDD + 9 + 8 digits → try without the 9
-          const without9 = `55${digits.slice(2, 4)}${digits.slice(5)}`;
-          altJids.push(`${without9}@s.whatsapp.net`);
-        } else if (digits.startsWith("55") && digits.length === 12) {
-          // 55 + 2-digit DDD + 8 digits → try with 9 added
-          const with9 = `55${digits.slice(2, 4)}9${digits.slice(4)}`;
-          altJids.push(`${with9}@s.whatsapp.net`);
-        }
+        const remoteJid = normalizeJid(`${formattedPhone}@s.whatsapp.net`);
+        const altJids = getAltJids(remoteJid);
 
         const messagePreview = mensagem.length > 100
           ? mensagem.substring(0, 100) + "…"
