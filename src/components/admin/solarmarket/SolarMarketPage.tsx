@@ -623,7 +623,8 @@ export default function SolarMarketPage() {
   const { data: activeSmRun } = useActiveSmOperation();
   const isAnySyncActive = syncIsRunning || isBgSyncActive;
   const isBackgroundMigrationActive = activeSmRun?.operation_type === "migrate_to_native" && (activeSmRun as any)?._stale !== true;
-  const isMigrationActive = migrationRunning || isBackgroundMigrationActive;
+  const isDrawerMigrationRunning = migrationDrawerOpen && migrationRunning;
+  const isMigrationActive = isDrawerMigrationRunning || isBackgroundMigrationActive;
 
   // Auto-resume sync ONLY if there's a real active SYNC operation (not migration)
   // and only if there are actually unscanned projects (prevents ghost loops)
@@ -664,6 +665,9 @@ export default function SolarMarketPage() {
   // Projetos sem proposta NÃO devem ser migrados — só fluxo completo (com proposta)
   const pendingProjectsNoProposal: typeof projects = [];
   const migratedProposalsCount = useMemo(() => proposals.filter(p => !!p.migrado_em).length, [proposals]);
+  const ssotPendingProposals = syncProgressData?.proposalsPending ?? pendingProposals.length;
+  const ssotMigratedProposals = syncProgressData?.proposalsMigrated ?? migratedProposalsCount;
+  const pendingMigrationTotal = ssotPendingProposals + pendingProjectsNoProposal.length;
 
   const [migrateAllOpen, setMigrateAllOpen] = useState(false);
   const [syncPipelinesRunning, setSyncPipelinesRunning] = useState(false);
@@ -812,24 +816,24 @@ export default function SolarMarketPage() {
         title="SolarMarket Importação"
         description="Importe, sincronize e migre seus dados do SolarMarket para o CRM de forma segura e rastreável"
         actions={
-          <div className="flex gap-2 items-center flex-wrap justify-end">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
             {fullSyncStatus.running ? (
-              <Button onClick={requestStopFullSync} size="sm" variant="outline" className="border-destructive text-destructive gap-1.5">
+              <Button onClick={requestStopFullSync} size="sm" variant="outline" className="w-full gap-1.5 border-destructive text-destructive sm:w-auto">
                 <StopCircle className="h-3.5 w-3.5" />
                 Parar Sync
               </Button>
             ) : isMigrationActive ? (
-              <Button onClick={() => setMigrationDrawerOpen(true)} size="sm" className="gap-1.5">
+              <Button onClick={() => setMigrationDrawerOpen(true)} size="sm" className="w-full gap-1.5 sm:w-auto">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Ver Migração
               </Button>
-            ) : pendingProposals.length > 0 && !syncIsRunning && projects.length > 0 ? (
-              <Button onClick={() => setMigrateAllOpen(true)} size="sm" variant="default" className="gap-1.5">
+            ) : pendingMigrationTotal > 0 && !syncIsRunning && projects.length > 0 ? (
+              <Button onClick={() => setMigrateAllOpen(true)} size="sm" variant="default" className="w-full gap-1.5 sm:w-auto">
                 <ArrowRightLeft className="h-3.5 w-3.5" />
-                Migrar {pendingProposals.length} Propostas
+                Migrar {pendingMigrationTotal} Propostas
               </Button>
             ) : (
-              <Button onClick={syncUntilComplete} disabled={syncIsRunning} size="sm" className="gap-1.5">
+              <Button onClick={syncUntilComplete} disabled={syncIsRunning} size="sm" className="w-full gap-1.5 sm:w-auto">
                 {syncIsRunning ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
@@ -843,10 +847,10 @@ export default function SolarMarketPage() {
       />
 
       {/* Action Bar — grouped by scope */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="grid grid-cols-1 gap-2 xl:grid-cols-[auto_auto_1fr]">
         {/* Sync actions */}
-        <div className="flex items-center gap-1.5 border-r border-border pr-3 mr-1">
-          <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider mr-1">Sync</span>
+        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card/50 px-3 py-2">
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Sync</span>
           <Button
             onClick={() => runSyncPipelines()}
             disabled={syncPipelinesRunning || projects.length === 0}
@@ -880,8 +884,8 @@ export default function SolarMarketPage() {
         </div>
 
         {/* Migration actions */}
-        <div className="flex items-center gap-1.5 border-r border-border pr-3 mr-1">
-          <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider mr-1">Migrar</span>
+        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card/50 px-3 py-2">
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Migrar</span>
           <Button
             onClick={() => {
                 if (isMigrationActive) {
@@ -890,7 +894,7 @@ export default function SolarMarketPage() {
                 setMigrateAllOpen(true);
               }
             }}
-            disabled={!isMigrationActive && pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
+            disabled={!isMigrationActive && pendingMigrationTotal === 0}
             size="sm"
             variant={isMigrationActive ? "default" : "outline"}
             className={cn("gap-1 h-7 text-xs", isMigrationActive && "animate-pulse")}
@@ -902,13 +906,13 @@ export default function SolarMarketPage() {
             )}
             {isMigrationActive
               ? "Migrando..."
-              : `Migrar (${pendingProposals.length + pendingProjectsNoProposal.length})`}
+              : `Migrar (${pendingMigrationTotal})`}
           </Button>
         </div>
 
         {/* Reset actions */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider mr-1">Reset</span>
+        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card/50 px-3 py-2 xl:justify-end">
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Reset</span>
           <AlertDialog open={resetMigratedOpen} onOpenChange={(v) => { setResetMigratedOpen(v); if (!v) setResetMigratedText(""); }}>
             <AlertDialogTrigger asChild>
               <Button
@@ -1066,12 +1070,12 @@ export default function SolarMarketPage() {
                 </div>
                 <p className="text-sm text-foreground font-medium">Serão migrados:</p>
                 <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                  <li><strong>{pendingProposals.length}</strong> propostas pendentes</li>
+                  <li><strong>{ssotPendingProposals}</strong> propostas pendentes</li>
                   <li><strong>{pendingProjectsNoProposal.length}</strong> projetos sem proposta pendentes</li>
                 </ul>
-                {migratedProposalsCount > 0 && (
+                {ssotMigratedProposals > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Já migrados anteriormente: <strong>{migratedProposalsCount}</strong> (serão ignorados)
+                    Já migrados anteriormente: <strong>{ssotMigratedProposals}</strong> (serão ignorados)
                   </p>
                 )}
               </div>
@@ -1165,14 +1169,14 @@ export default function SolarMarketPage() {
           </TabsList>
 
           {/* Filters row */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             {(filterClientId || filterProjectId || filterCity || filterResponsible) && (
               <Button variant="ghost" size="sm" onClick={() => { clearFilters(); clientsPag.resetPage(); projectsPag.resetPage(); }} className="text-xs h-8 px-2 gap-1">
                 <XCircle className="h-3.5 w-3.5" />
                 Limpar filtros
               </Button>
             )}
-            <SearchInput value={search} onChange={(v) => { setSearch(v); clientsPag.resetPage(); projectsPag.resetPage(); proposalsPag.resetPage(); }} placeholder="Nome, telefone, doc..." className="w-52 h-8" />
+            <SearchInput value={search} onChange={(v) => { setSearch(v); clientsPag.resetPage(); projectsPag.resetPage(); proposalsPag.resetPage(); }} placeholder="Nome, telefone, doc..." className="h-8 min-w-[220px] flex-1 md:max-w-[360px]" />
             {(tab === "clientes" || tab === "sem-projeto" || tab === "sem-proposta") && (
               <>
                 <SelectUI value={filterCity || "__all__"} onValueChange={(v) => { setFilterCity(v === "__all__" ? "" : v); clientsPag.resetPage(); }}>
