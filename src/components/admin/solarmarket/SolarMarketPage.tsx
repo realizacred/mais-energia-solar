@@ -466,6 +466,7 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
     custom_fields: "Campos",
     projects_funnels: "Funis Proj.",
     full_sync: "Completo",
+    migrate_to_native: "Migração",
   };
 
   return (

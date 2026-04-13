@@ -342,13 +342,44 @@ export function useSmSyncLogs() {
     queryKey: ["sm-sync-logs"],
     staleTime: 1000 * 30,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("solar_market_sync_logs")
-        .select("id, sync_type, status, total_fetched, total_upserted, total_errors, started_at, finished_at, error_message")
-        .order("started_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data || [];
+      // Fetch both sync logs and migration operation runs in parallel
+      const [syncRes, migrationRes] = await Promise.all([
+        (supabase as any)
+          .from("solar_market_sync_logs")
+          .select("id, sync_type, status, total_fetched, total_upserted, total_errors, started_at, finished_at, error_message")
+          .order("started_at", { ascending: false })
+          .limit(20),
+        (supabase as any)
+          .from("sm_operation_runs")
+          .select("id, operation_type, status, total_items, processed_items, success_items, error_items, error_summary, started_at, finished_at")
+          .eq("operation_type", "migrate_to_native")
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
+
+      if (syncRes.error) throw syncRes.error;
+
+      const syncLogs: SmSyncLog[] = syncRes.data || [];
+
+      // Map migration runs to SmSyncLog format
+      const migrationLogs: SmSyncLog[] = ((migrationRes.data || []) as any[]).map((r: any) => ({
+        id: r.id,
+        sync_type: "migrate_to_native",
+        status: r.status === "completed" ? "completed" : r.status === "running" ? "running" : "failed",
+        total_fetched: r.total_items || 0,
+        total_upserted: r.success_items || 0,
+        total_errors: r.error_items || 0,
+        started_at: r.started_at || r.created_at,
+        finished_at: r.finished_at,
+        error_message: r.error_summary,
+      }));
+
+      // Merge and sort by started_at descending
+      const combined = [...syncLogs, ...migrationLogs].sort(
+        (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+      );
+
+      return combined.slice(0, 30);
     },
     refetchInterval: (query) => {
       const latest = query.state.data?.[0];
