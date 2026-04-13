@@ -39,6 +39,7 @@ import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
 import { useRealtimeSyncLogs } from "@/hooks/useRealtimeSyncLogs";
 import { SmDashboardPanel } from "@/components/admin/solarmarket/SmDashboardPanel";
 import { useActiveSmOperation } from "@/hooks/useSmOperationRuns";
+import { useSmSyncProgress } from "@/hooks/useSmSyncProgress";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
