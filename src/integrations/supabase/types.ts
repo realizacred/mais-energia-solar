@@ -27291,6 +27291,10 @@ export type Database = {
         Returns: string
       }
       expire_proposals: { Args: never; Returns: undefined }
+      expire_stale_sm_operations: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       finalize_proposta_versao: {
         Args: { p_final_snapshot?: Json; p_versao_id: string }
         Returns: Json

@@ -15,6 +15,7 @@
  */
 import { useSmSyncProgress } from "@/hooks/useSmSyncProgress";
 import { useActiveSmOperation, useLastCompletedSmOperation } from "@/hooks/useSmOperationRuns";
+import { useExpireStaleSmOperations } from "@/hooks/useExpireStaleSmOperations";
 import { useIsBackgroundSyncActive } from "@/hooks/useSolarMarket";
 import type { SyncProgress, SyncStageStatus } from "@/hooks/useSolarMarketSync";
 import { Progress } from "@/components/ui/progress";
@@ -358,6 +359,8 @@ export function SmDashboardPanel({
   const { data: activeRun } = useActiveSmOperation();
   const { data: lastRun } = useLastCompletedSmOperation();
   const { data: isBgSyncActive = false } = useIsBackgroundSyncActive();
+  // Auto-expire stale runs on page load to prevent "stuck" UI
+  useExpireStaleSmOperations();
 
   if (!progress) return null;
 
