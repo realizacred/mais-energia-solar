@@ -1675,9 +1675,10 @@ Deno.serve(async (req) => {
     // 30-120s each and will cause Deno to kill the function before lock release.
     const skipPostProcessing = isPartialSync && (sync_type === "proposals" || sync_type === "full");
 
-    // ─── Standalone Funnel Enrichment (runs after proposals OR projects sync) ──
-    // This ensures funnel data gets populated even when cron picks proposals sync
-    if (!skipPostProcessing && (sync_type === "proposals" || sync_type === "full" || sync_type === "projects_funnels")) {
+    // ─── Standalone Funnel Enrichment (runs after proposals/full sync) ──
+    // Dedicated sync_type = projects_funnels already performs this work above.
+    // Re-running here duplicates the same expensive loop and can exceed the function time budget.
+    if (!skipPostProcessing && (sync_type === "proposals" || sync_type === "full")) {
       try {
         const alreadyEnrichedSet2 = new Set<number>();
         {
