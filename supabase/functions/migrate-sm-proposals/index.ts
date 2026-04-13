@@ -559,7 +559,8 @@ Deno.serve(async (req) => {
     // ── USER / SERVICE_ROLE MODE ──
     rawBody = await req.json();
 
-    // Check if this is a cron-initiated internal call (service_role + _cron_tenant_id)
+    // ── CRON DISPATCH MODE: service_role + _cron_dispatch ──
+    // pg_cron calls with service_role key and _cron_dispatch flag
     const token = authHeader.replace(/^Bearer\s+/i, "");
     if (!token) {
       return new Response(JSON.stringify({ error: "Unauthorized", step: "token_extract" }), {
@@ -567,8 +568,73 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If called with service_role key + _cron_tenant_id, skip user auth
     let userId: string | null = null;
+
+    if (token === serviceKey && rawBody?._cron_dispatch) {
+      // Cron dispatch: iterate all enabled tenants with pending proposals
+      const { data: settings } = await adminClient
+        .from("sm_migration_settings")
+        .select("tenant_id, pipeline_id, stage_id, owner_id, auto_resolve_owner, batch_size")
+        .eq("enabled", true);
+
+      if (!settings || settings.length === 0) {
+        return new Response(JSON.stringify({ cron: true, message: "No tenants with enabled migration" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const cronResults: any[] = [];
+      for (const s of settings) {
+        const { count: pendingCount } = await adminClient
+          .from("solar_market_proposals")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", s.tenant_id)
+          .is("migrado_em", null);
+
+        if (!pendingCount || pendingCount === 0) {
+          await adminClient
+            .from("sm_migration_settings")
+            .update({ enabled: false, updated_at: new Date().toISOString() })
+            .eq("tenant_id", s.tenant_id);
+          cronResults.push({ tenant_id: s.tenant_id, status: "completed", pending: 0 });
+          continue;
+        }
+
+        // Call self with service_role + _cron_tenant_id for single-tenant processing
+        const payload = {
+          dry_run: false,
+          pipeline_id: s.pipeline_id,
+          stage_id: s.stage_id || null,
+          auto_resolve_owner: s.auto_resolve_owner ?? true,
+          auto_resume: true,
+          batch_size: s.batch_size || 10,
+          include_projects_without_proposal: false,
+          ...(s.owner_id ? { owner_id: s.owner_id } : {}),
+          _cron_tenant_id: s.tenant_id,
+        };
+
+        try {
+          const innerResp = await fetch(`${supabaseUrl}/functions/v1/migrate-sm-proposals`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+          const innerBody = await innerResp.json().catch(() => ({}));
+          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: innerBody });
+        } catch (e) {
+          cronResults.push({ tenant_id: s.tenant_id, status: "error", error: (e as Error).message });
+        }
+      }
+
+      return new Response(JSON.stringify({ cron: true, results: cronResults }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // If called with service_role key + _cron_tenant_id, skip user auth (internal call from dispatch)
     if (token === serviceKey && rawBody?._cron_tenant_id) {
       tenantId = rawBody._cron_tenant_id;
       console.error(`[SM Migration] Cron mode: tenant=${tenantId}`);
