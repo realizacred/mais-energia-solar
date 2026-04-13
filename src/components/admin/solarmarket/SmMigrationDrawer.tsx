@@ -430,7 +430,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
       updateStep(stepName, {
         state: "running",
-        detail: `Em segundo plano • ${migrated}/${autoResumeStats.initialPending} migradas • ETA: ${eta}s`,
+        detail: `🖥️ Servidor processando • ${migrated}/${autoResumeStats.initialPending} migradas • ETA: ${eta}s`,
       });
     }
 
@@ -671,7 +671,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
               if (isSyncBlock && syncWaitRetries < MAX_SYNC_WAIT_RETRIES) {
                 syncWaitRetries++;
-                addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa ${syncWaitRetries}/${MAX_SYNC_WAIT_RETRIES} em 15s.`);
+                addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa automática ${syncWaitRetries}/${MAX_SYNC_WAIT_RETRIES} em 15s.`);
                 await new Promise(r => setTimeout(r, 15_000));
                 b--; // retry same batch
                 continue;
