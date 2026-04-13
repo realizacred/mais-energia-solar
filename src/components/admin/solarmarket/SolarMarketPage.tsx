@@ -457,15 +457,25 @@ function CustomFieldsTable({ fields }: { fields: SmCustomField[] }) {
 }
 
 function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; status: string; total_fetched: number; total_upserted: number; total_errors: number; started_at: string; error_message?: string | null }> }) {
+  const typeLabels: Record<string, string> = {
+    clients: "Clientes",
+    projects: "Projetos",
+    proposals: "Propostas",
+    funnels: "Funis",
+    custom_fields: "Campos",
+    projects_funnels: "Funis Proj.",
+    full_sync: "Completo",
+  };
+
   return (
-    <SectionCard icon={Clock} title="Histórico de Sincronizações" variant="neutral" noPadding>
+    <SectionCard icon={History} title="Histórico de Operações" variant="neutral" noPadding>
       <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead>Quando</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Operação</TableHead>
+            <TableHead>Resultado</TableHead>
             <TableHead className="text-right">Encontr.</TableHead>
             <TableHead className="text-right">Import.</TableHead>
             <TableHead className="text-right">Erros</TableHead>
@@ -478,11 +488,11 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
                 {formatDistanceToNow(new Date(log.started_at), { addSuffix: true, locale: ptBR })}
               </TableCell>
               <TableCell>
-                <Badge variant="outline" className="text-[10px]">{log.sync_type}</Badge>
+                <Badge variant="outline" className="text-[10px]">{typeLabels[log.sync_type] || log.sync_type}</Badge>
               </TableCell>
               <TableCell>
                 {log.status === "completed" ? (
-                  <Badge className="text-[10px] bg-success/10 text-success border-0"><CheckCircle className="h-3 w-3 mr-1" />OK</Badge>
+                  <Badge className="text-[10px] bg-success/10 text-success border-0"><CheckCircle className="h-3 w-3 mr-1" />Concluído</Badge>
                 ) : log.status === "partial" ? (
                   <Badge className="text-[10px] bg-warning/10 text-warning border-0" title={log.error_message || "Sincronização parcial — execute novamente para continuar"}>
                     <Clock className="h-3 w-3 mr-1" />Parcial
@@ -490,14 +500,14 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
                 ) : log.status === "completed_with_errors" ? (
                   <Badge className="text-[10px] bg-warning/10 text-warning border-0"><AlertTriangle className="h-3 w-3 mr-1" />Com erros</Badge>
                 ) : log.status === "running" ? (
-                  <Badge className="text-[10px] bg-warning/10 text-warning border-0"><RefreshCw className="h-3 w-3 mr-1 animate-spin" />Rodando</Badge>
+                  <Badge className="text-[10px] bg-primary/10 text-primary border-0"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Rodando</Badge>
                 ) : (
-                  <Badge className="text-[10px] bg-destructive/10 text-destructive border-0"><XCircle className="h-3 w-3 mr-1" />Erro</Badge>
+                  <Badge className="text-[10px] bg-destructive/10 text-destructive border-0"><XCircle className="h-3 w-3 mr-1" />Falhou</Badge>
                 )}
               </TableCell>
-              <TableCell className="text-right text-sm font-medium">{log.total_fetched}</TableCell>
-              <TableCell className="text-right text-sm font-medium text-success">{log.total_upserted}</TableCell>
-              <TableCell className="text-right text-sm font-medium text-destructive">{log.total_errors}</TableCell>
+              <TableCell className="text-right text-sm font-mono text-foreground">{log.total_fetched}</TableCell>
+              <TableCell className="text-right text-sm font-mono text-success">{log.total_upserted}</TableCell>
+              <TableCell className="text-right text-sm font-mono text-destructive">{log.total_errors || "—"}</TableCell>
             </TableRow>
           ))}
         </TableBody>
