@@ -649,116 +649,138 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           batch_size: batch.length,
         };
 
-        try {
-          // Use direct fetch with 120s timeout to avoid "Failed to fetch" on long migrations
-          const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-          // Refresh token if close to expiry before each batch call
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          if (!currentSession?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
-          const expiresAt = currentSession.expires_at ?? 0;
-          const now = Math.floor(Date.now() / 1000);
-          let session = currentSession;
-          if (expiresAt - now < 300) {
-            const { data: refreshed } = await supabase.auth.refreshSession();
-            if (!refreshed.session?.access_token) throw new Error("Não foi possível renovar a sessão.");
-            session = refreshed.session;
-          }
+        const MAX_NETWORK_RETRIES = 3;
+        let networkRetry = 0;
+        let batchDone = false;
 
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 120_000);
-
-          let response: Response;
+        while (!batchDone && networkRetry <= MAX_NETWORK_RETRIES) {
           try {
-            response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(payload),
-              signal: controller.signal,
-            });
-          } finally {
-            clearTimeout(timeoutId);
-          }
+            // Use direct fetch with 120s timeout to avoid "Failed to fetch" on long migrations
+            const projectUrl = import.meta.env.VITE_SUPABASE_URL;
+            // Refresh token if close to expiry before each batch call
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            if (!currentSession?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
+            const expiresAt = currentSession.expires_at ?? 0;
+            const now = Math.floor(Date.now() / 1000);
+            let session = currentSession;
+            if (expiresAt - now < 300) {
+              const { data: refreshed } = await supabase.auth.refreshSession();
+              if (!refreshed.session?.access_token) throw new Error("Não foi possível renovar a sessão.");
+              session = refreshed.session;
+            }
 
-          if (!response.ok) {
-            const errBody = await response.json().catch(() => ({} as MigrationBlockedPayload));
-            if (response.status === 409 && errBody?.blocked) {
-              const rawBlockedType = getBlockedType(errBody);
-              const blockedType = rawBlockedType || "operação";
-              const isSyncBlock = !!rawBlockedType && SYNC_BLOCKING_OPERATION_TYPES.has(rawBlockedType);
-              if (isSyncBlock && syncWaitRetries < MAX_SYNC_WAIT_RETRIES) {
-                syncWaitRetries++;
-                addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa automática ${syncWaitRetries}/${MAX_SYNC_WAIT_RETRIES} em 15s.`);
-                await new Promise(r => setTimeout(r, 15_000));
-                b--; // retry same batch
-                continue;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+            let response: Response;
+            try {
+              response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                  apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeoutId);
+            }
+
+            if (!response.ok) {
+              const errBody = await response.json().catch(() => ({} as MigrationBlockedPayload));
+              if (response.status === 409 && errBody?.blocked) {
+                const rawBlockedType = getBlockedType(errBody);
+                const blockedType = rawBlockedType || "operação";
+                const isSyncBlock = !!rawBlockedType && SYNC_BLOCKING_OPERATION_TYPES.has(rawBlockedType);
+                if (isSyncBlock && syncWaitRetries < MAX_SYNC_WAIT_RETRIES) {
+                  syncWaitRetries++;
+                  addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa automática ${syncWaitRetries}/${MAX_SYNC_WAIT_RETRIES} em 15s.`);
+                  await new Promise(r => setTimeout(r, 15_000));
+                  b--; // retry same batch
+                  batchDone = true;
+                  continue;
+                }
+                if (isSyncBlock) {
+                  throw new Error(`Sync de propostas ainda em execução após ${MAX_SYNC_WAIT_RETRIES} tentativas. Tente novamente mais tarde.`);
+                }
+                throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde a conclusão ou tente novamente em 2 minutos.`);
               }
-              if (isSyncBlock) {
-                throw new Error(`Sync de propostas ainda em execução após ${MAX_SYNC_WAIT_RETRIES} tentativas. Tente novamente mais tarde.`);
+              if (response.status === 423) {
+                throw new Error(getBlockedMessage(errBody, "Migração bloqueada para manutenção. Contate o administrador."));
               }
-              throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde a conclusão ou tente novamente em 2 minutos.`);
+              if (errBody?.blocked) {
+                throw new Error(getBlockedMessage(errBody, "Migração bloqueada para manutenção. Contate o administrador."));
+              }
+              throw new Error(getBlockedMessage(errBody, `HTTP ${response.status}`));
             }
-            if (response.status === 423) {
-              throw new Error(getBlockedMessage(errBody, "Migração bloqueada para manutenção. Contate o administrador."));
+
+            const data = await response.json() as MigrationResult;
+
+            if ((data as any)?.error) {
+              throw new Error((data as any).error);
             }
-            if (errBody?.blocked) {
-              throw new Error(getBlockedMessage(errBody, "Migração bloqueada para manutenção. Contate o administrador."));
+
+            syncWaitRetries = 0; // reset after successful batch
+            allResults.push(data);
+            const successCount = allResults.reduce((acc, r) => acc + Math.max(0, (r.total_processed || 0) - (r.summary?.ERROR || 0)), 0);
+            addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)} — Total migrado até agora: ${successCount}`);
+
+            // Avoid refetching the full 1k+ proposals list on every single batch,
+            // which makes the UI feel frozen during large migrations.
+            if (!dryRun && ((b + 1) % INVALIDATE_EVERY_BATCHES === 0 || b === batches.length - 1)) {
+              qc.invalidateQueries({ queryKey: ["sm-proposals"] });
             }
-            throw new Error(getBlockedMessage(errBody, `HTTP ${response.status}`));
-          }
 
-          const data = await response.json() as MigrationResult;
-
-          if ((data as any)?.error) {
-            throw new Error((data as any).error);
-          }
-
-          syncWaitRetries = 0; // reset after successful batch
-          allResults.push(data);
-          const successCount = allResults.reduce((acc, r) => acc + Math.max(0, (r.total_processed || 0) - (r.summary?.ERROR || 0)), 0);
-          addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)} — Total migrado até agora: ${successCount}`);
-
-          // Avoid refetching the full 1k+ proposals list on every single batch,
-          // which makes the UI feel frozen during large migrations.
-          if (!dryRun && ((b + 1) % INVALIDATE_EVERY_BATCHES === 0 || b === batches.length - 1)) {
-            qc.invalidateQueries({ queryKey: ["sm-proposals"] });
-          }
-
-          // Update steps progressively from this batch's first detail
-          if (!dryRun && data.details?.[0]) {
-            const detail = data.details[0];
-            const stepMap: Record<string, StepName> = {
-              cliente: "cliente", deal: "deal", projeto: "projeto",
-              proposta_nativa: "proposta", proposta_versao: "versao",
-            };
-            for (const [key, stepName] of Object.entries(stepMap)) {
-              const serverStep = (detail.steps as Record<string, any>)[key];
-              if (serverStep) {
-                const isOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(serverStep.status);
-                updateStep(stepName, {
-                  state: isOk ? "done" : "error",
-                  detail: `${serverStep.status}${serverStep.id ? ` → ${serverStep.id.slice(0, 8)}...` : ""}${serverStep.reason ? ` (${serverStep.reason})` : ""}`,
-                  createdId: serverStep.id,
-                });
+            // Update steps progressively from this batch's first detail
+            if (!dryRun && data.details?.[0]) {
+              const detail = data.details[0];
+              const stepMap: Record<string, StepName> = {
+                cliente: "cliente", deal: "deal", projeto: "projeto",
+                proposta_nativa: "proposta", proposta_versao: "versao",
+              };
+              for (const [key, stepName] of Object.entries(stepMap)) {
+                const serverStep = (detail.steps as Record<string, any>)[key];
+                if (serverStep) {
+                  const isOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(serverStep.status);
+                  updateStep(stepName, {
+                    state: isOk ? "done" : "error",
+                    detail: `${serverStep.status}${serverStep.id ? ` → ${serverStep.id.slice(0, 8)}...` : ""}${serverStep.reason ? ` (${serverStep.reason})` : ""}`,
+                    createdId: serverStep.id,
+                  });
+                }
               }
             }
-          }
-        } catch (batchErr: any) {
-          const msg = batchErr?.name === "AbortError"
-            ? "Timeout: migração demorou mais de 120s. Tente com menos propostas."
-            : batchErr?.message ?? "Erro desconhecido no lote";
-          batchErrors.push(msg);
-          addLog(`ERRO lote ${b + 1}: ${msg}`);
-          // Mark all pending steps as error on failure
-          if (!dryRun) {
-            for (const s of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-              setSteps(prev => prev.map(st => st.name === s && (st.state === "running" || st.state === "pending") ? { ...st, state: "error", detail: msg } : st));
+            batchDone = true;
+          } catch (batchErr: any) {
+            const isNetworkError = batchErr?.message === "Failed to fetch" || batchErr?.message === "Load failed";
+            const isAbort = batchErr?.name === "AbortError";
+
+            if (isNetworkError && networkRetry < MAX_NETWORK_RETRIES) {
+              networkRetry++;
+              const waitMs = networkRetry * 3_000;
+              addLog(`Lote ${b + 1}: erro de rede, retentativa ${networkRetry}/${MAX_NETWORK_RETRIES} em ${waitMs / 1000}s...`);
+              await new Promise(r => setTimeout(r, waitMs));
+              continue;
             }
+
+            const msg = isAbort
+              ? "Timeout: migração demorou mais de 120s. Tente com menos propostas."
+              : isNetworkError
+                ? `Falha de rede após ${MAX_NETWORK_RETRIES} tentativas. Verifique sua conexão e tente novamente.`
+                : batchErr?.message ?? "Erro desconhecido no lote";
+            batchErrors.push(msg);
+            addLog(`ERRO lote ${b + 1}: ${msg}`);
+            // Mark all pending steps as error on failure
+            if (!dryRun) {
+              for (const s of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+                setSteps(prev => prev.map(st => st.name === s && (st.state === "running" || st.state === "pending") ? { ...st, state: "error", detail: msg } : st));
+              }
+            }
+            batchDone = true;
+            // Continue with remaining batches
           }
-          // Continue with remaining batches
         }
 
         // Small pause between batches to avoid rate limiting without making bulk
