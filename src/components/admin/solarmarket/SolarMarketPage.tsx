@@ -44,6 +44,7 @@ import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDet
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
 import { SmMigrationToggle } from "@/components/admin/solarmarket/SmMigrationToggle";
+import { SmOperationStatusPanel } from "@/components/admin/solarmarket/SmOperationStatusPanel";
 import { SmMigrationDrawer } from "@/components/admin/solarmarket/SmMigrationDrawer";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
@@ -1112,6 +1113,9 @@ export default function SolarMarketPage() {
           </span>
         </div>
       )}
+
+      {/* Operation status panel — shows active migration/sync from SSOT */}
+      <SmOperationStatusPanel />
 
       {/* SINGLE Operational Dashboard — all status + metrics in one place */}
       <SmDashboardPanel
