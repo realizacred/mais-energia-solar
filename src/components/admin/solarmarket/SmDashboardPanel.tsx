@@ -15,6 +15,7 @@
  */
 import { useSmSyncProgress } from "@/hooks/useSmSyncProgress";
 import { useActiveSmOperation, useLastCompletedSmOperation } from "@/hooks/useSmOperationRuns";
+import { useExpireStaleSmOperations } from "@/hooks/useExpireStaleSmOperations";
 import { useIsBackgroundSyncActive } from "@/hooks/useSolarMarket";
 import type { SyncProgress, SyncStageStatus } from "@/hooks/useSolarMarketSync";
 import { Progress } from "@/components/ui/progress";
