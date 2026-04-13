@@ -39,6 +39,7 @@ import { useSolarMarketSync } from "@/hooks/useSolarMarketSync";
 import { useRealtimeSyncLogs } from "@/hooks/useRealtimeSyncLogs";
 import { SmDashboardPanel } from "@/components/admin/solarmarket/SmDashboardPanel";
 import { useActiveSmOperation } from "@/hooks/useSmOperationRuns";
+import { useSmSyncProgress } from "@/hooks/useSmSyncProgress";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
@@ -621,17 +622,24 @@ export default function SolarMarketPage() {
   const { data: activeSmRun } = useActiveSmOperation();
   const isAnySyncActive = syncIsRunning || isBgSyncActive;
 
-  // Auto-resume sync after F5/reload if there's an active non-stale run in SSOT
+  // Auto-resume sync ONLY if there's a real active SYNC operation (not migration)
+  // and only if there are actually unscanned projects (prevents ghost loops)
   const hasAutoResumed = useRef(false);
+  const { data: syncProgressData } = useSmSyncProgress();
   useEffect(() => {
     if (hasAutoResumed.current) return;
     if (!activeSmRun) return;
     if ((activeSmRun as any)._stale === true) return;
     if (fullSyncStatus.running || syncIsRunning) return;
+    // Only auto-resume for sync operations, NOT migrations
+    const opType = activeSmRun.operation_type;
+    if (opType === "migrate_to_native" || opType === "reset_staging" || opType === "reset_migrated") return;
+    // Only if there are actually unscanned projects
+    if (syncProgressData && syncProgressData.totalProjects > 0 && syncProgressData.projectsRemaining <= 0) return;
 
     hasAutoResumed.current = true;
     syncUntilComplete();
-  }, [activeSmRun, fullSyncStatus.running, syncIsRunning, syncUntilComplete]);
+  }, [activeSmRun, fullSyncStatus.running, syncIsRunning, syncUntilComplete, syncProgressData]);
 
   const { session } = useAuth();
   const sessionReady = !!session;

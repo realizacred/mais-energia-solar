@@ -320,6 +320,19 @@ export function useSolarMarketSync() {
     const MAX_ROUNDS = 25;
     const MAX_STAGNANT = 3;
     stopFullSyncRef.current = false;
+
+    // ── Pre-check: are there actually unscanned projects? ──
+    const [projCheck, scannedCheck] = await Promise.all([
+      (supabase as any).from("solar_market_projects").select("id", { count: "exact", head: true }),
+      (supabase as any).from("solar_market_projects").select("id", { count: "exact", head: true }).not("proposals_synced_at", "is", null),
+    ]);
+    const totalBefore = projCheck.count ?? 0;
+    const scannedBefore = scannedCheck.count ?? 0;
+    if (totalBefore > 0 && scannedBefore >= totalBefore) {
+      toast.info(`Todos os ${totalBefore} projetos já estão sincronizados.`);
+      return;
+    }
+
     setFullSyncStatus({
       running: true,
       round: 0,

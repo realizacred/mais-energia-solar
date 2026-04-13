@@ -578,15 +578,9 @@ Deno.serve(async (req) => {
 
     smOpRunId = lockResult.run_id;
 
-    // ── Cron auto-detection: pick what's still pending ──
-    if (isCron && (!body.sync_type || body.sync_type === "auto")) {
-      // Check if global funnels table is empty (needs initial sync after reset)
-      const { count: funnelCount } = await supabase
-        .from("solar_market_funnels")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenantId);
-
-      // Check pending proposals: projects NOT yet scanned (proposals_synced_at IS NULL)
+    // ── Early exit: check if there's actually work to do ──
+    // This prevents infinite loops when cron or frontend keeps calling with no pending work
+    {
       const { count: totalProjects } = await supabase
         .from("solar_market_projects")
         .select("*", { count: "exact", head: true })
@@ -598,7 +592,11 @@ Deno.serve(async (req) => {
         .eq("tenant_id", tenantId)
         .not("proposals_synced_at", "is", null);
 
-      // Check pending funnel enrichment
+      const { count: funnelCount } = await supabase
+        .from("solar_market_funnels")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenantId);
+
       const { count: enrichedCount } = await supabase
         .from("solar_market_projects")
         .select("*", { count: "exact", head: true })
@@ -608,26 +606,43 @@ Deno.serve(async (req) => {
       const pendingProposals = (totalProjects || 0) - (scannedCount || 0);
       const pendingFunnels = (totalProjects || 0) - (enrichedCount || 0);
 
-      if ((funnelCount || 0) === 0) {
-        // Global funnels list is empty — sync it first
-        sync_type = "funnels";
-      } else if (pendingProposals > 0) {
-        sync_type = "proposals";
-      } else if (pendingFunnels > 0) {
-        sync_type = "projects_funnels";
-      } else {
-        // Release lock — nothing to do
+      // For explicit proposals sync: exit early if all scanned
+      if (sync_type === "proposals" && pendingProposals <= 0 && (totalProjects || 0) > 0) {
         await supabase.rpc("release_sm_operation_lock", { p_run_id: smOpRunId, p_status: "completed" });
+        console.log(`[SM Sync] All ${totalProjects} projects already scanned — nothing to do`);
         return new Response(JSON.stringify({
           skipped: true,
           reason: "all_synced",
           total_projects: totalProjects,
           scanned_proposals: scannedCount,
-          enriched_funnels: enrichedCount,
-          funnels_synced: funnelCount,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // For cron/auto mode: pick what's still pending or exit
+      if (isCron && (!body.sync_type || body.sync_type === "auto" || body.sync_type === "proposals")) {
+        if ((funnelCount || 0) === 0 && (totalProjects || 0) > 0) {
+          sync_type = "funnels";
+        } else if (pendingProposals > 0) {
+          sync_type = "proposals";
+        } else if (pendingFunnels > 0) {
+          sync_type = "projects_funnels";
+        } else {
+          // Nothing to do — release lock and exit
+          await supabase.rpc("release_sm_operation_lock", { p_run_id: smOpRunId, p_status: "completed" });
+          console.log(`[SM Sync] Cron: all_synced — ${totalProjects} projects, ${scannedCount} scanned, ${funnelCount} funnels`);
+          return new Response(JSON.stringify({
+            skipped: true,
+            reason: "all_synced",
+            total_projects: totalProjects,
+            scanned_proposals: scannedCount,
+            enriched_funnels: enrichedCount,
+            funnels_synced: funnelCount,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
     }
 
