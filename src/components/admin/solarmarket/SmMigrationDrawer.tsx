@@ -690,6 +690,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             throw new Error((data as any).error);
           }
 
+          syncWaitRetries = 0; // reset after successful batch
           allResults.push(data);
           const successCount = allResults.reduce((acc, r) => acc + Math.max(0, (r.total_processed || 0) - (r.summary?.ERROR || 0)), 0);
           addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)} — Total migrado até agora: ${successCount}`);
