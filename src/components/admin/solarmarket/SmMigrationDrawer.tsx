@@ -994,7 +994,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
       for (let round = 1; round <= MAX_ROUNDS; round++) {
         if (cancelRef.current) {
-          addLog("Migração automática cancelada pelo usuário.");
+          addLog("Migração em lote cancelada pelo usuário.");
           setAutoResumeRunning(false);
           setRunning(false);
           setCancelling(false);
