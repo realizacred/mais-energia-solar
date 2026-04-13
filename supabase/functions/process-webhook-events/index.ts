@@ -510,8 +510,11 @@ async function handleMessageUpsert(
       
       if (!fromMe) {
         updates.unread_count = (existingConv.unread_count || 0) + 1;
-        if (!isGroup && contactName && !existingConv.cliente_nome) {
-          const phoneE164 = `+${phone}`;
+        // Name anti-regression: update only when current name is absent or technical (phone-like)
+        const shouldUpdateName = !isGroup && contactName && (
+          !existingConv.cliente_nome || isTechnicalConversationName(existingConv.cliente_nome, remoteJid)
+        );
+        if (shouldUpdateName) {
           const phonesToCheck = altJids.map(j => `+${j.split("@")[0]}`);
           const { data: savedContact } = await supabase
             .from("contacts")
@@ -521,7 +524,14 @@ async function handleMessageUpsert(
             .limit(1)
             .maybeSingle();
           const savedName = savedContact?.display_name || savedContact?.name;
-          updates.cliente_nome = savedName || contactName;
+          // CRM name > pushName > keep existing — never regress from real name to phone
+          if (savedName) {
+            updates.cliente_nome = savedName;
+          } else if (!existingConv.cliente_nome) {
+            updates.cliente_nome = contactName;
+          } else if (isTechnicalConversationName(existingConv.cliente_nome, remoteJid)) {
+            updates.cliente_nome = contactName;
+          }
         }
         if (existingConv.status === "resolved") {
           const trimmedContent = content?.trim() || "";

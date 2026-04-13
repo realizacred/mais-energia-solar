@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      _wa_merge_backup: {
+        Row: {
+          absorbed_data: Json
+          absorbed_id: string
+          canonical_id: string
+          child_counts: Json | null
+          id: string
+          merge_run_at: string | null
+        }
+        Insert: {
+          absorbed_data: Json
+          absorbed_id: string
+          canonical_id: string
+          child_counts?: Json | null
+          id?: string
+          merge_run_at?: string | null
+        }
+        Update: {
+          absorbed_data?: Json
+          absorbed_id?: string
+          canonical_id?: string
+          child_counts?: Json | null
+          id?: string
+          merge_run_at?: string | null
+        }
+        Relationships: []
+      }
       ai_insights: {
         Row: {
           created_at: string
