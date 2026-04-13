@@ -1596,14 +1596,18 @@ Deno.serve(async (req) => {
           const normalizedName = normalizeComparableName(s.stage_name);
           const cacheKey = `${pipeId}::${normalizedName}`;
           const stageId = stageCache.get(cacheKey);
-          if (!stageId) continue;
+          const currentPos = stagePositionCache.get(cacheKey);
+          if (!stageId || currentPos === undefined || currentPos === s.stage_order) continue;
 
           const { error: updErr } = await adminClient
             .from("pipeline_stages")
             .update({ position: s.stage_order })
             .eq("id", stageId)
             .eq("tenant_id", tenantId);
-          if (!updErr) positionsFixed++;
+          if (!updErr) {
+            stagePositionCache.set(cacheKey, s.stage_order);
+            positionsFixed++;
+          }
         }
       }
       if (positionsFixed > 0) {
@@ -2281,7 +2285,12 @@ Deno.serve(async (req) => {
                 try {
                   const pipeId = await resolveOrCreatePipeline(funnelName, stageNames);
                   const stageName = stageNames[0];
-                  const stgId = await resolveOrCreateStage(pipeId, stageName, 0);
+                  const cacheKey = `${pipeId}::${normalizeComparableName(stageName)}`;
+                  if (!pipeId.startsWith("AUTO_CREATE")) {
+                    await preloadStagesForPipeline(pipeId);
+                  }
+                  const existingPosition = stagePositionCache.get(cacheKey);
+                  const stgId = await resolveOrCreateStage(pipeId, stageName, existingPosition ?? 0);
                   pipelineDetails.push({ funnel: funnelName, stage: stageName, pipeline_id: pipeId, stage_id: stgId });
 
                   if (!dry_run && !pipeId.startsWith("AUTO_CREATE") && !stgId.startsWith("AUTO_CREATE")) {
