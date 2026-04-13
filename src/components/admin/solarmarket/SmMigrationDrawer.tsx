@@ -304,12 +304,15 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   // Cleanup: cancel auto-resume on unmount to prevent background loops
+  // Also notify parent that running stopped (prevents stuck "Migrando..." in parent)
   useEffect(() => {
     return () => {
       cancelRef.current = true;
       if (backgroundMonitorIntervalRef.current) clearInterval(backgroundMonitorIntervalRef.current);
+      // Ensure parent knows migration is no longer running from this drawer instance
+      onRunningChange?.(false);
     };
-  }, []);
+  }, [onRunningChange]);
 
   // Track when tab was last hidden for stall detection
   const lastHiddenAtRef = useRef<number | null>(null);
