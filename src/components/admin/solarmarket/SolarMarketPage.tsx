@@ -1187,7 +1187,7 @@ export default function SolarMarketPage() {
           </div>
           {loadingC ? <InlineLoader context="data_load" /> :
             filtered.clients.length === 0 ? (
-              <EmptyState icon={Users} title="Nenhum cliente" description="Sincronize para importar clientes." />
+              <EmptyState icon={Users} title="Nenhum cliente importado" description="Clique em 'Sincronizar Tudo' para importar os clientes do SolarMarket." />
             ) : (
               <ClientsTable clients={filtered.clients} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} pagination={{ page: clientsPag.page, pageSize: clientsPag.pageSize, onPageChange: clientsPag.setPage, onPageSizeChange: clientsPag.setPageSize }} />
             )}
@@ -1203,7 +1203,7 @@ export default function SolarMarketPage() {
           </div>
           {loadingP ? <InlineLoader context="data_load" /> :
             filtered.projects.length === 0 ? (
-              <EmptyState icon={FolderKanban} title="Nenhum projeto" description="Sincronize para importar projetos." />
+              <EmptyState icon={FolderKanban} title="Nenhum projeto importado" description="Clique em 'Sincronizar Tudo' para importar os projetos do SolarMarket." />
             ) : (
               <ProjectsTable projects={filtered.projects} onSelect={setSelectedProject} onNavigateProposals={navigateToProposals} clientsMap={clientsLookup} pagination={{ page: projectsPag.page, pageSize: projectsPag.pageSize, onPageChange: projectsPag.setPage, onPageSizeChange: projectsPag.setPageSize }} />
             )}
@@ -1255,7 +1255,7 @@ export default function SolarMarketPage() {
           </div>
           {loadingPr ? <InlineLoader context="data_load" /> :
             filtered.proposals.length === 0 ? (
-              <EmptyState icon={FileText} title="Nenhuma proposta" description="Sincronize para importar propostas." />
+              <EmptyState icon={FileText} title="Nenhuma proposta encontrada" description="Propostas são descobertas durante a varredura de projetos. Execute a sincronização completa." />
             ) : (
               <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} selectedIds={selectedProposalIds} onToggleSelect={toggleProposalSelect} onToggleAll={toggleAllProposals} onMigrate={openMigrationDrawer} pagination={{ page: proposalsPag.page, pageSize: proposalsPag.pageSize, onPageChange: proposalsPag.setPage, onPageSizeChange: proposalsPag.setPageSize }} />
             )}
@@ -1265,7 +1265,7 @@ export default function SolarMarketPage() {
         <TabsContent value="sem-projeto" className="mt-3">
           {loadingC || loadingP ? <InlineLoader context="data_load" /> :
             clientsWithoutProjectsCount === 0 ? (
-              <EmptyState icon={CheckCircle} title="Todos os clientes têm projetos" description="Nenhum cliente sem projeto encontrado." />
+              <EmptyState icon={CheckCircle} title="Tudo vinculado" description="Todos os clientes possuem pelo menos um projeto associado." />
             ) : (
               <ClientsTable clients={clientsWithoutProjects} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} pagination={{ page: noProjectPag.page, pageSize: noProjectPag.pageSize, onPageChange: noProjectPag.setPage, onPageSizeChange: noProjectPag.setPageSize }} />
             )}
@@ -1275,7 +1275,7 @@ export default function SolarMarketPage() {
         <TabsContent value="sem-proposta" className="mt-3">
           {loadingC || loadingPr ? <InlineLoader context="data_load" /> :
             clientsWithoutProposalsCount === 0 ? (
-              <EmptyState icon={CheckCircle} title="Todos os clientes têm propostas" description="Nenhum cliente sem proposta encontrado." />
+              <EmptyState icon={CheckCircle} title="Tudo vinculado" description="Todos os clientes possuem pelo menos uma proposta associada." />
             ) : (
               <ClientsTable clients={clientsWithoutProposals} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} pagination={{ page: noProposalPag.page, pageSize: noProposalPag.pageSize, onPageChange: noProposalPag.setPage, onPageSizeChange: noProposalPag.setPageSize }} />
             )}
@@ -1291,7 +1291,7 @@ export default function SolarMarketPage() {
           </div>
           {loadingF ? <InlineLoader context="data_load" /> :
             funnels.length === 0 ? (
-              <EmptyState icon={GitBranch} title="Nenhum funil" description="Sincronize para importar funis." />
+              <EmptyState icon={GitBranch} title="Nenhum funil importado" description="Clique em 'Funis & Etapas' ou 'Sincronizar Tudo' para importar os funis do SolarMarket." />
             ) : (
               <FunnelsTable funnels={funnels} />
             )}
@@ -1307,7 +1307,7 @@ export default function SolarMarketPage() {
           </div>
           {loadingCF ? <InlineLoader context="data_load" /> :
             customFields.length === 0 ? (
-              <EmptyState icon={Settings2} title="Nenhum campo" description="Sincronize para importar campos customizados." />
+              <EmptyState icon={Settings2} title="Nenhum campo importado" description="Campos customizados são importados automaticamente na sincronização." />
             ) : (
               <CustomFieldsTable fields={customFields} />
             )}
@@ -1328,7 +1328,7 @@ export default function SolarMarketPage() {
             </Button>
           </div>
           {syncLogs.length === 0 ? (
-            <EmptyState icon={Clock} title="Nenhuma sincronização" description="Execute a primeira sincronização." />
+            <EmptyState icon={History} title="Sem registros" description="O histórico de operações aparecerá aqui após a primeira sincronização." />
           ) : (
             <SyncLogsTable logs={syncLogs} />
           )}
