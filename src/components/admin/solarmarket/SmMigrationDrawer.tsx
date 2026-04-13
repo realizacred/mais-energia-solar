@@ -666,7 +666,14 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             }
             if (response.status === 409 && errBody?.blocked) {
               const blockedType = errBody?.blocked_by_type || "operação";
-              throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde a conclusão ou tente novamente em 2 minutos (runs travadas são limpas automaticamente).`);
+              const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
+              if (isSyncBlock) {
+                addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa em 15s.`);
+                await new Promise(r => setTimeout(r, 15_000));
+                b--; // retry same batch
+                continue;
+              }
+              throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde a conclusão ou tente novamente em 2 minutos.`);
             }
             throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
           }
@@ -970,8 +977,22 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             if (response.status === 423 || errBody?.blocked) {
               throw new Error(errBody?.message || "Migração bloqueada.");
             }
+            // 409 blocked by another SM operation (e.g. sync_proposals) — wait and retry
             if (response.status === 409 && errBody?.blocked) {
               const blockedType = errBody?.blocked_by_type || "operação";
+              const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
+              if (isSyncBlock) {
+                addLog(`Rodada ${round}: aguardando término de ${blockedType}... Nova tentativa em 15s.`);
+                for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+                  updateStep(stepName, {
+                    state: "running",
+                    detail: `Aguardando sync de propostas finalizar...`,
+                  });
+                }
+                // Don't count as stagnant — this is expected waiting
+                await new Promise((resolve) => setTimeout(resolve, 15_000));
+                continue; // retry the round
+              }
               throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde ou tente novamente em 2 min.`);
             }
             throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
