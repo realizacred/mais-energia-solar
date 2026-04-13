@@ -852,6 +852,23 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       return;
     }
 
+    // Save migration settings for server-side auto-resume (pg_cron)
+    try {
+      const { data: profileData } = await supabase.from("profiles").select("tenant_id").eq("user_id", session?.user?.id ?? "").single();
+      if (profileData?.tenant_id) {
+        await (supabase as any).from("sm_migration_settings").upsert({
+          tenant_id: profileData.tenant_id,
+          pipeline_id: activePipelineId,
+          stage_id: activeStageId || null,
+          owner_id: ownerId && ownerId !== "__auto__" ? ownerId : null,
+          auto_resolve_owner: true,
+          batch_size: 10,
+          enabled: true,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "tenant_id" });
+      }
+    } catch (_) { /* best-effort — migration still works without this */ }
+
     resetState();
     setBatchProgress(null);
     setAutoResumeRunning(true);
