@@ -664,6 +664,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             if (response.status === 423 || errBody?.blocked) {
               throw new Error(errBody?.message || "Migração bloqueada para manutenção. Contate o administrador.");
             }
+            if (response.status === 409 && errBody?.blocked) {
+              const blockedType = errBody?.blocked_by_type || "operação";
+              throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde a conclusão ou tente novamente em 2 minutos (runs travadas são limpas automaticamente).`);
+            }
             throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
           }
 
@@ -948,6 +952,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             const errBody = await response.json().catch(() => ({}));
             if (response.status === 423 || errBody?.blocked) {
               throw new Error(errBody?.message || "Migração bloqueada.");
+            }
+            if (response.status === 409 && errBody?.blocked) {
+              const blockedType = errBody?.blocked_by_type || "operação";
+              throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde ou tente novamente em 2 min.`);
             }
             throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
           }
