@@ -471,58 +471,136 @@ Deno.serve(async (req) => {
       );
     }
     // ─── END BLOCK CHECK ───────────────────────────────────
-    // Auth
+    // Auth — supports JWT (user) or x-cron-secret (pg_cron auto-resume)
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
+    const cronSecretHeader = req.headers.get("x-cron-secret");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const adminClient = createClient(supabaseUrl, serviceKey);
 
-    // Validate user auth using service client + getUser(jwt)
+    let tenantId: string;
+    let rawBody: any;
+
+    // ── CRON MODE: auto-resume for all enabled tenants ──
+    if (cronSecretHeader) {
+      const expectedCronSecret = Deno.env.get("CRON_SECRET");
+      if (!expectedCronSecret || cronSecretHeader !== expectedCronSecret) {
+        return new Response(JSON.stringify({ error: "Invalid cron secret" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fetch all tenants with enabled migration settings AND pending proposals
+      const { data: settings } = await adminClient
+        .from("sm_migration_settings")
+        .select("tenant_id, pipeline_id, stage_id, owner_id, auto_resolve_owner, batch_size")
+        .eq("enabled", true);
+
+      if (!settings || settings.length === 0) {
+        return new Response(JSON.stringify({ cron: true, message: "No tenants with enabled migration" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const cronResults: any[] = [];
+      for (const s of settings) {
+        // Check if there are pending proposals for this tenant
+        const { count: pendingCount } = await adminClient
+          .from("solar_market_proposals")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", s.tenant_id)
+          .is("migrado_em", null);
+
+        if (!pendingCount || pendingCount === 0) {
+          // Auto-disable when done
+          await adminClient
+            .from("sm_migration_settings")
+            .update({ enabled: false, updated_at: new Date().toISOString() })
+            .eq("tenant_id", s.tenant_id);
+          cronResults.push({ tenant_id: s.tenant_id, status: "completed", pending: 0 });
+          continue;
+        }
+
+        // Call self recursively via internal fetch with service_role auth
+        // Build payload matching user-mode params
+        const payload = {
+          dry_run: false,
+          pipeline_id: s.pipeline_id,
+          stage_id: s.stage_id || null,
+          auto_resolve_owner: s.auto_resolve_owner ?? true,
+          auto_resume: true,
+          batch_size: s.batch_size || 10,
+          include_projects_without_proposal: false,
+          ...(s.owner_id ? { owner_id: s.owner_id } : {}),
+          _cron_tenant_id: s.tenant_id, // internal: tenant override for cron
+        };
+
+        try {
+          const innerResp = await fetch(`${supabaseUrl}/functions/v1/migrate-sm-proposals`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+          const innerBody = await innerResp.json().catch(() => ({}));
+          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: innerBody });
+        } catch (e) {
+          cronResults.push({ tenant_id: s.tenant_id, status: "error", error: (e as Error).message });
+        }
+      }
+
+      return new Response(JSON.stringify({ cron: true, results: cronResults }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── USER / SERVICE_ROLE MODE ──
+    rawBody = await req.json();
+
+    // Check if this is a cron-initiated internal call (service_role + _cron_tenant_id)
     const token = authHeader.replace(/^Bearer\s+/i, "");
     if (!token) {
-      console.error("ERR", { step: "token_extract", err: "No token in header" });
-      return new Response(JSON.stringify({ error: "Unauthorized", step: "token_extract", debug: { message: "No Bearer token found" } }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "Unauthorized", step: "token_extract" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const adminClient = createClient(supabaseUrl, serviceKey);
-    const { data: { user }, error: authErr } = await adminClient.auth.getUser(token);
-    // console.log("[SM Migration] Auth result:", user?.id ?? "NO_USER", authErr?.message ?? "OK");
-    if (authErr || !user) {
-      console.error("ERR", { step: "user_auth", err: authErr?.message });
-      return new Response(JSON.stringify({ error: "Unauthorized", step: "user_auth", debug: { message: authErr?.message } }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // If called with service_role key + _cron_tenant_id, skip user auth
+    if (token === serviceKey && rawBody?._cron_tenant_id) {
+      tenantId = rawBody._cron_tenant_id;
+      console.error(`[SM Migration] Cron mode: tenant=${tenantId}`);
+    } else {
+      // Standard user JWT auth
+      const { data: { user }, error: authErr } = await adminClient.auth.getUser(token);
+      if (authErr || !user) {
+        console.error("ERR", { step: "user_auth", err: authErr?.message });
+        return new Response(JSON.stringify({ error: "Unauthorized", step: "user_auth" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: profile, error: profileError } = await adminClient
+        .from("profiles")
+        .select("tenant_id, status, ativo")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profileError || !profile?.tenant_id) {
+        return new Response(JSON.stringify({ error: "No tenant/profile", step: "profile_lookup" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (profile.status !== "aprovado" || !profile.ativo) {
+        return new Response(JSON.stringify({ error: "User not approved/active", step: "profile_check" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      tenantId = profile.tenant_id;
     }
-
-    // Get tenant_id via user_id (reuse adminClient)
-    const { data: profile, error: profileError } = await adminClient
-      .from("profiles")
-      .select("tenant_id, status, ativo")
-      .eq("user_id", user.id)
-      .single();
-
-    // console.log("[SM Migration] Profile:", JSON.stringify({ tenant_id: profile?.tenant_id, status: profile?.status, ativo: profile?.ativo, err: profileError?.message }));
-    if (profileError || !profile?.tenant_id) {
-      console.error("ERR", { step: "profile_lookup", err: profileError?.message });
-      return new Response(JSON.stringify({ error: "No tenant/profile", step: "profile_lookup", debug: { message: profileError?.message, code: profileError?.code } }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (profile.status !== "aprovado" || !profile.ativo) {
-      console.error("ERR", { step: "profile_check", err: `status=${profile.status} ativo=${profile.ativo}` });
-      return new Response(JSON.stringify({ error: "User not approved/active", step: "profile_check", debug: { status: profile.status, ativo: profile.ativo } }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const tenantId = profile.tenant_id;
-    const rawBody = await req.json();
 
     // ─── PASSO 0: sync_pipelines action ─────────────────
     if (rawBody?.action === "sync_pipelines") {
