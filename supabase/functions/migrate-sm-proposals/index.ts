@@ -767,7 +767,7 @@ Deno.serve(async (req) => {
     }
 
     const params: MigrationParams = rawBody as MigrationParams;
-    const { dry_run = true, batch_size = 25 } = params;
+    const { dry_run = true, batch_size = 50 } = params;
     let { filters = {} } = params;
 
     // ─── Formal Lock: prevent concurrent SM operations ─────
@@ -2056,7 +2056,25 @@ Deno.serve(async (req) => {
 
             // Priority 1: DB cached funnel data (fast, no external call)
             if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
-              if (smProj?.sm_funnel_name?.toLowerCase() === "vendedores" && smProj.sm_stage_name) {
+              // Check all_funnels first (richer data than sm_funnel_name)
+              if (smProj?.all_funnels && Array.isArray(smProj.all_funnels)) {
+                for (const f of smProj.all_funnels) {
+                  const fName = String(f.funnelName || f.funnel_name || "").toLowerCase().trim();
+                  const sName = String(f.stageName || f.stage_name || "").trim();
+                  if (fName === "vendedores" && sName) {
+                    try {
+                      const { id, created } = await resolveOrCreateConsultor(sName);
+                      resolvedOwnerId = id;
+                      ownerAutoCreated = created;
+                      ownerSource = `db_all_funnels:${sName}`;
+                      (report as any).owner_resolved = { name: sName, id, created, source: "db_all_funnels" };
+                    } catch (e) { /* fallthrough */ }
+                    break;
+                  }
+                }
+              }
+              // Fallback: sm_funnel_name/sm_stage_name
+              if ((!resolvedOwnerId || ownerSource.startsWith("manual")) && smProj?.sm_funnel_name?.toLowerCase() === "vendedores" && smProj.sm_stage_name) {
                 try {
                   const { id, created } = await resolveOrCreateConsultor(smProj.sm_stage_name);
                   resolvedOwnerId = id;
@@ -2067,7 +2085,7 @@ Deno.serve(async (req) => {
               }
             }
 
-            // Priority 2: Live fetch from SM API — only if DB cache empty
+            // Priority 2: Live fetch from SM API — only if DB has NO vendedor data at all
             if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
               const apiFunnelName = await fetchProjectFunnelVendedor(smProp.sm_project_id);
               if (apiFunnelName) {

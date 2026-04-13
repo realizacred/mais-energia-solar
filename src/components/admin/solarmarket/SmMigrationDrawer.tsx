@@ -430,7 +430,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
       updateStep(stepName, {
         state: "running",
-        detail: `Em segundo plano • ${migrated}/${autoResumeStats.initialPending} migradas • ETA: ${eta}s`,
+        detail: `🖥️ Servidor processando • ${migrated}/${autoResumeStats.initialPending} migradas • ETA: ${eta}s`,
       });
     }
 
@@ -671,7 +671,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
               if (isSyncBlock && syncWaitRetries < MAX_SYNC_WAIT_RETRIES) {
                 syncWaitRetries++;
-                addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa ${syncWaitRetries}/${MAX_SYNC_WAIT_RETRIES} em 15s.`);
+                addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa automática ${syncWaitRetries}/${MAX_SYNC_WAIT_RETRIES} em 15s.`);
                 await new Promise(r => setTimeout(r, 15_000));
                 b--; // retry same batch
                 continue;
@@ -876,7 +876,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           stage_id: activeStageId || null,
           owner_id: ownerId && ownerId !== "__auto__" ? ownerId : null,
           auto_resolve_owner: true,
-          batch_size: 10,
+          batch_size: 25,
           enabled: true,
           updated_at: new Date().toISOString(),
         }, { onConflict: "tenant_id" });
@@ -963,7 +963,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             stage_id: activeStageId || null,
             auto_resolve_owner: true,
             auto_resume: true,
-            batch_size: 10,
+            batch_size: 25,
             include_projects_without_proposal: false,
             ...(ownerId && ownerId !== "__auto__" ? { owner_id: ownerId } : {}),
           };
@@ -989,11 +989,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               const blockedType = errBody?.blocked_by_type || "operação";
               const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
               if (isSyncBlock) {
-                addLog(`Rodada ${round}: aguardando término de ${blockedType}... Nova tentativa em 15s.`);
+                addLog(`Rodada ${round}: aguardando término de ${blockedType}... Nova tentativa automática em 15s.`);
                 for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
                   updateStep(stepName, {
                     state: "running",
-                    detail: `Aguardando sync de propostas finalizar...`,
+                    detail: `⏳ Aguardando sync finalizar — retentativa automática em 15s`,
                   });
                 }
                 // Don't count as stagnant — this is expected waiting
@@ -1041,7 +1041,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
             updateStep(stepName, {
               state: "running",
-              detail: `Em segundo plano • ${currentStats.migrated}/${initialPending} migradas • Rodada ${round}`,
+              detail: `🖥️ Servidor processando • ${currentStats.migrated}/${initialPending} migradas • Rodada ${round}`,
             });
           }
 
