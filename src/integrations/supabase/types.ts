@@ -27101,6 +27101,8 @@ export type Database = {
           remaining: number
         }[]
       }
+      check_wa_duplicate_conversations: { Args: never; Returns: Json }
+      check_wa_orphan_messages: { Args: never; Returns: Json }
       claim_followup_candidates: {
         Args: { _limit?: number }
         Returns: {
