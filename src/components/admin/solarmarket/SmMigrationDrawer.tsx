@@ -876,7 +876,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           stage_id: activeStageId || null,
           owner_id: ownerId && ownerId !== "__auto__" ? ownerId : null,
           auto_resolve_owner: true,
-          batch_size: 10,
+          batch_size: 25,
           enabled: true,
           updated_at: new Date().toISOString(),
         }, { onConflict: "tenant_id" });
@@ -963,7 +963,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             stage_id: activeStageId || null,
             auto_resolve_owner: true,
             auto_resume: true,
-            batch_size: 10,
+            batch_size: 25,
             include_projects_without_proposal: false,
             ...(ownerId && ownerId !== "__auto__" ? { owner_id: ownerId } : {}),
           };
