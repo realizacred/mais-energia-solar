@@ -359,6 +359,8 @@ export function SmDashboardPanel({
   const { data: activeRun } = useActiveSmOperation();
   const { data: lastRun } = useLastCompletedSmOperation();
   const { data: isBgSyncActive = false } = useIsBackgroundSyncActive();
+  // Auto-expire stale runs on page load to prevent "stuck" UI
+  useExpireStaleSmOperations();
 
   if (!progress) return null;
 
