@@ -1113,6 +1113,9 @@ export default function SolarMarketPage() {
         </div>
       )}
 
+      {/* Operation status panel — shows active migration/sync from SSOT */}
+      <SmOperationStatusPanel />
+
       {/* SINGLE Operational Dashboard — all status + metrics in one place */}
       <SmDashboardPanel
         localSyncRunning={syncIsRunning || fullSyncStatus.running}
