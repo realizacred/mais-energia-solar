@@ -1281,32 +1281,48 @@ Deno.serve(async (req) => {
     // M02 fix: pre-load all stages per pipeline in a single query, stored in stageCache.
     // Eliminates the double-query pattern (exact match + full scan) per stage call.
     const stageCacheLoaded = new Set<string>(); // tracks which pipelineIds were already loaded
+    const stagePositionCache = new Map<string, number>(); // cacheKey → current position
 
     async function preloadStagesForPipeline(pipelineId: string): Promise<void> {
       if (stageCacheLoaded.has(pipelineId)) return;
       stageCacheLoaded.add(pipelineId);
       const { data: allStages } = await adminClient
         .from("pipeline_stages")
-        .select("id, name")
+        .select("id, name, position")
         .eq("tenant_id", tenantId)
         .eq("pipeline_id", pipelineId);
       for (const s of allStages || []) {
         const normalizedName = normalizeComparableName(s.name);
         const key = `${pipelineId}::${normalizedName}`;
         if (!stageCache.has(key)) stageCache.set(key, s.id);
+        stagePositionCache.set(key, s.position ?? 0);
       }
     }
 
     async function resolveOrCreateStage(pipelineId: string, stageName: string, position: number): Promise<string> {
       const normalizedStageName = normalizeComparableName(stageName);
       const cacheKey = `${pipelineId}::${normalizedStageName}`;
-      if (stageCache.has(cacheKey)) return stageCache.get(cacheKey)!;
 
       // Pre-load all stages for this pipeline in one query (M02 fix)
       await preloadStagesForPipeline(pipelineId);
 
-      // Check again after pre-load (accent-insensitive already handled by normalization above)
-      if (stageCache.has(cacheKey)) return stageCache.get(cacheKey)!;
+      if (stageCache.has(cacheKey)) {
+        const existingId = stageCache.get(cacheKey)!;
+        // Fix position if divergent and not dry_run
+        const currentPos = stagePositionCache.get(cacheKey);
+        if (!dry_run && currentPos !== undefined && currentPos !== position) {
+          const { error: updErr } = await adminClient
+            .from("pipeline_stages")
+            .update({ position })
+            .eq("id", existingId)
+            .eq("tenant_id", tenantId);
+          if (!updErr) {
+            stagePositionCache.set(cacheKey, position);
+            console.error(`[SM Migration] Retrofix stage "${stageName}" position: ${currentPos} → ${position}`);
+          }
+        }
+        return existingId;
+      }
 
       if (dry_run) {
         const placeholder = `AUTO_CREATE_STAGE:${stageName}`;
