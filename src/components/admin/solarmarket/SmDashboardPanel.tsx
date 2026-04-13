@@ -472,6 +472,14 @@ export function SmDashboardPanel({
         />
       )}
 
+      {/* ── Server-side info microcopy ── */}
+      {(state === "migration_running" || state === "sync_running") && (
+        <div className="rounded-md border border-success/20 bg-success/5 px-3 py-2 flex items-center gap-2 text-xs text-success">
+          <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+          <span>Processamento no servidor ativo — você pode fechar esta tela ou o navegador. O progresso continua automaticamente.</span>
+        </div>
+      )}
+
       {/* ── Staging vs Conversion sections ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Staging — Dados importados */}
