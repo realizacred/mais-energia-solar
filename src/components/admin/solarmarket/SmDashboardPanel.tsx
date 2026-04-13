@@ -194,9 +194,16 @@ function ActiveOperationDetail({
                  opType === "migrate_to_native" ? "Conversão para sistema nativo" : opType}
               </p>
             )}
-            <p className="text-[10px] text-success/80 mt-0.5">
-              🖥️ Rodando no servidor — você pode fechar esta tela com segurança
-            </p>
+            {opType !== "migrate_to_native" && (
+              <p className="text-[10px] text-success/80 mt-0.5">
+                🖥️ Sincronização no servidor — você pode fechar esta tela com segurança
+              </p>
+            )}
+            {opType === "migrate_to_native" && (
+              <p className="text-[10px] text-warning/80 mt-0.5">
+                ⚠️ Migração depende do navegador aberto — não feche esta tela
+              </p>
+            )}
           </div>
         </div>
         {heartbeatLabel && (
@@ -473,10 +480,16 @@ export function SmDashboardPanel({
       )}
 
       {/* ── Server-side info microcopy ── */}
-      {(state === "migration_running" || state === "sync_running") && (
+      {state === "sync_running" && (
         <div className="rounded-md border border-success/20 bg-success/5 px-3 py-2 flex items-center gap-2 text-xs text-success">
           <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-          <span>Processamento no servidor ativo — você pode fechar esta tela ou o navegador. O progresso continua automaticamente.</span>
+          <span>Sincronização no servidor ativa — você pode fechar esta tela. O progresso continua automaticamente.</span>
+        </div>
+      )}
+      {state === "migration_running" && (
+        <div className="rounded-md border border-warning/20 bg-warning/5 px-3 py-2 flex items-center gap-2 text-xs text-warning">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>Migração em andamento no navegador — mantenha esta tela aberta. Se fechar, o progresso salvo será retomado na próxima execução manual.</span>
         </div>
       )}
 
