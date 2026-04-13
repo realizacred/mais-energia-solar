@@ -106,6 +106,22 @@ function isTechnicalConversationName(name: string | null | undefined, remoteJid:
   return false;
 }
 
+/**
+ * Check if a pushName is actually just a phone number (should be ignored).
+ * Prevents overwriting CRM names with phone-like pushNames.
+ */
+function isPushNameJustPhone(pushName: string | null | undefined, remoteJid: string): boolean {
+  if (!pushName?.trim()) return true;
+  const trimmed = pushName.trim();
+  // If pushName is purely digits (with optional + or spaces), it's a phone
+  const digits = trimmed.replace(/[\s+\-().]/g, "");
+  if (/^\d{8,15}$/.test(digits)) return true;
+  // Also check if it matches the JID phone
+  const jidDigits = normalizeJid(remoteJid).split("@")[0];
+  if (digits === jidDigits || digits === jidDigits.replace(/^55/, "")) return true;
+  return false;
+}
+
 const INVALID_PROFILE_PICTURE_VALUES = new Set(["", "none", "null", "undefined"]);
 
 function extractContactProfilePictureUrl(contact: any): string | null {
@@ -465,7 +481,9 @@ async function handleMessageUpsert(
     const evolutionMessageId = key.id || msg.id || null;
     const participantJid = isGroup ? (key.participant || msg.participant || null) : null;
     const participantName = isGroup ? (msg.pushName || null) : null;
-    const contactName = isGroup ? null : (msg.pushName || msg.verifiedBizName || null);
+    const rawContactName = isGroup ? null : (msg.pushName || msg.verifiedBizName || null);
+    // Sanitize pushName: if it's just a phone number, ignore it to preserve CRM names
+    const contactName = rawContactName && !isPushNameJustPhone(rawContactName, remoteJid) ? rawContactName : null;
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
     
     const groupSubject: string | null = isGroup
@@ -1037,7 +1055,8 @@ async function handleContactsUpsert(
           updates.profile_picture_url = profilePicUrl;
         }
 
-        if (name && (conversation.is_group || isTechnicalConversationName(conversation.cliente_nome, conversation.remote_jid))) {
+        // Sanitize pushName: reject phone-like names to preserve CRM data
+        if (name && !isPushNameJustPhone(name, jid) && (conversation.is_group || isTechnicalConversationName(conversation.cliente_nome, conversation.remote_jid))) {
           updates.cliente_nome = name;
         }
 

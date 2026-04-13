@@ -27013,6 +27013,13 @@ export type Database = {
           },
         ]
       }
+      vw_wa_integrity_audit: {
+        Row: {
+          erro: string | null
+          ocorrencias: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       acquire_conversation_lock: {
@@ -27094,6 +27101,8 @@ export type Database = {
           remaining: number
         }[]
       }
+      check_wa_duplicate_conversations: { Args: never; Returns: Json }
+      check_wa_orphan_messages: { Args: never; Returns: Json }
       claim_followup_candidates: {
         Args: { _limit?: number }
         Returns: {
