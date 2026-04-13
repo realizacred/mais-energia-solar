@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink, Activity } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink, Activity, Play, StopCircle, History } from "lucide-react";
 import { PageHeader, SectionCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
@@ -457,15 +457,25 @@ function CustomFieldsTable({ fields }: { fields: SmCustomField[] }) {
 }
 
 function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; status: string; total_fetched: number; total_upserted: number; total_errors: number; started_at: string; error_message?: string | null }> }) {
+  const typeLabels: Record<string, string> = {
+    clients: "Clientes",
+    projects: "Projetos",
+    proposals: "Propostas",
+    funnels: "Funis",
+    custom_fields: "Campos",
+    projects_funnels: "Funis Proj.",
+    full_sync: "Completo",
+  };
+
   return (
-    <SectionCard icon={Clock} title="Histórico de Sincronizações" variant="neutral" noPadding>
+    <SectionCard icon={History} title="Histórico de Operações" variant="neutral" noPadding>
       <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead>Quando</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Operação</TableHead>
+            <TableHead>Resultado</TableHead>
             <TableHead className="text-right">Encontr.</TableHead>
             <TableHead className="text-right">Import.</TableHead>
             <TableHead className="text-right">Erros</TableHead>
@@ -478,11 +488,11 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
                 {formatDistanceToNow(new Date(log.started_at), { addSuffix: true, locale: ptBR })}
               </TableCell>
               <TableCell>
-                <Badge variant="outline" className="text-[10px]">{log.sync_type}</Badge>
+                <Badge variant="outline" className="text-[10px]">{typeLabels[log.sync_type] || log.sync_type}</Badge>
               </TableCell>
               <TableCell>
                 {log.status === "completed" ? (
-                  <Badge className="text-[10px] bg-success/10 text-success border-0"><CheckCircle className="h-3 w-3 mr-1" />OK</Badge>
+                  <Badge className="text-[10px] bg-success/10 text-success border-0"><CheckCircle className="h-3 w-3 mr-1" />Concluído</Badge>
                 ) : log.status === "partial" ? (
                   <Badge className="text-[10px] bg-warning/10 text-warning border-0" title={log.error_message || "Sincronização parcial — execute novamente para continuar"}>
                     <Clock className="h-3 w-3 mr-1" />Parcial
@@ -490,14 +500,14 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
                 ) : log.status === "completed_with_errors" ? (
                   <Badge className="text-[10px] bg-warning/10 text-warning border-0"><AlertTriangle className="h-3 w-3 mr-1" />Com erros</Badge>
                 ) : log.status === "running" ? (
-                  <Badge className="text-[10px] bg-warning/10 text-warning border-0"><RefreshCw className="h-3 w-3 mr-1 animate-spin" />Rodando</Badge>
+                  <Badge className="text-[10px] bg-primary/10 text-primary border-0"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Rodando</Badge>
                 ) : (
-                  <Badge className="text-[10px] bg-destructive/10 text-destructive border-0"><XCircle className="h-3 w-3 mr-1" />Erro</Badge>
+                  <Badge className="text-[10px] bg-destructive/10 text-destructive border-0"><XCircle className="h-3 w-3 mr-1" />Falhou</Badge>
                 )}
               </TableCell>
-              <TableCell className="text-right text-sm font-medium">{log.total_fetched}</TableCell>
-              <TableCell className="text-right text-sm font-medium text-success">{log.total_upserted}</TableCell>
-              <TableCell className="text-right text-sm font-medium text-destructive">{log.total_errors}</TableCell>
+              <TableCell className="text-right text-sm font-mono text-foreground">{log.total_fetched}</TableCell>
+              <TableCell className="text-right text-sm font-mono text-success">{log.total_upserted}</TableCell>
+              <TableCell className="text-right text-sm font-mono text-destructive">{log.total_errors || "—"}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -784,27 +794,36 @@ export default function SolarMarketPage() {
   }, [clients, projects, proposals, search, filterClientId, filterProjectId, filterCity, filterResponsible, filterProposalStatus, filterProposalConsultor, filterMigrationStatus]);
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
+    <div className="space-y-5">
+      {/* Hero Header */}
       <PageHeader
         icon={Sun}
         title="SolarMarket Importação"
-        description="Painel de importação, sincronização e migração de dados do SolarMarket"
+        description="Importe, sincronize e migre seus dados do SolarMarket para o CRM de forma segura e rastreável"
         actions={
           <div className="flex gap-2 items-center flex-wrap justify-end">
-            {lastSync && (
-              <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                Sync: {formatDistanceToNow(new Date(lastSync.started_at), { addSuffix: true, locale: ptBR })}
-              </span>
-            )}
             {fullSyncStatus.running ? (
               <Button onClick={requestStopFullSync} size="sm" variant="outline" className="border-destructive text-destructive gap-1.5">
-                <XCircle className="h-3.5 w-3.5" />
+                <StopCircle className="h-3.5 w-3.5" />
                 Parar Sync
               </Button>
+            ) : migrationRunning ? (
+              <Button onClick={() => setMigrationDrawerOpen(true)} size="sm" className="gap-1.5">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Ver Migração
+              </Button>
+            ) : pendingProposals.length > 0 && !syncIsRunning && projects.length > 0 ? (
+              <Button onClick={() => setMigrateAllOpen(true)} size="sm" variant="default" className="gap-1.5">
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+                Migrar {pendingProposals.length} Propostas
+              </Button>
             ) : (
-              <Button onClick={syncUntilComplete} disabled={syncIsRunning} size="sm">
-                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
+              <Button onClick={syncUntilComplete} disabled={syncIsRunning} size="sm" className="gap-1.5">
+                {syncIsRunning ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Play className="h-3.5 w-3.5" />
+                )}
                 {syncIsRunning ? "Sincronizando..." : "Sincronizar Tudo"}
               </Button>
             )}
@@ -1178,7 +1197,7 @@ export default function SolarMarketPage() {
           </div>
           {loadingC ? <InlineLoader context="data_load" /> :
             filtered.clients.length === 0 ? (
-              <EmptyState icon={Users} title="Nenhum cliente" description="Sincronize para importar clientes." />
+              <EmptyState icon={Users} title="Nenhum cliente importado" description="Clique em 'Sincronizar Tudo' para importar os clientes do SolarMarket." />
             ) : (
               <ClientsTable clients={filtered.clients} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} pagination={{ page: clientsPag.page, pageSize: clientsPag.pageSize, onPageChange: clientsPag.setPage, onPageSizeChange: clientsPag.setPageSize }} />
             )}
@@ -1194,7 +1213,7 @@ export default function SolarMarketPage() {
           </div>
           {loadingP ? <InlineLoader context="data_load" /> :
             filtered.projects.length === 0 ? (
-              <EmptyState icon={FolderKanban} title="Nenhum projeto" description="Sincronize para importar projetos." />
+              <EmptyState icon={FolderKanban} title="Nenhum projeto importado" description="Clique em 'Sincronizar Tudo' para importar os projetos do SolarMarket." />
             ) : (
               <ProjectsTable projects={filtered.projects} onSelect={setSelectedProject} onNavigateProposals={navigateToProposals} clientsMap={clientsLookup} pagination={{ page: projectsPag.page, pageSize: projectsPag.pageSize, onPageChange: projectsPag.setPage, onPageSizeChange: projectsPag.setPageSize }} />
             )}
@@ -1246,7 +1265,7 @@ export default function SolarMarketPage() {
           </div>
           {loadingPr ? <InlineLoader context="data_load" /> :
             filtered.proposals.length === 0 ? (
-              <EmptyState icon={FileText} title="Nenhuma proposta" description="Sincronize para importar propostas." />
+              <EmptyState icon={FileText} title="Nenhuma proposta encontrada" description="Propostas são descobertas durante a varredura de projetos. Execute a sincronização completa." />
             ) : (
               <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} selectedIds={selectedProposalIds} onToggleSelect={toggleProposalSelect} onToggleAll={toggleAllProposals} onMigrate={openMigrationDrawer} pagination={{ page: proposalsPag.page, pageSize: proposalsPag.pageSize, onPageChange: proposalsPag.setPage, onPageSizeChange: proposalsPag.setPageSize }} />
             )}
@@ -1256,7 +1275,7 @@ export default function SolarMarketPage() {
         <TabsContent value="sem-projeto" className="mt-3">
           {loadingC || loadingP ? <InlineLoader context="data_load" /> :
             clientsWithoutProjectsCount === 0 ? (
-              <EmptyState icon={CheckCircle} title="Todos os clientes têm projetos" description="Nenhum cliente sem projeto encontrado." />
+              <EmptyState icon={CheckCircle} title="Tudo vinculado" description="Todos os clientes possuem pelo menos um projeto associado." />
             ) : (
               <ClientsTable clients={clientsWithoutProjects} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} pagination={{ page: noProjectPag.page, pageSize: noProjectPag.pageSize, onPageChange: noProjectPag.setPage, onPageSizeChange: noProjectPag.setPageSize }} />
             )}
@@ -1266,7 +1285,7 @@ export default function SolarMarketPage() {
         <TabsContent value="sem-proposta" className="mt-3">
           {loadingC || loadingPr ? <InlineLoader context="data_load" /> :
             clientsWithoutProposalsCount === 0 ? (
-              <EmptyState icon={CheckCircle} title="Todos os clientes têm propostas" description="Nenhum cliente sem proposta encontrado." />
+              <EmptyState icon={CheckCircle} title="Tudo vinculado" description="Todos os clientes possuem pelo menos uma proposta associada." />
             ) : (
               <ClientsTable clients={clientsWithoutProposals} onSelect={setSelectedClient} onNavigateProjects={navigateToProjects} pagination={{ page: noProposalPag.page, pageSize: noProposalPag.pageSize, onPageChange: noProposalPag.setPage, onPageSizeChange: noProposalPag.setPageSize }} />
             )}
@@ -1282,7 +1301,7 @@ export default function SolarMarketPage() {
           </div>
           {loadingF ? <InlineLoader context="data_load" /> :
             funnels.length === 0 ? (
-              <EmptyState icon={GitBranch} title="Nenhum funil" description="Sincronize para importar funis." />
+              <EmptyState icon={GitBranch} title="Nenhum funil importado" description="Clique em 'Funis & Etapas' ou 'Sincronizar Tudo' para importar os funis do SolarMarket." />
             ) : (
               <FunnelsTable funnels={funnels} />
             )}
@@ -1298,7 +1317,7 @@ export default function SolarMarketPage() {
           </div>
           {loadingCF ? <InlineLoader context="data_load" /> :
             customFields.length === 0 ? (
-              <EmptyState icon={Settings2} title="Nenhum campo" description="Sincronize para importar campos customizados." />
+              <EmptyState icon={Settings2} title="Nenhum campo importado" description="Campos customizados são importados automaticamente na sincronização." />
             ) : (
               <CustomFieldsTable fields={customFields} />
             )}
@@ -1319,7 +1338,7 @@ export default function SolarMarketPage() {
             </Button>
           </div>
           {syncLogs.length === 0 ? (
-            <EmptyState icon={Clock} title="Nenhuma sincronização" description="Execute a primeira sincronização." />
+            <EmptyState icon={History} title="Sem registros" description="O histórico de operações aparecerá aqui após a primeira sincronização." />
           ) : (
             <SyncLogsTable logs={syncLogs} />
           )}
