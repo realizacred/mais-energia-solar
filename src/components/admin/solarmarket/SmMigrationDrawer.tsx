@@ -64,6 +64,11 @@ interface MigrationResult {
   }>;
   total_found: number;
   total_processed: number;
+  has_more?: boolean;
+  time_budget_exceeded?: boolean;
+  completed?: boolean;
+  pending?: number;
+  migrated?: number;
 }
 
 interface MigrationBlockedPayload {
@@ -169,20 +174,26 @@ function usePendingMigrationCount() {
       const [
         { count: total },
         { count: migrated },
-        { data: errorRows, error: errorsQueryError },
+        { data: lastRun, error: lastRunError },
       ] = await Promise.all([
         supabase.from("solar_market_proposals").select("id", { count: "exact", head: true }),
         supabase.from("solar_market_proposals").select("id", { count: "exact", head: true }).not("migrado_em", "is", null),
-        supabase.from("sm_migration_log").select("sm_proposal_id").eq("status", "ERROR"),
+        (supabase as any)
+          .from("sm_operation_runs")
+          .select("error_items")
+          .eq("operation_type", "migrate_to_native")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
-      if (errorsQueryError) throw errorsQueryError;
+      if (lastRunError) throw lastRunError;
 
       return {
         total: total || 0,
         migrated: migrated || 0,
         pending: Math.max(0, (total || 0) - (migrated || 0)),
-        errors: errorRows?.length || 0,
+        errors: Number(lastRun?.error_items || 0),
       };
     },
     staleTime: 1000 * 30,
@@ -1070,7 +1081,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             throw new Error(getBlockedMessage(errBody, `HTTP ${response.status}`));
           }
 
-          const data = await response.json();
+          const data = await response.json() as MigrationResult;
+          const processedThisRound = Number(data.total_processed || 0);
+          const partialBatch = data.time_budget_exceeded === true;
+          const hasMoreOnServer = data.has_more === true;
           const pendingResult = await refetchPending();
           const refreshedStats = pendingResult.data ?? {
             total: initialPending + initialMigrated,
@@ -1097,7 +1111,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           setAutoResumeStats(currentStats);
 
           const currentPending = refreshedStats.pending ?? Math.max(0, initialPending - currentStats.migrated);
-          const progressed = currentStats.migrated > lastMigrated;
+          const progressed = currentStats.migrated > lastMigrated || processedThisRound > 0;
 
           if (progressed) {
             stagnantRounds = 0;
@@ -1111,13 +1125,15 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
             updateStep(stepName, {
               state: "running",
-              detail: `🖥️ Servidor processando • ${currentStats.migrated}/${initialPending} migradas • Rodada ${round}`,
+              detail: `🖥️ Servidor processando • ${currentStats.migrated}/${initialPending} migradas • Rodada ${round}${partialBatch ? " • lote parcial salvo" : ""}`,
             });
           }
 
           addLog(
             progressed
-              ? `Rodada ${round}: progresso confirmado (${currentStats.migrated}/${initialPending}).`
+              ? partialBatch || hasMoreOnServer
+                ? `Rodada ${round}: lote parcial confirmado (${processedThisRound} item(ns) processados). Continuação automática...`
+                : `Rodada ${round}: progresso confirmado (${currentStats.migrated}/${initialPending}).`
               : `Rodada ${round}: sem avanço (${stagnantRounds}/${MAX_STAGNANT_ROUNDS}).`
           );
 
@@ -1227,7 +1243,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
                   <p className="text-lg font-bold text-destructive">{pendingStats.errors}</p>
-                  <p className="text-[10px] text-muted-foreground">Logs de erro</p>
+                  <p className="text-[10px] text-muted-foreground">Erros última rodada</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
                   <p className="text-lg font-bold text-foreground">
