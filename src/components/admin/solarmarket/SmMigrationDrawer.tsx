@@ -611,6 +611,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       setBatchProgress({ current: 0, total: batches.length });
 
       const batchErrors: string[] = [];
+      let syncWaitRetries = 0;
+      const MAX_SYNC_WAIT_RETRIES = 12; // 12 * 15s = 3 min max wait
 
       for (let b = 0; b < batches.length; b++) {
         if (cancelRef.current) break;
@@ -666,7 +668,18 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             }
             if (response.status === 409 && errBody?.blocked) {
               const blockedType = errBody?.blocked_by_type || "operação";
-              throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde a conclusão ou tente novamente em 2 minutos (runs travadas são limpas automaticamente).`);
+              const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
+              if (isSyncBlock && syncWaitRetries < MAX_SYNC_WAIT_RETRIES) {
+                syncWaitRetries++;
+                addLog(`Lote ${b + 1}: aguardando término de ${blockedType}... Retentativa ${syncWaitRetries}/${MAX_SYNC_WAIT_RETRIES} em 15s.`);
+                await new Promise(r => setTimeout(r, 15_000));
+                b--; // retry same batch
+                continue;
+              }
+              if (isSyncBlock) {
+                throw new Error(`Sync de propostas ainda em execução após ${MAX_SYNC_WAIT_RETRIES} tentativas. Tente novamente mais tarde.`);
+              }
+              throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde a conclusão ou tente novamente em 2 minutos.`);
             }
             throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
           }
@@ -677,6 +690,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             throw new Error((data as any).error);
           }
 
+          syncWaitRetries = 0; // reset after successful batch
           allResults.push(data);
           const successCount = allResults.reduce((acc, r) => acc + Math.max(0, (r.total_processed || 0) - (r.summary?.ERROR || 0)), 0);
           addLog(`Lote ${b + 1} OK: ${JSON.stringify(data.summary)} — Total migrado até agora: ${successCount}`);
@@ -970,8 +984,22 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             if (response.status === 423 || errBody?.blocked) {
               throw new Error(errBody?.message || "Migração bloqueada.");
             }
+            // 409 blocked by another SM operation (e.g. sync_proposals) — wait and retry
             if (response.status === 409 && errBody?.blocked) {
               const blockedType = errBody?.blocked_by_type || "operação";
+              const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
+              if (isSyncBlock) {
+                addLog(`Rodada ${round}: aguardando término de ${blockedType}... Nova tentativa em 15s.`);
+                for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+                  updateStep(stepName, {
+                    state: "running",
+                    detail: `Aguardando sync de propostas finalizar...`,
+                  });
+                }
+                // Don't count as stagnant — this is expected waiting
+                await new Promise((resolve) => setTimeout(resolve, 15_000));
+                continue; // retry the round
+              }
               throw new Error(`Bloqueado: ${blockedType} em andamento. Aguarde ou tente novamente em 2 min.`);
             }
             throw new Error(errBody?.error || errBody?.message || `HTTP ${response.status}`);
