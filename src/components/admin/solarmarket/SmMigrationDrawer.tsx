@@ -1111,7 +1111,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
   return (
     <>
-      <Drawer open={open} onOpenChange={(v) => {
+        <Drawer open={open} onOpenChange={(v) => {
         if (!v && running && autoResumeRunning) {
           toast.info("Migração em andamento no servidor. Você pode fechar esta tela com segurança.");
           onOpenChange(v);
@@ -1122,7 +1122,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           return;
         }
         onOpenChange(v);
-        if (!v && !running) resetState();
+          if (!v) {
+            onRunningChange?.(false);
+            if (!running) resetState();
+          }
       }}>
         <DrawerContent className="max-h-[calc(100dvh-2rem)]">
           <DrawerHeader>
