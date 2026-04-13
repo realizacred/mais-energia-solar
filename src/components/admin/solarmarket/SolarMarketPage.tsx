@@ -784,27 +784,36 @@ export default function SolarMarketPage() {
   }, [clients, projects, proposals, search, filterClientId, filterProjectId, filterCity, filterResponsible, filterProposalStatus, filterProposalConsultor, filterMigrationStatus]);
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
+    <div className="space-y-5">
+      {/* Hero Header */}
       <PageHeader
         icon={Sun}
         title="SolarMarket Importação"
-        description="Painel de importação, sincronização e migração de dados do SolarMarket"
+        description="Importe, sincronize e migre seus dados do SolarMarket para o CRM de forma segura e rastreável"
         actions={
           <div className="flex gap-2 items-center flex-wrap justify-end">
-            {lastSync && (
-              <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                Sync: {formatDistanceToNow(new Date(lastSync.started_at), { addSuffix: true, locale: ptBR })}
-              </span>
-            )}
             {fullSyncStatus.running ? (
               <Button onClick={requestStopFullSync} size="sm" variant="outline" className="border-destructive text-destructive gap-1.5">
-                <XCircle className="h-3.5 w-3.5" />
+                <StopCircle className="h-3.5 w-3.5" />
                 Parar Sync
               </Button>
+            ) : migrationRunning ? (
+              <Button onClick={() => setMigrationDrawerOpen(true)} size="sm" className="gap-1.5">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Ver Migração
+              </Button>
+            ) : pendingProposals.length > 0 && !syncIsRunning && projects.length > 0 ? (
+              <Button onClick={() => setMigrateAllOpen(true)} size="sm" variant="default" className="gap-1.5">
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+                Migrar {pendingProposals.length} Propostas
+              </Button>
             ) : (
-              <Button onClick={syncUntilComplete} disabled={syncIsRunning} size="sm">
-                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${syncIsRunning ? "animate-spin" : ""}`} />
+              <Button onClick={syncUntilComplete} disabled={syncIsRunning} size="sm" className="gap-1.5">
+                {syncIsRunning ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Play className="h-3.5 w-3.5" />
+                )}
                 {syncIsRunning ? "Sincronizando..." : "Sincronizar Tudo"}
               </Button>
             )}
