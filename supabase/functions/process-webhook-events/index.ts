@@ -481,7 +481,9 @@ async function handleMessageUpsert(
     const evolutionMessageId = key.id || msg.id || null;
     const participantJid = isGroup ? (key.participant || msg.participant || null) : null;
     const participantName = isGroup ? (msg.pushName || null) : null;
-    const contactName = isGroup ? null : (msg.pushName || msg.verifiedBizName || null);
+    const rawContactName = isGroup ? null : (msg.pushName || msg.verifiedBizName || null);
+    // Sanitize pushName: if it's just a phone number, ignore it to preserve CRM names
+    const contactName = rawContactName && !isPushNameJustPhone(rawContactName, remoteJid) ? rawContactName : null;
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
     
     const groupSubject: string | null = isGroup
@@ -1053,7 +1055,8 @@ async function handleContactsUpsert(
           updates.profile_picture_url = profilePicUrl;
         }
 
-        if (name && (conversation.is_group || isTechnicalConversationName(conversation.cliente_nome, conversation.remote_jid))) {
+        // Sanitize pushName: reject phone-like names to preserve CRM data
+        if (name && !isPushNameJustPhone(name, jid) && (conversation.is_group || isTechnicalConversationName(conversation.cliente_nome, conversation.remote_jid))) {
           updates.cliente_nome = name;
         }
 
