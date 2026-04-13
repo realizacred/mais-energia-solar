@@ -204,21 +204,28 @@ async function fetchAllRows<T>(params: {
   return allRows;
 }
 
-/** Detects if there's an active background sync (cron) by checking recent running logs.
- *  Only considers logs started within the last 5 minutes to avoid stale "running" status. */
+/** Detects if there's an active background sync by checking sm_operation_runs SSOT.
+ *  Only returns true if there's a real running/queued sync operation with recent heartbeat. */
 export function useIsBackgroundSyncActive() {
   return useQuery<boolean>({
     queryKey: ["sm-bg-sync-active"],
     staleTime: 1000 * 30,
     queryFn: async () => {
-      const fiveMinAgo = new Date(Date.now() - 5 * 60_000).toISOString();
       const { data } = await (supabase as any)
-        .from("solar_market_sync_logs")
-        .select("id")
-        .eq("status", "running")
-        .gte("started_at", fiveMinAgo)
+        .from("sm_operation_runs")
+        .select("id, heartbeat_at")
+        .in("status", ["queued", "running"])
+        .in("operation_type", ["sync_proposals", "sync_staging", "solarmarket_sync", "sync_funnels"])
+        .order("created_at", { ascending: false })
         .limit(1);
-      return (data || []).length > 0;
+      if (!data || data.length === 0) return false;
+      // Check heartbeat freshness (5 min)
+      const run = data[0];
+      if (run.heartbeat_at) {
+        const age = Date.now() - new Date(run.heartbeat_at).getTime();
+        if (age > 5 * 60_000) return false; // stale
+      }
+      return true;
     },
     refetchInterval: 8000,
   });
