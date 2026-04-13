@@ -568,6 +568,7 @@ Deno.serve(async (req) => {
     }
 
     // If called with service_role key + _cron_tenant_id, skip user auth
+    let userId: string | null = null;
     if (token === serviceKey && rawBody?._cron_tenant_id) {
       tenantId = rawBody._cron_tenant_id;
       console.error(`[SM Migration] Cron mode: tenant=${tenantId}`);
@@ -580,6 +581,7 @@ Deno.serve(async (req) => {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      userId = user.id;
 
       const { data: profile, error: profileError } = await adminClient
         .from("profiles")
