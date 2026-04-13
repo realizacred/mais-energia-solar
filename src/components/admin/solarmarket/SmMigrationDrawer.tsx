@@ -1226,7 +1226,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    Migração automática em andamento
+                    Migração em lote em andamento
                   </span>
                   <Button
                     variant="outline"
