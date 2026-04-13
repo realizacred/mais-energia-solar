@@ -106,6 +106,22 @@ function isTechnicalConversationName(name: string | null | undefined, remoteJid:
   return false;
 }
 
+/**
+ * Check if a pushName is actually just a phone number (should be ignored).
+ * Prevents overwriting CRM names with phone-like pushNames.
+ */
+function isPushNameJustPhone(pushName: string | null | undefined, remoteJid: string): boolean {
+  if (!pushName?.trim()) return true;
+  const trimmed = pushName.trim();
+  // If pushName is purely digits (with optional + or spaces), it's a phone
+  const digits = trimmed.replace(/[\s+\-().]/g, "");
+  if (/^\d{8,15}$/.test(digits)) return true;
+  // Also check if it matches the JID phone
+  const jidDigits = normalizeJid(remoteJid).split("@")[0];
+  if (digits === jidDigits || digits === jidDigits.replace(/^55/, "")) return true;
+  return false;
+}
+
 const INVALID_PROFILE_PICTURE_VALUES = new Set(["", "none", "null", "undefined"]);
 
 function extractContactProfilePictureUrl(contact: any): string | null {
