@@ -9,6 +9,7 @@ const corsHeaders = {
 // ─── Types ──────────────────────────────────────────────
 
 interface MigrationParams {
+  action?: "sync_pipelines" | "start_background_migration" | "pause_background_migration";
   dry_run: boolean;
   filters?: {
     status?: string;        // e.g. "approved"
@@ -229,6 +230,53 @@ function normalizeNameForCompare(value: string | null | undefined): string {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
+}
+
+function dispatchBackgroundMigrationRun(params: {
+  supabaseUrl: string;
+  serviceKey: string;
+  tenantId: string;
+  pipelineId: string;
+  stageId?: string | null;
+  ownerId?: string | null;
+  autoResolveOwner: boolean;
+  batchSize: number;
+}) {
+  const payload = {
+    dry_run: false,
+    pipeline_id: params.pipelineId,
+    stage_id: params.stageId ?? null,
+    auto_resolve_owner: params.autoResolveOwner,
+    auto_resume: true,
+    batch_size: params.batchSize,
+    include_projects_without_proposal: false,
+    ...(params.ownerId ? { owner_id: params.ownerId } : {}),
+    _cron_tenant_id: params.tenantId,
+  };
+
+  const dispatchPromise = fetch(`${params.supabaseUrl}/functions/v1/migrate-sm-proposals`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  }).then(async (response) => {
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      console.error(`[SM Migration] Background dispatch failed: HTTP ${response.status} ${body}`);
+    }
+  }).catch((error) => {
+    console.error(`[SM Migration] Background dispatch error: ${error instanceof Error ? error.message : String(error)}`);
+  });
+
+  const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void } }).EdgeRuntime;
+  if (edgeRuntime?.waitUntil) {
+    edgeRuntime.waitUntil(dispatchPromise);
+    return;
+  }
+
+  void dispatchPromise;
 }
 
 async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<Response> {
@@ -761,14 +809,100 @@ Deno.serve(async (req) => {
       tenantId = profile.tenant_id;
     }
 
-    // ─── PASSO 0: sync_pipelines action ─────────────────
+    const params: MigrationParams = rawBody as MigrationParams;
+    const { dry_run = true, batch_size = 50 } = params;
+    let { filters = {} } = params;
+    const autoResolveOwner = params.auto_resolve_owner !== false;
+
+    // ─── PASSO 0: actions ───────────────────────────────
     if (rawBody?.action === "sync_pipelines") {
       return await handleSyncPipelines(adminClient, tenantId);
     }
 
-    const params: MigrationParams = rawBody as MigrationParams;
-    const { dry_run = true, batch_size = 50 } = params;
-    let { filters = {} } = params;
+    if (rawBody?.action === "pause_background_migration") {
+      await adminClient
+        .from("sm_migration_settings")
+        .update({ enabled: false, updated_at: new Date().toISOString() })
+        .eq("tenant_id", tenantId);
+
+      return new Response(JSON.stringify({ paused: true, message: "Migração em background pausada. O lote atual pode terminar normalmente." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (rawBody?.action === "start_background_migration") {
+      if (!params.pipeline_id) {
+        return new Response(JSON.stringify({ error: "pipeline_id is required", step: "params_validation" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!params.owner_id && !autoResolveOwner) {
+        return new Response(JSON.stringify({ error: "owner_id is required (or enable auto_resolve_owner)", step: "params_validation" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const effectiveBatchSize = Math.max(1, Math.min(Number(params.batch_size || 25), 100));
+
+      await adminClient
+        .from("sm_migration_settings")
+        .upsert({
+          tenant_id: tenantId,
+          pipeline_id: params.pipeline_id,
+          stage_id: params.stage_id || null,
+          owner_id: params.owner_id || null,
+          auto_resolve_owner: autoResolveOwner,
+          batch_size: effectiveBatchSize,
+          enabled: true,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "tenant_id" });
+
+      const { count: pendingCount } = await adminClient
+        .from("solar_market_proposals")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .is("migrado_em", null);
+
+      if (!pendingCount || pendingCount === 0) {
+        await adminClient
+          .from("sm_migration_settings")
+          .update({ enabled: false, updated_at: new Date().toISOString() })
+          .eq("tenant_id", tenantId);
+
+        return new Response(JSON.stringify({
+          accepted: false,
+          completed: true,
+          pending: 0,
+          message: "Nenhuma proposta pendente para migrar.",
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      dispatchBackgroundMigrationRun({
+        supabaseUrl,
+        serviceKey,
+        tenantId,
+        pipelineId: params.pipeline_id,
+        stageId: params.stage_id || null,
+        ownerId: params.owner_id || null,
+        autoResolveOwner,
+        batchSize: effectiveBatchSize,
+      });
+
+      return new Response(JSON.stringify({
+        accepted: true,
+        pending: pendingCount,
+        batch_size: effectiveBatchSize,
+        message: "Migração enviada para execução no servidor. Ela continuará mesmo se você fechar a tela.",
+      }), {
+        status: 202,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // ─── Formal Lock: prevent concurrent SM operations ─────
     let smOpRunId: string | null = null;
@@ -835,8 +969,6 @@ Deno.serve(async (req) => {
       filters = { ...filters, internal_ids: pendentes.map((p: any) => p.id) };
       console.error(`[SM Migration] auto_resume: fetched ${pendentes.length} pending proposals`);
     }
-
-    const autoResolveOwner = params.auto_resolve_owner !== false; // default true
 
     // Validate required params — owner_id is optional when auto_resolve_owner is enabled
     if (!dry_run) {
@@ -3260,12 +3392,25 @@ Deno.serve(async (req) => {
 
     console.error(`[SM Migration] Done in ${result.elapsed_ms}ms. Summary: ${JSON.stringify(summary)} GroupB: ${groupBReports.length} TimeBudget: ${timeBudgetExceeded}`);
 
+    const successCount = (summary as any).SUCCESS || 0;
+    const errorCount = (summary as any).ERROR || 0;
+    const skipCount = (summary as any).SKIP || (summary as any).WOULD_SKIP || 0;
+    let pendingAfter: number | null = null;
+
+    if (!dry_run && params.auto_resume) {
+      const { count } = await adminClient
+        .from("solar_market_proposals")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .is("migrado_em", null);
+      pendingAfter = count || 0;
+      (result as Record<string, unknown>).pending_after = pendingAfter;
+      (result as Record<string, unknown>).completed = pendingAfter === 0;
+    }
+
     // ─── SSOT: Release lock with final counts ─────────────
     if (smOpRunId) {
       try {
-        const successCount = (summary as any).SUCCESS || 0;
-        const errorCount = (summary as any).ERROR || 0;
-        const skipCount = (summary as any).SKIP || (summary as any).WOULD_SKIP || 0;
         await adminClient.rpc("release_sm_operation_lock", {
           p_run_id: smOpRunId,
           p_status: errorCount > 0 && successCount === 0 ? "failed" : "completed",
@@ -3277,6 +3422,32 @@ Deno.serve(async (req) => {
           p_checkpoint: { last_batch_size: reports.length, time_budget_exceeded: timeBudgetExceeded },
         });
       } catch (_) { /* best-effort */ }
+    }
+
+    if (!dry_run && params.auto_resume) {
+      if (pendingAfter === 0) {
+        await adminClient
+          .from("sm_migration_settings")
+          .update({ enabled: false, updated_at: new Date().toISOString() })
+          .eq("tenant_id", tenantId);
+      } else if ((successCount > 0 || skipCount > 0) && params.pipeline_id) {
+        dispatchBackgroundMigrationRun({
+          supabaseUrl,
+          serviceKey,
+          tenantId,
+          pipelineId: params.pipeline_id,
+          stageId: params.stage_id || null,
+          ownerId: params.owner_id || null,
+          autoResolveOwner,
+          batchSize: Math.max(1, Math.min(Number(batch_size || 25), 100)),
+        });
+      } else {
+        await adminClient
+          .from("sm_migration_settings")
+          .update({ enabled: false, updated_at: new Date().toISOString() })
+          .eq("tenant_id", tenantId);
+        console.warn("[SM Migration] Auto-resume paused after a batch with no progress.");
+      }
     }
 
     return new Response(JSON.stringify(result), {
