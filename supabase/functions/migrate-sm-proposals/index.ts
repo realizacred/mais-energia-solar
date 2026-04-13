@@ -1565,6 +1565,7 @@ Deno.serve(async (req) => {
               }
             } else {
               // Fallback: no ordered data, use Set iteration (legacy behavior)
+              console.warn(`[SM Migration] WARN: No ordered stages in solar_market_funnel_stages for funnel "${funnelName}" — using unordered fallback. Run sync funnels first for correct ordering.`);
               const stages = allFunnelStages.get(funnelName) || new Set<string>();
               let pos = 0;
               for (const stageName of stages) {
