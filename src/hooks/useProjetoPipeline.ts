@@ -214,7 +214,7 @@ export function useProjetoPipeline() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  // ⚠️ HARDENING: Realtime subscription for cross-user sync on projetos
+  // ⚠️ HARDENING: Realtime subscription + polling fallback for cross-user sync
   useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -233,13 +233,14 @@ export function useProjetoPipeline() {
     const channel = supabase
       .channel('projetos-pipeline-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etiqueta_rel' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etapas' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_funis' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'propostas_nativas' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'proposta_versoes' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'consultores' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'generated_documents' }, refreshProjetos)
       .subscribe();
+
+    // Polling fallback (30s) — catches service_role inserts missed by Realtime
+    const pollInterval = setInterval(refreshProjetos, 30_000);
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') refreshProjetos();
@@ -249,6 +250,7 @@ export function useProjetoPipeline() {
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
