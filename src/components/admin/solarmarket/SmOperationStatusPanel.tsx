@@ -4,11 +4,15 @@
  */
 import { cn } from "@/lib/utils";
 import { useActiveSmOperation, useLastCompletedSmOperation } from "@/hooks/useSmOperationRuns";
+import { useExpireStaleSmOperations } from "@/hooks/useExpireStaleSmOperations";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, XCircle, AlertTriangle, Clock, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, CheckCircle, XCircle, AlertTriangle, Clock, Activity, RotateCcw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const OP_LABELS: Record<string, string> = {
   sync_staging: "Sincronização Staging",
