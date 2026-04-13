@@ -53,6 +53,59 @@ function getAltJids(remoteJid: string): string[] {
   return [...new Set(jids)];
 }
 
+function formatPreviewByType(messageType: string, content: string | null): string {
+  const trimmed = content?.trim() || "";
+
+  switch (messageType) {
+    case "image":
+      return trimmed ? `📷 ${trimmed}` : "📷 Imagem";
+    case "video":
+    case "gif":
+      return trimmed ? `🎥 ${trimmed}` : "🎥 Vídeo";
+    case "audio":
+    case "ptt":
+      return "🎵 Áudio";
+    case "document":
+      return trimmed ? `📄 ${trimmed}` : "📄 Documento";
+    case "sticker":
+      return "🎭 Figurinha";
+    case "location":
+      return "📍 Localização";
+    case "contact":
+      return trimmed ? `👤 ${trimmed}` : "👤 Contato";
+    case "reaction":
+      return trimmed ? `👍 ${trimmed}` : "👍 Reação";
+    default:
+      return trimmed || "Mensagem";
+  }
+}
+
+function buildConversationPreview(params: {
+  messageType: string;
+  content: string | null;
+  isGroup: boolean;
+  participantName?: string | null;
+}): string {
+  const base = formatPreviewByType(params.messageType, params.content);
+  return params.isGroup && params.participantName ? `${params.participantName}: ${base}` : base;
+}
+
+function isTechnicalConversationName(name: string | null | undefined, remoteJid: string): boolean {
+  const trimmed = name?.trim();
+  if (!trimmed) return true;
+
+  const normalizedJid = normalizeJid(remoteJid);
+  const jidDigits = normalizedJid.split("@")[0];
+  const nameDigits = trimmed.replace(/\D/g, "");
+
+  if (!nameDigits) return false;
+
+  if (trimmed === remoteJid || trimmed === normalizedJid) return true;
+  if (nameDigits === jidDigits) return true;
+  if (nameDigits === jidDigits.replace(/^55/, "")) return true;
+  return false;
+}
+
 const INVALID_PROFILE_PICTURE_VALUES = new Set(["", "none", "null", "undefined"]);
 
 function extractContactProfilePictureUrl(contact: any): string | null {
@@ -430,9 +483,12 @@ async function handleMessageUpsert(
 
     if (existingConv) {
       conversationId = existingConv.id;
-      const preview = isGroup && participantName
-        ? `${participantName}: ${content ? content.substring(0, 80) : `[${messageType}]`}`
-        : content ? content.substring(0, 100) : `[${messageType}]`;
+      const preview = buildConversationPreview({
+        messageType,
+        content,
+        isGroup,
+        participantName,
+      }).substring(0, 100);
       
       const existingEpoch = existingConv.last_message_at
         ? new Date(existingConv.last_message_at).getTime()
@@ -529,7 +585,12 @@ async function handleMessageUpsert(
           is_group: isGroup,
           status: "open",
           last_message_at: eventDate.toISOString(),
-          last_message_preview: content ? content.substring(0, 100) : `[${messageType}]`,
+          last_message_preview: buildConversationPreview({
+            messageType,
+            content,
+            isGroup,
+            participantName,
+          }).substring(0, 100),
           last_message_direction: direction,
           unread_count: fromMe ? 0 : 1,
          profile_picture_url: null,
@@ -651,9 +712,12 @@ async function handleMessageUpsert(
 
     // ── ENQUEUE: Push notification job ──
     if (!fromMe && evolutionMessageId) {
-      const preview = isGroup && participantName
-        ? `${participantName}: ${content ? content.substring(0, 60) : `[${messageType}]`}`
-        : content ? content.substring(0, 80) : `[${messageType}]`;
+      const preview = buildConversationPreview({
+        messageType,
+        content,
+        isGroup,
+        participantName,
+      }).substring(0, 80);
 
       jobsEnqueued += await enqueueJob(supabase, tenantId, instanceId, "push", {
         conversation_id: conversationId,
@@ -711,19 +775,6 @@ async function handleMessageUpsert(
 
     timingLog("message_total", t0_msg, { evolutionMessageId, messageType, jobs_enqueued: jobsEnqueued });
 
-    // ── INTELLIGENCE: Async realtime analysis for inbound messages ──
-    if (!fromMe && conversationId && tenantId) {
-      // Fire-and-forget: enqueue intelligence analysis job
-      enqueueJob(supabase, tenantId, instanceId, "intelligence_analysis", {
-        conversation_id: conversationId,
-        remote_jid: remoteJid,
-        content,
-        message_type: messageType,
-        lead_id: null, // bg-worker will resolve from conversation
-      }, `intel:${evolutionMessageId}`).catch(e =>
-        console.warn("[process-webhook-events] Intel enqueue failed:", e)
-      );
-    }
   }
 
   timingLog("upsert_batch_total", t0_total, { msg_count: (Array.isArray(messages) ? messages : [messages]).length });
@@ -962,17 +1013,31 @@ async function handleContactsUpsert(
     const profilePicUrl = extractContactProfilePictureUrl(contact);
 
     if (name || profilePicUrl) {
-      const updates: any = {};
-      if (name) updates.cliente_nome = name;
-      if (profilePicUrl) updates.profile_picture_url = profilePicUrl;
-
-      // Try all JID variants
       const altJids = getAltJids(jid);
-      await supabase
+      const { data: conversations } = await supabase
         .from("wa_conversations")
-        .update(updates)
+        .select("id, cliente_nome, profile_picture_url, remote_jid, is_group")
         .eq("instance_id", instanceId)
         .in("remote_jid", altJids);
+
+      for (const conversation of conversations || []) {
+        const updates: any = {};
+
+        if (profilePicUrl && profilePicUrl !== conversation.profile_picture_url) {
+          updates.profile_picture_url = profilePicUrl;
+        }
+
+        if (name && (conversation.is_group || isTechnicalConversationName(conversation.cliente_nome, conversation.remote_jid))) {
+          updates.cliente_nome = name;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await supabase
+            .from("wa_conversations")
+            .update(updates)
+            .eq("id", conversation.id);
+        }
+      }
     }
 
     if (!profilePicUrl && !jid.endsWith("@g.us")) {
