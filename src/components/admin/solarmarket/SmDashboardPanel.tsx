@@ -32,6 +32,8 @@ import {
   XCircle,
   Activity,
   SkipForward,
+  Database,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -51,30 +53,32 @@ type OperationalState =
 
 interface StateConfig {
   label: string;
+  sublabel: string;
   color: "primary" | "success" | "warning" | "muted" | "destructive";
   icon: React.ElementType;
   spinning?: boolean;
 }
 
 const STATE_CONFIG: Record<OperationalState, StateConfig> = {
-  idle:                { label: "Aguardando sincronização",         color: "muted",   icon: Clock },
-  sync_running:        { label: "Sincronizando...",                 color: "primary",  icon: Loader2, spinning: true },
-  sync_partial:        { label: "Sync parcial — continue para completar", color: "warning", icon: Clock },
-  sync_complete:       { label: "Sync completo",                    color: "success",  icon: CheckCircle },
-  ready_to_migrate:    { label: "Pronto para migrar",               color: "warning",  icon: ArrowRightLeft },
-  migration_running:   { label: "Migrando propostas...",            color: "primary",  icon: Loader2, spinning: true },
-  migration_complete:  { label: "Migração concluída",               color: "success",  icon: CheckCircle },
-  stale:               { label: "Operação possivelmente travada",   color: "warning",  icon: AlertTriangle },
+  idle:                { label: "Pronto para iniciar", sublabel: "Nenhuma sincronização realizada ainda", color: "muted", icon: Clock },
+  sync_running:        { label: "Sincronizando", sublabel: "Importando dados do SolarMarket...", color: "primary", icon: Loader2, spinning: true },
+  sync_partial:        { label: "Sync parcial", sublabel: "Execute novamente para completar a varredura", color: "warning", icon: AlertTriangle },
+  sync_complete:       { label: "Varredura concluída", sublabel: "Todos os projetos foram verificados", color: "success", icon: CheckCircle },
+  ready_to_migrate:    { label: "Pronto para migrar", sublabel: "Propostas aguardando conversão para o CRM", color: "warning", icon: ArrowRightLeft },
+  migration_running:   { label: "Migrando propostas", sublabel: "Convertendo dados para o sistema nativo...", color: "primary", icon: Loader2, spinning: true },
+  migration_complete:  { label: "Migração concluída", sublabel: "Todos os dados foram convertidos com sucesso", color: "success", icon: CheckCircle },
+  stale:               { label: "Operação travada", sublabel: "Sem heartbeat há mais de 5 minutos", color: "destructive", icon: AlertTriangle },
 };
 
 // ─── KPI Card ───────────────────────────────────────────
 
-function KpiCard({ icon: Icon, label, value, sub, color }: {
+function KpiCard({ icon: Icon, label, value, sub, color, progress: progressValue }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
   sub?: string;
   color: "primary" | "success" | "warning" | "info" | "destructive" | "muted";
+  progress?: number;
 }) {
   const borderColors: Record<string, string> = {
     primary: "border-l-primary",
@@ -103,15 +107,20 @@ function KpiCard({ icon: Icon, label, value, sub, color }: {
 
   return (
     <Card className={cn("border-l-[3px] shadow-sm", borderColors[color])}>
-      <CardContent className="flex items-center gap-3 p-4">
-        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", bgColors[color])}>
-          <Icon className={cn("w-4.5 h-4.5", iconColors[color])} />
+      <CardContent className="p-4 space-y-2">
+        <div className="flex items-center gap-3">
+          <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", bgColors[color])}>
+            <Icon className={cn("w-4 h-4", iconColors[color])} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xl font-bold tracking-tight text-foreground leading-none">{value}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-xl font-bold tracking-tight text-foreground leading-none">{value}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-          {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
-        </div>
+        {progressValue !== undefined && (
+          <Progress value={progressValue} className="h-1.5" />
+        )}
+        {sub && <p className="text-[10px] text-muted-foreground leading-snug">{sub}</p>}
       </CardContent>
     </Card>
   );
@@ -159,67 +168,85 @@ function ActiveOperationDetail({
 
   const opType = activeRun?.operation_type;
 
-  // Show local stage-by-stage detail for sync_staging
   const showLocalStages = localSyncProgress?.isRunning &&
     localSyncProgress.stages.some((s) => s.status !== "pending" && s.status !== "skipped");
 
-  // Show proposal scan detail for sync_proposals
   const showProposalScan = opType === "sync_proposals";
 
+  const batchPercent = activeRun && activeRun.total_items > 0
+    ? Math.round((activeRun.processed_items / activeRun.total_items) * 100)
+    : 0;
+
   return (
-    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2.5 animate-in fade-in duration-300">
+    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3 animate-in fade-in duration-300">
+      {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Activity className="h-3.5 w-3.5 text-primary" />
-          <span className="text-xs font-semibold text-foreground">Execução atual</span>
-          {opType && (
-            <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
-              {opType === "sync_proposals" ? "Varredura de propostas" :
-               opType === "sync_staging" || opType === "solarmarket_sync" ? "Sync de staging" :
-               opType === "migrate_to_native" ? "Migração" : opType}
-            </Badge>
-          )}
+          <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center">
+            <Activity className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <div>
+            <span className="text-sm font-semibold text-foreground">Execução em andamento</span>
+            {opType && (
+              <p className="text-[11px] text-muted-foreground">
+                {opType === "sync_proposals" ? "Varredura de propostas por projeto" :
+                 opType === "sync_staging" || opType === "solarmarket_sync" ? "Importação de dados do SolarMarket" :
+                 opType === "migrate_to_native" ? "Conversão para sistema nativo" : opType}
+              </p>
+            )}
+          </div>
         </div>
         {heartbeatLabel && (
-          <span className="text-[10px] text-muted-foreground">
-            Heartbeat: {heartbeatLabel}
-          </span>
+          <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-border">
+            Heartbeat {heartbeatLabel}
+          </Badge>
         )}
       </div>
 
-      {/* SSOT run progress */}
+      {/* Batch progress */}
       {activeRun && activeRun.total_items > 0 && (
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>Processados neste lote</span>
-            <span className="font-mono">{activeRun.processed_items} / {activeRun.total_items}</span>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Lote atual</span>
+            <span className="font-mono text-foreground font-medium">
+              {activeRun.processed_items} / {activeRun.total_items}
+              <span className="text-muted-foreground ml-1">({batchPercent}%)</span>
+            </span>
           </div>
-          <Progress value={Math.round((activeRun.processed_items / activeRun.total_items) * 100)} className="h-1.5" />
-          {activeRun.error_items > 0 && (
-            <span className="text-[10px] text-destructive">{activeRun.error_items} erros</span>
-          )}
+          <Progress value={batchPercent} className="h-2" />
+          <div className="flex items-center gap-3 text-[11px]">
+            {activeRun.success_items > 0 && (
+              <span className="text-success font-mono">{activeRun.success_items} sucesso</span>
+            )}
+            {activeRun.error_items > 0 && (
+              <span className="text-destructive font-mono">{activeRun.error_items} erros</span>
+            )}
+            {activeRun.skipped_items > 0 && (
+              <span className="text-muted-foreground font-mono">{activeRun.skipped_items} ignorados</span>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Proposal scan — show aggregate progress */}
+      {/* Proposal scan aggregate */}
       {showProposalScan && (
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-md border border-border bg-card p-2 text-center">
-            <p className="text-sm font-bold text-foreground">{projectsScanned}</p>
+          <div className="rounded-md border border-border bg-card p-2.5 text-center">
+            <p className="text-base font-bold text-foreground">{projectsScanned}</p>
             <p className="text-[10px] text-muted-foreground">Proj. varridos</p>
           </div>
-          <div className="rounded-md border border-border bg-card p-2 text-center">
-            <p className="text-sm font-bold text-foreground">{totalProposals}</p>
-            <p className="text-[10px] text-muted-foreground">Propostas encontradas</p>
+          <div className="rounded-md border border-border bg-card p-2.5 text-center">
+            <p className="text-base font-bold text-foreground">{totalProposals}</p>
+            <p className="text-[10px] text-muted-foreground">Propostas</p>
           </div>
-          <div className="rounded-md border border-border bg-card p-2 text-center">
-            <p className="text-sm font-bold text-foreground">{projectsRemaining}</p>
+          <div className="rounded-md border border-border bg-card p-2.5 text-center">
+            <p className="text-base font-bold text-warning">{projectsRemaining}</p>
             <p className="text-[10px] text-muted-foreground">Restantes</p>
           </div>
         </div>
       )}
 
-      {/* Local stage-by-stage detail for sync_staging */}
+      {/* Local stage-by-stage detail */}
       {showLocalStages && localSyncProgress && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
           {localSyncProgress.stages
@@ -290,21 +317,14 @@ function deriveState(params: {
     totalProjects, projectsScanned, totalProposals, proposalsMigrated,
   } = params;
 
-  // Stale takes priority
   if (isStale) return "stale";
-
-  // Active operation from SSOT
   if (activeRun) {
     const opType = activeRun.operation_type;
     if (opType === "migrate_to_native") return "migration_running";
     return "sync_running";
   }
-
-  // Local state signals
   if (localMigrationRunning) return "migration_running";
   if (localSyncRunning || isBgSync) return "sync_running";
-
-  // No active operation — derive from data
   if (totalProjects === 0) return "idle";
 
   const scanComplete = projectsScanned >= totalProjects;
@@ -363,17 +383,11 @@ export function SmDashboardPanel({
     ? formatDistanceToNow(new Date(lastRun.finished_at), { addSuffix: true, locale: ptBR })
     : null;
 
-  // Active run progress detail
-  const activeRunDetail = activeRun && activeRun.total_items > 0
-    ? `${activeRun.processed_items}/${activeRun.total_items} processados`
-    : null;
-
-  // Sub-status for sync_running: show which type
-  let statusSublabel = "";
+  let statusSublabel = config.sublabel;
   if (state === "sync_running" && activeRun) {
     const opType = activeRun.operation_type;
-    if (opType === "sync_proposals") statusSublabel = "Buscando propostas nos projetos...";
-    else if (opType === "sync_staging" || opType === "solarmarket_sync") statusSublabel = "Sincronizando projetos...";
+    if (opType === "sync_proposals") statusSublabel = "Varrendo propostas em cada projeto...";
+    else if (opType === "sync_staging" || opType === "solarmarket_sync") statusSublabel = "Importando clientes, projetos e funis...";
     else statusSublabel = "Operação em andamento...";
   } else if (state === "sync_running" && localSyncRunning && localSyncProgress?.currentStage) {
     const runningStage = localSyncProgress.stages.find((s) => s.status === "running");
@@ -390,6 +404,14 @@ export function SmDashboardPanel({
     destructive: "border-destructive/30 bg-destructive/5",
   }[config.color];
 
+  const iconBgClass = {
+    primary: "bg-primary/10",
+    success: "bg-success/10",
+    warning: "bg-warning/10",
+    muted: "bg-muted",
+    destructive: "bg-destructive/10",
+  }[config.color];
+
   const iconClass = cn(
     "h-4 w-4 shrink-0",
     config.color === "primary" && "text-primary",
@@ -400,25 +422,27 @@ export function SmDashboardPanel({
     config.spinning && "animate-spin",
   );
 
-  // Show active operation detail when something is running
   const showActiveDetail = state === "sync_running" || state === "migration_running" || state === "stale";
 
+  const migrationPercent = totalProposals > 0 ? Math.round((proposalsMigrated / totalProposals) * 100) : 0;
+
   return (
-    <div className="space-y-3">
-      {/* Unified Status Bar */}
+    <div className="space-y-4">
+      {/* ── Status Bar ── */}
       <div className={cn("rounded-lg border px-4 py-3 flex items-center gap-3 flex-wrap", borderClass)}>
-        <StatusIcon className={iconClass} />
-        <div className="flex-1 min-w-0">
-          <span className="text-sm font-semibold text-foreground">{config.label}</span>
-          {statusSublabel && (
-            <span className="text-xs text-muted-foreground ml-2">{statusSublabel}</span>
-          )}
-          {activeRunDetail && (
-            <span className="text-xs text-muted-foreground ml-2">({activeRunDetail})</span>
-          )}
+        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", iconBgClass)}>
+          <StatusIcon className={iconClass} />
         </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {lastRunInfo && <span>Última op: {lastRunInfo}</span>}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground">{config.label}</p>
+          <p className="text-xs text-muted-foreground">{statusSublabel}</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+          {lastRunInfo && (
+            <Badge variant="outline" className="text-[10px] bg-card border-border">
+              Última op: {lastRunInfo}
+            </Badge>
+          )}
           {lastRun?.error_summary && lastRun.error_summary.includes("time budget") && (
             <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">
               Parcial por tempo
@@ -433,7 +457,7 @@ export function SmDashboardPanel({
         </div>
       </div>
 
-      {/* Active Operation Detail — visible only when operation is active */}
+      {/* ── Active Operation Detail ── */}
       {showActiveDetail && (activeRun || localSyncProgress?.isRunning) && (
         <ActiveOperationDetail
           activeRun={activeRun}
@@ -445,49 +469,80 @@ export function SmDashboardPanel({
         />
       )}
 
-      {/* Scan Progress Bar (only when scan incomplete and we have projects) */}
-      {totalProjects > 0 && projectsRemaining > 0 && !showActiveDetail && (
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Projetos varridos (busca de propostas)</span>
-            <span className="font-mono">{projectsScanned} / {totalProjects} ({scanPercent}%)</span>
+      {/* ── Staging vs Conversion sections ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Staging — Dados importados */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-info/10 flex items-center justify-center">
+              <Database className="h-3.5 w-3.5 text-info" />
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">Dados importados</h3>
+            <span className="text-[10px] text-muted-foreground">(staging)</span>
           </div>
-          <Progress value={scanPercent} className="h-2" />
-          <p className="text-[11px] text-muted-foreground">
-            {projectsRemaining} projetos ainda não verificados — clique em Sincronizar Tudo para continuar
-          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <KpiCard
+              icon={Users}
+              label="Clientes"
+              value={totalClients}
+              color="primary"
+              sub={totalClients > 0 ? "Importados do SolarMarket" : "Sincronize para importar"}
+            />
+            <KpiCard
+              icon={FolderKanban}
+              label="Projetos verificados"
+              value={`${projectsScanned} / ${totalProjects}`}
+              color={projectsRemaining === 0 && totalProjects > 0 ? "success" : "info"}
+              progress={scanPercent}
+              sub={projectsRemaining === 0 && totalProjects > 0
+                ? "Todos os projetos verificados"
+                : `${projectsRemaining} restantes para varrer`}
+            />
+            <KpiCard
+              icon={FileText}
+              label="Propostas encontradas"
+              value={totalProposals}
+              color={totalProposals > 0 ? "success" : "muted"}
+              sub={totalProposals > 0
+                ? `Em ${projectsScanned} projetos varridos`
+                : "Nenhuma proposta encontrada ainda"}
+            />
+          </div>
         </div>
-      )}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <KpiCard
-          icon={Users}
-          label="Clientes"
-          value={totalClients}
-          color="primary"
-        />
-        <KpiCard
-          icon={FolderKanban}
-          label="Projetos varridos"
-          value={`${projectsScanned} / ${totalProjects}`}
-          sub={projectsRemaining === 0 && totalProjects > 0 ? "Todos verificados" : `${projectsRemaining} restantes`}
-          color={projectsRemaining === 0 && totalProjects > 0 ? "success" : "info"}
-        />
-        <KpiCard
-          icon={FileText}
-          label="Propostas encontradas"
-          value={totalProposals}
-          sub={totalProposals > 0 ? `De ${projectsScanned} projetos` : "Nenhuma ainda"}
-          color={totalProposals > 0 ? "success" : "muted"}
-        />
-        <KpiCard
-          icon={ArrowRightLeft}
-          label="Migração"
-          value={proposalsMigrated > 0 ? `${proposalsMigrated} / ${totalProposals}` : proposalsPending > 0 ? `${proposalsPending} pendentes` : "—"}
-          sub={proposalsMigrated > 0 ? `${proposalsPending} pendentes` : undefined}
-          color={proposalsPending > 0 ? "warning" : proposalsMigrated > 0 ? "success" : "muted"}
-        />
+        {/* Conversion — Migração para CRM */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-warning/10 flex items-center justify-center">
+              <TrendingUp className="h-3.5 w-3.5 text-warning" />
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">Conversão para CRM</h3>
+            <span className="text-[10px] text-muted-foreground">(migração)</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <KpiCard
+              icon={ArrowRightLeft}
+              label="Migradas"
+              value={proposalsMigrated}
+              color={proposalsMigrated > 0 ? "success" : "muted"}
+              progress={migrationPercent}
+              sub={proposalsMigrated > 0
+                ? `${migrationPercent}% de ${totalProposals} propostas`
+                : "Nenhuma proposta migrada ainda"}
+            />
+            <KpiCard
+              icon={Clock}
+              label="Pendentes"
+              value={proposalsPending}
+              color={proposalsPending > 0 ? "warning" : "success"}
+              sub={proposalsPending > 0
+                ? "Aguardando conversão para o CRM"
+                : totalProposals > 0
+                  ? "Todas as propostas foram migradas"
+                  : "Sem propostas para migrar"}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
