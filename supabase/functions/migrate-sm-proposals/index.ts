@@ -318,6 +318,26 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     consultorMap.set(normalizeNameForCompare(c.nome), c.id);
   }
 
+  // 3b. Pre-fetch ordered stages from solar_market_funnel_stages (SSOT for SM stage order)
+  const smOrderedMap = new Map<string, Array<{ stage_name: string; stage_order: number }>>();
+  {
+    const { data: smFunnelStages } = await adminClient
+      .from("solar_market_funnel_stages")
+      .select("funnel_name, stage_name, stage_order")
+      .eq("tenant_id", tenantId)
+      .order("stage_order", { ascending: true });
+    for (const row of smFunnelStages || []) {
+      const fName = (row.funnel_name || "").trim();
+      const sName = (row.stage_name || "").trim();
+      if (!fName || !sName) continue;
+      if (!smOrderedMap.has(fName)) smOrderedMap.set(fName, []);
+      const arr = smOrderedMap.get(fName)!;
+      if (!arr.some(s => s.stage_name === sName)) {
+        arr.push({ stage_name: sName, stage_order: row.stage_order ?? arr.length });
+      }
+    }
+  }
+
   // 4. Create/resolve pipelines and stages
   for (const [funnelName, stageNames] of funnelStagesMap) {
     // LEAD → Comercial mapping
@@ -353,42 +373,113 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     // Fetch existing stages for this pipeline
     const { data: existingStages } = await adminClient
       .from("pipeline_stages")
-      .select("id, name")
+      .select("id, name, position")
       .eq("tenant_id", tenantId)
       .eq("pipeline_id", pipelineId);
 
-    const existingStageMap = new Map<string, string>();
+    const existingStageMap = new Map<string, { id: string; position: number }>();
     for (const s of existingStages || []) {
-      existingStageMap.set(normalizeNameForCompare(s.name), s.id);
+      existingStageMap.set(normalizeNameForCompare(s.name), { id: s.id, position: s.position });
     }
 
-    // Create stages in order
-    const stageArray = [...stageNames];
-    let position = (existingStages || []).length;
-    for (const stageName of stageArray) {
-      const normalizedStageName = normalizeNameForCompare(stageName);
-      if (existingStageMap.has(normalizedStageName)) {
-        report.stages.existing++;
-        continue;
+    // Use solar_market_funnel_stages order when available (SSOT)
+    const orderedStages = smOrderedMap.get(funnelName);
+    if (orderedStages && orderedStages.length > 0) {
+      // Ordered path: use stage_order from SM as position
+      const orderedNamesSet = new Set(orderedStages.map(s => normalizeNameForCompare(s.stage_name)));
+
+      for (const s of orderedStages) {
+        const normalizedStageName = normalizeNameForCompare(s.stage_name);
+        const existing = existingStageMap.get(normalizedStageName);
+        if (existing) {
+          // Fix position if divergent
+          if (existing.position !== s.stage_order) {
+            const { error: updErr } = await adminClient
+              .from("pipeline_stages")
+              .update({ position: s.stage_order })
+              .eq("id", existing.id);
+            if (!updErr) {
+              console.error(`[SM Sync] Fixed stage "${s.stage_name}" position: ${existing.position} → ${s.stage_order}`);
+            }
+          }
+          report.stages.existing++;
+          continue;
+        }
+
+        const { error: stageErr } = await adminClient
+          .from("pipeline_stages")
+          .insert({
+            tenant_id: tenantId,
+            pipeline_id: pipelineId,
+            name: s.stage_name.trim(),
+            position: s.stage_order,
+            probability: 50,
+            is_closed: false,
+            is_won: false,
+          });
+
+        if (stageErr) {
+          console.error(`[SM Sync] Failed to create stage "${s.stage_name}": ${stageErr.message}`);
+        } else {
+          report.stages.created++;
+          existingStageMap.set(normalizedStageName, { id: "created", position: s.stage_order });
+        }
       }
 
-      const { error: stageErr } = await adminClient
-        .from("pipeline_stages")
-        .insert({
-          tenant_id: tenantId,
-          pipeline_id: pipelineId,
-          name: stageName.trim(),
-          position: position++,
-          probability: 50,
-          is_closed: false,
-          is_won: false,
-        });
+      // Append extras from project data not in SM ordered list
+      let nextPos = Math.max(...orderedStages.map(s => s.stage_order), 0) + 1;
+      for (const stageName of stageNames) {
+        const normalizedStageName = normalizeNameForCompare(stageName);
+        if (orderedNamesSet.has(normalizedStageName) || existingStageMap.has(normalizedStageName)) continue;
+        console.error(`[SM Sync] Appending extra stage "${stageName}" not in SM order at position ${nextPos}`);
 
-      if (stageErr) {
-        console.error(`[SM Sync] Failed to create stage "${stageName}": ${stageErr.message}`);
-      } else {
-        report.stages.created++;
-        existingStageMap.set(normalizedStageName, "created");
+        const { error: stageErr } = await adminClient
+          .from("pipeline_stages")
+          .insert({
+            tenant_id: tenantId,
+            pipeline_id: pipelineId,
+            name: stageName.trim(),
+            position: nextPos++,
+            probability: 50,
+            is_closed: false,
+            is_won: false,
+          });
+
+        if (!stageErr) {
+          report.stages.created++;
+          existingStageMap.set(normalizedStageName, { id: "created", position: nextPos - 1 });
+        }
+      }
+    } else {
+      // Fallback: no SM ordered data — use Set iteration (WARN: unordered)
+      console.warn(`[SM Sync] No ordered stages from solar_market_funnel_stages for funnel "${funnelName}" — using unordered fallback`);
+      const stageArray = [...stageNames];
+      let position = (existingStages || []).length;
+      for (const stageName of stageArray) {
+        const normalizedStageName = normalizeNameForCompare(stageName);
+        if (existingStageMap.has(normalizedStageName)) {
+          report.stages.existing++;
+          continue;
+        }
+
+        const { error: stageErr } = await adminClient
+          .from("pipeline_stages")
+          .insert({
+            tenant_id: tenantId,
+            pipeline_id: pipelineId,
+            name: stageName.trim(),
+            position: position++,
+            probability: 50,
+            is_closed: false,
+            is_won: false,
+          });
+
+        if (stageErr) {
+          console.error(`[SM Sync] Failed to create stage "${stageName}": ${stageErr.message}`);
+        } else {
+          report.stages.created++;
+          existingStageMap.set(normalizedStageName, { id: "created", position: position - 1 });
+        }
       }
     }
   }
