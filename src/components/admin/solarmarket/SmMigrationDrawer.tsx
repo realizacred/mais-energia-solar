@@ -1086,6 +1086,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   return (
     <>
       <Drawer open={open} onOpenChange={(v) => {
+        if (!v && running && autoResumeRunning) {
+          // Allow closing — migration continues on server via pg_cron
+          toast.info("A migração continuará automaticamente no servidor. Você pode acompanhar o progresso ao reabrir esta tela.");
+          onOpenChange(v);
+          return;
+        }
         if (!v && running) {
           toast.warning("Migração em andamento. Cancele a migração antes de fechar.");
           return;
