@@ -33,6 +33,12 @@ export function useResetMigratedData() {
       qc.invalidateQueries({ queryKey: ["sm-proposals"] });
       qc.invalidateQueries({ queryKey: ["sm-sync-logs"] });
       qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
+      qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
+      qc.invalidateQueries({ queryKey: ["canonical-check"] });
+      // Also refresh native project views
+      qc.invalidateQueries({ queryKey: ["projetos"] });
+      qc.invalidateQueries({ queryKey: ["deals"] });
+      qc.invalidateQueries({ queryKey: ["clientes"] });
 
       const c = data?.counts ?? {};
       const parts = [

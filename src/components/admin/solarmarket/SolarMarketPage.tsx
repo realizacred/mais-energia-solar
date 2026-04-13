@@ -912,8 +912,8 @@ export default function SolarMarketPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1 h-7 text-xs text-warning hover:text-warning border-warning/30 hover:bg-warning/10"
-                disabled={isAnySyncActive || migrationRunning}
-                title={isAnySyncActive || migrationRunning ? "Bloqueado: migração/sync em andamento" : "Remove apenas dados migrados do SM"}
+                disabled={migrationRunning}
+                title={migrationRunning ? "Bloqueado: migração em andamento" : "Remove apenas dados migrados do SM"}
               >
                 <RefreshCw className="h-3 w-3" />
                 Migrados

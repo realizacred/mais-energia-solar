@@ -468,12 +468,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       setRunning(false);
       setCancelling(false);
       cancelRef.current = false;
-      addLog("Acompanhamento interrompido — a migração em segundo plano pode continuar no servidor.");
+      addLog("Migração pausada — o progresso salvo será retomado na próxima execução manual.");
       updateStep("done", {
         state: "error",
-        detail: "Acompanhamento interrompido. A migração em segundo plano pode continuar.",
+        detail: "Migração pausada. Execute novamente para continuar de onde parou.",
       });
-      toast.warning("Acompanhamento interrompido. A migração em segundo plano pode continuar.");
+      toast.warning("Migração pausada. Execute novamente para continuar de onde parou.");
       return;
     }
 
@@ -497,6 +497,10 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       qc.invalidateQueries({ queryKey: ["sm-proposals"] });
       qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
       qc.invalidateQueries({ queryKey: ["canonical-check"] });
+      qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
+      qc.invalidateQueries({ queryKey: ["projetos"] });
+      qc.invalidateQueries({ queryKey: ["deals"] });
+      qc.invalidateQueries({ queryKey: ["clientes"] });
       toast.success(`Migração completa! ${migrated} propostas migradas.`);
       return;
     }
@@ -887,6 +891,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       } else {
         qc.invalidateQueries({ queryKey: ["sm-proposals"] });
         qc.invalidateQueries({ queryKey: ["canonical-check"] });
+        qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
+        qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
+        // Refresh native project views
+        qc.invalidateQueries({ queryKey: ["projetos"] });
+        qc.invalidateQueries({ queryKey: ["deals"] });
+        qc.invalidateQueries({ queryKey: ["clientes"] });
       }
     } catch (err: any) {
       const msg = err?.message ?? "Erro desconhecido";
@@ -966,7 +976,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
         detail: "Preparando processamento em lotes...",
       });
     }
-    addLog(`Iniciando migração automática para ${initialPending} pendentes...`);
+    addLog(`Iniciando migração em lote para ${initialPending} pendentes...`);
 
     try {
       const getValidSession = async () => {
@@ -988,7 +998,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
       for (let round = 1; round <= MAX_ROUNDS; round++) {
         if (cancelRef.current) {
-          addLog("Migração automática cancelada pelo usuário.");
+          addLog("Migração em lote cancelada pelo usuário.");
           setAutoResumeRunning(false);
           setRunning(false);
           setCancelling(false);
@@ -1069,6 +1079,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           qc.invalidateQueries({ queryKey: ["sm-proposals"] });
           qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
           qc.invalidateQueries({ queryKey: ["canonical-check"] });
+          qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
+          // Refresh native project views
+          qc.invalidateQueries({ queryKey: ["projetos"] });
+          qc.invalidateQueries({ queryKey: ["deals"] });
+          qc.invalidateQueries({ queryKey: ["clientes"] });
 
           currentStats = {
             ...currentStats,
@@ -1167,8 +1182,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     <>
       <Drawer open={open} onOpenChange={(v) => {
         if (!v && running && autoResumeRunning) {
-          // Allow closing — migration continues on server via pg_cron
-          toast.info("A migração continuará automaticamente no servidor. Você pode acompanhar o progresso ao reabrir esta tela.");
+          // Migration is browser-driven — warn user
+          toast.warning("Migração em andamento no navegador. Se fechar, o progresso salvo será retomado na próxima execução manual.");
           onOpenChange(v);
           return;
         }
@@ -1226,7 +1241,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    Migração automática em andamento
+                    Migração em lote em andamento
                   </span>
                   <Button
                     variant="outline"
@@ -1239,11 +1254,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                     {cancelling ? "Cancelando..." : "Parar"}
                   </Button>
                 </div>
-                <div className="rounded-md border border-success/20 bg-success/5 px-3 py-2 flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                <div className="rounded-md border border-warning/20 bg-warning/5 px-3 py-2 flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                   <div className="text-xs text-muted-foreground">
-                    <p className="font-medium text-foreground">Execução no servidor ativa</p>
-                    <p>Você pode fechar esta tela ou desligar o computador. A migração continuará automaticamente a cada 5 minutos no servidor.</p>
+                    <p className="font-medium text-foreground">Migração no navegador</p>
+                    <p>Mantenha esta tela aberta. Se fechar, o progresso já salvo será retomado na próxima execução manual.</p>
                   </div>
                 </div>
                 <Progress value={smoothProgress} className="h-2" />
