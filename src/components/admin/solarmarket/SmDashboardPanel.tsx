@@ -194,6 +194,9 @@ function ActiveOperationDetail({
                  opType === "migrate_to_native" ? "Conversão para sistema nativo" : opType}
               </p>
             )}
+            <p className="text-[10px] text-success/80 mt-0.5">
+              🖥️ Rodando no servidor — você pode fechar esta tela com segurança
+            </p>
           </div>
         </div>
         {heartbeatLabel && (
