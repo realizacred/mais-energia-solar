@@ -1021,7 +1021,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
       const projectUrl = import.meta.env.VITE_SUPABASE_URL;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30_000);
+      const timeoutId = setTimeout(() => controller.abort(), 120_000);
 
       try {
         const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
