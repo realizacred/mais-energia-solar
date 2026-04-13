@@ -23,6 +23,13 @@ export interface OutboxStats {
   recentFailures: { id: string; error_message: string | null; created_at: string; retry_count: number }[];
 }
 
+export interface WaIntegrityAudit {
+  duplicate_conversations: number;
+  technical_previews: number;
+  orphan_messages: number;
+  loading: boolean;
+}
+
 export function useSystemHealth() {
   // 1. Integration health cache
   const { data: integrations = [], isLoading: loadingIntegrations } = useQuery({
@@ -71,6 +78,31 @@ export function useSystemHealth() {
     refetchInterval: STALE_REALTIME,
   });
 
+  // 3. WA integrity audit — checks for duplicates and technical previews
+  const { data: integrityAudit, isLoading: loadingIntegrity } = useQuery({
+    queryKey: ["system-health-wa-integrity"],
+    queryFn: async () => {
+      const [dupRes, previewRes, orphanRes] = await Promise.all([
+        // Check duplicate conversations (same instance_id + phone, different remote_jid variants)
+        supabase.rpc("check_wa_duplicate_conversations" as any).maybeSingle(),
+        // Check technical previews still in DB
+        supabase
+          .from("wa_conversations")
+          .select("id", { count: "exact", head: true })
+          .or("last_message_preview.like.[text]%,last_message_preview.like.[contact]%,last_message_preview.like.[image]%,last_message_preview.like.[video]%,last_message_preview.like.[audio]%,last_message_preview.like.[document]%"),
+        // Check orphan messages (no conversation)
+        supabase.rpc("check_wa_orphan_messages" as any).maybeSingle(),
+      ]);
+
+      return {
+        duplicate_conversations: (dupRes.data as any)?.count ?? 0,
+        technical_previews: previewRes.count ?? 0,
+        orphan_messages: (orphanRes.data as any)?.count ?? 0,
+      };
+    },
+    staleTime: 1000 * 60 * 5, // 5 min
+  });
+
   // Derived metrics
   const healthy = integrations.filter((i) => i.status === "healthy").length;
   const degraded = integrations.filter((i) => i.status === "degraded").length;
@@ -97,6 +129,8 @@ export function useSystemHealth() {
   return {
     integrations,
     outboxStats: outboxStats || { pending: 0, sending: 0, failed: 0, sent: 0, totalRetries: 0, recentFailures: [] },
+    integrityAudit: integrityAudit || { duplicate_conversations: 0, technical_previews: 0, orphan_messages: 0 },
+    integrityLoading: loadingIntegrity,
     healthy,
     degraded,
     down,
