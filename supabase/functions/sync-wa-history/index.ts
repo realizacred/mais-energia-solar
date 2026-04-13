@@ -10,6 +10,61 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_EXECUTION_MS = 25_000; // Stop before 30s timeout
 const BATCH_SIZE = 50; // Process N chats per invocation
 
+function normalizeJid(rawJid: string): string {
+  if (!rawJid) return rawJid;
+  if (rawJid.includes("@g.us")) return rawJid;
+
+  const [numPart] = rawJid.split("@");
+  let digits = numPart.replace(/\D/g, "");
+
+  if (digits.startsWith("55") && digits.length === 12) {
+    digits = digits.slice(0, 4) + "9" + digits.slice(4);
+  }
+
+  return `${digits}@s.whatsapp.net`;
+}
+
+function getAltJids(remoteJid: string): string[] {
+  const canonical = normalizeJid(remoteJid);
+  const jids = [remoteJid];
+  if (canonical !== remoteJid) jids.push(canonical);
+
+  const digits = canonical.split("@")[0];
+  if (digits.startsWith("55") && digits.length === 13) {
+    const without9 = `55${digits.slice(2, 4)}${digits.slice(5)}`;
+    jids.push(`${without9}@s.whatsapp.net`);
+  }
+
+  return [...new Set(jids)];
+}
+
+function formatPreviewByType(messageType: string, content: string | null): string {
+  const trimmed = content?.trim() || "";
+
+  switch (messageType) {
+    case "image":
+      return trimmed ? `📷 ${trimmed}` : "📷 Imagem";
+    case "video":
+    case "gif":
+      return trimmed ? `🎥 ${trimmed}` : "🎥 Vídeo";
+    case "audio":
+    case "ptt":
+      return "🎵 Áudio";
+    case "document":
+      return trimmed ? `📄 ${trimmed}` : "📄 Documento";
+    case "sticker":
+      return "🎭 Figurinha";
+    case "location":
+      return "📍 Localização";
+    case "contact":
+      return trimmed ? `👤 ${trimmed}` : "👤 Contato";
+    case "reaction":
+      return trimmed ? `👍 ${trimmed}` : "👍 Reação";
+    default:
+      return trimmed || "Mensagem";
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -106,19 +161,21 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const remoteJid = chat.id || chat.remoteJid || chat.jid;
+        const sourceJid = chat.id || chat.remoteJid || chat.jid;
+        const remoteJid = sourceJid?.endsWith("@g.us") ? sourceJid : normalizeJid(sourceJid);
         if (!remoteJid || remoteJid === "status@broadcast") continue;
 
         const isGroup = remoteJid.endsWith("@g.us");
         const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
         const contactName = chat.name || chat.pushName || chat.contact?.pushName || chat.contact?.name || null;
+        const altJids = getAltJids(remoteJid);
 
         // Check if conversation already exists
         const { data: existingConv } = await supabase
           .from("wa_conversations")
           .select("id")
           .eq("instance_id", instance.id)
-          .eq("remote_jid", remoteJid)
+          .in("remote_jid", altJids)
           .maybeSingle();
 
         let conversationId: string;
@@ -217,7 +274,7 @@ Deno.serve(async (req) => {
 
           if (!latestMsgAt || msgTimestamp > latestMsgAt) {
             latestMsgAt = msgTimestamp;
-            latestPreview = content ? content.substring(0, 100) : `[${messageType}]`;
+            latestPreview = formatPreviewByType(messageType, content).substring(0, 100);
             latestDirection = direction;
           }
 

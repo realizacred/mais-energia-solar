@@ -94,6 +94,25 @@ function getMessagePreview(type: string | null | undefined, body: string | null 
   return body || "";
 }
 
+function normalizeConversationPreview(preview: string | null | undefined): string {
+  const value = preview?.trim();
+  if (!value) return "Sem mensagens";
+
+  const legacyMap: Record<string, string> = {
+    "[text]": "Mensagem",
+    "[image]": "📷 Imagem",
+    "[video]": "🎥 Vídeo",
+    "[audio]": "🎵 Áudio",
+    "[document]": "📄 Documento",
+    "[sticker]": "🎭 Figurinha",
+    "[location]": "📍 Localização",
+    "[contact]": "👤 Contato",
+    "[reaction]": "👍 Reação",
+  };
+
+  return legacyMap[value] || value;
+}
+
 // ── Status badge ───────────────────────────────────────
 function StatusBadge({ status, assigned }: { status: string; assigned: string | null }) {
   if (status === "resolved") {
@@ -196,7 +215,7 @@ function ConversationItem({
 
   const preview = isNote
     ? "📝 Nota interna"
-    : conv.last_message_preview || "Sem mensagens";
+    : normalizeConversationPreview(conv.last_message_preview);
 
   return (
     // RB-03-exception: chat micro-interaction — conversation card with onContextMenu and complex layout
