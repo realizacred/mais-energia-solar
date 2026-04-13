@@ -1375,8 +1375,31 @@ Deno.serve(async (req) => {
 
     // ─── 4b. Pre-create only REAL pipelines + stages from SM funnels ──
     // "Vendedores" is a consultor-resolution funnel and must not be materialized as pipeline.
+    // Uses solar_market_funnel_stages (stage_order) for correct ordering when available.
     if (!dry_run) {
-      const allFunnelStages = new Map<string, Set<string>>(); // funnelName → Set<stageName>
+      // 1) Fetch ordered stages from solar_market_funnel_stages (SSOT for SM stage order)
+      const smOrderedStagesMap = new Map<string, Array<{ stage_name: string; stage_order: number }>>();
+      {
+        const { data: smFunnelStages } = await adminClient
+          .from("solar_market_funnel_stages")
+          .select("funnel_name, stage_name, stage_order")
+          .eq("tenant_id", tenantId)
+          .order("stage_order", { ascending: true });
+        for (const row of smFunnelStages || []) {
+          const fName = (row.funnel_name || "").trim();
+          const sName = (row.stage_name || "").trim();
+          if (!fName || !sName) continue;
+          if (!smOrderedStagesMap.has(fName)) smOrderedStagesMap.set(fName, []);
+          // Avoid duplicates
+          const arr = smOrderedStagesMap.get(fName)!;
+          if (!arr.some(s => s.stage_name === sName)) {
+            arr.push({ stage_name: sName, stage_order: row.stage_order ?? arr.length });
+          }
+        }
+      }
+
+      // 2) Collect funnel names from project data (as before) but use ordered stages when available
+      const allFunnelStages = new Map<string, Set<string>>(); // funnelName → Set<stageName> (fallback only)
       for (const [, proj] of smProjectMap) {
         const funnels: any[] = proj.all_funnels || [];
         for (const f of funnels) {
@@ -1396,20 +1419,54 @@ Deno.serve(async (req) => {
         }
       }
 
+      // 3) Merge: for each funnel, prefer ordered list from solar_market_funnel_stages
       let pipelinesCreated = 0;
       let stagesCreated = 0;
-      for (const [funnelName, stages] of allFunnelStages) {
+      const allFunnelNames = new Set([...allFunnelStages.keys(), ...smOrderedStagesMap.keys()]);
+      for (const funnelName of allFunnelNames) {
+        if (normalizeComparableName(funnelName) === "vendedores") continue;
         try {
           const pipeId = await resolveOrCreatePipeline(funnelName);
           if (!pipeId.startsWith("AUTO_CREATE")) {
             pipelinesCreated++;
-            let pos = 0;
-            for (const stageName of stages) {
-              try {
-                await resolveOrCreateStage(pipeId, stageName, pos++);
-                stagesCreated++;
-              } catch (e) {
-                console.warn(`[SM Migration] Pre-create stage "${stageName}" error: ${(e as Error).message}`);
+
+            // Use ordered stages from solar_market_funnel_stages if available
+            const orderedStages = smOrderedStagesMap.get(funnelName);
+            if (orderedStages && orderedStages.length > 0) {
+              // Also include any stages from project data not in the ordered list
+              const fallbackSet = allFunnelStages.get(funnelName) || new Set<string>();
+              const orderedNames = new Set(orderedStages.map(s => s.stage_name));
+              const extraStages = [...fallbackSet].filter(s => !orderedNames.has(s));
+
+              for (const s of orderedStages) {
+                try {
+                  await resolveOrCreateStage(pipeId, s.stage_name, s.stage_order);
+                  stagesCreated++;
+                } catch (e) {
+                  console.warn(`[SM Migration] Pre-create stage "${s.stage_name}" error: ${(e as Error).message}`);
+                }
+              }
+              // Append extras at the end
+              let nextPos = Math.max(...orderedStages.map(s => s.stage_order), 0) + 1;
+              for (const stageName of extraStages) {
+                try {
+                  await resolveOrCreateStage(pipeId, stageName, nextPos++);
+                  stagesCreated++;
+                } catch (e) {
+                  console.warn(`[SM Migration] Pre-create extra stage "${stageName}" error: ${(e as Error).message}`);
+                }
+              }
+            } else {
+              // Fallback: no ordered data, use Set iteration (legacy behavior)
+              const stages = allFunnelStages.get(funnelName) || new Set<string>();
+              let pos = 0;
+              for (const stageName of stages) {
+                try {
+                  await resolveOrCreateStage(pipeId, stageName, pos++);
+                  stagesCreated++;
+                } catch (e) {
+                  console.warn(`[SM Migration] Pre-create stage "${stageName}" error: ${(e as Error).message}`);
+                }
               }
             }
           }
@@ -1417,7 +1474,7 @@ Deno.serve(async (req) => {
           console.warn(`[SM Migration] Pre-create pipeline "${funnelName}" error: ${(e as Error).message}`);
         }
       }
-      console.error(`[SM Migration] Pre-created ${pipelinesCreated} pipelines, ${stagesCreated} stages from SM funnels`);
+      console.error(`[SM Migration] Pre-created ${pipelinesCreated} pipelines, ${stagesCreated} stages from SM funnels (ordered)`);
     }
 
     // ─── 5a. Batch pre-fetch canonical entities for O(1) lookup ──
