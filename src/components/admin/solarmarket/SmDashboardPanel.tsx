@@ -442,7 +442,7 @@ export function SmDashboardPanel({
   return (
     <div className="space-y-4">
       {/* ── Status Bar ── */}
-      <div className={cn("rounded-lg border px-4 py-3 flex items-center gap-3 flex-wrap", borderClass)}>
+      <div className={cn("rounded-lg border px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center", borderClass)}>
         <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", iconBgClass)}>
           <StatusIcon className={iconClass} />
         </div>
@@ -450,7 +450,7 @@ export function SmDashboardPanel({
           <p className="text-sm font-semibold text-foreground">{config.label}</p>
           <p className="text-xs text-muted-foreground">{statusSublabel}</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           {lastRunInfo && (
             <Badge variant="outline" className="text-[10px] bg-card border-border">
               Última op: {lastRunInfo}
@@ -497,7 +497,7 @@ export function SmDashboardPanel({
       )}
 
       {/* ── Staging vs Conversion sections ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
         {/* Staging — Dados importados */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -507,7 +507,7 @@ export function SmDashboardPanel({
             <h3 className="text-sm font-semibold text-foreground">Dados importados</h3>
             <span className="text-[10px] text-muted-foreground">(staging)</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
             <KpiCard
               icon={Users}
               label="Clientes"
@@ -546,7 +546,7 @@ export function SmDashboardPanel({
             <h3 className="text-sm font-semibold text-foreground">Conversão para CRM</h3>
             <span className="text-[10px] text-muted-foreground">(migração)</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <KpiCard
               icon={ArrowRightLeft}
               label="Migradas"
