@@ -972,7 +972,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
         detail: "Preparando processamento em lotes...",
       });
     }
-    addLog(`Iniciando migração automática para ${initialPending} pendentes...`);
+    addLog(`Iniciando migração em lote para ${initialPending} pendentes...`);
 
     try {
       const getValidSession = async () => {
@@ -1075,6 +1075,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           qc.invalidateQueries({ queryKey: ["sm-proposals"] });
           qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
           qc.invalidateQueries({ queryKey: ["canonical-check"] });
+          qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
+          // Refresh native project views
+          qc.invalidateQueries({ queryKey: ["projetos"] });
+          qc.invalidateQueries({ queryKey: ["deals"] });
+          qc.invalidateQueries({ queryKey: ["clientes"] });
 
           currentStats = {
             ...currentStats,
