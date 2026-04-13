@@ -167,7 +167,9 @@ Deno.serve(async (req) => {
 
         const isGroup = remoteJid.endsWith("@g.us");
         const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
-        const contactName = chat.name || chat.pushName || chat.contact?.pushName || chat.contact?.name || null;
+        const rawContactName = chat.name || chat.pushName || chat.contact?.pushName || chat.contact?.name || null;
+        // Sanitize: if contact name is just a phone number, ignore it
+        const contactName = rawContactName && !isPushNameJustPhone(rawContactName, remoteJid) ? rawContactName : null;
         const altJids = getAltJids(remoteJid);
 
         // Check if conversation already exists
@@ -389,6 +391,18 @@ function extractContent(messageContent: any, msg: any): { content: string | null
   return { content: null, messageType: "text" };
 }
 
+/**
+ * Check if a pushName is actually just a phone number (should be ignored).
+ */
+function isPushNameJustPhone(pushName: string | null | undefined, remoteJid: string): boolean {
+  if (!pushName?.trim()) return true;
+  const trimmed = pushName.trim();
+  const digits = trimmed.replace(/[\s+\-().]/g, "");
+  if (/^\d{8,15}$/.test(digits)) return true;
+  const jidDigits = normalizeJid(remoteJid).split("@")[0];
+  if (digits === jidDigits || digits === jidDigits.replace(/^55/, "")) return true;
+  return false;
+}
 
 function extractContactDisplay(mc: any): string | null {
   try {
