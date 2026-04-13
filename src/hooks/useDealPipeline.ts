@@ -452,11 +452,22 @@ export function useDealPipeline() {
       })
       .subscribe();
 
+    // Polling fallback (30s) — catches service_role inserts missed by Realtime
+    const pollInterval = setInterval(() => debouncedRefresh(100), 30_000);
+
+    // Visibility change — refresh when user returns to tab
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') debouncedRefresh(300);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [filters, fetchDeals]);
+  }, [filters, fetchDeals, fetchMetadata]);
 
   // ─── Apply filters ──────────────────────────────────
   const applyFilters = useCallback(async (newFilters: Partial<DealFilters>) => {
