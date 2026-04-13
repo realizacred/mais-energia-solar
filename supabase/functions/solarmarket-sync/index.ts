@@ -609,7 +609,6 @@ Deno.serve(async (req) => {
       // For explicit proposals sync: exit early if all scanned
       if (sync_type === "proposals" && pendingProposals <= 0 && (totalProjects || 0) > 0) {
         await supabase.rpc("release_sm_operation_lock", { p_run_id: smOpRunId, p_status: "completed" });
-        console.log(`[SM Sync] All ${totalProjects} projects already scanned — nothing to do`);
         return new Response(JSON.stringify({
           skipped: true,
           reason: "all_synced",
@@ -631,7 +630,6 @@ Deno.serve(async (req) => {
         } else {
           // Nothing to do — release lock and exit
           await supabase.rpc("release_sm_operation_lock", { p_run_id: smOpRunId, p_status: "completed" });
-          console.log(`[SM Sync] Cron: all_synced — ${totalProjects} projects, ${scannedCount} scanned, ${funnelCount} funnels`);
           return new Response(JSON.stringify({
             skipped: true,
             reason: "all_synced",
@@ -1069,16 +1067,20 @@ Deno.serve(async (req) => {
         const pendingEnrich = allProjIds.filter((id: number) => !alreadyEnrichedSet.has(id));
         totalFetched = pendingEnrich.length;
 
+        let processedProjects = 0;
         let enriched = 0;
-        const funnelTimeBudget = 120_000; // 120s budget
+        const funnelTimeBudget = 45_000; // 45s budget — leave margin to finalize logs + release lock
         const funnelStart = Date.now();
 
         for (const projId of pendingEnrich) {
           if (Date.now() - funnelStart > funnelTimeBudget) {
             isPartialSync = true;
-            partialRemaining = pendingEnrich.length - enriched;
+            partialRemaining = Math.max(pendingEnrich.length - processedProjects, 0);
             break;
           }
+
+          processedProjects++;
+
           try {
             const fUrl = `${baseUrl}/projects/${projId}/funnels`;
             const res = await fetch(fUrl, { headers: smHeaders });
@@ -1119,7 +1121,7 @@ Deno.serve(async (req) => {
               const stageName = f.stageName || f.stage_name || f.currentStageName || f.stage?.name || null;
 
               if (funnelId || stageId || allFunnelsArray.length > 0) {
-                await supabase
+                const { error: updateErr } = await supabase
                   .from("solar_market_projects")
                   .update({
                     sm_funnel_id: funnelId,
@@ -1130,13 +1132,50 @@ Deno.serve(async (req) => {
                   })
                   .eq("tenant_id", tenantId)
                   .eq("sm_project_id", projId);
-                enriched++;
+
+                if (updateErr) {
+                  totalErrors++;
+                  errors.push(`projects_funnels update ${projId}: ${updateErr.message}`);
+                } else {
+                  enriched++;
+                }
+              }
+            }
+
+            if (processedProjects % 10 === 0) {
+              if (logId) {
+                await supabase
+                  .from("solar_market_sync_logs")
+                  .update({
+                    total_fetched: totalFetched,
+                    total_upserted: enriched,
+                    total_errors: totalErrors,
+                  })
+                  .eq("id", logId);
+              }
+
+              if (smOpRunId) {
+                try {
+                  await supabase.rpc("update_sm_operation_heartbeat", {
+                    p_run_id: smOpRunId,
+                    p_processed_items: processedProjects,
+                    p_success_items: enriched,
+                    p_error_items: totalErrors,
+                    p_checkpoint: {
+                      sync_type,
+                      last_sm_project_id: projId,
+                      pending_total: pendingEnrich.length,
+                      remaining: Math.max(pendingEnrich.length - processedProjects, 0),
+                    },
+                  });
+                } catch (_) { /* best-effort heartbeat */ }
               }
             }
 
             await delay(100); // 100ms between requests (was 250ms)
           } catch (e) {
-            // Non-fatal, just skip
+            totalErrors++;
+            errors.push(`projects_funnels ${projId}: ${(e as Error).message || "erro desconhecido"}`);
           }
         }
         totalUpserted = enriched;
@@ -1655,7 +1694,7 @@ Deno.serve(async (req) => {
             .in("id", propIds);
         }
         if (enriched > 0) {
-          console.log(`[SM Sync] Enriched ${enriched} proposals with sm_client_id from projects`);
+          console.warn(`[SM Sync] Enriched ${enriched} proposals with sm_client_id from projects`);
         }
       } catch (enrichErr) {
         console.warn(`[SM Sync] sm_client_id enrichment error:`, enrichErr);
@@ -1718,15 +1757,20 @@ Deno.serve(async (req) => {
         // console.log(`[SM Sync] Standalone funnel enrichment: ${alreadyEnrichedSet2.size} done, ${pendingFunnelIds.length} pending`);
 
         if (pendingFunnelIds.length > 0) {
+          let processedProjects = 0;
           let enriched = 0;
-          const funnelTimeBudget = 120_000; // 120s budget — maximize standalone funnel enrichment
+          const funnelTimeBudget = 45_000; // 45s budget — leave margin to finalize logs + release lock
           const funnelStart = Date.now();
 
           for (const projId of pendingFunnelIds) {
             if (Date.now() - funnelStart > funnelTimeBudget) {
-              // console.log(`[SM Sync] Funnel enrichment time budget hit after ${enriched} projects`);
+              isPartialSync = true;
+              partialRemaining = Math.max(pendingFunnelIds.length - processedProjects, 0);
               break;
             }
+
+            processedProjects++;
+
             try {
               const fUrl = `${baseUrl}/projects/${projId}/funnels`;
               const res = await fetch(fUrl, { headers: smHeaders });
@@ -1765,7 +1809,7 @@ Deno.serve(async (req) => {
                 const stageName = f.stageName || f.stage_name || f.currentStageName || f.stage?.name || null;
 
                 if (funnelId || stageId || allFunnelsArray.length > 0) {
-                  await supabase
+                  const { error: updateErr } = await supabase
                     .from("solar_market_projects")
                     .update({
                       sm_funnel_id: funnelId,
@@ -1776,12 +1820,37 @@ Deno.serve(async (req) => {
                     })
                     .eq("tenant_id", tenantId)
                     .eq("sm_project_id", projId);
-                  enriched++;
+
+                  if (updateErr) {
+                    totalErrors++;
+                    errors.push(`standalone_projects_funnels update ${projId}: ${updateErr.message}`);
+                  } else {
+                    enriched++;
+                  }
                 }
               }
-              await delay(250);
+
+              if (processedProjects % 10 === 0 && smOpRunId) {
+                try {
+                  await supabase.rpc("update_sm_operation_heartbeat", {
+                    p_run_id: smOpRunId,
+                    p_processed_items: processedProjects,
+                    p_success_items: totalUpserted,
+                    p_error_items: totalErrors,
+                    p_checkpoint: {
+                      sync_type: "standalone_projects_funnels",
+                      last_sm_project_id: projId,
+                      pending_total: pendingFunnelIds.length,
+                      remaining: Math.max(pendingFunnelIds.length - processedProjects, 0),
+                    },
+                  });
+                } catch (_) { /* best-effort heartbeat */ }
+              }
+
+              await delay(100);
             } catch (e) {
-              // Non-fatal
+              totalErrors++;
+              errors.push(`standalone_projects_funnels ${projId}: ${(e as Error).message || "erro desconhecido"}`);
             }
           }
           // console.log(`[SM Sync] Standalone enriched ${enriched}/${pendingFunnelIds.length} projects with funnel data`);
@@ -2006,8 +2075,6 @@ Deno.serve(async (req) => {
         { tenant_id: tenantId, last_sync_at: new Date().toISOString(), enabled: true },
         { onConflict: "tenant_id" }
       );
-
-    console.log(`[SM Sync] Done: fetched=${totalFetched} upserted=${totalUpserted} errors=${totalErrors} partial=${isPartialSync} remaining=${partialRemaining}`);
 
     return new Response(
       JSON.stringify({
