@@ -237,6 +237,7 @@ export function useProjetoPipeline() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_funis' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'propostas_nativas' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, refreshProjetos)
       .subscribe();
 
     // Polling fallback (30s) — catches service_role inserts missed by Realtime
