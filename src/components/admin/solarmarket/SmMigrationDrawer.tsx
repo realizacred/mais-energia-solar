@@ -852,6 +852,23 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       return;
     }
 
+    // Save migration settings for server-side auto-resume (pg_cron)
+    try {
+      const { data: profileData } = await supabase.from("profiles").select("tenant_id").eq("user_id", session?.user?.id ?? "").single();
+      if (profileData?.tenant_id) {
+        await (supabase as any).from("sm_migration_settings").upsert({
+          tenant_id: profileData.tenant_id,
+          pipeline_id: activePipelineId,
+          stage_id: activeStageId || null,
+          owner_id: ownerId && ownerId !== "__auto__" ? ownerId : null,
+          auto_resolve_owner: true,
+          batch_size: 10,
+          enabled: true,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "tenant_id" });
+      }
+    } catch (_) { /* best-effort — migration still works without this */ }
+
     resetState();
     setBatchProgress(null);
     setAutoResumeRunning(true);
@@ -1069,6 +1086,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   return (
     <>
       <Drawer open={open} onOpenChange={(v) => {
+        if (!v && running && autoResumeRunning) {
+          // Allow closing — migration continues on server via pg_cron
+          toast.info("A migração continuará automaticamente no servidor. Você pode acompanhar o progresso ao reabrir esta tela.");
+          onOpenChange(v);
+          return;
+        }
         if (!v && running) {
           toast.warning("Migração em andamento. Cancele a migração antes de fechar.");
           return;
@@ -1135,6 +1158,13 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                     {cancelling ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <StopCircle className="h-3 w-3 mr-1" />}
                     {cancelling ? "Cancelando..." : "Parar"}
                   </Button>
+                </div>
+                <div className="rounded-md border border-success/20 bg-success/5 px-3 py-2 flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                  <div className="text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground">Execução no servidor ativa</p>
+                    <p>Você pode fechar esta tela ou desligar o computador. A migração continuará automaticamente a cada 5 minutos no servidor.</p>
+                  </div>
                 </div>
                 <Progress value={smoothProgress} className="h-2" />
                 <div className="flex justify-between text-[10px] text-muted-foreground">

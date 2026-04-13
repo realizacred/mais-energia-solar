@@ -20411,6 +20411,53 @@ export type Database = {
           },
         ]
       }
+      sm_migration_settings: {
+        Row: {
+          auto_resolve_owner: boolean
+          batch_size: number
+          created_at: string
+          enabled: boolean
+          id: string
+          owner_id: string | null
+          pipeline_id: string
+          stage_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_resolve_owner?: boolean
+          batch_size?: number
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          owner_id?: string | null
+          pipeline_id: string
+          stage_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_resolve_owner?: boolean
+          batch_size?: number
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          owner_id?: string | null
+          pipeline_id?: string
+          stage_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_migration_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm_operation_runs: {
         Row: {
           checkpoint_json: Json | null
