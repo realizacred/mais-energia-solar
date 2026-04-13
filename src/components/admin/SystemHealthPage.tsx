@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, Wifi, WifiOff, AlertTriangle, Zap, Server, RefreshCw, MessageSquare, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, HelpCircle, BookOpen } from "lucide-react";
+import { Activity, Wifi, WifiOff, AlertTriangle, Zap, Server, RefreshCw, MessageSquare, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, HelpCircle, BookOpen, ShieldAlert } from "lucide-react";
 import { useSystemHealth, type HealthRow } from "@/hooks/useSystemHealth";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -181,7 +181,8 @@ export default function SystemHealthPage() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const {
-    integrations, outboxStats, healthy, degraded, down, notConfigured,
+    integrations, outboxStats, integrityAudit, integrityLoading,
+    healthy, degraded, down, notConfigured,
     avgLatency, errorRate, overallStatus, isLoading,
   } = useSystemHealth();
 
