@@ -1159,6 +1159,13 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                     {cancelling ? "Cancelando..." : "Parar"}
                   </Button>
                 </div>
+                <div className="rounded-md border border-success/20 bg-success/5 px-3 py-2 flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                  <div className="text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground">Execução no servidor ativa</p>
+                    <p>Você pode fechar esta tela ou desligar o computador. A migração continuará automaticamente a cada 5 minutos no servidor.</p>
+                  </div>
+                </div>
                 <Progress value={smoothProgress} className="h-2" />
                 <div className="flex justify-between text-[10px] text-muted-foreground">
                   <span>Rodada {autoResumeCurrentRound}/{autoResumeTotalRounds} • {autoResumeStats.migrated} migrados, {autoResumeStats.errors} erros</span>
