@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
           // Skip profile pic fetch to save time — it will be fetched later on demand
           const { data: newConv, error: convErr } = await supabase
             .from("wa_conversations")
-            .insert({
+            .upsert({
               instance_id: instance.id,
               tenant_id: instance.tenant_id,
               remote_jid: remoteJid,
@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
               is_group: isGroup,
               status: "resolved",
               unread_count: 0,
-            })
+            }, { onConflict: "instance_id,remote_jid", ignoreDuplicates: true })
             .select("id")
             .single();
 
