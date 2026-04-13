@@ -27013,6 +27013,13 @@ export type Database = {
           },
         ]
       }
+      vw_wa_integrity_audit: {
+        Row: {
+          erro: string | null
+          ocorrencias: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       acquire_conversation_lock: {
