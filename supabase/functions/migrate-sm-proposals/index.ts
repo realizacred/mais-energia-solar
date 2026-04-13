@@ -619,7 +619,7 @@ Deno.serve(async (req) => {
         {
           p_tenant_id: tenantId,
           p_operation_type: "migrate_to_native",
-          p_created_by: user.id,
+          p_created_by: rawBody?._cron_tenant_id ? null : user?.id ?? null,
           p_context: { batch_size, auto_resume: params.auto_resume ?? false },
         }
       );
