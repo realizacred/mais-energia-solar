@@ -989,11 +989,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               const blockedType = errBody?.blocked_by_type || "operação";
               const isSyncBlock = blockedType === "sync_proposals" || blockedType === "solarmarket_sync" || blockedType === "sync_staging";
               if (isSyncBlock) {
-                addLog(`Rodada ${round}: aguardando término de ${blockedType}... Nova tentativa em 15s.`);
+                addLog(`Rodada ${round}: aguardando término de ${blockedType}... Nova tentativa automática em 15s.`);
                 for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
                   updateStep(stepName, {
                     state: "running",
-                    detail: `Aguardando sync de propostas finalizar...`,
+                    detail: `⏳ Aguardando sync finalizar — retentativa automática em 15s`,
                   });
                 }
                 // Don't count as stagnant — this is expected waiting
@@ -1041,7 +1041,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
             updateStep(stepName, {
               state: "running",
-              detail: `Em segundo plano • ${currentStats.migrated}/${initialPending} migradas • Rodada ${round}`,
+              detail: `🖥️ Servidor processando • ${currentStats.migrated}/${initialPending} migradas • Rodada ${round}`,
             });
           }
 
