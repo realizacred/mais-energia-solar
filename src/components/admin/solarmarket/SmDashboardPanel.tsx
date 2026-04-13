@@ -201,8 +201,8 @@ function ActiveOperationDetail({
               </p>
             )}
             {opType === "migrate_to_native" && (
-              <p className="text-[10px] text-warning/80 mt-0.5">
-                ⚠️ Migração depende do navegador aberto — não feche esta tela
+              <p className="text-[10px] text-success/80 mt-0.5">
+                🖥️ Migração no servidor — você pode fechar esta tela com segurança
               </p>
             )}
           </div>

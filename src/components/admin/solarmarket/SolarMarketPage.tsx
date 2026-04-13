@@ -622,6 +622,8 @@ export default function SolarMarketPage() {
   const { data: isBgSyncActive = false } = useIsBackgroundSyncActive();
   const { data: activeSmRun } = useActiveSmOperation();
   const isAnySyncActive = syncIsRunning || isBgSyncActive;
+  const isBackgroundMigrationActive = activeSmRun?.operation_type === "migrate_to_native" && (activeSmRun as any)?._stale !== true;
+  const isMigrationActive = migrationRunning || isBackgroundMigrationActive;
 
   // Auto-resume sync ONLY if there's a real active SYNC operation (not migration)
   // and only if there are actually unscanned projects (prevents ghost loops)
@@ -816,7 +818,7 @@ export default function SolarMarketPage() {
                 <StopCircle className="h-3.5 w-3.5" />
                 Parar Sync
               </Button>
-            ) : migrationRunning ? (
+            ) : isMigrationActive ? (
               <Button onClick={() => setMigrationDrawerOpen(true)} size="sm" className="gap-1.5">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Ver Migração
@@ -882,23 +884,23 @@ export default function SolarMarketPage() {
           <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider mr-1">Migrar</span>
           <Button
             onClick={() => {
-              if (migrationRunning) {
+                if (isMigrationActive) {
                 setMigrationDrawerOpen(true);
               } else {
                 setMigrateAllOpen(true);
               }
             }}
-            disabled={!migrationRunning && pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
+            disabled={!isMigrationActive && pendingProposals.length === 0 && pendingProjectsNoProposal.length === 0}
             size="sm"
-            variant={migrationRunning ? "default" : "outline"}
-            className={cn("gap-1 h-7 text-xs", migrationRunning && "animate-pulse")}
+            variant={isMigrationActive ? "default" : "outline"}
+            className={cn("gap-1 h-7 text-xs", isMigrationActive && "animate-pulse")}
           >
-            {migrationRunning ? (
+            {isMigrationActive ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
               <Upload className="h-3 w-3" />
             )}
-            {migrationRunning
+            {isMigrationActive
               ? "Migrando..."
               : `Migrar (${pendingProposals.length + pendingProjectsNoProposal.length})`}
           </Button>
@@ -913,8 +915,8 @@ export default function SolarMarketPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1 h-7 text-xs text-warning hover:text-warning border-warning/30 hover:bg-warning/10"
-                disabled={migrationRunning}
-                title={migrationRunning ? "Bloqueado: migração em andamento" : "Remove apenas dados migrados do SM"}
+                disabled={isMigrationActive}
+                title={isMigrationActive ? "Bloqueado: migração em andamento" : "Remove apenas dados migrados do SM"}
               >
                 <RefreshCw className="h-3 w-3" />
                 Migrados
@@ -981,8 +983,8 @@ export default function SolarMarketPage() {
                 variant="outline"
                 size="sm"
                 className="gap-1 h-7 text-xs text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-                disabled={isAnySyncActive || migrationRunning}
-                title={isAnySyncActive || migrationRunning ? "Bloqueado: migração/sync em andamento" : "Apaga TODOS os dados (staging + migrados)"}
+                disabled={isAnySyncActive || isMigrationActive}
+                title={isAnySyncActive || isMigrationActive ? "Bloqueado: migração/sync em andamento" : "Apaga TODOS os dados (staging + migrados)"}
               >
                 <Trash2 className="h-3 w-3" />
                 Tudo
@@ -1110,7 +1112,7 @@ export default function SolarMarketPage() {
       {/* SINGLE Operational Dashboard — all status + metrics in one place */}
       <SmDashboardPanel
         localSyncRunning={syncIsRunning || fullSyncStatus.running}
-        localMigrationRunning={migrationRunning}
+        localMigrationRunning={isMigrationActive}
         localSyncProgress={progress}
       />
 
