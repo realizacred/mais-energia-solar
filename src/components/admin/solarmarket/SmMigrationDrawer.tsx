@@ -611,6 +611,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       setBatchProgress({ current: 0, total: batches.length });
 
       const batchErrors: string[] = [];
+      let syncWaitRetries = 0;
+      const MAX_SYNC_WAIT_RETRIES = 12; // 12 * 15s = 3 min max wait
 
       for (let b = 0; b < batches.length; b++) {
         if (cancelRef.current) break;
