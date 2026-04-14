@@ -3484,6 +3484,7 @@ Deno.serve(async (req) => {
 
               // P1: Inject customFieldValues from custom_fields_raw into snapshot
               // Classify by prefix: cap_ → projeto, cape_ → pré-dimensionamento, capo_ → pós-dimensionamento
+              // Use BASE KEY (without prefix) for dedup — cap_valor_total and cape_valor_total → same base "valor_total"
               if (smProp.custom_fields_raw?.values) {
                 const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
                 const customFieldValues: Record<string, string> = {};
@@ -3498,19 +3499,11 @@ Deno.serve(async (req) => {
                   const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
                   if (val !== "" && val != null) {
                     const strVal = String(val);
-                    customFieldValues[bareKey] = strVal;
-
-                    // Classify by prefix (cap_, cape_, capo_)
-                    const lowerKey = bareKey.toLowerCase();
-                    if (lowerKey.startsWith("cape_") || lowerKey.startsWith("cape ")) {
-                      customFieldsByArea.pre_dimensionamento[bareKey] = strVal;
-                    } else if (lowerKey.startsWith("capo_") || lowerKey.startsWith("capo ")) {
-                      customFieldsByArea.pos_dimensionamento[bareKey] = strVal;
-                    } else if (lowerKey.startsWith("cap_") || lowerKey.startsWith("cap ")) {
-                      customFieldsByArea.projeto[bareKey] = strVal;
-                    } else {
-                      customFieldsByArea.outros[bareKey] = strVal;
-                    }
+                    const area = detectCfArea(bareKey);
+                    const baseKey = stripCfPrefix(bareKey);
+                    // Use base key for snapshot dedup
+                    customFieldValues[baseKey] = strVal;
+                    customFieldsByArea[area][baseKey] = strVal;
                   }
                 }
                 if (Object.keys(customFieldValues).length > 0) {
