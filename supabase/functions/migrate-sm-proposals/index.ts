@@ -3743,28 +3743,28 @@ Deno.serve(async (req) => {
           if (!dry_run && dealId && smProp.custom_fields_raw?.values) {
             try {
               const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
-              // Dedup by base key: cap_valor_total and cape_valor_total → same base "valor_total"
-              // Last-write-wins per base key, area from the prefix that wrote last
-              const cfDeduped = new Map<string, { baseKey: string; value: string; area: string }>();
+              // Dedup by NORMALIZED key: "Valor Total", "valorTotal", "cap_valor_total" all → "valor_total"
+              // Last-write-wins per normalized key, area from the prefix that wrote last
+              const cfDeduped = new Map<string, { normalizedKey: string; value: string; area: string }>();
 
               for (const [key, entry] of Object.entries(cfVals)) {
                 const bareKey = normalizeCfKey(key);
                 const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
                 if (val === "" || val == null) continue;
                 const area = detectCfArea(bareKey);
-                const baseKey = stripCfPrefix(bareKey);
-                // Dedup: same base key across prefixes → use the most specific area
+                const normalizedKey = normalizeFieldKey(bareKey);
+                // Dedup: same normalized key across prefixes → use the most specific area
                 // Priority: pre/pos > projeto > outros (more specific wins)
-                const existing = cfDeduped.get(baseKey.toLowerCase());
+                const existing = cfDeduped.get(normalizedKey);
                 if (!existing || area !== "outros") {
-                  cfDeduped.set(baseKey.toLowerCase(), { baseKey, value: String(val), area });
+                  cfDeduped.set(normalizedKey, { normalizedKey, value: String(val), area });
                 }
               }
 
               const cfByPrefix = Array.from(cfDeduped.values());
 
               if (cfByPrefix.length > 0) {
-                // Check existing deal_custom_fields for this tenant to find matches by BASE KEY
+                // Check existing deal_custom_fields for this tenant to find matches by NORMALIZED KEY
                 const { data: existingFields } = await adminClient
                   .from("deal_custom_fields")
                   .select("id, field_key, title, field_context")
@@ -3772,28 +3772,28 @@ Deno.serve(async (req) => {
 
                 const fieldByKey = new Map<string, { id: string; context: string }>();
                 for (const f of existingFields || []) {
-                  // Index by base key (strip prefix from existing field_key too for matching)
-                  const existingBaseKey = stripCfPrefix(f.field_key || "").toLowerCase();
-                  fieldByKey.set(existingBaseKey, { id: f.id, context: f.field_context || "outros" });
-                  // Also index by raw key for exact matches
+                  // Index by normalized key for consistent matching across formats
+                  const existingNormKey = normalizeFieldKey(f.field_key || "");
+                  fieldByKey.set(existingNormKey, { id: f.id, context: f.field_context || "outros" });
+                  // Also index by raw lowercase for exact legacy matches
                   fieldByKey.set((f.field_key || "").toLowerCase(), { id: f.id, context: f.field_context || "outros" });
                 }
 
                 const valuesToInsert: Array<Record<string, any>> = [];
 
                 for (const cf of cfByPrefix) {
-                  // Try to find existing field by base key (deduped)
-                  const existingField = fieldByKey.get(cf.baseKey.toLowerCase());
+                  // Try to find existing field by normalized key (deduped)
+                  const existingField = fieldByKey.get(cf.normalizedKey);
                   let fieldId: string;
 
                   if (existingField) {
                     fieldId = existingField.id;
                   } else {
-                    // Create the custom field definition using BASE KEY (no prefix)
+                    // Create the custom field definition using NORMALIZED KEY (no prefix, snake_case)
                     const fieldInsert = {
                       tenant_id: tenantId,
-                      field_key: cf.baseKey,
-                      title: cf.baseKey.replace(/_/g, " "),
+                      field_key: cf.normalizedKey,
+                      title: cf.normalizedKey.replace(/_/g, " "),
                       field_type: "text",
                       field_context: cf.area,
                       is_active: true,
@@ -3805,11 +3805,11 @@ Deno.serve(async (req) => {
                       .single();
 
                     if (fieldErr || !newField) {
-                      console.warn(`[SM Migration] Custom field create error for ${cf.baseKey}: ${fieldErr?.message}`);
+                      console.warn(`[SM Migration] Custom field create error for ${cf.normalizedKey}: ${fieldErr?.message}`);
                       continue;
                     }
                     fieldId = newField.id;
-                    fieldByKey.set(cf.baseKey.toLowerCase(), { id: fieldId, context: cf.area });
+                    fieldByKey.set(cf.normalizedKey, { id: fieldId, context: cf.area });
                   }
 
                   valuesToInsert.push({
