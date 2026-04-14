@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Archive } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,7 +110,7 @@ export function TemplatesTab() {
   const [initialized, setInitialized] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TemplateRow | null>(null);
   const [seedingDefaults, setSeedingDefaults] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
+  const showArchived = false;
 
   useEffect(() => {
     if (serverData && !initialized) {
@@ -307,21 +307,10 @@ export function TemplatesTab() {
         </div>
       </CardHeader>
       <CardContent>
-        {/* Archive toggle */}
         <div className="flex items-center justify-between mb-4">
           <p className="text-xs text-muted-foreground">
-            {visibleTemplates.length} template{visibleTemplates.length !== 1 ? "s" : ""} WEB
-            {showArchived ? " (incluindo arquivados)" : ""}
+            {visibleTemplates.length} template{visibleTemplates.length !== 1 ? "s" : ""} WEB ativos
           </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowArchived(!showArchived)}
-            className="gap-1.5 text-xs h-7"
-          >
-            <Archive className="h-3 w-3" />
-            {showArchived ? "Ocultar arquivados" : "Ver arquivados"}
-          </Button>
         </div>
         {visibleTemplates.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
