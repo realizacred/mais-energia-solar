@@ -635,6 +635,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   // Templates for DOCX/HTML detection
   const { data: proposalTemplates = [] } = useProposalTemplates();
+  const { assignIfNeeded: lazyAssignTemplate } = useLazyTemplateAssign();
 
   const versaoIds = p.versoes.map(v => v.id);
   const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
