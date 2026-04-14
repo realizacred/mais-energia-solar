@@ -3327,7 +3327,7 @@ export type Database = {
           {
             foreignKeyName: "deal_kanban_projection_deal_id_fkey"
             columns: ["deal_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "deals"
             referencedColumns: ["id"]
           },
