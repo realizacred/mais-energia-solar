@@ -3235,13 +3235,13 @@ Deno.serve(async (req) => {
 
               // Build pagamentoOpcoes in canonical schema
               // Infer payment type from SM payment_conditions text
-              function inferTipoPagamento(cond: string | null | undefined): "a_vista" | "financiamento" | "entrada" {
+              const inferTipoPagamento = (cond: string | null | undefined): "a_vista" | "financiamento" | "entrada" => {
                 if (!cond) return "a_vista";
                 const c = cond.toLowerCase();
                 if (/financiamento|parcela|\d+x/.test(c)) return "financiamento";
                 if (/entrada/.test(c)) return "entrada";
                 return "a_vista";
-              }
+              };
 
               const pagamentoOpcoes = [{
                 id: crypto.randomUUID(),
