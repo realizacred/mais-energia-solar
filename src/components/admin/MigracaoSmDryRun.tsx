@@ -129,7 +129,7 @@ export function MigracaoSmDryRun() {
         ...BASE_PAYLOAD,
         filters,
       };
-      const { data, error: fnError } = await supabase.functions.invoke("migrate-sm-proposals", {
+      const { data, error: fnError } = await supabase.functions.invoke("migrate-sm-proposals-v2", {
         body: payload,
       });
       if (fnError) {

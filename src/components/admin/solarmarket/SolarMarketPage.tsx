@@ -682,7 +682,7 @@ export default function SolarMarketPage() {
       const timeoutId = setTimeout(() => controller.abort(), 60_000);
       let response: Response;
       try {
-        response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+        response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals-v2`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${session.access_token}`,

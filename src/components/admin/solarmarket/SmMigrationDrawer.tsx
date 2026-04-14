@@ -732,7 +732,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
             let response: Response;
             try {
-              response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+              response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals-v2`, {
                 method: "POST",
                 headers: {
                   Authorization: `Bearer ${session.access_token}`,
@@ -1035,7 +1035,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       const timeoutId = setTimeout(() => controller.abort(), 120_000);
 
       try {
-        const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+        const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals-v2`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -1602,7 +1602,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                     if (!currentSession?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
 
                     const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-                    const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+                    const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals-v2`, {
                       method: "POST",
                       headers: {
                         Authorization: `Bearer ${currentSession.access_token}`,
