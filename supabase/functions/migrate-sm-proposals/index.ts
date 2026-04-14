@@ -44,6 +44,8 @@ let FALLBACK_PIPELINE_ID = '';
 let FALLBACK_STAGE_ID    = '';
 let FALLBACK_FUNIL_ID    = '';
 let FALLBACK_ETAPA_ID    = '';
+let CANONICAL_DEFAULT_PIPELINE_ID = '';
+let CANONICAL_DEFAULT_STAGE_ID = '';
 
 interface StepResult {
   status: StepStatus;
@@ -1103,6 +1105,9 @@ Deno.serve(async (req) => {
 
     // ─── 0b. Resolve dynamic fallback IDs — is_default first, sm_migration_settings as override ──
     {
+      CANONICAL_DEFAULT_PIPELINE_ID = '';
+      CANONICAL_DEFAULT_STAGE_ID = '';
+
       // 1) Always resolve the canonical default pipeline dynamically (UUID-independent)
       const { data: defPipeline } = await adminClient
         .from("pipelines")
@@ -1124,6 +1129,9 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (firstStage) canonicalStageId = firstStage.id;
       }
+
+      CANONICAL_DEFAULT_PIPELINE_ID = canonicalPipelineId;
+      CANONICAL_DEFAULT_STAGE_ID = canonicalStageId;
 
       // 2) Optional overrides: params > sm_migration_settings > canonical default
       const settingsPipelineId = params.pipeline_id || null;
@@ -1669,9 +1677,16 @@ Deno.serve(async (req) => {
       _smFunnelName?: string | null,
       _smStageName?: string | null,
     ): Promise<{ pipeline_id: string; stage_id: string | null; source: string }> {
-      // Always return the Comercial (default) pipeline as principal.
-      // Stage is resolved later from SM proposal status (approved→Ganho, sent→Proposta Enviada, etc.)
-      return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "comercial_default" };
+      // Always return the canonical default pipeline as principal.
+      // Stage is resolved later from SM proposal status (approved→Fechado, sent→Proposta enviada, etc.)
+      const canonicalPipelineId = CANONICAL_DEFAULT_PIPELINE_ID || FALLBACK_PIPELINE_ID || fallbackPipelineId;
+      const canonicalStageId = CANONICAL_DEFAULT_STAGE_ID || fallbackStageId;
+
+      return {
+        pipeline_id: canonicalPipelineId,
+        stage_id: canonicalStageId,
+        source: CANONICAL_DEFAULT_PIPELINE_ID ? "comercial_default" : "fallback_default",
+      };
     }
 
     const existingDeals = new Map<string, string>(); // legacy_key -> deal_id
