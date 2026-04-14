@@ -366,7 +366,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const { data: pendingStats, refetch: refetchPending } = usePendingMigrationCount();
   const { data: activeSmRun } = useActiveSmOperation();
   const qc = useQueryClient();
-  const isServerMigrationRunning = activeSmRun?.operation_type === "migrate_to_native" && (activeSmRun as any)?._stale !== true;
+  const isServerMigrationRunning = activeSmRun?.operation_type === "migrate_to_native"
+    && (activeSmRun as any)?._stale !== true
+    && ["running", "queued"].includes(activeSmRun?.status ?? "");
 
   // ─── Visibility change: refetch all data when tab regains focus ──
   useEffect(() => {
