@@ -2573,8 +2573,53 @@ Deno.serve(async (req) => {
                     codigo: projetoCodigo,
                     projeto_num: null,
                     is_principal: false, // avoid unique constraint on is_principal per cliente
-                    funil_id: FALLBACK_FUNIL_ID,
-                    etapa_id: FALLBACK_ETAPA_ID,
+                    funil_id: (() => {
+                      // Resolve funil_id from SM funnel data matching projeto_funis
+                      const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                      const funnels: any[] = smProj?.all_funnels || [];
+                      // Find the best matching operational funil (skip Vendedores)
+                      for (const f of funnels) {
+                        const fName = normalizeComparableName(String(f.funnelName || "").trim());
+                        if (!fName || fName === "vendedores") continue;
+                        // Map LEAD → Comercial for projeto_funis lookup too
+                        const lookupName = fName === "lead" ? normalizeComparableName("Comercial") : fName;
+                        const funilId = projetoFunisMap.get(lookupName) || projetoFunisMap.get(fName);
+                        if (funilId) return funilId;
+                      }
+                      // Fallback: sm_funnel_name
+                      if (smProj?.sm_funnel_name) {
+                        const fName = normalizeComparableName(smProj.sm_funnel_name.trim());
+                        if (fName && fName !== "vendedores") {
+                          const lookupName = fName === "lead" ? normalizeComparableName("Comercial") : fName;
+                          const funilId = projetoFunisMap.get(lookupName) || projetoFunisMap.get(fName);
+                          if (funilId) return funilId;
+                        }
+                      }
+                      return FALLBACK_FUNIL_ID;
+                    })(),
+                    etapa_id: (() => {
+                      // Resolve etapa_id: first etapa of the resolved funil
+                      const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                      const funnels: any[] = smProj?.all_funnels || [];
+                      for (const f of funnels) {
+                        const fName = normalizeComparableName(String(f.funnelName || "").trim());
+                        if (!fName || fName === "vendedores") continue;
+                        const lookupName = fName === "lead" ? normalizeComparableName("Comercial") : fName;
+                        const funilId = projetoFunisMap.get(lookupName) || projetoFunisMap.get(fName);
+                        if (funilId) {
+                          return funilFirstEtapaMap.get(funilId) || FALLBACK_ETAPA_ID;
+                        }
+                      }
+                      if (smProj?.sm_funnel_name) {
+                        const fName = normalizeComparableName(smProj.sm_funnel_name.trim());
+                        if (fName && fName !== "vendedores") {
+                          const lookupName = fName === "lead" ? normalizeComparableName("Comercial") : fName;
+                          const funilId = projetoFunisMap.get(lookupName) || projetoFunisMap.get(fName);
+                          if (funilId) return funilFirstEtapaMap.get(funilId) || FALLBACK_ETAPA_ID;
+                        }
+                      }
+                      return FALLBACK_ETAPA_ID;
+                    })(),
                 };
                 if (smProjDate) {
                   projInsert.created_at = smProjDate;
