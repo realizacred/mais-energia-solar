@@ -2079,6 +2079,7 @@ Deno.serve(async (req) => {
         if (p.sm_id) existingPropostas.set(p.sm_id, p.id);
       }
     }
+    console.error("propostas_nativas carregadas", { count: existingPropostas.size });
 
     // ─── 5b. Pre-fetch concessionárias for distribuidora matching ─
     const concMap = new Map<string, { id: string; nome: string }>();
@@ -2246,7 +2247,8 @@ Deno.serve(async (req) => {
         allClientes.push(...(cPage || []));
         if ((cPage || []).length < 1000) break;
         cOffset += 1000;
-      }
+    }
+    console.error("clientes carregados (canonicos)", { count: allClientes.length });
     }
     const clienteByPhone = new Map<string, { id: string; count: number }>();
     const clienteByEmail = new Map<string, string>();
@@ -2289,6 +2291,7 @@ Deno.serve(async (req) => {
       if (p.codigo) projetoByCodigo.set(p.codigo, p.id);
       if (p.deal_id) projetoByDeal.set(p.deal_id, p.id);
     }
+    console.error("projetos carregados", { count: allProjetos.length });
 
     // Pre-fetch first stages of all pipelines for fallback
     const pipelineFirstStage = new Map<string, string>();
@@ -2324,6 +2327,7 @@ Deno.serve(async (req) => {
         vOffset += 1000;
       }
     }
+    console.error("versoes carregadas", { count: existingVersoes.size });
 
     console.error("INICIANDO LOOP DE PROPOSTAS");
     inPreLoad = false;
