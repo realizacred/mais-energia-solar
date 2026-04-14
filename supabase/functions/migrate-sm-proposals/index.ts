@@ -1101,18 +1101,48 @@ Deno.serve(async (req) => {
       } catch { return null; }
     }
 
-    // ─── 0b. Resolve dynamic fallback IDs from sm_migration_settings + DB ──
+    // ─── 0b. Resolve dynamic fallback IDs — is_default first, sm_migration_settings as override ──
     {
-      // Pipeline + Stage: from sm_migration_settings or params, with DB default pipeline fallback
+      // 1) Always resolve the canonical default pipeline dynamically (UUID-independent)
+      const { data: defPipeline } = await adminClient
+        .from("pipelines")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("is_default", true)
+        .maybeSingle();
+
+      let canonicalPipelineId = defPipeline?.id || '';
+      let canonicalStageId = '';
+
+      if (canonicalPipelineId) {
+        const { data: firstStage } = await adminClient
+          .from("pipeline_stages")
+          .select("id")
+          .eq("pipeline_id", canonicalPipelineId)
+          .order("position", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (firstStage) canonicalStageId = firstStage.id;
+      }
+
+      // 2) Optional overrides: params > sm_migration_settings > canonical default
       const settingsPipelineId = params.pipeline_id || null;
       const settingsStageId = params.stage_id || null;
 
       if (settingsPipelineId) {
-        FALLBACK_PIPELINE_ID = settingsPipelineId;
-        FALLBACK_STAGE_ID = settingsStageId || '';
+        // Validate that the override UUID actually exists
+        const { data: checkPipe } = await adminClient
+          .from("pipelines")
+          .select("id")
+          .eq("id", settingsPipelineId)
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+        if (checkPipe) {
+          FALLBACK_PIPELINE_ID = settingsPipelineId;
+          FALLBACK_STAGE_ID = settingsStageId || '';
+        }
       }
 
-      // If still empty, load from sm_migration_settings
       if (!FALLBACK_PIPELINE_ID) {
         const { data: mSettings } = await adminClient
           .from("sm_migration_settings")
@@ -1120,28 +1150,31 @@ Deno.serve(async (req) => {
           .eq("tenant_id", tenantId)
           .maybeSingle();
         if (mSettings?.pipeline_id) {
-          FALLBACK_PIPELINE_ID = mSettings.pipeline_id;
-          FALLBACK_STAGE_ID = mSettings.stage_id || '';
+          // Validate that the settings UUID actually exists
+          const { data: checkPipe } = await adminClient
+            .from("pipelines")
+            .select("id")
+            .eq("id", mSettings.pipeline_id)
+            .eq("tenant_id", tenantId)
+            .maybeSingle();
+          if (checkPipe) {
+            FALLBACK_PIPELINE_ID = mSettings.pipeline_id;
+            FALLBACK_STAGE_ID = mSettings.stage_id || '';
+          }
         }
       }
 
-      // Final fallback: default pipeline
+      // 3) Final fallback: always the canonical default (UUID-independent)
       if (!FALLBACK_PIPELINE_ID) {
-        const { data: defPipeline } = await adminClient
-          .from("pipelines")
-          .select("id")
-          .eq("tenant_id", tenantId)
-          .eq("is_default", true)
-          .maybeSingle();
-        if (defPipeline) FALLBACK_PIPELINE_ID = defPipeline.id;
+        FALLBACK_PIPELINE_ID = canonicalPipelineId;
+        FALLBACK_STAGE_ID = canonicalStageId;
       }
 
-      // Resolve first stage of fallback pipeline if stage still empty
+      // Resolve first stage if pipeline resolved but stage still empty
       if (FALLBACK_PIPELINE_ID && !FALLBACK_STAGE_ID) {
         const { data: firstStage } = await adminClient
           .from("pipeline_stages")
           .select("id")
-          .eq("tenant_id", tenantId)
           .eq("pipeline_id", FALLBACK_PIPELINE_ID)
           .order("position", { ascending: true })
           .limit(1)
