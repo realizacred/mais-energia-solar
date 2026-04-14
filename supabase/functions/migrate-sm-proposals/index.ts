@@ -3634,11 +3634,12 @@ Deno.serve(async (req) => {
             const transformErrors: Record<string, string> = {};
 
             for (const [key, entry] of Object.entries(cfValues)) {
-              // Normalize key for mapping lookup (bare key without brackets)
+              // Normalize key for mapping lookup: try bare key first, then normalized
               const bareKey = normalizeCfKey(key);
-              const mapping = cfMappings.get(bareKey);
+              const normalizedKey = normalizeFieldKey(bareKey);
+              const mapping = cfMappings.get(bareKey) || cfMappings.get(normalizedKey);
               if (!mapping) {
-                unmappedCf[bareKey] = entry;
+                unmappedCf[normalizedKey] = entry;
                 continue;
               }
 
