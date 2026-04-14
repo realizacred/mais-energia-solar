@@ -249,11 +249,17 @@ function RenderNode({
         </div>
       );
 
-    default:
+    default: {
+      // Check for semantic proposal blocks
+      const SemanticRenderer = SEMANTIC_RENDERERS[block.type];
+      if (SemanticRenderer) {
+        return <SemanticRenderer variables={variables} style={block.style} />;
+      }
       if (isContainer) {
         return <div style={style}>{renderChildren()}</div>;
       }
       return <div style={style}>{content}</div>;
+    }
   }
 }
 
