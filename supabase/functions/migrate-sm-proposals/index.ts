@@ -36,7 +36,13 @@ interface MigrationParams {
   auto_resume?: boolean;
 }
 
-type StepStatus = "WOULD_CREATE" | "WOULD_LINK" | "WOULD_SKIP" | "CONFLICT" | "ERROR";
+type StepStatus = "WOULD_CREATE" | "WOULD_LINK" | "WOULD_SKIP" | "FALLBACK_USED" | "CONFLICT" | "ERROR";
+
+// ── Fallback constants — hardcoded tenant IDs for when SM funnel mapping fails ──
+const FALLBACK_PIPELINE_ID = '988a6ce8-c8e5-43d8-8f49-57aad2f7d794'; // Comercial
+const FALLBACK_STAGE_ID    = '9e329f1b-5fe0-4e5a-9d82-4a38a186975a'; // Proposta enviada
+const FALLBACK_FUNIL_ID    = '54f3559c-b38e-4aa3-beaa-e773cbecb4e0'; // Vendedor
+const FALLBACK_ETAPA_ID    = '2484fdfa-dcda-4dcb-86ac-ce68ac26973e'; // Novo
 
 interface StepResult {
   status: StepStatus;
@@ -2315,6 +2321,16 @@ Deno.serve(async (req) => {
               }
             }
           }
+
+          // ── MANDATORY FALLBACK: Never create a deal without pipeline_id + stage_id ──
+          if (!resolved.pipeline_id) {
+            resolved.pipeline_id = FALLBACK_PIPELINE_ID;
+            resolved.source = resolved.source || "fallback_mandatory";
+          }
+          if (!resolved.stage_id) {
+            resolved.stage_id = FALLBACK_STAGE_ID;
+            resolved.source = `fallback_mandatory:Comercial/Proposta enviada (original: ${resolved.source || "none"})`;
+          }
           if (dealId) {
             report.steps.deal = { status: "WOULD_SKIP", id: dealId };
             // Ensure deal_pipeline_stages exists for previously migrated deals
@@ -2451,7 +2467,7 @@ Deno.serve(async (req) => {
                 details: pipelineDetails,
               };
             } else {
-              report.steps.pipelines = { status: "WOULD_SKIP", reason: "Nenhum funil real com etapa encontrado" };
+              report.steps.pipelines = { status: "FALLBACK_USED", reason: "Nenhum funil real com etapa encontrado — usando Comercial/Proposta enviada como padrão" };
             }
           }
 
@@ -2501,8 +2517,8 @@ Deno.serve(async (req) => {
                     codigo: projetoCodigo,
                     projeto_num: null,
                     is_principal: false, // avoid unique constraint on is_principal per cliente
-
-
+                    funil_id: FALLBACK_FUNIL_ID,
+                    etapa_id: FALLBACK_ETAPA_ID,
                 };
                 if (smProjDate) {
                   projInsert.created_at = smProjDate;
@@ -3120,14 +3136,14 @@ Deno.serve(async (req) => {
           // Determine overall status for logging
           const allSteps = Object.values(report.steps);
           const hasError = allSteps.some((s) => s.status === "ERROR");
-          const allSkip = allSteps.every((s) => s.status === "WOULD_SKIP");
+          const allSkip = allSteps.every((s) => s.status === "WOULD_SKIP" || s.status === "FALLBACK_USED");
           const overallStatus = hasError ? "ERROR" : allSkip ? "SKIP" : "SUCCESS";
 
           if (!dry_run) {
             summary[overallStatus === "SKIP" ? "WOULD_SKIP" : overallStatus === "SUCCESS" ? "SUCCESS" : "ERROR"]++;
 
-            const propostaStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(report.steps.proposta_nativa?.status || "");
-            const versaoStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(report.steps.proposta_versao?.status || "");
+            const propostaStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED", "SUCCESS"].includes(report.steps.proposta_nativa?.status || "");
+            const versaoStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED", "SUCCESS"].includes(report.steps.proposta_versao?.status || "");
 
             // Stamp migrado_em when migration succeeded OR everything was already migrated (all SKIP)
             const shouldStamp = (overallStatus === "SUCCESS" && propostaId && propostaStepOk && versaoStepOk) || overallStatus === "SKIP";
@@ -3488,7 +3504,7 @@ async function logItem(
 ) {
   try {
     // Map status to allowed CHECK values
-    const validStatuses = ["SUCCESS", "SKIP", "CONFLICT", "ERROR", "WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP"];
+    const validStatuses = ["SUCCESS", "SKIP", "CONFLICT", "ERROR", "WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED"];
     const finalStatus = validStatuses.includes(status) ? status : "ERROR";
 
     await client.from("sm_migration_log").insert({
