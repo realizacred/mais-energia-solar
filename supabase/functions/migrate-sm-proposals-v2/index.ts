@@ -661,6 +661,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 // ─── Main Handler ───────────────────────────────────────
 
 Deno.serve(async (req) => {
+  console.error("[SM Migration] HANDLER ENTRY", req.method);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
