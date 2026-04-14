@@ -858,7 +858,209 @@ Deno.serve(async (req) => {
       return await handleSyncPipelines(adminClient, tenantId);
     }
 
-    if (rawBody?.action === "pause_background_migration") {
+    // ─── fix_existing_projects: Re-migrate already-migrated projects with correct funil/etapa/consultor ──
+    if (rawBody?.action === "fix_existing_projects") {
+      const fixReport = { total: 0, updated: 0, skipped: 0, errors: [] as string[] };
+
+      // 1. Load all projeto_funis and projeto_etapas for this tenant (cache)
+      const { data: fixFunis } = await adminClient
+        .from("projeto_funis")
+        .select("id, nome")
+        .eq("tenant_id", tenantId);
+      const fixFunisMap = new Map<string, string>();
+      for (const f of fixFunis || []) {
+        fixFunisMap.set(normalizeNameForCompare(f.nome), f.id);
+      }
+
+      const { data: fixEtapas } = await adminClient
+        .from("projeto_etapas")
+        .select("id, funil_id, nome, ordem")
+        .eq("tenant_id", tenantId)
+        .order("ordem", { ascending: true });
+      const fixEtapaFirstMap = new Map<string, string>();
+      const fixEtapaByNameMap = new Map<string, string>();
+      for (const e of fixEtapas || []) {
+        if (!fixEtapaFirstMap.has(e.funil_id)) fixEtapaFirstMap.set(e.funil_id, e.id);
+        if (e.nome) {
+          const key = `${e.funil_id}::${normalizeNameForCompare(e.nome)}`;
+          if (!fixEtapaByNameMap.has(key)) fixEtapaByNameMap.set(key, e.id);
+        }
+      }
+
+      // 2. Load consultores
+      const { data: fixConsultores } = await adminClient
+        .from("consultores")
+        .select("id, nome")
+        .eq("tenant_id", tenantId);
+      const fixConsultorMap = new Map<string, string>();
+      for (const c of fixConsultores || []) {
+        fixConsultorMap.set(normalizeNameForCompare(c.nome), c.id);
+      }
+
+      // Ensure Escritório exists
+      let fixEscritorioId = fixConsultorMap.get(normalizeNameForCompare("escritório")) || null;
+      if (!fixEscritorioId) {
+        const { data: newEscritorio } = await adminClient
+          .from("consultores")
+          .upsert({ tenant_id: tenantId, nome: "Escritório", telefone: "N/A", codigo: "escritorio", ativo: true, user_id: null }, { onConflict: "tenant_id,codigo", ignoreDuplicates: false })
+          .select("id")
+          .single();
+        fixEscritorioId = newEscritorio?.id || null;
+        if (fixEscritorioId) fixConsultorMap.set(normalizeNameForCompare("escritório"), fixEscritorioId);
+      }
+
+      const fixEngenhariaFunilId = fixFunisMap.get(normalizeNameForCompare("Engenharia")) || null;
+      const fixEngenhariaFirstEtapa = fixEngenhariaFunilId ? fixEtapaFirstMap.get(fixEngenhariaFunilId) || null : null;
+
+      // 3. Load all migrated projects (import_source = solar_market)
+      const { data: migratedProjects } = await adminClient
+        .from("projetos")
+        .select("id, codigo, funil_id, etapa_id, consultor_id")
+        .eq("tenant_id", tenantId)
+        .eq("import_source", "solar_market");
+
+      fixReport.total = (migratedProjects || []).length;
+
+      const EX_FUNC_FIX = ['rogerio', 'rogério', 'ricardo'];
+
+      for (const proj of migratedProjects || []) {
+        try {
+          const codeMatch = proj.codigo?.match(/PROJ-SM-(?:NP-)?(\d+)/);
+          if (!codeMatch) { fixReport.skipped++; continue; }
+          const smProjectId = parseInt(codeMatch[1], 10);
+
+          const { data: smProj } = await adminClient
+            .from("solar_market_projects")
+            .select("sm_project_id, sm_funnel_name, sm_stage_name, all_funnels")
+            .eq("tenant_id", tenantId)
+            .eq("sm_project_id", smProjectId)
+            .maybeSingle();
+
+          if (!smProj) { fixReport.skipped++; continue; }
+
+          // Resolve funil_id
+          const normalizedFunnel = normalizeNameForCompare(smProj.sm_funnel_name);
+          let targetFunilId: string | null = null;
+
+          if (!normalizedFunnel || normalizedFunnel === 'vendedores' || normalizedFunnel === 'lead') {
+            targetFunilId = fixEngenhariaFunilId;
+          } else if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
+            targetFunilId = fixFunisMap.get(normalizeNameForCompare('Compensação'))
+              || fixFunisMap.get(normalizeNameForCompare('Compesação'))
+              || fixEngenhariaFunilId;
+          } else {
+            targetFunilId = fixFunisMap.get(normalizedFunnel) || null;
+            if (!targetFunilId) {
+              for (const [k, v] of fixFunisMap) {
+                if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) { targetFunilId = v; break; }
+              }
+            }
+          }
+          if (!targetFunilId) targetFunilId = fixEngenhariaFunilId;
+
+          // Resolve etapa_id
+          let targetEtapaId: string | null = null;
+          if (targetFunilId) {
+            if (!normalizedFunnel || normalizedFunnel === 'vendedores' || normalizedFunnel === 'lead') {
+              targetEtapaId = fixEtapaFirstMap.get(targetFunilId) || null;
+            } else {
+              if (smProj.sm_stage_name) {
+                const nameKey = `${targetFunilId}::${normalizeNameForCompare(smProj.sm_stage_name)}`;
+                targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
+              }
+              if (!targetEtapaId && Array.isArray(smProj.all_funnels)) {
+                for (const f of smProj.all_funnels) {
+                  const fName = normalizeNameForCompare(String(f.funnelName || "").trim());
+                  if (!fName || fName === "vendedores") continue;
+                  const fStageName = String(f.stageName || "").trim();
+                  if (fStageName) {
+                    const nameKey = `${targetFunilId}::${normalizeNameForCompare(fStageName)}`;
+                    targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
+                    if (targetEtapaId) break;
+                  }
+                }
+              }
+              if (!targetEtapaId) targetEtapaId = fixEtapaFirstMap.get(targetFunilId) || null;
+            }
+          }
+          if (!targetEtapaId) targetEtapaId = fixEngenhariaFirstEtapa;
+
+          // Resolve consultor from Vendedores funnel
+          let targetConsultorId: string | null = null;
+          if (Array.isArray(smProj.all_funnels)) {
+            for (const f of smProj.all_funnels) {
+              const fName = normalizeNameForCompare(String(f.funnelName || "").trim());
+              if (fName === "vendedores") {
+                const sName = normalizeNameForCompare(String(f.stageName || "").trim());
+                if (sName) {
+                  if (EX_FUNC_FIX.includes(sName)) {
+                    targetConsultorId = fixEscritorioId;
+                  } else {
+                    targetConsultorId = fixConsultorMap.get(sName) || null;
+                    if (!targetConsultorId) {
+                      for (const [k, v] of fixConsultorMap) {
+                        if (k.startsWith(sName) || sName.startsWith(k)) { targetConsultorId = v; break; }
+                      }
+                    }
+                    if (!targetConsultorId) targetConsultorId = fixEscritorioId;
+                  }
+                }
+                break;
+              }
+            }
+          }
+          if (!targetConsultorId && smProj.sm_funnel_name?.toLowerCase().trim() === "vendedores" && smProj.sm_stage_name) {
+            const sName = normalizeNameForCompare(smProj.sm_stage_name);
+            if (EX_FUNC_FIX.includes(sName)) {
+              targetConsultorId = fixEscritorioId;
+            } else {
+              targetConsultorId = fixConsultorMap.get(sName) || null;
+              if (!targetConsultorId) {
+                for (const [k, v] of fixConsultorMap) {
+                  if (k.startsWith(sName) || sName.startsWith(k)) { targetConsultorId = v; break; }
+                }
+              }
+              if (!targetConsultorId) targetConsultorId = fixEscritorioId;
+            }
+          }
+          if (!targetConsultorId) targetConsultorId = fixEscritorioId;
+
+          const needsUpdate =
+            proj.funil_id !== targetFunilId ||
+            proj.etapa_id !== targetEtapaId ||
+            proj.consultor_id !== targetConsultorId;
+
+          if (!needsUpdate) { fixReport.skipped++; continue; }
+
+          const updateFields: Record<string, any> = {};
+          if (targetFunilId) updateFields.funil_id = targetFunilId;
+          if (targetEtapaId) updateFields.etapa_id = targetEtapaId;
+          if (targetConsultorId) updateFields.consultor_id = targetConsultorId;
+          updateFields.updated_at = new Date().toISOString();
+
+          const { error: updErr } = await adminClient
+            .from("projetos")
+            .update(updateFields)
+            .eq("id", proj.id)
+            .eq("tenant_id", tenantId);
+
+          if (updErr) {
+            fixReport.errors.push(`${proj.codigo}: ${updErr.message}`);
+          } else {
+            fixReport.updated++;
+          }
+        } catch (e) {
+          fixReport.errors.push(`${proj.codigo}: ${(e as Error).message}`);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ action: "fix_existing_projects", success: true, report: fixReport }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+
       // 1. Disable future runs
       await adminClient
         .from("sm_migration_settings")
