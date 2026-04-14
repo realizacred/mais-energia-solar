@@ -655,7 +655,21 @@ export default function SolarMarketPage() {
 
   const [migrateAllOpen, setMigrateAllOpen] = useState(false);
   const [syncPipelinesRunning, setSyncPipelinesRunning] = useState(false);
-  const [syncPipelinesResult, setSyncPipelinesResult] = useState<{ pipelines: { created: number; existing: number }; stages: { created: number; existing: number }; consultores: { created: number; existing: number } } | null>(null);
+  const [syncPipelinesResult, setSyncPipelinesResult] = useState<{ pipelines: { created: number; existing: number }; stages: { created: number; existing: number }; consultores: { created: number; existing: number }; funis_activated?: string[] } | null>(null);
+
+  // Check if operational funis are active (pre-requisite for migration)
+  const [hasActiveFunis, setHasActiveFunis] = useState<boolean | null>(null);
+  useEffect(() => {
+    const checkFunis = async () => {
+      const { data, error } = await supabase
+        .from("projeto_funis")
+        .select("id")
+        .eq("ativo", true)
+        .limit(1);
+      if (!error) setHasActiveFunis((data || []).length > 0);
+    };
+    checkFunis();
+  }, [syncPipelinesResult]); // Re-check after sync
 
   const runSyncPipelines = useCallback(async () => {
     setSyncPipelinesRunning(true);
