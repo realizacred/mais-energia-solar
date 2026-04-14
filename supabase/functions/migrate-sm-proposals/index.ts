@@ -2675,14 +2675,21 @@ Deno.serve(async (req) => {
 
           // Resolve pipeline from SM funnels (auto) or fallback to UI selection
           const smProjForPipeline = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
-          const resolved = await resolvePipelinePrincipalDoFunil(
-            smProjForPipeline?.all_funnels || null,
-            tenantId,
-            params.pipeline_id!,
-            params.stage_id || null,
-            smProjForPipeline?.sm_funnel_name || null,
-            smProjForPipeline?.sm_stage_name || null,
-          );
+          let resolved: { pipeline_id: string; stage_id: string | null; source: string };
+          try {
+            resolved = await resolvePipelinePrincipalDoFunil(
+              smProjForPipeline?.all_funnels || null,
+              tenantId,
+              params.pipeline_id!,
+              params.stage_id || null,
+              smProjForPipeline?.sm_funnel_name || null,
+              smProjForPipeline?.sm_stage_name || null,
+            );
+          } catch (pipeErr) {
+            console.warn(`[SM Migration] Pipeline resolution error (non-fatal): ${(pipeErr as Error).message}`);
+            report.steps.pipelines = { status: "ERROR", reason: `Pipeline resolution: ${(pipeErr as Error).message}` };
+            resolved = { pipeline_id: FALLBACK_PIPELINE_ID, stage_id: FALLBACK_STAGE_ID, source: "fallback_after_error" };
+          }
 
           // ALWAYS resolve stage from SM proposal status when using default/fallback pipeline.
           // FIX: Use resolveSmLifecycle (date-based) instead of raw smProp.status for accurate mapping.
