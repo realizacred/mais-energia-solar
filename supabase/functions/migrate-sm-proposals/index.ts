@@ -7,13 +7,13 @@ const corsHeaders = {
 };
 
 // ─── Global helpers ─────────────────────────────────────
-function normalizeComparableName(value: string | null | undefined): string {
+const normalizeComparableName = (value: string | null | undefined): string => {
   return String(value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
-}
+};
 
 // ─── Types ──────────────────────────────────────────────
 
