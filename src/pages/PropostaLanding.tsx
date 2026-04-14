@@ -373,38 +373,39 @@ export default function PropostaLanding() {
     );
   }
 
-  // ─── Premium Landing Layout (componentized) ───
+  // ─── Premium Landing Page (high-conversion) ───
   return (
-    <div style={{ minHeight: "100vh", fontFamily: "Open Sans, sans-serif", background: "#F8FAFC" }}>
+    <div style={{ minHeight: "100vh", fontFamily: "'Open Sans', sans-serif", background: "#0F172A" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Open+Sans:wght@300;400;500;600&display=swap');
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         @keyframes spin { to { transform: rotate(360deg); } }
         * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
       `}</style>
 
-      {/* 1. HERO */}
+      {/* 1. HERO — Full-screen, dramatic */}
       <ProposalHeroSection {...sectionProps} onScrollDown={scrollToCTA} />
 
-      {/* 2. DOR DO CLIENTE — Before/After */}
+      {/* 2. DOR DO CLIENTE — Before/After comparison */}
       <ProposalProblemSection {...sectionProps} />
 
-      {/* 3. SOLUÇÃO — System specs */}
+      {/* 3. SOLUÇÃO — System specs showcase */}
       <ProposalSolutionSection {...sectionProps} />
 
-      {/* 4. EQUIPAMENTOS */}
+      {/* 4. EQUIPAMENTOS — Premium tech showcase */}
       <ProposalEquipmentSection {...sectionProps} />
 
-      {/* 5. RESULTADO FINANCEIRO */}
+      {/* 5. RESULTADO FINANCEIRO — Dark dramatic section */}
       <ProposalFinancialSection {...sectionProps} activeCenario={activeCenario} />
 
-      {/* 6. AUTORIDADE */}
+      {/* 6. AUTORIDADE — Trust signals */}
       <ProposalAuthoritySection {...sectionProps} />
 
-      {/* 7. SEGURANÇA */}
+      {/* 7. SEGURANÇA — Guarantee cards */}
       <ProposalSecuritySection {...sectionProps} />
 
-      {/* 8. PAGAMENTO */}
+      {/* 8. PAGAMENTO — Investment options */}
       <ProposalPaymentSection
         {...sectionProps}
         cenarios={cenarios}
@@ -412,7 +413,7 @@ export default function PropostaLanding() {
         onSelectCenario={setSelectedCenario}
       />
 
-      {/* 9. CTA FINAL */}
+      {/* 9. CTA FINAL — Accept form */}
       <div ref={ctaRef}>
         <ProposalCTASection
           {...sectionProps}
@@ -427,13 +428,16 @@ export default function PropostaLanding() {
       {/* CHAT IA */}
       <PropostaChatSection propostaData={templateVariables} />
 
-      {/* FOOTER */}
+      {/* FOOTER — Minimal */}
       <footer style={{
-        background: "#0F2563", color: "rgba(255,255,255,0.5)", textAlign: "center",
-        padding: "1.5rem", fontSize: "0.75rem",
+        background: "#060A14", color: "rgba(255,255,255,0.3)", textAlign: "center",
+        padding: "2rem 1.5rem", fontSize: "0.75rem",
+        borderTop: "1px solid rgba(255,255,255,0.04)",
       }}>
-        {brand?.logo_white_url && <img src={brand.logo_white_url} alt="" style={{ height: 28, objectFit: "contain", opacity: 0.4, marginBottom: 8 }} />}
-        <p style={{ margin: 0 }}>© {new Date().getFullYear()} {tenantNome || "Energia Solar"} — Todos os direitos reservados</p>
+        {brand?.logo_white_url && <img src={brand.logo_white_url} alt="" style={{ height: 32, objectFit: "contain", opacity: 0.3, marginBottom: 12 }} />}
+        <p style={{ margin: 0, fontFamily: "'Open Sans', sans-serif" }}>
+          © {new Date().getFullYear()} {tenantNome || "Energia Solar"} — Todos os direitos reservados
+        </p>
       </footer>
 
       {/* MODAL RECUSAR */}
