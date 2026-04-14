@@ -94,5 +94,5 @@ export function useExpireStaleSmOperations() {
     expireNow();
   }, [session?.user?.id]);
 
-  return { expireNow };
+  return { expireNow, forceCancelActive };
 }
