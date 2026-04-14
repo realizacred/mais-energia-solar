@@ -2684,87 +2684,89 @@ Deno.serve(async (req) => {
           );
 
           // ALWAYS resolve stage from SM proposal status when using default/fallback pipeline.
-          // Wrapped in try/catch to prevent pipeline resolution errors from aborting the entire flow.
+          // FIX: Use resolveSmLifecycle (date-based) instead of raw smProp.status for accurate mapping.
+          // FIX: Use semantic keyword matching instead of exact name match (SaaS — each tenant has different stage names).
+          // Wrapped in try/catch to prevent stage resolution errors from aborting the entire proposal flow.
           try {
-          if (!resolved.stage_id || resolved.source === "fallback_ui" || resolved.source === "comercial_default" || resolved.source === "fallback_default") {
-            const smLifecycle = resolveSmLifecycle(smProp);
+            if (!resolved.stage_id || resolved.source === "fallback_ui" || resolved.source === "comercial_default" || resolved.source === "fallback_default") {
+              const smLifecycle = resolveSmLifecycle(smProp);
 
-            // Semantic map: SM lifecycle → keywords to search in stage names (case-insensitive, normalized)
-            const semanticStageMap: Record<string, string[]> = {
-              "approved": ["ganho", "won", "fechado ganho", "aprovado", "fechado"],
-              "generated": ["proposta enviada", "enviada", "envio", "proposta"],
-              "sent":      ["proposta enviada", "enviada", "envio", "proposta"],
-              "viewed":    ["negociacao", "negociação", "proposta enviada", "enviada", "visualizada"],
-              "draft":     ["qualificado", "recebido", "novo", "lead", "entrada", "qualificacao"],
-              "rejected":  ["perdido", "lost", "recusado", "cancelado"],
-              "expired":   ["perdido", "lost", "expirado", "cancelado"],
-              "cancelled": ["perdido", "cancelado", "lost"],
-            };
+              // Semantic map: SM lifecycle → keywords to search in stage names (case-insensitive, normalized)
+              const semanticStageMap: Record<string, string[]> = {
+                "approved": ["ganho", "won", "fechado ganho", "aprovado", "fechado"],
+                "generated": ["proposta enviada", "enviada", "envio", "proposta"],
+                "sent":      ["proposta enviada", "enviada", "envio", "proposta"],
+                "viewed":    ["negociacao", "negociação", "proposta enviada", "enviada", "visualizada"],
+                "draft":     ["qualificado", "recebido", "novo", "lead", "entrada", "qualificacao"],
+                "rejected":  ["perdido", "lost", "recusado", "cancelado"],
+                "expired":   ["perdido", "lost", "expirado", "cancelado"],
+                "cancelled": ["perdido", "cancelado", "lost"],
+              };
 
-            const keywords = semanticStageMap[smLifecycle] ?? [];
+              const keywords = semanticStageMap[smLifecycle] ?? [];
 
-            // Pre-load stages for this pipeline (uses cache — no extra query if already loaded)
-            await preloadStagesForPipeline(resolved.pipeline_id);
+              // Pre-load stages for this pipeline (uses cache — no extra query if already loaded)
+              await preloadStagesForPipeline(resolved.pipeline_id);
 
-            // Collect all stages for this pipeline from the cache
-            const pipelinePrefix = `${resolved.pipeline_id}::`;
-            const pipelineStagesFromCache: Array<{ key: string; name: string; id: string }> = [];
-            for (const [cKey, sId] of stageCache) {
-              if (cKey.startsWith(pipelinePrefix)) {
-                pipelineStagesFromCache.push({ key: cKey, name: cKey.slice(pipelinePrefix.length), id: sId });
+              // Collect all stages for this pipeline from the cache
+              const pipelinePrefix = `${resolved.pipeline_id}::`;
+              const pipelineStagesFromCache: Array<{ key: string; name: string; id: string }> = [];
+              for (const [cKey, sId] of stageCache) {
+                if (cKey.startsWith(pipelinePrefix)) {
+                  pipelineStagesFromCache.push({ key: cKey, name: cKey.slice(pipelinePrefix.length), id: sId });
+                }
+              }
+
+              let mappedStageId: string | null = null;
+
+              // 1. Keyword-based search in normalized stage names
+              for (const keyword of keywords) {
+                const normalizedKeyword = normalizeComparableName(keyword);
+                const match = pipelineStagesFromCache.find(s => s.name.includes(normalizedKeyword));
+                if (match) {
+                  mappedStageId = match.id;
+                  break;
+                }
+              }
+
+              // 2. Fallback: use is_won flag for approved/won statuses
+              if (!mappedStageId && ["approved"].includes(smLifecycle)) {
+                const { data: wonStages } = await adminClient
+                  .from("pipeline_stages")
+                  .select("id")
+                  .eq("pipeline_id", resolved.pipeline_id)
+                  .eq("tenant_id", tenantId)
+                  .eq("is_won", true)
+                  .limit(1);
+                if (wonStages?.[0]) mappedStageId = wonStages[0].id;
+              }
+
+              // 3. Fallback: use is_closed flag for rejected/lost/cancelled statuses
+              if (!mappedStageId && ["rejected", "expired", "cancelled"].includes(smLifecycle)) {
+                const { data: closedStages } = await adminClient
+                  .from("pipeline_stages")
+                  .select("id")
+                  .eq("pipeline_id", resolved.pipeline_id)
+                  .eq("tenant_id", tenantId)
+                  .eq("is_closed", true)
+                  .eq("is_won", false)
+                  .limit(1);
+                if (closedStages?.[0]) mappedStageId = closedStages[0].id;
+              }
+
+              if (mappedStageId) {
+                resolved.stage_id = mappedStageId;
+                resolved.source = `sm_lifecycle:${smLifecycle}→semantic_match`;
+              }
+
+              // 4. Final fallback: first stage of the pipeline (lowest position)
+              if (!resolved.stage_id) {
+                const firstStage = pipelineFirstStage.get(resolved.pipeline_id);
+                if (firstStage) {
+                  resolved.stage_id = firstStage;
+                }
               }
             }
-
-            let mappedStageId: string | null = null;
-
-            // 1. Keyword-based search in normalized stage names
-            for (const keyword of keywords) {
-              const normalizedKeyword = normalizeComparableName(keyword);
-              const match = pipelineStagesFromCache.find(s => s.name.includes(normalizedKeyword));
-              if (match) {
-                mappedStageId = match.id;
-                break;
-              }
-            }
-
-            // 2. Fallback: use is_won flag for approved/won statuses
-            if (!mappedStageId && ["approved"].includes(smLifecycle)) {
-              const { data: wonStages } = await adminClient
-                .from("pipeline_stages")
-                .select("id")
-                .eq("pipeline_id", resolved.pipeline_id)
-                .eq("tenant_id", tenantId)
-                .eq("is_won", true)
-                .limit(1);
-              if (wonStages?.[0]) mappedStageId = wonStages[0].id;
-            }
-
-            // 3. Fallback: use is_closed flag for rejected/lost/cancelled statuses
-            if (!mappedStageId && ["rejected", "expired", "cancelled"].includes(smLifecycle)) {
-              const { data: closedStages } = await adminClient
-                .from("pipeline_stages")
-                .select("id")
-                .eq("pipeline_id", resolved.pipeline_id)
-                .eq("tenant_id", tenantId)
-                .eq("is_closed", true)
-                .eq("is_won", false)
-                .limit(1);
-              if (closedStages?.[0]) mappedStageId = closedStages[0].id;
-            }
-
-            if (mappedStageId) {
-              resolved.stage_id = mappedStageId;
-              resolved.source = `sm_lifecycle:${smLifecycle}→semantic_match`;
-            }
-
-            // 4. Final fallback: first stage of the pipeline (lowest position)
-            if (!resolved.stage_id) {
-              const firstStage = pipelineFirstStage.get(resolved.pipeline_id);
-              if (firstStage) {
-                resolved.stage_id = firstStage;
-              }
-            }
-          }
           } catch (stageResErr) {
             console.warn(`[SM Migration] Stage resolution error (non-fatal): ${(stageResErr as Error).message}`);
             report.steps.pipelines = { status: "ERROR", reason: `Stage resolution: ${(stageResErr as Error).message}` };
