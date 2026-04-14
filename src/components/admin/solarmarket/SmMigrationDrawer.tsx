@@ -1578,8 +1578,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               className="border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={async () => {
                 setCancelConfirmOpen(false);
+                // Always set cancelRef immediately so monitoring loops detect it
+                cancelRef.current = true;
+                setCancelling(true);
+                addLog("Cancelamento solicitado...");
+
                 if (autoResumeRunning) {
-                  setCancelling(true);
                   try {
                     const { data: { session: currentSession } } = await supabase.auth.getSession();
                     if (!currentSession?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
@@ -1598,16 +1602,32 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                     const data = await response.json().catch(() => ({} as Record<string, any>));
                     if (!response.ok) throw new Error(getBlockedMessage(data as MigrationBlockedPayload, `HTTP ${response.status}`));
 
+                    // Force-stop all local state immediately
+                    if (backgroundMonitorIntervalRef.current) {
+                      clearInterval(backgroundMonitorIntervalRef.current);
+                      backgroundMonitorIntervalRef.current = null;
+                    }
                     setAutoResumeRunning(false);
                     setRunning(false);
-                    addLog(data.message || "Migração em background pausada.");
+                    cancelRef.current = false;
+                    addLog(data.message || "Migração pausada e operações canceladas.");
                     updateStep("done", {
                       state: "error",
-                      detail: "Migração pausada. O lote atual pode terminar normalmente.",
+                      detail: "Migração cancelada com sucesso.",
                     });
                     qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
-                    toast.warning(data.message || "Migração pausada.");
+                    qc.invalidateQueries({ queryKey: ["sm-proposals"] });
+                    qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
+                    toast.warning(data.message || "Migração cancelada.");
                   } catch (err: any) {
+                    // Even on error, force-stop local state
+                    if (backgroundMonitorIntervalRef.current) {
+                      clearInterval(backgroundMonitorIntervalRef.current);
+                      backgroundMonitorIntervalRef.current = null;
+                    }
+                    setAutoResumeRunning(false);
+                    setRunning(false);
+                    cancelRef.current = false;
                     const msg = err?.message ?? "Erro ao pausar migração.";
                     setError(msg);
                     addLog(`ERRO: ${msg}`);
@@ -1618,9 +1638,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                   return;
                 }
 
-                cancelRef.current = true;
-                setCancelling(true);
-                addLog("Cancelamento solicitado — aguardando lote atual terminar...");
+                addLog("Aguardando lote atual terminar...");
               }}
             >
               Cancelar migração
