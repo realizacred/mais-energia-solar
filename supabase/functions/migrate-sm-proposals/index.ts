@@ -2452,6 +2452,19 @@ Deno.serve(async (req) => {
           const legacyKey = `sm:${smProp.sm_project_id || 0}:${smProp.sm_proposal_id}`;
           let dealId: string | null = existingDeals.get(legacyKey) || null;
 
+          if (dealId) {
+            const { data: existingDealRow } = await adminClient
+              .from("deals")
+              .select("id")
+              .eq("id", dealId)
+              .maybeSingle();
+
+            if (!existingDealRow?.id) {
+              existingDeals.delete(legacyKey);
+              dealId = null;
+            }
+          }
+
           // Resolve pipeline from SM funnels (auto) or fallback to UI selection
           const smProjForPipeline = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
           const resolved = await resolvePipelinePrincipalDoFunil(
