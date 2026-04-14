@@ -4,12 +4,17 @@
  * Renderiza TemplateBlock[] (JSON do Editor Visual) como HTML estático,
  * substituindo {{variáveis}} pelos dados reais do snapshot.
  *
+ * Supports both:
+ * - Raw "editor" blocks (dangerouslySetInnerHTML) — legacy/custom content
+ * - Semantic "proposal_*" blocks — proper React components via SemanticBlockRenderer
+ *
  * Página pública — exceção RB-02 documentada.
  */
 
 import { useMemo } from "react";
 import type { TemplateBlock, TreeNode, BlockStyle } from "@/components/admin/proposal-builder/types";
 import { buildTree } from "@/components/admin/proposal-builder/treeUtils";
+import { SEMANTIC_RENDERERS } from "./SemanticBlockRenderer";
 
 interface TemplateHtmlRendererProps {
   blocks: TemplateBlock[];
@@ -244,11 +249,17 @@ function RenderNode({
         </div>
       );
 
-    default:
+    default: {
+      // Check for semantic proposal blocks
+      const SemanticRenderer = SEMANTIC_RENDERERS[block.type];
+      if (SemanticRenderer) {
+        return <SemanticRenderer variables={variables} style={block.style} />;
+      }
       if (isContainer) {
         return <div style={style}>{renderChildren()}</div>;
       }
       return <div style={style}>{content}</div>;
+    }
   }
 }
 
