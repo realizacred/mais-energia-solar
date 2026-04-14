@@ -36,7 +36,13 @@ interface MigrationParams {
   auto_resume?: boolean;
 }
 
-type StepStatus = "WOULD_CREATE" | "WOULD_LINK" | "WOULD_SKIP" | "CONFLICT" | "ERROR";
+type StepStatus = "WOULD_CREATE" | "WOULD_LINK" | "WOULD_SKIP" | "FALLBACK_USED" | "CONFLICT" | "ERROR";
+
+// ── Fallback constants — hardcoded tenant IDs for when SM funnel mapping fails ──
+const FALLBACK_PIPELINE_ID = '988a6ce8-c8e5-43d8-8f49-57aad2f7d794'; // Comercial
+const FALLBACK_STAGE_ID    = '9e329f1b-5fe0-4e5a-9d82-4a38a186975a'; // Proposta enviada
+const FALLBACK_FUNIL_ID    = '54f3559c-b38e-4aa3-beaa-e773cbecb4e0'; // Vendedor
+const FALLBACK_ETAPA_ID    = '2484fdfa-dcda-4dcb-86ac-ce68ac26973e'; // Novo
 
 interface StepResult {
   status: StepStatus;
