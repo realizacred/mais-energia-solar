@@ -3469,18 +3469,43 @@ Deno.serve(async (req) => {
               };
 
               // P1: Inject customFieldValues from custom_fields_raw into snapshot
+              // Classify by prefix: cap_ → projeto, cape_ → pré-dimensionamento, capo_ → pós-dimensionamento
               if (smProp.custom_fields_raw?.values) {
                 const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
                 const customFieldValues: Record<string, string> = {};
+                const customFieldsByArea: Record<string, Record<string, string>> = {
+                  projeto: {},
+                  pre_dimensionamento: {},
+                  pos_dimensionamento: {},
+                  outros: {},
+                };
                 for (const [key, entry] of Object.entries(cfVals)) {
                   const bareKey = normalizeCfKey(key);
                   const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
                   if (val !== "" && val != null) {
-                    customFieldValues[bareKey] = String(val);
+                    const strVal = String(val);
+                    customFieldValues[bareKey] = strVal;
+
+                    // Classify by prefix (cap_, cape_, capo_)
+                    const lowerKey = bareKey.toLowerCase();
+                    if (lowerKey.startsWith("cape_") || lowerKey.startsWith("cape ")) {
+                      customFieldsByArea.pre_dimensionamento[bareKey] = strVal;
+                    } else if (lowerKey.startsWith("capo_") || lowerKey.startsWith("capo ")) {
+                      customFieldsByArea.pos_dimensionamento[bareKey] = strVal;
+                    } else if (lowerKey.startsWith("cap_") || lowerKey.startsWith("cap ")) {
+                      customFieldsByArea.projeto[bareKey] = strVal;
+                    } else {
+                      customFieldsByArea.outros[bareKey] = strVal;
+                    }
                   }
                 }
                 if (Object.keys(customFieldValues).length > 0) {
                   finalSnapshot.customFieldValues = customFieldValues;
+                }
+                // Persist classified custom fields in snapshot for downstream use
+                const areaEntries = Object.entries(customFieldsByArea).filter(([, v]) => Object.keys(v).length > 0);
+                if (areaEntries.length > 0) {
+                  finalSnapshot.customFieldsByArea = Object.fromEntries(areaEntries);
                 }
               }
 
