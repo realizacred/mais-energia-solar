@@ -166,13 +166,27 @@ export function useProjetoPipeline() {
       filteredData = filteredData.filter((p: any) => projetosComEtiqueta.has(p.id));
     }
 
-    // Enrich — consultant data now comes from the join
+    // Fetch consultor names separately (no FK on projetos.consultor_id)
+    const consultorIds = [...new Set(filteredData.map((p: any) => p.consultor_id).filter(Boolean))];
+    const consultorMap = new Map<string, { nome: string }>();
+    if (consultorIds.length > 0) {
+      const chunkSize = 500;
+      for (let i = 0; i < consultorIds.length; i += chunkSize) {
+        const chunk = consultorIds.slice(i, i + chunkSize);
+        const { data: cons } = await supabase
+          .from("consultores")
+          .select("id, nome")
+          .in("id", chunk);
+        (cons || []).forEach((c: any) => consultorMap.set(c.id, { nome: c.nome }));
+      }
+    }
+
+    // Enrich — consultant data merged from separate query
     let enriched: ProjetoItem[] = filteredData.map((p: any) => ({
       ...p,
       cliente: p.clientes || null,
-      consultor: p.consultores || null,
+      consultor: p.consultor_id ? (consultorMap.get(p.consultor_id) || null) : null,
       clientes: undefined,
-      consultores: undefined,
       etiquetas: relMap.get(p.id) || [],
     }));
 
