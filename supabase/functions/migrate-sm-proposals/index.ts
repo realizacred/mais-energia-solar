@@ -990,6 +990,17 @@ Deno.serve(async (req) => {
     if (params.auto_resume && !dry_run) {
       const backgroundMigrationEnabled = await isBackgroundMigrationEnabled(adminClient, tenantId);
       if (!backgroundMigrationEnabled) {
+        if (smOpRunId) {
+          await adminClient
+            .from("sm_operation_runs")
+            .update({
+              status: "cancelled",
+              finished_at: new Date().toISOString(),
+              heartbeat_at: new Date().toISOString(),
+              error_summary: "Migração em background pausada para este tenant.",
+            })
+            .eq("id", smOpRunId);
+        }
         return new Response(JSON.stringify({
           paused: true,
           completed: false,
@@ -1018,6 +1029,18 @@ Deno.serve(async (req) => {
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenantId)
           .not("migrado_em", "is", null);
+
+        if (smOpRunId) {
+          await adminClient
+            .from("sm_operation_runs")
+            .update({
+              status: "completed",
+              finished_at: new Date().toISOString(),
+              heartbeat_at: new Date().toISOString(),
+              error_summary: null,
+            })
+            .eq("id", smOpRunId);
+        }
 
         return new Response(
           JSON.stringify({
@@ -2428,6 +2451,19 @@ Deno.serve(async (req) => {
           // ── C. Deal (idempotent via legacy_key) ──
           const legacyKey = `sm:${smProp.sm_project_id || 0}:${smProp.sm_proposal_id}`;
           let dealId: string | null = existingDeals.get(legacyKey) || null;
+
+          if (dealId) {
+            const { data: existingDealRow } = await adminClient
+              .from("deals")
+              .select("id")
+              .eq("id", dealId)
+              .maybeSingle();
+
+            if (!existingDealRow?.id) {
+              existingDeals.delete(legacyKey);
+              dealId = null;
+            }
+          }
 
           // Resolve pipeline from SM funnels (auto) or fallback to UI selection
           const smProjForPipeline = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
