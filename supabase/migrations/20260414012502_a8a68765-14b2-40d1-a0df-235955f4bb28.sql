@@ -1,0 +1,2 @@
+ALTER TABLE public.sm_migration_log DROP CONSTRAINT sm_migration_log_status_check;
+ALTER TABLE public.sm_migration_log ADD CONSTRAINT sm_migration_log_status_check CHECK (status = ANY (ARRAY['SUCCESS'::text, 'SKIP'::text, 'CONFLICT'::text, 'ERROR'::text, 'WOULD_CREATE'::text, 'WOULD_LINK'::text, 'WOULD_SKIP'::text, 'FALLBACK_USED'::text]));
