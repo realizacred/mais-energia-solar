@@ -409,7 +409,7 @@ function ProjetoDetalheContent() {
           </div>
 
           <div className="border-b border-border/60 -mx-3 sm:-mx-4 px-3 sm:px-4 pt-2 pb-0">
-            <TabsList className="overflow-x-auto flex-wrap h-auto bg-transparent p-0 gap-0">
+            <div className="overflow-x-auto flex flex-wrap h-auto bg-transparent p-0 gap-0">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
                 const badge = tabBadge(tab.id);
