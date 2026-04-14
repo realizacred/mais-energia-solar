@@ -113,7 +113,7 @@ export function useProjetoPipeline() {
   const fetchProjetos = useCallback(async (f: ProjetoFiltersState) => {
     let query = supabase
       .from("projetos")
-      .select("id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone), consultores:consultor_id(id, nome)")
+      .select("id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
       .order("created_at", { ascending: false });
 
     // Backend filters
