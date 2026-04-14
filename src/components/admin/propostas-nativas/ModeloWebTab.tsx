@@ -307,13 +307,31 @@ export function TemplatesTab() {
         </div>
       </CardHeader>
       <CardContent>
-        {templates.length === 0 ? (
+        {/* Archive toggle */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs text-muted-foreground">
+            {visibleTemplates.length} template{visibleTemplates.length !== 1 ? "s" : ""} WEB
+            {showArchived ? " (incluindo arquivados)" : ""}
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowArchived(!showArchived)}
+            className="gap-1.5 text-xs h-7"
+          >
+            <Archive className="h-3 w-3" />
+            {showArchived ? "Ocultar arquivados" : "Ver arquivados"}
+          </Button>
+        </div>
+        {visibleTemplates.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            Nenhum template cadastrado. Crie o primeiro para gerar propostas.
+            Nenhum template WEB ativo. Crie o primeiro para gerar propostas.
           </p>
         ) : (
           <div className="space-y-4">
-            {templates.map((t, i) => (
+            {visibleTemplates.map((t) => {
+              const i = templates.findIndex(x => x.id === t.id);
+              return (
               <div key={t.id} className="border border-border/60 rounded-xl p-4 space-y-3 bg-card">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
