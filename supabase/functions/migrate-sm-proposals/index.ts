@@ -1179,17 +1179,25 @@ Deno.serve(async (req) => {
         projetoFunisMap.set(normalizeComparableName(f.nome), f.id);
       }
 
-      // Pre-fetch first etapa per funil for quick fallback
+      // Pre-fetch first etapa per funil for quick fallback + name-based lookup
       const funilFirstEtapaMap = new Map<string, string>(); // funil_id → first etapa_id
+      const funilEtapaByNameMap = new Map<string, string>(); // "funil_id::normalizedName" → etapa_id
       {
         const { data: allEtapas } = await adminClient
           .from("projeto_etapas")
-          .select("id, funil_id, ordem")
+          .select("id, funil_id, nome, ordem")
           .eq("tenant_id", tenantId)
           .order("ordem", { ascending: true });
         for (const e of allEtapas || []) {
           if (!funilFirstEtapaMap.has(e.funil_id)) {
             funilFirstEtapaMap.set(e.funil_id, e.id);
+          }
+          // Build name-based lookup for SM stage name matching
+          if (e.nome) {
+            const nameKey = `${e.funil_id}::${normalizeComparableName(e.nome)}`;
+            if (!funilEtapaByNameMap.has(nameKey)) {
+              funilEtapaByNameMap.set(nameKey, e.id);
+            }
           }
         }
       }
