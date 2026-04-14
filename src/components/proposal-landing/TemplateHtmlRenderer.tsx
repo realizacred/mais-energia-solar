@@ -4,12 +4,17 @@
  * Renderiza TemplateBlock[] (JSON do Editor Visual) como HTML estático,
  * substituindo {{variáveis}} pelos dados reais do snapshot.
  *
+ * Supports both:
+ * - Raw "editor" blocks (dangerouslySetInnerHTML) — legacy/custom content
+ * - Semantic "proposal_*" blocks — proper React components via SemanticBlockRenderer
+ *
  * Página pública — exceção RB-02 documentada.
  */
 
 import { useMemo } from "react";
 import type { TemplateBlock, TreeNode, BlockStyle } from "@/components/admin/proposal-builder/types";
 import { buildTree } from "@/components/admin/proposal-builder/treeUtils";
+import { SEMANTIC_RENDERERS } from "./SemanticBlockRenderer";
 
 interface TemplateHtmlRendererProps {
   blocks: TemplateBlock[];
