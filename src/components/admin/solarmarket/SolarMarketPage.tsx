@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -627,24 +627,7 @@ export default function SolarMarketPage() {
   const isDrawerMigrationRunning = migrationDrawerOpen && migrationRunning;
   const isMigrationActive = isDrawerMigrationRunning || isBackgroundMigrationActive;
 
-  // Auto-resume sync ONLY if there's a real active SYNC operation (not migration)
-  // and only if there are actually unscanned projects (prevents ghost loops)
-  const hasAutoResumed = useRef(false);
   const { data: syncProgressData } = useSmSyncProgress();
-  useEffect(() => {
-    if (hasAutoResumed.current) return;
-    if (!activeSmRun) return;
-    if ((activeSmRun as any)._stale === true) return;
-    if (fullSyncStatus.running || syncIsRunning) return;
-    // Only auto-resume for sync operations, NOT migrations
-    const opType = activeSmRun.operation_type;
-    if (opType === "migrate_to_native" || opType === "reset_staging" || opType === "reset_migrated") return;
-    // Only if there are actually unscanned projects
-    if (syncProgressData && syncProgressData.totalProjects > 0 && syncProgressData.projectsRemaining <= 0) return;
-
-    hasAutoResumed.current = true;
-    syncUntilComplete();
-  }, [activeSmRun, fullSyncStatus.running, syncIsRunning, syncUntilComplete, syncProgressData]);
 
   const { session } = useAuth();
   const sessionReady = !!session;
