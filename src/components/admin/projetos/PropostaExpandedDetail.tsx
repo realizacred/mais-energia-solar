@@ -1373,7 +1373,53 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52" onClick={e => e.stopPropagation()}>
+              <DropdownMenuContent align="end" className="w-56" onClick={e => e.stopPropagation()}>
+                {/* Web proposal actions (primary) */}
+                {!isMigrated && latestVersao && (
+                  <>
+                    <DropdownMenuItem onClick={() => {
+                      if (publicUrl) window.open(publicUrl, "_blank", "noopener,noreferrer");
+                      else copyPublicLink();
+                    }}>
+                      <ExternalLink className="h-3.5 w-3.5 mr-2 text-primary" /> Abrir proposta web
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={copyTrackedLink}>
+                      <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Copiar link c/ rastreio
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={copyPublicLink}>
+                      <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSend("whatsapp")} disabled={sending}>
+                      <MessageCircle className="h-3.5 w-3.5 mr-2 text-success" /> Enviar por WhatsApp
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)}>
+                      <Mail className="h-3.5 w-3.5 mr-2 text-primary" /> Enviar por e-mail
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                {isMigrated && latestVersao && (
+                  <>
+                    <DropdownMenuItem disabled title="Proposta migrada não possui link público">
+                      <ExternalLink className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Proposta web
+                      <span className="ml-auto text-[9px] text-muted-foreground/60">Migrada</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
+                {/* Document downloads (secondary) */}
+                <DropdownMenuItem onClick={handleDownloadPdf} disabled={!latestVersao?.output_pdf_path && !latestVersao?.link_pdf}>
+                  <Download className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Baixar PDF
+                </DropdownMenuItem>
+                {latestVersao?.output_docx_path && (
+                  <DropdownMenuItem onClick={handleDownloadDocx}>
+                    <Download className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Baixar DOCX
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+
+                {/* Management actions */}
                 {!isPrincipal && onSetPrincipal && (
                   <DropdownMenuItem onClick={onSetPrincipal}>
                     <Star className="h-3.5 w-3.5 mr-2 text-warning" /> Definir como principal
@@ -1400,31 +1446,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   }
                 })}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-warning" /> Editar dimensionamento
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleDownloadPdf} disabled={!latestVersao?.output_pdf_path}>
-                  <Download className="h-3.5 w-3.5 mr-2 text-success" /> Baixar PDF
-                </DropdownMenuItem>
-                {latestVersao?.output_docx_path && (
-                  <DropdownMenuItem onClick={handleDownloadDocx}>
-                    <Download className="h-3.5 w-3.5 mr-2 text-info" /> Baixar DOCX
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  onClick={isMigrated ? undefined : copyPublicLink}
-                  disabled={!latestVersao || isMigrated}
-                  title={isMigrated ? "Proposta migrada não possui link público" : undefined}
-                >
-                  <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
-                  {isMigrated && <span className="ml-auto text-[9px] text-muted-foreground/60">Migrada</span>}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={isMigrated ? undefined : copyTrackedLink}
-                  disabled={!latestVersao || isMigrated}
-                  title={isMigrated ? "Proposta migrada não possui link rastreável" : undefined}
-                >
-                  <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Copiar link rastreável
-                  {isMigrated && <span className="ml-auto text-[9px] text-muted-foreground/60">Migrada</span>}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)} disabled={!latestVersao}>
                   <MessageSquareText className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar mensagem
