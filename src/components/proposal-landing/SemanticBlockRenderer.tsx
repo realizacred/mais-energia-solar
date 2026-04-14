@@ -32,6 +32,8 @@ function formatNumber(val: string): string {
    ═══════════════════════════════════════════════════════ */
 export function ProposalHeroBlock({ variables: vars }: SemanticProps) {
   const logoUrl = v(vars, "empresa_logo_url") || v(vars, "logo_url");
+  const logoWhiteUrl = v(vars, "logo_white_url");
+  const displayLogo = logoWhiteUrl || logoUrl;
   const empresaNome = v(vars, "empresa_nome", "Energia Solar");
   const clienteNome = v(vars, "cliente_nome", "Cliente");
   const cidade = v(vars, "cliente_cidade") || v(vars, "cidade");
@@ -57,15 +59,48 @@ export function ProposalHeroBlock({ variables: vars }: SemanticProps) {
       }} />
 
       <div style={{ maxWidth: 720, margin: "0 auto", position: "relative", zIndex: 1 }}>
-        {/* Logo */}
-        {logoUrl && (
-          <div style={{ marginBottom: 24 }}>
-            <img
-              src={logoUrl}
-              alt={empresaNome}
-              style={{ height: 42, maxWidth: 200, objectFit: "contain" }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            />
+        {/* Logo — prominent, centered, larger */}
+        {displayLogo ? (
+          <div style={{
+            marginBottom: 28,
+            display: "flex",
+            justifyContent: "center",
+          }}>
+            <div style={{
+              background: "rgba(255,255,255,0.1)",
+              backdropFilter: "blur(12px)",
+              borderRadius: 16,
+              padding: "16px 32px",
+              border: "1px solid rgba(255,255,255,0.15)",
+            }}>
+              <img
+                src={displayLogo}
+                alt={empresaNome}
+                style={{ height: 56, maxWidth: 260, objectFit: "contain" }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            marginBottom: 28,
+            display: "flex",
+            justifyContent: "center",
+          }}>
+            <div style={{
+              background: "rgba(255,255,255,0.1)",
+              backdropFilter: "blur(12px)",
+              borderRadius: 16,
+              padding: "14px 28px",
+              border: "1px solid rgba(255,255,255,0.15)",
+              fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
+              fontWeight: 800,
+              fontSize: "1.2rem",
+              color: "var(--hero-text, #fff)",
+              letterSpacing: "0.05em",
+            }}>
+              {empresaNome}
+            </div>
           </div>
         )}
 
