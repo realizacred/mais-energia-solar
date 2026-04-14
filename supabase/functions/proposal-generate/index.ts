@@ -964,6 +964,12 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
 
     if (existingProposta) {
       propostaId = existingProposta.id;
+      // Update template_id if provided (may have changed since draft creation)
+      if (body.template_id) {
+        await adminClient.from("propostas_nativas")
+          .update({ template_id: body.template_id })
+          .eq("id", propostaId).eq("tenant_id", tenantId);
+      }
     } else {
       let titulo = "Proposta";
       let codigo: string | null = null;
