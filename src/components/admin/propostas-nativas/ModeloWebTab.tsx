@@ -205,16 +205,27 @@ export function TemplatesTab() {
         .single();
       if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
 
+      // Check existing names to avoid duplicates
+      const existingNames = new Set(
+        templates.filter(t => t.ativo && (t.tipo === "html" || t.tipo === "web")).map(t => t.nome)
+      );
+
       let created = 0;
+      let skipped = 0;
       for (let i = 0; i < DEFAULT_TEMPLATES_CONFIG.length; i++) {
         const cfg = DEFAULT_TEMPLATES_CONFIG[i];
+        if (existingNames.has(cfg.nome)) {
+          skipped++;
+          continue;
+        }
         const blocks = createDefaultTemplateBlocks("grid", cfg.style);
         const templateHtml = JSON.stringify(blocks);
+        const categoria = WEB_CATEGORY_MAP[cfg.style] || "alta_conversao";
         const { error } = await supabase.from("proposta_templates").insert({
           nome: cfg.nome,
           descricao: cfg.descricao,
           grupo: "B",
-          categoria: "padrao",
+          categoria,
           tipo: "html",
           template_html: templateHtml,
           ativo: true,
@@ -224,7 +235,8 @@ export function TemplatesTab() {
         if (error) throw error;
         created++;
       }
-      toast({ title: `${created} templates criados com sucesso!` });
+      const msg = skipped > 0 ? `${created} criados, ${skipped} já existiam` : `${created} templates criados`;
+      toast({ title: msg });
       setInitialized(false);
       refreshTemplates();
     } catch (e: any) {
