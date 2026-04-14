@@ -19,7 +19,7 @@ function uid(): string {
   return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2, 10);
 }
 
-export type TemplateStyle = "consultivo" | "fechamento" | "escala" | "hibrido" | "corporativo" | "dashboard";
+export type TemplateStyle = "consultivo" | "fechamento" | "escala" | "hibrido" | "corporativo" | "dashboard" | "impactoVisual" | "simulacaoFinanceira" | "propostaRapida" | "conversaoCases";
 
 /**
  * Factory principal — cria blocos por estilo de template.
@@ -37,6 +37,14 @@ export function createDefaultTemplateBlocks(proposalType: ProposalType = "grid",
       return createCorporativoBlocks(proposalType);
     case "dashboard":
       return createDashboardBlocks(proposalType);
+    case "impactoVisual":
+      return createImpactoVisualBlocks(proposalType);
+    case "simulacaoFinanceira":
+      return createSimulacaoFinanceiraBlocks(proposalType);
+    case "propostaRapida":
+      return createPropostaRapidaBlocks(proposalType);
+    case "conversaoCases":
+      return createConversaoCasesBlocks(proposalType);
     default:
       return createConsultivoBlocks(proposalType);
   }
