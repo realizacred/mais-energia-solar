@@ -2483,12 +2483,15 @@ Deno.serve(async (req) => {
             // Map SM proposal status → native Comercial stage
             const smStatus = (smProp.status || "").toLowerCase();
             const statusStageMap: Record<string, string> = {
-              // SM status → native stage name for lookup
-              "approved": "Fechado",
+              // SM status → native Comercial stage name for lookup
+              "approved": "Ganho",
               "generated": "Proposta enviada",
               "sent": "Proposta enviada",
-              "viewed": "Proposta enviada",
+              "viewed": "Negociação",
               "created": "Qualificado",
+              "rejected": "Perdido",
+              "expired": "Perdido",
+              "cancelled": "Perdido",
             };
             const targetStageName = statusStageMap[smStatus];
             if (targetStageName) {
