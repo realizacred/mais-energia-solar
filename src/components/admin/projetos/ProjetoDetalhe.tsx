@@ -376,31 +376,35 @@ function ProjetoDetalheContent() {
             </div>
           </div>
 
-          <div className="border-b border-border/60 -mx-3 sm:-mx-4 px-3 sm:px-4 py-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Seção do projeto
-                </p>
-              </div>
-              <div className="w-full sm:w-[280px]">
-                <Select value={activeTab} onValueChange={(value) => setActiveTab(value as TabId)}>
-                  <SelectTrigger className="h-9 bg-background">
-                    <SelectValue placeholder="Selecione a seção" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TABS.map((tab) => {
-                      const badge = tabBadge(tab.id);
-                      return (
-                        <SelectItem key={tab.id} value={tab.id}>
-                          {tab.label}{badge !== null ? ` (${badge})` : ""}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+          <div className="border-b border-border/60 -mx-3 sm:-mx-4 px-3 sm:px-4 pt-2 pb-0">
+            <TabsList className="overflow-x-auto flex-wrap h-auto bg-transparent p-0 gap-0">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                const badge = tabBadge(tab.id);
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors shrink-0",
+                      isActive
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                    {badge !== null && (
+                      <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-[10px] font-semibold ml-0.5">
+                        {badge}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
+            </TabsList>
           </div>
         </CardContent>
       </Card>
