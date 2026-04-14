@@ -310,14 +310,19 @@ export default function PropostaLanding() {
     return vars;
   }, [snapshot, versaoData, activeCenario, tenantNome, consultorNome, consultorTelefone, brand]);
 
-  // ─── Shared section props ───
+  // ─── Shared section props (safe defaults) ───
   const sectionProps = useMemo(() => ({
     snapshot: snapshot!,
-    versaoData: versaoData ?? { valor_total: 0, economia_mensal: 0, payback_meses: 0, potencia_kwp: 0 },
-    brand,
-    tenantNome,
-    consultorNome,
-    consultorTelefone,
+    versaoData: {
+      valor_total: versaoData?.valor_total ?? 0,
+      economia_mensal: versaoData?.economia_mensal ?? 0,
+      payback_meses: versaoData?.payback_meses ?? 0,
+      potencia_kwp: versaoData?.potencia_kwp ?? 0,
+    },
+    brand: brand ?? null,
+    tenantNome: tenantNome ?? null,
+    consultorNome: consultorNome ?? null,
+    consultorTelefone: consultorTelefone ?? null,
   }), [snapshot, versaoData, brand, tenantNome, consultorNome, consultorTelefone]);
 
   // ─── Loading / Error / Done ───
