@@ -12,7 +12,7 @@
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const DEFAULT_TEMPLATE_ID = "e4434ef7-7943-4be6-82e6-85ddbc484563"; // "Premium Consultivo" (html)
+const DEFAULT_TEMPLATE_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"; // "Alta Conversão" (html)
 
 interface LazyAssignResult {
   success: boolean;
