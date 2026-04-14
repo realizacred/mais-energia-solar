@@ -215,11 +215,43 @@ function RecebimentoCTA({ dealId, customerId, customerName, navigate }: {
   );
 }
 
+// ─── ErrorBoundary for ProjetoDetalhe (prevents white screen) ───
+class ProjetoDetalheErrorBoundary extends React.Component<
+  { children: React.ReactNode; onBack: () => void },
+  { hasError: boolean; errorMsg: string }
+> {
+  constructor(props: { children: React.ReactNode; onBack: () => void }) {
+    super(props);
+    this.state = { hasError: false, errorMsg: "" };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, errorMsg: error?.message || "Erro desconhecido" };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error("[ProjetoDetalhe] Crash capturado:", error.message, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+          <h2 className="text-lg font-bold text-foreground mb-2">Erro ao carregar projeto</h2>
+          <p className="text-sm text-muted-foreground mb-1 max-w-md">{this.state.errorMsg}</p>
+          <Button variant="outline" onClick={this.props.onBack} className="mt-4">Voltar</Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
   return (
-    <ProjetoDetalheProvider dealId={dealId} onBack={onBack} initialPipelineId={initialPipelineId}>
-      <ProjetoDetalheContent />
-    </ProjetoDetalheProvider>
+    <ProjetoDetalheErrorBoundary onBack={onBack}>
+      <ProjetoDetalheProvider dealId={dealId} onBack={onBack} initialPipelineId={initialPipelineId}>
+        <ProjetoDetalheContent />
+      </ProjetoDetalheProvider>
+    </ProjetoDetalheErrorBoundary>
   );
 }
 
