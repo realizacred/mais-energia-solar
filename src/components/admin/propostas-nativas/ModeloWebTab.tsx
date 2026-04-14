@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, Pencil, Sparkles, Search, LayoutTemplate, Star } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, Pencil, Sparkles } from "lucide-react";
 import { usePropostaTemplates, useRefreshPropostaTemplates } from "@/hooks/useConfSolar";
 import { useAtualizarTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
 import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
@@ -20,9 +21,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TemplateFinalPreview } from "@/components/proposal-landing/TemplateFinalPreview";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
 import { createDefaultTemplateBlocks, type TemplateStyle } from "@/components/admin/proposal-builder/defaultTemplateBlocks";
-import { SearchInput } from "@/components/ui-kit/SearchInput";
-
-// ── Types ──────────────────────────────────────────────────────
 
 interface TemplateRow {
   id: string;
@@ -37,65 +35,14 @@ interface TemplateRow {
   template_html: string | null;
   isNew?: boolean;
 }
-
-// ── Categories ─────────────────────────────────────────────────
-
-type WebTemplateCategory =
-  | "alta_conversao"
-  | "consultivo"
-  | "whatsapp"
-  | "corporativo"
-  | "educacional"
-  | "financeiro"
-  | "off_grid"
-  | "cases"
-  | "geral";
-
-const WEB_CATEGORIES: { value: WebTemplateCategory; label: string }[] = [
-  { value: "alta_conversao", label: "Alta Conversão" },
-  { value: "consultivo", label: "Consultivo" },
-  { value: "whatsapp", label: "WhatsApp / Rápido" },
-  { value: "corporativo", label: "Corporativo / B2B" },
-  { value: "educacional", label: "Educacional" },
-  { value: "financeiro", label: "Financeiro" },
-  { value: "off_grid", label: "Off-grid / Híbrido" },
-  { value: "cases", label: "Cases / Social" },
-  { value: "geral", label: "Geral" },
-];
-
-const CATEGORY_LABEL_MAP: Record<string, string> = Object.fromEntries(
-  WEB_CATEGORIES.map(c => [c.value, c.label])
-);
-
-// ── Default templates config ───────────────────────────────────
-
-interface DefaultTemplateCfg {
-  style: TemplateStyle;
-  nome: string;
-  descricao: string;
-  categoria: WebTemplateCategory;
-}
-
-const DEFAULT_TEMPLATES_CONFIG: DefaultTemplateCfg[] = [
-  { style: "dashboard", nome: "Alta Conversão — Direto ao Ponto", descricao: "Visual limpo estilo Gdash com comparativo gráfico, simulador de fluxo e timeline de retorno. Mobile-first.", categoria: "alta_conversao" },
-  { style: "consultivo", nome: "Premium Consultivo", descricao: "Template detalhado com comparativo antes/depois, confiança e dados técnicos. Ideal para projetos maiores.", categoria: "consultivo" },
-  { style: "fechamento", nome: "Fechamento Express — WhatsApp", descricao: "Alto impacto visual com urgência e CTA forte. Ideal para envio direto ao cliente via WhatsApp.", categoria: "whatsapp" },
-  { style: "corporativo", nome: "Corporativo Executivo", descricao: "Foco em ROI empresarial, multi-UC, dados técnicos detalhados. Ideal para empresas e comércios.", categoria: "corporativo" },
-  { style: "escala", nome: "Educacional — Leads", descricao: "Educativo com 'Como Funciona', construção de valor progressiva. Ideal para leads frios.", categoria: "educacional" },
-  { style: "impactoVisual", nome: "Impacto Visual", descricao: "Tipografia grande, layout assimétrico e bold. Foco em causar impressão forte e memorável.", categoria: "alta_conversao" },
-  { style: "simulacaoFinanceira", nome: "Simulação Financeira", descricao: "Tabela financeira, timeline de retorno e dados analíticos. Ideal para clientes racionais.", categoria: "financeiro" },
-  { style: "hibrido", nome: "Autonomia Energética (Off-grid)", descricao: "Múltiplos inversores, bateria, estrutura e serviços inclusos. Ideal para projetos com backup.", categoria: "off_grid" },
-  { style: "propostaRapida", nome: "Proposta Rápida", descricao: "Ultra-compacto, single-scroll, tudo visível de uma vez. Perfeito para envio rápido por WhatsApp.", categoria: "whatsapp" },
-  { style: "conversaoCases", nome: "Conversão com Cases", descricao: "Prova social com depoimentos, badges de confiança e cases de sucesso. Para leads indecisos.", categoria: "cases" },
-];
-
-// ── Preview variables ──────────────────────────────────────────
-
+/** Renders block JSON as a visual preview (read-only) */
 const TEMPLATE_PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Record<string, string>>((acc, variable) => {
   acc[variable.legacyKey] = variable.example;
   acc[variable.canonicalKey] = variable.example;
+
   const canonicalWithoutBraces = variable.canonicalKey.replace(/^\{\{/, "").replace(/\}\}$/, "");
   acc[canonicalWithoutBraces] = variable.example;
+
   return acc;
 }, {
   cliente_nome: "João Silva",
@@ -122,8 +69,6 @@ const TEMPLATE_PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.red
   payback_meses: "58",
   economia_mensal: "580,00",
 });
-
-// ── Preview renderer ───────────────────────────────────────────
 
 function PreviewRenderer({ jsonData }: { jsonData: string | null }) {
   const { settings: brandSettings } = useBrandSettings();
@@ -155,30 +100,6 @@ function PreviewRenderer({ jsonData }: { jsonData: string | null }) {
   );
 }
 
-// ── Category badge color ───────────────────────────────────────
-
-function CategoryBadge({ categoria }: { categoria: string }) {
-  const label = CATEGORY_LABEL_MAP[categoria] || categoria;
-  const colorMap: Record<string, string> = {
-    alta_conversao: "bg-success/10 text-success border-success/20",
-    consultivo: "bg-primary/10 text-primary border-primary/20",
-    whatsapp: "bg-warning/10 text-warning border-warning/20",
-    corporativo: "bg-info/10 text-info border-info/20",
-    educacional: "bg-accent/10 text-accent-foreground border-accent/20",
-    financeiro: "bg-muted text-muted-foreground border-border",
-    off_grid: "bg-primary/10 text-primary border-primary/20",
-    cases: "bg-warning/10 text-warning border-warning/20",
-    geral: "bg-muted text-muted-foreground border-border",
-  };
-  return (
-    <Badge variant="outline" className={`text-[10px] ${colorMap[categoria] || colorMap.geral}`}>
-      {label}
-    </Badge>
-  );
-}
-
-// ── Main component ─────────────────────────────────────────────
-
 export function TemplatesTab() {
   const { data: serverData, isLoading: loading } = usePropostaTemplates();
   const refreshTemplates = useRefreshPropostaTemplates();
@@ -189,10 +110,7 @@ export function TemplatesTab() {
   const [initialized, setInitialized] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TemplateRow | null>(null);
   const [seedingDefaults, setSeedingDefaults] = useState(false);
-
-  // Filters
-  const [search, setSearch] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string>("todos");
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     if (serverData && !initialized) {
@@ -201,55 +119,34 @@ export function TemplatesTab() {
     }
   }, [serverData]);
 
-  // Only HTML templates (filter out DOCX that might be in the same table)
-  const htmlTemplates = useMemo(() =>
-    templates.filter(t => t.tipo === "html" || !t.tipo),
-    [templates]
-  );
-
-  // Filtered templates
-  const filteredTemplates = useMemo(() => {
-    let result = htmlTemplates;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(t =>
-        t.nome?.toLowerCase().includes(q) ||
-        t.descricao?.toLowerCase().includes(q) ||
-        t.categoria?.toLowerCase().includes(q)
-      );
-    }
-    if (filterCategory !== "todos") {
-      result = result.filter(t => t.categoria === filterCategory);
-    }
-    return result;
-  }, [htmlTemplates, search, filterCategory]);
+  // Filter: only show active WEB templates by default, optionally show archived
+  const visibleTemplates = useMemo(() => {
+    return templates.filter(t => {
+      if (t.tipo !== "html" && t.tipo !== "web") return false;
+      if (!showArchived && !t.ativo) return false;
+      return true;
+    });
+  }, [templates, showArchived]);
 
   function addTemplate() {
     setTemplates([...templates, {
       id: crypto.randomUUID(), nome: "", descricao: null, grupo: "B",
-      categoria: "geral", tipo: "html", ativo: true, ordem: templates.length,
+      categoria: "padrao", tipo: "html", ativo: true, ordem: templates.length,
       thumbnail_url: null, template_html: null, isNew: true,
     }]);
   }
 
   function removeTemplate(idx: number) {
-    const templateToRemove = filteredTemplates[idx];
-    setTemplates(templates.filter(t => t.id !== templateToRemove.id));
+    setTemplates(templates.filter((_, i) => i !== idx));
   }
 
-  function updateTemplate(tplId: string, key: keyof TemplateRow, value: any) {
-    setTemplates(prev => prev.map(t => t.id === tplId ? { ...t, [key]: value } : t));
+  function updateTemplate(idx: number, key: keyof TemplateRow, value: any) {
+    const updated = [...templates];
+    updated[idx] = { ...updated[idx], [key]: value };
+    setTemplates(updated);
   }
 
   async function handleSave() {
-    // Validate no duplicate names
-    const htmlNames = htmlTemplates.map(t => t.nome?.trim().toLowerCase()).filter(Boolean);
-    const dupes = htmlNames.filter((n, i) => htmlNames.indexOf(n) !== i);
-    if (dupes.length > 0) {
-      toast({ title: "Nomes duplicados", description: `Corrija os templates com nomes repetidos: ${[...new Set(dupes)].join(", ")}`, variant: "destructive" });
-      return;
-    }
-
     setSaving(true);
     try {
       for (const tpl of templates) {
@@ -271,6 +168,32 @@ export function TemplatesTab() {
     setSaving(false);
   }
 
+  const WEB_CATEGORY_MAP: Record<string, string> = {
+    dashboard: "alta_conversao",
+    consultivo: "consultivo",
+    fechamento: "whatsapp",
+    corporativo: "corporativo",
+    escala: "educacional",
+    impactoVisual: "alta_conversao",
+    simulacaoFinanceira: "financeiro",
+    hibrido: "offgrid",
+    propostaRapida: "whatsapp",
+    conversaoCases: "alta_conversao",
+  };
+
+  const DEFAULT_TEMPLATES_CONFIG: { style: TemplateStyle; nome: string; descricao: string }[] = [
+    { style: "dashboard", nome: "Alta Conversão — Direto ao Ponto", descricao: "Visual limpo estilo Gdash com comparativo gráfico, simulador de fluxo e timeline de retorno. Mobile-first." },
+    { style: "consultivo", nome: "Premium Consultivo", descricao: "Template detalhado com comparativo antes/depois, confiança e dados técnicos. Ideal para projetos maiores." },
+    { style: "fechamento", nome: "Fechamento Express — WhatsApp", descricao: "Alto impacto visual com urgência e CTA forte. Ideal para envio direto ao cliente via WhatsApp." },
+    { style: "corporativo", nome: "Corporativo Executivo", descricao: "Foco em ROI empresarial, multi-UC, dados técnicos detalhados. Ideal para empresas e comércios." },
+    { style: "escala", nome: "Educacional — Leads", descricao: "Educativo com 'Como Funciona', construção de valor progressiva. Ideal para leads frios." },
+    { style: "impactoVisual", nome: "Impacto Visual", descricao: "Tipografia grande, layout assimétrico e bold. Foco em causar impressão forte e memorável." },
+    { style: "simulacaoFinanceira", nome: "Simulação Financeira", descricao: "Tabela financeira, timeline de retorno e dados analíticos. Ideal para clientes racionais." },
+    { style: "hibrido", nome: "Autonomia Energética (Off-grid)", descricao: "Múltiplos inversores, bateria, estrutura e serviços inclusos. Ideal para projetos com backup." },
+    { style: "propostaRapida", nome: "Proposta Rápida", descricao: "Ultra-compacto, single-scroll, tudo visível de uma vez. Perfeito para envio rápido por WhatsApp." },
+    { style: "conversaoCases", nome: "Conversão com Cases", descricao: "Prova social com depoimentos, badges de confiança e cases de sucesso. Para leads indecisos." },
+  ];
+
   async function handleSeedDefaults() {
     setSeedingDefaults(true);
     try {
@@ -283,29 +206,27 @@ export function TemplatesTab() {
         .single();
       if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
 
-      // Deduplication: check existing template names
+      // Check existing names to avoid duplicates
       const existingNames = new Set(
-        htmlTemplates.map(t => t.nome?.trim().toLowerCase()).filter(Boolean)
+        templates.filter(t => t.ativo && (t.tipo === "html" || t.tipo === "web")).map(t => t.nome)
       );
 
       let created = 0;
       let skipped = 0;
       for (let i = 0; i < DEFAULT_TEMPLATES_CONFIG.length; i++) {
         const cfg = DEFAULT_TEMPLATES_CONFIG[i];
-
-        // Skip if name already exists (deduplication)
-        if (existingNames.has(cfg.nome.toLowerCase())) {
+        if (existingNames.has(cfg.nome)) {
           skipped++;
           continue;
         }
-
         const blocks = createDefaultTemplateBlocks("grid", cfg.style);
         const templateHtml = JSON.stringify(blocks);
+        const categoria = WEB_CATEGORY_MAP[cfg.style] || "alta_conversao";
         const { error } = await supabase.from("proposta_templates").insert({
           nome: cfg.nome,
           descricao: cfg.descricao,
           grupo: "B",
-          categoria: cfg.categoria,
+          categoria,
           tipo: "html",
           template_html: templateHtml,
           ativo: true,
@@ -314,14 +235,9 @@ export function TemplatesTab() {
         } as any);
         if (error) throw error;
         created++;
-        existingNames.add(cfg.nome.toLowerCase());
       }
-
-      if (created > 0) {
-        toast({ title: `${created} template${created > 1 ? "s" : ""} criado${created > 1 ? "s" : ""}${skipped > 0 ? ` (${skipped} já existiam)` : ""}` });
-      } else {
-        toast({ title: "Todos os templates padrão já existem", description: `${skipped} templates encontrados` });
-      }
+      const msg = skipped > 0 ? `${created} criados, ${skipped} já existiam` : `${created} templates criados`;
+      toast({ title: msg });
       setInitialized(false);
       refreshTemplates();
     } catch (e: any) {
@@ -334,6 +250,7 @@ export function TemplatesTab() {
   const handleBuilderSave = useCallback(async (jsonData: string) => {
     if (!editingTemplate) return;
     await atualizarHtml.mutateAsync({ id: editingTemplate.id, template_html: jsonData });
+    // Update local state too
     setTemplates(prev => prev.map(t =>
       t.id === editingTemplate.id ? { ...t, template_html: jsonData } : t
     ));
@@ -344,7 +261,9 @@ export function TemplatesTab() {
     try {
       const parsed = JSON.parse(editingTemplate.template_html);
       if (Array.isArray(parsed)) return parsed as TemplateBlock[];
-    } catch { /* not valid JSON */ }
+    } catch {
+      // not valid JSON — might be raw HTML, ignore
+    }
     return undefined;
   }, [editingTemplate]);
 
@@ -366,131 +285,93 @@ export function TemplatesTab() {
 
   return (
     <Card className="border-border/60">
-      <CardHeader className="pb-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <LayoutTemplate className="h-4 w-4 text-primary" />
-            Templates WEB de Proposta
-            <Badge variant="outline" className="text-[10px] ml-1">
-              {htmlTemplates.length} template{htmlTemplates.length !== 1 ? "s" : ""}
-            </Badge>
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSeedDefaults}
-              disabled={seedingDefaults}
-              className="gap-1.5 text-xs"
-            >
-              {seedingDefaults ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-              Criar templates padrão
-            </Button>
-            <Button variant="default" size="sm" onClick={addTemplate} className="gap-1.5 text-xs">
-              <Plus className="h-3.5 w-3.5" /> Novo Template
-            </Button>
-          </div>
+      <CardHeader className="pb-4 flex flex-row items-center justify-between">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          Templates de Proposta
+        </CardTitle>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSeedDefaults}
+            disabled={seedingDefaults}
+            className="gap-1.5 text-xs"
+          >
+            {seedingDefaults ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Criar templates padrão
+          </Button>
+          <Button variant="default" size="sm" onClick={addTemplate} className="gap-1.5 text-xs">
+            <Plus className="h-3.5 w-3.5" /> Novo Template
+          </Button>
         </div>
-
-        {/* Search & Filter bar */}
-        {htmlTemplates.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-2 mt-3">
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Buscar template..."
-              className="max-w-xs"
-            />
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-[200px] h-9 text-sm">
-                <SelectValue placeholder="Filtrar por categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas as categorias</SelectItem>
-                {WEB_CATEGORIES.map(c => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
       </CardHeader>
-
       <CardContent>
-        {filteredTemplates.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <LayoutTemplate className="h-10 w-10 mx-auto opacity-20 mb-3" />
-            <p className="text-sm">
-              {htmlTemplates.length === 0
-                ? "Nenhum template WEB cadastrado. Use \"Criar templates padrão\" para começar."
-                : "Nenhum template corresponde à busca."}
-            </p>
-          </div>
+        {/* Archive toggle */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs text-muted-foreground">
+            {visibleTemplates.length} template{visibleTemplates.length !== 1 ? "s" : ""} WEB
+            {showArchived ? " (incluindo arquivados)" : ""}
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowArchived(!showArchived)}
+            className="gap-1.5 text-xs h-7"
+          >
+            <Archive className="h-3 w-3" />
+            {showArchived ? "Ocultar arquivados" : "Ver arquivados"}
+          </Button>
+        </div>
+        {visibleTemplates.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            Nenhum template WEB ativo. Crie o primeiro para gerar propostas.
+          </p>
         ) : (
-          <div className="space-y-3">
-            {filteredTemplates.map((t) => (
-              <div key={t.id} className={`border border-border/60 rounded-xl p-4 space-y-3 bg-card transition-opacity ${!t.ativo ? "opacity-50" : ""}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                    <Badge variant={t.ativo ? "default" : "secondary"} className="text-[10px] shrink-0">
+          <div className="space-y-4">
+            {visibleTemplates.map((t) => {
+              const i = templates.findIndex(x => x.id === t.id);
+              return (
+              <div key={t.id} className="border border-border/60 rounded-xl p-4 space-y-3 bg-card">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="h-4 w-4 text-muted-foreground/40" />
+                    <Badge variant={t.ativo ? "default" : "secondary"} className="text-[10px]">
                       {t.ativo ? "Ativo" : "Inativo"}
                     </Badge>
-                    <CategoryBadge categoria={t.categoria || "geral"} />
-                    <span className="text-xs font-semibold truncate">{t.nome || "Sem nome"}</span>
+                    <span className="text-xs font-semibold">{t.nome || `Template ${i + 1}`}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {t.tipo === "html" && !t.isNew && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs gap-1.5"
-                        onClick={() => setEditingTemplate(t)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Editar Visual
-                      </Button>
-                    )}
-                    {t.template_html && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPreviewHtml(t.template_html)} aria-label="Preview">
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                    <Switch checked={t.ativo} onCheckedChange={(v) => updateTemplate(t.id, "ativo", v)} />
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => {
-                      const idx = templates.findIndex(x => x.id === t.id);
-                      if (idx >= 0) setTemplates(templates.filter((_, i) => i !== idx));
-                    }} aria-label="Remover">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                   <div className="flex items-center gap-2">
+                     {t.tipo === "html" && !t.isNew && (
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         className="h-7 text-xs gap-1.5"
+                         onClick={() => setEditingTemplate(t)}
+                       >
+                         <Pencil className="h-3.5 w-3.5" />
+                         Editar Visual
+                       </Button>
+                     )}
+                     {t.template_html && (
+                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPreviewHtml(t.template_html)}>
+                         <Eye className="h-3.5 w-3.5" />
+                       </Button>
+                     )}
+                     <Switch checked={t.ativo} onCheckedChange={(v) => updateTemplate(i, "ativo", v)} />
+                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeTemplate(i)}>
+                       <Trash2 className="h-3.5 w-3.5" />
+                     </Button>
+                   </div>
                 </div>
-
-                {/* Description row */}
-                {t.descricao && (
-                  <p className="text-xs text-muted-foreground pl-6 line-clamp-2">{t.descricao}</p>
-                )}
-
-                {/* Expanded form for editing metadata */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className="space-y-1 sm:col-span-2">
                     <Label className="text-[10px] text-muted-foreground">Nome</Label>
-                    <Input value={t.nome} onChange={(e) => updateTemplate(t.id, "nome", e.target.value)} placeholder="Ex: Proposta Premium" className="text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Categoria</Label>
-                    <Select value={t.categoria || "geral"} onValueChange={(v) => updateTemplate(t.id, "categoria", v)}>
-                      <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {WEB_CATEGORIES.map(c => (
-                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input value={t.nome} onChange={(e) => updateTemplate(i, "nome", e.target.value)} placeholder="Ex: Proposta Premium" className="text-sm" />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] text-muted-foreground">Grupo</Label>
-                    <Select value={t.grupo} onValueChange={(v) => updateTemplate(t.id, "grupo", v)}>
+                    <Select value={t.grupo} onValueChange={(v) => updateTemplate(i, "grupo", v)}>
                       <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="A">Grupo A</SelectItem>
@@ -499,19 +380,31 @@ export function TemplatesTab() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Tipo</Label>
+                    <Select value={t.tipo} onValueChange={(v) => updateTemplate(i, "tipo", v)}>
+                      <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="html">HTML</SelectItem>
+                        <SelectItem value="pdf">PDF</SelectItem>
+                        <SelectItem value="docx">DOCX</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px] text-muted-foreground">Descrição</Label>
                   <Textarea
                     value={t.descricao || ""}
-                    onChange={(e) => updateTemplate(t.id, "descricao", e.target.value)}
+                    onChange={(e) => updateTemplate(i, "descricao", e.target.value)}
                     placeholder="Breve descrição do template..."
                     rows={2}
                     className="text-sm"
                   />
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
         <div className="flex justify-end mt-6">
@@ -522,7 +415,7 @@ export function TemplatesTab() {
         </div>
       </CardContent>
 
-      {/* Preview Modal */}
+      {/* Preview Modal — renders blocks visually */}
       <Dialog open={!!previewHtml} onOpenChange={(open) => { if (!open) setPreviewHtml(null); }}>
         <DialogContent className="w-[90vw] max-w-5xl max-h-[calc(100dvh-2rem)] flex flex-col p-0 gap-0 overflow-hidden">
           <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
