@@ -16,6 +16,7 @@ import { TenantGuardGate } from "@/components/guards/TenantGuardGate";
 import { DevToolsProvider } from "@/contexts/DevToolsContext";
 import { DevToolsOverlay } from "@/components/dev/DevToolsOverlay";
 import { RealtimeHeartbeatProvider } from "@/components/providers/RealtimeHeartbeatProvider";
+import { PublicErrorBoundary } from "@/components/proposal-landing/PublicErrorBoundary";
 
 // Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -108,8 +109,8 @@ const App = () => (
               <Route path="/avaliacao" element={<Avaliacao />} />
               <Route path="/ativar-conta" element={<AtivarConta />} />
               <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
-              <Route path="/proposta/:token" element={<PropostaPublica />} />
-              <Route path="/pl/:token" element={<PropostaLanding />} />
+              <Route path="/proposta/:token" element={<PublicErrorBoundary><PropostaPublica /></PublicErrorBoundary>} />
+              <Route path="/pl/:token" element={<PublicErrorBoundary><PropostaLanding /></PublicErrorBoundary>} />
               <Route path="/kits/:token" element={<KitsLanding />} />
               <Route path="/oauth/google/callback" element={<OAuthGoogleCallback />} />
               <Route path="/oauth/google-contacts/callback" element={<GoogleContactsCallbackPage />} />

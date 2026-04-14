@@ -240,8 +240,9 @@ export default function PropostaLanding() {
   // ─── Build template variables map from snapshot ───
   const templateVariables = useMemo(() => {
     if (!snapshot || !versaoData) return {};
+    try {
     const s = snapshot;
-    const raw = s._raw || {};
+    const raw = (s as any)?._raw || {};
     const vars: Record<string, string> = {};
     for (const [k, v] of Object.entries(raw)) {
       if (v !== null && v !== undefined) vars[k] = String(v);
@@ -308,16 +309,25 @@ export default function PropostaLanding() {
     if (brand?.logo_url) vars["logo_url"] = brand.logo_url;
     if (brand?.logo_white_url) vars["logo_white_url"] = brand.logo_white_url;
     return vars;
+    } catch (e) {
+      console.error("[PropostaLanding] Erro ao construir variáveis do template:", e);
+      return {};
+    }
   }, [snapshot, versaoData, activeCenario, tenantNome, consultorNome, consultorTelefone, brand]);
 
-  // ─── Shared section props ───
+  // ─── Shared section props (safe defaults) ───
   const sectionProps = useMemo(() => ({
     snapshot: snapshot!,
-    versaoData: versaoData ?? { valor_total: 0, economia_mensal: 0, payback_meses: 0, potencia_kwp: 0 },
-    brand,
-    tenantNome,
-    consultorNome,
-    consultorTelefone,
+    versaoData: {
+      valor_total: versaoData?.valor_total ?? 0,
+      economia_mensal: versaoData?.economia_mensal ?? 0,
+      payback_meses: versaoData?.payback_meses ?? 0,
+      potencia_kwp: versaoData?.potencia_kwp ?? 0,
+    },
+    brand: brand ?? null,
+    tenantNome: tenantNome ?? null,
+    consultorNome: consultorNome ?? null,
+    consultorTelefone: consultorTelefone ?? null,
   }), [snapshot, versaoData, brand, tenantNome, consultorNome, consultorTelefone]);
 
   // ─── Loading / Error / Done ───
