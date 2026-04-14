@@ -30,17 +30,23 @@ function getOpLabel(type: string): string {
 export function SmOperationStatusPanel() {
   const { data: activeRun } = useActiveSmOperation();
   const { data: lastRun } = useLastCompletedSmOperation();
-  const { expireNow } = useExpireStaleSmOperations();
+  const { expireNow, forceCancelActive } = useExpireStaleSmOperations();
   const [expiring, setExpiring] = useState(false);
 
   const handleForceExpire = async () => {
     setExpiring(true);
     try {
-      const count = await expireNow();
-      if (count > 0) {
+      // Try stale expiry first, then force-cancel if nothing expired
+      const staleCount = await expireNow();
+      if (staleCount > 0) {
         toast.success("Operação travada liberada com sucesso.");
       } else {
-        toast.info("Nenhuma operação stale encontrada.");
+        const forceCount = await forceCancelActive();
+        if (forceCount > 0) {
+          toast.success("Operação forçadamente parada.");
+        } else {
+          toast.info("Nenhuma operação ativa encontrada.");
+        }
       }
     } finally {
       setExpiring(false);
