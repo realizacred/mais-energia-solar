@@ -2287,6 +2287,10 @@ export function ProposalWizard() {
       setResult(genResult);
       clearLocal(); // Proposta gerada — limpar rascunho local
 
+      // Sync template_id_used on the new version (RB-54) — belt-and-suspenders
+      // proposal-generate already sets it server-side, but sync as fallback
+      syncTemplateIdUsed(genResult.versao_id);
+
       // Audit is now persisted by the backend — no need for frontend persistAudit
 
       // Determine if selected template is DOCX or HTML
