@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatNumberBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
+import { useLazyTemplateAssign } from "@/hooks/useLazyTemplateAssign";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
@@ -55,6 +56,7 @@ interface VersaoData {
   link_pdf: string | null;
   public_slug: string | null;
   gerado_em: string | null;
+  template_id_used?: string | null;
 }
 
 interface PropostaData {
@@ -634,6 +636,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   // Templates for DOCX/HTML detection
   const { data: proposalTemplates = [] } = useProposalTemplates();
+  const { assignIfNeeded: lazyAssignTemplate } = useLazyTemplateAssign();
 
   const versaoIds = p.versoes.map(v => v.id);
   const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
@@ -1013,6 +1016,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         // Refresh data to pick up new output paths
         onRefresh();
       } else {
+        // Lazy assign template for migrated proposals without template (on-demand)
+        if (isMigrated && !latestVersao.template_id_used) {
+          const assignResult = await lazyAssignTemplate(latestVersao.id, p.id);
+          if (!assignResult.success) {
+            toast({ title: "Erro ao atribuir template", description: assignResult.error, variant: "destructive" });
+            return;
+          }
+        }
         // HTML template: use existing renderProposal
         const result = await renderProposal(latestVersao.id);
         if (result.html) setHtml(result.html);
