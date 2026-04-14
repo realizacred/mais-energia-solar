@@ -1730,12 +1730,18 @@ Deno.serve(async (req) => {
         .order("priority", { ascending: true });
       for (const m of (mappings || [])) {
         const bareKey = normalizeCfKey(m.source_key);
-        cfMappings.set(bareKey, {
+        const mappingEntry = {
           target_namespace: m.target_namespace,
           target_path: m.target_path,
           transform: m.transform,
           priority: m.priority,
-        });
+        };
+        cfMappings.set(bareKey, mappingEntry);
+        // Also index by normalized key for consistent lookup
+        const normKey = normalizeFieldKey(bareKey);
+        if (normKey !== bareKey) {
+          cfMappings.set(normKey, mappingEntry);
+        }
       }
     }
     // console.log(`[SM Migration] Loaded ${cfMappings.size} custom field mappings`);
