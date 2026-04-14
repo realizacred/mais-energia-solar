@@ -8,7 +8,7 @@ import { formatPhone } from "@/lib/validations";
 import { ClienteViewDialog } from "@/components/admin/ClienteViewDialog";
 import { upsertContactFromWhatsApp } from "@/services/contactWhatsAppService";
 import { formatCpfCnpj, isValidCpfCnpj, onlyDigits } from "@/lib/cpfCnpjUtils";
-import { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Spinner } from "@/components/ui-kit/Spinner";
