@@ -826,12 +826,28 @@ Deno.serve(async (req) => {
     }
 
     if (rawBody?.action === "pause_background_migration") {
+      // 1. Disable future runs
       await adminClient
         .from("sm_migration_settings")
         .update({ enabled: false, updated_at: new Date().toISOString() })
         .eq("tenant_id", tenantId);
 
-      return new Response(JSON.stringify({ paused: true, message: "Migração em background pausada. O lote atual pode terminar normalmente." }), {
+      // 2. Cancel any active sm_operation_runs for this tenant
+      const { data: activeRuns } = await adminClient
+        .from("sm_operation_runs")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .in("status", ["running", "queued"]);
+
+      if (activeRuns && activeRuns.length > 0) {
+        const runIds = activeRuns.map((r: any) => r.id);
+        await adminClient
+          .from("sm_operation_runs")
+          .update({ status: "cancelled", finished_at: new Date().toISOString() })
+          .in("id", runIds);
+      }
+
+      return new Response(JSON.stringify({ paused: true, message: "Migração pausada e operações ativas canceladas." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
