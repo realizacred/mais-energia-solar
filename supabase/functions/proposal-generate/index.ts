@@ -1047,9 +1047,27 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     // NOTE: Do NOT promote status to "gerada" here. Status stays "rascunho"
     // until the render step (proposal-render or template-preview) succeeds
     // and confirms artifact persistence. Only update versao_atual.
-    await adminClient.from("propostas_nativas")
-      .update({ versao_atual: versaoNumero })
-      .eq("id", propostaId).eq("tenant_id", tenantId);
+    // Also persist template_id_used on the version for HTML templates (RB-54)
+    const updateProposta: any = { versao_atual: versaoNumero };
+    const updateVersao: any = {};
+
+    if (body.template_id) {
+      updateVersao.template_id_used = body.template_id;
+    }
+
+    const persistOps = [
+      adminClient.from("propostas_nativas")
+        .update(updateProposta)
+        .eq("id", propostaId).eq("tenant_id", tenantId),
+    ];
+    if (Object.keys(updateVersao).length > 0) {
+      persistOps.push(
+        adminClient.from("proposta_versoes")
+          .update(updateVersao)
+          .eq("id", versaoId).eq("tenant_id", tenantId),
+      );
+    }
+    await Promise.all(persistOps);
 
     const granularOps = [];
 
