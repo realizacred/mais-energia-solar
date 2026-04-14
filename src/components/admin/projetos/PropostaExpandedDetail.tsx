@@ -1015,6 +1015,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         // Refresh data to pick up new output paths
         onRefresh();
       } else {
+        // Lazy assign template for migrated proposals without template (on-demand)
+        if (isMigrated && !latestVersao.template_id_used) {
+          const assignResult = await lazyAssignTemplate(latestVersao.id, p.id);
+          if (!assignResult.success) {
+            toast({ title: "Erro ao atribuir template", description: assignResult.error, variant: "destructive" });
+            return;
+          }
+        }
         // HTML template: use existing renderProposal
         const result = await renderProposal(latestVersao.id);
         if (result.html) setHtml(result.html);
