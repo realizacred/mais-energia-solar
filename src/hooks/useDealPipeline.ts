@@ -16,6 +16,7 @@ export interface Pipeline {
   kind: PipelineKind;
   version: number;
   is_active: boolean;
+  is_default?: boolean;
   created_at: string;
 }
 
@@ -202,7 +203,7 @@ export function useDealPipeline() {
     const [pipelinesRes, stagesRes, consultoresRes] = await Promise.all([
       supabase
         .from("pipelines")
-        .select("id, tenant_id, name, kind, version, is_active, created_at")
+        .select("id, tenant_id, name, kind, version, is_active, is_default, created_at")
         .eq("is_active", true)
         .order("created_at"),
       supabase
@@ -220,11 +221,15 @@ export function useDealPipeline() {
     if (stagesRes.error) throw stagesRes.error;
     if (consultoresRes.error) throw consultoresRes.error;
 
-    setPipelines((pipelinesRes.data || []) as Pipeline[]);
+    const pipelineRows = [...((pipelinesRes.data || []) as Pipeline[])].sort(
+      (a, b) => Number(!!b.is_default) - Number(!!a.is_default)
+    );
+
+    setPipelines(pipelineRows);
     setStages((stagesRes.data || []) as PipelineStage[]);
     setConsultores(consultoresRes.data || []);
 
-    return (pipelinesRes.data || []) as Pipeline[];
+    return pipelineRows;
   }, []);
 
   // ─── Fetch deals from projection ──────────────────────
@@ -472,6 +477,9 @@ export function useDealPipeline() {
   // ─── Apply filters ──────────────────────────────────
   const applyFilters = useCallback(async (newFilters: Partial<DealFilters>) => {
     const merged = { ...filters, ...newFilters };
+    if (Object.prototype.hasOwnProperty.call(newFilters, "pipelineId")) {
+      setSelectedPipelineId(newFilters.pipelineId ?? null);
+    }
     setFilters(merged);
     setLoading(true);
     try {
@@ -737,9 +745,11 @@ export function useDealPipeline() {
   }, [toast, fetchAll, consultores]);
 
   // ─── Computed ──────────────────────────────────────────
+  const activeStagePipelineId = filters.pipelineId ?? selectedPipelineId;
+
   const selectedPipelineStages = useMemo(
-    () => stages.filter(s => s.pipeline_id === selectedPipelineId).sort((a, b) => a.position - b.position),
-    [stages, selectedPipelineId]
+    () => stages.filter(s => s.pipeline_id === activeStagePipelineId).sort((a, b) => a.position - b.position),
+    [stages, activeStagePipelineId]
   );
 
   const ownerColumns = useMemo((): OwnerColumn[] => {

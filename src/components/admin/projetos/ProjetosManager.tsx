@@ -442,7 +442,7 @@ export function ProjetosManager() {
                     ativo: p.is_active,
                     tenant_id: p.tenant_id,
                   }))}
-                  filterFunil={filters.pipelineId || selectedPipelineId || (viewMode === "kanban-consultor" ? "todos" : "")}
+                  filterFunil={filters.pipelineId ?? (viewMode === "kanban-consultor" ? "todos" : "")}
                   onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
                   filterConsultor={filters.ownerId}
                   onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
