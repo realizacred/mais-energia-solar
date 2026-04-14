@@ -1149,7 +1149,7 @@ Deno.serve(async (req) => {
         if (firstStage) FALLBACK_STAGE_ID = firstStage.id;
       }
 
-      // Funil + Etapa: resolve "Vendedor" funil from projeto_funis
+      // Funil + Etapa: resolve "Vendedor" funil from projeto_funis (used as final fallback)
       const { data: vendedorFunil } = await adminClient
         .from("projeto_funis")
         .select("id")
@@ -1167,6 +1167,31 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle();
         if (firstEtapa) FALLBACK_ETAPA_ID = firstEtapa.id;
+      }
+
+      // Pre-fetch ALL projeto_funis for dynamic funil resolution
+      const { data: allProjetoFunis } = await adminClient
+        .from("projeto_funis")
+        .select("id, nome")
+        .eq("tenant_id", tenantId);
+      const projetoFunisMap = new Map<string, string>(); // normalized name → funil_id
+      for (const f of allProjetoFunis || []) {
+        projetoFunisMap.set(normalizeComparableName(f.nome), f.id);
+      }
+
+      // Pre-fetch first etapa per funil for quick fallback
+      const funilFirstEtapaMap = new Map<string, string>(); // funil_id → first etapa_id
+      {
+        const { data: allEtapas } = await adminClient
+          .from("projeto_etapas")
+          .select("id, funil_id, ordem")
+          .eq("tenant_id", tenantId)
+          .order("ordem", { ascending: true });
+        for (const e of allEtapas || []) {
+          if (!funilFirstEtapaMap.has(e.funil_id)) {
+            funilFirstEtapaMap.set(e.funil_id, e.id);
+          }
+        }
       }
 
       console.error(`[SM Migration] Dynamic fallbacks resolved: pipeline=${FALLBACK_PIPELINE_ID}, stage=${FALLBACK_STAGE_ID}, funil=${FALLBACK_FUNIL_ID}, etapa=${FALLBACK_ETAPA_ID}`);
