@@ -3702,6 +3702,103 @@ Deno.serve(async (req) => {
             };
           }
 
+          // ── G2. Persist prefix-classified custom fields to deal_custom_field_values ──
+          // cap_ → projeto, cape_ → pré-dimensionamento, capo_ → pós-dimensionamento
+          if (!dry_run && dealId && smProp.custom_fields_raw?.values) {
+            try {
+              const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
+              const cfByPrefix: Array<{ key: string; value: string; area: string }> = [];
+
+              for (const [key, entry] of Object.entries(cfVals)) {
+                const bareKey = normalizeCfKey(key);
+                const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
+                if (val === "" || val == null) continue;
+                const lowerKey = bareKey.toLowerCase();
+                let area = "outros";
+                if (lowerKey.startsWith("cape_") || lowerKey.startsWith("cape ")) {
+                  area = "pre_dimensionamento";
+                } else if (lowerKey.startsWith("capo_") || lowerKey.startsWith("capo ")) {
+                  area = "pos_dimensionamento";
+                } else if (lowerKey.startsWith("cap_") || lowerKey.startsWith("cap ")) {
+                  area = "projeto";
+                }
+                cfByPrefix.push({ key: bareKey, value: String(val), area });
+              }
+
+              if (cfByPrefix.length > 0) {
+                // Check existing deal_custom_fields for this tenant to find matches
+                const { data: existingFields } = await adminClient
+                  .from("deal_custom_fields")
+                  .select("id, field_key, field_label, context")
+                  .eq("tenant_id", tenantId);
+
+                const fieldByKey = new Map<string, { id: string; context: string }>();
+                for (const f of existingFields || []) {
+                  fieldByKey.set((f.field_key || "").toLowerCase(), { id: f.id, context: f.context || "outros" });
+                }
+
+                const valuesToInsert: Array<Record<string, any>> = [];
+
+                for (const cf of cfByPrefix) {
+                  const existingField = fieldByKey.get(cf.key.toLowerCase());
+                  let fieldId: string;
+
+                  if (existingField) {
+                    fieldId = existingField.id;
+                  } else {
+                    // Create the custom field definition (idempotent via field_key)
+                    const fieldInsert = {
+                      tenant_id: tenantId,
+                      field_key: cf.key,
+                      field_label: cf.key.replace(/^(cap_|cape_|capo_)/i, "").replace(/_/g, " "),
+                      field_type: "text",
+                      context: cf.area,
+                      is_active: true,
+                    };
+                    const { data: newField, error: fieldErr } = await adminClient
+                      .from("deal_custom_fields")
+                      .upsert(fieldInsert, { onConflict: "tenant_id,field_key" })
+                      .select("id")
+                      .single();
+
+                    if (fieldErr || !newField) {
+                      console.warn(`[SM Migration] Custom field create error for ${cf.key}: ${fieldErr?.message}`);
+                      continue;
+                    }
+                    fieldId = newField.id;
+                    fieldByKey.set(cf.key.toLowerCase(), { id: fieldId, context: cf.area });
+                  }
+
+                  valuesToInsert.push({
+                    tenant_id: tenantId,
+                    deal_id: dealId,
+                    field_id: fieldId,
+                    value: cf.value,
+                  });
+                }
+
+                // Batch upsert values (idempotent via deal_id + field_id)
+                if (valuesToInsert.length > 0) {
+                  const { error: valErr } = await adminClient
+                    .from("deal_custom_field_values")
+                    .upsert(valuesToInsert, { onConflict: "deal_id,field_id" });
+                  if (valErr) {
+                    console.warn(`[SM Migration] Custom field values upsert error: ${valErr.message}`);
+                  }
+                }
+
+                (report as any).custom_fields_by_prefix = {
+                  projeto: cfByPrefix.filter(c => c.area === "projeto").length,
+                  pre_dimensionamento: cfByPrefix.filter(c => c.area === "pre_dimensionamento").length,
+                  pos_dimensionamento: cfByPrefix.filter(c => c.area === "pos_dimensionamento").length,
+                  outros: cfByPrefix.filter(c => c.area === "outros").length,
+                };
+              }
+            } catch (cfPrefixErr) {
+              console.warn(`[SM Migration] Custom field prefix classification error: ${(cfPrefixErr as Error).message}`);
+            }
+          }
+
           // Determine overall status for logging
           const allSteps = Object.values(report.steps);
           const hasError = allSteps.some((s) => s.status === "ERROR");
