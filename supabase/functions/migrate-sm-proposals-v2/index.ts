@@ -1621,7 +1621,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.error("START MIGRATION");
+    let preLoadStep = "inicializando pre-load";
+    let inPreLoad = true;
+
+    try {
     // Paginate SM proposals (max 1000 per page)
+    preLoadStep = "carregando propostas";
     const allProposals: any[] = [];
     let offset = 0;
     const pageSize = 1000;
@@ -1632,6 +1638,7 @@ Deno.serve(async (req) => {
       if ((page || []).length < pageSize) break;
       offset += pageSize;
     }
+    console.error("propostas carregadas");
 
     // console.log(`[SM Migration] Found ${allProposals.length} proposals matching filters`);
 
@@ -1644,6 +1651,7 @@ Deno.serve(async (req) => {
 
     // ─── 2. Pre-fetch SM clients for these proposals ─────
 
+    preLoadStep = "carregando clientes";
     const clientIds = [...new Set(allProposals.map((p) => p.sm_client_id).filter(Boolean))];
     const smClientMap = new Map<number, any>();
 
@@ -1658,10 +1666,12 @@ Deno.serve(async (req) => {
         smClientMap.set(c.sm_client_id, c);
       }
     }
+    console.error("clientes carregados");
 
     // console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
 
     // ─── 2b. Pre-fetch SM projects to resolve responsible (vendedor) & funnels ─
+    preLoadStep = "carregando sm_projects";
     const smProjectIds = [...new Set(allProposals.map((p) => p.sm_project_id).filter(Boolean))];
     const smProjectMap = new Map<number, { responsible_name: string | null; sm_funnel_name: string | null; sm_stage_name: string | null; all_funnels: any[] | null }>();
 
@@ -1677,6 +1687,7 @@ Deno.serve(async (req) => {
         smProjectMap.set(p.sm_project_id, { responsible_name: respName, sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name, all_funnels: p.all_funnels || null });
       }
     }
+    console.error("sm_projects carregados");
     // console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
 
 
@@ -2033,6 +2044,7 @@ Deno.serve(async (req) => {
       };
     }
 
+    preLoadStep = "carregando deals";
     const existingDeals = new Map<string, string>(); // legacy_key -> deal_id
     {
       const { data: deals } = await adminClient
@@ -2044,6 +2056,7 @@ Deno.serve(async (req) => {
         if (d.legacy_key) existingDeals.set(d.legacy_key, d.id);
       }
     }
+    console.error("deals carregados");
 
     // ─── 4. Pre-fetch existing propostas_nativas with sm_id ─
 
@@ -2077,6 +2090,7 @@ Deno.serve(async (req) => {
     // ─── 4b. Pre-create only REAL pipelines + stages from SM funnels ──
     // "Vendedores" is a consultor-resolution funnel and must not be materialized as pipeline.
     // Uses solar_market_funnel_stages (stage_order) for correct ordering when available.
+    preLoadStep = "carregando pipelines";
     if (!dry_run) {
       // 1) Fetch ordered stages from solar_market_funnel_stages (SSOT for SM stage order)
       const smOrderedStagesMap = new Map<string, Array<{ stage_name: string; stage_order: number }>>();
@@ -2208,6 +2222,7 @@ Deno.serve(async (req) => {
         console.error(`[SM Migration] Fixed position of ${positionsFixed} existing stages using SM order`);
       }
     }
+    console.error("pipelines carregados");
 
     // ─── 5a. Batch pre-fetch canonical entities for O(1) lookup ──
     // Pre-fetch ALL clientes for this tenant to avoid N+1 phone/email/doc lookups
@@ -2301,6 +2316,9 @@ Deno.serve(async (req) => {
         vOffset += 1000;
       }
     }
+
+    console.error("INICIANDO LOOP DE PROPOSTAS");
+    inPreLoad = false;
 
     // ─── 5. Process proposals ────────────────────────────
 
@@ -4219,6 +4237,20 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+    } catch (error) {
+      if (inPreLoad) {
+        const preLoadError = error instanceof Error ? error : new Error(String(error));
+        console.error("ERRO PRE-LOAD:", {
+          step: preLoadStep,
+          error: preLoadError.message,
+          stack: preLoadError.stack,
+        });
+        const wrappedPreLoadError = new Error(`ERRO PRE-LOAD [${preLoadStep}]: ${preLoadError.message}`);
+        wrappedPreLoadError.stack = preLoadError.stack;
+        throw wrappedPreLoadError;
+      }
+      throw error;
+    }
   } catch (err) {
     console.error("ERR", { step: "fatal", err: (err as Error).message, stack: (err as Error).stack });
     // ─── SSOT: Release lock as failed on fatal error ────
