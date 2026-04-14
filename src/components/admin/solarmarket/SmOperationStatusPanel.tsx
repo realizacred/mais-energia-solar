@@ -30,17 +30,23 @@ function getOpLabel(type: string): string {
 export function SmOperationStatusPanel() {
   const { data: activeRun } = useActiveSmOperation();
   const { data: lastRun } = useLastCompletedSmOperation();
-  const { expireNow } = useExpireStaleSmOperations();
+  const { expireNow, forceCancelActive } = useExpireStaleSmOperations();
   const [expiring, setExpiring] = useState(false);
 
   const handleForceExpire = async () => {
     setExpiring(true);
     try {
-      const count = await expireNow();
-      if (count > 0) {
+      // Try stale expiry first, then force-cancel if nothing expired
+      const staleCount = await expireNow();
+      if (staleCount > 0) {
         toast.success("Operação travada liberada com sucesso.");
       } else {
-        toast.info("Nenhuma operação stale encontrada.");
+        const forceCount = await forceCancelActive();
+        if (forceCount > 0) {
+          toast.success("Operação forçadamente parada.");
+        } else {
+          toast.info("Nenhuma operação ativa encontrada.");
+        }
       }
     } finally {
       setExpiring(false);
@@ -84,18 +90,21 @@ export function SmOperationStatusPanel() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isStale && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1 border-warning/30 text-warning hover:bg-warning/10"
-                onClick={handleForceExpire}
-                disabled={expiring}
-              >
-                {expiring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
-                Liberar
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-7 text-xs gap-1",
+                isStale
+                  ? "border-warning/30 text-warning hover:bg-warning/10"
+                  : "border-destructive/30 text-destructive hover:bg-destructive/10"
+              )}
+              onClick={handleForceExpire}
+              disabled={expiring}
+            >
+              {expiring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+              {isStale ? "Liberar" : "Forçar Parada"}
+            </Button>
             <Badge variant="outline" className={cn(
               "text-[10px]",
               isStale ? "bg-warning/10 text-warning border-warning/20" : "bg-primary/10 text-primary border-primary/20"
