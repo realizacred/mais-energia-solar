@@ -619,11 +619,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      // For cron/auto mode: pick what's still pending or exit
+      // For cron/auto mode: pick only operational sync still pending or exit.
+      // Funnel metadata must be explicit/manual — do not import funnels automatically.
       if (isCron && (!body.sync_type || body.sync_type === "auto" || body.sync_type === "proposals")) {
-        if ((funnelCount || 0) === 0 && (totalProjects || 0) > 0) {
-          sync_type = "funnels";
-        } else if (pendingProposals > 0) {
+        if (pendingProposals > 0) {
           sync_type = "proposals";
         } else if (pendingFunnels > 0) {
           sync_type = "projects_funnels";
