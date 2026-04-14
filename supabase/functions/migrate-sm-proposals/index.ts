@@ -2684,10 +2684,8 @@ Deno.serve(async (req) => {
           );
 
           // ALWAYS resolve stage from SM proposal status when using default/fallback pipeline.
-          // This ensures deals land in the correct stage (Ganho, Proposta enviada, etc.)
-          // instead of always getting the first stage (Recebido).
-          // FIX: Use resolveSmLifecycle (date-based) instead of raw smProp.status for accurate mapping.
-          // FIX: Use semantic keyword matching instead of exact name match (SaaS — each tenant has different stage names).
+          // Wrapped in try/catch to prevent pipeline resolution errors from aborting the entire flow.
+          try {
           if (!resolved.stage_id || resolved.source === "fallback_ui" || resolved.source === "comercial_default" || resolved.source === "fallback_default") {
             const smLifecycle = resolveSmLifecycle(smProp);
 
@@ -2731,7 +2729,6 @@ Deno.serve(async (req) => {
 
             // 2. Fallback: use is_won flag for approved/won statuses
             if (!mappedStageId && ["approved"].includes(smLifecycle)) {
-              // Query stages with is_won=true for this pipeline (from pre-loaded cache, need DB check)
               const { data: wonStages } = await adminClient
                 .from("pipeline_stages")
                 .select("id")
@@ -2767,6 +2764,10 @@ Deno.serve(async (req) => {
                 resolved.stage_id = firstStage;
               }
             }
+          }
+          } catch (stageResErr) {
+            console.warn(`[SM Migration] Stage resolution error (non-fatal): ${(stageResErr as Error).message}`);
+            report.steps.pipelines = { status: "ERROR", reason: `Stage resolution: ${(stageResErr as Error).message}` };
           }
 
           // ── MANDATORY FALLBACK: Never create a deal without pipeline_id + stage_id ──
