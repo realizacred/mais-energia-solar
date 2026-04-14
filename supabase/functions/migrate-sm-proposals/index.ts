@@ -2440,9 +2440,10 @@ Deno.serve(async (req) => {
             smProjForPipeline?.sm_stage_name || null,
           );
 
-          // Fallback: if stage_id is null or source is fallback_ui, resolve from SM proposal status
-          // This handles projects that only have "Vendedores" funnel (no LEAD/Engenharia/etc.)
-          if (!resolved.stage_id || resolved.source === "fallback_ui") {
+          // ALWAYS resolve stage from SM proposal status when using default/fallback pipeline.
+          // This ensures deals land in the correct stage (Fechado, Proposta enviada, etc.)
+          // instead of always getting the first stage (Recebido).
+          if (!resolved.stage_id || resolved.source === "fallback_ui" || resolved.source === "comercial_default" || resolved.source === "fallback_default") {
             // Map SM proposal status → native Comercial stage
             const smStatus = (smProp.status || "").toLowerCase();
             const statusStageMap: Record<string, string> = {
