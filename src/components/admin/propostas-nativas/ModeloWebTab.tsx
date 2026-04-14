@@ -403,7 +403,8 @@ export function TemplatesTab() {
                   />
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
         <div className="flex justify-end mt-6">
