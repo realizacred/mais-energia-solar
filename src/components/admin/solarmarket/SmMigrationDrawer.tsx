@@ -1035,7 +1035,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       const timeoutId = setTimeout(() => controller.abort(), 120_000);
 
       try {
-        const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals`, {
+        const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals-v2`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${session.access_token}`,
