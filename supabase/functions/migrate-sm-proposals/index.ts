@@ -1677,6 +1677,20 @@ Deno.serve(async (req) => {
     const normalizeCfKey = (key: string): string => {
       return key.replace(/^\[|\]$/g, "").trim();
     };
+
+    /** Strip cap_/cape_/capo_ prefix to get the base key for dedup across areas */
+    const stripCfPrefix = (key: string): string => {
+      return key.replace(/^(cape_|capo_|cap_)/i, "").trim();
+    };
+
+    /** Detect field_context area from original key prefix */
+    const detectCfArea = (key: string): string => {
+      const lk = key.toLowerCase();
+      if (lk.startsWith("cape_") || lk.startsWith("cape ")) return "pre_dimensionamento";
+      if (lk.startsWith("capo_") || lk.startsWith("capo ")) return "pos_dimensionamento";
+      if (lk.startsWith("cap_") || lk.startsWith("cap ")) return "projeto";
+      return "outros";
+    };
     const cfMappings = new Map<string, { target_namespace: string; target_path: string; transform: string; priority: number }>();
     {
       const { data: mappings } = await adminClient
@@ -3470,6 +3484,7 @@ Deno.serve(async (req) => {
 
               // P1: Inject customFieldValues from custom_fields_raw into snapshot
               // Classify by prefix: cap_ → projeto, cape_ → pré-dimensionamento, capo_ → pós-dimensionamento
+              // Use BASE KEY (without prefix) for dedup — cap_valor_total and cape_valor_total → same base "valor_total"
               if (smProp.custom_fields_raw?.values) {
                 const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
                 const customFieldValues: Record<string, string> = {};
@@ -3484,19 +3499,11 @@ Deno.serve(async (req) => {
                   const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
                   if (val !== "" && val != null) {
                     const strVal = String(val);
-                    customFieldValues[bareKey] = strVal;
-
-                    // Classify by prefix (cap_, cape_, capo_)
-                    const lowerKey = bareKey.toLowerCase();
-                    if (lowerKey.startsWith("cape_") || lowerKey.startsWith("cape ")) {
-                      customFieldsByArea.pre_dimensionamento[bareKey] = strVal;
-                    } else if (lowerKey.startsWith("capo_") || lowerKey.startsWith("capo ")) {
-                      customFieldsByArea.pos_dimensionamento[bareKey] = strVal;
-                    } else if (lowerKey.startsWith("cap_") || lowerKey.startsWith("cap ")) {
-                      customFieldsByArea.projeto[bareKey] = strVal;
-                    } else {
-                      customFieldsByArea.outros[bareKey] = strVal;
-                    }
+                    const area = detectCfArea(bareKey);
+                    const baseKey = stripCfPrefix(bareKey);
+                    // Use base key for snapshot dedup
+                    customFieldValues[baseKey] = strVal;
+                    customFieldsByArea[area][baseKey] = strVal;
                   }
                 }
                 if (Object.keys(customFieldValues).length > 0) {
@@ -3707,26 +3714,28 @@ Deno.serve(async (req) => {
           if (!dry_run && dealId && smProp.custom_fields_raw?.values) {
             try {
               const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
-              const cfByPrefix: Array<{ key: string; value: string; area: string }> = [];
+              // Dedup by base key: cap_valor_total and cape_valor_total → same base "valor_total"
+              // Last-write-wins per base key, area from the prefix that wrote last
+              const cfDeduped = new Map<string, { baseKey: string; value: string; area: string }>();
 
               for (const [key, entry] of Object.entries(cfVals)) {
                 const bareKey = normalizeCfKey(key);
                 const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
                 if (val === "" || val == null) continue;
-                const lowerKey = bareKey.toLowerCase();
-                let area = "outros";
-                if (lowerKey.startsWith("cape_") || lowerKey.startsWith("cape ")) {
-                  area = "pre_dimensionamento";
-                } else if (lowerKey.startsWith("capo_") || lowerKey.startsWith("capo ")) {
-                  area = "pos_dimensionamento";
-                } else if (lowerKey.startsWith("cap_") || lowerKey.startsWith("cap ")) {
-                  area = "projeto";
+                const area = detectCfArea(bareKey);
+                const baseKey = stripCfPrefix(bareKey);
+                // Dedup: same base key across prefixes → use the most specific area
+                // Priority: pre/pos > projeto > outros (more specific wins)
+                const existing = cfDeduped.get(baseKey.toLowerCase());
+                if (!existing || area !== "outros") {
+                  cfDeduped.set(baseKey.toLowerCase(), { baseKey, value: String(val), area });
                 }
-                cfByPrefix.push({ key: bareKey, value: String(val), area });
               }
 
+              const cfByPrefix = Array.from(cfDeduped.values());
+
               if (cfByPrefix.length > 0) {
-                // Check existing deal_custom_fields for this tenant to find matches
+                // Check existing deal_custom_fields for this tenant to find matches by BASE KEY
                 const { data: existingFields } = await adminClient
                   .from("deal_custom_fields")
                   .select("id, field_key, title, field_context")
@@ -3734,23 +3743,28 @@ Deno.serve(async (req) => {
 
                 const fieldByKey = new Map<string, { id: string; context: string }>();
                 for (const f of existingFields || []) {
+                  // Index by base key (strip prefix from existing field_key too for matching)
+                  const existingBaseKey = stripCfPrefix(f.field_key || "").toLowerCase();
+                  fieldByKey.set(existingBaseKey, { id: f.id, context: f.field_context || "outros" });
+                  // Also index by raw key for exact matches
                   fieldByKey.set((f.field_key || "").toLowerCase(), { id: f.id, context: f.field_context || "outros" });
                 }
 
                 const valuesToInsert: Array<Record<string, any>> = [];
 
                 for (const cf of cfByPrefix) {
-                  const existingField = fieldByKey.get(cf.key.toLowerCase());
+                  // Try to find existing field by base key (deduped)
+                  const existingField = fieldByKey.get(cf.baseKey.toLowerCase());
                   let fieldId: string;
 
                   if (existingField) {
                     fieldId = existingField.id;
                   } else {
-                    // Create the custom field definition (idempotent via field_key)
+                    // Create the custom field definition using BASE KEY (no prefix)
                     const fieldInsert = {
                       tenant_id: tenantId,
-                      field_key: cf.key,
-                      title: cf.key.replace(/^(cap_|cape_|capo_)/i, "").replace(/_/g, " "),
+                      field_key: cf.baseKey,
+                      title: cf.baseKey.replace(/_/g, " "),
                       field_type: "text",
                       field_context: cf.area,
                       is_active: true,
@@ -3762,11 +3776,11 @@ Deno.serve(async (req) => {
                       .single();
 
                     if (fieldErr || !newField) {
-                      console.warn(`[SM Migration] Custom field create error for ${cf.key}: ${fieldErr?.message}`);
+                      console.warn(`[SM Migration] Custom field create error for ${cf.baseKey}: ${fieldErr?.message}`);
                       continue;
                     }
                     fieldId = newField.id;
-                    fieldByKey.set(cf.key.toLowerCase(), { id: fieldId, context: cf.area });
+                    fieldByKey.set(cf.baseKey.toLowerCase(), { id: fieldId, context: cf.area });
                   }
 
                   valuesToInsert.push({
