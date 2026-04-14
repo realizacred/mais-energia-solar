@@ -3729,12 +3729,12 @@ Deno.serve(async (req) => {
                 // Check existing deal_custom_fields for this tenant to find matches
                 const { data: existingFields } = await adminClient
                   .from("deal_custom_fields")
-                  .select("id, field_key, field_label, context")
+                  .select("id, field_key, title, field_context")
                   .eq("tenant_id", tenantId);
 
                 const fieldByKey = new Map<string, { id: string; context: string }>();
                 for (const f of existingFields || []) {
-                  fieldByKey.set((f.field_key || "").toLowerCase(), { id: f.id, context: f.context || "outros" });
+                  fieldByKey.set((f.field_key || "").toLowerCase(), { id: f.id, context: f.field_context || "outros" });
                 }
 
                 const valuesToInsert: Array<Record<string, any>> = [];
@@ -3750,9 +3750,9 @@ Deno.serve(async (req) => {
                     const fieldInsert = {
                       tenant_id: tenantId,
                       field_key: cf.key,
-                      field_label: cf.key.replace(/^(cap_|cape_|capo_)/i, "").replace(/_/g, " "),
+                      title: cf.key.replace(/^(cap_|cape_|capo_)/i, "").replace(/_/g, " "),
                       field_type: "text",
-                      context: cf.area,
+                      field_context: cf.area,
                       is_active: true,
                     };
                     const { data: newField, error: fieldErr } = await adminClient
@@ -3773,7 +3773,7 @@ Deno.serve(async (req) => {
                     tenant_id: tenantId,
                     deal_id: dealId,
                     field_id: fieldId,
-                    value: cf.value,
+                    value_text: cf.value,
                   });
                 }
 
