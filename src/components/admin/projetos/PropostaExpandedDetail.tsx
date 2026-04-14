@@ -1110,6 +1110,32 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
+  const resolvePublicProposalUrl = async (withTracking = false) => {
+    if (!p.id || !latestVersao?.id) {
+      throw new Error("Gere a proposta primeiro.");
+    }
+
+    const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
+    const tipo = withTracking ? "tracked" : "public";
+    const token = await getOrCreateProposalToken(p.id, latestVersao.id, tipo);
+    const url = `${getPublicUrl()}/proposta/${token}`;
+
+    if (!withTracking) {
+      setPublicUrl(url);
+    }
+
+    return { token, url };
+  };
+
+  const openPublicProposal = async () => {
+    try {
+      const url = publicUrl ?? (await resolvePublicProposalUrl(false)).url;
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast({ title: "Erro ao abrir proposta", description: e.message, variant: "destructive" });
+    }
+  };
+
   const handleSend = async (canal: "link" | "whatsapp") => {
     if (!p.id || !latestVersao?.id) return;
     setSending(true);
@@ -1120,7 +1146,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         canal,
         lead_id: undefined,
       });
-      setPublicUrl(result.public_url);
+      const canonicalUrl = `${getPublicUrl()}/proposta/${result.token}`;
+      setPublicUrl(canonicalUrl);
       if (canal === "whatsapp" && result.whatsapp_sent) {
         toast({ title: "Proposta enviada via WhatsApp! ✅" });
       } else {
@@ -1133,17 +1160,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  // Copy link (unified: uses centralized getOrCreateProposalToken)
   const handleCopyLink = async (withTracking: boolean) => {
-    if (!p.id || !latestVersao?.id) {
-      toast({ title: "Link não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
-      return;
-    }
     try {
-      const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
-      const tipo = withTracking ? "tracked" : "public";
-      const token = await getOrCreateProposalToken(p.id, latestVersao.id, tipo);
-      const url = `${getPublicUrl()}/proposta/${token}`;
+      const { url } = await resolvePublicProposalUrl(withTracking);
       try {
         await navigator.clipboard.writeText(url);
       } catch {
@@ -1369,18 +1388,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56" onClick={e => e.stopPropagation()}>
-                {/* Web proposal actions (primary) */}
+              <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
                 {!isMigrated && latestVersao && (
                   <>
-                    <DropdownMenuItem onClick={() => {
-                      if (publicUrl) window.open(publicUrl, "_blank", "noopener,noreferrer");
-                      else copyPublicLink();
-                    }}>
+                    <DropdownMenuItem onClick={openPublicProposal}>
                       <ExternalLink className="h-3.5 w-3.5 mr-2 text-primary" /> Abrir proposta web
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={copyTrackedLink}>
@@ -1398,61 +1413,36 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     <DropdownMenuSeparator />
                   </>
                 )}
+
                 {isMigrated && latestVersao && (
                   <>
-                    <DropdownMenuItem disabled title="Proposta migrada não possui link público">
-                      <ExternalLink className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Proposta web
+                    <DropdownMenuItem disabled>
+                      <ExternalLink className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Proposta web indisponível
                       <span className="ml-auto text-[9px] text-muted-foreground/60">Migrada</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
                 )}
 
-                {/* Document downloads (secondary) */}
-                <DropdownMenuItem onClick={handleDownloadPdf} disabled={!latestVersao?.output_pdf_path && !latestVersao?.link_pdf}>
-                  <Download className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Baixar PDF
+                <DropdownMenuItem onClick={() => handleEditWithProtection(() => navigate(`/admin/propostas-nativas?edit=${p.id}`))}>
+                  <Pencil className="h-3.5 w-3.5 mr-2 text-primary" /> Editar proposta
                 </DropdownMenuItem>
-                {latestVersao?.output_docx_path && (
-                  <DropdownMenuItem onClick={handleDownloadDocx}>
-                    <Download className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Baixar DOCX
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-
-                {/* Management actions */}
+                <DropdownMenuItem onClick={() => setCloneModalOpen(true)}>
+                  <Copy className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Duplicar proposta
+                </DropdownMenuItem>
                 {!isPrincipal && onSetPrincipal && (
                   <DropdownMenuItem onClick={onSetPrincipal}>
                     <Star className="h-3.5 w-3.5 mr-2 text-warning" /> Definir como principal
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={() => {
-                  if (latestVersao) navigate(`/admin/propostas-nativas/${p.id}/versoes/${latestVersao.id}`);
-                }}>
-                  <Eye className="h-3.5 w-3.5 mr-2 text-primary" /> Visualizar detalhes
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleEditWithProtection(() => {
-                  if (latestVersao) {
-                    const params = new URLSearchParams({
-                      proposta_id: p.id,
-                      versao_id: latestVersao.id,
-                    });
-                    if (dealId) params.set("deal_id", dealId);
-                    if (customerId) params.set("customer_id", customerId);
-                    navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-                  } else {
-                    const params = new URLSearchParams({ deal_id: dealId });
-                    if (customerId) params.set("customer_id", customerId);
-                    navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-                  }
-                })}>
-                  <Pencil className="h-3.5 w-3.5 mr-2 text-warning" /> Editar dimensionamento
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)} disabled={!latestVersao}>
-                  <MessageSquareText className="h-3.5 w-3.5 mr-2 text-primary" /> Gerar mensagem
-                </DropdownMenuItem>
+                {onArchive && !isPrincipal && (
+                  <DropdownMenuItem onClick={onArchive}>
+                    <FolderOpen className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Arquivar proposta
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setCloneModalOpen(true)}>
-                  <Copy className="h-3.5 w-3.5 mr-2 text-primary" /> Clonar proposta
+                <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="text-destructive focus:text-destructive">
+                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir proposta
                 </DropdownMenuItem>
                 {canReabrir && (
                   <>
@@ -1462,160 +1452,110 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     </DropdownMenuItem>
                   </>
                 )}
-                {onArchive && p.status !== "arquivada" && (
-                  <DropdownMenuItem onClick={onArchive}>
-                    <FolderOpen className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Arquivar
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => setDeleteOpen(true)}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir proposta
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
-        {/* Mobile metrics */}
-        <div className="md:hidden px-4 pb-3 grid grid-cols-3 gap-2 text-xs">
-          <div className="flex items-center gap-1.5">
-            <Zap className="h-3 w-3 text-warning" />
-            <div>
-              <p className="text-[9px] text-muted-foreground">Potência</p>
-              <p className="font-bold">{latestVersao?.potencia_kwp ? `${latestVersao.potencia_kwp.toFixed(2)} kWp` : "—"}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <SunMedium className="h-3 w-3 text-muted-foreground" />
-            <div>
-              <p className="text-[9px] text-muted-foreground">Geração</p>
-              <p className="font-bold">{latestVersao?.geracao_mensal ? `${latestVersao.geracao_mensal.toFixed(0)} kWh` : "—"}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <DollarSign className="h-3 w-3 text-warning" />
-            <div>
-              <p className="text-[9px] text-muted-foreground">Preço</p>
-              <p className="font-bold">{latestVersao?.valor_total ? formatBRL(latestVersao.valor_total) : "—"}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Expanded detail ────────────────── */}
         {isExpanded && (
-          <div className="border-t border-border/30">
-            {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="flex items-center justify-between px-4 pt-3">
-                <TabsList className="h-8 bg-transparent p-0 gap-4">
-                  <TabsTrigger value="resumo" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                    Resumo
-                  </TabsTrigger>
-                  <TabsTrigger value="arquivo" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                    Arquivo
-                  </TabsTrigger>
-                  <TabsTrigger value="dados" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                    Dados
-                  </TabsTrigger>
-                  <TabsTrigger value="historico" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                    Histórico
-                  </TabsTrigger>
-                </TabsList>
+          <div className="border-t border-border/50 bg-background/40">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <div className="px-4 pt-3">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <TabsList className="overflow-x-auto flex-wrap h-auto bg-transparent p-0 gap-4">
+                    <TabsTrigger value="resumo" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                      Resumo
+                    </TabsTrigger>
+                    <TabsTrigger value="arquivo" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                      Arquivo
+                    </TabsTrigger>
+                    <TabsTrigger value="dados" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                      Dados
+                    </TabsTrigger>
+                    <TabsTrigger value="historico" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                      Histórico
+                    </TabsTrigger>
+                  </TabsList>
 
-                {/* Accept / Reject buttons */}
-                {(p.status === "gerada" || p.status === "generated" || p.status === "enviada" || p.status === "sent" || p.status === "vista") && (
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10" onClick={() => updatePropostaStatus("aceita")} disabled={updatingStatus}>
-                      <CheckCircle className="h-3 w-3" /> Aceitar
-                    </Button>
-                    <AlertDialog open={recusaDialogOpen} onOpenChange={setRecusaDialogOpen}>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10" disabled={updatingStatus}>
-                          <AlertCircle className="h-3 w-3" /> Recusar
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="w-[90vw] max-w-md">
-                        <AlertDialogHeader>
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                              <AlertCircle className="w-5 h-5 text-destructive" />
+                  {(p.status === "gerada" || p.status === "generated" || p.status === "enviada" || p.status === "sent" || p.status === "vista") && (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10" onClick={() => updatePropostaStatus("aceita")} disabled={updatingStatus}>
+                        <CheckCircle className="h-3 w-3" /> Aceitar
+                      </Button>
+                      <AlertDialog open={recusaDialogOpen} onOpenChange={setRecusaDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10" disabled={updatingStatus}>
+                            <AlertCircle className="h-3 w-3" /> Recusar
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="w-[90vw] max-w-md">
+                          <AlertDialogHeader>
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                                <AlertCircle className="w-5 h-5 text-destructive" />
+                              </div>
+                              <AlertDialogTitle>Recusar proposta?</AlertDialogTitle>
                             </div>
-                            <AlertDialogTitle>Recusar proposta?</AlertDialogTitle>
-                          </div>
-                          <AlertDialogDescription>Informe o motivo da recusa (opcional).</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <textarea placeholder="Motivo da recusa..." value={recusaMotivo} onChange={(e) => setRecusaMotivo(e.target.value)} className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { updatePropostaStatus("recusada", { motivo: recusaMotivo }); setRecusaMotivo(""); setRecusaDialogOpen(false); }}>
-                            Confirmar Recusa
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            <AlertDialogDescription>Informe o motivo da recusa (opcional).</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <textarea placeholder="Motivo da recusa..." value={recusaMotivo} onChange={(e) => setRecusaMotivo(e.target.value)} className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { updatePropostaStatus("recusada", { motivo: recusaMotivo }); setRecusaMotivo(""); setRecusaDialogOpen(false); }}>
+                              Confirmar Recusa
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  )}
+                </div>
+
+                {!isMigrated && latestVersao && (
+                  <div className="pt-3 pb-1">
+                    <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15">
+                      <div className="flex items-center gap-1.5 mr-2">
+                        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+                          <ExternalLink className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <span className="text-xs font-semibold text-foreground">Proposta Web</span>
+                      </div>
+                      <Button size="sm" variant="default" className="h-7 text-xs gap-1.5" onClick={openPublicProposal}>
+                        <ExternalLink className="h-3 w-3" /> Abrir proposta
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={copyTrackedLink}>
+                        <Link2 className="h-3 w-3" /> Link c/ rastreio
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={copyPublicLink}>
+                        <Link2 className="h-3 w-3" /> Link público
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => handleSend("whatsapp")} disabled={sending}>
+                        <MessageCircle className="h-3 w-3" /> WhatsApp
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => setMessageDrawerOpen(true)}>
+                        <Mail className="h-3 w-3" /> E-mail
+                      </Button>
+
+                      {(latestVersao.output_pdf_path || latestVersao.link_pdf || latestVersao.output_docx_path) && (
+                        <>
+                          <div className="w-px h-5 bg-border mx-1 hidden sm:block" />
+                          <span className="text-[10px] text-muted-foreground hidden sm:inline">Documentos:</span>
+                          {(latestVersao.output_pdf_path || latestVersao.link_pdf) && (
+                            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground" onClick={handleDownloadPdf} disabled={downloadingPdf}>
+                              <Download className="h-3 w-3" /> PDF
+                            </Button>
+                          )}
+                          {latestVersao.output_docx_path && (
+                            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground" onClick={handleDownloadDocx}>
+                              <Download className="h-3 w-3" /> DOCX
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
-
-              {/* ── Web Proposal Actions Bar (primary) ── */}
-              {!isMigrated && latestVersao && (
-                <div className="px-4 pt-3 pb-1">
-                  <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15">
-                    <div className="flex items-center gap-1.5 mr-2">
-                      <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
-                        <ExternalLink className="h-3.5 w-3.5 text-primary" />
-                      </div>
-                      <span className="text-xs font-semibold text-foreground">Proposta Web</span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="h-7 text-xs gap-1.5"
-                      onClick={() => {
-                        if (publicUrl) window.open(publicUrl, "_blank", "noopener,noreferrer");
-                        else handleCopyLink(false).then(() => {
-                          if (publicUrl) window.open(publicUrl, "_blank", "noopener,noreferrer");
-                        });
-                      }}
-                    >
-                      <ExternalLink className="h-3 w-3" /> Abrir proposta
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={copyTrackedLink}>
-                      <Link2 className="h-3 w-3" /> Link c/ rastreio
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={copyPublicLink}>
-                      <Link2 className="h-3 w-3" /> Link público
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => handleSend("whatsapp")} disabled={sending}>
-                      <MessageCircle className="h-3 w-3" /> WhatsApp
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => setMessageDrawerOpen(true)}>
-                      <Mail className="h-3 w-3" /> E-mail
-                    </Button>
-
-                    {/* Secondary: PDF/DOCX downloads */}
-                    {(latestVersao.output_pdf_path || latestVersao.link_pdf || latestVersao.output_docx_path) && (
-                      <>
-                        <div className="w-px h-5 bg-border mx-1 hidden sm:block" />
-                        <span className="text-[10px] text-muted-foreground hidden sm:inline">Documentos:</span>
-                        {(latestVersao.output_pdf_path || latestVersao.link_pdf) && (
-                          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground" onClick={handleDownloadPdf} disabled={downloadingPdf}>
-                            <Download className="h-3 w-3" /> PDF
-                          </Button>
-                        )}
-                        {latestVersao.output_docx_path && (
-                          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground" onClick={handleDownloadDocx}>
-                            <Download className="h-3 w-3" /> DOCX
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {loadingDetail ? (
                 <div className="flex items-center justify-center py-10 text-muted-foreground">
@@ -1624,7 +1564,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </div>
               ) : (
                 <>
-                  {/* ─ Resumo Tab ─────────────── */}
                   <TabsContent value="resumo" className="px-4 pb-4 mt-0">
                     {(snapshot as Record<string, any>)?.source === "legacy_import" ? (
                       <SmResumoTab snapshot={snapshot as Record<string, any>} latestVersao={latestVersao} wpPrice={wpPrice} />
@@ -1633,7 +1572,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     )}
                   </TabsContent>
 
-                  {/* ─ Arquivo Tab — uses same StepDocumento for all proposals (SSOT) ─ */}
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
                       <StepDocumento
@@ -1677,7 +1615,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     </div>
                   </TabsContent>
 
-                  {/* ─ Dados Tab — uses same StepResumo layout as wizard Resumo ─ */}
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
                       <ProposalSnapshotView
@@ -1689,14 +1626,12 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     </div>
                   </TabsContent>
 
-                  {/* ─ Histórico Tab ──────────── */}
                   <TabsContent value="historico" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
                       {mergedTimeline.length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-8">Nenhum registro de histórico encontrado</p>
                       ) : (
                         <div className="relative pl-6">
-                          {/* Timeline line */}
                           <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-primary/20" />
 
                           {mergedTimeline.map((entry) => {
@@ -1705,14 +1640,12 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                             return (
                               <div key={entry.id} className="relative flex gap-3 pb-5 last:pb-0">
-                                {/* Timeline dot */}
                                 <div className="absolute -left-6 mt-1">
                                   <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", entry.dotClass)}>
                                     {entry.icon}
                                   </div>
                                 </div>
 
-                                {/* Content */}
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold text-foreground">{entry.userName}</p>
                                   <p className="text-[10px] text-muted-foreground">{dateStr} às {timeStr}</p>

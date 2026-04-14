@@ -375,31 +375,31 @@ function ProjetoDetalheContent() {
             </div>
           </div>
 
-          {/* Row 2: Tabs */}
-          <div className="flex items-center border-b border-border/60 -mx-3 sm:-mx-4 px-2 sm:px-4 overflow-x-auto scrollbar-hide overflow-y-hidden">
-            {TABS.map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              const badge = tabBadge(tab.id);
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-[1px]",
-                    isActive
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4", isActive ? tab.color : "text-muted-foreground")} />
-                  {tab.label}
-                  {badge !== null && (
-                    <span className="ml-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{badge}</span>
-                  )}
-                </button>
-              );
-            })}
+          <div className="border-b border-border/60 -mx-3 sm:-mx-4 px-3 sm:px-4 py-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Seção do projeto
+                </p>
+              </div>
+              <div className="w-full sm:w-[280px]">
+                <Select value={activeTab} onValueChange={(value) => setActiveTab(value as TabId)}>
+                  <SelectTrigger className="h-9 bg-background">
+                    <SelectValue placeholder="Selecione a seção" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TABS.map((tab) => {
+                      const badge = tabBadge(tab.id);
+                      return (
+                        <SelectItem key={tab.id} value={tab.id}>
+                          {tab.label}{badge !== null ? ` (${badge})` : ""}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
