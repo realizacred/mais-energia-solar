@@ -489,22 +489,25 @@ export default function PropostaLanding() {
         </div>
       )}
 
-      {/* MOBILE STICKY CTA */}
+      {/* MOBILE STICKY CTA — high-conversion */}
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 40,
-        background: "linear-gradient(180deg, transparent 0%, rgba(15,37,99,0.95) 30%)",
-        padding: "20px 16px 16px",
-        display: "flex", justifyContent: "center", gap: 10,
+        background: "linear-gradient(180deg, transparent 0%, rgba(11,29,58,0.98) 40%)",
+        padding: "24px 16px 20px",
+        display: "flex", justifyContent: "center", gap: 12,
       }}>
         <button
           onClick={scrollToCTA}
           style={{
-            background: "#F07B24", color: "#fff", border: "none", borderRadius: 10,
-            padding: "12px 28px", fontFamily: "Montserrat, sans-serif", fontWeight: 800,
-            fontSize: "0.9rem", cursor: "pointer", boxShadow: "0 4px 20px rgba(240,123,36,0.4)",
+            background: "linear-gradient(135deg, #F07B24, #E56D1A)",
+            color: "#fff", border: "none", borderRadius: 14,
+            padding: "14px 32px", fontFamily: "Montserrat, sans-serif", fontWeight: 800,
+            fontSize: "0.95rem", cursor: "pointer",
+            boxShadow: "0 8px 32px rgba(240,123,36,0.4)",
+            textTransform: "uppercase", letterSpacing: "0.04em",
           }}
         >
-          ACEITAR PROPOSTA
+          ✨ ACEITAR PROPOSTA
         </button>
         {consultorTelefone && (
           <a
@@ -512,11 +515,11 @@ export default function PropostaLanding() {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              background: "#25D366", color: "#fff", border: "none", borderRadius: 10,
-              padding: "12px 20px", fontFamily: "Montserrat, sans-serif", fontWeight: 700,
-              fontSize: "0.85rem", textDecoration: "none",
-              display: "flex", alignItems: "center", gap: 6,
-              boxShadow: "0 4px 20px rgba(37,211,102,0.4)",
+              background: "#25D366", color: "#fff", border: "none", borderRadius: 14,
+              padding: "14px 22px", fontFamily: "Montserrat, sans-serif", fontWeight: 700,
+              fontSize: "0.88rem", textDecoration: "none",
+              display: "flex", alignItems: "center", gap: 8,
+              boxShadow: "0 8px 32px rgba(37,211,102,0.4)",
             }}
           >
             💬 WhatsApp
