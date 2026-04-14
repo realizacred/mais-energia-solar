@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Archive } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
