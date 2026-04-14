@@ -12,6 +12,8 @@ export function useResetMigratedData() {
         const data = await invokeEdgeFunction<{
           success: boolean;
           counts?: Record<string, number>;
+          cancelled_runs?: number;
+          background_migration_paused?: boolean;
           error?: string;
         }>("reset-migrated-data", {
           body: { confirm: "LIMPAR MIGRADOS" },
@@ -35,6 +37,7 @@ export function useResetMigratedData() {
       qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
       qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
       qc.invalidateQueries({ queryKey: ["canonical-check"] });
+      qc.invalidateQueries({ queryKey: ["sm-operation-runs"] });
       // Also refresh native project views
       qc.invalidateQueries({ queryKey: ["projetos"] });
       qc.invalidateQueries({ queryKey: ["deals"] });
@@ -50,10 +53,14 @@ export function useResetMigratedData() {
         c.recebimentos && `${c.recebimentos} recebimentos`,
       ].filter(Boolean);
 
+      const pausedSuffix = data?.background_migration_paused
+        ? ` Migração automática pausada${data?.cancelled_runs ? ` (${data.cancelled_runs} execução(ões) cancelada(s))` : ""}.`
+        : "";
+
       toast.success("✅ Dados migrados limpos!", {
         description: parts.length > 0
-          ? parts.join(", ") + " removidos. Dados SM preservados."
-          : "Dados canônicos removidos. Dados SM preservados.",
+          ? parts.join(", ") + " removidos. Dados SM preservados." + pausedSuffix
+          : "Dados canônicos removidos. Dados SM preservados." + pausedSuffix,
         duration: 8000,
       });
       // RB-03-exception: no reload — user needs to see results on screen
