@@ -164,12 +164,23 @@ Deno.serve(async (req) => {
     let html: string;
 
     if (templateBlocks && templateBlocks.length > 0) {
-      // ── NEW: Render using template blocks (semantic + editor blocks)
+      // ── Render using template blocks (semantic + editor blocks)
       const variables = buildVariablesFromSnapshot(snap, renderParams);
       html = renderTemplateBlocksToHtml(templateBlocks, variables, renderParams);
+    } else if (!templateId) {
+      // No template linked — explicit error instead of silent legacy fallback
+      console.error("[proposal-render] No template_id_used or template_id found for versao:", versao_id);
+      return jsonError(
+        "Nenhum template WEB foi vinculado à proposta/versão. Selecione um template no wizard e gere novamente.",
+        400,
+      );
     } else {
-      // ── LEGACY: Hardcoded fallback when no template blocks exist
-      html = renderLegacyHtml(renderParams);
+      // Template exists but has no blocks (edge case: empty template_html)
+      console.error("[proposal-render] Template found but template_html is empty/invalid:", templateId);
+      return jsonError(
+        "O template selecionado não possui conteúdo HTML válido. Edite o template ou selecione outro.",
+        400,
+      );
     }
 
     // ── 8. SALVAR ───────────────────────────────────────────
