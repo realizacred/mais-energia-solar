@@ -240,8 +240,9 @@ export default function PropostaLanding() {
   // ─── Build template variables map from snapshot ───
   const templateVariables = useMemo(() => {
     if (!snapshot || !versaoData) return {};
+    try {
     const s = snapshot;
-    const raw = s._raw || {};
+    const raw = (s as any)?._raw || {};
     const vars: Record<string, string> = {};
     for (const [k, v] of Object.entries(raw)) {
       if (v !== null && v !== undefined) vars[k] = String(v);
@@ -308,6 +309,10 @@ export default function PropostaLanding() {
     if (brand?.logo_url) vars["logo_url"] = brand.logo_url;
     if (brand?.logo_white_url) vars["logo_white_url"] = brand.logo_white_url;
     return vars;
+    } catch (e) {
+      console.error("[PropostaLanding] Erro ao construir variáveis do template:", e);
+      return {};
+    }
   }, [snapshot, versaoData, activeCenario, tenantNome, consultorNome, consultorTelefone, brand]);
 
   // ─── Shared section props (safe defaults) ───
