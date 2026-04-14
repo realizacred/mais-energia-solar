@@ -1063,6 +1063,7 @@ Deno.serve(async (req) => {
     }
 
 
+    if (rawBody?.action === "pause_background_migration") {
       // 1. Disable future runs
       await adminClient
         .from("sm_migration_settings")
