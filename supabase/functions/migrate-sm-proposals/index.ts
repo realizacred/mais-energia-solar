@@ -36,7 +36,7 @@ interface MigrationParams {
   auto_resume?: boolean;
 }
 
-type StepStatus = "WOULD_CREATE" | "WOULD_LINK" | "WOULD_SKIP" | "FALLBACK_USED" | "CONFLICT" | "ERROR";
+type StepStatus = "WOULD_CREATE" | "CREATED" | "WOULD_LINK" | "WOULD_SKIP" | "FALLBACK_USED" | "CONFLICT" | "ERROR";
 
 // ── Fallback IDs — resolved dynamically per tenant from sm_migration_settings + DB lookups ──
 // These are populated at runtime in resolveDynamicFallbacks() before any migration logic runs.
@@ -849,7 +849,7 @@ Deno.serve(async (req) => {
     }
 
     const params: MigrationParams = rawBody as MigrationParams;
-    const { dry_run = true, batch_size = 50 } = params;
+    const { dry_run = false, batch_size = 50 } = params;
     let { filters = {} } = params;
     const autoResolveOwner = params.auto_resolve_owner !== false;
 
@@ -2345,7 +2345,7 @@ Deno.serve(async (req) => {
                 if (docNorm2.length >= 11) clienteByDoc.set(docNorm2, clienteId);
                 clienteByCode.set(clienteCode, clienteId);
                 clienteAddressMap.set(clienteId, { rua: smClient.address || null, cidade: smClient.city || smProp.cidade || null });
-                report.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
+                report.steps.cliente = { status: "CREATED", id: clienteId };
               }
             }
 
@@ -2628,7 +2628,7 @@ Deno.serve(async (req) => {
               }
               dealId = newDeal!.id;
               existingDeals.set(legacyKey, dealId);
-              report.steps.deal = { status: "WOULD_CREATE", id: dealId, reason: `pipeline: ${resolved.source}` };
+              report.steps.deal = { status: "CREATED", id: dealId, reason: `pipeline: ${resolved.source}` };
 
               // Insert primary pipeline into deal_pipeline_stages so UI shows it
               if (resolved.pipeline_id && resolved.stage_id) {
@@ -2702,7 +2702,7 @@ Deno.serve(async (req) => {
               }
 
               report.steps.pipelines = {
-                status: dry_run ? "WOULD_CREATE" : "WOULD_CREATE",
+                status: dry_run ? "WOULD_CREATE" : "CREATED",
                 reason: `${pipelineDetails.length} funis mapeados`,
                 details: pipelineDetails,
               };
@@ -2858,7 +2858,7 @@ Deno.serve(async (req) => {
                       report.steps.projeto = { status: "ERROR", reason: retryErr.message };
                     } else {
                       projetoId = retryProj!.id;
-                      report.steps.projeto = { status: "WOULD_CREATE", id: projetoId };
+                      report.steps.projeto = { status: "CREATED", id: projetoId };
                     }
                   } else {
                     report.steps.projeto = { status: "ERROR", reason: projErr.message };
@@ -2867,7 +2867,7 @@ Deno.serve(async (req) => {
                   projetoId = newProj!.id;
                   projetoByCodigo.set(projetoCodigo, projetoId);
                   projetoByDeal.set(dealId, projetoId);
-                  report.steps.projeto = { status: "WOULD_CREATE", id: projetoId };
+                  report.steps.projeto = { status: "CREATED", id: projetoId };
                 }
               }
             }
@@ -2922,7 +2922,7 @@ Deno.serve(async (req) => {
                   enviada_at: smProp.send_at || null,
                   proposta_num: null,
                   codigo: `PROP-SM-${smProp.sm_project_id || 0}-${smProp.sm_proposal_id}`,
-                  is_principal: report.steps.projeto?.status === "WOULD_CREATE", // only first proposal of a project is principal
+                  is_principal: report.steps.projeto?.status === "WOULD_CREATE" || report.steps.projeto?.status === "CREATED", // only first proposal of a project is principal
               };
               if (smPropDate) {
                 propInsert.created_at = smPropDate;
@@ -2944,7 +2944,7 @@ Deno.serve(async (req) => {
               }
               propostaId = newProp!.id;
               existingPropostas.set(smIdKey, propostaId);
-              report.steps.proposta_nativa = { status: "WOULD_CREATE", id: propostaId };
+              report.steps.proposta_nativa = { status: "CREATED", id: propostaId };
             }
           }
 
@@ -3294,7 +3294,7 @@ Deno.serve(async (req) => {
                 await logItem(adminClient, tenantId, smProp.sm_proposal_id, report.sm_client_name, "ERROR", report, dry_run);
                 continue;
               } else {
-                report.steps.proposta_versao = { status: "WOULD_CREATE", id: newVer!.id };
+                report.steps.proposta_versao = { status: "CREATED", id: newVer!.id };
                 existingVersoes.add(propostaId);
               }
               } catch (versionBuildErr) {
@@ -3443,8 +3443,8 @@ Deno.serve(async (req) => {
           if (!dry_run) {
             summary[overallStatus === "SKIP" ? "WOULD_SKIP" : overallStatus === "SUCCESS" ? "SUCCESS" : "ERROR"]++;
 
-            const propostaStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED", "SUCCESS"].includes(report.steps.proposta_nativa?.status || "");
-            const versaoStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED", "SUCCESS"].includes(report.steps.proposta_versao?.status || "");
+            const propostaStepOk = ["CREATED", "WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED", "SUCCESS"].includes(report.steps.proposta_nativa?.status || "");
+            const versaoStepOk = ["CREATED", "WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED", "SUCCESS"].includes(report.steps.proposta_versao?.status || "");
 
             // Stamp migrado_em when migration succeeded OR everything was already migrated (all SKIP)
             const shouldStamp = (overallStatus === "SUCCESS" && propostaId && propostaStepOk && versaoStepOk) || overallStatus === "SKIP";
@@ -3607,7 +3607,7 @@ Deno.serve(async (req) => {
                 .single();
               if (!insErr && newClient) {
                 clienteId = newClient.id;
-                groupBReport.steps.cliente = { status: "WOULD_CREATE", id: clienteId };
+                groupBReport.steps.cliente = { status: "CREATED", id: clienteId };
               } else if (insErr?.message?.includes("uq_clientes_tenant_cliente_code")) {
                 const { data: existing } = await adminClient.from("clientes").select("id").eq("tenant_id", tenantId).eq("cliente_code", clienteCode).maybeSingle();
                 if (existing) clienteId = existing.id;
@@ -3667,7 +3667,7 @@ Deno.serve(async (req) => {
               groupBReport.steps.projeto = { status: "ERROR", reason: projErr.message };
               summary.ERROR = (summary.ERROR || 0) + 1;
             } else {
-              groupBReport.steps.projeto = { status: "WOULD_CREATE", id: newProj!.id };
+              groupBReport.steps.projeto = { status: "CREATED", id: newProj!.id };
               summary.SUCCESS = (summary.SUCCESS || 0) + 1;
 
               // Stamp migrado_em on the SM project after successful migration
