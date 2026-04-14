@@ -2348,11 +2348,11 @@ Deno.serve(async (req) => {
             const smStatus = (smProp.status || "").toLowerCase();
             const statusStageMap: Record<string, string> = {
               // SM status → native stage name for lookup
-              "approved": "Ganho",
-              "generated": "Proposta Enviada",
-              "sent": "Proposta Enviada",
-              "viewed": "Proposta Enviada",
-              "created": "Qualificação",
+              "approved": "Fechado",
+              "generated": "Proposta enviada",
+              "sent": "Proposta enviada",
+              "viewed": "Proposta enviada",
+              "created": "Qualificado",
             };
             const targetStageName = statusStageMap[smStatus];
             if (targetStageName) {
@@ -2606,16 +2606,29 @@ Deno.serve(async (req) => {
                       return FALLBACK_FUNIL_ID;
                     })(),
                     etapa_id: (() => {
-                      // Resolve etapa_id: first etapa of the resolved funil
+                      // Resolve etapa_id: match SM stage name to projeto_etapas by name, fallback to first etapa
                       const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                      const smStageName = smProj?.sm_stage_name || null;
                       const funnels: any[] = smProj?.all_funnels || [];
+                      
+                      // Helper: try to match SM stage name within a funil
+                      const matchEtapaByName = (funilId: string, stageName: string | null): string | null => {
+                        if (!stageName) return null;
+                        const nameKey = `${funilId}::${normalizeComparableName(stageName)}`;
+                        return funilEtapaByNameMap.get(nameKey) || null;
+                      };
+
                       for (const f of funnels) {
                         const fName = normalizeComparableName(String(f.funnelName || "").trim());
                         if (!fName || fName === "vendedores") continue;
                         const lookupName = fName === "lead" ? normalizeComparableName("Comercial") : fName;
                         const funilId = projetoFunisMap.get(lookupName) || projetoFunisMap.get(fName);
                         if (funilId) {
-                          return funilFirstEtapaMap.get(funilId) || FALLBACK_ETAPA_ID;
+                          // Try matching SM stage name first, then funnel's stageName, then first etapa
+                          const fStageName = String(f.stageName || "").trim();
+                          return matchEtapaByName(funilId, fStageName) 
+                            || matchEtapaByName(funilId, smStageName)
+                            || funilFirstEtapaMap.get(funilId) || FALLBACK_ETAPA_ID;
                         }
                       }
                       if (smProj?.sm_funnel_name) {
@@ -2623,7 +2636,10 @@ Deno.serve(async (req) => {
                         if (fName && fName !== "vendedores") {
                           const lookupName = fName === "lead" ? normalizeComparableName("Comercial") : fName;
                           const funilId = projetoFunisMap.get(lookupName) || projetoFunisMap.get(fName);
-                          if (funilId) return funilFirstEtapaMap.get(funilId) || FALLBACK_ETAPA_ID;
+                          if (funilId) {
+                            return matchEtapaByName(funilId, smStageName) 
+                              || funilFirstEtapaMap.get(funilId) || FALLBACK_ETAPA_ID;
+                          }
                         }
                       }
                       return FALLBACK_ETAPA_ID;
