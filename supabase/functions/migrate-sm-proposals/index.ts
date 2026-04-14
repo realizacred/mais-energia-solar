@@ -38,11 +38,12 @@ interface MigrationParams {
 
 type StepStatus = "WOULD_CREATE" | "WOULD_LINK" | "WOULD_SKIP" | "FALLBACK_USED" | "CONFLICT" | "ERROR";
 
-// ── Fallback constants — hardcoded tenant IDs for when SM funnel mapping fails ──
-const FALLBACK_PIPELINE_ID = '988a6ce8-c8e5-43d8-8f49-57aad2f7d794'; // Comercial
-const FALLBACK_STAGE_ID    = '9e329f1b-5fe0-4e5a-9d82-4a38a186975a'; // Proposta enviada
-const FALLBACK_FUNIL_ID    = '54f3559c-b38e-4aa3-beaa-e773cbecb4e0'; // Vendedor
-const FALLBACK_ETAPA_ID    = '2484fdfa-dcda-4dcb-86ac-ce68ac26973e'; // Novo
+// ── Fallback IDs — resolved dynamically per tenant from sm_migration_settings + DB lookups ──
+// These are populated at runtime in resolveDynamicFallbacks() before any migration logic runs.
+let FALLBACK_PIPELINE_ID = '';
+let FALLBACK_STAGE_ID    = '';
+let FALLBACK_FUNIL_ID    = '';
+let FALLBACK_ETAPA_ID    = '';
 
 interface StepResult {
   status: StepStatus;
@@ -1098,6 +1099,88 @@ Deno.serve(async (req) => {
         }
         return null;
       } catch { return null; }
+    }
+
+    // ─── 0b. Resolve dynamic fallback IDs from sm_migration_settings + DB ──
+    {
+      // Pipeline + Stage: from sm_migration_settings or params, with DB default pipeline fallback
+      const settingsPipelineId = params.pipeline_id || null;
+      const settingsStageId = params.stage_id || null;
+
+      if (settingsPipelineId) {
+        FALLBACK_PIPELINE_ID = settingsPipelineId;
+        FALLBACK_STAGE_ID = settingsStageId || '';
+      }
+
+      // If still empty, load from sm_migration_settings
+      if (!FALLBACK_PIPELINE_ID) {
+        const { data: mSettings } = await adminClient
+          .from("sm_migration_settings")
+          .select("pipeline_id, stage_id")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+        if (mSettings?.pipeline_id) {
+          FALLBACK_PIPELINE_ID = mSettings.pipeline_id;
+          FALLBACK_STAGE_ID = mSettings.stage_id || '';
+        }
+      }
+
+      // Final fallback: default pipeline
+      if (!FALLBACK_PIPELINE_ID) {
+        const { data: defPipeline } = await adminClient
+          .from("pipelines")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("is_default", true)
+          .maybeSingle();
+        if (defPipeline) FALLBACK_PIPELINE_ID = defPipeline.id;
+      }
+
+      // Resolve first stage of fallback pipeline if stage still empty
+      if (FALLBACK_PIPELINE_ID && !FALLBACK_STAGE_ID) {
+        const { data: firstStage } = await adminClient
+          .from("pipeline_stages")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("pipeline_id", FALLBACK_PIPELINE_ID)
+          .order("position", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (firstStage) FALLBACK_STAGE_ID = firstStage.id;
+      }
+
+      // Funil + Etapa: resolve "Vendedor" funil from projeto_funis
+      const { data: vendedorFunil } = await adminClient
+        .from("projeto_funis")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .ilike("nome", "Vendedor")
+        .maybeSingle();
+      if (vendedorFunil) {
+        FALLBACK_FUNIL_ID = vendedorFunil.id;
+        const { data: firstEtapa } = await adminClient
+          .from("projeto_etapas")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("funil_id", vendedorFunil.id)
+          .order("ordem", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (firstEtapa) FALLBACK_ETAPA_ID = firstEtapa.id;
+      }
+
+      console.error(`[SM Migration] Dynamic fallbacks resolved: pipeline=${FALLBACK_PIPELINE_ID}, stage=${FALLBACK_STAGE_ID}, funil=${FALLBACK_FUNIL_ID}, etapa=${FALLBACK_ETAPA_ID}`);
+
+      if (!FALLBACK_PIPELINE_ID || !FALLBACK_STAGE_ID) {
+        const errMsg = "Não foi possível resolver pipeline/stage de fallback. Configure sm_migration_settings ou crie um pipeline padrão.";
+        console.error(`[SM Migration] ${errMsg}`);
+        if (!dry_run) {
+          return new Response(JSON.stringify({ error: errMsg, step: "fallback_resolution" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
     }
 
     // ─── 1. Fetch SM proposals ───────────────────────────
