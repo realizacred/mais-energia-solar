@@ -3529,10 +3529,10 @@ Deno.serve(async (req) => {
                   if (val !== "" && val != null) {
                     const strVal = String(val);
                     const area = detectCfArea(bareKey);
-                    const baseKey = stripCfPrefix(bareKey);
-                    // Use base key for snapshot dedup
-                    customFieldValues[baseKey] = strVal;
-                    customFieldsByArea[area][baseKey] = strVal;
+                    const normalizedKey = normalizeFieldKey(bareKey);
+                    // Use normalized key for snapshot dedup
+                    customFieldValues[normalizedKey] = strVal;
+                    customFieldsByArea[area][normalizedKey] = strVal;
                   }
                 }
                 if (Object.keys(customFieldValues).length > 0) {
