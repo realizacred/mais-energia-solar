@@ -1149,7 +1149,7 @@ Deno.serve(async (req) => {
         if (firstStage) FALLBACK_STAGE_ID = firstStage.id;
       }
 
-      // Funil + Etapa: resolve "Vendedor" funil from projeto_funis
+      // Funil + Etapa: resolve "Vendedor" funil from projeto_funis (used as final fallback)
       const { data: vendedorFunil } = await adminClient
         .from("projeto_funis")
         .select("id")
@@ -1167,6 +1167,31 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle();
         if (firstEtapa) FALLBACK_ETAPA_ID = firstEtapa.id;
+      }
+
+      // Pre-fetch ALL projeto_funis for dynamic funil resolution
+      const { data: allProjetoFunis } = await adminClient
+        .from("projeto_funis")
+        .select("id, nome")
+        .eq("tenant_id", tenantId);
+      const projetoFunisMap = new Map<string, string>(); // normalized name → funil_id
+      for (const f of allProjetoFunis || []) {
+        projetoFunisMap.set(normalizeComparableName(f.nome), f.id);
+      }
+
+      // Pre-fetch first etapa per funil for quick fallback
+      const funilFirstEtapaMap = new Map<string, string>(); // funil_id → first etapa_id
+      {
+        const { data: allEtapas } = await adminClient
+          .from("projeto_etapas")
+          .select("id, funil_id, ordem")
+          .eq("tenant_id", tenantId)
+          .order("ordem", { ascending: true });
+        for (const e of allEtapas || []) {
+          if (!funilFirstEtapaMap.has(e.funil_id)) {
+            funilFirstEtapaMap.set(e.funil_id, e.id);
+          }
+        }
       }
 
       console.error(`[SM Migration] Dynamic fallbacks resolved: pipeline=${FALLBACK_PIPELINE_ID}, stage=${FALLBACK_STAGE_ID}, funil=${FALLBACK_FUNIL_ID}, etapa=${FALLBACK_ETAPA_ID}`);
@@ -1590,90 +1615,22 @@ Deno.serve(async (req) => {
 
 
     // ─── Helper: resolve principal pipeline from SM funnels ──
-    // Use real SM funnel names as pipeline names (no canonical mapping)
-    const FUNNEL_PRIORITY = ['LEAD', 'Engenharia', 'Equipamento', 'Compesação', 'Compensação', 'Pagamento'];
+    // FIX: The deal's principal pipeline MUST always be Comercial (default).
+    // SM funnels (Engenharia, Equipamento, etc.) are secondary memberships only,
+    // written to deal_pipeline_stages in step C2.
+    // The stage within Comercial is determined by SM proposal status (step C, line ~2381).
 
     async function resolvePipelinePrincipalDoFunil(
-      allFunnels: any[] | null,
-      tId: string,
+      _allFunnels: any[] | null,
+      _tId: string,
       fallbackPipelineId: string,
       fallbackStageId: string | null,
-      smFunnelName?: string | null,
-      smStageName?: string | null,
+      _smFunnelName?: string | null,
+      _smStageName?: string | null,
     ): Promise<{ pipeline_id: string; stage_id: string | null; source: string }> {
-      // Build effective funnels list: all_funnels + fallback from sm_funnel_name/sm_stage_name
-      let effectiveFunnels = allFunnels || [];
-      if (effectiveFunnels.length === 0 && smFunnelName) {
-        effectiveFunnels = [{ funnelName: smFunnelName, stageName: smStageName || null }];
-      }
-
-      if (effectiveFunnels.length === 0) {
-        return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
-      }
-
-      // First pass: create/resolve only REAL pipelines from SM funnels.
-      // "Vendedores" is used exclusively for owner resolution and must never become a real pipeline.
-      for (const funnel of effectiveFunnels) {
-        const fName = String(funnel.funnelName || "").trim();
-        if (!fName || normalizeComparableName(fName) === "vendedores") continue;
-
-        // Collect all known stage names for this funnel from effectiveFunnels entries with same funnelName
-        const stagesForFunnel = effectiveFunnels
-          .filter((f: any) => String(f.funnelName || "").trim() === fName && f.stageName)
-          .map((f: any) => f.stageName as string);
-
-        await resolveOrCreatePipeline(fName, stagesForFunnel);
-      }
-
-      // Second pass: find the principal pipeline by priority
-      // Apply LEAD→Comercial mapping for cache lookup
-      for (const funnelName of FUNNEL_PRIORITY) {
-        const funnel = effectiveFunnels.find((f: any) => f.funnelName === funnelName);
-        if (!funnel) continue;
-
-        // Apply same LEAD→Comercial mapping used in resolveOrCreatePipeline
-        const mappedName = funnelName === "LEAD" ? "Comercial" : funnelName;
-        let pipelineId = pipelineCache.get(mappedName);
-        if (!pipelineId) {
-          // Should have been created in first pass, but try ilike lookup
-          const { data: pipeline } = await adminClient
-            .from("pipelines")
-            .select("id")
-            .eq("tenant_id", tId)
-            .ilike("name", mappedName)
-            .maybeSingle();
-          if (pipeline) {
-            pipelineId = pipeline.id;
-            pipelineCache.set(mappedName, pipelineId);
-          }
-        }
-        if (!pipelineId) continue;
-
-        let stageId: string | null = null;
-        if (funnel.stageName && !pipelineId.startsWith("AUTO_CREATE")) {
-          const normalizedStageName = normalizeComparableName(funnel.stageName);
-          const cacheKey = `${pipelineId}::${normalizedStageName}`;
-          stageId = stageCache.get(cacheKey) || null;
-          if (!stageId) {
-            const { data: stages } = await adminClient
-              .from("pipeline_stages")
-              .select("id, name")
-              .eq("tenant_id", tId)
-              .eq("pipeline_id", pipelineId);
-            const matchedStage = (stages || []).find((stage: any) => normalizeComparableName(stage.name) === normalizedStageName);
-            if (matchedStage?.id) {
-              stageId = matchedStage.id;
-              stageCache.set(cacheKey, stageId);
-            } else if (!dry_run) {
-              stageId = await resolveOrCreateStage(pipelineId, funnel.stageName, 0);
-            }
-          }
-        }
-
-        return { pipeline_id: pipelineId, stage_id: stageId, source: `funil:${funnelName}` };
-      }
-
-      return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
+      // Always return the Comercial (default) pipeline as principal.
+      // Stage is resolved later from SM proposal status (approved→Ganho, sent→Proposta Enviada, etc.)
+      return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "comercial_default" };
     }
 
     const existingDeals = new Map<string, string>(); // legacy_key -> deal_id
@@ -2616,8 +2573,53 @@ Deno.serve(async (req) => {
                     codigo: projetoCodigo,
                     projeto_num: null,
                     is_principal: false, // avoid unique constraint on is_principal per cliente
-                    funil_id: FALLBACK_FUNIL_ID,
-                    etapa_id: FALLBACK_ETAPA_ID,
+                    funil_id: (() => {
+                      // Resolve funil_id from SM funnel data matching projeto_funis
+                      const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                      const funnels: any[] = smProj?.all_funnels || [];
+                      // Find the best matching operational funil (skip Vendedores)
+                      for (const f of funnels) {
+                        const fName = normalizeComparableName(String(f.funnelName || "").trim());
+                        if (!fName || fName === "vendedores") continue;
+                        // Map LEAD → Comercial for projeto_funis lookup too
+                        const lookupName = fName === "lead" ? normalizeComparableName("Comercial") : fName;
+                        const funilId = projetoFunisMap.get(lookupName) || projetoFunisMap.get(fName);
+                        if (funilId) return funilId;
+                      }
+                      // Fallback: sm_funnel_name
+                      if (smProj?.sm_funnel_name) {
+                        const fName = normalizeComparableName(smProj.sm_funnel_name.trim());
+                        if (fName && fName !== "vendedores") {
+                          const lookupName = fName === "lead" ? normalizeComparableName("Comercial") : fName;
+                          const funilId = projetoFunisMap.get(lookupName) || projetoFunisMap.get(fName);
+                          if (funilId) return funilId;
+                        }
+                      }
+                      return FALLBACK_FUNIL_ID;
+                    })(),
+                    etapa_id: (() => {
+                      // Resolve etapa_id: first etapa of the resolved funil
+                      const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                      const funnels: any[] = smProj?.all_funnels || [];
+                      for (const f of funnels) {
+                        const fName = normalizeComparableName(String(f.funnelName || "").trim());
+                        if (!fName || fName === "vendedores") continue;
+                        const lookupName = fName === "lead" ? normalizeComparableName("Comercial") : fName;
+                        const funilId = projetoFunisMap.get(lookupName) || projetoFunisMap.get(fName);
+                        if (funilId) {
+                          return funilFirstEtapaMap.get(funilId) || FALLBACK_ETAPA_ID;
+                        }
+                      }
+                      if (smProj?.sm_funnel_name) {
+                        const fName = normalizeComparableName(smProj.sm_funnel_name.trim());
+                        if (fName && fName !== "vendedores") {
+                          const lookupName = fName === "lead" ? normalizeComparableName("Comercial") : fName;
+                          const funilId = projetoFunisMap.get(lookupName) || projetoFunisMap.get(fName);
+                          if (funilId) return funilFirstEtapaMap.get(funilId) || FALLBACK_ETAPA_ID;
+                        }
+                      }
+                      return FALLBACK_ETAPA_ID;
+                    })(),
                 };
                 if (smProjDate) {
                   projInsert.created_at = smProjDate;
