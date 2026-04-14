@@ -263,6 +263,52 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 4c. Sync deals.status when proposal status changes
+    // This ensures the kanban filter "Ganho" reflects accepted proposals
+    try {
+      const dealLookupId = proposta.projeto_id;
+      if (dealLookupId) {
+        // Find the deal linked to this project
+        const { data: linkedDeal } = await admin
+          .from("deals")
+          .select("id, status")
+          .eq("projeto_id", dealLookupId)
+          .maybeSingle();
+
+        if (linkedDeal) {
+          if (new_status === "aceita" && linkedDeal.status !== "won") {
+            await admin
+              .from("deals")
+              .update({ status: "won" })
+              .eq("id", linkedDeal.id);
+          } else if (
+            (new_status === "recusada" || new_status === "cancelada") &&
+            currentStatus === "aceita" &&
+            linkedDeal.status === "won"
+          ) {
+            // Revert deal to open when accepted proposal is rejected/cancelled
+            // Only if no other accepted proposal exists for this project
+            const { count: otherAccepted } = await admin
+              .from("propostas_nativas")
+              .select("id", { count: "exact", head: true })
+              .eq("projeto_id", dealLookupId)
+              .eq("status", "aceita")
+              .neq("id", proposta_id);
+
+            if ((otherAccepted ?? 0) === 0) {
+              await admin
+                .from("deals")
+                .update({ status: "open" })
+                .eq("id", linkedDeal.id);
+            }
+          }
+        }
+      }
+    } catch (dealSyncErr) {
+      console.error("[proposal-transition] Erro ao sincronizar deals.status:", dealSyncErr);
+      // Non-blocking
+    }
+
     let commission_pct: number | null = null;
 
     // 5. Commission on accept (with idempotency — check for existing commission)
