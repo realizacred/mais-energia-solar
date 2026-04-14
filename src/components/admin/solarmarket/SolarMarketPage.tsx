@@ -892,7 +892,8 @@ export default function SolarMarketPage() {
                 setMigrateAllOpen(true);
               }
             }}
-            disabled={!isMigrationActive && pendingMigrationTotal === 0}
+            disabled={!isMigrationActive && (pendingMigrationTotal === 0 || hasActiveFunis === false)}
+            title={hasActiveFunis === false ? "Sincronize funis e etapas antes de migrar" : undefined}
             size="sm"
             variant={isMigrationActive ? "default" : "outline"}
             className={cn("gap-1 h-7 text-xs", isMigrationActive && "animate-pulse")}
