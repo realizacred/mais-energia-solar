@@ -1222,6 +1222,7 @@ function createDashboardBlocks(pt: ProposalType): TemplateBlock[] {
     </p>
   `));
 
+  return blocks;
 }
 
 // ═══════════════════════════════════════════════════════════════

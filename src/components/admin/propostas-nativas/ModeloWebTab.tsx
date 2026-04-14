@@ -158,12 +158,16 @@ export function TemplatesTab() {
   }
 
   const DEFAULT_TEMPLATES_CONFIG: { style: TemplateStyle; nome: string; descricao: string }[] = [
+    { style: "dashboard", nome: "Alta Conversão — Direto ao Ponto", descricao: "Visual limpo estilo Gdash com comparativo gráfico, simulador de fluxo e timeline de retorno. Mobile-first." },
     { style: "consultivo", nome: "Premium Consultivo", descricao: "Template detalhado com comparativo antes/depois, confiança e dados técnicos. Ideal para projetos maiores." },
-    { style: "fechamento", nome: "Fechamento Rápido — WhatsApp", descricao: "Alto impacto visual com urgência e CTA forte. Ideal para envio direto ao cliente via WhatsApp." },
+    { style: "fechamento", nome: "Fechamento Express — WhatsApp", descricao: "Alto impacto visual com urgência e CTA forte. Ideal para envio direto ao cliente via WhatsApp." },
+    { style: "corporativo", nome: "Corporativo Executivo", descricao: "Foco em ROI empresarial, multi-UC, dados técnicos detalhados. Ideal para empresas e comércios." },
     { style: "escala", nome: "Educacional — Leads", descricao: "Educativo com 'Como Funciona', construção de valor progressiva. Ideal para leads frios." },
-    { style: "hibrido", nome: "Híbrido / Off-Grid", descricao: "Múltiplos inversores, bateria, estrutura e serviços inclusos. Ideal para projetos com backup." },
-    { style: "corporativo", nome: "Corporativo B2B", descricao: "Foco em ROI empresarial, multi-UC, dados técnicos detalhados. Ideal para empresas e comércios." },
-    { style: "dashboard", nome: "Dashboard — Alta Conversão", descricao: "Visual limpo estilo Gdash com comparativo gráfico, simulador de fluxo e timeline de retorno. Mobile-first." },
+    { style: "impactoVisual", nome: "Impacto Visual", descricao: "Tipografia grande, layout assimétrico e bold. Foco em causar impressão forte e memorável." },
+    { style: "simulacaoFinanceira", nome: "Simulação Financeira", descricao: "Tabela financeira, timeline de retorno e dados analíticos. Ideal para clientes racionais." },
+    { style: "hibrido", nome: "Autonomia Energética (Off-grid)", descricao: "Múltiplos inversores, bateria, estrutura e serviços inclusos. Ideal para projetos com backup." },
+    { style: "propostaRapida", nome: "Proposta Rápida", descricao: "Ultra-compacto, single-scroll, tudo visível de uma vez. Perfeito para envio rápido por WhatsApp." },
+    { style: "conversaoCases", nome: "Conversão com Cases", descricao: "Prova social com depoimentos, badges de confiança e cases de sucesso. Para leads indecisos." },
   ];
 
   async function handleSeedDefaults() {
