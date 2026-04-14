@@ -350,6 +350,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const backgroundMonitorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoResumeLastProgressAtRef = useRef<number>(0);
   const autoResumeLastMigratedRef = useRef<number>(0);
+  const manualStopRequestedRef = useRef(false);
 
   // Notify parent of running state changes
   useEffect(() => {
@@ -450,7 +451,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   }, []);
 
   useEffect(() => {
-    if (!open || autoResumeRunning || !pendingStats || !isServerMigrationRunning) return;
+    if (!open || autoResumeRunning || !pendingStats || !isServerMigrationRunning || manualStopRequestedRef.current) return;
 
     const initialPending = pendingStats.pending + pendingStats.migrated;
     setAutoResumeRunning(true);
@@ -982,6 +983,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     setRunning(true);
     setCancelling(false);
     cancelRef.current = false;
+    manualStopRequestedRef.current = false;
 
     const MAX_ROUNDS = 200;
     const MAX_STAGNANT_ROUNDS = 5;
@@ -1057,6 +1059,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
         }
 
         if (data.completed) {
+          manualStopRequestedRef.current = false;
           setAutoResumeRunning(false);
           setRunning(false);
           setSmoothProgress(100);
@@ -1587,6 +1590,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 setCancelConfirmOpen(false);
                 // Always set cancelRef immediately so monitoring loops detect it
                 cancelRef.current = true;
+                manualStopRequestedRef.current = true;
                 setCancelling(true);
                 addLog("Cancelamento solicitado...");
 
@@ -1616,7 +1620,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                     }
                     setAutoResumeRunning(false);
                     setRunning(false);
-                    cancelRef.current = false;
+                    setSmoothProgress(0);
                     addLog(data.message || "Migração pausada e operações canceladas.");
                     updateStep("done", {
                       state: "error",
@@ -1625,6 +1629,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                     qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
                     qc.invalidateQueries({ queryKey: ["sm-proposals"] });
                     qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
+                    qc.invalidateQueries({ queryKey: ["sm-operation-runs"] });
                     toast.warning(data.message || "Migração cancelada.");
                   } catch (err: any) {
                     // Even on error, force-stop local state
@@ -1634,7 +1639,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                     }
                     setAutoResumeRunning(false);
                     setRunning(false);
-                    cancelRef.current = false;
+                    setSmoothProgress(0);
                     const msg = err?.message ?? "Erro ao pausar migração.";
                     setError(msg);
                     addLog(`ERRO: ${msg}`);

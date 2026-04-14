@@ -288,6 +288,36 @@ function dispatchBackgroundMigrationRun(params: {
   void dispatchPromise;
 }
 
+async function isBackgroundMigrationEnabled(adminClient: any, tenantId: string): Promise<boolean> {
+  const { data, error } = await adminClient
+    .from("sm_migration_settings")
+    .select("enabled")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`[SM Migration] Failed to read sm_migration_settings for tenant ${tenantId}: ${error.message}`);
+    return false;
+  }
+
+  return data?.enabled === true;
+}
+
+async function isOperationRunActive(adminClient: any, runId: string): Promise<boolean> {
+  const { data, error } = await adminClient
+    .from("sm_operation_runs")
+    .select("status")
+    .eq("id", runId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`[SM Migration] Failed to read sm_operation_runs ${runId}: ${error.message}`);
+    return true;
+  }
+
+  return data?.status === "queued" || data?.status === "running";
+}
+
 async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<Response> {
   const report = {
     pipelines: { created: 0, existing: 0, names: [] as string[] },
@@ -958,6 +988,17 @@ Deno.serve(async (req) => {
 
     // ─── AUTO_RESUME: fetch next pending batch automatically ─────
     if (params.auto_resume && !dry_run) {
+      const backgroundMigrationEnabled = await isBackgroundMigrationEnabled(adminClient, tenantId);
+      if (!backgroundMigrationEnabled) {
+        return new Response(JSON.stringify({
+          paused: true,
+          completed: false,
+          message: "Migração em background está pausada para este tenant.",
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { data: pendentes } = await adminClient
         .from("solar_market_proposals")
         .select("id")
@@ -2005,6 +2046,7 @@ Deno.serve(async (req) => {
     }
 
     let heartbeatCounter = 0;
+    let cancelledExternally = false;
     for (const smProp of proposalsToProcess) {
         // Check time budget before each proposal
         if (Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS) {
@@ -2014,6 +2056,15 @@ Deno.serve(async (req) => {
 
         // ─── Heartbeat every 5 proposals ─────────────────────
         heartbeatCounter++;
+        if (smOpRunId && (heartbeatCounter === 1 || heartbeatCounter % 3 === 0)) {
+          const runStillActive = await isOperationRunActive(adminClient, smOpRunId);
+          if (!runStillActive) {
+            cancelledExternally = true;
+            console.warn(`[SM Migration] Run ${smOpRunId} cancelled externally. Stopping current batch early.`);
+            break;
+          }
+        }
+
         if (smOpRunId && heartbeatCounter % 5 === 0) {
           try {
             const successCount = (summary as any).SUCCESS || 0;
@@ -3585,6 +3636,7 @@ Deno.serve(async (req) => {
     const errorCount = (summary as any).ERROR || 0;
     const skipCount = (summary as any).SKIP || (summary as any).WOULD_SKIP || 0;
     let pendingAfter: number | null = null;
+    let backgroundMigrationEnabled = false;
 
     if (!dry_run && params.auto_resume) {
       const { count } = await adminClient
@@ -3595,10 +3647,13 @@ Deno.serve(async (req) => {
       pendingAfter = count || 0;
       (result as Record<string, unknown>).pending_after = pendingAfter;
       (result as Record<string, unknown>).completed = pendingAfter === 0;
+      backgroundMigrationEnabled = await isBackgroundMigrationEnabled(adminClient, tenantId);
+      (result as Record<string, unknown>).background_migration_enabled = backgroundMigrationEnabled;
+      (result as Record<string, unknown>).cancelled = cancelledExternally;
     }
 
     // ─── SSOT: Release lock with final counts ─────────────
-    if (smOpRunId) {
+    if (smOpRunId && !cancelledExternally) {
       try {
         await adminClient.rpc("release_sm_operation_lock", {
           p_run_id: smOpRunId,
@@ -3619,6 +3674,8 @@ Deno.serve(async (req) => {
           .from("sm_migration_settings")
           .update({ enabled: false, updated_at: new Date().toISOString() })
           .eq("tenant_id", tenantId);
+      } else if (!backgroundMigrationEnabled) {
+        console.warn(`[SM Migration] Auto-resume stopped by user for tenant ${tenantId}; skipping next dispatch.`);
       } else if ((successCount > 0 || skipCount > 0) && params.pipeline_id) {
         dispatchBackgroundMigrationRun({
           supabaseUrl,
