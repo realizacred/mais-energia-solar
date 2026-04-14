@@ -1,9 +1,9 @@
 /**
- * ProposalPaymentSection — Payment options with scenario selection.
+ * ProposalPaymentSection — Payment options with premium card design.
  * Página pública — exceção RB-02 documentada.
  */
 
-import { CreditCard, Banknote } from "lucide-react";
+import { CreditCard, Check, Star } from "lucide-react";
 import { formatBRL } from "@/lib/formatters";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "./AnimatedSection";
 import type { LandingSectionProps, CenarioData } from "./types";
@@ -18,75 +18,129 @@ export function ProposalPaymentSection({ snapshot: s, versaoData, cenarios, sele
   const valorTotal = versaoData.valor_total ?? 0;
 
   return (
-    <AnimatedSection style={{ padding: "2.5rem 1rem", background: "#F8FAFC" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto" }}>
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-          marginBottom: 24,
-        }}>
-          <div style={{ flex: 1, height: 1, background: "#E2E8F0" }} />
-          <h2 style={{
-            fontFamily: "Montserrat, sans-serif", fontWeight: 800,
-            fontSize: "1.1rem", color: "#1B3A8C", margin: 0, textTransform: "uppercase",
+    <AnimatedSection style={{ padding: "5rem 1.5rem", background: "#fff" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        {/* Section header */}
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: "rgba(240,123,36,0.08)", border: "1px solid rgba(240,123,36,0.15)",
+            borderRadius: 999, padding: "5px 16px", fontSize: "0.72rem",
+            fontFamily: "Montserrat, sans-serif", fontWeight: 700, color: "#F07B24",
+            letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16,
           }}>
-            FORMAS DE PAGAMENTO
+            <CreditCard style={{ width: 13, height: 13 }} />
+            INVESTIMENTO
+          </span>
+          <h2 style={{
+            fontFamily: "Montserrat, sans-serif", fontWeight: 900,
+            fontSize: "clamp(1.4rem, 4vw, 2.2rem)", color: "#0F172A",
+            margin: "12px 0 0", lineHeight: 1.2,
+          }}>
+            Condições que{" "}
+            <span style={{ color: "#F07B24" }}>cabem no seu bolso</span>
           </h2>
-          <div style={{ flex: 1, height: 1, background: "#E2E8F0" }} />
         </div>
 
         {cenarios.length > 0 ? (
-          <StaggerContainer style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            {cenarios.map(c => (
-              <StaggerItem key={c.id}>
-                <button
-                  onClick={() => onSelectCenario(c.id)}
-                  style={{
-                    width: "100%", textAlign: "left", cursor: "pointer",
-                    border: selectedCenario === c.id ? "2px solid #1B3A8C" : "1px solid #E2E8F0",
-                    background: selectedCenario === c.id ? "rgba(27,58,140,0.04)" : "#fff",
-                    borderRadius: 14, padding: "18px 16px",
-                    boxShadow: selectedCenario === c.id ? "0 4px 16px rgba(27,58,140,0.1)" : "0 2px 8px rgba(0,0,0,0.04)",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  <p style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, color: "#1B3A8C", fontSize: "0.9rem", margin: 0 }}>
-                    {c.nome}
-                  </p>
-                  <p style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 900, color: "#F07B24", fontSize: "1.3rem", margin: "8px 0 4px" }}>
-                    {formatBRL(c.preco_final)}
-                  </p>
-                  {c.num_parcelas > 0 && (
-                    <p style={{ fontSize: "0.78rem", color: "#64748B", margin: 0 }}>
-                      {c.num_parcelas}x de {formatBRL(c.valor_parcela)}
+          <StaggerContainer style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: 20,
+          }}>
+            {cenarios.map(c => {
+              const isSelected = selectedCenario === c.id;
+              return (
+                <StaggerItem key={c.id}>
+                  <button
+                    onClick={() => onSelectCenario(c.id)}
+                    style={{
+                      width: "100%", textAlign: "left", cursor: "pointer",
+                      border: isSelected ? "2px solid #F07B24" : "1px solid rgba(0,0,0,0.06)",
+                      background: isSelected ? "rgba(240,123,36,0.03)" : "#fff",
+                      borderRadius: 20, padding: "28px 24px",
+                      boxShadow: isSelected
+                        ? "0 8px 32px rgba(240,123,36,0.12)"
+                        : "0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)",
+                      transition: "all 0.25s",
+                      position: "relative", overflow: "hidden",
+                    }}
+                  >
+                    {c.is_default && (
+                      <div style={{
+                        position: "absolute", top: 12, right: 12,
+                        display: "flex", alignItems: "center", gap: 4,
+                        background: "rgba(240,123,36,0.1)", borderRadius: 999,
+                        padding: "3px 10px", fontSize: "0.65rem",
+                        fontFamily: "Montserrat, sans-serif", fontWeight: 700, color: "#F07B24",
+                      }}>
+                        <Star style={{ width: 11, height: 11, fill: "#F07B24" }} />
+                        RECOMENDADO
+                      </div>
+                    )}
+                    <p style={{
+                      fontFamily: "Montserrat, sans-serif", fontWeight: 700,
+                      color: "#0F172A", fontSize: "1rem", margin: "0 0 12px",
+                    }}>
+                      {c.nome}
                     </p>
-                  )}
-                  {c.entrada_valor > 0 && (
-                    <p style={{ fontSize: "0.72rem", color: "#94A3B8", margin: "4px 0 0" }}>
-                      Entrada: {formatBRL(c.entrada_valor)}
+                    <p style={{
+                      fontFamily: "Montserrat, sans-serif", fontWeight: 900,
+                      color: "#F07B24", fontSize: "1.8rem", margin: "0 0 4px",
+                    }}>
+                      {formatBRL(c.preco_final)}
                     </p>
-                  )}
-                </button>
-              </StaggerItem>
-            ))}
+                    {c.num_parcelas > 0 && (
+                      <p style={{ fontSize: "0.85rem", color: "#64748B", margin: "0 0 4px" }}>
+                        ou {c.num_parcelas}x de <strong style={{ color: "#0F172A" }}>{formatBRL(c.valor_parcela)}</strong>
+                      </p>
+                    )}
+                    {c.entrada_valor > 0 && (
+                      <p style={{ fontSize: "0.78rem", color: "#94A3B8", margin: 0 }}>
+                        Entrada: {formatBRL(c.entrada_valor)}
+                      </p>
+                    )}
+                    {isSelected && (
+                      <div style={{
+                        position: "absolute", bottom: 12, right: 12,
+                        width: 28, height: 28, borderRadius: "50%",
+                        background: "#F07B24", color: "#fff",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <Check style={{ width: 16, height: 16 }} />
+                      </div>
+                    )}
+                  </button>
+                </StaggerItem>
+              );
+            })}
           </StaggerContainer>
         ) : s.pagamentoOpcoes.length > 0 ? (
-          <StaggerContainer style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <StaggerContainer style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: 20,
+          }}>
             {s.pagamentoOpcoes.map(p => (
               <StaggerItem key={p.id}>
                 <div style={{
-                  background: "#fff", borderRadius: 14, padding: "18px 16px",
-                  border: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                  background: "#fff", borderRadius: 20, padding: "28px 24px",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)",
                 }}>
-                  <p style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700, color: "#1B3A8C", fontSize: "0.85rem", margin: 0 }}>
+                  <p style={{
+                    fontFamily: "Montserrat, sans-serif", fontWeight: 700,
+                    color: "#0F172A", fontSize: "0.95rem", margin: "0 0 8px",
+                  }}>
                     {p.nome}
                   </p>
                   {p.num_parcelas > 0 && (
-                    <p style={{ fontSize: "0.8rem", color: "#64748B", margin: "6px 0 0" }}>
-                      {p.num_parcelas}x de {formatBRL(p.valor_parcela)}
+                    <p style={{ fontSize: "0.85rem", color: "#64748B", margin: "0 0 4px" }}>
+                      {p.num_parcelas}x de <strong>{formatBRL(p.valor_parcela)}</strong>
                     </p>
                   )}
                   {p.entrada > 0 && (
-                    <p style={{ fontSize: "0.75rem", color: "#94A3B8", margin: "4px 0 0" }}>
+                    <p style={{ fontSize: "0.78rem", color: "#94A3B8", margin: 0 }}>
                       Entrada: {formatBRL(p.entrada)}
                     </p>
                   )}
@@ -96,13 +150,17 @@ export function ProposalPaymentSection({ snapshot: s, versaoData, cenarios, sele
           </StaggerContainer>
         ) : (
           <div style={{
-            background: "#fff", borderRadius: 14, padding: "24px", textAlign: "center",
-            border: "1px solid #E2E8F0",
+            background: "#fff", borderRadius: 20, padding: "40px 32px", textAlign: "center",
+            border: "1px solid rgba(0,0,0,0.06)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)",
           }}>
-            <p style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 900, fontSize: "1.6rem", color: "#1B3A8C", margin: 0 }}>
+            <p style={{
+              fontFamily: "Montserrat, sans-serif", fontWeight: 900,
+              fontSize: "2.2rem", color: "#F07B24", margin: 0,
+            }}>
               {formatBRL(valorTotal)}
             </p>
-            <p style={{ fontSize: "0.8rem", color: "#64748B", margin: "4px 0 0" }}>Valor do investimento</p>
+            <p style={{ fontSize: "0.9rem", color: "#64748B", margin: "8px 0 0" }}>Valor do investimento</p>
           </div>
         )}
       </div>

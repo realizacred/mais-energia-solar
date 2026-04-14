@@ -1,80 +1,100 @@
 /**
- * ProposalSecuritySection — Trust & guarantee signals.
+ * ProposalSecuritySection — Trust & guarantee signals with premium layout.
  * Página pública — exceção RB-02 documentada.
  */
 
-import { Shield, ClipboardCheck, Wifi, Wrench } from "lucide-react";
+import { Shield, ClipboardCheck, Wifi, Wrench, CheckCircle2 } from "lucide-react";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "./AnimatedSection";
 import type { LandingSectionProps } from "./types";
 
 export function ProposalSecuritySection(_props: LandingSectionProps) {
   const items = [
     {
-      icon: <Shield style={{ width: 24, height: 24, color: "#1B3A8C" }} />,
+      icon: <Shield style={{ width: 26, height: 26 }} />,
       title: "Engenharia Certificada",
-      desc: "Projeto elaborado por engenheiro habilitado com ART/CREA",
+      desc: "Projeto elaborado por engenheiro habilitado com ART/CREA registrado",
+      color: "#1D4ED8",
     },
     {
-      icon: <ClipboardCheck style={{ width: 24, height: 24, color: "#1B3A8C" }} />,
+      icon: <ClipboardCheck style={{ width: 26, height: 26 }} />,
       title: "Homologação Completa",
-      desc: "Cuidamos de todo o processo junto à concessionária",
+      desc: "Cuidamos de todo o processo burocrático junto à concessionária",
+      color: "#7C3AED",
     },
     {
-      icon: <Wrench style={{ width: 24, height: 24, color: "#1B3A8C" }} />,
-      title: "Garantia Total",
-      desc: "Garantia de 25 anos nos módulos e 12 anos no inversor",
+      icon: <Wrench style={{ width: 26, height: 26 }} />,
+      title: "Garantia Estendida",
+      desc: "25 anos nos módulos fotovoltaicos e 12 anos no inversor solar",
+      color: "#16A34A",
     },
     {
-      icon: <Wifi style={{ width: 24, height: 24, color: "#1B3A8C" }} />,
+      icon: <Wifi style={{ width: 26, height: 26 }} />,
       title: "Monitoramento 24/7",
-      desc: "Acompanhe a geração do seu sistema em tempo real pelo app",
+      desc: "Acompanhe a geração do seu sistema em tempo real pelo aplicativo",
+      color: "#F07B24",
     },
   ];
 
   return (
-    <AnimatedSection style={{ padding: "2.5rem 1rem", background: "#fff" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto" }}>
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-          marginBottom: 24,
-        }}>
-          <div style={{ flex: 1, height: 1, background: "#E2E8F0" }} />
-          <h2 style={{
-            fontFamily: "Montserrat, sans-serif", fontWeight: 800,
-            fontSize: "1.1rem", color: "#1B3A8C", margin: 0, textTransform: "uppercase",
+    <AnimatedSection style={{ padding: "5rem 1.5rem", background: "#F8FAFC" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        {/* Section header */}
+        <div style={{ textAlign: "center", marginBottom: 48 }}>
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.15)",
+            borderRadius: 999, padding: "5px 16px", fontSize: "0.72rem",
+            fontFamily: "Montserrat, sans-serif", fontWeight: 700, color: "#16A34A",
+            letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16,
           }}>
-            SEGURANÇA E GARANTIAS
+            <CheckCircle2 style={{ width: 13, height: 13 }} />
+            GARANTIAS
+          </span>
+          <h2 style={{
+            fontFamily: "Montserrat, sans-serif", fontWeight: 900,
+            fontSize: "clamp(1.4rem, 4vw, 2.2rem)", color: "#0F172A",
+            margin: "12px 0 0", lineHeight: 1.2,
+          }}>
+            Sua tranquilidade é{" "}
+            <span style={{ color: "#16A34A" }}>nossa prioridade</span>
           </h2>
-          <div style={{ flex: 1, height: 1, background: "#E2E8F0" }} />
         </div>
 
-        <StaggerContainer style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <StaggerContainer style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 20,
+        }}>
           {items.map((item, i) => (
             <StaggerItem key={i}>
               <div style={{
-                background: "#F8FAFC", borderRadius: 14, padding: "20px 16px",
-                border: "1px solid #E2E8F0",
-                display: "flex", gap: 12, alignItems: "flex-start",
+                background: "#fff", borderRadius: 20, padding: "28px 22px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04)",
+                border: "1px solid rgba(0,0,0,0.04)",
+                position: "relative", overflow: "hidden",
+                transition: "all 0.3s",
               }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: 10,
-                  background: "rgba(27,58,140,0.08)",
+                  position: "absolute", top: 0, left: 0, right: 0, height: 3,
+                  background: item.color,
+                }} />
+                <div style={{
+                  width: 52, height: 52, borderRadius: 14,
+                  background: `${item.color}12`,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
+                  marginBottom: 16, color: item.color,
                 }}>
                   {item.icon}
                 </div>
-                <div>
-                  <p style={{
-                    fontFamily: "Montserrat, sans-serif", fontWeight: 700,
-                    fontSize: "0.85rem", color: "#1B3A8C", margin: 0,
-                  }}>
-                    {item.title}
-                  </p>
-                  <p style={{ fontSize: "0.75rem", color: "#64748B", margin: "4px 0 0", lineHeight: 1.4 }}>
-                    {item.desc}
-                  </p>
-                </div>
+                <p style={{
+                  fontFamily: "Montserrat, sans-serif", fontWeight: 800,
+                  fontSize: "0.95rem", color: "#0F172A", margin: "0 0 8px",
+                }}>
+                  {item.title}
+                </p>
+                <p style={{ fontSize: "0.82rem", color: "#64748B", margin: 0, lineHeight: 1.5 }}>
+                  {item.desc}
+                </p>
               </div>
             </StaggerItem>
           ))}
