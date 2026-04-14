@@ -288,6 +288,21 @@ function dispatchBackgroundMigrationRun(params: {
   void dispatchPromise;
 }
 
+async function isBackgroundMigrationEnabled(adminClient: any, tenantId: string): Promise<boolean> {
+  const { data, error } = await adminClient
+    .from("sm_migration_settings")
+    .select("enabled")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`[SM Migration] Failed to read sm_migration_settings for tenant ${tenantId}: ${error.message}`);
+    return false;
+  }
+
+  return data?.enabled === true;
+}
+
 async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<Response> {
   const report = {
     pipelines: { created: 0, existing: 0, names: [] as string[] },
@@ -3585,6 +3600,7 @@ Deno.serve(async (req) => {
     const errorCount = (summary as any).ERROR || 0;
     const skipCount = (summary as any).SKIP || (summary as any).WOULD_SKIP || 0;
     let pendingAfter: number | null = null;
+    let backgroundMigrationEnabled = false;
 
     if (!dry_run && params.auto_resume) {
       const { count } = await adminClient
@@ -3595,6 +3611,8 @@ Deno.serve(async (req) => {
       pendingAfter = count || 0;
       (result as Record<string, unknown>).pending_after = pendingAfter;
       (result as Record<string, unknown>).completed = pendingAfter === 0;
+      backgroundMigrationEnabled = await isBackgroundMigrationEnabled(adminClient, tenantId);
+      (result as Record<string, unknown>).background_migration_enabled = backgroundMigrationEnabled;
     }
 
     // ─── SSOT: Release lock with final counts ─────────────
@@ -3619,6 +3637,8 @@ Deno.serve(async (req) => {
           .from("sm_migration_settings")
           .update({ enabled: false, updated_at: new Date().toISOString() })
           .eq("tenant_id", tenantId);
+      } else if (!backgroundMigrationEnabled) {
+        console.warn(`[SM Migration] Auto-resume stopped by user for tenant ${tenantId}; skipping next dispatch.`);
       } else if ((successCount > 0 || skipCount > 0) && params.pipeline_id) {
         dispatchBackgroundMigrationRun({
           supabaseUrl,
