@@ -113,7 +113,7 @@ export function useProjetoPipeline() {
   const fetchProjetos = useCallback(async (f: ProjetoFiltersState) => {
     let query = supabase
       .from("projetos")
-      .select("id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone), consultores:consultor_id(id, nome)")
+      .select("id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
       .order("created_at", { ascending: false });
 
     // Backend filters
@@ -166,13 +166,27 @@ export function useProjetoPipeline() {
       filteredData = filteredData.filter((p: any) => projetosComEtiqueta.has(p.id));
     }
 
-    // Enrich — consultant data now comes from the join
+    // Fetch consultor names separately (no FK on projetos.consultor_id)
+    const consultorIds = [...new Set(filteredData.map((p: any) => p.consultor_id).filter(Boolean))];
+    const consultorMap = new Map<string, { nome: string }>();
+    if (consultorIds.length > 0) {
+      const chunkSize = 500;
+      for (let i = 0; i < consultorIds.length; i += chunkSize) {
+        const chunk = consultorIds.slice(i, i + chunkSize);
+        const { data: cons } = await supabase
+          .from("consultores")
+          .select("id, nome")
+          .in("id", chunk);
+        (cons || []).forEach((c: any) => consultorMap.set(c.id, { nome: c.nome }));
+      }
+    }
+
+    // Enrich — consultant data merged from separate query
     let enriched: ProjetoItem[] = filteredData.map((p: any) => ({
       ...p,
       cliente: p.clientes || null,
-      consultor: p.consultores || null,
+      consultor: p.consultor_id ? (consultorMap.get(p.consultor_id) || null) : null,
       clientes: undefined,
-      consultores: undefined,
       etiquetas: relMap.get(p.id) || [],
     }));
 
