@@ -436,7 +436,7 @@ function ProjetoDetalheContent() {
                   </button>
                 );
               })}
-            </TabsList>
+            </div>
           </div>
         </CardContent>
       </Card>
