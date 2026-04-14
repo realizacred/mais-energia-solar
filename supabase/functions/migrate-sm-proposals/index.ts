@@ -1677,6 +1677,20 @@ Deno.serve(async (req) => {
     const normalizeCfKey = (key: string): string => {
       return key.replace(/^\[|\]$/g, "").trim();
     };
+
+    /** Strip cap_/cape_/capo_ prefix to get the base key for dedup across areas */
+    const stripCfPrefix = (key: string): string => {
+      return key.replace(/^(cape_|capo_|cap_)/i, "").trim();
+    };
+
+    /** Detect field_context area from original key prefix */
+    const detectCfArea = (key: string): string => {
+      const lk = key.toLowerCase();
+      if (lk.startsWith("cape_") || lk.startsWith("cape ")) return "pre_dimensionamento";
+      if (lk.startsWith("capo_") || lk.startsWith("capo ")) return "pos_dimensionamento";
+      if (lk.startsWith("cap_") || lk.startsWith("cap ")) return "projeto";
+      return "outros";
+    };
     const cfMappings = new Map<string, { target_namespace: string; target_path: string; transform: string; priority: number }>();
     {
       const { data: mappings } = await adminClient
