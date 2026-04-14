@@ -274,7 +274,7 @@ function dispatchBackgroundMigrationRun(params: {
     _cron_tenant_id: params.tenantId,
   };
 
-  const dispatchPromise = fetch(`${params.supabaseUrl}/functions/v1/migrate-sm-proposals`, {
+  const dispatchPromise = fetch(`${params.supabaseUrl}/functions/v1/migrate-sm-proposals-v2`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${params.serviceKey}`,
@@ -747,7 +747,7 @@ Deno.serve(async (req) => {
         };
 
         try {
-          const innerResp = await fetch(`${supabaseUrl}/functions/v1/migrate-sm-proposals`, {
+          const innerResp = await fetch(`${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`, {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${serviceKey}`,
@@ -825,7 +825,7 @@ Deno.serve(async (req) => {
         };
 
         try {
-          const innerResp = await fetch(`${supabaseUrl}/functions/v1/migrate-sm-proposals`, {
+          const innerResp = await fetch(`${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`, {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${serviceKey}`,
