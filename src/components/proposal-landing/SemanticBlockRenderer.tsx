@@ -28,7 +28,7 @@ function formatNumber(val: string): string {
 }
 
 /* ═══════════════════════════════════════════════════════
-   HERO BLOCK — Premium header with logo, greeting, KPIs
+   HERO BLOCK — Benefit-first headline with economy focus
    ═══════════════════════════════════════════════════════ */
 export function ProposalHeroBlock({ variables: vars }: SemanticProps) {
   const logoUrl = v(vars, "empresa_logo_url") || v(vars, "logo_url");
@@ -36,8 +36,8 @@ export function ProposalHeroBlock({ variables: vars }: SemanticProps) {
   const displayLogo = logoWhiteUrl || logoUrl;
   const empresaNome = v(vars, "empresa_nome", "Energia Solar");
   const clienteNome = v(vars, "cliente_nome", "Cliente");
-  const cidade = v(vars, "cliente_cidade") || v(vars, "cidade");
-  const estado = v(vars, "cliente_estado") || v(vars, "estado");
+  const economiaMensal = v(vars, "economia_mensal", "0");
+  const consultorNome = v(vars, "consultor_nome");
 
   return (
     <div style={{
@@ -59,18 +59,13 @@ export function ProposalHeroBlock({ variables: vars }: SemanticProps) {
       }} />
 
       <div style={{ maxWidth: 720, margin: "0 auto", position: "relative", zIndex: 1 }}>
-        {/* Logo — prominent, centered, larger */}
+        {/* Logo */}
         {displayLogo ? (
-          <div style={{
-            marginBottom: 28,
-            display: "flex",
-            justifyContent: "center",
-          }}>
+          <div style={{ marginBottom: 28, display: "flex", justifyContent: "center" }}>
             <div style={{
               background: "rgba(255,255,255,0.1)",
               backdropFilter: "blur(12px)",
-              borderRadius: 16,
-              padding: "16px 32px",
+              borderRadius: 16, padding: "16px 32px",
               border: "1px solid rgba(255,255,255,0.15)",
             }}>
               <img
@@ -82,63 +77,135 @@ export function ProposalHeroBlock({ variables: vars }: SemanticProps) {
             </div>
           </div>
         ) : (
-          <div style={{
-            marginBottom: 28,
-            display: "flex",
-            justifyContent: "center",
-          }}>
+          <div style={{ marginBottom: 28, display: "flex", justifyContent: "center" }}>
             <div style={{
               background: "rgba(255,255,255,0.1)",
               backdropFilter: "blur(12px)",
-              borderRadius: 16,
-              padding: "14px 28px",
+              borderRadius: 16, padding: "14px 28px",
               border: "1px solid rgba(255,255,255,0.15)",
               fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
-              fontWeight: 800,
-              fontSize: "1.2rem",
-              color: "var(--hero-text, #fff)",
-              letterSpacing: "0.05em",
+              fontWeight: 800, fontSize: "1.2rem",
+              color: "var(--hero-text, #fff)", letterSpacing: "0.05em",
             }}>
               {empresaNome}
             </div>
           </div>
         )}
 
-        {/* Subtitle */}
-        <p style={{
-          fontSize: 11, textTransform: "uppercase", letterSpacing: 3,
-          color: "var(--hero-muted, rgba(255,255,255,0.4))",
-          fontWeight: 700, margin: "0 0 16px",
-          fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
-        }}>
-          Proposta Comercial Personalizada
-        </p>
-
-        {/* Main heading */}
+        {/* Benefit-first headline */}
         <h1 style={{
           fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
-          fontSize: "clamp(1.8rem, 5vw, 2.8rem)",
+          fontSize: "clamp(1.6rem, 5vw, 2.6rem)",
           fontWeight: 900,
           color: "var(--hero-text, #fff)",
-          margin: "0 0 12px",
-          lineHeight: 1.1,
+          margin: "0 0 16px",
+          lineHeight: 1.15,
           letterSpacing: "-0.03em",
         }}>
-          Olá, <span style={{ color: "var(--la, #F07B24)" }}>{clienteNome}</span>!
+          Economize até{" "}
+          <span style={{
+            color: "var(--la, #F07B24)",
+            display: "inline-block",
+            background: "rgba(240,123,36,0.12)",
+            padding: "2px 12px",
+            borderRadius: 8,
+          }}>
+            R$ {economiaMensal}/mês
+          </span>
+          {" "}com energia solar
         </h1>
 
-        {cidade && (
+        <p style={{
+          fontSize: "1.1rem",
+          color: "var(--hero-muted, rgba(255,255,255,0.6))",
+          margin: "0 0 8px", lineHeight: 1.6,
+        }}>
+          <span style={{ color: "var(--hero-text, rgba(255,255,255,0.85))" }}>{clienteNome}</span>,
+          preparamos uma solução exclusiva para você.
+        </p>
+
+        {consultorNome && (
           <p style={{
-            fontSize: "1.05rem",
-            color: "var(--hero-muted, rgba(255,255,255,0.55))",
-            margin: 0, lineHeight: 1.7,
+            fontSize: "0.85rem",
+            color: "var(--hero-muted, rgba(255,255,255,0.4))",
+            margin: "12px 0 0",
           }}>
-            Solução exclusiva de energia solar para{" "}
-            <strong style={{ color: "var(--hero-text, rgba(255,255,255,0.8))" }}>
-              {cidade}{estado ? `/${estado}` : ""}
-            </strong>
+            Seu consultor: <strong style={{ color: "var(--hero-text, rgba(255,255,255,0.7))" }}>{consultorNome}</strong>
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   PROBLEM BLOCK — Pain points to create urgency
+   ═══════════════════════════════════════════════════════ */
+export function ProposalProblemBlock({ variables: vars }: SemanticProps) {
+  const contaAtual = v(vars, "economia_mensal", "0");
+  const problems = [
+    {
+      icon: "📈",
+      title: "Conta de luz cada vez mais cara",
+      desc: "A tarifa de energia sobe todos os anos, e sua conta não para de crescer.",
+    },
+    {
+      icon: "💸",
+      title: `Você está pagando R$ ${contaAtual}/mês a mais`,
+      desc: "Esse dinheiro poderia estar no seu bolso — ou investido no seu negócio.",
+    },
+    {
+      icon: "🔌",
+      title: "Totalmente dependente da concessionária",
+      desc: "Bandeiras tarifárias, reajustes e cobranças extras sem previsibilidade.",
+    },
+  ];
+
+  return (
+    <div style={{
+      background: "var(--card-bg, #fff)",
+      padding: "56px 24px",
+    }}>
+      <div style={{ maxWidth: 800, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <p style={{
+            fontSize: 11, textTransform: "uppercase", letterSpacing: 3,
+            color: "#ef4444", fontWeight: 700, margin: "0 0 8px",
+          }}>
+            ⚠️ O Problema
+          </p>
+          <h2 style={{
+            fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
+            fontSize: "1.6rem", fontWeight: 800,
+            color: "var(--body-text, #0F172A)", margin: 0,
+          }}>
+            Sua conta de energia está roubando seu dinheiro
+          </h2>
+        </div>
+
+        <div style={{ display: "grid", gap: 16 }}>
+          {problems.map((p, i) => (
+            <div key={i} style={{
+              display: "flex", alignItems: "flex-start", gap: 16,
+              background: "var(--fundo, #FEF2F2)",
+              border: "1px solid rgba(239,68,68,0.12)",
+              borderLeft: "4px solid #ef4444",
+              borderRadius: 12, padding: "20px 24px",
+            }}>
+              <span style={{ fontSize: 28, flexShrink: 0, lineHeight: 1 }}>{p.icon}</span>
+              <div>
+                <h3 style={{
+                  fontSize: "1rem", fontWeight: 700,
+                  color: "var(--body-text, #0F172A)", margin: "0 0 4px",
+                }}>{p.title}</h3>
+                <p style={{
+                  fontSize: "0.85rem", color: "var(--cinza, #64748B)",
+                  margin: 0, lineHeight: 1.5,
+                }}>{p.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -199,12 +266,105 @@ export function ProposalKpisBlock({ variables: vars }: SemanticProps) {
 }
 
 /* ═══════════════════════════════════════════════════════
+   SOLUTION BLOCK — Simple explanation of how solar solves the problem
+   ═══════════════════════════════════════════════════════ */
+export function ProposalSolutionBlock({ variables: vars }: SemanticProps) {
+  const potencia = v(vars, "potencia_kwp", "0");
+  const economia = v(vars, "economia_mensal", "0");
+
+  const steps = [
+    {
+      num: "1",
+      title: "Instalamos painéis no seu telhado",
+      desc: `Um sistema de ${potencia} kWp, dimensionado sob medida para o seu consumo.`,
+      icon: "☀️",
+    },
+    {
+      num: "2",
+      title: "Você gera sua própria energia",
+      desc: "Seu sistema produz energia limpa durante o dia, reduzindo o que você consome da rede.",
+      icon: "⚡",
+    },
+    {
+      num: "3",
+      title: `Sua conta cai até R$ ${economia}/mês`,
+      desc: "O excedente vira crédito. Você paga apenas o custo mínimo da concessionária.",
+      icon: "💰",
+    },
+  ];
+
+  return (
+    <div style={{
+      background: "var(--fundo, #F8FAFC)",
+      padding: "56px 24px",
+    }}>
+      <div style={{ maxWidth: 800, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <p style={{
+            fontSize: 11, textTransform: "uppercase", letterSpacing: 3,
+            color: "var(--verde, #22C55E)", fontWeight: 700, margin: "0 0 8px",
+          }}>
+            ✅ A Solução
+          </p>
+          <h2 style={{
+            fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
+            fontSize: "1.6rem", fontWeight: 800,
+            color: "var(--body-text, #0F172A)", margin: 0,
+          }}>
+            Como funciona na prática
+          </h2>
+        </div>
+
+        <div style={{ display: "grid", gap: 20 }}>
+          {steps.map((step, i) => (
+            <div key={i} style={{
+              display: "flex", alignItems: "flex-start", gap: 20,
+              background: "var(--card-bg, #fff)",
+              border: "1px solid var(--card-border, #E2E8F0)",
+              borderRadius: 16, padding: "24px 28px",
+            }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 14,
+                background: "linear-gradient(135deg, var(--verde, #22C55E), #16A34A)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22, color: "#fff", flexShrink: 0,
+                fontWeight: 900,
+              }}>
+                {step.icon}
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 800,
+                    color: "var(--verde, #22C55E)",
+                    background: "rgba(34,197,94,0.08)",
+                    padding: "2px 8px", borderRadius: 6,
+                  }}>PASSO {step.num}</span>
+                </div>
+                <h3 style={{
+                  fontSize: "1rem", fontWeight: 700,
+                  color: "var(--body-text, #0F172A)", margin: "0 0 4px",
+                }}>{step.title}</h3>
+                <p style={{
+                  fontSize: "0.85rem", color: "var(--cinza, #64748B)",
+                  margin: 0, lineHeight: 1.5,
+                }}>{step.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
    COMPARISON — Before vs After
    ═══════════════════════════════════════════════════════ */
 export function ProposalComparisonBlock({ variables: vars }: SemanticProps) {
   return (
     <div style={{
-      background: "var(--fundo, #F8FAFC)",
+      background: "var(--card-bg, #fff)",
       padding: "56px 24px",
     }}>
       <div style={{ maxWidth: 800, margin: "0 auto" }}>
@@ -231,11 +391,9 @@ export function ProposalComparisonBlock({ variables: vars }: SemanticProps) {
         }}>
           {/* WITHOUT SOLAR */}
           <div style={{
-            background: "var(--card-bg, #fff)",
-            borderRadius: 16,
-            padding: 28,
-            position: "relative",
-            overflow: "hidden",
+            background: "var(--fundo, #FEF2F2)",
+            borderRadius: 16, padding: 28,
+            position: "relative", overflow: "hidden",
             border: "1px solid rgba(239,68,68,0.15)",
           }}>
             <div style={{
@@ -254,11 +412,9 @@ export function ProposalComparisonBlock({ variables: vars }: SemanticProps) {
 
           {/* WITH SOLAR */}
           <div style={{
-            background: "var(--card-bg, #fff)",
-            borderRadius: 16,
-            padding: 28,
-            position: "relative",
-            overflow: "hidden",
+            background: "var(--fundo, #F0FDF4)",
+            borderRadius: 16, padding: 28,
+            position: "relative", overflow: "hidden",
             border: "1px solid rgba(34,197,94,0.2)",
           }}>
             <div style={{
@@ -347,8 +503,7 @@ export function ProposalEquipmentBlock({ variables: vars }: SemanticProps) {
             <div key={idx} style={{
               background: "var(--fundo, #F8FAFC)",
               border: "1px solid var(--card-border, #E2E8F0)",
-              borderRadius: 16,
-              padding: 28,
+              borderRadius: 16, padding: 28,
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
                 <div style={{
@@ -366,8 +521,7 @@ export function ProposalEquipmentBlock({ variables: vars }: SemanticProps) {
                 {item.specs.map((spec, si) => (
                   <div key={si} style={{
                     background: "var(--card-bg, #fff)",
-                    borderRadius: 10,
-                    padding: "14px 16px",
+                    borderRadius: 10, padding: "14px 16px",
                     border: "1px solid var(--card-border, #E2E8F0)",
                     gridColumn: si === item.specs.length - 1 ? "1 / -1" : undefined,
                   }}>
@@ -441,6 +595,8 @@ export function ProposalFinancialBlock({ variables: vars }: SemanticProps) {
    GUARANTEES BLOCK — Trust indicators
    ═══════════════════════════════════════════════════════ */
 export function ProposalGuaranteesBlock({ variables: vars }: SemanticProps) {
+  const empresaNome = v(vars, "empresa_nome", "Nossa Empresa");
+
   const guarantees = [
     { icon: "🛡️", title: "Garantia dos Módulos", desc: v(vars, "modulo_garantia", "25 anos de garantia de performance") },
     { icon: "⚡", title: "Garantia do Inversor", desc: v(vars, "inversor_garantia", "10 anos de garantia") },
@@ -463,7 +619,7 @@ export function ProposalGuaranteesBlock({ variables: vars }: SemanticProps) {
             fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
             fontSize: "1.6rem", fontWeight: 800,
             color: "var(--body-text, #0F172A)", margin: 0,
-          }}>Por Que Confiar na {v(vars, "empresa_nome", "Nossa Empresa")}</h2>
+          }}>Por Que Confiar na {empresaNome}</h2>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -545,11 +701,12 @@ export function ProposalPaymentBlock({ variables: vars }: SemanticProps) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   CTA BLOCK — Call to Action
+   CTA BLOCK — Strong call to action
    ═══════════════════════════════════════════════════════ */
 export function ProposalCtaBlock({ variables: vars }: SemanticProps) {
   const consultorNome = v(vars, "consultor_nome");
   const consultorTel = v(vars, "consultor_telefone");
+  const economia = v(vars, "economia_mensal", "0");
 
   return (
     <div style={{
@@ -561,19 +718,19 @@ export function ProposalCtaBlock({ variables: vars }: SemanticProps) {
         <p style={{
           fontSize: 11, textTransform: "uppercase", letterSpacing: 3,
           color: "var(--la, #F07B24)", fontWeight: 700, margin: "0 0 16px",
-        }}>✅ Próximo Passo</p>
+        }}>🚀 Próximo Passo</p>
         <h2 style={{
           fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
           fontSize: "clamp(1.3rem, 4vw, 1.8rem)", fontWeight: 900,
           color: "var(--hero-text, #fff)", margin: "0 0 12px",
         }}>
-          Pronto para Economizar?
+          Comece a Economizar R$ {economia}/mês Agora
         </h2>
         <p style={{
           color: "var(--hero-muted, rgba(255,255,255,0.55))",
           fontSize: "0.95rem", margin: "0 0 32px", lineHeight: 1.7,
         }}>
-          Aceite sua proposta agora e comece a gerar sua própria energia.
+          Aceite sua proposta e dê o primeiro passo para reduzir sua conta de luz.
         </p>
 
         {consultorNome && (
@@ -592,11 +749,11 @@ export function ProposalCtaBlock({ variables: vars }: SemanticProps) {
             color: "#fff", border: "none", borderRadius: 12,
             padding: "16px 40px",
             fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
-            fontWeight: 800, fontSize: "1rem", cursor: "pointer",
-            boxShadow: "0 6px 24px rgba(240,123,36,0.35)",
-            textTransform: "uppercase", letterSpacing: "0.05em",
+            fontWeight: 700, fontSize: "1rem",
+            cursor: "pointer",
+            boxShadow: "0 4px 20px rgba(240,123,36,0.35)",
           }}>
-            ACEITAR PROPOSTA
+            Quero Reduzir Minha Conta Agora
           </button>
           {consultorTel && (
             <a
@@ -622,15 +779,84 @@ export function ProposalCtaBlock({ variables: vars }: SemanticProps) {
 }
 
 /* ═══════════════════════════════════════════════════════
+   CLOSING BLOCK — Final reinforcement with urgency
+   ═══════════════════════════════════════════════════════ */
+export function ProposalClosingBlock({ variables: vars }: SemanticProps) {
+  const economia = v(vars, "economia_mensal", "0");
+  const payback = v(vars, "payback_meses", "0");
+
+  return (
+    <div style={{
+      background: "var(--card-bg, #fff)",
+      padding: "56px 24px",
+      borderTop: "1px solid var(--card-border, #E2E8F0)",
+    }}>
+      <div style={{ maxWidth: 700, margin: "0 auto", textAlign: "center" }}>
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.15)",
+          borderRadius: 20, padding: "6px 16px", marginBottom: 20,
+        }}>
+          <span style={{ fontSize: 14 }}>🌱</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--verde, #22C55E)" }}>
+            Energia limpa e renovável
+          </span>
+        </div>
+
+        <h2 style={{
+          fontFamily: "var(--font-heading, 'Montserrat', sans-serif)",
+          fontSize: "1.4rem", fontWeight: 800,
+          color: "var(--body-text, #0F172A)", margin: "0 0 16px",
+        }}>
+          Resumindo: economia de R$ {economia}/mês com retorno em {payback} meses
+        </h2>
+
+        <p style={{
+          fontSize: "0.95rem", color: "var(--cinza, #64748B)",
+          lineHeight: 1.7, margin: "0 0 24px", maxWidth: 550, marginLeft: "auto", marginRight: "auto",
+        }}>
+          Cada dia sem energia solar é dinheiro que você está deixando na mesa.
+          Quanto antes começar, mais rápido recupera o investimento.
+        </p>
+
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12,
+          maxWidth: 500, margin: "0 auto",
+        }}>
+          {[
+            { icon: "✅", text: "Sem burocracia" },
+            { icon: "✅", text: "Instalação rápida" },
+            { icon: "✅", text: "Suporte total" },
+          ].map((item, i) => (
+            <div key={i} style={{
+              background: "var(--fundo, #F8FAFC)",
+              borderRadius: 10, padding: "12px 8px",
+              fontSize: "0.8rem", fontWeight: 600,
+              color: "var(--body-text, #0F172A)",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}>
+              {item.icon} {item.text}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
    SEMANTIC BLOCK REGISTRY — Maps block type to component
    ═══════════════════════════════════════════════════════ */
 export const SEMANTIC_RENDERERS: Record<string, React.FC<SemanticProps>> = {
   proposal_hero: ProposalHeroBlock,
+  proposal_problem: ProposalProblemBlock,
   proposal_kpis: ProposalKpisBlock,
+  proposal_solution: ProposalSolutionBlock,
   proposal_comparison: ProposalComparisonBlock,
   proposal_equipment: ProposalEquipmentBlock,
   proposal_financial: ProposalFinancialBlock,
   proposal_guarantees: ProposalGuaranteesBlock,
   proposal_payment: ProposalPaymentBlock,
   proposal_cta: ProposalCtaBlock,
+  proposal_closing: ProposalClosingBlock,
 };
