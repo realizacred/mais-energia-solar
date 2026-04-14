@@ -825,7 +825,7 @@ export default function SolarMarketPage() {
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Ver Migração
               </Button>
-            ) : pendingMigrationTotal > 0 && !syncIsRunning && projects.length > 0 ? (
+            ) : pendingMigrationTotal > 0 && !syncIsRunning && projects.length > 0 && hasActiveFunis !== false ? (
               <Button onClick={() => setMigrateAllOpen(true)} size="sm" variant="default" className="w-full gap-1.5 sm:w-auto">
                 <ArrowRightLeft className="h-3.5 w-3.5" />
                 Migrar {pendingMigrationTotal} Propostas
