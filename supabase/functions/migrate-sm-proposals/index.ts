@@ -1673,23 +1673,52 @@ Deno.serve(async (req) => {
     // console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
 
     // ─── 2d. Pre-fetch custom field mappings ────────────
-    // Normalize source_key on load: store as bareKey (no brackets) for consistent lookup
+    // ─── Global Field Key Normalizer ───────────────────────
+    // Handles: camelCase→snake_case, accents, spaces, special chars, prefix stripping
+    // Ensures "Valor Total", "valorTotal", "cap_valor_total" all become "valor_total"
+
+    /** Remove brackets from SM key notation */
     const normalizeCfKey = (key: string): string => {
       return key.replace(/^\[|\]$/g, "").trim();
     };
 
-    /** Strip cap_/cape_/capo_ prefix to get the base key for dedup across areas */
-    const stripCfPrefix = (key: string): string => {
-      return key.replace(/^(cape_|capo_|cap_)/i, "").trim();
-    };
-
-    /** Detect field_context area from original key prefix */
+    /** Detect field_context area from original key prefix (BEFORE stripping) */
     const detectCfArea = (key: string): string => {
-      const lk = key.toLowerCase();
+      const lk = key.toLowerCase().trim();
       if (lk.startsWith("cape_") || lk.startsWith("cape ")) return "pre_dimensionamento";
       if (lk.startsWith("capo_") || lk.startsWith("capo ")) return "pos_dimensionamento";
       if (lk.startsWith("cap_") || lk.startsWith("cap ")) return "projeto";
       return "outros";
+    };
+
+    /** Strip cap_/cape_/capo_ prefix to get the base key */
+    const stripCfPrefix = (key: string): string => {
+      return key.replace(/^(cape_|capo_|cap_)/i, "").trim();
+    };
+
+    /**
+     * Global normalizer: produces a canonical snake_case key from any format.
+     * Steps:
+     * 1. Remove brackets
+     * 2. Strip prefix (cap_/cape_/capo_) — prefix is used only for area routing
+     * 3. Remove accents (NFD decomposition)
+     * 4. Convert camelCase to snake_case (e.g. "valorTotal" → "valor_total")
+     * 5. Replace spaces and special chars with _
+     * 6. Collapse multiple underscores
+     * 7. Lowercase
+     */
+    const normalizeFieldKey = (rawKey: string): string => {
+      let k = normalizeCfKey(rawKey);
+      k = stripCfPrefix(k);
+      // Remove accents
+      k = k.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      // camelCase → snake_case: insert _ before uppercase letters
+      k = k.replace(/([a-z0-9])([A-Z])/g, "$1_$2");
+      // Replace spaces and non-alphanumeric with _
+      k = k.replace(/[^a-zA-Z0-9_]/g, "_");
+      // Collapse multiple underscores and trim
+      k = k.replace(/_+/g, "_").replace(/^_|_$/g, "");
+      return k.toLowerCase();
     };
     const cfMappings = new Map<string, { target_namespace: string; target_path: string; transform: string; priority: number }>();
     {
@@ -1701,12 +1730,18 @@ Deno.serve(async (req) => {
         .order("priority", { ascending: true });
       for (const m of (mappings || [])) {
         const bareKey = normalizeCfKey(m.source_key);
-        cfMappings.set(bareKey, {
+        const mappingEntry = {
           target_namespace: m.target_namespace,
           target_path: m.target_path,
           transform: m.transform,
           priority: m.priority,
-        });
+        };
+        cfMappings.set(bareKey, mappingEntry);
+        // Also index by normalized key for consistent lookup
+        const normKey = normalizeFieldKey(bareKey);
+        if (normKey !== bareKey) {
+          cfMappings.set(normKey, mappingEntry);
+        }
       }
     }
     // console.log(`[SM Migration] Loaded ${cfMappings.size} custom field mappings`);
@@ -3500,10 +3535,10 @@ Deno.serve(async (req) => {
                   if (val !== "" && val != null) {
                     const strVal = String(val);
                     const area = detectCfArea(bareKey);
-                    const baseKey = stripCfPrefix(bareKey);
-                    // Use base key for snapshot dedup
-                    customFieldValues[baseKey] = strVal;
-                    customFieldsByArea[area][baseKey] = strVal;
+                    const normalizedKey = normalizeFieldKey(bareKey);
+                    // Use normalized key for snapshot dedup
+                    customFieldValues[normalizedKey] = strVal;
+                    customFieldsByArea[area][normalizedKey] = strVal;
                   }
                 }
                 if (Object.keys(customFieldValues).length > 0) {
@@ -3605,11 +3640,12 @@ Deno.serve(async (req) => {
             const transformErrors: Record<string, string> = {};
 
             for (const [key, entry] of Object.entries(cfValues)) {
-              // Normalize key for mapping lookup (bare key without brackets)
+              // Normalize key for mapping lookup: try bare key first, then normalized
               const bareKey = normalizeCfKey(key);
-              const mapping = cfMappings.get(bareKey);
+              const normalizedKey = normalizeFieldKey(bareKey);
+              const mapping = cfMappings.get(bareKey) || cfMappings.get(normalizedKey);
               if (!mapping) {
-                unmappedCf[bareKey] = entry;
+                unmappedCf[normalizedKey] = entry;
                 continue;
               }
 
@@ -3714,28 +3750,28 @@ Deno.serve(async (req) => {
           if (!dry_run && dealId && smProp.custom_fields_raw?.values) {
             try {
               const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
-              // Dedup by base key: cap_valor_total and cape_valor_total → same base "valor_total"
-              // Last-write-wins per base key, area from the prefix that wrote last
-              const cfDeduped = new Map<string, { baseKey: string; value: string; area: string }>();
+              // Dedup by NORMALIZED key: "Valor Total", "valorTotal", "cap_valor_total" all → "valor_total"
+              // Last-write-wins per normalized key, area from the prefix that wrote last
+              const cfDeduped = new Map<string, { normalizedKey: string; value: string; area: string }>();
 
               for (const [key, entry] of Object.entries(cfVals)) {
                 const bareKey = normalizeCfKey(key);
                 const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
                 if (val === "" || val == null) continue;
                 const area = detectCfArea(bareKey);
-                const baseKey = stripCfPrefix(bareKey);
-                // Dedup: same base key across prefixes → use the most specific area
+                const normalizedKey = normalizeFieldKey(bareKey);
+                // Dedup: same normalized key across prefixes → use the most specific area
                 // Priority: pre/pos > projeto > outros (more specific wins)
-                const existing = cfDeduped.get(baseKey.toLowerCase());
+                const existing = cfDeduped.get(normalizedKey);
                 if (!existing || area !== "outros") {
-                  cfDeduped.set(baseKey.toLowerCase(), { baseKey, value: String(val), area });
+                  cfDeduped.set(normalizedKey, { normalizedKey, value: String(val), area });
                 }
               }
 
               const cfByPrefix = Array.from(cfDeduped.values());
 
               if (cfByPrefix.length > 0) {
-                // Check existing deal_custom_fields for this tenant to find matches by BASE KEY
+                // Check existing deal_custom_fields for this tenant to find matches by NORMALIZED KEY
                 const { data: existingFields } = await adminClient
                   .from("deal_custom_fields")
                   .select("id, field_key, title, field_context")
@@ -3743,28 +3779,28 @@ Deno.serve(async (req) => {
 
                 const fieldByKey = new Map<string, { id: string; context: string }>();
                 for (const f of existingFields || []) {
-                  // Index by base key (strip prefix from existing field_key too for matching)
-                  const existingBaseKey = stripCfPrefix(f.field_key || "").toLowerCase();
-                  fieldByKey.set(existingBaseKey, { id: f.id, context: f.field_context || "outros" });
-                  // Also index by raw key for exact matches
+                  // Index by normalized key for consistent matching across formats
+                  const existingNormKey = normalizeFieldKey(f.field_key || "");
+                  fieldByKey.set(existingNormKey, { id: f.id, context: f.field_context || "outros" });
+                  // Also index by raw lowercase for exact legacy matches
                   fieldByKey.set((f.field_key || "").toLowerCase(), { id: f.id, context: f.field_context || "outros" });
                 }
 
                 const valuesToInsert: Array<Record<string, any>> = [];
 
                 for (const cf of cfByPrefix) {
-                  // Try to find existing field by base key (deduped)
-                  const existingField = fieldByKey.get(cf.baseKey.toLowerCase());
+                  // Try to find existing field by normalized key (deduped)
+                  const existingField = fieldByKey.get(cf.normalizedKey);
                   let fieldId: string;
 
                   if (existingField) {
                     fieldId = existingField.id;
                   } else {
-                    // Create the custom field definition using BASE KEY (no prefix)
+                    // Create the custom field definition using NORMALIZED KEY (no prefix, snake_case)
                     const fieldInsert = {
                       tenant_id: tenantId,
-                      field_key: cf.baseKey,
-                      title: cf.baseKey.replace(/_/g, " "),
+                      field_key: cf.normalizedKey,
+                      title: cf.normalizedKey.replace(/_/g, " "),
                       field_type: "text",
                       field_context: cf.area,
                       is_active: true,
@@ -3776,11 +3812,11 @@ Deno.serve(async (req) => {
                       .single();
 
                     if (fieldErr || !newField) {
-                      console.warn(`[SM Migration] Custom field create error for ${cf.baseKey}: ${fieldErr?.message}`);
+                      console.warn(`[SM Migration] Custom field create error for ${cf.normalizedKey}: ${fieldErr?.message}`);
                       continue;
                     }
                     fieldId = newField.id;
-                    fieldByKey.set(cf.baseKey.toLowerCase(), { id: fieldId, context: cf.area });
+                    fieldByKey.set(cf.normalizedKey, { id: fieldId, context: cf.area });
                   }
 
                   valuesToInsert.push({
