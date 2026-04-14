@@ -1590,90 +1590,22 @@ Deno.serve(async (req) => {
 
 
     // ─── Helper: resolve principal pipeline from SM funnels ──
-    // Use real SM funnel names as pipeline names (no canonical mapping)
-    const FUNNEL_PRIORITY = ['LEAD', 'Engenharia', 'Equipamento', 'Compesação', 'Compensação', 'Pagamento'];
+    // FIX: The deal's principal pipeline MUST always be Comercial (default).
+    // SM funnels (Engenharia, Equipamento, etc.) are secondary memberships only,
+    // written to deal_pipeline_stages in step C2.
+    // The stage within Comercial is determined by SM proposal status (step C, line ~2381).
 
     async function resolvePipelinePrincipalDoFunil(
-      allFunnels: any[] | null,
-      tId: string,
+      _allFunnels: any[] | null,
+      _tId: string,
       fallbackPipelineId: string,
       fallbackStageId: string | null,
-      smFunnelName?: string | null,
-      smStageName?: string | null,
+      _smFunnelName?: string | null,
+      _smStageName?: string | null,
     ): Promise<{ pipeline_id: string; stage_id: string | null; source: string }> {
-      // Build effective funnels list: all_funnels + fallback from sm_funnel_name/sm_stage_name
-      let effectiveFunnels = allFunnels || [];
-      if (effectiveFunnels.length === 0 && smFunnelName) {
-        effectiveFunnels = [{ funnelName: smFunnelName, stageName: smStageName || null }];
-      }
-
-      if (effectiveFunnels.length === 0) {
-        return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
-      }
-
-      // First pass: create/resolve only REAL pipelines from SM funnels.
-      // "Vendedores" is used exclusively for owner resolution and must never become a real pipeline.
-      for (const funnel of effectiveFunnels) {
-        const fName = String(funnel.funnelName || "").trim();
-        if (!fName || normalizeComparableName(fName) === "vendedores") continue;
-
-        // Collect all known stage names for this funnel from effectiveFunnels entries with same funnelName
-        const stagesForFunnel = effectiveFunnels
-          .filter((f: any) => String(f.funnelName || "").trim() === fName && f.stageName)
-          .map((f: any) => f.stageName as string);
-
-        await resolveOrCreatePipeline(fName, stagesForFunnel);
-      }
-
-      // Second pass: find the principal pipeline by priority
-      // Apply LEAD→Comercial mapping for cache lookup
-      for (const funnelName of FUNNEL_PRIORITY) {
-        const funnel = effectiveFunnels.find((f: any) => f.funnelName === funnelName);
-        if (!funnel) continue;
-
-        // Apply same LEAD→Comercial mapping used in resolveOrCreatePipeline
-        const mappedName = funnelName === "LEAD" ? "Comercial" : funnelName;
-        let pipelineId = pipelineCache.get(mappedName);
-        if (!pipelineId) {
-          // Should have been created in first pass, but try ilike lookup
-          const { data: pipeline } = await adminClient
-            .from("pipelines")
-            .select("id")
-            .eq("tenant_id", tId)
-            .ilike("name", mappedName)
-            .maybeSingle();
-          if (pipeline) {
-            pipelineId = pipeline.id;
-            pipelineCache.set(mappedName, pipelineId);
-          }
-        }
-        if (!pipelineId) continue;
-
-        let stageId: string | null = null;
-        if (funnel.stageName && !pipelineId.startsWith("AUTO_CREATE")) {
-          const normalizedStageName = normalizeComparableName(funnel.stageName);
-          const cacheKey = `${pipelineId}::${normalizedStageName}`;
-          stageId = stageCache.get(cacheKey) || null;
-          if (!stageId) {
-            const { data: stages } = await adminClient
-              .from("pipeline_stages")
-              .select("id, name")
-              .eq("tenant_id", tId)
-              .eq("pipeline_id", pipelineId);
-            const matchedStage = (stages || []).find((stage: any) => normalizeComparableName(stage.name) === normalizedStageName);
-            if (matchedStage?.id) {
-              stageId = matchedStage.id;
-              stageCache.set(cacheKey, stageId);
-            } else if (!dry_run) {
-              stageId = await resolveOrCreateStage(pipelineId, funnel.stageName, 0);
-            }
-          }
-        }
-
-        return { pipeline_id: pipelineId, stage_id: stageId, source: `funil:${funnelName}` };
-      }
-
-      return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "fallback_ui" };
+      // Always return the Comercial (default) pipeline as principal.
+      // Stage is resolved later from SM proposal status (approved→Ganho, sent→Proposta Enviada, etc.)
+      return { pipeline_id: fallbackPipelineId, stage_id: fallbackStageId, source: "comercial_default" };
     }
 
     const existingDeals = new Map<string, string>(); // legacy_key -> deal_id
