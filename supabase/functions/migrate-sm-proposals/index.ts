@@ -58,6 +58,7 @@ interface ProposalReport {
   sm_proposal_id: number;
   sm_client_name: string | null;
   aborted: boolean;
+  _error?: string;
   steps: {
     cliente?: StepResult;
     deal?: StepResult;
@@ -65,6 +66,7 @@ interface ProposalReport {
     projeto?: StepResult;
     proposta_nativa?: StepResult;
     proposta_versao?: StepResult;
+    _fatal?: StepResult;
   };
 }
 
@@ -3702,7 +3704,12 @@ Deno.serve(async (req) => {
           );
         } catch (err) {
           report.aborted = true;
-          report.steps.cliente = report.steps.cliente || { status: "ERROR", reason: (err as Error).message };
+          const errMsg = (err as Error).message || String(err);
+          report._error = errMsg;
+          report.steps._fatal = { status: "ERROR", reason: errMsg };
+          if (!report.steps.cliente) {
+            report.steps.cliente = { status: "ERROR", reason: errMsg };
+          }
           summary.ERROR++;
           await logItem(adminClient, tenantId, smProp.sm_proposal_id, report.sm_client_name, "ERROR", report, dry_run);
         }
