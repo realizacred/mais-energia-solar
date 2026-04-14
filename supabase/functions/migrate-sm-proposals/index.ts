@@ -3443,8 +3443,8 @@ Deno.serve(async (req) => {
           if (!dry_run) {
             summary[overallStatus === "SKIP" ? "WOULD_SKIP" : overallStatus === "SUCCESS" ? "SUCCESS" : "ERROR"]++;
 
-            const propostaStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED", "SUCCESS"].includes(report.steps.proposta_nativa?.status || "");
-            const versaoStepOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED", "SUCCESS"].includes(report.steps.proposta_versao?.status || "");
+            const propostaStepOk = ["CREATED", "WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED", "SUCCESS"].includes(report.steps.proposta_nativa?.status || "");
+            const versaoStepOk = ["CREATED", "WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "FALLBACK_USED", "SUCCESS"].includes(report.steps.proposta_versao?.status || "");
 
             // Stamp migrado_em when migration succeeded OR everything was already migrated (all SKIP)
             const shouldStamp = (overallStatus === "SUCCESS" && propostaId && propostaStepOk && versaoStepOk) || overallStatus === "SKIP";
