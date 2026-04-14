@@ -248,20 +248,27 @@ export default function PropostaLanding() {
     }
 
     // Recalculate valor_total from snapshot venda data as fallback
-    // The DB column valor_total may be stale if saved before Financial Center synced
+    // Must match calcPrecoFinal (wizard/types.ts) exactly:
+    // custoBase = custoKit + custoServicos + custoComissao + custoOutros
+    // custoParaMargem = custoKit + custoServicos + custoOutros (comissão não recebe markup)
+    // precoFinal = (custoBase + margem) * (1 - desconto)
     const vendaSnap = (raw as any)?.venda;
     let snapshotValorTotal = 0;
     if (vendaSnap && typeof vendaSnap === "object") {
       const custoKit = Number(vendaSnap.custo_kit_override ?? 0) > 0
         ? Number(vendaSnap.custo_kit_override)
         : s.custoKit;
-      const custoInstalacao = Number(vendaSnap.custo_instalacao ?? 0);
+      // custo_instalacao maps to custoServicos in calcPrecoFinal
+      const hasFCCosts = Number(vendaSnap.custo_instalacao ?? 0) > 0 || Number(vendaSnap.custo_comissao ?? 0) > 0 || Number(vendaSnap.custo_outros ?? 0) > 0;
+      const custoServicos = hasFCCosts
+        ? Number(vendaSnap.custo_instalacao ?? 0)
+        : s.custoServicos ?? 0;
       const custoComissao = Number(vendaSnap.custo_comissao ?? 0);
       const custoOutros = Number(vendaSnap.custo_outros ?? 0);
       const margem = Number(vendaSnap.margem_percentual ?? 0);
       const desconto = Number(vendaSnap.desconto_percentual ?? 0);
-      const custoBase = custoKit + custoInstalacao + custoComissao + custoOutros;
-      const custoParaMargem = custoKit + custoInstalacao + custoOutros;
+      const custoBase = custoKit + custoServicos + custoComissao + custoOutros;
+      const custoParaMargem = custoKit + custoServicos + custoOutros;
       const margemValor = custoParaMargem * (margem / 100);
       const precoComMargem = custoBase + margemValor;
       snapshotValorTotal = Math.round((precoComMargem - precoComMargem * (desconto / 100)) * 100) / 100;
