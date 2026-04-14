@@ -1,11 +1,11 @@
 /**
- * ProposalHeroSection — Hero section with animated counters and CTA.
+ * ProposalHeroSection — Full-screen hero with dramatic gradient, animated counters, and CTA.
  * Página pública — exceção RB-02 documentada.
  */
 
 import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Sun, Users, ArrowDown } from "lucide-react";
+import { Sun, Zap, ArrowDown, TrendingDown } from "lucide-react";
 import { formatBRL } from "@/lib/formatters";
 import type { LandingSectionProps } from "./types";
 
@@ -13,7 +13,7 @@ interface Props extends LandingSectionProps {
   onScrollDown?: () => void;
 }
 
-function AnimatedNumber({ end, suffix = "", prefix = "", decimals = 0, duration = 1500 }: {
+function AnimatedNumber({ end, suffix = "", prefix = "", decimals = 0, duration = 1800 }: {
   end: number; suffix?: string; prefix?: string; decimals?: number; duration?: number;
 }) {
   const [value, setValue] = useState(0);
@@ -26,11 +26,10 @@ function AnimatedNumber({ end, suffix = "", prefix = "", decimals = 0, duration 
       if (e.isIntersecting && !animated.current) {
         animated.current = true;
         const start = performance.now();
-        const diff = end;
         (function step(now: number) {
           const t = Math.min((now - start) / duration, 1);
           const eased = 1 - Math.pow(1 - t, 3);
-          setValue(Number((diff * eased).toFixed(decimals)));
+          setValue(Number((end * eased).toFixed(decimals)));
           if (t < 1) requestAnimationFrame(step);
         })(performance.now());
       }
@@ -45,171 +44,204 @@ function AnimatedNumber({ end, suffix = "", prefix = "", decimals = 0, duration 
 export function ProposalHeroSection({ snapshot: s, versaoData, brand, tenantNome, consultorNome, onScrollDown }: Props) {
   const potKwp = s.potenciaKwp || versaoData.potencia_kwp || 0;
   const economiaMensal = versaoData.economia_mensal ?? s.economiaMensal ?? 0;
-  const valorTotal = versaoData.valor_total ?? 0;
   const paybackMeses = versaoData.payback_meses ?? s.paybackMeses ?? 0;
   const paybackAnos = paybackMeses > 0 ? (paybackMeses / 12).toFixed(1).replace(".", ",") : "—";
 
   return (
     <section style={{
-      background: "linear-gradient(180deg, #E8F0FE 0%, #F8FAFC 100%)",
-      position: "relative", overflow: "hidden", padding: "2rem 1rem 3rem",
+      minHeight: "100vh",
+      background: "linear-gradient(165deg, #0B1D3A 0%, #0F2A52 35%, #132F5C 65%, #1A3B6E 100%)",
+      position: "relative",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "3rem 1.5rem",
     }}>
-      {/* Background decoration */}
+      {/* Glowing orbs */}
       <div style={{
-        position: "absolute", top: -80, right: -80, width: 300, height: 300,
-        borderRadius: "50%", background: "rgba(240,123,36,0.06)",
+        position: "absolute", top: "-20%", right: "-10%", width: "60vw", height: "60vw",
+        borderRadius: "50%", background: "radial-gradient(circle, rgba(240,123,36,0.12) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", bottom: "-30%", left: "-15%", width: "50vw", height: "50vw",
+        borderRadius: "50%", background: "radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      {/* Subtle grid */}
+      <div style={{
+        position: "absolute", inset: 0, opacity: 0.03,
+        backgroundImage: "linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)",
+        backgroundSize: "60px 60px",
+        pointerEvents: "none",
       }} />
 
-      <div style={{ maxWidth: 700, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 }}>
-        {/* Logo — prominent with glass container */}
-        {brand?.logo_url ? (
+      <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 800, width: "100%" }}>
+        {/* Logo */}
+        {brand?.logo_white_url || brand?.logo_url ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            style={{
-              display: "inline-flex",
-              background: "rgba(255,255,255,0.95)",
-              borderRadius: 16,
-              padding: "14px 32px",
-              marginBottom: 20,
-              boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
-            }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            style={{ marginBottom: 32 }}
           >
             <img
-              src={brand.logo_url}
+              src={brand.logo_white_url || brand.logo_url!}
               alt={tenantNome || ""}
-              style={{ height: 52, maxWidth: 240, objectFit: "contain" }}
-              onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }}
+              style={{ height: 56, maxWidth: 280, objectFit: "contain", filter: brand.logo_white_url ? "none" : "brightness(0) invert(1)" }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
           </motion.div>
         ) : tenantNome ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            style={{
-              display: "inline-flex",
-              background: "rgba(27,58,140,0.1)",
-              borderRadius: 12,
-              padding: "10px 24px",
-              marginBottom: 20,
-              border: "1px solid rgba(27,58,140,0.15)",
-            }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            style={{ marginBottom: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}
           >
-            <span style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.1rem", color: "#1B3A8C" }}>{tenantNome}</span>
+            <Sun style={{ width: 28, height: 28, color: "#F07B24" }} />
+            <span style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.3rem", color: "#fff", letterSpacing: "-0.02em" }}>
+              {tenantNome}
+            </span>
           </motion.div>
         ) : null}
 
-        {/* Greeting */}
+        {/* Tag */}
         <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          style={{ marginBottom: 20 }}
+        >
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: "rgba(240,123,36,0.15)", border: "1px solid rgba(240,123,36,0.3)",
+            borderRadius: 999, padding: "6px 18px", fontSize: "0.78rem",
+            fontFamily: "Montserrat, sans-serif", fontWeight: 700, color: "#F9A855",
+            letterSpacing: "0.08em", textTransform: "uppercase",
+          }}>
+            <Zap style={{ width: 14, height: 14 }} />
+            PROPOSTA EXCLUSIVA
+          </span>
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.7 }}
+          style={{
+            fontFamily: "Montserrat, sans-serif", fontWeight: 900,
+            fontSize: "clamp(1.8rem, 6vw, 3.2rem)", color: "#fff",
+            margin: 0, lineHeight: 1.15, letterSpacing: "-0.02em",
+          }}
+        >
+          {s.clienteNome || "Cliente"},{" "}
+          <span style={{ color: "#F9A855" }}>economize até</span>
+          <br />
+          <span style={{
+            background: "linear-gradient(135deg, #F07B24, #F9A855)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            fontSize: "clamp(2.2rem, 7vw, 4rem)",
+          }}>
+            {formatBRL(economiaMensal)}
+          </span>
+          <span style={{ fontSize: "clamp(1rem, 3vw, 1.6rem)", color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>/mês</span>
+        </motion.h1>
+
+        {/* Subtitle */}
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
-          <h1 style={{
-            fontFamily: "Montserrat, sans-serif", fontWeight: 900,
-            fontSize: "clamp(1.4rem, 5vw, 2.2rem)", color: "#1B3A8C",
-            margin: 0, lineHeight: 1.2,
-          }}>
-            Olá, {s.clienteNome || "Cliente"}!
-          </h1>
-          <h2 style={{
-            fontFamily: "Montserrat, sans-serif", fontWeight: 800,
-            fontSize: "clamp(1.1rem, 4vw, 1.6rem)", color: "#1B3A8C",
-            margin: "4px 0 0", lineHeight: 1.3,
-          }}>
-            Sua Proposta de <span style={{ color: "#F07B24" }}>Energia Solar</span>
-          </h2>
-        </motion.div>
-
-        {/* Divider + subtitle */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          style={{ marginTop: 12 }}
-        >
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
-            color: "#64748B", fontSize: "0.85rem",
-          }}>
-            <div style={{ width: 40, height: 1, background: "#CBD5E1" }} />
-            <span>TRANSFORME SUA CONTA DE LUZ EM <strong style={{ color: "#1B3A8C" }}>ECONOMIA</strong></span>
-            <div style={{ width: 40, height: 1, background: "#CBD5E1" }} />
-          </div>
-        </motion.div>
-
-        {/* KPI Grid */}
-        <motion.div
+          transition={{ delay: 0.5, duration: 0.6 }}
           style={{
-            display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10,
-            marginTop: 24,
+            fontFamily: "'Open Sans', sans-serif", color: "rgba(255,255,255,0.55)",
+            fontSize: "clamp(0.9rem, 2.5vw, 1.15rem)", margin: "16px auto 0",
+            maxWidth: 520, lineHeight: 1.6,
           }}
+        >
+          Sistema fotovoltaico de <strong style={{ color: "rgba(255,255,255,0.85)" }}>{potKwp.toFixed(1).replace(".", ",")} kWp</strong> projetado
+          sob medida para você. Retorno em <strong style={{ color: "rgba(255,255,255,0.85)" }}>{paybackAnos} anos</strong>.
+        </motion.p>
+
+        {/* KPI Pills */}
+        <motion.div
           initial="hidden"
           animate="visible"
-          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1, delayChildren: 0.4 } } }}
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1, delayChildren: 0.7 } } }}
+          style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 36 }}
         >
           {[
-            { value: <AnimatedNumber end={potKwp} decimals={2} />, suffix: " kWp", label: "Potência do Sistema" },
-            { value: <><span style={{ fontSize: "0.7em" }}>R$ </span><AnimatedNumber end={economiaMensal} /></>, suffix: "/mês", label: "Economia Estimada" },
-            { value: <><span style={{ fontSize: "0.7em" }}>R$ </span><AnimatedNumber end={valorTotal} /></>, suffix: "", label: "Investimento Total" },
-            { value: paybackAnos, suffix: " anos", label: "Retorno do Investimento" },
+            { icon: <Zap style={{ width: 18, height: 18 }} />, value: `${potKwp.toFixed(1).replace(".", ",")} kWp`, label: "Potência" },
+            { icon: <TrendingDown style={{ width: 18, height: 18 }} />, value: formatBRL(economiaMensal), label: "Economia/mês" },
+            { icon: <Sun style={{ width: 18, height: 18 }} />, value: `${paybackAnos} anos`, label: "Payback" },
           ].map((kpi, i) => (
             <motion.div
               key={i}
-              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+              variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
               style={{
-                background: "#fff", borderRadius: 12, padding: "16px 8px",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: "1px solid #E2E8F0",
-                textAlign: "center",
+                display: "flex", alignItems: "center", gap: 10,
+                background: "rgba(255,255,255,0.06)", backdropFilter: "blur(8px)",
+                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
+                padding: "12px 20px",
               }}
             >
-              <p style={{
-                fontFamily: "Montserrat, sans-serif", fontWeight: 900,
-                fontSize: "clamp(0.9rem, 3vw, 1.4rem)", color: "#1B3A8C", margin: 0,
-              }}>
-                {typeof kpi.value === "string" ? kpi.value : kpi.value}{kpi.suffix && <span style={{ fontSize: "0.6em", fontWeight: 600 }}>{kpi.suffix}</span>}
-              </p>
-              <p style={{ fontSize: "0.65rem", color: "#64748B", margin: "4px 0 0", fontWeight: 500 }}>{kpi.label}</p>
+              <div style={{ color: "#F9A855" }}>{kpi.icon}</div>
+              <div style={{ textAlign: "left" }}>
+                <p style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, color: "#fff", fontSize: "1rem", margin: 0, lineHeight: 1.2 }}>
+                  {kpi.value}
+                </p>
+                <p style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.45)", margin: 0, fontWeight: 500 }}>{kpi.label}</p>
+              </div>
             </motion.div>
           ))}
         </motion.div>
 
-        {/* CTA buttons */}
+        {/* CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          style={{ marginTop: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}
+          transition={{ delay: 1 }}
+          style={{ marginTop: 40, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}
         >
           <button
             onClick={onScrollDown}
             style={{
-              background: "#F07B24", color: "#fff", border: "none", borderRadius: 8,
-              padding: "14px 40px", fontFamily: "Montserrat, sans-serif", fontWeight: 800,
-              fontSize: "1rem", cursor: "pointer", textTransform: "uppercase",
-              letterSpacing: "0.05em", boxShadow: "0 4px 16px rgba(240,123,36,0.3)",
-              transition: "all 0.2s",
+              background: "linear-gradient(135deg, #F07B24, #E56D1A)",
+              color: "#fff", border: "none", borderRadius: 14,
+              padding: "16px 48px", fontFamily: "Montserrat, sans-serif", fontWeight: 800,
+              fontSize: "1.05rem", cursor: "pointer", textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              boxShadow: "0 8px 32px rgba(240,123,36,0.35), 0 0 0 1px rgba(240,123,36,0.2)",
+              transition: "all 0.25s",
             }}
+            onMouseOver={e => { (e.target as HTMLElement).style.transform = "translateY(-2px)"; (e.target as HTMLElement).style.boxShadow = "0 12px 40px rgba(240,123,36,0.45), 0 0 0 1px rgba(240,123,36,0.3)"; }}
+            onMouseOut={e => { (e.target as HTMLElement).style.transform = "translateY(0)"; (e.target as HTMLElement).style.boxShadow = "0 8px 32px rgba(240,123,36,0.35), 0 0 0 1px rgba(240,123,36,0.2)"; }}
           >
-            QUERO AVANÇAR
+            QUERO MINHA ECONOMIA
           </button>
+          {consultorNome && (
+            <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.35)", margin: 0 }}>
+              Consultor: <span style={{ color: "rgba(255,255,255,0.55)" }}>{consultorNome}</span>
+            </p>
+          )}
         </motion.div>
-
-        {/* Consultor */}
-        {consultorNome && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-          >
-            <Users style={{ width: 14, height: 14, color: "#64748B" }} />
-            <span style={{ fontSize: "0.8rem", color: "#64748B" }}>Consultor: <strong style={{ color: "#1B3A8C" }}>{consultorNome}</strong></span>
-          </motion.div>
-        )}
       </div>
+
+      {/* Scroll indicator */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+        style={{ position: "absolute", bottom: 28, left: "50%", transform: "translateX(-50%)" }}
+      >
+        <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+          <ArrowDown style={{ width: 22, height: 22, color: "rgba(255,255,255,0.2)" }} />
+        </motion.div>
+      </motion.div>
     </section>
   );
 }
