@@ -115,16 +115,22 @@ function useConsultores(isReady: boolean) {
 // ─── Hook: fetch available pipelines ───────────────────
 
 function usePipelines(isReady: boolean) {
-  return useQuery<{ id: string; name: string; kind: string }[]>({
+  return useQuery<{ id: string; name: string; kind: string; is_default: boolean }[]>({
     queryKey: ["pipelines-for-migration"],
     enabled: isReady,
     queryFn: async () => {
       const { data } = await supabase
         .from("pipelines")
-        .select("id, name, kind")
+        .select("id, name, kind, is_default")
         .eq("is_active", true)
         .order("created_at", { ascending: true });
-      return (data || []) as { id: string; name: string; kind: string }[];
+      // Sort so is_default pipeline comes first
+      const sorted = (data || []).sort((a: any, b: any) => {
+        if (a.is_default && !b.is_default) return -1;
+        if (!a.is_default && b.is_default) return 1;
+        return 0;
+      });
+      return sorted as { id: string; name: string; kind: string; is_default: boolean }[];
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -574,8 +580,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
   const statusLabel = proposal ? (SM_STATUS_LABEL_MAP[proposal.status?.toLowerCase() ?? ""] ?? { proposal_status: "rascunho", label: "Qualificação" }) : { proposal_status: "rascunho", label: "Qualificação" };
 
-  // Auto-select first pipeline when loaded
-  const activePipelineId = selectedPipelineId || pipelines[0]?.id || "";
+  // Auto-select is_default pipeline first, then fallback to first in list
+  const defaultPipeline = pipelines.find(p => p.is_default);
+  const activePipelineId = selectedPipelineId || defaultPipeline?.id || pipelines[0]?.id || "";
   // Auto-select first stage when loaded
   const activeStageId = selectedStageId || pipelineStages[0]?.id || "";
   const selectedPipeline = pipelines.find(p => p.id === activePipelineId);
