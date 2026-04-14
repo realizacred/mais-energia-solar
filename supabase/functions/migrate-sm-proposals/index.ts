@@ -990,6 +990,17 @@ Deno.serve(async (req) => {
     if (params.auto_resume && !dry_run) {
       const backgroundMigrationEnabled = await isBackgroundMigrationEnabled(adminClient, tenantId);
       if (!backgroundMigrationEnabled) {
+        if (smOpRunId) {
+          await adminClient
+            .from("sm_operation_runs")
+            .update({
+              status: "cancelled",
+              finished_at: new Date().toISOString(),
+              heartbeat_at: new Date().toISOString(),
+              error_summary: "Migração em background pausada para este tenant.",
+            })
+            .eq("id", smOpRunId);
+        }
         return new Response(JSON.stringify({
           paused: true,
           completed: false,
@@ -1018,6 +1029,18 @@ Deno.serve(async (req) => {
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenantId)
           .not("migrado_em", "is", null);
+
+        if (smOpRunId) {
+          await adminClient
+            .from("sm_operation_runs")
+            .update({
+              status: "completed",
+              finished_at: new Date().toISOString(),
+              heartbeat_at: new Date().toISOString(),
+              error_summary: null,
+            })
+            .eq("id", smOpRunId);
+        }
 
         return new Response(
           JSON.stringify({
