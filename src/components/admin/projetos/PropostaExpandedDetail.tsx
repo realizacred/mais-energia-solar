@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatNumberBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
+import { useLazyTemplateAssign } from "@/hooks/useLazyTemplateAssign";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
