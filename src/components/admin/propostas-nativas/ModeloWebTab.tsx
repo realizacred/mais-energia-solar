@@ -167,6 +167,19 @@ export function TemplatesTab() {
     setSaving(false);
   }
 
+  const WEB_CATEGORY_MAP: Record<string, string> = {
+    dashboard: "alta_conversao",
+    consultivo: "consultivo",
+    fechamento: "whatsapp",
+    corporativo: "corporativo",
+    escala: "educacional",
+    impactoVisual: "alta_conversao",
+    simulacaoFinanceira: "financeiro",
+    hibrido: "offgrid",
+    propostaRapida: "whatsapp",
+    conversaoCases: "alta_conversao",
+  };
+
   const DEFAULT_TEMPLATES_CONFIG: { style: TemplateStyle; nome: string; descricao: string }[] = [
     { style: "dashboard", nome: "Alta Conversão — Direto ao Ponto", descricao: "Visual limpo estilo Gdash com comparativo gráfico, simulador de fluxo e timeline de retorno. Mobile-first." },
     { style: "consultivo", nome: "Premium Consultivo", descricao: "Template detalhado com comparativo antes/depois, confiança e dados técnicos. Ideal para projetos maiores." },
