@@ -56,6 +56,7 @@ interface VersaoData {
   link_pdf: string | null;
   public_slug: string | null;
   gerado_em: string | null;
+  template_id_used?: string | null;
 }
 
 interface PropostaData {
