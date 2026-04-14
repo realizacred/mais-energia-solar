@@ -109,6 +109,7 @@ export function TemplatesTab() {
   const [initialized, setInitialized] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TemplateRow | null>(null);
   const [seedingDefaults, setSeedingDefaults] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     if (serverData && !initialized) {
@@ -116,6 +117,15 @@ export function TemplatesTab() {
       setInitialized(true);
     }
   }, [serverData]);
+
+  // Filter: only show active WEB templates by default, optionally show archived
+  const visibleTemplates = useMemo(() => {
+    return templates.filter(t => {
+      if (t.tipo !== "html" && t.tipo !== "web") return false;
+      if (!showArchived && !t.ativo) return false;
+      return true;
+    });
+  }, [templates, showArchived]);
 
   function addTemplate() {
     setTemplates([...templates, {
