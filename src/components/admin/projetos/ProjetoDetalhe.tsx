@@ -8,7 +8,7 @@ import { formatPhone } from "@/lib/validations";
 import { ClienteViewDialog } from "@/components/admin/ClienteViewDialog";
 import { upsertContactFromWhatsApp } from "@/services/contactWhatsAppService";
 import { formatCpfCnpj, isValidCpfCnpj, onlyDigits } from "@/lib/cpfCnpjUtils";
-import { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Spinner } from "@/components/ui-kit/Spinner";
@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TabsList } from "@/components/ui/tabs";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -215,11 +215,43 @@ function RecebimentoCTA({ dealId, customerId, customerName, navigate }: {
   );
 }
 
+// ─── ErrorBoundary for ProjetoDetalhe (prevents white screen) ───
+class ProjetoDetalheErrorBoundary extends React.Component<
+  { children: React.ReactNode; onBack: () => void },
+  { hasError: boolean; errorMsg: string }
+> {
+  constructor(props: { children: React.ReactNode; onBack: () => void }) {
+    super(props);
+    this.state = { hasError: false, errorMsg: "" };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, errorMsg: error?.message || "Erro desconhecido" };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error("[ProjetoDetalhe] Crash capturado:", error.message, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+          <h2 className="text-lg font-bold text-foreground mb-2">Erro ao carregar projeto</h2>
+          <p className="text-sm text-muted-foreground mb-1 max-w-md">{this.state.errorMsg}</p>
+          <Button variant="outline" onClick={this.props.onBack} className="mt-4">Voltar</Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
   return (
-    <ProjetoDetalheProvider dealId={dealId} onBack={onBack} initialPipelineId={initialPipelineId}>
-      <ProjetoDetalheContent />
-    </ProjetoDetalheProvider>
+    <ProjetoDetalheErrorBoundary onBack={onBack}>
+      <ProjetoDetalheProvider dealId={dealId} onBack={onBack} initialPipelineId={initialPipelineId}>
+        <ProjetoDetalheContent />
+      </ProjetoDetalheProvider>
+    </ProjetoDetalheErrorBoundary>
   );
 }
 
@@ -377,7 +409,7 @@ function ProjetoDetalheContent() {
           </div>
 
           <div className="border-b border-border/60 -mx-3 sm:-mx-4 px-3 sm:px-4 pt-2 pb-0">
-            <TabsList className="overflow-x-auto flex-wrap h-auto bg-transparent p-0 gap-0">
+            <div className="overflow-x-auto flex flex-wrap h-auto bg-transparent p-0 gap-0">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
                 const badge = tabBadge(tab.id);
@@ -404,7 +436,7 @@ function ProjetoDetalheContent() {
                   </button>
                 );
               })}
-            </TabsList>
+            </div>
           </div>
         </CardContent>
       </Card>
