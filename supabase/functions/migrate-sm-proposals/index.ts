@@ -2675,14 +2675,21 @@ Deno.serve(async (req) => {
 
           // Resolve pipeline from SM funnels (auto) or fallback to UI selection
           const smProjForPipeline = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
-          const resolved = await resolvePipelinePrincipalDoFunil(
-            smProjForPipeline?.all_funnels || null,
-            tenantId,
-            params.pipeline_id!,
-            params.stage_id || null,
-            smProjForPipeline?.sm_funnel_name || null,
-            smProjForPipeline?.sm_stage_name || null,
-          );
+          let resolved: { pipeline_id: string; stage_id: string | null; source: string };
+          try {
+            resolved = await resolvePipelinePrincipalDoFunil(
+              smProjForPipeline?.all_funnels || null,
+              tenantId,
+              params.pipeline_id!,
+              params.stage_id || null,
+              smProjForPipeline?.sm_funnel_name || null,
+              smProjForPipeline?.sm_stage_name || null,
+            );
+          } catch (pipeErr) {
+            console.warn(`[SM Migration] Pipeline resolution error (non-fatal): ${(pipeErr as Error).message}`);
+            report.steps.pipelines = { status: "ERROR", reason: `Pipeline resolution: ${(pipeErr as Error).message}` };
+            resolved = { pipeline_id: FALLBACK_PIPELINE_ID, stage_id: FALLBACK_STAGE_ID, source: "fallback_after_error" };
+          }
 
           // ALWAYS resolve stage from SM proposal status when using default/fallback pipeline.
           // FIX: Use resolveSmLifecycle (date-based) instead of raw smProp.status for accurate mapping.
@@ -3462,18 +3469,43 @@ Deno.serve(async (req) => {
               };
 
               // P1: Inject customFieldValues from custom_fields_raw into snapshot
+              // Classify by prefix: cap_ → projeto, cape_ → pré-dimensionamento, capo_ → pós-dimensionamento
               if (smProp.custom_fields_raw?.values) {
                 const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
                 const customFieldValues: Record<string, string> = {};
+                const customFieldsByArea: Record<string, Record<string, string>> = {
+                  projeto: {},
+                  pre_dimensionamento: {},
+                  pos_dimensionamento: {},
+                  outros: {},
+                };
                 for (const [key, entry] of Object.entries(cfVals)) {
                   const bareKey = normalizeCfKey(key);
                   const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
                   if (val !== "" && val != null) {
-                    customFieldValues[bareKey] = String(val);
+                    const strVal = String(val);
+                    customFieldValues[bareKey] = strVal;
+
+                    // Classify by prefix (cap_, cape_, capo_)
+                    const lowerKey = bareKey.toLowerCase();
+                    if (lowerKey.startsWith("cape_") || lowerKey.startsWith("cape ")) {
+                      customFieldsByArea.pre_dimensionamento[bareKey] = strVal;
+                    } else if (lowerKey.startsWith("capo_") || lowerKey.startsWith("capo ")) {
+                      customFieldsByArea.pos_dimensionamento[bareKey] = strVal;
+                    } else if (lowerKey.startsWith("cap_") || lowerKey.startsWith("cap ")) {
+                      customFieldsByArea.projeto[bareKey] = strVal;
+                    } else {
+                      customFieldsByArea.outros[bareKey] = strVal;
+                    }
                   }
                 }
                 if (Object.keys(customFieldValues).length > 0) {
                   finalSnapshot.customFieldValues = customFieldValues;
+                }
+                // Persist classified custom fields in snapshot for downstream use
+                const areaEntries = Object.entries(customFieldsByArea).filter(([, v]) => Object.keys(v).length > 0);
+                if (areaEntries.length > 0) {
+                  finalSnapshot.customFieldsByArea = Object.fromEntries(areaEntries);
                 }
               }
 
@@ -3668,6 +3700,103 @@ Deno.serve(async (req) => {
               unmapped: Object.keys(unmappedCf).length,
               transform_errors: Object.keys(transformErrors).length,
             };
+          }
+
+          // ── G2. Persist prefix-classified custom fields to deal_custom_field_values ──
+          // cap_ → projeto, cape_ → pré-dimensionamento, capo_ → pós-dimensionamento
+          if (!dry_run && dealId && smProp.custom_fields_raw?.values) {
+            try {
+              const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
+              const cfByPrefix: Array<{ key: string; value: string; area: string }> = [];
+
+              for (const [key, entry] of Object.entries(cfVals)) {
+                const bareKey = normalizeCfKey(key);
+                const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
+                if (val === "" || val == null) continue;
+                const lowerKey = bareKey.toLowerCase();
+                let area = "outros";
+                if (lowerKey.startsWith("cape_") || lowerKey.startsWith("cape ")) {
+                  area = "pre_dimensionamento";
+                } else if (lowerKey.startsWith("capo_") || lowerKey.startsWith("capo ")) {
+                  area = "pos_dimensionamento";
+                } else if (lowerKey.startsWith("cap_") || lowerKey.startsWith("cap ")) {
+                  area = "projeto";
+                }
+                cfByPrefix.push({ key: bareKey, value: String(val), area });
+              }
+
+              if (cfByPrefix.length > 0) {
+                // Check existing deal_custom_fields for this tenant to find matches
+                const { data: existingFields } = await adminClient
+                  .from("deal_custom_fields")
+                  .select("id, field_key, title, field_context")
+                  .eq("tenant_id", tenantId);
+
+                const fieldByKey = new Map<string, { id: string; context: string }>();
+                for (const f of existingFields || []) {
+                  fieldByKey.set((f.field_key || "").toLowerCase(), { id: f.id, context: f.field_context || "outros" });
+                }
+
+                const valuesToInsert: Array<Record<string, any>> = [];
+
+                for (const cf of cfByPrefix) {
+                  const existingField = fieldByKey.get(cf.key.toLowerCase());
+                  let fieldId: string;
+
+                  if (existingField) {
+                    fieldId = existingField.id;
+                  } else {
+                    // Create the custom field definition (idempotent via field_key)
+                    const fieldInsert = {
+                      tenant_id: tenantId,
+                      field_key: cf.key,
+                      title: cf.key.replace(/^(cap_|cape_|capo_)/i, "").replace(/_/g, " "),
+                      field_type: "text",
+                      field_context: cf.area,
+                      is_active: true,
+                    };
+                    const { data: newField, error: fieldErr } = await adminClient
+                      .from("deal_custom_fields")
+                      .upsert(fieldInsert, { onConflict: "tenant_id,field_key" })
+                      .select("id")
+                      .single();
+
+                    if (fieldErr || !newField) {
+                      console.warn(`[SM Migration] Custom field create error for ${cf.key}: ${fieldErr?.message}`);
+                      continue;
+                    }
+                    fieldId = newField.id;
+                    fieldByKey.set(cf.key.toLowerCase(), { id: fieldId, context: cf.area });
+                  }
+
+                  valuesToInsert.push({
+                    tenant_id: tenantId,
+                    deal_id: dealId,
+                    field_id: fieldId,
+                    value_text: cf.value,
+                  });
+                }
+
+                // Batch upsert values (idempotent via deal_id + field_id)
+                if (valuesToInsert.length > 0) {
+                  const { error: valErr } = await adminClient
+                    .from("deal_custom_field_values")
+                    .upsert(valuesToInsert, { onConflict: "deal_id,field_id" });
+                  if (valErr) {
+                    console.warn(`[SM Migration] Custom field values upsert error: ${valErr.message}`);
+                  }
+                }
+
+                (report as any).custom_fields_by_prefix = {
+                  projeto: cfByPrefix.filter(c => c.area === "projeto").length,
+                  pre_dimensionamento: cfByPrefix.filter(c => c.area === "pre_dimensionamento").length,
+                  pos_dimensionamento: cfByPrefix.filter(c => c.area === "pos_dimensionamento").length,
+                  outros: cfByPrefix.filter(c => c.area === "outros").length,
+                };
+              }
+            } catch (cfPrefixErr) {
+              console.warn(`[SM Migration] Custom field prefix classification error: ${(cfPrefixErr as Error).message}`);
+            }
           }
 
           // Determine overall status for logging
