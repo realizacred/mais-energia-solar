@@ -61,17 +61,45 @@ export function ProposalHeroSection({ snapshot: s, versaoData, brand, tenantNome
       }} />
 
       <div style={{ maxWidth: 700, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 }}>
-        {/* Logo */}
-        {brand?.logo_url && (
-          <motion.img
-            src={brand.logo_url}
-            alt={tenantNome || ""}
-            style={{ height: 48, objectFit: "contain", marginBottom: 16 }}
+        {/* Logo — prominent with glass container */}
+        {brand?.logo_url ? (
+          <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-          />
-        )}
+            style={{
+              display: "inline-flex",
+              background: "rgba(255,255,255,0.95)",
+              borderRadius: 16,
+              padding: "14px 32px",
+              marginBottom: 20,
+              boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+            }}
+          >
+            <img
+              src={brand.logo_url}
+              alt={tenantNome || ""}
+              style={{ height: 52, maxWidth: 240, objectFit: "contain" }}
+              onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }}
+            />
+          </motion.div>
+        ) : tenantNome ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              display: "inline-flex",
+              background: "rgba(27,58,140,0.1)",
+              borderRadius: 12,
+              padding: "10px 24px",
+              marginBottom: 20,
+              border: "1px solid rgba(27,58,140,0.15)",
+            }}
+          >
+            <span style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1.1rem", color: "#1B3A8C" }}>{tenantNome}</span>
+          </motion.div>
+        ) : null}
 
         {/* Greeting */}
         <motion.div
