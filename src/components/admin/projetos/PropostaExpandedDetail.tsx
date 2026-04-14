@@ -1110,6 +1110,32 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
+  const resolvePublicProposalUrl = async (withTracking = false) => {
+    if (!p.id || !latestVersao?.id) {
+      throw new Error("Gere a proposta primeiro.");
+    }
+
+    const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
+    const tipo = withTracking ? "tracked" : "public";
+    const token = await getOrCreateProposalToken(p.id, latestVersao.id, tipo);
+    const url = `${getPublicUrl()}/proposta/${token}`;
+
+    if (!withTracking) {
+      setPublicUrl(url);
+    }
+
+    return { token, url };
+  };
+
+  const openPublicProposal = async () => {
+    try {
+      const url = publicUrl ?? (await resolvePublicProposalUrl(false)).url;
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast({ title: "Erro ao abrir proposta", description: e.message, variant: "destructive" });
+    }
+  };
+
   const handleSend = async (canal: "link" | "whatsapp") => {
     if (!p.id || !latestVersao?.id) return;
     setSending(true);
@@ -1120,7 +1146,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         canal,
         lead_id: undefined,
       });
-      setPublicUrl(result.public_url);
+      const canonicalUrl = `${getPublicUrl()}/proposta/${result.token}`;
+      setPublicUrl(canonicalUrl);
       if (canal === "whatsapp" && result.whatsapp_sent) {
         toast({ title: "Proposta enviada via WhatsApp! ✅" });
       } else {
@@ -1133,17 +1160,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     }
   };
 
-  // Copy link (unified: uses centralized getOrCreateProposalToken)
   const handleCopyLink = async (withTracking: boolean) => {
-    if (!p.id || !latestVersao?.id) {
-      toast({ title: "Link não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
-      return;
-    }
     try {
-      const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
-      const tipo = withTracking ? "tracked" : "public";
-      const token = await getOrCreateProposalToken(p.id, latestVersao.id, tipo);
-      const url = `${getPublicUrl()}/proposta/${token}`;
+      const { url } = await resolvePublicProposalUrl(withTracking);
       try {
         await navigator.clipboard.writeText(url);
       } catch {
