@@ -1063,6 +1063,7 @@ Deno.serve(async (req) => {
     }
 
 
+    if (rawBody?.action === "pause_background_migration") {
       // 1. Disable future runs
       await adminClient
         .from("sm_migration_settings")
@@ -1650,13 +1651,13 @@ Deno.serve(async (req) => {
 
 
     // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
-    function normalizeComparableName(value: string | null | undefined): string {
+    const normalizeComparableName = (value: string | null | undefined): string => {
       return String(value || "")
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
         .trim();
-    }
+    };
 
     const consultoresMap = new Map<string, string>(); // normalized name → id
     {
@@ -1673,9 +1674,9 @@ Deno.serve(async (req) => {
 
     // ─── 2d. Pre-fetch custom field mappings ────────────
     // Normalize source_key on load: store as bareKey (no brackets) for consistent lookup
-    function normalizeCfKey(key: string): string {
+    const normalizeCfKey = (key: string): string => {
       return key.replace(/^\[|\]$/g, "").trim();
-    }
+    };
     const cfMappings = new Map<string, { target_namespace: string; target_path: string; transform: string; priority: number }>();
     {
       const { data: mappings } = await adminClient
@@ -1697,7 +1698,7 @@ Deno.serve(async (req) => {
     // console.log(`[SM Migration] Loaded ${cfMappings.size} custom field mappings`);
 
     /** Apply transform to a raw value */
-    function applyTransform(rawValue: any, transform: string): any {
+    const applyTransform = (rawValue: any, transform: string): any => {
       if (rawValue == null || rawValue === "undefined") return null;
       switch (transform) {
         case "number_br": {
@@ -1721,7 +1722,7 @@ Deno.serve(async (req) => {
         default: // "string" or enum
           return String(rawValue);
       }
-    }
+    };
 
 
 
@@ -3235,13 +3236,13 @@ Deno.serve(async (req) => {
 
               // Build pagamentoOpcoes in canonical schema
               // Infer payment type from SM payment_conditions text
-              function inferTipoPagamento(cond: string | null | undefined): "a_vista" | "financiamento" | "entrada" {
+              const inferTipoPagamento = (cond: string | null | undefined): "a_vista" | "financiamento" | "entrada" => {
                 if (!cond) return "a_vista";
                 const c = cond.toLowerCase();
                 if (/financiamento|parcela|\d+x/.test(c)) return "financiamento";
                 if (/entrada/.test(c)) return "entrada";
                 return "a_vista";
-              }
+              };
 
               const pagamentoOpcoes = [{
                 id: crypto.randomUUID(),
