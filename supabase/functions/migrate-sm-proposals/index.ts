@@ -1673,23 +1673,52 @@ Deno.serve(async (req) => {
     // console.log(`[SM Migration] Loaded ${consultoresMap.size} consultores for auto-resolution`);
 
     // ─── 2d. Pre-fetch custom field mappings ────────────
-    // Normalize source_key on load: store as bareKey (no brackets) for consistent lookup
+    // ─── Global Field Key Normalizer ───────────────────────
+    // Handles: camelCase→snake_case, accents, spaces, special chars, prefix stripping
+    // Ensures "Valor Total", "valorTotal", "cap_valor_total" all become "valor_total"
+
+    /** Remove brackets from SM key notation */
     const normalizeCfKey = (key: string): string => {
       return key.replace(/^\[|\]$/g, "").trim();
     };
 
-    /** Strip cap_/cape_/capo_ prefix to get the base key for dedup across areas */
-    const stripCfPrefix = (key: string): string => {
-      return key.replace(/^(cape_|capo_|cap_)/i, "").trim();
-    };
-
-    /** Detect field_context area from original key prefix */
+    /** Detect field_context area from original key prefix (BEFORE stripping) */
     const detectCfArea = (key: string): string => {
-      const lk = key.toLowerCase();
+      const lk = key.toLowerCase().trim();
       if (lk.startsWith("cape_") || lk.startsWith("cape ")) return "pre_dimensionamento";
       if (lk.startsWith("capo_") || lk.startsWith("capo ")) return "pos_dimensionamento";
       if (lk.startsWith("cap_") || lk.startsWith("cap ")) return "projeto";
       return "outros";
+    };
+
+    /** Strip cap_/cape_/capo_ prefix to get the base key */
+    const stripCfPrefix = (key: string): string => {
+      return key.replace(/^(cape_|capo_|cap_)/i, "").trim();
+    };
+
+    /**
+     * Global normalizer: produces a canonical snake_case key from any format.
+     * Steps:
+     * 1. Remove brackets
+     * 2. Strip prefix (cap_/cape_/capo_) — prefix is used only for area routing
+     * 3. Remove accents (NFD decomposition)
+     * 4. Convert camelCase to snake_case (e.g. "valorTotal" → "valor_total")
+     * 5. Replace spaces and special chars with _
+     * 6. Collapse multiple underscores
+     * 7. Lowercase
+     */
+    const normalizeFieldKey = (rawKey: string): string => {
+      let k = normalizeCfKey(rawKey);
+      k = stripCfPrefix(k);
+      // Remove accents
+      k = k.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      // camelCase → snake_case: insert _ before uppercase letters
+      k = k.replace(/([a-z0-9])([A-Z])/g, "$1_$2");
+      // Replace spaces and non-alphanumeric with _
+      k = k.replace(/[^a-zA-Z0-9_]/g, "_");
+      // Collapse multiple underscores and trim
+      k = k.replace(/_+/g, "_").replace(/^_|_$/g, "");
+      return k.toLowerCase();
     };
     const cfMappings = new Map<string, { target_namespace: string; target_path: string; transform: string; priority: number }>();
     {
