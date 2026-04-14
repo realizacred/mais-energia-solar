@@ -27,13 +27,16 @@ export type BlockType =
   | "tabs"
   // Semânticos (proposal-specific, render via React components)
   | "proposal_hero"
+  | "proposal_problem"
   | "proposal_kpis"
   | "proposal_comparison"
+  | "proposal_solution"
   | "proposal_equipment"
   | "proposal_financial"
   | "proposal_guarantees"
   | "proposal_payment"
-  | "proposal_cta";
+  | "proposal_cta"
+  | "proposal_closing";
 
 export type ProposalType = "grid" | "hybrid" | "dual";
 
