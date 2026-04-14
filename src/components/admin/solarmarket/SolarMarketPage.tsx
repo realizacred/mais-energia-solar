@@ -655,7 +655,21 @@ export default function SolarMarketPage() {
 
   const [migrateAllOpen, setMigrateAllOpen] = useState(false);
   const [syncPipelinesRunning, setSyncPipelinesRunning] = useState(false);
-  const [syncPipelinesResult, setSyncPipelinesResult] = useState<{ pipelines: { created: number; existing: number }; stages: { created: number; existing: number }; consultores: { created: number; existing: number } } | null>(null);
+  const [syncPipelinesResult, setSyncPipelinesResult] = useState<{ pipelines: { created: number; existing: number }; stages: { created: number; existing: number }; consultores: { created: number; existing: number }; funis_activated?: string[] } | null>(null);
+
+  // Check if operational funis are active (pre-requisite for migration)
+  const [hasActiveFunis, setHasActiveFunis] = useState<boolean | null>(null);
+  useEffect(() => {
+    const checkFunis = async () => {
+      const { data, error } = await supabase
+        .from("projeto_funis")
+        .select("id")
+        .eq("ativo", true)
+        .limit(1);
+      if (!error) setHasActiveFunis((data || []).length > 0);
+    };
+    checkFunis();
+  }, [syncPipelinesResult]); // Re-check after sync
 
   const runSyncPipelines = useCallback(async () => {
     setSyncPipelinesRunning(true);
@@ -811,7 +825,7 @@ export default function SolarMarketPage() {
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Ver Migração
               </Button>
-            ) : pendingMigrationTotal > 0 && !syncIsRunning && projects.length > 0 ? (
+            ) : pendingMigrationTotal > 0 && !syncIsRunning && projects.length > 0 && hasActiveFunis !== false ? (
               <Button onClick={() => setMigrateAllOpen(true)} size="sm" variant="default" className="w-full gap-1.5 sm:w-auto">
                 <ArrowRightLeft className="h-3.5 w-3.5" />
                 Migrar {pendingMigrationTotal} Propostas
@@ -878,7 +892,8 @@ export default function SolarMarketPage() {
                 setMigrateAllOpen(true);
               }
             }}
-            disabled={!isMigrationActive && pendingMigrationTotal === 0}
+            disabled={!isMigrationActive && (pendingMigrationTotal === 0 || hasActiveFunis === false)}
+            title={hasActiveFunis === false ? "Sincronize funis e etapas antes de migrar" : undefined}
             size="sm"
             variant={isMigrationActive ? "default" : "outline"}
             className={cn("gap-1 h-7 text-xs", isMigrationActive && "animate-pulse")}
@@ -1085,6 +1100,16 @@ export default function SolarMarketPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Warning: no active funis */}
+      {hasActiveFunis === false && !syncPipelinesResult && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-warning/10 border border-warning/30 text-sm">
+          <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+          <span className="text-foreground">
+            Nenhum funil operacional ativo. Clique em <strong>"Funis &amp; Etapas"</strong> para sincronizar e ativar os funis antes de migrar.
+          </span>
+        </div>
+      )}
+
       {/* Sync Pipelines Result */}
       {syncPipelinesResult && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-success/5 border border-success/20 text-sm">
@@ -1093,6 +1118,9 @@ export default function SolarMarketPage() {
             Funis sincronizados: {syncPipelinesResult.pipelines.created} criados, {syncPipelinesResult.pipelines.existing} existentes
             {" · "}Etapas: {syncPipelinesResult.stages.created} criadas, {syncPipelinesResult.stages.existing} existentes
             {" · "}Consultores: {syncPipelinesResult.consultores.created} criados, {syncPipelinesResult.consultores.existing} existentes
+            {syncPipelinesResult.funis_activated && syncPipelinesResult.funis_activated.length > 0 && (
+              <>{" · "}Funis ativados: {syncPipelinesResult.funis_activated.join(", ")}</>
+            )}
           </span>
         </div>
       )}

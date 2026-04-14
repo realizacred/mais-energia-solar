@@ -616,11 +616,33 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     }
   }
 
+  // 7. Activate operational projeto_funis (exclude "Vendedor" — not a real process funil)
+  const funisActivated: string[] = [];
+  {
+    const { data: inactiveFunis } = await adminClient
+      .from("projeto_funis")
+      .select("id, nome")
+      .eq("tenant_id", tenantId)
+      .eq("ativo", false);
+
+    const toActivate = (inactiveFunis || []).filter(
+      (f: any) => normalizeNameForCompare(f.nome) !== "vendedor"
+    );
+
+    for (const f of toActivate) {
+      const { error: activateErr } = await adminClient
+        .from("projeto_funis")
+        .update({ ativo: true })
+        .eq("id", f.id);
+      if (!activateErr) funisActivated.push(f.nome);
+    }
+  }
+
   return new Response(
     JSON.stringify({
       action: "sync_pipelines",
       success: true,
-      report,
+      report: { ...report, funis_activated: funisActivated },
       total_projects_scanned: allProjects.length,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
