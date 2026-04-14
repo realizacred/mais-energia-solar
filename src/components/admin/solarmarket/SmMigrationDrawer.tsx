@@ -580,8 +580,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
   const statusLabel = proposal ? (SM_STATUS_LABEL_MAP[proposal.status?.toLowerCase() ?? ""] ?? { proposal_status: "rascunho", label: "Qualificação" }) : { proposal_status: "rascunho", label: "Qualificação" };
 
-  // Auto-select first pipeline when loaded
-  const activePipelineId = selectedPipelineId || pipelines[0]?.id || "";
+  // Auto-select is_default pipeline first, then fallback to first in list
+  const defaultPipeline = pipelines.find(p => p.is_default);
+  const activePipelineId = selectedPipelineId || defaultPipeline?.id || pipelines[0]?.id || "";
   // Auto-select first stage when loaded
   const activeStageId = selectedStageId || pipelineStages[0]?.id || "";
   const selectedPipeline = pipelines.find(p => p.id === activePipelineId);
