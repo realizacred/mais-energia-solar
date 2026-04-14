@@ -246,10 +246,38 @@ export default function PropostaLanding() {
     for (const [k, v] of Object.entries(raw)) {
       if (v !== null && v !== undefined) vars[k] = String(v);
     }
+
+    // Recalculate valor_total from snapshot venda data as fallback
+    // The DB column valor_total may be stale if saved before Financial Center synced
+    const vendaSnap = (raw as any)?.venda;
+    let snapshotValorTotal = 0;
+    if (vendaSnap && typeof vendaSnap === "object") {
+      const custoKit = Number(vendaSnap.custo_kit_override ?? 0) > 0
+        ? Number(vendaSnap.custo_kit_override)
+        : s.custoKit;
+      const custoInstalacao = Number(vendaSnap.custo_instalacao ?? 0);
+      const custoComissao = Number(vendaSnap.custo_comissao ?? 0);
+      const custoOutros = Number(vendaSnap.custo_outros ?? 0);
+      const margem = Number(vendaSnap.margem_percentual ?? 0);
+      const desconto = Number(vendaSnap.desconto_percentual ?? 0);
+      const custoBase = custoKit + custoInstalacao + custoComissao + custoOutros;
+      const custoParaMargem = custoKit + custoInstalacao + custoOutros;
+      const margemValor = custoParaMargem * (margem / 100);
+      const precoComMargem = custoBase + margemValor;
+      snapshotValorTotal = Math.round((precoComMargem - precoComMargem * (desconto / 100)) * 100) / 100;
+    }
+
+    // Use cenario > recalculated snapshot total > DB column > 0
+    const bestValorTotal = activeCenario?.preco_final
+      ?? (snapshotValorTotal > 0 ? snapshotValorTotal : null)
+      ?? versaoData.valor_total
+      ?? 0;
+
     vars["cliente_nome"] = s.clienteNome || "";
     vars["potencia_kwp"] = String(s.potenciaKwp || versaoData.potencia_kwp || 0);
-    vars["valor_total"] = formatBRL(activeCenario?.preco_final ?? versaoData.valor_total ?? 0);
+    vars["valor_total"] = formatBRL(bestValorTotal);
     vars["economia_mensal"] = formatBRL(versaoData.economia_mensal ?? s.economiaMensal ?? 0);
+    vars["economia_anual"] = formatBRL((versaoData.economia_mensal ?? s.economiaMensal ?? 0) * 12);
     vars["payback_meses"] = String(activeCenario?.payback_meses ?? versaoData.payback_meses ?? s.paybackMeses ?? 0);
     vars["consumo_mensal"] = String(s.consumoTotal || 0);
     vars["geracao_mensal"] = String(s.geracaoMensalEstimada || 0);
