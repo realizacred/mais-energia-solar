@@ -1503,6 +1503,15 @@ Deno.serve(async (req) => {
         if (firstEtapa) FALLBACK_ETAPA_ID = firstEtapa.id;
       }
 
+      // ─── Normalize helper (must be declared before first use) ─
+      const normalizeComparableName = (value: string | null | undefined): string => {
+        return String(value || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .trim();
+      };
+
       // Pre-fetch ALL projeto_funis for dynamic funil resolution
       const { data: allProjetoFunis } = await adminClient
         .from("projeto_funis")
@@ -1673,13 +1682,6 @@ Deno.serve(async (req) => {
 
 
     // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
-    const normalizeComparableName = (value: string | null | undefined): string => {
-      return String(value || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
-        .trim();
-    };
 
     const consultoresMap = new Map<string, string>(); // normalized name → id
     {
