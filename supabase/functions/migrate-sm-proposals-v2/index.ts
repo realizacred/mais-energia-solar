@@ -1056,22 +1056,32 @@ Deno.serve(async (req) => {
 
           if (!smProj) { fixReport.skipped++; continue; }
 
-          // Resolve funil_id
+          // Resolve funil_id — same logic as main migration path
           const normalizedFunnel = normalizeNameForCompare(smProj.sm_funnel_name);
           let targetFunilId: string | null = null;
+          let resolvedStageName: string | null = null;
 
-          if (!normalizedFunnel || normalizedFunnel === 'vendedores' || normalizedFunnel === 'lead') {
-            targetFunilId = fixEngenhariaFunilId;
-          } else if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
-            targetFunilId = fixFunisMap.get(normalizeNameForCompare('Compensação'))
-              || fixFunisMap.get(normalizeNameForCompare('Compesação'))
-              || fixEngenhariaFunilId;
-          } else {
-            targetFunilId = fixFunisMap.get(normalizedFunnel) || null;
-            if (!targetFunilId) {
-              for (const [k, v] of fixFunisMap) {
-                if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) { targetFunilId = v; break; }
+          if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
+            // sm_funnel_name is operational — use directly
+            if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
+              targetFunilId = fixFunisMap.get(normalizeNameForCompare('Compensação'))
+                || fixFunisMap.get(normalizeNameForCompare('Compesação'))
+                || fixEngenhariaFunilId;
+            } else {
+              targetFunilId = fixFunisMap.get(normalizedFunnel) || null;
+              if (!targetFunilId) {
+                for (const [k, v] of fixFunisMap) {
+                  if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) { targetFunilId = v; break; }
+                }
               }
+            }
+            resolvedStageName = smProj.sm_stage_name || null;
+          } else {
+            // Vendedores/LEAD/NULL — scan all_funnels for best operational funnel
+            const bestOp = resolveBestOperationalFunnel(smProj.all_funnels, fixFunisMap, fixFunisOrdemMap);
+            if (bestOp) {
+              targetFunilId = bestOp.funilId;
+              resolvedStageName = bestOp.stageName;
             }
           }
           if (!targetFunilId) targetFunilId = fixEngenhariaFunilId;
@@ -1079,27 +1089,25 @@ Deno.serve(async (req) => {
           // Resolve etapa_id
           let targetEtapaId: string | null = null;
           if (targetFunilId) {
-            if (!normalizedFunnel || normalizedFunnel === 'vendedores' || normalizedFunnel === 'lead') {
-              targetEtapaId = fixEtapaFirstMap.get(targetFunilId) || null;
-            } else {
-              if (smProj.sm_stage_name) {
-                const nameKey = `${targetFunilId}::${normalizeNameForCompare(smProj.sm_stage_name)}`;
-                targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
-              }
-              if (!targetEtapaId && Array.isArray(smProj.all_funnels)) {
-                for (const f of smProj.all_funnels) {
-                  const fName = normalizeNameForCompare(String(f.funnelName || "").trim());
-                  if (!fName || fName === "vendedores") continue;
-                  const fStageName = String(f.stageName || "").trim();
-                  if (fStageName) {
-                    const nameKey = `${targetFunilId}::${normalizeNameForCompare(fStageName)}`;
-                    targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
-                    if (targetEtapaId) break;
-                  }
+            // Try resolved stage name first
+            if (resolvedStageName) {
+              const nameKey = `${targetFunilId}::${normalizeNameForCompare(resolvedStageName)}`;
+              targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
+            }
+            // Try all operational funnels' stage names
+            if (!targetEtapaId && Array.isArray(smProj.all_funnels)) {
+              for (const f of smProj.all_funnels) {
+                const fName = normalizeNameForCompare(String(f.funnelName || "").trim());
+                if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
+                const fStageName = String(f.stageName || "").trim();
+                if (fStageName) {
+                  const nameKey = `${targetFunilId}::${normalizeNameForCompare(fStageName)}`;
+                  targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
+                  if (targetEtapaId) break;
                 }
               }
-              if (!targetEtapaId) targetEtapaId = fixEtapaFirstMap.get(targetFunilId) || null;
             }
+            if (!targetEtapaId) targetEtapaId = fixEtapaFirstMap.get(targetFunilId) || null;
           }
           if (!targetEtapaId) targetEtapaId = fixEngenhariaFirstEtapa;
 
