@@ -440,8 +440,8 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     // From all_funnels array
     if (Array.isArray(proj.all_funnels)) {
       for (const f of proj.all_funnels) {
-        const fName = String(f.funnelName || f.funnel_name || "").trim();
-        const sName = String(f.stageName || f.stage_name || "").trim();
+        const fName = readSmFunnelName(f);
+        const sName = readSmStageName(f);
         if (fName) funnels.push({ funnelName: fName, stageName: sName });
       }
     }
