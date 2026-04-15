@@ -3406,12 +3406,12 @@ Deno.serve(async (req) => {
                           targetFunilId = bestOp.funilId;
                           resolvedStageName = bestOp.stageName;
                         } else {
-                          // No operational funnel found → null (consistent with funil_id rule above)
-                          targetFunilId = null;
+                          // No operational funnel found → fallback to Comercial
+                          targetFunilId = COMERCIAL_FUNIL_ID || null;
                         }
                       }
 
-                      if (!targetFunilId) return null; // No operational funnel → no etapa
+                      if (!targetFunilId) return COMERCIAL_ETAPA_ID || null;
 
                       // Try matching resolved stage name
                       if (resolvedStageName) {
