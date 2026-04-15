@@ -2781,6 +2781,22 @@ Deno.serve(async (req) => {
           if (autoResolveOwner && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
 
+            // ── AUDIT: log all inputs for owner resolution ──
+            const auditFunnels = smProj?.all_funnels || [];
+            const vendedorFunnel = auditFunnels.find((f: any) => {
+              const fn = String(f.funnelName || f.funnel_name || "").toLowerCase().trim();
+              return fn === "vendedores";
+            });
+            console.error(`[SM Migration] OWNER_AUDIT proposal=${smProp.sm_proposal_id}`, {
+              sm_project_id: smProp.sm_project_id,
+              vendedor_raw: vendedorFunnel ? String(vendedorFunnel.stageName || vendedorFunnel.stage_name || "") : null,
+              vendedor_normalized: vendedorFunnel ? normalizeComparableName(String(vendedorFunnel.stageName || vendedorFunnel.stage_name || "")) : null,
+              sm_funnel_name: smProj?.sm_funnel_name || null,
+              sm_stage_name: smProj?.sm_stage_name || null,
+              params_owner_id: params.owner_id || null,
+              consultores_available: [...consultoresMap.keys()],
+            });
+
             // Priority 1: DB cached funnel data (fast, no external call)
             if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
               // Check all_funnels first (richer data than sm_funnel_name)
@@ -2846,6 +2862,13 @@ Deno.serve(async (req) => {
               continue;
             }
           }
+
+          // ── AUDIT: log final owner decision ──
+          console.error(`[SM Migration] OWNER_RESOLVED proposal=${smProp.sm_proposal_id}`, {
+            owner_id: resolvedOwnerId,
+            owner_source: ownerSource,
+            auto_created: ownerAutoCreated,
+          });
 
           // ── C. Deal (idempotent via legacy_key) ──
           const legacyKey = `sm:${smProp.sm_project_id || 0}:${smProp.sm_proposal_id}`;
