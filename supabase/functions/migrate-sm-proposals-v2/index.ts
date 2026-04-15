@@ -3183,6 +3183,7 @@ Deno.serve(async (req) => {
                   projInsert.created_at = smProjDate;
                   projInsert.updated_at = smProp.sm_updated_at || smProp.acceptance_date || smProjDate;
                 }
+                console.error("PROJETO_INSERT_PAYLOAD", { tenant_id: tenantId, deal_id: dealId, funil_id: projInsert.funil_id, etapa_id: projInsert.etapa_id, codigo: projInsert.codigo });
                 const { data: newProj, error: projErr } = await adminClient
                   .from("projetos")
                   .insert(projInsert)
@@ -3190,6 +3191,8 @@ Deno.serve(async (req) => {
                   .single();
 
                 if (projErr) {
+                  console.error("PROJETO_INSERT_ERROR", projErr.message);
+
                   // If unique constraint on codigo, fetch existing
                   if (projErr.message.includes("uq_projetos_tenant_codigo")) {
                     const { data: existingByCode } = await adminClient
