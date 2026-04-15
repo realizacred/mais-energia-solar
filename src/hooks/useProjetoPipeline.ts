@@ -103,25 +103,28 @@ export function useProjetoPipeline() {
     if (funisRes.error) throw funisRes.error;
     if (etapasRes.error) throw etapasRes.error;
 
-    setFunis(funisRes.data || []);
-    setEtapas(etapasRes.data as ProjetoEtapa[] || []);
+    const nextFunis = funisRes.data || [];
+    const nextEtapas = (etapasRes.data as ProjetoEtapa[]) || [];
+
+    setFunis(nextFunis);
+    setEtapas(nextEtapas);
     setEtiquetas(etiquetasRes.data || []);
     setConsultores(consultoresRes.data || []);
 
-    return funisRes.data || [];
+    return {
+      funis: nextFunis,
+      etapas: nextEtapas,
+    };
   }, []);
 
   // ─── Fetch projetos with backend filters ──────────────────
-  const fetchProjetos = useCallback(async (f: ProjetoFiltersState) => {
+  const fetchProjetos = useCallback(async (f: ProjetoFiltersState, availableEtapas: ProjetoEtapa[] = etapas) => {
     let query = supabase
       .from("projetos")
       .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
       .order("created_at", { ascending: false });
 
     // Backend filters
-    if (f.funilId) {
-      query = query.eq("funil_id", f.funilId);
-    }
     if (f.consultorId !== "todos") {
       query = query.eq("consultor_id", f.consultorId);
     }
@@ -156,8 +159,21 @@ export function useProjetoPipeline() {
       }
     }
 
-    // Filter by etiquetas if any selected
+    const etapaFunilMap = new Map<string, string>();
+    availableEtapas.forEach((etapa) => etapaFunilMap.set(etapa.id, etapa.funil_id));
+
+    // Filter by funil using etapa.funil_id as source of truth when available
     let filteredData = data || [];
+    if (f.funilId) {
+      filteredData = filteredData.filter((p: any) => {
+        const effectiveFunilId = p.etapa_id
+          ? (etapaFunilMap.get(p.etapa_id) ?? p.funil_id ?? null)
+          : (p.funil_id ?? null);
+        return effectiveFunilId === f.funilId;
+      });
+    }
+
+    // Filter by etiquetas if any selected
     if (f.etiquetaIds.length > 0) {
       const projetosComEtiqueta = new Set<string>();
       relMap.forEach((etIds, projId) => {
@@ -203,19 +219,19 @@ export function useProjetoPipeline() {
     }
 
     return enriched;
-  }, []);
+  }, [etapas]);
 
   // ─── Full fetch ──────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const funisData = await fetchMetadata();
-      const enriched = await fetchProjetos(filters);
+      const metadata = await fetchMetadata();
+      const enriched = await fetchProjetos(filters, metadata.etapas);
       setProjetos(enriched);
 
       // Auto-select first funil
-      if (funisData.length > 0 && !selectedFunilId) {
-        const firstActive = funisData.find((f: any) => f.ativo);
+      if (metadata.funis.length > 0 && !selectedFunilId) {
+        const firstActive = metadata.funis.find((f: any) => f.ativo);
         if (firstActive) {
           setSelectedFunilId(firstActive.id);
         }
@@ -406,13 +422,25 @@ export function useProjetoPipeline() {
   // ─── Projeto actions ─────────────────────────────────────
 
   const moveProjetoToEtapa = useCallback(async (projetoId: string, etapaId: string) => {
-    setProjetos(prev => prev.map(p => p.id === projetoId ? { ...p, etapa_id: etapaId } : p));
-    const { error } = await supabase.from("projetos").update({ etapa_id: etapaId }).eq("id", projetoId);
+    const etapa = etapas.find((item) => item.id === etapaId);
+    const nextFunilId = etapa?.funil_id ?? null;
+
+    setProjetos(prev => prev.map(p => p.id === projetoId ? {
+      ...p,
+      etapa_id: etapaId,
+      funil_id: nextFunilId ?? p.funil_id,
+    } : p));
+
+    const updatePayload = etapa
+      ? { etapa_id: etapaId, funil_id: etapa.funil_id }
+      : { etapa_id: etapaId };
+
+    const { error } = await supabase.from("projetos").update(updatePayload).eq("id", projetoId);
     if (error) {
       toast({ title: "Erro ao mover projeto", description: error.message, variant: "destructive" });
       fetchAll();
     }
-  }, [toast, fetchAll]);
+  }, [toast, fetchAll, etapas]);
 
   const moveProjetoToConsultor = useCallback(async (projetoId: string, consultorId: string) => {
     const consultor = consultores.find(c => c.id === consultorId);

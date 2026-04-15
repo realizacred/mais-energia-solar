@@ -51,10 +51,12 @@ function projetoStatusToDeal(status: string): string {
 
 function projetoToCard(p: ProjetoItem, etapaMap: Map<string, ProjetoEtapa>): DealKanbanCard {
   const etapa = p.etapa_id ? etapaMap.get(p.etapa_id) : null;
+  const effectiveFunilId = etapa?.funil_id || p.funil_id || "";
+
   return {
     deal_id: p.deal_id || p.id,
     tenant_id: "",
-    pipeline_id: p.funil_id || "",
+    pipeline_id: effectiveFunilId,
     stage_id: p.etapa_id || "",
     stage_name: etapa?.nome || "Sem etapa",
     stage_position: etapa?.ordem ?? 0,
