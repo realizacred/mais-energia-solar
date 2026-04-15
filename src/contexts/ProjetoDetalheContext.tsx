@@ -315,12 +315,10 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
       const propRes = deal.customer_id
         ? await supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", deal.customer_id).neq("status", "excluida")
         : { count: 0 };
-      const histRes = await supabase.from("deal_stage_history").select("id", { count: "exact", head: true }).eq("deal_id", deal.id);
       const checkRes = await supabase.from("checklists_instalador").select("id", { count: "exact", head: true }).eq("projeto_id", deal.id);
 
       const depEntries: [string, number][] = [
         ["Propostas", propRes.count ?? 0],
-        ["Histórico de etapas", histRes.count ?? 0],
         ["Checklists de instalação", checkRes.count ?? 0],
       ];
       const blocking: string[] = [];
@@ -335,7 +333,10 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
         return;
       }
 
-      await supabase.from("deal_kanban_projection").delete().eq("deal_id", deal.id);
+      await Promise.all([
+        supabase.from("deal_stage_history").delete().eq("deal_id", deal.id),
+        supabase.from("deal_kanban_projection").delete().eq("deal_id", deal.id),
+      ]);
       const { error } = await supabase.from("deals").delete().eq("id", deal.id);
       if (error) throw error;
 
