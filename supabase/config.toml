@@ -225,8 +225,6 @@ verify_jwt = false
 [functions.generate-visit-report]
 verify_jwt = false
 
-[functions.migrate-sm-proposals]
-verify_jwt = false
 
 [functions.migrate-sm-proposals-v2]
 verify_jwt = false
