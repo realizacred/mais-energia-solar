@@ -3312,6 +3312,9 @@ Deno.serve(async (req) => {
             }
           }
 
+          console.error("DEPOIS_PROPOSTA_NATIVA", { propostaId, status: report.steps.proposta_nativa?.status });
+
+          console.error("ANTES_VERSAO", { propostaId });
           // ── F. Proposta Versão ──
           // FIX: Always attempt version creation if propostaId exists and version is missing,
           // even when proposta_nativa was WOULD_SKIP (re-run after partial migration).
